@@ -55,7 +55,7 @@ Hệ thống không có nghiệp vụ đăng ký người dùng hoặc phân quy
 - High availability, multi-node production hoặc autoscaling.
 - Ứng dụng web/mobile riêng cho người dùng cuối.
 - Data Science hoặc Generative AI.
-- Thiết kế database/DDL chi tiết và chia task triển khai.
+- Thiết kế database/DDL chi tiết.
 
 ## 5. Giả định và ràng buộc
 
@@ -176,4 +176,3 @@ Mỗi lần chạy phải ghi tối thiểu: run ID, cửa sổ dữ liệu, th�
 | Data interval | Khoảng thời gian dữ liệu mà một DAG run chịu trách nhiệm |
 | Backfill | Chạy pipeline cho một hoặc nhiều khoảng ngày trong quá khứ |
 | Late update | Sự kiện đã tồn tại nhưng nguồn cập nhật lại sau đó |
-
