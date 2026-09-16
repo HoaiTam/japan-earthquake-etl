@@ -1,0 +1,87 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# IDEs and editors
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+*.swp
+*.swo
+*~
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+*.p12
+*.jks
+
+# Java and Maven
+target/
+*.class
+dependency-reduced-pom.xml
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+.mvn/timing.properties
+
+# Python tooling and virtual environments
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.venv/
+venv/
+
+# Airflow runtime files
+airflow/logs/
+airflow/airflow.db
+airflow/airflow-webserver.pid
+airflow/standalone_admin_password.txt
+
+# Spark and local metastore runtime files
+.sparkStaging/
+spark-warehouse/
+metastore_db/
+derby.log
+
+# Local data lake and service volumes
+data/
+staging/
+warehouse/
+minio-data/
+.minio.sys/
+trino/data/
+
+# Logs, caches and temporary files
+logs/
+.cache/
+tmp/
+temp/
+*.log
+*.pid
+*.tmp
+*.bak
+
+# Power BI local cache files; keep .pbix/.pbip source artifacts
+**/.pbi/localSettings.json
+**/.pbi/cache.abf
+**/.pbi/unappliedChanges.json
+
+# Microsoft Office lock files
+~$*.xlsx
+~$*.xlsm
+~$*.docx
+~$*.pptx
