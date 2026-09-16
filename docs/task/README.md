@@ -72,3 +72,8 @@ Một task chỉ được xem là `Done` khi:
 - Nếu spatial enrichment chưa ổn định cuối tuần 4, giữ tọa độ và phân loại `Unknown/Offshore` theo phạm vi tối thiểu, sau đó chuyển enrichment chi tiết thành Stretch.
 - Cuối mỗi tuần, nhóm review workload, dependency và exit criteria trong 20–30 phút.
 
+## 7. Baseline PLN-01
+
+Phạm vi MVP, KPI, đường găng và Definition of Done dùng chung được tập hợp tại [Baseline phạm vi MVP, KPI và Definition of Done](../specs/MVP_SCOPE_KPI_AND_DOD.md).
+
+Ba thành viên phải điền xác nhận trong tài liệu này trước khi chuyển `PLN-01` sang `Done`. Các quyết định kỹ thuật đã được giao cho task downstream không phải là lý do mở rộng phạm vi hoặc bỏ qua dependency.

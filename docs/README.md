@@ -10,6 +10,7 @@ Thư mục này là nguồn tài liệu chính thức cho dự án **Nền tản
 |---|---|
 | Hiểu nhanh đề tài, mục tiêu và công nghệ | [Giới thiệu đề tài](./GIOI_THIEU_DE_TAI_DONG_DAT_NHAT_BAN.md) |
 | Chốt yêu cầu và tiêu chí hoàn thành | [Đặc tả dự án](./specs/PROJECT_SPECIFICATION.md) |
+| Chốt MVP, KPI và Definition of Done | [Baseline PLN-01](./specs/MVP_SCOPE_KPI_AND_DOD.md) |
 | Hiểu các thành phần và cách chúng kết nối | [Kiến trúc hệ thống](./SYSTEM_ARCHITECTURE.md) |
 | Hiểu một lần chạy ETL hằng ngày | [Luồng ETL hằng ngày](./flows/DAILY_ETL_PIPELINE.md) |
 | Chạy bù, chạy lại hoặc xử lý lỗi | [Backfill và phục hồi](./flows/BACKFILL_AND_RECOVERY.md) |
@@ -33,7 +34,8 @@ docs/
 ├── LOCAL_OPERATIONS_RUNBOOK.md
 ├── DEMO_FLOWS.md
 ├── specs/
-│   └── PROJECT_SPECIFICATION.md
+│   ├── PROJECT_SPECIFICATION.md
+│   └── MVP_SCOPE_KPI_AND_DOD.md
 ├── flows/
 │   ├── DAILY_ETL_PIPELINE.md
 │   └── BACKFILL_AND_RECOVERY.md

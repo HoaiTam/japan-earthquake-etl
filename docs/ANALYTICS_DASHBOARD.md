@@ -43,7 +43,7 @@ Mọi KPI phải tôn trọng cùng filter context và chỉ đếm mỗi `earth
 
 - Không dùng `COUNT(*)` nếu query có join có thể nhân bản event.
 - `Average Magnitude` bỏ qua null, không thay null bằng 0.
-- Ngưỡng “Strong” là tham số/filter; giá trị mặc định chỉ chốt sau khi nhóm thống nhất.
+- Ngưỡng “Strong” là tham số/filter. Baseline `PLN-01` đề xuất giá trị mặc định `5.0`; giá trị này trở thành chính thức sau khi ba thành viên phê duyệt baseline.
 - Tên múi giờ phải xuất hiện cạnh thời gian; ưu tiên JST cho người xem, giữ UTC để đối soát.
 - Tooltip hoặc trang thông tin phải nêu nguồn USGS và thời điểm refresh.
 
@@ -215,4 +215,3 @@ WHERE event_time_utc >= TIMESTAMP '<start_utc>'
 - So sánh khu vực mà không nói rõ thời gian và completeness của dữ liệu.
 - Con số freshness không có timestamp/snapshot nguồn.
 - KPI dùng các định nghĩa khác nhau giữa visual và truy vấn kiểm chứng.
-
