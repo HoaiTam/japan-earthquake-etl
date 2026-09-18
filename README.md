@@ -4,9 +4,9 @@ Nền tảng ETL local-first để thu thập dữ liệu động đất từ US
 Spark Java theo mô hình Bronze–Silver–Gold, công bố bảng Gold qua Iceberg và
 Trino, sau đó phục vụ báo cáo Power BI.
 
-> Trạng thái hiện tại: **foundation scaffold (`REP-01`, `CFG-01`)**. Cấu trúc
-> module, mount contract và configuration contract đã được chốt; các service
-> runtime sẽ được bổ sung bởi những task foundation tiếp theo.
+> Trạng thái hiện tại: **foundation scaffold (`REP-01`, `CFG-01`, `CMP-01`)**.
+> Cấu trúc module, configuration contract và Compose foundation đã được chốt;
+> các service runtime sẽ được bổ sung bởi những task tiếp theo.
 
 ## Chuẩn bị trên máy local
 
@@ -38,11 +38,19 @@ cp .env.example .env
 Không commit hoặc chia sẻ file `.env`. Contract đầy đủ nằm trong
 [Configuration and secret contract](./docs/specs/CONFIGURATION_AND_SECRETS.md).
 
+Kiểm tra network, named volumes và Compose extensions (không pull image hoặc
+khởi động service):
+
+```bash
+./scripts/check-compose.sh
+```
+
 ## Cấu trúc repository
 
 ```text
 .
 ├── .env.example              # Mẫu cấu hình không chứa secret thật
+├── compose.yaml              # Network, volumes và Compose baseline
 ├── airflow/                  # DAG và test orchestration
 │   ├── dags/
 │   └── tests/
@@ -70,7 +78,8 @@ Chi tiết ownership, mount path và quy tắc mở rộng nằm trong
 | `./scripts/check-repository-layout.sh` | Chạy được | `REP-01` |
 | `cp .env.example .env` | Chạy được | `CFG-01` |
 | `./scripts/check-config.sh --require-local` | Chạy được | `CFG-01` |
-| `docker compose config` | Chưa có | `CMP-01` |
+| `./scripts/check-compose.sh` | Chạy được | `CMP-01` |
+| `docker compose config` | Chạy được | `CMP-01` |
 | `./mvnw clean test package` | Chưa có | `SPK-01` |
 
 Không chạy một lệnh được đánh dấu “Chưa có” cho tới khi task sở hữu đã merge.

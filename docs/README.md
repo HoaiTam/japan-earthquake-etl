@@ -14,6 +14,7 @@ Thư mục này là nguồn tài liệu chính thức cho dự án **Nền tản
 | Chốt MVP, KPI và Definition of Done | [Baseline PLN-01](./specs/MVP_SCOPE_KPI_AND_DOD.md) |
 | Hiểu cấu trúc module và mount path | [Repository layout](./specs/REPOSITORY_LAYOUT.md) |
 | Thiết lập biến môi trường và secret | [Configuration contract](./specs/CONFIGURATION_AND_SECRETS.md) |
+| Hiểu Compose network, volumes và baseline | [Compose foundation](./specs/COMPOSE_FOUNDATION.md) |
 | Hiểu các thành phần và cách chúng kết nối | [Kiến trúc hệ thống](./SYSTEM_ARCHITECTURE.md) |
 | Hiểu một lần chạy ETL hằng ngày | [Luồng ETL hằng ngày](./flows/DAILY_ETL_PIPELINE.md) |
 | Chạy bù, chạy lại hoặc xử lý lỗi | [Backfill và phục hồi](./flows/BACKFILL_AND_RECOVERY.md) |
@@ -40,6 +41,7 @@ docs/
 │   ├── PROJECT_SPECIFICATION.md
 │   ├── MVP_SCOPE_KPI_AND_DOD.md
 │   ├── CONFIGURATION_AND_SECRETS.md
+│   ├── COMPOSE_FOUNDATION.md
 │   └── REPOSITORY_LAYOUT.md
 ├── flows/
 │   ├── DAILY_ETL_PIPELINE.md

@@ -12,8 +12,9 @@ Tài liệu này là contract cho các task thêm Airflow, Spark Java, Trino và
 Compose. Mỗi task downstream mở rộng đúng module được giao và không tự tạo một
 cấu trúc hoặc mount path cạnh tranh.
 
-Scaffold không cung cấp service chạy được. `compose.yaml`, Maven Wrapper,
-`pom.xml`, DAG và catalog properties thuộc các task riêng trong backlog.
+Scaffold chưa cung cấp runtime service chạy được. Maven Wrapper, `pom.xml`, DAG
+và catalog properties thuộc các task riêng trong backlog; `compose.yaml` hiện
+chỉ chứa foundation contract và validation profile.
 
 ## 2. Cấu trúc chuẩn
 
@@ -22,6 +23,7 @@ project-root/
 ├── README.md
 ├── AGENTS.md
 ├── .env.example
+├── compose.yaml
 ├── airflow/
 │   ├── README.md
 │   ├── dags/
@@ -32,10 +34,12 @@ project-root/
 │   └── README.md
 ├── docs/
 │   └── specs/
+│       ├── COMPOSE_FOUNDATION.md
 │       ├── CONFIGURATION_AND_SECRETS.md
 │       └── REPOSITORY_LAYOUT.md
 ├── scripts/
 │   ├── README.md
+│   ├── check-compose.sh
 │   ├── check-config.sh
 │   └── check-repository-layout.sh
 ├── spark/
@@ -76,8 +80,9 @@ namespace.
 
 ## 4. Mount contract
 
-`CMP-01` phải dùng đường dẫn dưới đây hoặc cập nhật contract này trong cùng PR
-nếu có lý do kỹ thuật đã được review.
+`CMP-01` dành trước các named volume dưới đây. Task downstream phải dùng đúng
+đường dẫn hoặc cập nhật contract này trong cùng PR nếu có lý do kỹ thuật đã
+được review.
 
 | Service/consumer | Source | Container target | Mode | Ghi chú |
 |---|---|---|---|---|
@@ -87,6 +92,7 @@ nếu có lý do kỹ thuật đã được review.
 | Airflow components | Named volume `airflow_logs` | `/opt/airflow/logs` | Read-write | Log runtime tách khỏi DAG source |
 | Airflow metadata DB | Named volume `airflow_db_data` | `/var/lib/postgresql/data` | Read-write | Chỉ metadata Airflow |
 | MinIO | Named volume `minio_data` | `/data` | Read-write | Bronze, Silver và Gold warehouse |
+| Iceberg Catalog | Named volume `iceberg_catalog_data` | Do `QRY-01` chốt | Read-write | Catalog state tách khỏi data lake |
 
 Spark source là build context, không bind toàn bộ repository vào container.
 `SPK-01` chốt tên JAR; image/runtime đặt artifact tại
@@ -121,6 +127,6 @@ thuộc `CMP-01`.
 | Task | Trách nhiệm tiếp theo |
 |---|---|
 | `CFG-01` | Đã thêm `.env.example`, config contract và secret hygiene check |
-| `CMP-01` | Thêm `compose.yaml`, network, named volume và health dependency |
+| `CMP-01` | Đã thêm Compose network, named volumes và extension baseline |
 | `SPK-01` | Thêm Maven Wrapper, `pom.xml`, package Java, Hello World và test base |
 | `QRY-01` | Chốt Trino/Iceberg Catalog config và catalog state volume |

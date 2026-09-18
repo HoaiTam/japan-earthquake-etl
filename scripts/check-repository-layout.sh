@@ -25,9 +25,12 @@ airflow/README.md
 airflow/dags/README.md
 airflow/tests/README.md
 compose/README.md
+compose.yaml
+docs/specs/COMPOSE_FOUNDATION.md
 docs/specs/CONFIGURATION_AND_SECRETS.md
 docs/specs/REPOSITORY_LAYOUT.md
 scripts/README.md
+scripts/check-compose.sh
 scripts/check-config.sh
 spark/README.md
 tests/README.md

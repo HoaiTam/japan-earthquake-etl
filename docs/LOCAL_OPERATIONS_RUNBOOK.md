@@ -8,7 +8,7 @@
 
 ## 1. Mục đích
 
-Runbook mô tả thứ tự chuẩn để chuẩn bị, khởi động, kiểm tra, chạy pipeline và xử lý lỗi. Repository đã có scaffold và smoke check cho cấu trúc. Vì project chưa có `compose.yaml`, DAG hay JAR, các lệnh runtime có placeholder được ghi rõ; không nên copy chạy cho tới khi đã thay bằng tên thực tế.
+Runbook mô tả thứ tự chuẩn để chuẩn bị, khởi động, kiểm tra, chạy pipeline và xử lý lỗi. Repository đã có scaffold, configuration contract và Compose foundation. Vì project chưa có runtime service, DAG hay JAR, các lệnh runtime có placeholder được ghi rõ; không nên copy chạy cho tới khi đã thay bằng tên thực tế.
 
 ## 2. Yêu cầu máy
 
@@ -34,6 +34,7 @@ docker compose version
 ```text
 project-root/
 ├── .env.example
+├── compose.yaml
 ├── airflow/
 │   ├── dags/
 │   └── tests/
@@ -59,8 +60,10 @@ Kiểm tra scaffold từ project root:
 
 Mount source/target, ownership module và các artifact chưa được tạo được chốt
 tại [Repository layout và mount contract](./specs/REPOSITORY_LAYOUT.md). Hiện
-chưa có `compose.yaml`, Maven Wrapper hoặc `pom.xml`; các file này thuộc task
-foundation tiếp theo và không được giả định là đã chạy được.
+chưa có runtime service, Maven Wrapper hoặc `pom.xml`; các artifact này thuộc
+task tiếp theo và không được giả định là đã chạy được. Network, volume lifecycle
+và dependency policy nằm tại
+[Compose foundation contract](./specs/COMPOSE_FOUNDATION.md).
 
 ## 4. Nhóm biến môi trường
 
@@ -102,15 +105,29 @@ Checker không in giá trị secret. Không khởi động service nếu kiểm 
 - Các port host dự kiến chưa bị chiếm.
 - `.env` tồn tại và không được Git track.
 - `./scripts/check-config.sh --require-local` thành công.
+- `./scripts/check-compose.sh` thành công.
 - Máy còn đủ disk/RAM.
 - Thư mục/volume mount có quyền phù hợp.
 
-### 5.2. Build và khởi tạo
+### 5.2. Validate Compose foundation
 
-Sau khi `compose.yaml` tồn tại, chuỗi lệnh chuẩn dự kiến:
+Các lệnh sau chạy được ngay và không khởi động service:
 
 ```bash
-docker compose config
+./scripts/check-compose.sh
+docker compose --env-file .env config --quiet
+docker compose --env-file .env --profile validation config --quiet
+```
+
+Profile `validation` chỉ giữ health/dependency/resource reference trong resolved
+config; không cần chạy hoặc pull image của các contract service.
+
+### 5.3. Build và khởi tạo runtime
+
+Sau khi các task service đã thêm image, healthcheck và dependency thật, chuỗi
+lệnh chuẩn dự kiến:
+
+```bash
 docker compose build
 docker compose up -d <initialization-services>
 docker compose up -d
@@ -118,7 +135,7 @@ docker compose up -d
 
 `<initialization-services>` phải được thay bằng service thật, ví dụ khởi tạo bucket/Airflow. Không chạy placeholder nguyên văn.
 
-### 5.3. Kiểm tra service
+### 5.4. Kiểm tra service
 
 ```bash
 docker compose ps
