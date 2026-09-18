@@ -19,13 +19,16 @@ trino/catalog
 "
 
 required_files="
+.env.example
 README.md
 airflow/README.md
 airflow/dags/README.md
 airflow/tests/README.md
 compose/README.md
+docs/specs/CONFIGURATION_AND_SECRETS.md
 docs/specs/REPOSITORY_LAYOUT.md
 scripts/README.md
+scripts/check-config.sh
 spark/README.md
 tests/README.md
 tests/fixtures/README.md
@@ -56,4 +59,3 @@ if [ "$failed" -ne 0 ]; then
 fi
 
 printf 'REP-01 repository scaffold check passed.\n'
-

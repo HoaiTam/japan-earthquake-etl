@@ -12,9 +12,8 @@ Tài liệu này là contract cho các task thêm Airflow, Spark Java, Trino và
 Compose. Mỗi task downstream mở rộng đúng module được giao và không tự tạo một
 cấu trúc hoặc mount path cạnh tranh.
 
-Scaffold không cung cấp service chạy được. `.env.example`, `compose.yaml`, Maven
-Wrapper, `pom.xml`, DAG và catalog properties thuộc các task riêng trong
-backlog.
+Scaffold không cung cấp service chạy được. `compose.yaml`, Maven Wrapper,
+`pom.xml`, DAG và catalog properties thuộc các task riêng trong backlog.
 
 ## 2. Cấu trúc chuẩn
 
@@ -22,6 +21,7 @@ backlog.
 project-root/
 ├── README.md
 ├── AGENTS.md
+├── .env.example
 ├── airflow/
 │   ├── README.md
 │   ├── dags/
@@ -32,9 +32,11 @@ project-root/
 │   └── README.md
 ├── docs/
 │   └── specs/
+│       ├── CONFIGURATION_AND_SECRETS.md
 │       └── REPOSITORY_LAYOUT.md
 ├── scripts/
 │   ├── README.md
+│   ├── check-config.sh
 │   └── check-repository-layout.sh
 ├── spark/
 │   ├── README.md
@@ -118,8 +120,7 @@ thuộc `CMP-01`.
 
 | Task | Trách nhiệm tiếp theo |
 |---|---|
-| `CFG-01` | Thêm `.env.example` và quy tắc cấu hình/secret |
+| `CFG-01` | Đã thêm `.env.example`, config contract và secret hygiene check |
 | `CMP-01` | Thêm `compose.yaml`, network, named volume và health dependency |
 | `SPK-01` | Thêm Maven Wrapper, `pom.xml`, package Java, Hello World và test base |
 | `QRY-01` | Chốt Trino/Iceberg Catalog config và catalog state volume |
-

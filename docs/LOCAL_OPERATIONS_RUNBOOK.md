@@ -33,6 +33,7 @@ docker compose version
 
 ```text
 project-root/
+├── .env.example
 ├── airflow/
 │   ├── dags/
 │   └── tests/
@@ -58,12 +59,15 @@ Kiểm tra scaffold từ project root:
 
 Mount source/target, ownership module và các artifact chưa được tạo được chốt
 tại [Repository layout và mount contract](./specs/REPOSITORY_LAYOUT.md). Hiện
-chưa có `.env.example`, `compose.yaml`, Maven Wrapper hoặc `pom.xml`; các file
-này thuộc task foundation tiếp theo và không được giả định là đã chạy được.
+chưa có `compose.yaml`, Maven Wrapper hoặc `pom.xml`; các file này thuộc task
+foundation tiếp theo và không được giả định là đã chạy được.
 
 ## 4. Nhóm biến môi trường
 
-Không ghi giá trị thật trong tài liệu. `.env.example` cần mô tả tối thiểu:
+Không ghi giá trị thật trong tài liệu. Contract đầy đủ và phân loại biến nhạy
+cảm nằm tại
+[Configuration and secret contract](./specs/CONFIGURATION_AND_SECRETS.md).
+Các nhóm cấu hình hiện có:
 
 | Nhóm | Ví dụ tên biến | Ghi chú |
 |---|---|---|
@@ -75,13 +79,20 @@ Không ghi giá trị thật trong tài liệu. `.env.example` cần mô tả t�
 | Trino | host/port/catalog/schema | Port host chỉ mở khi cần |
 | Pipeline | timezone, schedule, overlap days, study area | Không hard-code trong job |
 
-Khởi tạo `.env` sau khi file mẫu tồn tại:
+Khởi tạo `.env`:
 
 ```bash
 cp .env.example .env
 ```
 
-Sau đó thay placeholder bằng credential local mạnh và cấu hình cần thiết.
+Sau đó thay toàn bộ placeholder `change-me-*` bằng credential local mạnh rồi
+chạy:
+
+```bash
+./scripts/check-config.sh --require-local
+```
+
+Checker không in giá trị secret. Không khởi động service nếu kiểm tra thất bại.
 
 ## 5. Khởi động lần đầu
 
@@ -90,6 +101,7 @@ Sau đó thay placeholder bằng credential local mạnh và cấu hình cần t
 - Docker daemon đang chạy.
 - Các port host dự kiến chưa bị chiếm.
 - `.env` tồn tại và không được Git track.
+- `./scripts/check-config.sh --require-local` thành công.
 - Máy còn đủ disk/RAM.
 - Thư mục/volume mount có quyền phù hợp.
 

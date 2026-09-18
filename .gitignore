@@ -18,6 +18,11 @@
 .env.*
 !.env.example
 !.env.*.example
+.envrc
+!.envrc.example
+secrets/
+credentials*.json
+service-account*.json
 *.pem
 *.key
 *.p12
