@@ -1,0 +1,122 @@
+name: japan-earthquake-etl
+
+x-runtime-defaults: &runtime-defaults
+  init: true
+  restart: unless-stopped
+  networks:
+    - pipeline
+
+x-resource-baseline: &resource-baseline
+  deploy:
+    resources:
+      limits:
+        cpus: "1.0"
+        memory: 1G
+      reservations:
+        cpus: "0.25"
+        memory: 256M
+
+x-healthcheck-defaults: &healthcheck-defaults
+  interval: 10s
+  timeout: 5s
+  retries: 12
+  start_period: 20s
+
+x-healthy-dependency: &healthy-dependency
+  condition: service_healthy
+  restart: true
+  required: true
+
+services:
+  compose-health-contract:
+    <<: *runtime-defaults
+    image: busybox:1.36.1
+    profiles:
+      - validation
+    command:
+      - tail
+      - -f
+      - /dev/null
+    healthcheck:
+      <<: *healthcheck-defaults
+      test:
+        - CMD
+        - "true"
+    read_only: true
+    restart: "no"
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
+
+  compose-contract:
+    <<:
+      - *runtime-defaults
+      - *resource-baseline
+    image: busybox:1.36.1
+    profiles:
+      - validation
+    command:
+      - /bin/true
+    read_only: true
+    restart: "no"
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      compose-health-contract:
+        <<: *healthy-dependency
+    volumes:
+      - type: volume
+        source: pipeline_staging
+        target: /mnt/contracts/pipeline-staging
+        read_only: true
+      - type: volume
+        source: airflow_logs
+        target: /mnt/contracts/airflow-logs
+        read_only: true
+      - type: volume
+        source: airflow_db_data
+        target: /mnt/contracts/airflow-db-data
+        read_only: true
+      - type: volume
+        source: minio_data
+        target: /mnt/contracts/minio-data
+        read_only: true
+      - type: volume
+        source: iceberg_catalog_data
+        target: /mnt/contracts/iceberg-catalog-data
+        read_only: true
+
+networks:
+  pipeline:
+    driver: bridge
+    attachable: false
+    labels:
+      com.japan-earthquake-etl.scope: pipeline
+
+volumes:
+  pipeline_staging:
+    driver: local
+    labels:
+      com.japan-earthquake-etl.lifecycle: transient
+      com.japan-earthquake-etl.purpose: staging
+  airflow_logs:
+    driver: local
+    labels:
+      com.japan-earthquake-etl.lifecycle: operational
+      com.japan-earthquake-etl.purpose: airflow-logs
+  airflow_db_data:
+    driver: local
+    labels:
+      com.japan-earthquake-etl.lifecycle: durable
+      com.japan-earthquake-etl.purpose: airflow-metadata
+  minio_data:
+    driver: local
+    labels:
+      com.japan-earthquake-etl.lifecycle: durable
+      com.japan-earthquake-etl.purpose: data-lake
+  iceberg_catalog_data:
+    driver: local
+    labels:
+      com.japan-earthquake-etl.lifecycle: durable
+      com.japan-earthquake-etl.purpose: catalog-state
