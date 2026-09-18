@@ -4,11 +4,11 @@ Nền tảng ETL local-first để thu thập dữ liệu động đất từ US
 Spark Java theo mô hình Bronze–Silver–Gold, công bố bảng Gold qua Iceberg và
 Trino, sau đó phục vụ báo cáo Power BI.
 
-> Trạng thái hiện tại: **repository scaffold (`REP-01`)**. Cấu trúc module và
-> mount contract đã được chốt; các service runtime sẽ được bổ sung bởi những
-> task foundation tiếp theo.
+> Trạng thái hiện tại: **foundation scaffold (`REP-01`, `CFG-01`)**. Cấu trúc
+> module, mount contract và configuration contract đã được chốt; các service
+> runtime sẽ được bổ sung bởi những task foundation tiếp theo.
 
-## Kiểm tra scaffold trên máy local
+## Chuẩn bị trên máy local
 
 Yêu cầu hiện tại chỉ gồm Git và một shell tương thích POSIX (`sh`). Từ thư mục
 gốc repository, chạy:
@@ -28,10 +28,21 @@ bind mount đã được dành trước. Nó là smoke check cho scaffold, khôn
 Maven test hay `docker compose config` sau khi các task tương ứng được triển
 khai.
 
+Tạo cấu hình local, thay tất cả placeholder `change-me-*`, rồi kiểm tra:
+
+```bash
+cp .env.example .env
+./scripts/check-config.sh --require-local
+```
+
+Không commit hoặc chia sẻ file `.env`. Contract đầy đủ nằm trong
+[Configuration and secret contract](./docs/specs/CONFIGURATION_AND_SECRETS.md).
+
 ## Cấu trúc repository
 
 ```text
 .
+├── .env.example              # Mẫu cấu hình không chứa secret thật
 ├── airflow/                  # DAG và test orchestration
 │   ├── dags/
 │   └── tests/
@@ -57,7 +68,8 @@ Chi tiết ownership, mount path và quy tắc mở rộng nằm trong
 | Lệnh | Trạng thái | Task cung cấp |
 |---|---|---|
 | `./scripts/check-repository-layout.sh` | Chạy được | `REP-01` |
-| `cp .env.example .env` | Chưa có | `CFG-01` |
+| `cp .env.example .env` | Chạy được | `CFG-01` |
+| `./scripts/check-config.sh --require-local` | Chạy được | `CFG-01` |
 | `docker compose config` | Chưa có | `CMP-01` |
 | `./mvnw clean test package` | Chưa có | `SPK-01` |
 
@@ -72,4 +84,3 @@ Hướng dẫn vận hành đầy đủ được duy trì trong
 - Tuân theo [Git workflow](./docs/conventions_and_workflow/GIT_WORKFLOW.md) và
   [commit convention](./docs/conventions_and_workflow/COMMIT_CONVENTION.md).
 - Không commit secret, dữ liệu runtime, Maven `target/` hoặc volume local.
-

@@ -7,4 +7,5 @@ theo mặc định.
 Hiện có:
 
 - `check-repository-layout.sh`: smoke check cho scaffold `REP-01`.
-
+- `check-config.sh`: kiểm tra `.env.example`, `.env` và secret hygiene cho
+  `CFG-01`; dùng `--require-local` trước runtime và không in giá trị cấu hình.
