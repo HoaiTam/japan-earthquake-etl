@@ -8,7 +8,7 @@
 
 ## 1. Mục đích
 
-Runbook mô tả thứ tự chuẩn để chuẩn bị, khởi động, kiểm tra, chạy pipeline và xử lý lỗi. Vì project chưa có `compose.yaml`, DAG hay JAR, các lệnh có placeholder được ghi rõ; không nên copy chạy cho tới khi đã thay bằng tên thực tế.
+Runbook mô tả thứ tự chuẩn để chuẩn bị, khởi động, kiểm tra, chạy pipeline và xử lý lỗi. Repository đã có scaffold và smoke check cho cấu trúc. Vì project chưa có `compose.yaml`, DAG hay JAR, các lệnh runtime có placeholder được ghi rõ; không nên copy chạy cho tới khi đã thay bằng tên thực tế.
 
 ## 2. Yêu cầu máy
 
@@ -29,24 +29,37 @@ docker --version
 docker compose version
 ```
 
-## 3. File/cấu hình dự kiến
+## 3. Cấu trúc repository hiện tại
 
 ```text
 project-root/
-├── compose.yaml
-├── .env.example
-├── .env                    # không commit
 ├── airflow/
-│   └── dags/
+│   ├── dags/
+│   └── tests/
+├── compose/
+├── scripts/
 ├── spark/
-│   ├── pom.xml
 │   └── src/
+│       ├── main/java/
+│       └── test/
+├── tests/
+│   ├── fixtures/
+│   └── integration/
 ├── trino/
 │   └── catalog/
 └── docs/
 ```
 
-Cấu trúc cuối cùng phải được cập nhật tại đây ngay khi scaffold project.
+Kiểm tra scaffold từ project root:
+
+```bash
+./scripts/check-repository-layout.sh
+```
+
+Mount source/target, ownership module và các artifact chưa được tạo được chốt
+tại [Repository layout và mount contract](./specs/REPOSITORY_LAYOUT.md). Hiện
+chưa có `.env.example`, `compose.yaml`, Maven Wrapper hoặc `pom.xml`; các file
+này thuộc task foundation tiếp theo và không được giả định là đã chạy được.
 
 ## 4. Nhóm biến môi trường
 
@@ -266,4 +279,3 @@ Catalog, MinIO API nội bộ và metadata database không cần public lên hos
 - Bucket/catalog/schema/table naming.
 - Backup/restore command đã kiểm thử.
 - Known issues và resource profile đo được.
-
