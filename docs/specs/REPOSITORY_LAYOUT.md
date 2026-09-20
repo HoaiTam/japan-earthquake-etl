@@ -93,7 +93,7 @@ namespace.
 
 | Service/consumer | Source | Container target | Mode | Ghi chú |
 |---|---|---|---|---|
-| Airflow webserver/scheduler | `./airflow/dags` | `/opt/airflow/dags` | Bind, read-only | DAG source duy nhất |
+| Airflow API/scheduler/DAG processor | `./airflow/dags` | `/opt/airflow/dags` | Bind, read-only | DAG source duy nhất |
 | Trino coordinator | `./trino/catalog` | `/etc/trino/catalog` | Bind, read-only | Chỉ catalog properties |
 | Airflow task và Spark runtime | Named volume `pipeline_staging` | `/opt/pipeline/staging` | Read-write | Dữ liệu tạm trao đổi; không commit |
 | Airflow components | Named volume `airflow_logs` | `/opt/airflow/logs` | Read-write | Log runtime tách khỏi DAG source |

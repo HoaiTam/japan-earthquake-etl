@@ -93,11 +93,17 @@ credential chỉ dùng cho bootstrap/admin local. Chi tiết tại
 | `AIRFLOW_ADMIN_USERNAME` | Có | Không | Username quản trị local |
 | `AIRFLOW_ADMIN_PASSWORD` | Có | Có | Mật khẩu quản trị local |
 | `AIRFLOW_FERNET_KEY` | Có | Có | Mã hóa connection/variable nhạy cảm |
-| `AIRFLOW_WEBSERVER_SECRET_KEY` | Có | Có | Ký session webserver |
+| `AIRFLOW_API_JWT_SECRET` | Có | Có | Ký JWT cho API/task execution |
 | `AIRFLOW_WEB_HOST_PORT` | Có | Không | Port host của Airflow UI |
 | `AIRFLOW_DB_USER` | Có | Không | User metadata database |
 | `AIRFLOW_DB_PASSWORD` | Có | Có | Mật khẩu metadata database |
 | `AIRFLOW_DB_NAME` | Có | Không | Tên metadata database |
+
+`AFL-01` dùng Airflow `3.3.2` với FAB auth manager và API server thay cho lệnh
+webserver cũ. `AIRFLOW_DB_PASSWORD` phải dùng ký tự URI-safe vì được truyền vào
+SQLAlchemy connection URI nội bộ. Admin password, database password và API JWT
+secret phải khác nhau. Chi tiết tại
+[Airflow local contract](./AIRFLOW_LOCAL.md).
 
 ### Spark, Iceberg và Trino
 
@@ -124,8 +130,8 @@ không ghi trực tiếp vào `pom.xml`, DAG hoặc catalog properties.
 1. `.env` bị ignore và không được Git track; `.env.example` không bị ignore.
 2. Key bắt buộc không thiếu, không trùng, không rỗng.
 3. Secret trong file mẫu chỉ là `change-me-*`; file local không còn placeholder.
-4. Secret local đủ dài, Fernet key đúng định dạng; port/numeric/URI hợp lệ và
-   các host port không trùng nhau.
+4. Secret local đủ dài và khác nhau theo vai trò, Fernet key đúng định dạng;
+   port/numeric/URI hợp lệ và các host port không trùng nhau.
 5. `WAREHOUSE_PATH` khớp `DATA_BUCKET`.
 6. File chuẩn bị commit không chứa private-key header hoặc token pattern phổ
    biến; checker chỉ in tên file nghi vấn.

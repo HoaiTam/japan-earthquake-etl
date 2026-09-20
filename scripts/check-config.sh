@@ -38,7 +38,7 @@ AIRFLOW_UID
 AIRFLOW_ADMIN_USERNAME
 AIRFLOW_ADMIN_PASSWORD
 AIRFLOW_FERNET_KEY
-AIRFLOW_WEBSERVER_SECRET_KEY
+AIRFLOW_API_JWT_SECRET
 AIRFLOW_WEB_HOST_PORT
 AIRFLOW_DB_USER
 AIRFLOW_DB_PASSWORD
@@ -62,7 +62,7 @@ MINIO_ACCESS_KEY
 MINIO_SECRET_KEY
 AIRFLOW_ADMIN_PASSWORD
 AIRFLOW_FERNET_KEY
-AIRFLOW_WEBSERVER_SECRET_KEY
+AIRFLOW_API_JWT_SECRET
 AIRFLOW_DB_PASSWORD
 "
 
@@ -166,7 +166,7 @@ MINIO_ROOT_PASSWORD
 MINIO_ACCESS_KEY
 MINIO_SECRET_KEY
 AIRFLOW_ADMIN_PASSWORD
-AIRFLOW_WEBSERVER_SECRET_KEY
+AIRFLOW_API_JWT_SECRET
 AIRFLOW_DB_PASSWORD
 "
 
@@ -310,6 +310,21 @@ validate_semantics() {
     fi
     if [ "$minio_root_password" = "$minio_secret_key" ]; then
         report_error "MINIO_SECRET_KEY must differ from MINIO_ROOT_PASSWORD"
+    fi
+
+    airflow_db_password=$(read_value "$file" AIRFLOW_DB_PASSWORD)
+    case "$airflow_db_password" in
+        *[!A-Za-z0-9._~-]*)
+            report_error "AIRFLOW_DB_PASSWORD must use URI-safe characters: A-Z, a-z, 0-9, dot, underscore, tilde or hyphen"
+            ;;
+    esac
+
+    airflow_admin_password=$(read_value "$file" AIRFLOW_ADMIN_PASSWORD)
+    airflow_jwt_secret=$(read_value "$file" AIRFLOW_API_JWT_SECRET)
+    if [ "$airflow_admin_password" = "$airflow_db_password" ] ||
+       [ "$airflow_admin_password" = "$airflow_jwt_secret" ] ||
+       [ "$airflow_db_password" = "$airflow_jwt_secret" ]; then
+        report_error "Airflow admin, database and API JWT secrets must be distinct"
     fi
 
     minio_host_port=$(read_value "$file" MINIO_CONSOLE_HOST_PORT)

@@ -176,8 +176,9 @@ stateDiagram-v2
 flowchart TB
     subgraph Host["Máy local"]
         subgraph Compose["Docker Compose network"]
-            AFW["Airflow webserver"]
+            AFW["Airflow API server / UI"]
             AFS["Airflow scheduler"]
+            AFP["Airflow DAG processor"]
             PG["Airflow metadata DB"]
             SM["Spark master"]
             SW["Spark worker"]
@@ -191,6 +192,8 @@ flowchart TB
     PBI["Power BI trên Windows"]
 
     AFS --> PG
+    AFP --> PG
+    AFW --> PG
     AFS --> SC
     SC --> SM
     SM --> SW
@@ -208,9 +211,11 @@ flowchart TB
 
 Chỉ các giao diện cần cho người vận hành và Power BI mới được publish ra host. MinIO API, Catalog, Spark và metadata database nên giữ trong Docker network trừ khi có nhu cầu debug có kiểm soát.
 
-Ở baseline MIO-01, chỉ MinIO Console được bind vào loopback host; S3 API không
-publish. `minio-init` dùng root credential để bootstrap, còn pipeline consumer
-dùng user riêng với policy giới hạn theo bucket/prefix.
+Ở baseline hiện tại, MinIO Console và Airflow UI/API được bind vào loopback
+host; S3 API và PostgreSQL metadata không publish. `minio-init` dùng root
+credential để bootstrap, còn pipeline consumer dùng user riêng với policy giới
+hạn theo bucket/prefix. Airflow dùng LocalExecutor, PostgreSQL metadata và DAG
+processor độc lập theo contract AFL-01.
 
 ## 10. Bảo mật tối thiểu
 
