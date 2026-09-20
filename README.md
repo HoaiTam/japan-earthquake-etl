@@ -4,9 +4,9 @@ Nền tảng ETL local-first để thu thập dữ liệu động đất từ US
 Spark Java theo mô hình Bronze–Silver–Gold, công bố bảng Gold qua Iceberg và
 Trino, sau đó phục vụ báo cáo Power BI.
 
-> Trạng thái hiện tại: **foundation + MinIO storage (`MIO-01`)**.
-> Cấu trúc module, configuration contract, Compose foundation và MinIO bucket
-> bootstrap đã được triển khai; Airflow/Spark/query thuộc các task tiếp theo.
+> Trạng thái hiện tại: **foundation + MinIO + Airflow local (`AFL-01`)**.
+> MinIO bucket bootstrap và Airflow local runtime đã được triển khai;
+> DAG ETL, Spark và query services thuộc các task tiếp theo.
 
 ## Chuẩn bị trên máy local
 
@@ -57,6 +57,17 @@ Smoke test giữ MinIO chạy, giữ volume dữ liệu và chỉ xóa đúng ob
 Chi tiết bucket, prefix, quyền truy cập và cơ chế init nằm tại
 [MinIO storage contract](./docs/specs/MINIO_STORAGE.md).
 
+Kiểm tra contract Airflow tĩnh, sau đó khởi động runtime và trigger DAG smoke:
+
+```bash
+./scripts/check-airflow.sh
+./scripts/smoke-airflow.sh
+```
+
+Smoke test giữ Airflow/PostgreSQL chạy và giữ metadata/log volume. UI/API mặc
+định ở `http://127.0.0.1:8080`. Kiến trúc service, init, healthcheck và cách
+debug nằm tại [Airflow local contract](./docs/specs/AIRFLOW_LOCAL.md).
+
 ## Cấu trúc repository
 
 ```text
@@ -94,6 +105,8 @@ Chi tiết ownership, mount path và quy tắc mở rộng nằm trong
 | `docker compose config` | Chạy được | `CMP-01` |
 | `./scripts/check-minio.sh` | Chạy được, không cần start service | `MIO-01` |
 | `./scripts/smoke-minio.sh` | Chạy được khi có `.env` và Docker daemon | `MIO-01` |
+| `./scripts/check-airflow.sh` | Chạy được, không cần start service | `AFL-01` |
+| `./scripts/smoke-airflow.sh` | Chạy được khi có `.env` và Docker daemon | `AFL-01` |
 | `./mvnw clean test package` | Chưa có | `SPK-01` |
 
 Không chạy một lệnh được đánh dấu “Chưa có” cho tới khi task sở hữu đã merge.

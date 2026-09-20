@@ -2,7 +2,7 @@
 
 | Thuộc tính | Giá trị |
 |---|---|
-| Trạng thái | Implemented từng phần — MinIO đã có lệnh kiểm chứng |
+| Trạng thái | Implemented từng phần — MinIO và Airflow có smoke test |
 | Đối tượng | Thành viên phát triển/vận hành demo |
 | Môi trường | Docker Compose trên máy local |
 
@@ -10,8 +10,8 @@
 
 Runbook mô tả thứ tự chuẩn để chuẩn bị, khởi động, kiểm tra, chạy pipeline và
 xử lý lỗi. Repository đã có scaffold, configuration contract, Compose
-foundation và MinIO runtime. Airflow, Spark, Catalog, Trino, DAG và JAR chưa có;
-placeholder của các thành phần đó không nên copy chạy.
+foundation, MinIO runtime và Airflow local runtime. DAG ETL, Spark, Catalog,
+Trino và JAR chưa có; placeholder của các thành phần đó không nên copy chạy.
 
 ## 2. Yêu cầu máy
 
@@ -42,6 +42,7 @@ project-root/
 │   ├── dags/
 │   └── tests/
 ├── compose/
+│   ├── airflow/
 │   └── minio/
 ├── scripts/
 ├── spark/
@@ -64,12 +65,14 @@ Kiểm tra scaffold từ project root:
 
 Mount source/target, ownership module và các artifact chưa được tạo được chốt
 tại [Repository layout và mount contract](./specs/REPOSITORY_LAYOUT.md). Hiện đã
-có MinIO runtime nhưng chưa có Airflow/Spark/query runtime, Maven Wrapper hoặc
-`pom.xml`; các artifact đó thuộc task tiếp theo. Network, volume lifecycle và
-dependency policy nằm tại
+có MinIO và Airflow local runtime nhưng chưa có Spark/query runtime, Maven
+Wrapper hoặc `pom.xml`; các artifact đó thuộc task tiếp theo. Network, volume
+lifecycle và dependency policy nằm tại
 [Compose foundation contract](./specs/COMPOSE_FOUNDATION.md). Contract
 bucket/prefix, credential và bootstrap nằm tại
 [MinIO storage contract](./specs/MINIO_STORAGE.md).
+Airflow service, init, DAG smoke và troubleshooting nằm tại
+[Airflow local contract](./specs/AIRFLOW_LOCAL.md).
 
 ## 4. Nhóm biến môi trường
 
@@ -113,6 +116,7 @@ Checker không in giá trị secret. Không khởi động service nếu kiểm 
 - `./scripts/check-config.sh --require-local` thành công.
 - `./scripts/check-compose.sh` thành công.
 - `./scripts/check-minio.sh` thành công.
+- `./scripts/check-airflow.sh` thành công.
 - Máy còn đủ disk/RAM.
 - Thư mục/volume mount có quyền phù hợp.
 
@@ -146,7 +150,24 @@ logic được tạo bằng marker `.keep`; marker không phải dữ liệu pip
 Khi các task runtime còn lại hoàn tất, bổ sung chúng vào lệnh startup chung;
 không tự thay placeholder bằng service name chưa được merge.
 
-### 5.4. Kiểm tra service
+### 5.4. Khởi tạo Airflow local
+
+Sau khi `.env` hợp lệ:
+
+```bash
+./scripts/smoke-airflow.sh
+docker compose --env-file .env ps -a \
+  airflow-postgres airflow-init airflow-api-server \
+  airflow-scheduler airflow-dag-processor
+```
+
+Kết quả đúng là PostgreSQL/API/scheduler/DAG processor healthy,
+`airflow-init` thoát `0` và DAG `afl_01_smoke` kết thúc `success`. Script giữ
+service cùng metadata/log volume để tiếp tục debug hoặc phát triển DAG.
+
+Airflow UI/API mặc định: `http://127.0.0.1:8080`.
+
+### 5.5. Kiểm tra service
 
 ```bash
 docker compose --env-file .env ps -a minio minio-init
@@ -305,7 +326,7 @@ Lệnh backup/restore cụ thể sẽ được bổ sung sau khi loại volume v
 
 | Dịch vụ | URL từ host | Chỉ local? | Xác thực | Trạng thái |
 |---|---|---:|---|---|
-| Airflow UI | TBD | Có | TBD | Draft |
+| Airflow UI/API | `http://127.0.0.1:8080` mặc định | Có, bind loopback | FAB local admin | Implemented |
 | MinIO Console | `http://127.0.0.1:9001` mặc định | Có, bind loopback | Root credential local | Implemented |
 | Spark UI | TBD | Có | TBD | Draft |
 | Trino | TBD | Có | TBD | Draft |
@@ -318,8 +339,9 @@ dụng trực tiếp.
 
 - Tên/DAG ID/service/port thực tế.
 - Câu lệnh init/build/trigger/backfill chính xác.
-- Health-check URL/expected response của service chưa triển khai; MinIO đã chốt
-  `/minio/health/live`.
+- Health-check URL/expected response của service chưa triển khai; MinIO dùng
+  `/minio/health/live`, Airflow API dùng `/api/v2/monitor/health`, scheduler và
+  DAG processor dùng job heartbeat CLI.
 - Artifact path của Spark JAR.
 - Bucket/catalog/schema/table naming.
 - Backup/restore command đã kiểm thử.

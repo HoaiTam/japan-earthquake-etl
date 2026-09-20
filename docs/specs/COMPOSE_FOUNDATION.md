@@ -10,10 +10,10 @@
 ## 1. Phạm vi
 
 `CMP-01` tạo nền Compose dùng chung: project name, network, named volumes,
-resource baseline, health-check defaults và dependency policy. Baseline ban đầu
-chưa có runtime service; `MIO-01` hiện đã mở rộng nó bằng `minio`, `minio-init`
-và profile smoke. Airflow, Spark, Iceberg Catalog và Trino vẫn thuộc các task
-downstream.
+resource baseline, health-check defaults và dependency policy. `MIO-01` đã mở
+rộng nó bằng MinIO; `AFL-01` đã thêm PostgreSQL metadata, init, API server,
+scheduler, DAG processor và profile smoke của Airflow. Spark, Iceberg Catalog
+và Trino vẫn thuộc các task downstream.
 
 `compose-health-contract` và `compose-contract` chỉ thuộc profile `validation`.
 Chúng giúp Compose kiểm chứng healthcheck, long-form dependency và các
@@ -109,3 +109,7 @@ profile này chỉ giữ health/dependency/resource reference trong resolved con
 MinIO đã hoàn tất handoff này tại
 [MinIO storage contract](./MINIO_STORAGE.md); consumer của object storage phải
 chờ `minio-init` hoàn thành thành công.
+
+Airflow đã hoàn tất handoff runtime tại
+[Airflow local contract](./AIRFLOW_LOCAL.md); component dài hạn phải chờ
+`airflow-init` hoàn thành và có healthcheck riêng.
