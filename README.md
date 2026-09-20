@@ -4,9 +4,9 @@ Nền tảng ETL local-first để thu thập dữ liệu động đất từ US
 Spark Java theo mô hình Bronze–Silver–Gold, công bố bảng Gold qua Iceberg và
 Trino, sau đó phục vụ báo cáo Power BI.
 
-> Trạng thái hiện tại: **foundation scaffold (`REP-01`, `CFG-01`, `CMP-01`)**.
-> Cấu trúc module, configuration contract và Compose foundation đã được chốt;
-> các service runtime sẽ được bổ sung bởi những task tiếp theo.
+> Trạng thái hiện tại: **foundation + MinIO storage (`MIO-01`)**.
+> Cấu trúc module, configuration contract, Compose foundation và MinIO bucket
+> bootstrap đã được triển khai; Airflow/Spark/query thuộc các task tiếp theo.
 
 ## Chuẩn bị trên máy local
 
@@ -45,6 +45,18 @@ khởi động service):
 ./scripts/check-compose.sh
 ```
 
+Kiểm tra contract MinIO tĩnh, sau đó chạy smoke test ghi/đọc thật bằng `.env`
+local:
+
+```bash
+./scripts/check-minio.sh
+./scripts/smoke-minio.sh
+```
+
+Smoke test giữ MinIO chạy, giữ volume dữ liệu và chỉ xóa đúng object kiểm thử.
+Chi tiết bucket, prefix, quyền truy cập và cơ chế init nằm tại
+[MinIO storage contract](./docs/specs/MINIO_STORAGE.md).
+
 ## Cấu trúc repository
 
 ```text
@@ -54,7 +66,7 @@ khởi động service):
 ├── airflow/                  # DAG và test orchestration
 │   ├── dags/
 │   └── tests/
-├── compose/                  # Asset hỗ trợ Compose; compose.yaml đặt ở root
+├── compose/                  # Asset init/smoke cho service Compose
 ├── docs/                     # Kiến trúc, đặc tả, flow và runbook
 ├── scripts/                  # Script phát triển/vận hành dùng chung
 ├── spark/                    # Module Spark Java/Maven
@@ -80,6 +92,8 @@ Chi tiết ownership, mount path và quy tắc mở rộng nằm trong
 | `./scripts/check-config.sh --require-local` | Chạy được | `CFG-01` |
 | `./scripts/check-compose.sh` | Chạy được | `CMP-01` |
 | `docker compose config` | Chạy được | `CMP-01` |
+| `./scripts/check-minio.sh` | Chạy được, không cần start service | `MIO-01` |
+| `./scripts/smoke-minio.sh` | Chạy được khi có `.env` và Docker daemon | `MIO-01` |
 | `./mvnw clean test package` | Chưa có | `SPK-01` |
 
 Không chạy một lệnh được đánh dấu “Chưa có” cho tới khi task sở hữu đã merge.

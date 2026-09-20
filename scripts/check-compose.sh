@@ -149,7 +149,8 @@ for extension in \
     x-runtime-defaults \
     x-resource-baseline \
     x-healthcheck-defaults \
-    x-healthy-dependency
+    x-healthy-dependency \
+    x-completed-dependency
 do
     require_top_level_block "$rendered" "$extension"
 done

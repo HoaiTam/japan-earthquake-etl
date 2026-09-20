@@ -9,6 +9,7 @@ required_directories="
 airflow/dags
 airflow/tests
 compose
+compose/minio
 scripts
 spark/src/main/java
 spark/src/test/java
@@ -25,13 +26,19 @@ airflow/README.md
 airflow/dags/README.md
 airflow/tests/README.md
 compose/README.md
+compose/minio/Dockerfile
+compose/minio/init.sh
+compose/minio/smoke.sh
 compose.yaml
 docs/specs/COMPOSE_FOUNDATION.md
 docs/specs/CONFIGURATION_AND_SECRETS.md
+docs/specs/MINIO_STORAGE.md
 docs/specs/REPOSITORY_LAYOUT.md
 scripts/README.md
 scripts/check-compose.sh
 scripts/check-config.sh
+scripts/check-minio.sh
+scripts/smoke-minio.sh
 spark/README.md
 tests/README.md
 tests/fixtures/README.md

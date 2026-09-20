@@ -133,7 +133,11 @@ Nét liền biểu diễn data flow; nét đứt biểu diễn quyền điều p
 | Trino | MinIO | S3-compatible API | Iceberg metadata và Parquet data files |
 | Power BI | Trino | ODBC/SQL | Result set phục vụ semantic model |
 
-Tên port, bucket, catalog và service phải nằm trong cấu hình; tài liệu này không cố định giá trị khi `compose.yaml` chưa tồn tại.
+Tên port, bucket, catalog và service phải nằm trong cấu hình. MinIO hiện dùng
+service name `minio`, S3 API nội bộ `http://minio:9000`, bucket/prefix từ `.env`
+và volume `minio_data`; xem
+[MinIO storage contract](./specs/MINIO_STORAGE.md). Các runtime còn lại sẽ được
+chốt bởi task sở hữu.
 
 ## 7. Tính nhất quán và công bố dữ liệu
 
@@ -203,6 +207,10 @@ flowchart TB
 ```
 
 Chỉ các giao diện cần cho người vận hành và Power BI mới được publish ra host. MinIO API, Catalog, Spark và metadata database nên giữ trong Docker network trừ khi có nhu cầu debug có kiểm soát.
+
+Ở baseline MIO-01, chỉ MinIO Console được bind vào loopback host; S3 API không
+publish. `minio-init` dùng root credential để bootstrap, còn pipeline consumer
+dùng user riêng với policy giới hạn theo bucket/prefix.
 
 ## 10. Bảo mật tối thiểu
 
