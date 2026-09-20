@@ -12,9 +12,9 @@ Tài liệu này là contract cho các task thêm Airflow, Spark Java, Trino và
 Compose. Mỗi task downstream mở rộng đúng module được giao và không tự tạo một
 cấu trúc hoặc mount path cạnh tranh.
 
-Scaffold chưa cung cấp runtime service chạy được. Maven Wrapper, `pom.xml`, DAG
-và catalog properties thuộc các task riêng trong backlog; `compose.yaml` hiện
-chỉ chứa foundation contract và validation profile.
+Scaffold hiện cung cấp MinIO runtime cùng init/smoke asset. Maven Wrapper,
+`pom.xml`, DAG và catalog properties thuộc các task riêng trong backlog;
+`compose.yaml` còn chứa foundation/validation contract dùng chung.
 
 ## 2. Cấu trúc chuẩn
 
@@ -31,17 +31,24 @@ project-root/
 │   └── tests/
 │       └── README.md
 ├── compose/
-│   └── README.md
+│   ├── README.md
+│   └── minio/
+│       ├── Dockerfile
+│       ├── init.sh
+│       └── smoke.sh
 ├── docs/
 │   └── specs/
 │       ├── COMPOSE_FOUNDATION.md
 │       ├── CONFIGURATION_AND_SECRETS.md
+│       ├── MINIO_STORAGE.md
 │       └── REPOSITORY_LAYOUT.md
 ├── scripts/
 │   ├── README.md
 │   ├── check-compose.sh
 │   ├── check-config.sh
-│   └── check-repository-layout.sh
+│   ├── check-minio.sh
+│   ├── check-repository-layout.sh
+│   └── smoke-minio.sh
 ├── spark/
 │   ├── README.md
 │   └── src/
@@ -120,7 +127,7 @@ Chạy smoke check scaffold:
 
 Script thất bại nếu thiếu module, Maven source/test layout, tài liệu module hoặc
 bind source đã dành trước. Maven build thật thuộc `SPK-01`; Compose validation
-thuộc `CMP-01`.
+thuộc `CMP-01`; MinIO static/runtime smoke thuộc `MIO-01`.
 
 ## 6. Handoff cho task downstream
 
@@ -128,5 +135,6 @@ thuộc `CMP-01`.
 |---|---|
 | `CFG-01` | Đã thêm `.env.example`, config contract và secret hygiene check |
 | `CMP-01` | Đã thêm Compose network, named volumes và extension baseline |
+| `MIO-01` | Đã thêm MinIO, bucket/prefix bootstrap, pipeline policy và smoke test |
 | `SPK-01` | Thêm Maven Wrapper, `pom.xml`, package Java, Hello World và test base |
 | `QRY-01` | Chốt Trino/Iceberg Catalog config và catalog state volume |

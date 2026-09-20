@@ -27,7 +27,122 @@ x-healthy-dependency: &healthy-dependency
   restart: true
   required: true
 
+x-completed-dependency: &completed-dependency
+  condition: service_completed_successfully
+  restart: false
+  required: true
+
 services:
+  minio:
+    <<:
+      - *runtime-defaults
+      - *resource-baseline
+    build:
+      context: ./compose/minio
+      dockerfile: Dockerfile
+      args:
+        MINIO_VERSION: RELEASE.2025-10-15T17-29-55Z
+        MINIO_COMMIT: 9e49d5e7a648f00e26f2246f4dc28e6b07f8c84a
+    image: japan-earthquake-etl/minio:RELEASE.2025-10-15T17-29-55Z
+    pull_policy: build
+    command:
+      - server
+      - /data
+      - --console-address
+      - :9001
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
+    expose:
+      - "9000"
+    ports:
+      - host_ip: 127.0.0.1
+        target: 9001
+        published: ${MINIO_CONSOLE_HOST_PORT:?MINIO_CONSOLE_HOST_PORT is required}
+        protocol: tcp
+    healthcheck:
+      <<: *healthcheck-defaults
+      test:
+        - CMD
+        - curl
+        - -fsS
+        - http://localhost:9000/minio/health/live
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 30s
+    volumes:
+      - type: volume
+        source: minio_data
+        target: /data
+
+  minio-init:
+    <<:
+      - *runtime-defaults
+      - *resource-baseline
+    image: quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z
+    entrypoint:
+      - /bin/sh
+      - /opt/minio/init.sh
+    environment:
+      MC_CONFIG_DIR: /tmp/.mc
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT:?MINIO_ENDPOINT is required}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:?MINIO_ACCESS_KEY is required}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:?MINIO_SECRET_KEY is required}
+      DATA_BUCKET: ${DATA_BUCKET:?DATA_BUCKET is required}
+      BRONZE_PREFIX: ${BRONZE_PREFIX:?BRONZE_PREFIX is required}
+      SILVER_PREFIX: ${SILVER_PREFIX:?SILVER_PREFIX is required}
+      WAREHOUSE_PATH: ${WAREHOUSE_PATH:?WAREHOUSE_PATH is required}
+    depends_on:
+      minio:
+        <<: *healthy-dependency
+    read_only: true
+    restart: "no"
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
+    volumes:
+      - type: bind
+        source: ./compose/minio/init.sh
+        target: /opt/minio/init.sh
+        read_only: true
+
+  minio-smoke:
+    <<:
+      - *runtime-defaults
+      - *resource-baseline
+    image: quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z
+    profiles:
+      - smoke
+    entrypoint:
+      - /bin/sh
+      - /opt/minio/smoke.sh
+    environment:
+      MC_CONFIG_DIR: /tmp/.mc
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT:?MINIO_ENDPOINT is required}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:?MINIO_ACCESS_KEY is required}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:?MINIO_SECRET_KEY is required}
+      DATA_BUCKET: ${DATA_BUCKET:?DATA_BUCKET is required}
+      BRONZE_PREFIX: ${BRONZE_PREFIX:?BRONZE_PREFIX is required}
+      SILVER_PREFIX: ${SILVER_PREFIX:?SILVER_PREFIX is required}
+      WAREHOUSE_PATH: ${WAREHOUSE_PATH:?WAREHOUSE_PATH is required}
+    depends_on:
+      minio-init:
+        <<: *completed-dependency
+    read_only: true
+    restart: "no"
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
+    volumes:
+      - type: bind
+        source: ./compose/minio/smoke.sh
+        target: /opt/minio/smoke.sh
+        read_only: true
+
   compose-health-contract:
     <<: *runtime-defaults
     image: busybox:1.36.1

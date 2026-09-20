@@ -2,13 +2,16 @@
 
 | Thuộc tính | Giá trị |
 |---|---|
-| Trạng thái | Draft — cập nhật lệnh chính xác sau khi có mã nguồn |
+| Trạng thái | Implemented từng phần — MinIO đã có lệnh kiểm chứng |
 | Đối tượng | Thành viên phát triển/vận hành demo |
 | Môi trường | Docker Compose trên máy local |
 
 ## 1. Mục đích
 
-Runbook mô tả thứ tự chuẩn để chuẩn bị, khởi động, kiểm tra, chạy pipeline và xử lý lỗi. Repository đã có scaffold, configuration contract và Compose foundation. Vì project chưa có runtime service, DAG hay JAR, các lệnh runtime có placeholder được ghi rõ; không nên copy chạy cho tới khi đã thay bằng tên thực tế.
+Runbook mô tả thứ tự chuẩn để chuẩn bị, khởi động, kiểm tra, chạy pipeline và
+xử lý lỗi. Repository đã có scaffold, configuration contract, Compose
+foundation và MinIO runtime. Airflow, Spark, Catalog, Trino, DAG và JAR chưa có;
+placeholder của các thành phần đó không nên copy chạy.
 
 ## 2. Yêu cầu máy
 
@@ -39,6 +42,7 @@ project-root/
 │   ├── dags/
 │   └── tests/
 ├── compose/
+│   └── minio/
 ├── scripts/
 ├── spark/
 │   └── src/
@@ -59,11 +63,13 @@ Kiểm tra scaffold từ project root:
 ```
 
 Mount source/target, ownership module và các artifact chưa được tạo được chốt
-tại [Repository layout và mount contract](./specs/REPOSITORY_LAYOUT.md). Hiện
-chưa có runtime service, Maven Wrapper hoặc `pom.xml`; các artifact này thuộc
-task tiếp theo và không được giả định là đã chạy được. Network, volume lifecycle
-và dependency policy nằm tại
-[Compose foundation contract](./specs/COMPOSE_FOUNDATION.md).
+tại [Repository layout và mount contract](./specs/REPOSITORY_LAYOUT.md). Hiện đã
+có MinIO runtime nhưng chưa có Airflow/Spark/query runtime, Maven Wrapper hoặc
+`pom.xml`; các artifact đó thuộc task tiếp theo. Network, volume lifecycle và
+dependency policy nằm tại
+[Compose foundation contract](./specs/COMPOSE_FOUNDATION.md). Contract
+bucket/prefix, credential và bootstrap nằm tại
+[MinIO storage contract](./specs/MINIO_STORAGE.md).
 
 ## 4. Nhóm biến môi trường
 
@@ -106,6 +112,7 @@ Checker không in giá trị secret. Không khởi động service nếu kiểm 
 - `.env` tồn tại và không được Git track.
 - `./scripts/check-config.sh --require-local` thành công.
 - `./scripts/check-compose.sh` thành công.
+- `./scripts/check-minio.sh` thành công.
 - Máy còn đủ disk/RAM.
 - Thư mục/volume mount có quyền phù hợp.
 
@@ -122,30 +129,35 @@ docker compose --env-file .env --profile validation config --quiet
 Profile `validation` chỉ giữ health/dependency/resource reference trong resolved
 config; không cần chạy hoặc pull image của các contract service.
 
-### 5.3. Build và khởi tạo runtime
+### 5.3. Khởi tạo MinIO runtime
 
-Sau khi các task service đã thêm image, healthcheck và dependency thật, chuỗi
-lệnh chuẩn dự kiến:
+Các lệnh này đã được triển khai và có thể chạy sau khi `.env` hợp lệ:
 
 ```bash
-docker compose build
-docker compose up -d <initialization-services>
-docker compose up -d
+docker compose --env-file .env up -d minio minio-init
+docker compose --env-file .env ps -a minio minio-init
+./scripts/smoke-minio.sh
 ```
 
-`<initialization-services>` phải được thay bằng service thật, ví dụ khởi tạo bucket/Airflow. Không chạy placeholder nguyên văn.
+Kết quả đúng là `minio` healthy, `minio-init` thoát `0` và smoke test báo
+`passed`. Script smoke để MinIO tiếp tục chạy và không xóa volume. Ba prefix
+logic được tạo bằng marker `.keep`; marker không phải dữ liệu pipeline.
+
+Khi các task runtime còn lại hoàn tất, bổ sung chúng vào lệnh startup chung;
+không tự thay placeholder bằng service name chưa được merge.
 
 ### 5.4. Kiểm tra service
 
 ```bash
-docker compose ps
-docker compose logs --tail=100 <service-name>
+docker compose --env-file .env ps -a minio minio-init
+docker compose --env-file .env logs --tail=100 minio
+docker compose --env-file .env logs minio-init
 ```
 
 Các kiểm tra logic:
 
 - Airflow UI truy cập được và scheduler heartbeat bình thường.
-- MinIO bucket/warehouse đã được tạo.
+- MinIO bucket/prefix đã được bootstrap và smoke ghi/đọc thành công.
 - Spark master thấy worker.
 - Iceberg Catalog health/readiness đạt.
 - Trino hoàn tất startup và thấy catalog Iceberg.
@@ -260,9 +272,12 @@ Lệnh backup/restore cụ thể sẽ được bổ sung sau khi loại volume v
 
 ### Không truy cập được MinIO
 
-- Phân biệt endpoint bên trong Compose với endpoint từ host.
+- S3 API nội bộ là `http://minio:9000`; host chỉ truy cập Console qua
+  `http://127.0.0.1:9001` mặc định.
 - Kiểm tra credential và bucket policy.
 - Kiểm tra service name/DNS trong Compose network.
+- Chạy `./scripts/check-minio.sh`, sau đó chạy lại
+  `docker compose --env-file .env run --rm minio-init`.
 - Không in secret vào log khi debug.
 
 ### Trino không thấy bảng/snapshot
@@ -288,22 +303,23 @@ Lệnh backup/restore cụ thể sẽ được bổ sung sau khi loại volume v
 
 ## 12. Bảng endpoint
 
-Điền bảng này sau khi `compose.yaml` được tạo:
-
 | Dịch vụ | URL từ host | Chỉ local? | Xác thực | Trạng thái |
 |---|---|---:|---|---|
 | Airflow UI | TBD | Có | TBD | Draft |
-| MinIO Console | TBD | Có | TBD | Draft |
+| MinIO Console | `http://127.0.0.1:9001` mặc định | Có, bind loopback | Root credential local | Implemented |
 | Spark UI | TBD | Có | TBD | Draft |
 | Trino | TBD | Có | TBD | Draft |
 
-Catalog, MinIO API nội bộ và metadata database không cần public lên host nếu consumer không sử dụng trực tiếp.
+MinIO S3 API là `http://minio:9000` trong Compose network và không publish ra
+host. Catalog và metadata database cũng không cần public nếu consumer không sử
+dụng trực tiếp.
 
 ## 13. Việc phải cập nhật khi có mã nguồn
 
 - Tên/DAG ID/service/port thực tế.
 - Câu lệnh init/build/trigger/backfill chính xác.
-- Health-check URL và expected response.
+- Health-check URL/expected response của service chưa triển khai; MinIO đã chốt
+  `/minio/health/live`.
 - Artifact path của Spark JAR.
 - Bucket/catalog/schema/table naming.
 - Backup/restore command đã kiểm thử.

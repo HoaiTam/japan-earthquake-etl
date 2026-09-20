@@ -79,9 +79,11 @@ default ngoài ý muốn.
 | `MINIO_SECRET_KEY` | Có | Có | Secret riêng cho pipeline |
 | `MINIO_CONSOLE_HOST_PORT` | Có | Không | Port host của giao diện vận hành |
 
-MinIO API không có biến host port vì baseline giữ API trong Compose network.
-Task triển khai MinIO phải tạo credential pipeline quyền tối thiểu thay vì dùng
-root credential cho job.
+MinIO API không có biến host port vì runtime giữ API trong Compose network.
+`MIO-01` tạo pipeline user và policy giới hạn trong `DATA_BUCKET`: Bronze không
+có quyền delete, còn Silver/warehouse có quyền phục vụ rerun và Iceberg. Root
+credential chỉ dùng cho bootstrap/admin local. Chi tiết tại
+[MinIO storage contract](./MINIO_STORAGE.md).
 
 ### Airflow và metadata database
 
@@ -127,6 +129,8 @@ không ghi trực tiếp vào `pom.xml`, DAG hoặc catalog properties.
 5. `WAREHOUSE_PATH` khớp `DATA_BUCKET`.
 6. File chuẩn bị commit không chứa private-key header hoặc token pattern phổ
    biến; checker chỉ in tên file nghi vấn.
+7. Bucket/prefix đúng cú pháp, không trùng nhau; MinIO endpoint là service nội
+   bộ và credential pipeline khác root credential.
 
 Checker là guardrail, không thay thế review hoặc secret scanner của CI. Nếu
 secret từng được commit, chỉ xóa file là chưa đủ: phải revoke/rotate secret và

@@ -216,6 +216,18 @@ validate_integer() {
     fi
 }
 
+validate_s3_prefix() {
+    file=$1
+    key=$2
+    value=$(read_value "$file" "$key")
+
+    case "$value" in
+        ""|/*|*/|*//*|*[!A-Za-z0-9._/-]*)
+            report_error "$key must be a non-empty relative S3 prefix"
+            ;;
+    esac
+}
+
 validate_semantics() {
     file=$1
 
@@ -233,10 +245,9 @@ validate_semantics() {
     fi
 
     minio_endpoint=$(read_value "$file" MINIO_ENDPOINT)
-    case "$minio_endpoint" in
-        http://*|https://*) ;;
-        *) report_error "MINIO_ENDPOINT must be an http:// or https:// URI" ;;
-    esac
+    if [ "$minio_endpoint" != "http://minio:9000" ]; then
+        report_error "MINIO_ENDPOINT must use the internal Compose endpoint: http://minio:9000"
+    fi
 
     usgs_endpoint=$(read_value "$file" USGS_API_BASE_URL)
     case "$usgs_endpoint" in
@@ -258,10 +269,48 @@ validate_semantics() {
 
     bucket=$(read_value "$file" DATA_BUCKET)
     warehouse=$(read_value "$file" WAREHOUSE_PATH)
+    if [ "${#bucket}" -lt 3 ] || [ "${#bucket}" -gt 63 ]; then
+        report_error "DATA_BUCKET must contain 3-63 characters"
+    fi
+    case "$bucket" in
+        *[!a-z0-9.-]*|.*|-*|*.|*-|*..*|*.-*|*-.*)
+            report_error "DATA_BUCKET is not a valid local S3 bucket name"
+            ;;
+    esac
+
+    validate_s3_prefix "$file" BRONZE_PREFIX
+    validate_s3_prefix "$file" SILVER_PREFIX
+
+    warehouse_prefix=""
     case "$warehouse" in
-        "s3://$bucket/"*) ;;
+        "s3://$bucket/"*) warehouse_prefix=${warehouse#"s3://$bucket/"} ;;
         *) report_error "WAREHOUSE_PATH must be inside DATA_BUCKET" ;;
     esac
+
+    case "$warehouse_prefix" in
+        ""|/*|*/|*//*|*[!A-Za-z0-9._/-]*)
+            report_error "WAREHOUSE_PATH must end with a non-empty relative S3 prefix"
+            ;;
+    esac
+
+    bronze_prefix=$(read_value "$file" BRONZE_PREFIX)
+    silver_prefix=$(read_value "$file" SILVER_PREFIX)
+    if [ "$bronze_prefix" = "$silver_prefix" ] ||
+       [ "$bronze_prefix" = "$warehouse_prefix" ] ||
+       [ "$silver_prefix" = "$warehouse_prefix" ]; then
+        report_error "Bronze, Silver and warehouse prefixes must be distinct"
+    fi
+
+    minio_root_user=$(read_value "$file" MINIO_ROOT_USER)
+    minio_access_key=$(read_value "$file" MINIO_ACCESS_KEY)
+    minio_root_password=$(read_value "$file" MINIO_ROOT_PASSWORD)
+    minio_secret_key=$(read_value "$file" MINIO_SECRET_KEY)
+    if [ "$minio_root_user" = "$minio_access_key" ]; then
+        report_error "MINIO_ACCESS_KEY must identify a non-root pipeline user"
+    fi
+    if [ "$minio_root_password" = "$minio_secret_key" ]; then
+        report_error "MINIO_SECRET_KEY must differ from MINIO_ROOT_PASSWORD"
+    fi
 
     minio_host_port=$(read_value "$file" MINIO_CONSOLE_HOST_PORT)
     airflow_host_port=$(read_value "$file" AIRFLOW_WEB_HOST_PORT)

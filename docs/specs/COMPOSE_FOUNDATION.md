@@ -10,9 +10,10 @@
 ## 1. Phạm vi
 
 `CMP-01` tạo nền Compose dùng chung: project name, network, named volumes,
-resource baseline, health-check defaults và dependency policy. PR này chưa
-thêm Airflow, MinIO, Spark, Iceberg Catalog hay Trino runtime service; các task
-downstream sở hữu image, command, healthcheck cụ thể và service dependency.
+resource baseline, health-check defaults và dependency policy. Baseline ban đầu
+chưa có runtime service; `MIO-01` hiện đã mở rộng nó bằng `minio`, `minio-init`
+và profile smoke. Airflow, Spark, Iceberg Catalog và Trino vẫn thuộc các task
+downstream.
 
 `compose-health-contract` và `compose-contract` chỉ thuộc profile `validation`.
 Chúng giúp Compose kiểm chứng healthcheck, long-form dependency và các
@@ -56,6 +57,7 @@ scratch space. `docker compose down` giữ named volume, còn
 | `x-resource-baseline` | Limit 1 CPU/1 GiB; reservation 0.25 CPU/256 MiB |
 | `x-healthcheck-defaults` | Interval 10s, timeout 5s, 12 retries, start period 20s |
 | `x-healthy-dependency` | Chờ `service_healthy`, restart consumer khi dependency được Compose restart |
+| `x-completed-dependency` | Chờ one-shot init hoàn thành thành công |
 
 Resource baseline là guardrail local ban đầu, không phải sizing production.
 Service nặng như Spark/MinIO có thể override trong PR sở hữu service, nhưng phải
@@ -103,3 +105,7 @@ profile này chỉ giữ health/dependency/resource reference trong resolved con
   PostgreSQL, Spark, MinIO API và Catalog giữ nội bộ.
 - PR thêm service phải chạy lại `scripts/check-compose.sh` và cập nhật runbook
   khi command khởi động trở thành khả dụng.
+
+MinIO đã hoàn tất handoff này tại
+[MinIO storage contract](./MINIO_STORAGE.md); consumer của object storage phải
+chờ `minio-init` hoàn thành thành công.

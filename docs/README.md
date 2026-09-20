@@ -2,8 +2,8 @@
 
 Thư mục này là nguồn tài liệu chính thức cho dự án **Nền tảng phân tích dữ liệu động đất tại Nhật Bản**. Bộ tài liệu mô tả hệ thống ở mức đủ để bắt đầu triển khai, kiểm thử và trình diễn; các giá trị phụ thuộc mã nguồn sẽ được cập nhật sau khi project có phiên bản chạy được.
 
-> Trạng thái hiện tại: **Scaffold triển khai** — cấu trúc module đã có, nhưng
-> các service pipeline chưa được triển khai.
+> Trạng thái hiện tại: **Foundation + MinIO storage** — MinIO, bucket bootstrap
+> và smoke test đã có; các service orchestration/compute/query chưa triển khai.
 
 ## 1. Đọc tài liệu theo nhu cầu
 
@@ -15,6 +15,7 @@ Thư mục này là nguồn tài liệu chính thức cho dự án **Nền tản
 | Hiểu cấu trúc module và mount path | [Repository layout](./specs/REPOSITORY_LAYOUT.md) |
 | Thiết lập biến môi trường và secret | [Configuration contract](./specs/CONFIGURATION_AND_SECRETS.md) |
 | Hiểu Compose network, volumes và baseline | [Compose foundation](./specs/COMPOSE_FOUNDATION.md) |
+| Hiểu MinIO, bucket/prefix và cách bootstrap | [MinIO storage contract](./specs/MINIO_STORAGE.md) |
 | Hiểu các thành phần và cách chúng kết nối | [Kiến trúc hệ thống](./SYSTEM_ARCHITECTURE.md) |
 | Hiểu một lần chạy ETL hằng ngày | [Luồng ETL hằng ngày](./flows/DAILY_ETL_PIPELINE.md) |
 | Chạy bù, chạy lại hoặc xử lý lỗi | [Backfill và phục hồi](./flows/BACKFILL_AND_RECOVERY.md) |
@@ -42,6 +43,7 @@ docs/
 │   ├── MVP_SCOPE_KPI_AND_DOD.md
 │   ├── CONFIGURATION_AND_SECRETS.md
 │   ├── COMPOSE_FOUNDATION.md
+│   ├── MINIO_STORAGE.md
 │   └── REPOSITORY_LAYOUT.md
 ├── flows/
 │   ├── DAILY_ETL_PIPELINE.md
@@ -70,7 +72,7 @@ Chưa bao gồm theo phạm vi hiện tại:
 
 - Thiết kế database chi tiết, DBML, DDL hoặc migration.
 - Schema vật lý cuối cùng của các bảng Iceberg.
-- Giá trị cấu hình, tên service và câu lệnh vận hành đã được xác nhận từ mã nguồn.
+- Runtime Airflow/Spark/Iceberg/Trino và lệnh vận hành tương ứng.
 
 ## 4. Quy ước trạng thái
 
