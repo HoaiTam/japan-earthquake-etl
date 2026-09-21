@@ -14,7 +14,8 @@ resource baseline, health-check defaults và dependency policy. `MIO-01` đã m�
 rộng nó bằng MinIO; `AFL-01` đã thêm PostgreSQL metadata, init, API server,
 scheduler, DAG processor và profile smoke của Airflow; `SPK-01` đã thêm Spark
 master/worker/client; `QRY-01` đã thêm Iceberg REST Catalog, Trino và profile
-query smoke.
+query smoke; `FND-01` xác nhận các component trên hoạt động cùng nhau trong một
+Compose project.
 
 `compose-health-contract` và `compose-contract` chỉ thuộc profile `validation`.
 Chúng giúp Compose kiểm chứng healthcheck, long-form dependency và các
@@ -63,6 +64,10 @@ scratch space. `docker compose down` giữ named volume, còn
 Resource baseline là guardrail local ban đầu, không phải sizing production.
 Service nặng như Spark/MinIO có thể override trong PR sở hữu service, nhưng phải
 ghi lý do và cập nhật resource profile sau khi đo ở `QA-05`.
+Tương tự, scheduler và DAG processor override healthcheck thành interval/timeout
+`30s`, 10 retries và start period `60s` vì probe heartbeat phải khởi tạo Airflow
+CLI. Probe dùng `exec` để timeout không để lại process con; readiness vẫn yêu
+cầu heartbeat thật trong metadata database.
 
 Mọi dependency runtime phải dùng long syntax và condition phù hợp:
 
@@ -123,3 +128,9 @@ QRY-01 đã hoàn tất handoff query tại
 [Iceberg/Trino contract](./ICEBERG_TRINO.md); Catalog chờ MinIO bootstrap, Trino
 chờ Catalog healthy, Catalog không publish host port và Trino chỉ bind
 loopback. `iceberg_catalog_data` tách biệt khỏi warehouse trong `minio_data`.
+
+FND-01 kiểm chứng runtime contract hợp nhất tại
+[Foundation environment smoke contract](./FOUNDATION_SMOKE.md): 9 service
+healthy, 2 init service thoát `0`, đúng network, lifecycle/mount của 5 volume,
+startup log và bốn component smoke. Checklist không xóa volume hoặc tự dừng
+service khi hoàn tất.

@@ -30,6 +30,7 @@ Kiểm tra Compose foundation:
 ./scripts/check-minio.sh
 ./scripts/check-spark.sh
 ./scripts/check-query.sh
+./scripts/check-foundation.sh
 ```
 
 Chi tiết network, volume lifecycle và extension baseline nằm tại
@@ -42,3 +43,5 @@ Hành vi Spark master/worker/client, build và smoke nằm tại
 [Spark standalone contract](../docs/specs/SPARK_STANDALONE.md).
 Hành vi Iceberg REST Catalog, Trino và query smoke nằm tại
 [Iceberg/Trino contract](../docs/specs/ICEBERG_TRINO.md).
+Checklist kết hợp health, network, volume, log và mọi component smoke nằm tại
+[Foundation environment smoke contract](../docs/specs/FOUNDATION_SMOKE.md).

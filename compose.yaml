@@ -284,10 +284,13 @@ services:
       - scheduler
     healthcheck:
       <<: *healthcheck-defaults
+      interval: 30s
+      timeout: 30s
+      retries: 10
       test:
         - CMD-SHELL
-        - airflow jobs check --job-type SchedulerJob --hostname "$${HOSTNAME}"
-      start_period: 30s
+        - exec airflow jobs check --job-type SchedulerJob --hostname "$${HOSTNAME}"
+      start_period: 60s
 
   airflow-dag-processor:
     <<: *airflow-common
@@ -295,10 +298,13 @@ services:
       - dag-processor
     healthcheck:
       <<: *healthcheck-defaults
+      interval: 30s
+      timeout: 30s
+      retries: 10
       test:
         - CMD-SHELL
-        - airflow jobs check --job-type DagProcessorJob --hostname "$${HOSTNAME}"
-      start_period: 30s
+        - exec airflow jobs check --job-type DagProcessorJob --hostname "$${HOSTNAME}"
+      start_period: 60s
 
   airflow-smoke:
     <<: *airflow-common

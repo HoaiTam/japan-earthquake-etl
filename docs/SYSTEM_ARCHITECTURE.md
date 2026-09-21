@@ -2,7 +2,7 @@
 
 | Thuộc tính | Giá trị |
 |---|---|
-| Trạng thái | Implemented từng phần — storage, orchestration, Spark và query baseline |
+| Trạng thái | Foundation runtime đã được kiểm chứng full-stack |
 | Kiểu triển khai chính | Local-first, Docker Compose |
 | Mẫu kiến trúc dữ liệu | Batch Lakehouse, Bronze–Silver–Gold |
 
@@ -228,6 +228,9 @@ Iceberg REST fixture `1.10.1` lưu registration state bằng SQLite trong volume
 `iceberg_catalog_data`; Trino `483` đọc Catalog qua REST và đọc/ghi file qua
 MinIO native S3. Query smoke tạo–ghi–đọc một table Parquet rồi chỉ xóa table
 kiểm thử theo contract QRY-01.
+FND-01 chạy các component smoke trong cùng một Compose project và đối chiếu
+health, init exit code, network membership, volume lifecycle/mount cùng startup
+log; xem [Foundation smoke contract](./specs/FOUNDATION_SMOKE.md).
 
 ## 10. Bảo mật tối thiểu
 
