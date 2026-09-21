@@ -2,7 +2,7 @@
 
 | Thuộc tính | Giá trị |
 |---|---|
-| Trạng thái | Implemented từng phần — storage, orchestration và Spark baseline |
+| Trạng thái | Implemented từng phần — storage, orchestration, Spark và query baseline |
 | Kiểu triển khai chính | Local-first, Docker Compose |
 | Mẫu kiến trúc dữ liệu | Batch Lakehouse, Bronze–Silver–Gold |
 
@@ -138,8 +138,10 @@ service name `minio`, S3 API nội bộ `http://minio:9000`, bucket/prefix từ 
 và volume `minio_data`; xem
 [MinIO storage contract](./specs/MINIO_STORAGE.md). Spark dùng master
 `spark://spark-master:7077`, một worker và client `spark-submit`; xem
-[Spark standalone contract](./specs/SPARK_STANDALONE.md). Catalog/Trino sẽ được
-chốt bởi task sở hữu.
+[Spark standalone contract](./specs/SPARK_STANDALONE.md).
+[Iceberg/Trino contract](./specs/ICEBERG_TRINO.md) chốt Catalog nội bộ tại
+`http://iceberg-rest:8181`, Trino nội bộ `trino:8080`, endpoint host loopback
+và warehouse dùng chung với MinIO.
 
 ## 7. Tính nhất quán và công bố dữ liệu
 
@@ -222,6 +224,10 @@ hạn theo bucket/prefix. Airflow dùng LocalExecutor, PostgreSQL metadata và D
 processor độc lập theo contract AFL-01.
 Spark `3.5.9` dùng Java `17`, master/worker có healthcheck và client smoke chạy
 JAR `/opt/spark/jobs/japan-earthquake-etl.jar` theo contract SPK-01.
+Iceberg REST fixture `1.10.1` lưu registration state bằng SQLite trong volume
+`iceberg_catalog_data`; Trino `483` đọc Catalog qua REST và đọc/ghi file qua
+MinIO native S3. Query smoke tạo–ghi–đọc một table Parquet rồi chỉ xóa table
+kiểm thử theo contract QRY-01.
 
 ## 10. Bảo mật tối thiểu
 
@@ -244,12 +250,10 @@ JAR `/opt/spark/jobs/japan-earthquake-etl.jar` theo contract SPK-01.
 | Trino làm serving SQL | Power BI không phải hiểu layout object | Thêm một service và ODBC driver |
 | Power BI Import | Tương tác dashboard nhẹ trên backend local | Dữ liệu chỉ mới sau lần refresh |
 
-## 12. Điểm còn cần xác nhận khi bắt đầu code
+## 12. Điểm còn cần xác nhận khi tiếp tục ETL
 
-- Phiên bản Iceberg/Trino cuối cùng trong ma trận tương thích với Spark `3.5.9`.
-- Catalog implementation và nơi lưu trạng thái catalog.
 - Ranh giới địa lý/query bounding box chính xác cho Nhật Bản.
 - Số ngày overlap mặc định và giới hạn kích thước mỗi API request.
 - Chiến lược merge Gold cho backfill và late update.
 - Driver ODBC được dùng trên máy Power BI.
-- Tên bucket, namespace, bảng và port cuối cùng.
+- Tên bảng fact/dimension Gold cuối cùng và mapping vào semantic model.

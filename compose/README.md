@@ -15,6 +15,8 @@ Asset hiện có:
   `17` chứa JAR đã verify.
 - `spark/smoke.sh`: yêu cầu worker `ALIVE`, chạy `spark-submit` và kiểm tra
   marker Hello World cùng exit code.
+- `trino/smoke.sh`: xác nhận catalog/schema, tạo Iceberg table Parquet, ghi/đọc
+  một row qua REST Catalog + MinIO và chỉ xóa table kiểm thử.
 
 Không đặt secret, data volume, warehouse hoặc file runtime trong thư mục này.
 Mọi mount phải tuân theo
@@ -27,6 +29,7 @@ Kiểm tra Compose foundation:
 ./scripts/check-airflow.sh
 ./scripts/check-minio.sh
 ./scripts/check-spark.sh
+./scripts/check-query.sh
 ```
 
 Chi tiết network, volume lifecycle và extension baseline nằm tại
@@ -37,3 +40,5 @@ Hành vi MinIO, quyền truy cập và lệnh runtime nằm tại
 [MinIO storage contract](../docs/specs/MINIO_STORAGE.md).
 Hành vi Spark master/worker/client, build và smoke nằm tại
 [Spark standalone contract](../docs/specs/SPARK_STANDALONE.md).
+Hành vi Iceberg REST Catalog, Trino và query smoke nằm tại
+[Iceberg/Trino contract](../docs/specs/ICEBERG_TRINO.md).

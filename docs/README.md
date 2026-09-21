@@ -2,9 +2,9 @@
 
 Thư mục này là nguồn tài liệu chính thức cho dự án **Nền tảng phân tích dữ liệu động đất tại Nhật Bản**. Bộ tài liệu mô tả hệ thống ở mức đủ để bắt đầu triển khai, kiểm thử và trình diễn; các giá trị phụ thuộc mã nguồn sẽ được cập nhật sau khi project có phiên bản chạy được.
 
-> Trạng thái hiện tại: **Foundation + MinIO + Airflow + Spark standalone** —
-> object storage, Airflow local và Spark Java build/runtime đã có; DAG ETL và
-> query services chưa triển khai.
+> Trạng thái hiện tại: **Foundation + MinIO + Airflow + Spark + query layer** —
+> object storage, Airflow local, Spark Java build/runtime, Iceberg REST Catalog
+> và Trino đã có; DAG ETL chưa triển khai.
 
 ## 1. Đọc tài liệu theo nhu cầu
 
@@ -19,6 +19,7 @@ Thư mục này là nguồn tài liệu chính thức cho dự án **Nền tản
 | Hiểu MinIO, bucket/prefix và cách bootstrap | [MinIO storage contract](./specs/MINIO_STORAGE.md) |
 | Hiểu Airflow local, metadata DB và DAG smoke | [Airflow local contract](./specs/AIRFLOW_LOCAL.md) |
 | Hiểu Spark standalone, Java build và smoke | [Spark standalone contract](./specs/SPARK_STANDALONE.md) |
+| Hiểu Iceberg REST Catalog, Trino và query smoke | [Iceberg/Trino contract](./specs/ICEBERG_TRINO.md) |
 | Hiểu các thành phần và cách chúng kết nối | [Kiến trúc hệ thống](./SYSTEM_ARCHITECTURE.md) |
 | Hiểu một lần chạy ETL hằng ngày | [Luồng ETL hằng ngày](./flows/DAILY_ETL_PIPELINE.md) |
 | Chạy bù, chạy lại hoặc xử lý lỗi | [Backfill và phục hồi](./flows/BACKFILL_AND_RECOVERY.md) |
@@ -49,6 +50,7 @@ docs/
 │   ├── AIRFLOW_LOCAL.md
 │   ├── MINIO_STORAGE.md
 │   ├── SPARK_STANDALONE.md
+│   ├── ICEBERG_TRINO.md
 │   └── REPOSITORY_LAYOUT.md
 ├── flows/
 │   ├── DAILY_ETL_PIPELINE.md
@@ -77,7 +79,7 @@ Chưa bao gồm theo phạm vi hiện tại:
 
 - Thiết kế database chi tiết, DBML, DDL hoặc migration.
 - Schema vật lý cuối cùng của các bảng Iceberg.
-- DAG ETL và runtime Iceberg/Trino cùng lệnh vận hành tương ứng.
+- DAG ETL, Gold jobs và lệnh backfill thực tế.
 
 ## 4. Quy ước trạng thái
 

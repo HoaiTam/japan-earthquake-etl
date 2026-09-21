@@ -12,9 +12,10 @@ Tài liệu này là contract cho các task thêm Airflow, Spark Java, Trino và
 Compose. Mỗi task downstream mở rộng đúng module được giao và không tự tạo một
 cấu trúc hoặc mount path cạnh tranh.
 
-Scaffold hiện đã được mở rộng bằng MinIO, Airflow và Spark runtime. Maven
+Scaffold hiện đã được mở rộng bằng MinIO, Airflow, Spark và query runtime. Maven
 Wrapper, root/module `pom.xml`, Java package và Spark smoke do `SPK-01` cung
-cấp; catalog properties vẫn thuộc task query trong backlog.
+cấp; Iceberg REST Catalog, Trino catalog properties và query smoke do `QRY-01`
+cung cấp.
 
 ## 2. Cấu trúc chuẩn
 
@@ -42,8 +43,10 @@ project-root/
 │   │   ├── Dockerfile
 │   │   ├── init.sh
 │   │   └── smoke.sh
-│   └── spark/
-│       ├── Dockerfile
+│   ├── spark/
+│   │   ├── Dockerfile
+│   │   └── smoke.sh
+│   └── trino/
 │       └── smoke.sh
 ├── docs/
 │   └── specs/
@@ -51,6 +54,7 @@ project-root/
 │       ├── CONFIGURATION_AND_SECRETS.md
 │       ├── MINIO_STORAGE.md
 │       ├── SPARK_STANDALONE.md
+│       ├── ICEBERG_TRINO.md
 │       └── REPOSITORY_LAYOUT.md
 ├── scripts/
 │   ├── README.md
@@ -58,10 +62,12 @@ project-root/
 │   ├── check-compose.sh
 │   ├── check-config.sh
 │   ├── check-minio.sh
+│   ├── check-query.sh
 │   ├── check-repository-layout.sh
 │   ├── check-spark.sh
 │   ├── smoke-airflow.sh
 │   ├── smoke-minio.sh
+│   ├── smoke-query.sh
 │   └── smoke-spark.sh
 ├── spark/
 │   ├── README.md
@@ -80,7 +86,8 @@ project-root/
 └── trino/
     ├── README.md
     └── catalog/
-        └── README.md
+        ├── README.md
+        └── iceberg.properties
 ```
 
 Package gốc đã được `SPK-01` chốt là
@@ -114,13 +121,13 @@ không tạo Maven module cạnh tranh.
 | Airflow components | Named volume `airflow_logs` | `/opt/airflow/logs` | Read-write | Log runtime tách khỏi DAG source |
 | Airflow metadata DB | Named volume `airflow_db_data` | `/var/lib/postgresql/data` | Read-write | Chỉ metadata Airflow |
 | MinIO | Named volume `minio_data` | `/data` | Read-write | Bronze, Silver và Gold warehouse |
-| Iceberg Catalog | Named volume `iceberg_catalog_data` | Do `QRY-01` chốt | Read-write | Catalog state tách khỏi data lake |
+| Iceberg Catalog | Named volume `iceberg_catalog_data` | `/home/iceberg` | Read-write | SQLite catalog state tách khỏi data lake |
 
 Spark source là build context, không bind toàn bộ repository vào container.
 `SPK-01` chốt tên JAR; image/runtime đặt artifact tại
-`/opt/spark/jobs/japan-earthquake-etl.jar`. Backend và target lưu trạng thái của
-Iceberg Catalog do `QRY-01` chốt, nhưng phải dùng named volume riêng và không
-được dùng lại các volume ở bảng trên.
+`/opt/spark/jobs/japan-earthquake-etl.jar`. Iceberg Catalog ghi `catalog.db`
+dưới `/home/iceberg`; named volume này không được dùng lại làm warehouse.
+Iceberg metadata và Parquet data vẫn nằm trong warehouse MinIO.
 
 Quy tắc chống xung đột:
 
@@ -144,8 +151,8 @@ Chạy scaffold, Maven và Spark contract check:
 Script layout thất bại nếu thiếu module, Maven source/test layout, tài liệu hoặc
 bind source. Spark checker chạy Maven verify và xác nhận JAR
 `spark/target/japan-earthquake-etl.jar`, manifest, dependency scope và Compose
-runtime contract. Compose validation thuộc `CMP-01`; MinIO/Airflow/Spark đều có
-static và runtime smoke riêng.
+runtime contract. Compose validation thuộc `CMP-01`; MinIO/Airflow/Spark/query
+đều có static và runtime smoke riêng.
 
 ## 6. Handoff cho task downstream
 
@@ -155,4 +162,4 @@ static và runtime smoke riêng.
 | `CMP-01` | Đã thêm Compose network, named volumes và extension baseline |
 | `MIO-01` | Đã thêm MinIO, bucket/prefix bootstrap, pipeline policy và smoke test |
 | `SPK-01` | Đã thêm Maven Wrapper, POM, Java package, Hello World, standalone cluster và smoke test |
-| `QRY-01` | Chốt Trino/Iceberg Catalog config và catalog state volume |
+| `QRY-01` | Đã thêm Trino/Iceberg REST Catalog config, catalog state volume và query smoke |

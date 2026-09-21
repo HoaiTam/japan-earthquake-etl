@@ -23,3 +23,7 @@ Hiện có:
   healthcheck, mount, exposure cùng Compose contract của `SPK-01`.
 - `smoke-spark.sh`: build image một lần, chờ master/worker healthy và chạy
   `HelloWorldJob` trên worker; giữ cluster và staging volume để debug.
+- `check-query.sh`: validate catalog properties, digest-pinned images,
+  dependency, healthcheck, mount, host exposure và smoke service của `QRY-01`.
+- `smoke-query.sh`: bootstrap MinIO, chờ REST Catalog/Trino healthy rồi chạy
+  acceptance tạo–ghi–đọc Iceberg table; giữ service và durable volumes.

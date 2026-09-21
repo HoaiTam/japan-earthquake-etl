@@ -442,6 +442,124 @@ services:
         source: pipeline_staging
         target: /opt/pipeline/staging
 
+  iceberg-rest:
+    <<:
+      - *runtime-defaults
+      - *resource-baseline
+    image: apache/iceberg-rest-fixture:1.10.1@sha256:f7d679d30ac9c640bdeb2c015dff533cd3c8f1c7d491ebcb5d436f9a42db1d6f
+    environment:
+      AWS_ACCESS_KEY_ID: ${MINIO_ACCESS_KEY:?MINIO_ACCESS_KEY is required}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_SECRET_KEY:?MINIO_SECRET_KEY is required}
+      AWS_REGION: ${S3_REGION:?S3_REGION is required}
+      CATALOG_WAREHOUSE: ${WAREHOUSE_PATH:?WAREHOUSE_PATH is required}
+      CATALOG_IO__IMPL: org.apache.iceberg.aws.s3.S3FileIO
+      CATALOG_S3_ENDPOINT: ${MINIO_ENDPOINT:?MINIO_ENDPOINT is required}
+      CATALOG_S3_PATH__STYLE__ACCESS: "true"
+      CATALOG_URI: jdbc:sqlite:/home/iceberg/catalog.db
+      CATALOG_JDBC_CLIENT_POOL_SIZE: "1"
+    depends_on:
+      minio-init:
+        <<: *completed-dependency
+    expose:
+      - "8181"
+    healthcheck:
+      <<: *healthcheck-defaults
+      test:
+        - CMD
+        - curl
+        - --fail
+        - --silent
+        - --show-error
+        - http://localhost:8181/v1/config
+      start_period: 20s
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 30s
+    tmpfs:
+      # sqlite-jdbc extracts its architecture-specific native library here.
+      - /tmp:exec,mode=1777
+    volumes:
+      - type: volume
+        source: iceberg_catalog_data
+        target: /home/iceberg
+
+  trino:
+    <<: *runtime-defaults
+    image: trinodb/trino:483@sha256:db58cc93e593a2706553745f276bb119c9810e69918be56ecde088ba7ccb0534
+    environment:
+      ICEBERG_CATALOG_URI: ${ICEBERG_CATALOG_URI:?ICEBERG_CATALOG_URI is required}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:?MINIO_ACCESS_KEY is required}
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT:?MINIO_ENDPOINT is required}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:?MINIO_SECRET_KEY is required}
+      S3_REGION: ${S3_REGION:?S3_REGION is required}
+      WAREHOUSE_PATH: ${WAREHOUSE_PATH:?WAREHOUSE_PATH is required}
+    depends_on:
+      minio-init:
+        <<: *completed-dependency
+      iceberg-rest:
+        <<: *healthy-dependency
+    ports:
+      - host_ip: 127.0.0.1
+        target: 8080
+        published: ${TRINO_HOST_PORT:?TRINO_HOST_PORT is required}
+        protocol: tcp
+    healthcheck:
+      <<: *healthcheck-defaults
+      test:
+        - CMD
+        - /usr/lib/trino/bin/health-check
+      start_period: 30s
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 3G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+    volumes:
+      - type: bind
+        source: ./trino/catalog
+        target: /etc/trino/catalog
+        read_only: true
+
+  trino-smoke:
+    <<:
+      - *runtime-defaults
+      - *resource-baseline
+    image: trinodb/trino:483@sha256:db58cc93e593a2706553745f276bb119c9810e69918be56ecde088ba7ccb0534
+    profiles:
+      - smoke
+    hostname: trino-smoke
+    entrypoint:
+      - /bin/bash
+      - /opt/trino/smoke/run.sh
+    environment:
+      HOME: /tmp
+      TRINO_CATALOG: ${TRINO_CATALOG:?TRINO_CATALOG is required}
+      TRINO_HOST: ${TRINO_HOST:?TRINO_HOST is required}
+      TRINO_INTERNAL_PORT: ${TRINO_INTERNAL_PORT:?TRINO_INTERNAL_PORT is required}
+      TRINO_SCHEMA: ${TRINO_SCHEMA:?TRINO_SCHEMA is required}
+    depends_on:
+      trino:
+        <<: *healthy-dependency
+    read_only: true
+    restart: "no"
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      # Trino CLI/JLine extracts an optional native terminal library here.
+      - /tmp:exec,mode=1777
+    volumes:
+      - type: bind
+        source: ./compose/trino/smoke.sh
+        target: /opt/trino/smoke/run.sh
+        read_only: true
+
   compose-health-contract:
     <<: *runtime-defaults
     image: busybox:1.36.1

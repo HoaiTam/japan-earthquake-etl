@@ -2,7 +2,7 @@
 
 | Thuộc tính | Giá trị |
 |---|---|
-| Trạng thái | Implemented từng phần — MinIO, Airflow và Spark có smoke test |
+| Trạng thái | Implemented từng phần — MinIO, Airflow, Spark và query layer có smoke test |
 | Đối tượng | Thành viên phát triển/vận hành demo |
 | Môi trường | Docker Compose trên máy local |
 
@@ -10,9 +10,8 @@
 
 Runbook mô tả thứ tự chuẩn để chuẩn bị, khởi động, kiểm tra, chạy pipeline và
 xử lý lỗi. Repository đã có scaffold, configuration contract, Compose
-foundation, MinIO runtime, Airflow local runtime và Spark standalone. DAG ETL,
-Catalog và Trino chưa có; placeholder của các thành phần đó không nên copy
-chạy.
+foundation, MinIO runtime, Airflow local runtime và Spark standalone. DAG ETL
+chưa có; Iceberg REST Catalog và Trino đã có static/runtime acceptance riêng.
 
 ## 2. Yêu cầu máy
 
@@ -49,7 +48,8 @@ project-root/
 ├── compose/
 │   ├── airflow/
 │   ├── minio/
-│   └── spark/
+│   ├── spark/
+│   └── trino/
 ├── scripts/
 ├── spark/
 │   ├── pom.xml
@@ -61,6 +61,7 @@ project-root/
 │   └── integration/
 ├── trino/
 │   └── catalog/
+│       └── iceberg.properties
 └── docs/
 ```
 
@@ -72,7 +73,7 @@ Kiểm tra scaffold từ project root:
 
 Mount source/target và ownership module được chốt tại
 [Repository layout và mount contract](./specs/REPOSITORY_LAYOUT.md). Hiện đã có
-MinIO, Airflow và Spark local runtime; query runtime thuộc task tiếp theo.
+MinIO, Airflow, Spark và query runtime.
 Network, volume lifecycle và dependency policy nằm tại
 [Compose foundation contract](./specs/COMPOSE_FOUNDATION.md). Contract
 bucket/prefix, credential và bootstrap nằm tại
@@ -81,6 +82,8 @@ Airflow service, init, DAG smoke và troubleshooting nằm tại
 [Airflow local contract](./specs/AIRFLOW_LOCAL.md).
 Spark version matrix, Java build, service và smoke flow nằm tại
 [Spark standalone contract](./specs/SPARK_STANDALONE.md).
+Iceberg REST Catalog, Trino, secret injection và query smoke nằm tại
+[Iceberg/Trino contract](./specs/ICEBERG_TRINO.md).
 
 ## 4. Nhóm biến môi trường
 
@@ -126,6 +129,7 @@ Checker không in giá trị secret. Không khởi động service nếu kiểm 
 - `./scripts/check-minio.sh` thành công.
 - `./scripts/check-airflow.sh` thành công.
 - `./scripts/check-spark.sh` thành công.
+- `./scripts/check-query.sh` thành công.
 - Máy còn đủ disk/RAM.
 - Thư mục/volume mount có quyền phù hợp.
 
@@ -156,8 +160,8 @@ Kết quả đúng là `minio` healthy, `minio-init` thoát `0` và smoke test b
 `passed`. Script smoke để MinIO tiếp tục chạy và không xóa volume. Ba prefix
 logic được tạo bằng marker `.keep`; marker không phải dữ liệu pipeline.
 
-Khi các task runtime còn lại hoàn tất, bổ sung chúng vào lệnh startup chung;
-không tự thay placeholder bằng service name chưa được merge.
+Các query service có thể được khởi động bằng quy trình ở mục 5.6; không cần
+publish MinIO S3 API hoặc Catalog port ra host.
 
 ### 5.4. Khởi tạo Airflow local
 
@@ -193,13 +197,32 @@ exit code `0`. Script giữ master/worker và `pipeline_staging` để debug.
 Spark master UI mặc định: `http://127.0.0.1:8082`. RPC `7077` và worker UI
 không publish ra host.
 
-### 5.6. Kiểm tra service
+### 5.6. Khởi tạo Iceberg REST Catalog và Trino
+
+Chạy static contract và acceptance tạo–ghi–đọc một Iceberg table:
+
+```bash
+./scripts/check-query.sh
+./scripts/smoke-query.sh
+docker compose --env-file .env ps -a minio minio-init iceberg-rest trino
+```
+
+Kết quả đúng là Catalog và Trino healthy, catalog `iceberg` cùng schema
+`earthquakes` nhìn thấy được, và smoke báo `row_count=1`. Runner xóa đúng table
+`qry_01_smoke`; schema, `minio_data` và `iceberg_catalog_data` được giữ lại.
+
+Trino SQL endpoint mặc định: `http://127.0.0.1:8081`. Catalog `8181` và MinIO
+S3 API `9000` chỉ truy cập được trong Compose network. Baseline local chưa bật
+Trino authentication, vì vậy không đổi loopback binding thành public binding.
+
+### 5.7. Kiểm tra service
 
 ```bash
 docker compose --env-file .env ps -a minio minio-init
 docker compose --env-file .env logs --tail=100 minio
 docker compose --env-file .env logs minio-init
 docker compose --env-file .env logs --tail=100 spark-master spark-worker
+docker compose --env-file .env logs --tail=100 iceberg-rest trino
 ```
 
 Các kiểm tra logic:
@@ -210,6 +233,10 @@ Các kiểm tra logic:
 - Iceberg Catalog health/readiness đạt.
 - Trino hoàn tất startup và thấy catalog Iceberg.
 - Airflow metadata DB healthy.
+
+Catalog state nằm trong `iceberg_catalog_data:/home/iceberg`, còn Iceberg
+metadata/Parquet nằm trong warehouse MinIO. Khi backup hoặc chẩn đoán mất
+table, phải kiểm tra cả hai volume.
 
 ## 6. Build Spark job
 
