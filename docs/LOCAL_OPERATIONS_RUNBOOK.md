@@ -2,7 +2,7 @@
 
 | Thuộc tính | Giá trị |
 |---|---|
-| Trạng thái | Implemented từng phần — MinIO và Airflow có smoke test |
+| Trạng thái | Implemented từng phần — MinIO, Airflow và Spark có smoke test |
 | Đối tượng | Thành viên phát triển/vận hành demo |
 | Môi trường | Docker Compose trên máy local |
 
@@ -10,8 +10,9 @@
 
 Runbook mô tả thứ tự chuẩn để chuẩn bị, khởi động, kiểm tra, chạy pipeline và
 xử lý lỗi. Repository đã có scaffold, configuration contract, Compose
-foundation, MinIO runtime và Airflow local runtime. DAG ETL, Spark, Catalog,
-Trino và JAR chưa có; placeholder của các thành phần đó không nên copy chạy.
+foundation, MinIO runtime, Airflow local runtime và Spark standalone. DAG ETL,
+Catalog và Trino chưa có; placeholder của các thành phần đó không nên copy
+chạy.
 
 ## 2. Yêu cầu máy
 
@@ -20,7 +21,7 @@ Trino và JAR chưa có; placeholder của các thành phần đó không nên c
 | CPU | Từ 4 core |
 | RAM | 16 GiB trở lên; 8 GiB chỉ thử nghiệm và chạy tuần tự |
 | Dung lượng trống | Từ 50 GiB |
-| Phần mềm | Git, Docker Engine/Desktop, Docker Compose plugin |
+| Phần mềm | Git, Docker Engine/Desktop, Docker Compose plugin, JDK 17, `curl` hoặc `wget`, `unzip` |
 | Power BI | Power BI Desktop trên Windows và ODBC driver tương thích Trino |
 | Mạng | Truy cập được USGS API khi extract |
 
@@ -30,6 +31,7 @@ Kiểm tra công cụ:
 git --version
 docker --version
 docker compose version
+java -version
 ```
 
 ## 3. Cấu trúc repository hiện tại
@@ -37,15 +39,20 @@ docker compose version
 ```text
 project-root/
 ├── .env.example
+├── .mvn/wrapper/
 ├── compose.yaml
+├── mvnw
+├── pom.xml
 ├── airflow/
 │   ├── dags/
 │   └── tests/
 ├── compose/
 │   ├── airflow/
-│   └── minio/
+│   ├── minio/
+│   └── spark/
 ├── scripts/
 ├── spark/
+│   ├── pom.xml
 │   └── src/
 │       ├── main/java/
 │       └── test/
@@ -63,16 +70,17 @@ Kiểm tra scaffold từ project root:
 ./scripts/check-repository-layout.sh
 ```
 
-Mount source/target, ownership module và các artifact chưa được tạo được chốt
-tại [Repository layout và mount contract](./specs/REPOSITORY_LAYOUT.md). Hiện đã
-có MinIO và Airflow local runtime nhưng chưa có Spark/query runtime, Maven
-Wrapper hoặc `pom.xml`; các artifact đó thuộc task tiếp theo. Network, volume
-lifecycle và dependency policy nằm tại
+Mount source/target và ownership module được chốt tại
+[Repository layout và mount contract](./specs/REPOSITORY_LAYOUT.md). Hiện đã có
+MinIO, Airflow và Spark local runtime; query runtime thuộc task tiếp theo.
+Network, volume lifecycle và dependency policy nằm tại
 [Compose foundation contract](./specs/COMPOSE_FOUNDATION.md). Contract
 bucket/prefix, credential và bootstrap nằm tại
 [MinIO storage contract](./specs/MINIO_STORAGE.md).
 Airflow service, init, DAG smoke và troubleshooting nằm tại
 [Airflow local contract](./specs/AIRFLOW_LOCAL.md).
+Spark version matrix, Java build, service và smoke flow nằm tại
+[Spark standalone contract](./specs/SPARK_STANDALONE.md).
 
 ## 4. Nhóm biến môi trường
 
@@ -117,6 +125,7 @@ Checker không in giá trị secret. Không khởi động service nếu kiểm 
 - `./scripts/check-compose.sh` thành công.
 - `./scripts/check-minio.sh` thành công.
 - `./scripts/check-airflow.sh` thành công.
+- `./scripts/check-spark.sh` thành công.
 - Máy còn đủ disk/RAM.
 - Thư mục/volume mount có quyền phù hợp.
 
@@ -167,12 +176,30 @@ service cùng metadata/log volume để tiếp tục debug hoặc phát triển 
 
 Airflow UI/API mặc định: `http://127.0.0.1:8080`.
 
-### 5.5. Kiểm tra service
+### 5.5. Khởi tạo Spark standalone
+
+Build JAR/static contract và chạy runtime acceptance:
+
+```bash
+./scripts/check-spark.sh
+./scripts/smoke-spark.sh
+docker compose --env-file .env ps -a spark-master spark-worker
+```
+
+Kết quả đúng là master/worker healthy, master báo ít nhất một worker `ALIVE`,
+`HelloWorldJob` in marker có `record_count=10 id_sum=45` và `spark-submit` trả
+exit code `0`. Script giữ master/worker và `pipeline_staging` để debug.
+
+Spark master UI mặc định: `http://127.0.0.1:8082`. RPC `7077` và worker UI
+không publish ra host.
+
+### 5.6. Kiểm tra service
 
 ```bash
 docker compose --env-file .env ps -a minio minio-init
 docker compose --env-file .env logs --tail=100 minio
 docker compose --env-file .env logs minio-init
+docker compose --env-file .env logs --tail=100 spark-master spark-worker
 ```
 
 Các kiểm tra logic:
@@ -186,13 +213,16 @@ Các kiểm tra logic:
 
 ## 6. Build Spark job
 
-Khi module Maven tồn tại:
+Maven Wrapper đã pin Maven `3.9.16`; module compile bằng Java `17` và tạo JAR
+`spark/target/japan-earthquake-etl.jar`:
 
 ```bash
-./mvnw clean test package
+./mvnw --batch-mode --no-transfer-progress clean verify
 ```
 
-Nếu project không cung cấp Maven Wrapper thì dùng `mvn`. Artifact path và tên JAR phải được ghi lại ở đây sau khi chốt. Không bỏ qua unit test trước khi submit JAR mới.
+Không thay wrapper bằng Maven global để né version/checksum contract. Không bỏ
+qua unit test trước khi submit JAR mới. Image runtime chứa JAR tại
+`/opt/spark/jobs/japan-earthquake-etl.jar`.
 
 ## 7. Chạy pipeline
 
@@ -286,10 +316,15 @@ Lệnh backup/restore cụ thể sẽ được bổ sung sau khi loại volume v
 
 ### Spark job lỗi/worker mất kết nối
 
-- Kiểm tra Spark master/worker và resource allocation.
-- Giảm concurrency/memory nếu host bị pressure.
-- Xác nhận JAR/dependency tương thích với Spark/Iceberg.
-- Dùng đúng run context và input URI.
+- Chạy `./scripts/check-spark.sh`, rồi xem
+  `docker compose --env-file .env logs spark-master spark-worker`.
+- Mở `http://127.0.0.1:${SPARK_MASTER_UI_HOST_PORT}` và xác nhận worker
+  `ALIVE`.
+- Nếu job không nhận resource, đưa core/memory về default hoặc tăng worker
+  limit có chủ đích; executor mặc định cần `2g`.
+- Xác nhận JAR/dependency tương thích Spark `3.5.9`, Scala `2.12` và Java `17`.
+- Client phải ở network `pipeline`, hostname `spark-client`; không dùng
+  `localhost` làm `spark.driver.host`.
 
 ### Không truy cập được MinIO
 
@@ -328,21 +363,19 @@ Lệnh backup/restore cụ thể sẽ được bổ sung sau khi loại volume v
 |---|---|---:|---|---|
 | Airflow UI/API | `http://127.0.0.1:8080` mặc định | Có, bind loopback | FAB local admin | Implemented |
 | MinIO Console | `http://127.0.0.1:9001` mặc định | Có, bind loopback | Root credential local | Implemented |
-| Spark UI | TBD | Có | TBD | Draft |
+| Spark master UI | `http://127.0.0.1:8082` mặc định | Có, bind loopback | Không — chỉ local | Implemented |
 | Trino | TBD | Có | TBD | Draft |
 
 MinIO S3 API là `http://minio:9000` trong Compose network và không publish ra
-host. Catalog và metadata database cũng không cần public nếu consumer không sử
-dụng trực tiếp.
+host. Spark RPC/worker UI, Catalog và metadata database cũng không public.
 
 ## 13. Việc phải cập nhật khi có mã nguồn
 
-- Tên/DAG ID/service/port thực tế.
+- Tên/DAG ID/service/port thực tế của các component chưa triển khai.
 - Câu lệnh init/build/trigger/backfill chính xác.
 - Health-check URL/expected response của service chưa triển khai; MinIO dùng
   `/minio/health/live`, Airflow API dùng `/api/v2/monitor/health`, scheduler và
   DAG processor dùng job heartbeat CLI.
-- Artifact path của Spark JAR.
 - Bucket/catalog/schema/table naming.
 - Backup/restore command đã kiểm thử.
 - Known issues và resource profile đo được.

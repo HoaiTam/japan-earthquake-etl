@@ -12,8 +12,8 @@
 `CMP-01` tạo nền Compose dùng chung: project name, network, named volumes,
 resource baseline, health-check defaults và dependency policy. `MIO-01` đã mở
 rộng nó bằng MinIO; `AFL-01` đã thêm PostgreSQL metadata, init, API server,
-scheduler, DAG processor và profile smoke của Airflow. Spark, Iceberg Catalog
-và Trino vẫn thuộc các task downstream.
+scheduler, DAG processor và profile smoke của Airflow; `SPK-01` đã thêm Spark
+master/worker/client. Iceberg Catalog và Trino vẫn thuộc các task downstream.
 
 `compose-health-contract` và `compose-contract` chỉ thuộc profile `validation`.
 Chúng giúp Compose kiểm chứng healthcheck, long-form dependency và các
@@ -113,3 +113,7 @@ chờ `minio-init` hoàn thành thành công.
 Airflow đã hoàn tất handoff runtime tại
 [Airflow local contract](./AIRFLOW_LOCAL.md); component dài hạn phải chờ
 `airflow-init` hoàn thành và có healthcheck riêng.
+
+Spark đã hoàn tất handoff runtime tại
+[Spark standalone contract](./SPARK_STANDALONE.md); master/worker có healthcheck
+thật, client smoke chờ cả hai healthy và Spark RPC/worker UI giữ nội bộ.

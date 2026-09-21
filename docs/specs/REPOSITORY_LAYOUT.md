@@ -4,7 +4,7 @@
 |---|---|
 | Task | `REP-01` |
 | Trạng thái | Implemented |
-| Phạm vi | Cấu trúc module, ownership, build placeholder và mount path |
+| Phạm vi | Cấu trúc module, ownership, build contract và mount path |
 
 ## 1. Mục đích
 
@@ -12,9 +12,9 @@ Tài liệu này là contract cho các task thêm Airflow, Spark Java, Trino và
 Compose. Mỗi task downstream mở rộng đúng module được giao và không tự tạo một
 cấu trúc hoặc mount path cạnh tranh.
 
-Scaffold hiện cung cấp MinIO runtime cùng init/smoke asset. Maven Wrapper,
-`pom.xml`, DAG và catalog properties thuộc các task riêng trong backlog;
-`compose.yaml` còn chứa foundation/validation contract dùng chung.
+Scaffold hiện đã được mở rộng bằng MinIO, Airflow và Spark runtime. Maven
+Wrapper, root/module `pom.xml`, Java package và Spark smoke do `SPK-01` cung
+cấp; catalog properties vẫn thuộc task query trong backlog.
 
 ## 2. Cấu trúc chuẩn
 
@@ -23,7 +23,11 @@ project-root/
 ├── README.md
 ├── AGENTS.md
 ├── .env.example
+├── .mvn/wrapper/
 ├── compose.yaml
+├── mvnw
+├── mvnw.cmd
+├── pom.xml
 ├── airflow/
 │   ├── README.md
 │   ├── dags/
@@ -32,29 +36,40 @@ project-root/
 │       └── README.md
 ├── compose/
 │   ├── README.md
-│   └── minio/
+│   ├── airflow/
+│   │   └── smoke.sh
+│   ├── minio/
+│   │   ├── Dockerfile
+│   │   ├── init.sh
+│   │   └── smoke.sh
+│   └── spark/
 │       ├── Dockerfile
-│       ├── init.sh
 │       └── smoke.sh
 ├── docs/
 │   └── specs/
 │       ├── COMPOSE_FOUNDATION.md
 │       ├── CONFIGURATION_AND_SECRETS.md
 │       ├── MINIO_STORAGE.md
+│       ├── SPARK_STANDALONE.md
 │       └── REPOSITORY_LAYOUT.md
 ├── scripts/
 │   ├── README.md
+│   ├── check-airflow.sh
 │   ├── check-compose.sh
 │   ├── check-config.sh
 │   ├── check-minio.sh
 │   ├── check-repository-layout.sh
-│   └── smoke-minio.sh
+│   ├── check-spark.sh
+│   ├── smoke-airflow.sh
+│   ├── smoke-minio.sh
+│   └── smoke-spark.sh
 ├── spark/
 │   ├── README.md
+│   ├── pom.xml
 │   └── src/
-│       ├── main/java/
+│       ├── main/java/vn/edu/uit/ie212/earthquake/spark/
 │       └── test/
-│           ├── java/
+│           ├── java/vn/edu/uit/ie212/earthquake/spark/
 │           └── resources/fixtures/
 ├── tests/
 │   ├── README.md
@@ -68,9 +83,9 @@ project-root/
         └── README.md
 ```
 
-Không tạo package Java giả trước khi `SPK-01` chốt group/package name. Các thư
-mục `java/` được giữ bằng `.gitkeep` để Maven layout sẵn sàng mà không áp đặt
-namespace.
+Package gốc đã được `SPK-01` chốt là
+`vn.edu.uit.ie212.earthquake.spark`. Job downstream đặt dưới namespace này và
+không tạo Maven module cạnh tranh.
 
 ## 3. Ownership theo module
 
@@ -117,17 +132,20 @@ Quy tắc chống xung đột:
 6. Secret chỉ đi qua environment/secret mechanism; không nằm trong catalog,
    DAG hoặc source tree.
 
-## 5. Build placeholder
+## 5. Build contract
 
-Chạy smoke check scaffold:
+Chạy scaffold, Maven và Spark contract check:
 
 ```bash
 ./scripts/check-repository-layout.sh
+./scripts/check-spark.sh
 ```
 
-Script thất bại nếu thiếu module, Maven source/test layout, tài liệu module hoặc
-bind source đã dành trước. Maven build thật thuộc `SPK-01`; Compose validation
-thuộc `CMP-01`; MinIO static/runtime smoke thuộc `MIO-01`.
+Script layout thất bại nếu thiếu module, Maven source/test layout, tài liệu hoặc
+bind source. Spark checker chạy Maven verify và xác nhận JAR
+`spark/target/japan-earthquake-etl.jar`, manifest, dependency scope và Compose
+runtime contract. Compose validation thuộc `CMP-01`; MinIO/Airflow/Spark đều có
+static và runtime smoke riêng.
 
 ## 6. Handoff cho task downstream
 
@@ -136,5 +154,5 @@ thuộc `CMP-01`; MinIO static/runtime smoke thuộc `MIO-01`.
 | `CFG-01` | Đã thêm `.env.example`, config contract và secret hygiene check |
 | `CMP-01` | Đã thêm Compose network, named volumes và extension baseline |
 | `MIO-01` | Đã thêm MinIO, bucket/prefix bootstrap, pipeline policy và smoke test |
-| `SPK-01` | Thêm Maven Wrapper, `pom.xml`, package Java, Hello World và test base |
+| `SPK-01` | Đã thêm Maven Wrapper, POM, Java package, Hello World, standalone cluster và smoke test |
 | `QRY-01` | Chốt Trino/Iceberg Catalog config và catalog state volume |

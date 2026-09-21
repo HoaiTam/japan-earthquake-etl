@@ -19,3 +19,7 @@ Hiện có:
   healthcheck, dependency, mount và host exposure của `AFL-01`.
 - `smoke-airflow.sh`: khởi động Airflow local, chờ các component healthy và
   trigger `afl_01_smoke`; không xóa metadata/log volume.
+- `check-spark.sh`: chạy Maven verify và kiểm tra JAR, dependency, image,
+  healthcheck, mount, exposure cùng Compose contract của `SPK-01`.
+- `smoke-spark.sh`: build image một lần, chờ master/worker healthy và chạy
+  `HelloWorldJob` trên worker; giữ cluster và staging volume để debug.
