@@ -78,6 +78,7 @@ default ngoài ý muốn.
 | `MINIO_ACCESS_KEY` | Có | Có | Credential riêng cho pipeline |
 | `MINIO_SECRET_KEY` | Có | Có | Secret riêng cho pipeline |
 | `MINIO_CONSOLE_HOST_PORT` | Có | Không | Port host của giao diện vận hành |
+| `S3_REGION` | Có | Không | Region cố định cho MinIO/S3 client local |
 
 MinIO API không có biến host port vì runtime giữ API trong Compose network.
 `MIO-01` tạo pipeline user và policy giới hạn trong `DATA_BUCKET`: Bronze không
@@ -130,6 +131,14 @@ số nguyên dương kèm `m` hoặc `g`, và worker core từ `1` đến `64`. 
 UI bind loopback; Spark RPC và worker UI không publish ra host. Chi tiết tại
 [Spark standalone contract](./SPARK_STANDALONE.md).
 
+`QRY-01` yêu cầu `S3_REGION=us-east-1`,
+`ICEBERG_CATALOG_URI=http://iceberg-rest:8181`, `TRINO_HOST=trino` và
+`TRINO_INTERNAL_PORT=8080`. `ICEBERG_CATALOG_NAME` cùng `TRINO_CATALOG` phải là
+`iceberg` vì tên catalog lấy từ `trino/catalog/iceberg.properties`.
+`TRINO_SCHEMA` và các tên catalog/schema phải là SQL identifier chữ thường.
+Catalog port chỉ nội bộ; `TRINO_HOST_PORT` được bind loopback. Chi tiết tại
+[Iceberg/Trino contract](./ICEBERG_TRINO.md).
+
 ## 4. Secret hygiene gate
 
 `scripts/check-config.sh` kiểm tra:
@@ -144,6 +153,8 @@ UI bind loopback; Spark RPC và worker UI không publish ra host. Chi tiết t�
    biến; checker chỉ in tên file nghi vấn.
 7. Bucket/prefix đúng cú pháp, không trùng nhau; MinIO endpoint là service nội
    bộ và credential pipeline khác root credential.
+8. Catalog/Trino endpoint, S3 region, SQL identifier và tên catalog khớp
+   baseline QRY-01.
 
 Checker là guardrail, không thay thế review hoặc secret scanner của CI. Nếu
 secret từng được commit, chỉ xóa file là chưa đủ: phải revoke/rotate secret và

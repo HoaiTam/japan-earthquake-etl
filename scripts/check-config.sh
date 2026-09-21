@@ -34,6 +34,7 @@ MINIO_ROOT_PASSWORD
 MINIO_ACCESS_KEY
 MINIO_SECRET_KEY
 MINIO_CONSOLE_HOST_PORT
+S3_REGION
 AIRFLOW_UID
 AIRFLOW_ADMIN_USERNAME
 AIRFLOW_ADMIN_PASSWORD
@@ -250,6 +251,16 @@ validate_spark_memory() {
     esac
 }
 
+validate_sql_identifier() {
+    file=$1
+    key=$2
+    value=$(read_value "$file" "$key")
+
+    if ! printf '%s\n' "$value" | grep -Eq '^[a-z][a-z0-9_]*$'; then
+        report_error "$key must be a lowercase SQL identifier"
+    fi
+}
+
 validate_semantics() {
     file=$1
 
@@ -264,6 +275,9 @@ validate_semantics() {
     validate_integer "$file" TRINO_HOST_PORT 1 65535
     validate_spark_memory "$file" SPARK_DRIVER_MEMORY
     validate_spark_memory "$file" SPARK_EXECUTOR_MEMORY
+    validate_sql_identifier "$file" ICEBERG_CATALOG_NAME
+    validate_sql_identifier "$file" TRINO_CATALOG
+    validate_sql_identifier "$file" TRINO_SCHEMA
 
     timezone=$(read_value "$file" PIPELINE_TIMEZONE)
     if [ "$timezone" != "Asia/Ho_Chi_Minh" ]; then
@@ -273,6 +287,11 @@ validate_semantics() {
     minio_endpoint=$(read_value "$file" MINIO_ENDPOINT)
     if [ "$minio_endpoint" != "http://minio:9000" ]; then
         report_error "MINIO_ENDPOINT must use the internal Compose endpoint: http://minio:9000"
+    fi
+
+    s3_region=$(read_value "$file" S3_REGION)
+    if [ "$s3_region" != "us-east-1" ]; then
+        report_error "S3_REGION must match the MinIO local baseline: us-east-1"
     fi
 
     usgs_endpoint=$(read_value "$file" USGS_API_BASE_URL)
@@ -287,10 +306,25 @@ validate_semantics() {
     fi
 
     catalog_uri=$(read_value "$file" ICEBERG_CATALOG_URI)
-    case "$catalog_uri" in
-        http://*|https://*) ;;
-        *) report_error "ICEBERG_CATALOG_URI must be an http:// or https:// URI" ;;
-    esac
+    if [ "$catalog_uri" != "http://iceberg-rest:8181" ]; then
+        report_error "ICEBERG_CATALOG_URI must use the internal Compose endpoint: http://iceberg-rest:8181"
+    fi
+
+    iceberg_catalog_name=$(read_value "$file" ICEBERG_CATALOG_NAME)
+    trino_catalog=$(read_value "$file" TRINO_CATALOG)
+    if [ "$iceberg_catalog_name" != "iceberg" ] || [ "$trino_catalog" != "iceberg" ]; then
+        report_error "ICEBERG_CATALOG_NAME and TRINO_CATALOG must match the static iceberg.properties catalog"
+    fi
+
+    trino_host=$(read_value "$file" TRINO_HOST)
+    if [ "$trino_host" != "trino" ]; then
+        report_error "TRINO_HOST must use the internal Compose service name: trino"
+    fi
+
+    trino_internal_port=$(read_value "$file" TRINO_INTERNAL_PORT)
+    if [ "$trino_internal_port" != "8080" ]; then
+        report_error "TRINO_INTERNAL_PORT must match the Trino container port: 8080"
+    fi
 
     bucket=$(read_value "$file" DATA_BUCKET)
     warehouse=$(read_value "$file" WAREHOUSE_PATH)

@@ -12,6 +12,7 @@ compose
 compose/airflow
 compose/minio
 compose/spark
+compose/trino
 scripts
 spark/src/main/java
 spark/src/test/java
@@ -38,11 +39,13 @@ compose/minio/init.sh
 compose/minio/smoke.sh
 compose/spark/Dockerfile
 compose/spark/smoke.sh
+compose/trino/smoke.sh
 compose.yaml
 docs/specs/COMPOSE_FOUNDATION.md
 docs/specs/CONFIGURATION_AND_SECRETS.md
 docs/specs/AIRFLOW_LOCAL.md
 docs/specs/MINIO_STORAGE.md
+docs/specs/ICEBERG_TRINO.md
 docs/specs/REPOSITORY_LAYOUT.md
 docs/specs/SPARK_STANDALONE.md
 scripts/README.md
@@ -50,9 +53,11 @@ scripts/check-airflow.sh
 scripts/check-compose.sh
 scripts/check-config.sh
 scripts/check-minio.sh
+scripts/check-query.sh
 scripts/check-spark.sh
 scripts/smoke-airflow.sh
 scripts/smoke-minio.sh
+scripts/smoke-query.sh
 scripts/smoke-spark.sh
 pom.xml
 mvnw
@@ -66,6 +71,7 @@ tests/fixtures/README.md
 tests/integration/README.md
 trino/README.md
 trino/catalog/README.md
+trino/catalog/iceberg.properties
 "
 
 failed=0

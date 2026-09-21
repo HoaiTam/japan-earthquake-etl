@@ -4,9 +4,10 @@ Nền tảng ETL local-first để thu thập dữ liệu động đất từ US
 Spark Java theo mô hình Bronze–Silver–Gold, công bố bảng Gold qua Iceberg và
 Trino, sau đó phục vụ báo cáo Power BI.
 
-> Trạng thái hiện tại: **foundation + MinIO + Airflow + Spark standalone**.
-> MinIO bucket bootstrap, Airflow local runtime và Spark Java build/runtime đã
-> được triển khai; DAG ETL và query services thuộc các task tiếp theo.
+> Trạng thái hiện tại: **foundation + MinIO + Airflow + Spark + query layer**.
+> MinIO bucket bootstrap, Airflow local runtime, Spark Java build/runtime,
+> Iceberg REST Catalog và Trino đã được triển khai; DAG ETL thuộc các task tiếp
+> theo.
 
 ## Chuẩn bị trên máy local
 
@@ -84,6 +85,20 @@ Spark master UI mặc định ở `http://127.0.0.1:8082`. Chi tiết version ma
 JAR, tài nguyên và luồng kiểm thử nằm tại
 [Spark standalone contract](./docs/specs/SPARK_STANDALONE.md).
 
+Kiểm tra Iceberg REST Catalog/Trino tĩnh, sau đó chạy một vòng tạo–ghi–đọc
+Iceberg table thật:
+
+```bash
+./scripts/check-query.sh
+./scripts/smoke-query.sh
+```
+
+Smoke test chờ Catalog và Trino healthy, tạo schema nếu cần, ghi/đọc một row
+qua MinIO rồi chỉ xóa table kiểm thử. SQL endpoint mặc định ở
+`http://127.0.0.1:8081`; Catalog chỉ ở trong Compose network. Kiến trúc, secret
+injection, volume và troubleshooting nằm tại
+[Iceberg REST Catalog và Trino contract](./docs/specs/ICEBERG_TRINO.md).
+
 ## Cấu trúc repository
 
 ```text
@@ -97,6 +112,7 @@ JAR, tài nguyên và luồng kiểm thử nằm tại
 │   ├── dags/
 │   └── tests/
 ├── compose/                  # Asset init/smoke cho service Compose
+│   └── trino/                # Query smoke runner
 ├── docs/                     # Kiến trúc, đặc tả, flow và runbook
 ├── scripts/                  # Script phát triển/vận hành dùng chung
 ├── spark/                    # Module Spark Java/Maven
@@ -108,6 +124,7 @@ JAR, tài nguyên và luồng kiểm thử nằm tại
 ├── tests/                    # Fixture và test tích hợp xuyên module
 └── trino/                    # Cấu hình Trino
     └── catalog/
+        └── iceberg.properties
 ```
 
 Chi tiết ownership, mount path và quy tắc mở rộng nằm trong
@@ -129,6 +146,8 @@ Chi tiết ownership, mount path và quy tắc mở rộng nằm trong
 | `./mvnw clean verify` | Chạy được với JDK 17 và network lần đầu | `SPK-01` |
 | `./scripts/check-spark.sh` | Chạy được, không cần start service | `SPK-01` |
 | `./scripts/smoke-spark.sh` | Chạy được khi có `.env` và Docker daemon | `SPK-01` |
+| `./scripts/check-query.sh` | Chạy được, không cần start service | `QRY-01` |
+| `./scripts/smoke-query.sh` | Chạy được khi có `.env` và Docker daemon | `QRY-01` |
 
 Hướng dẫn vận hành đầy đủ được duy trì trong
 [Local operations runbook](./docs/LOCAL_OPERATIONS_RUNBOOK.md).

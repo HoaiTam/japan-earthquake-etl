@@ -13,7 +13,8 @@
 resource baseline, health-check defaults và dependency policy. `MIO-01` đã mở
 rộng nó bằng MinIO; `AFL-01` đã thêm PostgreSQL metadata, init, API server,
 scheduler, DAG processor và profile smoke của Airflow; `SPK-01` đã thêm Spark
-master/worker/client. Iceberg Catalog và Trino vẫn thuộc các task downstream.
+master/worker/client; `QRY-01` đã thêm Iceberg REST Catalog, Trino và profile
+query smoke.
 
 `compose-health-contract` và `compose-contract` chỉ thuộc profile `validation`.
 Chúng giúp Compose kiểm chứng healthcheck, long-form dependency và các
@@ -39,7 +40,7 @@ không cần truy cập.
 | `airflow_logs` | `operational` | `/opt/airflow/logs` | Log phục vụ vận hành/debug local |
 | `airflow_db_data` | `durable` | `/var/lib/postgresql/data` | Metadata Airflow |
 | `minio_data` | `durable` | `/data` | Bronze, Silver và Gold warehouse |
-| `iceberg_catalog_data` | `durable` | Do `QRY-01` chốt | Trạng thái backend của Catalog |
+| `iceberg_catalog_data` | `durable` | `/home/iceberg` | SQLite registration state của Catalog |
 
 Staging dùng named volume riêng và được gắn label `transient`; nó không phải
 nguồn backup hoặc dữ liệu chính thức. Các volume `durable` không được dùng làm
@@ -117,3 +118,8 @@ Airflow đã hoàn tất handoff runtime tại
 Spark đã hoàn tất handoff runtime tại
 [Spark standalone contract](./SPARK_STANDALONE.md); master/worker có healthcheck
 thật, client smoke chờ cả hai healthy và Spark RPC/worker UI giữ nội bộ.
+
+QRY-01 đã hoàn tất handoff query tại
+[Iceberg/Trino contract](./ICEBERG_TRINO.md); Catalog chờ MinIO bootstrap, Trino
+chờ Catalog healthy, Catalog không publish host port và Trino chỉ bind
+loopback. `iceberg_catalog_data` tách biệt khỏi warehouse trong `minio_data`.
