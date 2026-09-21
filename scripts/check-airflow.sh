@@ -148,13 +148,17 @@ require_fixed "$api_block" "/api/v2/monitor/health" \
 require_fixed "$api_block" "condition: service_completed_successfully" \
     "Airflow API server must wait for successful initialization"
 
-require_fixed "$scheduler_block" "airflow jobs check --job-type SchedulerJob" \
+require_fixed "$scheduler_block" "exec airflow jobs check --job-type SchedulerJob" \
     "Airflow scheduler must expose a heartbeat-based healthcheck"
+require_fixed "$scheduler_block" "timeout: 30s" \
+    "Airflow scheduler healthcheck must allow a full CLI startup"
 require_fixed "$scheduler_block" "condition: service_completed_successfully" \
     "Airflow scheduler must wait for successful initialization"
 
-require_fixed "$processor_block" "airflow jobs check --job-type DagProcessorJob" \
+require_fixed "$processor_block" "exec airflow jobs check --job-type DagProcessorJob" \
     "Airflow DAG processor must expose a heartbeat-based healthcheck"
+require_fixed "$processor_block" "timeout: 30s" \
+    "Airflow DAG processor healthcheck must allow a full CLI startup"
 require_fixed "$processor_block" "condition: service_completed_successfully" \
     "Airflow DAG processor must wait for successful initialization"
 

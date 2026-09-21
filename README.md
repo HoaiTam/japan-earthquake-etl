@@ -4,10 +4,10 @@ Nền tảng ETL local-first để thu thập dữ liệu động đất từ US
 Spark Java theo mô hình Bronze–Silver–Gold, công bố bảng Gold qua Iceberg và
 Trino, sau đó phục vụ báo cáo Power BI.
 
-> Trạng thái hiện tại: **foundation + MinIO + Airflow + Spark + query layer**.
+> Trạng thái hiện tại: **foundation đã có full-stack smoke checklist**.
 > MinIO bucket bootstrap, Airflow local runtime, Spark Java build/runtime,
-> Iceberg REST Catalog và Trino đã được triển khai; DAG ETL thuộc các task tiếp
-> theo.
+> Iceberg REST Catalog và Trino đã được triển khai và kiểm tra cùng nhau; DAG
+> ETL thuộc các task tiếp theo.
 
 ## Chuẩn bị trên máy local
 
@@ -99,6 +99,18 @@ qua MinIO rồi chỉ xóa table kiểm thử. SQL endpoint mặc định ở
 injection, volume và troubleshooting nằm tại
 [Iceberg REST Catalog và Trino contract](./docs/specs/ICEBERG_TRINO.md).
 
+Kiểm tra toàn bộ foundation stack bằng một entrypoint:
+
+```bash
+./scripts/check-foundation.sh
+./scripts/smoke-foundation.sh
+```
+
+Full smoke yêu cầu `.env` hợp lệ, kiểm tra 9 service healthy, 2 init service
+thoát `0`, network, 5 volume/mount, startup log và bốn smoke hành vi. Script giữ
+service/volume sau khi chạy để debug. Checklist và troubleshooting nằm tại
+[Foundation environment smoke contract](./docs/specs/FOUNDATION_SMOKE.md).
+
 ## Cấu trúc repository
 
 ```text
@@ -148,6 +160,8 @@ Chi tiết ownership, mount path và quy tắc mở rộng nằm trong
 | `./scripts/smoke-spark.sh` | Chạy được khi có `.env` và Docker daemon | `SPK-01` |
 | `./scripts/check-query.sh` | Chạy được, không cần start service | `QRY-01` |
 | `./scripts/smoke-query.sh` | Chạy được khi có `.env` và Docker daemon | `QRY-01` |
+| `./scripts/check-foundation.sh` | Chạy toàn bộ static foundation checks | `FND-01` |
+| `./scripts/smoke-foundation.sh` | Chạy full-stack smoke khi có `.env` và Docker daemon | `FND-01` |
 
 Hướng dẫn vận hành đầy đủ được duy trì trong
 [Local operations runbook](./docs/LOCAL_OPERATIONS_RUNBOOK.md).

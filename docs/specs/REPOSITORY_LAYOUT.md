@@ -15,7 +15,8 @@ cấu trúc hoặc mount path cạnh tranh.
 Scaffold hiện đã được mở rộng bằng MinIO, Airflow, Spark và query runtime. Maven
 Wrapper, root/module `pom.xml`, Java package và Spark smoke do `SPK-01` cung
 cấp; Iceberg REST Catalog, Trino catalog properties và query smoke do `QRY-01`
-cung cấp.
+cung cấp. `FND-01` gom các contract trên thành static checklist và full-stack
+runtime smoke.
 
 ## 2. Cấu trúc chuẩn
 
@@ -55,17 +56,20 @@ project-root/
 │       ├── MINIO_STORAGE.md
 │       ├── SPARK_STANDALONE.md
 │       ├── ICEBERG_TRINO.md
+│       ├── FOUNDATION_SMOKE.md
 │       └── REPOSITORY_LAYOUT.md
 ├── scripts/
 │   ├── README.md
 │   ├── check-airflow.sh
 │   ├── check-compose.sh
 │   ├── check-config.sh
+│   ├── check-foundation.sh
 │   ├── check-minio.sh
 │   ├── check-query.sh
 │   ├── check-repository-layout.sh
 │   ├── check-spark.sh
 │   ├── smoke-airflow.sh
+│   ├── smoke-foundation.sh
 │   ├── smoke-minio.sh
 │   ├── smoke-query.sh
 │   └── smoke-spark.sh
@@ -152,7 +156,8 @@ Script layout thất bại nếu thiếu module, Maven source/test layout, tài 
 bind source. Spark checker chạy Maven verify và xác nhận JAR
 `spark/target/japan-earthquake-etl.jar`, manifest, dependency scope và Compose
 runtime contract. Compose validation thuộc `CMP-01`; MinIO/Airflow/Spark/query
-đều có static và runtime smoke riêng.
+đều có static và runtime smoke riêng. `FND-01` chạy lại các contract riêng và
+kiểm chứng chúng trong cùng một project mà không xóa service/volume.
 
 ## 6. Handoff cho task downstream
 
@@ -163,3 +168,4 @@ runtime contract. Compose validation thuộc `CMP-01`; MinIO/Airflow/Spark/query
 | `MIO-01` | Đã thêm MinIO, bucket/prefix bootstrap, pipeline policy và smoke test |
 | `SPK-01` | Đã thêm Maven Wrapper, POM, Java package, Hello World, standalone cluster và smoke test |
 | `QRY-01` | Đã thêm Trino/Iceberg REST Catalog config, catalog state volume và query smoke |
+| `FND-01` | Đã thêm full-stack health, init, network, volume/mount và startup-log checklist |

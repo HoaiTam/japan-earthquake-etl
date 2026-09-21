@@ -2,7 +2,7 @@
 
 | Thuộc tính | Giá trị |
 |---|---|
-| Trạng thái | Implemented từng phần — MinIO, Airflow, Spark và query layer có smoke test |
+| Trạng thái | Foundation runtime đã có full-stack smoke test |
 | Đối tượng | Thành viên phát triển/vận hành demo |
 | Môi trường | Docker Compose trên máy local |
 
@@ -11,7 +11,8 @@
 Runbook mô tả thứ tự chuẩn để chuẩn bị, khởi động, kiểm tra, chạy pipeline và
 xử lý lỗi. Repository đã có scaffold, configuration contract, Compose
 foundation, MinIO runtime, Airflow local runtime và Spark standalone. DAG ETL
-chưa có; Iceberg REST Catalog và Trino đã có static/runtime acceptance riêng.
+chưa có; Iceberg REST Catalog và Trino đã có static/runtime acceptance riêng,
+và FND-01 kiểm tra toàn bộ các component trong cùng một Compose project.
 
 ## 2. Yêu cầu máy
 
@@ -84,6 +85,8 @@ Spark version matrix, Java build, service và smoke flow nằm tại
 [Spark standalone contract](./specs/SPARK_STANDALONE.md).
 Iceberg REST Catalog, Trino, secret injection và query smoke nằm tại
 [Iceberg/Trino contract](./specs/ICEBERG_TRINO.md).
+Full-stack health/network/volume/log checklist nằm tại
+[Foundation environment smoke contract](./specs/FOUNDATION_SMOKE.md).
 
 ## 4. Nhóm biến môi trường
 
@@ -130,6 +133,7 @@ Checker không in giá trị secret. Không khởi động service nếu kiểm 
 - `./scripts/check-airflow.sh` thành công.
 - `./scripts/check-spark.sh` thành công.
 - `./scripts/check-query.sh` thành công.
+- `./scripts/check-foundation.sh` thành công.
 - Máy còn đủ disk/RAM.
 - Thư mục/volume mount có quyền phù hợp.
 
@@ -215,7 +219,39 @@ Trino SQL endpoint mặc định: `http://127.0.0.1:8081`. Catalog `8181` và Mi
 S3 API `9000` chỉ truy cập được trong Compose network. Baseline local chưa bật
 Trino authentication, vì vậy không đổi loopback binding thành public binding.
 
-### 5.7. Kiểm tra service
+### 5.7. Chạy full foundation smoke
+
+Sau khi từng component contract ổn định, dùng một entrypoint để kiểm tra toàn
+bộ môi trường:
+
+```bash
+./scripts/check-foundation.sh --require-local
+./scripts/smoke-foundation.sh
+```
+
+Lệnh runtime build/start foundation stack, chạy MinIO/Airflow/Spark/Trino
+smoke, rồi xác nhận:
+
+- 9 long-running service có health status `healthy`.
+- `minio-init` và `airflow-init` thoát với exit code `0`.
+- Mọi service thuộc đúng project-scoped network `pipeline`.
+- 5 named volume có lifecycle label và mount target đúng.
+- Startup log không rỗng và không có fatal startup marker.
+
+Script không dừng service hoặc xóa volume. Cold run có thể lâu do pull/build
+image; tăng readiness timeout bằng
+`FOUNDATION_WAIT_TIMEOUT_SECONDS=600` nếu máy chậm. Có thể lưu evidence ngoài
+repository:
+
+```bash
+./scripts/smoke-foundation.sh 2>&1 | tee /tmp/fnd-01-smoke.log
+```
+
+Không commit file evidence/log runtime. Chi tiết PASS/FAIL semantics và bảng
+troubleshooting nằm tại
+[Foundation environment smoke contract](./specs/FOUNDATION_SMOKE.md).
+
+### 5.8. Kiểm tra service thủ công
 
 ```bash
 docker compose --env-file .env ps -a minio minio-init
@@ -391,18 +427,14 @@ Lệnh backup/restore cụ thể sẽ được bổ sung sau khi loại volume v
 | Airflow UI/API | `http://127.0.0.1:8080` mặc định | Có, bind loopback | FAB local admin | Implemented |
 | MinIO Console | `http://127.0.0.1:9001` mặc định | Có, bind loopback | Root credential local | Implemented |
 | Spark master UI | `http://127.0.0.1:8082` mặc định | Có, bind loopback | Không — chỉ local | Implemented |
-| Trino | TBD | Có | TBD | Draft |
+| Trino | `http://127.0.0.1:8081` mặc định | Có, bind loopback | Không — chỉ local | Implemented |
 
 MinIO S3 API là `http://minio:9000` trong Compose network và không publish ra
 host. Spark RPC/worker UI, Catalog và metadata database cũng không public.
 
-## 13. Việc phải cập nhật khi có mã nguồn
+## 13. Việc phải cập nhật ở các task tiếp theo
 
-- Tên/DAG ID/service/port thực tế của các component chưa triển khai.
-- Câu lệnh init/build/trigger/backfill chính xác.
-- Health-check URL/expected response của service chưa triển khai; MinIO dùng
-  `/minio/health/live`, Airflow API dùng `/api/v2/monitor/health`, scheduler và
-  DAG processor dùng job heartbeat CLI.
-- Bucket/catalog/schema/table naming.
+- Tên/DAG ID và câu lệnh trigger/backfill của pipeline ETL nghiệp vụ.
+- Schema/table Gold cuối cùng và verification query nghiệp vụ.
 - Backup/restore command đã kiểm thử.
 - Known issues và resource profile đo được.

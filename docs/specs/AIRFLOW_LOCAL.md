@@ -74,6 +74,13 @@ Trình tự readiness:
 Không dùng thời gian chờ cố định để kết luận service đã sẵn sàng. Khoảng nghỉ
 hai giây trong smoke runner chỉ là nhịp poll trạng thái của DAG run đã tạo.
 
+Healthcheck heartbeat của scheduler và DAG processor khởi chạy Airflow CLI, nên
+được cấp `timeout: 30s`, `start_period: 60s` và interval `30s`. Lệnh bắt đầu
+bằng `exec` để tiến trình CLI thay thế shell của healthcheck; nếu Docker hủy
+một lần check do timeout thì không để lại Python process mồ côi tranh CPU/RAM
+với lần check sau. Các override này chỉ thay ngân sách probe, không làm lỏng
+điều kiện heartbeat quyết định readiness.
+
 ## 3. Lý do chọn LocalExecutor
 
 `LocalExecutor` chạy task process trong container scheduler và dùng PostgreSQL

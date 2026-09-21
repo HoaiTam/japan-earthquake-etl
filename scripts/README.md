@@ -27,3 +27,11 @@ Hiện có:
   dependency, healthcheck, mount, host exposure và smoke service của `QRY-01`.
 - `smoke-query.sh`: bootstrap MinIO, chờ REST Catalog/Trino healthy rồi chạy
   acceptance tạo–ghi–đọc Iceberg table; giữ service và durable volumes.
+- `check-foundation.sh`: gom toàn bộ static contract từ repository/config đến
+  MinIO, Airflow, Spark và query layer; dùng `--require-local` trước full smoke.
+- `smoke-foundation.sh`: build/start toàn bộ foundation stack, chạy bốn smoke
+  hành vi và xác nhận health, init exit code, network, volume/mount cùng startup
+  log; không dừng service hoặc xóa volume.
+
+Full checklist và hướng xử lý lỗi:
+[Foundation environment smoke contract](../docs/specs/FOUNDATION_SMOKE.md).
