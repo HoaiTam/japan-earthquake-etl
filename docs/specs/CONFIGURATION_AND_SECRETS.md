@@ -110,6 +110,8 @@ secret phải khác nhau. Chi tiết tại
 | Biến | Bắt buộc | Nhạy cảm | Consumer / ý nghĩa |
 |---|---|---|---|
 | `SPARK_MASTER_URL` | Có | Không | Spark master nội bộ |
+| `SPARK_MASTER_UI_HOST_PORT` | Có | Không | Port host loopback của master UI |
+| `SPARK_WORKER_CORES` | Có | Không | Số core worker quảng bá cho master |
 | `SPARK_DRIVER_MEMORY` | Có | Không | Memory mặc định cho driver local |
 | `SPARK_EXECUTOR_MEMORY` | Có | Không | Memory mặc định cho executor local |
 | `ICEBERG_CATALOG_URI` | Có | Không | REST Catalog endpoint nội bộ |
@@ -122,6 +124,11 @@ secret phải khác nhau. Chi tiết tại
 
 Credential MinIO được inject riêng vào Spark, Catalog và Trino từ environment;
 không ghi trực tiếp vào `pom.xml`, DAG hoặc catalog properties.
+
+`SPK-01` yêu cầu `SPARK_MASTER_URL=spark://spark-master:7077`, memory theo dạng
+số nguyên dương kèm `m` hoặc `g`, và worker core từ `1` đến `64`. Spark master
+UI bind loopback; Spark RPC và worker UI không publish ra host. Chi tiết tại
+[Spark standalone contract](./SPARK_STANDALONE.md).
 
 ## 4. Secret hygiene gate
 

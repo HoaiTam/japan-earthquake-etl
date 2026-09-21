@@ -72,6 +72,13 @@ x-airflow-common: &airflow-common
       source: pipeline_staging
       target: /opt/pipeline/staging
 
+x-spark-common: &spark-common
+  <<: *runtime-defaults
+  image: japan-earthquake-etl/spark:3.5.9-java17
+  security_opt:
+    - no-new-privileges:true
+  stop_grace_period: 30s
+
 services:
   minio:
     <<:
@@ -324,6 +331,113 @@ services:
       - type: volume
         source: airflow_logs
         target: /opt/airflow/logs
+      - type: volume
+        source: pipeline_staging
+        target: /opt/pipeline/staging
+
+  spark-master:
+    <<:
+      - *spark-common
+      - *resource-baseline
+    build:
+      context: .
+      dockerfile: compose/spark/Dockerfile
+    pull_policy: build
+    command:
+      - /opt/spark/bin/spark-class
+      - org.apache.spark.deploy.master.Master
+      - --host
+      - spark-master
+      - --port
+      - "7077"
+      - --webui-port
+      - "8080"
+    expose:
+      - "7077"
+    ports:
+      - host_ip: 127.0.0.1
+        target: 8080
+        published: ${SPARK_MASTER_UI_HOST_PORT:?SPARK_MASTER_UI_HOST_PORT is required}
+        protocol: tcp
+    healthcheck:
+      <<: *healthcheck-defaults
+      test:
+        - CMD-SHELL
+        - wget -q -O /dev/null http://localhost:8080/
+      start_period: 20s
+
+  spark-worker:
+    <<: *spark-common
+    command:
+      - /bin/bash
+      - -ec
+      - |
+        exec /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker \
+          --host spark-worker \
+          --cores "$${SPARK_WORKER_CORES}" \
+          --memory "$${SPARK_EXECUTOR_MEMORY}" \
+          --webui-port 8081 \
+          "$${SPARK_MASTER_URL}"
+    environment:
+      SPARK_EXECUTOR_MEMORY: ${SPARK_EXECUTOR_MEMORY:?SPARK_EXECUTOR_MEMORY is required}
+      SPARK_MASTER_URL: ${SPARK_MASTER_URL:?SPARK_MASTER_URL is required}
+      SPARK_WORKER_CORES: ${SPARK_WORKER_CORES:?SPARK_WORKER_CORES is required}
+    depends_on:
+      spark-master:
+        <<: *healthy-dependency
+    expose:
+      - "8081"
+    healthcheck:
+      <<: *healthcheck-defaults
+      test:
+        - CMD-SHELL
+        - wget -q -O /dev/null http://localhost:8081/
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 3G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+    volumes:
+      - type: volume
+        source: pipeline_staging
+        target: /opt/pipeline/staging
+
+  spark-client:
+    <<: *spark-common
+    profiles:
+      - smoke
+    hostname: spark-client
+    entrypoint:
+      - /bin/bash
+      - /opt/spark/smoke/run.sh
+    environment:
+      SPARK_DRIVER_MEMORY: ${SPARK_DRIVER_MEMORY:?SPARK_DRIVER_MEMORY is required}
+      SPARK_EXECUTOR_MEMORY: ${SPARK_EXECUTOR_MEMORY:?SPARK_EXECUTOR_MEMORY is required}
+      SPARK_MASTER_URL: ${SPARK_MASTER_URL:?SPARK_MASTER_URL is required}
+      SPARK_WORKER_CORES: ${SPARK_WORKER_CORES:?SPARK_WORKER_CORES is required}
+    restart: "no"
+    depends_on:
+      spark-master:
+        <<: *healthy-dependency
+      spark-worker:
+        <<: *healthy-dependency
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: 2G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+    volumes:
+      - type: bind
+        source: ./compose/spark/smoke.sh
+        target: /opt/spark/smoke/run.sh
+        read_only: true
       - type: volume
         source: pipeline_staging
         target: /opt/pipeline/staging

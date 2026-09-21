@@ -4,14 +4,15 @@ Nền tảng ETL local-first để thu thập dữ liệu động đất từ US
 Spark Java theo mô hình Bronze–Silver–Gold, công bố bảng Gold qua Iceberg và
 Trino, sau đó phục vụ báo cáo Power BI.
 
-> Trạng thái hiện tại: **foundation + MinIO + Airflow local (`AFL-01`)**.
-> MinIO bucket bootstrap và Airflow local runtime đã được triển khai;
-> DAG ETL, Spark và query services thuộc các task tiếp theo.
+> Trạng thái hiện tại: **foundation + MinIO + Airflow + Spark standalone**.
+> MinIO bucket bootstrap, Airflow local runtime và Spark Java build/runtime đã
+> được triển khai; DAG ETL và query services thuộc các task tiếp theo.
 
 ## Chuẩn bị trên máy local
 
-Yêu cầu hiện tại chỉ gồm Git và một shell tương thích POSIX (`sh`). Từ thư mục
-gốc repository, chạy:
+Static scaffold check chỉ cần Git và shell POSIX. Spark build local cần JDK 17,
+`curl` hoặc `wget`, `unzip`; runtime smoke cần Docker Engine/Desktop và Docker
+Compose plugin. Từ thư mục gốc repository, chạy:
 
 ```bash
 ./scripts/check-repository-layout.sh
@@ -68,12 +69,30 @@ Smoke test giữ Airflow/PostgreSQL chạy và giữ metadata/log volume. UI/API
 định ở `http://127.0.0.1:8080`. Kiến trúc service, init, healthcheck và cách
 debug nằm tại [Airflow local contract](./docs/specs/AIRFLOW_LOCAL.md).
 
+Build Spark JAR, kiểm tra static contract và chạy acceptance trên standalone
+cluster:
+
+```bash
+./mvnw --batch-mode --no-transfer-progress clean verify
+./scripts/check-spark.sh
+./scripts/smoke-spark.sh
+```
+
+Smoke test chờ master/worker healthy, yêu cầu worker `ALIVE`, chạy
+`HelloWorldJob` bằng `spark-submit` và chỉ thành công khi exit code bằng `0`.
+Spark master UI mặc định ở `http://127.0.0.1:8082`. Chi tiết version matrix,
+JAR, tài nguyên và luồng kiểm thử nằm tại
+[Spark standalone contract](./docs/specs/SPARK_STANDALONE.md).
+
 ## Cấu trúc repository
 
 ```text
 .
 ├── .env.example              # Mẫu cấu hình không chứa secret thật
+├── .mvn/wrapper/             # Maven Wrapper config đã pin version/checksum
 ├── compose.yaml              # Network, volumes và Compose baseline
+├── mvnw / mvnw.cmd           # Maven Wrapper entrypoint
+├── pom.xml                   # Maven reactor và version management
 ├── airflow/                  # DAG và test orchestration
 │   ├── dags/
 │   └── tests/
@@ -107,9 +126,10 @@ Chi tiết ownership, mount path và quy tắc mở rộng nằm trong
 | `./scripts/smoke-minio.sh` | Chạy được khi có `.env` và Docker daemon | `MIO-01` |
 | `./scripts/check-airflow.sh` | Chạy được, không cần start service | `AFL-01` |
 | `./scripts/smoke-airflow.sh` | Chạy được khi có `.env` và Docker daemon | `AFL-01` |
-| `./mvnw clean test package` | Chưa có | `SPK-01` |
+| `./mvnw clean verify` | Chạy được với JDK 17 và network lần đầu | `SPK-01` |
+| `./scripts/check-spark.sh` | Chạy được, không cần start service | `SPK-01` |
+| `./scripts/smoke-spark.sh` | Chạy được khi có `.env` và Docker daemon | `SPK-01` |
 
-Không chạy một lệnh được đánh dấu “Chưa có” cho tới khi task sở hữu đã merge.
 Hướng dẫn vận hành đầy đủ được duy trì trong
 [Local operations runbook](./docs/LOCAL_OPERATIONS_RUNBOOK.md).
 

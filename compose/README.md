@@ -11,6 +11,10 @@ Asset hiện có:
 - `minio/init.sh`: bootstrap bucket, prefix marker, pipeline user và policy.
 - `minio/smoke.sh`: xác nhận marker và ghi/đọc/xóa đúng object smoke bằng
   pipeline credential.
+- `spark/Dockerfile`: build Maven multi-stage và tạo image Spark `3.5.9`/Java
+  `17` chứa JAR đã verify.
+- `spark/smoke.sh`: yêu cầu worker `ALIVE`, chạy `spark-submit` và kiểm tra
+  marker Hello World cùng exit code.
 
 Không đặt secret, data volume, warehouse hoặc file runtime trong thư mục này.
 Mọi mount phải tuân theo
@@ -22,6 +26,7 @@ Kiểm tra Compose foundation:
 ./scripts/check-compose.sh
 ./scripts/check-airflow.sh
 ./scripts/check-minio.sh
+./scripts/check-spark.sh
 ```
 
 Chi tiết network, volume lifecycle và extension baseline nằm tại
@@ -30,3 +35,5 @@ Hành vi Airflow, metadata DB và DAG smoke nằm tại
 [Airflow local contract](../docs/specs/AIRFLOW_LOCAL.md).
 Hành vi MinIO, quyền truy cập và lệnh runtime nằm tại
 [MinIO storage contract](../docs/specs/MINIO_STORAGE.md).
+Hành vi Spark master/worker/client, build và smoke nằm tại
+[Spark standalone contract](../docs/specs/SPARK_STANDALONE.md).

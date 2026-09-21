@@ -2,7 +2,7 @@
 
 | Thuộc tính | Giá trị |
 |---|---|
-| Trạng thái | Draft |
+| Trạng thái | Implemented từng phần — storage, orchestration và Spark baseline |
 | Kiểu triển khai chính | Local-first, Docker Compose |
 | Mẫu kiến trúc dữ liệu | Batch Lakehouse, Bronze–Silver–Gold |
 
@@ -136,7 +136,9 @@ Nét liền biểu diễn data flow; nét đứt biểu diễn quyền điều p
 Tên port, bucket, catalog và service phải nằm trong cấu hình. MinIO hiện dùng
 service name `minio`, S3 API nội bộ `http://minio:9000`, bucket/prefix từ `.env`
 và volume `minio_data`; xem
-[MinIO storage contract](./specs/MINIO_STORAGE.md). Các runtime còn lại sẽ được
+[MinIO storage contract](./specs/MINIO_STORAGE.md). Spark dùng master
+`spark://spark-master:7077`, một worker và client `spark-submit`; xem
+[Spark standalone contract](./specs/SPARK_STANDALONE.md). Catalog/Trino sẽ được
 chốt bởi task sở hữu.
 
 ## 7. Tính nhất quán và công bố dữ liệu
@@ -209,13 +211,17 @@ flowchart TB
     IC --> VOL
 ```
 
-Chỉ các giao diện cần cho người vận hành và Power BI mới được publish ra host. MinIO API, Catalog, Spark và metadata database nên giữ trong Docker network trừ khi có nhu cầu debug có kiểm soát.
+Chỉ các giao diện cần cho người vận hành và Power BI mới được publish ra host.
+MinIO API, Catalog, Spark RPC/worker UI và metadata database giữ trong Docker
+network. Spark master UI được bind loopback để theo dõi local.
 
 Ở baseline hiện tại, MinIO Console và Airflow UI/API được bind vào loopback
 host; S3 API và PostgreSQL metadata không publish. `minio-init` dùng root
 credential để bootstrap, còn pipeline consumer dùng user riêng với policy giới
 hạn theo bucket/prefix. Airflow dùng LocalExecutor, PostgreSQL metadata và DAG
 processor độc lập theo contract AFL-01.
+Spark `3.5.9` dùng Java `17`, master/worker có healthcheck và client smoke chạy
+JAR `/opt/spark/jobs/japan-earthquake-etl.jar` theo contract SPK-01.
 
 ## 10. Bảo mật tối thiểu
 
@@ -240,7 +246,7 @@ processor độc lập theo contract AFL-01.
 
 ## 12. Điểm còn cần xác nhận khi bắt đầu code
 
-- Phiên bản cụ thể và ma trận tương thích Spark–Iceberg–Trino.
+- Phiên bản Iceberg/Trino cuối cùng trong ma trận tương thích với Spark `3.5.9`.
 - Catalog implementation và nơi lưu trạng thái catalog.
 - Ranh giới địa lý/query bounding box chính xác cho Nhật Bản.
 - Số ngày overlap mặc định và giới hạn kích thước mỗi API request.

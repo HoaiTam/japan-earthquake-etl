@@ -44,6 +44,8 @@ AIRFLOW_DB_USER
 AIRFLOW_DB_PASSWORD
 AIRFLOW_DB_NAME
 SPARK_MASTER_URL
+SPARK_MASTER_UI_HOST_PORT
+SPARK_WORKER_CORES
 SPARK_DRIVER_MEMORY
 SPARK_EXECUTOR_MEMORY
 ICEBERG_CATALOG_URI
@@ -228,6 +230,26 @@ validate_s3_prefix() {
     esac
 }
 
+validate_spark_memory() {
+    file=$1
+    key=$2
+    value=$(read_value "$file" "$key")
+    number=${value%?}
+    unit=${value#"$number"}
+
+    case "$number" in
+        ""|0|*[!0-9]*)
+            report_error "$key must be a positive integer followed by m or g"
+            return
+            ;;
+    esac
+
+    case "$unit" in
+        m|M|g|G) ;;
+        *) report_error "$key must be a positive integer followed by m or g" ;;
+    esac
+}
+
 validate_semantics() {
     file=$1
 
@@ -236,8 +258,12 @@ validate_semantics() {
     validate_integer "$file" MINIO_CONSOLE_HOST_PORT 1 65535
     validate_integer "$file" AIRFLOW_UID 1 2147483647
     validate_integer "$file" AIRFLOW_WEB_HOST_PORT 1 65535
+    validate_integer "$file" SPARK_MASTER_UI_HOST_PORT 1 65535
+    validate_integer "$file" SPARK_WORKER_CORES 1 64
     validate_integer "$file" TRINO_INTERNAL_PORT 1 65535
     validate_integer "$file" TRINO_HOST_PORT 1 65535
+    validate_spark_memory "$file" SPARK_DRIVER_MEMORY
+    validate_spark_memory "$file" SPARK_EXECUTOR_MEMORY
 
     timezone=$(read_value "$file" PIPELINE_TIMEZONE)
     if [ "$timezone" != "Asia/Ho_Chi_Minh" ]; then
@@ -256,10 +282,9 @@ validate_semantics() {
     esac
 
     spark_master=$(read_value "$file" SPARK_MASTER_URL)
-    case "$spark_master" in
-        spark://*) ;;
-        *) report_error "SPARK_MASTER_URL must be a spark:// URI" ;;
-    esac
+    if [ "$spark_master" != "spark://spark-master:7077" ]; then
+        report_error "SPARK_MASTER_URL must use the internal Compose endpoint: spark://spark-master:7077"
+    fi
 
     catalog_uri=$(read_value "$file" ICEBERG_CATALOG_URI)
     case "$catalog_uri" in
@@ -329,11 +354,17 @@ validate_semantics() {
 
     minio_host_port=$(read_value "$file" MINIO_CONSOLE_HOST_PORT)
     airflow_host_port=$(read_value "$file" AIRFLOW_WEB_HOST_PORT)
+    spark_host_port=$(read_value "$file" SPARK_MASTER_UI_HOST_PORT)
     trino_host_port=$(read_value "$file" TRINO_HOST_PORT)
     if [ "$minio_host_port" = "$airflow_host_port" ] ||
+       [ "$minio_host_port" = "$spark_host_port" ] ||
        [ "$minio_host_port" = "$trino_host_port" ] ||
+       [ "$airflow_host_port" = "$spark_host_port" ] ||
        [ "$airflow_host_port" = "$trino_host_port" ]; then
-        report_error "MINIO, Airflow and Trino host ports must be unique"
+        report_error "MinIO, Airflow, Spark and Trino host ports must be unique"
+    fi
+    if [ "$spark_host_port" = "$trino_host_port" ]; then
+        report_error "MinIO, Airflow, Spark and Trino host ports must be unique"
     fi
 }
 

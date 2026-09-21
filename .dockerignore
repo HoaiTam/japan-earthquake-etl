@@ -1,0 +1,10 @@
+**
+!.dockerignore
+!pom.xml
+!compose/
+!compose/spark/
+!compose/spark/Dockerfile
+!spark/
+!spark/pom.xml
+!spark/src/
+!spark/src/**
