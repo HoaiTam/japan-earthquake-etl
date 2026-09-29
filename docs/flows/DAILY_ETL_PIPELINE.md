@@ -10,7 +10,7 @@
 
 ## 1. Mục đích
 
-Tài liệu này mô tả happy path của một lần chạy pipeline. Các trường hợp chạy bù, retry có chọn lọc và khôi phục sau lỗi được mô tả tại [Backfill và phục hồi](./BACKFILL_AND_RECOVERY.md).
+Tài liệu này mô tả happy path của một lần chạy pipeline. Các trường hợp chạy bù, retry có chọn lọc và khôi phục sau lỗi được mô tả tại [Backfill và phục hồi](./BACKFILL_AND_RECOVERY.md). Phạm vi nguồn, ROI, timezone và overlap tuân theo [source coverage contract](../specs/SOURCE_COVERAGE.md).
 
 ## 2. Cửa sổ dữ liệu
 
@@ -19,11 +19,15 @@ Lịch tham khảo là **07:15 giờ Việt Nam**, sau khi ngày UTC trước đ
 Với ngày chạy logic `D`:
 
 - Cửa sổ bắt buộc: toàn bộ ngày UTC `D - 1`.
-- Cửa sổ overlap đề xuất: đọc thêm ba ngày gần nhất để nhận sự kiện được USGS sửa muộn.
+- Cửa sổ revision mặc định: đọc ba ngày UTC hoàn chỉnh gần nhất để nhận sự kiện được USGS sửa muộn.
 - Mọi timestamp truyền cho API phải có timezone rõ ràng.
-- Giá trị overlap phải cấu hình được; con số ba ngày cần được hiệu chỉnh sau khi quan sát dữ liệu thực tế.
+- Giá trị phải cấu hình được; thay default ba ngày là contract change và phải có evidence trước/sau.
 
 Ví dụ, DAG chạy lúc `2026-09-16 07:15 Asia/Ho_Chi_Minh` có ngày UTC bắt buộc là `2026-09-15` và có thể đọc chồng từ `2026-09-13T00:00:00Z` đến trước `2026-09-16T00:00:00Z`.
+
+JMA không phải nguồn daily event-level. Catalog index/update metadata được kiểm
+tra riêng; chỉ year/release mới hoặc đổi checksum mới đi qua JMA ingest. Daily
+Gold có thể dùng observation JMA đã publish cùng USGS mới.
 
 ## 3. Luồng tổng thể
 
@@ -109,8 +113,8 @@ Tên cuối cùng sẽ được xác nhận khi mã nguồn được tạo.
 3. Ép kiểu magnitude, depth, latitude, longitude và flags.
 4. Kiểm tra range, required field và tính hợp lệ.
 5. Loại bản ghi không hợp lệ; ghi count và lý do tổng hợp vào log.
-6. Hợp nhất với dữ liệu liên quan trong overlap window.
-7. Với cùng `id`, giữ record có `updated` lớn nhất; tie-break phải xác định được.
+6. Deduplicate revision trong từng nguồn (`id`/`updated` cho USGS; source key/catalog release cho JMA).
+7. Liên kết observation xuyên nguồn theo contract; candidate mơ hồ không được auto-merge.
 8. Ghi Parquet tạm, chạy quality gate rồi mới upload Silver.
 
 **Output dự kiến:**
@@ -229,4 +233,3 @@ Một daily run chỉ hoàn tất khi:
 4. Trino verification đạt.
 5. Metric đối soát đã ghi đầy đủ.
 6. Run được đánh dấu thành công và có thể refresh Power BI.
-

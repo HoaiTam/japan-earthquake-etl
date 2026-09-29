@@ -32,6 +32,9 @@ Hiện có:
 - `smoke-foundation.sh`: build/start toàn bộ foundation stack, chạy bốn smoke
   hành vi và xác nhận health, init exit code, network, volume/mount cùng startup
   log; không dừng service hoặc xóa volume.
+- `check-source-coverage.sh`: kiểm tra các quyết định bắt buộc của source
+  coverage contract `CON-01`, range JMA 40 năm, ROI, USGS seed/overlap và link
+  theo dõi task; không gọi mạng hoặc tải dữ liệu.
 
 Full checklist và hướng xử lý lỗi:
 [Foundation environment smoke contract](../docs/specs/FOUNDATION_SMOKE.md).

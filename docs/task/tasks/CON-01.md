@@ -1,6 +1,6 @@
 ---
 task_id: "CON-01"
-status: "Ready"
+status: "Review"
 week: 2
 block: "A - Hợp đồng dữ liệu"
 workstream: "Source scope"
@@ -31,12 +31,12 @@ Xác định USGS cho dữ liệu cập nhật hằng ngày, JMA cho kho lịch 
 
 ## Deliverable
 
-- Source coverage contract, source priority và bảng quyết định trường hợp overlap.
+- [Source coverage contract](../../specs/SOURCE_COVERAGE.md), source priority và bảng quyết định trường hợp overlap.
 
 ## Tiêu chí hoàn thành
 
-- [ ] Mỗi nguồn có phạm vi, thời gian, timezone, tần suất cập nhật và quy tắc sử dụng rõ.
-- [ ] không cộng trùng hai catalog.
+- [x] Mỗi nguồn có phạm vi, thời gian, timezone, tần suất cập nhật và quy tắc sử dụng rõ.
+- [x] Không cộng trùng hai catalog.
 
 ## Hard dependency
 
@@ -61,23 +61,24 @@ Có thể bắt đầu ngay. Chốt output contract hoặc fixture nhỏ trướ
 
 ## Theo dõi
 
-- **Trạng thái:** Ready
+- **Trạng thái:** Review
 - **Assignee:** Chưa ghi lại
 - **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Evidence / PR:** [Static contract check](../../../scripts/check-source-coverage.sh); bổ sung link PR sau khi mở.
 - **Kỹ năng phù hợp:** Phân tích dữ liệu, USGS, JMA
 
 ## Checklist bàn giao
 
-- [ ] Deliverable đã có trong repository hoặc môi trường demo.
-- [ ] Acceptance criteria đã được kiểm tra.
-- [ ] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
-- [ ] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
-- [ ] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
+- [x] Deliverable đã có trong repository hoặc môi trường demo.
+- [x] Acceptance criteria đã được kiểm tra.
+- [x] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
+- [x] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
+- [x] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
 - [ ] P0/P1 có reviewer khác assignee xác nhận.
 
 ## Tài liệu liên quan
 
+- [Source coverage contract](../../specs/SOURCE_COVERAGE.md)
 - [Kế hoạch 6 tuần](../README.md)
 - [Các khối công việc](../WORK_BLOCKS.md)
 - [Baseline MVP, KPI và Definition of Done](../../specs/MVP_SCOPE_KPI_AND_DOD.md)

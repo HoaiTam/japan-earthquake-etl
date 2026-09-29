@@ -19,6 +19,7 @@
 ```mermaid
 flowchart LR
     USGS["USGS Earthquake Catalog API"]
+    JMA["JMA Seismological Bulletin archives"]
     GEO["Nguồn địa giới Nhật Bản"]
     TEAM["Nhóm phát triển / vận hành"]
     VIEWER["Người xem báo cáo"]
@@ -26,6 +27,7 @@ flowchart LR
     PBI["Power BI Desktop"]
 
     USGS -->|"GeoJSON qua HTTPS"| SYS
+    JMA -->|"Annual ZIP qua HTTPS"| SYS
     GEO -->|"Boundary dataset"| SYS
     TEAM -->|"Cấu hình, trigger, theo dõi"| SYS
     SYS -->|"SQL qua ODBC"| PBI
@@ -37,7 +39,8 @@ flowchart LR
 ```mermaid
 flowchart LR
     subgraph Sources["Nguồn dữ liệu"]
-        API["USGS API"]
+        USGS_API["USGS API"]
+        JMA_ARCHIVE["JMA annual archives"]
         BOUNDARY["Japan Boundaries"]
     end
 
@@ -46,7 +49,7 @@ flowchart LR
     end
 
     subgraph Compute["Xử lý"]
-        EXTRACT["Extract task"]
+        EXTRACT["Source ingest tasks"]
         SILVER_JOB["Spark Java — Build Silver"]
         GOLD_JOB["Spark Java — Build Gold"]
         VERIFY["Quality & publish checks"]
@@ -65,7 +68,8 @@ flowchart LR
         POWERBI["Power BI — Import"]
     end
 
-    API --> EXTRACT
+    USGS_API --> EXTRACT
+    JMA_ARCHIVE --> EXTRACT
     BOUNDARY --> EXTRACT
     AIRFLOW -.-> EXTRACT
     AIRFLOW -.-> SILVER_JOB
@@ -92,7 +96,7 @@ Nét liền biểu diễn data flow; nét đứt biểu diễn quyền điều p
 | Thành phần | Chịu trách nhiệm | Không chịu trách nhiệm |
 |---|---|---|
 | Airflow | Lịch chạy, dependency, retry, backfill, log trạng thái | Xử lý dữ liệu phân tán thay Spark |
-| Extract task | Gọi API, xác nhận response, ghi Bronze và metadata ingest | Làm sạch nghiệp vụ |
+| Source ingest tasks | Lấy USGS GeoJSON/JMA ZIP, xác nhận payload, ghi Bronze và metadata/version | Làm sạch nghiệp vụ hoặc trộn hai nguồn |
 | MinIO | Lưu object Bronze/Silver và warehouse Gold | Hiểu bảng logic hoặc thực thi SQL |
 | Shared volume | Staging tạm giữa Airflow và Spark | Lưu dữ liệu dài hạn |
 | Spark Java | Parse, validate, deduplicate, enrich, aggregate | Điều phối lịch chạy hoặc cung cấp BI endpoint |
@@ -112,8 +116,8 @@ Nét liền biểu diễn data flow; nét đứt biểu diễn quyền điều p
 
 ### Silver
 
-- Chứa sự kiện đã chuẩn hóa kiểu dữ liệu, timestamp và tọa độ.
-- Không trùng theo khóa nghiệp vụ trong phạm vi dữ liệu đã hợp nhất.
+- Chứa observation USGS/JMA đã chuẩn hóa kiểu dữ liệu, timestamp, tọa độ và lineage.
+- Deduplicate revision trong từng nguồn, sau đó lưu source-link/canonical selection để tránh double count.
 - Định dạng Parquet, phân vùng theo thời gian sự kiện.
 
 ### Gold
@@ -126,7 +130,8 @@ Nét liền biểu diễn data flow; nét đứt biểu diễn quyền điều p
 
 | Từ | Đến | Giao tiếp | Dữ liệu |
 |---|---|---|---|
-| Airflow extract | USGS | HTTPS GET | Query params, GeoJSON response |
+| Airflow USGS ingest | USGS | HTTPS GET | Query params, GeoJSON response |
+| Airflow JMA ingest | JMA | HTTPS GET | Annual ZIP, source metadata và checksum |
 | Airflow/Spark | MinIO | S3-compatible API | Object Bronze/Silver/Gold |
 | Airflow | Spark | `spark-submit` trong môi trường Compose | JAR, tham số run và đường dẫn staging |
 | Spark/Trino | Catalog | Iceberg REST | Namespace, table metadata, snapshot |
@@ -142,6 +147,8 @@ và volume `minio_data`; xem
 [Iceberg/Trino contract](./specs/ICEBERG_TRINO.md) chốt Catalog nội bộ tại
 `http://iceberg-rest:8181`, Trino nội bộ `trino:8080`, endpoint host loopback
 và warehouse dùng chung với MinIO.
+[Source coverage contract](./specs/SOURCE_COVERAGE.md) chốt vai trò USGS/JMA,
+ROI, range 1984–2023 của JMA, USGS daily window và chính sách overlap.
 
 ## 7. Tính nhất quán và công bố dữ liệu
 
@@ -167,10 +174,10 @@ stateDiagram-v2
 
 ## 8. Idempotency
 
-- `id` của USGS là khóa nghiệp vụ của sự kiện.
-- `updated` quyết định phiên bản mới nhất khi cùng `id` xuất hiện nhiều lần.
+- `id`/`updated` xử lý revision của USGS; JMA dùng source record key và catalog release.
+- Source key chỉ deduplicate trong cùng nguồn, không phải canonical ID xuyên nguồn.
 - Cửa sổ extract đọc chồng các ngày gần nhất để nhận late update.
-- Bronze có thể chứa nhiều bản sao nguồn giữa các lần ingest; Silver/Gold phải hợp nhất theo logic khóa và phiên bản.
+- Bronze có thể chứa nhiều version nguồn giữa các lần ingest; Silver giữ lineage, deduplicate từng nguồn và liên kết observation trước khi Gold đếm canonical event.
 - Tên output tạm phải gắn `run_id`; output chính thức chỉ được thay đổi bằng thao tác hoàn tất/commit.
 - Retry phải ưu tiên dùng lại Bronze hợp lệ thay vì gọi lại API không cần thiết.
 
@@ -246,6 +253,7 @@ log; xem [Foundation smoke contract](./specs/FOUNDATION_SMOKE.md).
 | Quyết định | Lý do | Hệ quả |
 |---|---|---|
 | Batch hằng ngày | Phù hợp nguồn và mục tiêu phân tích | Không dùng cho cảnh báo thời gian thực |
+| USGS daily + JMA historical | Có dữ liệu vận hành mới và baseline địa phương 40 năm | Phải version archive và giải quyết overlap xuyên nguồn |
 | Local-first Compose | Dễ tái tạo, không tốn hạ tầng | Tài nguyên và uptime phụ thuộc máy cá nhân |
 | Java cho Spark | Phù hợp yêu cầu học phần/project | Cần quản lý JAR và dependency tương thích |
 | MinIO cho toàn bộ data lake | Một nền lưu trữ S3-compatible thống nhất | Cần quản lý bucket policy và volume bền vững |
@@ -255,8 +263,8 @@ log; xem [Foundation smoke contract](./specs/FOUNDATION_SMOKE.md).
 
 ## 12. Điểm còn cần xác nhận khi tiếp tục ETL
 
-- Ranh giới địa lý/query bounding box chính xác cho Nhật Bản.
-- Số ngày overlap mặc định và giới hạn kích thước mỗi API request.
+- Ngưỡng candidate/match và cách hiệu chỉnh confidence cho source linking.
+- Giới hạn kích thước/chia nhỏ từng USGS API request.
 - Chiến lược merge Gold cho backfill và late update.
 - Driver ODBC được dùng trên máy Power BI.
 - Tên bảng fact/dimension Gold cuối cùng và mapping vào semantic model.
