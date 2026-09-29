@@ -59,7 +59,10 @@ docs/
 │   └── BACKFILL_AND_RECOVERY.md
 ├── task/
 │   ├── README.md
-│   └── JAPAN_EARTHQUAKE_ETL_TASKS.xlsx
+│   ├── WORK_BLOCKS.md
+│   └── tasks/
+│       ├── README.md
+│       └── <TASK-ID>.md
 └── conventions_and_workflow/
     ├── GIT_WORKFLOW.md
     └── COMMIT_CONVENTION.md
@@ -74,7 +77,7 @@ docs/
 - Happy path, backfill, retry, idempotency và các điểm kiểm soát dữ liệu.
 - KPI, bố cục dashboard, quy trình demo và runbook vận hành.
 - Cấu trúc repository, ownership module và mount contract.
-- Backlog 6 tuần và workbook để ba thành viên pick/review task.
+- Backlog 6 tuần bằng Markdown, với một file riêng cho từng task để pick, review và lưu evidence.
 - Quy ước Git và commit cho nhóm.
 
 Chưa bao gồm theo phạm vi hiện tại:

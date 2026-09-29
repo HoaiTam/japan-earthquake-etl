@@ -65,7 +65,7 @@ Checker chỉ báo tên key/file lỗi và không in giá trị cấu hình. Ch�
 | `WAREHOUSE_PATH` | Có | Không | URI `s3://` dùng chung cho Gold/Iceberg |
 
 `WAREHOUSE_PATH` phải nằm trong `DATA_BUCKET`. Tọa độ/bounding box Nhật Bản
-thuộc contract của `EXT-01`; CFG-01 không đặt giá trị giả để tránh trở thành
+thuộc contract của `CON-01` và `USG-01`; CFG-01 không đặt giá trị giả để tránh trở thành
 default ngoài ý muốn.
 
 ### MinIO

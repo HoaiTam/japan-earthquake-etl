@@ -3,9 +3,9 @@
 | Thuộc tính | Giá trị |
 |---|---|
 | Task | `PLN-01` |
-| Trạng thái tài liệu | Sẵn sàng để nhóm phê duyệt |
+| Trạng thái tài liệu | Đã phê duyệt qua `PLN-01` |
 | Phạm vi | Phiên bản local-first trong kế hoạch 6 tuần |
-| Nguồn backlog | `docs/task/JAPAN_EARTHQUAKE_ETL_TASKS.xlsx` |
+| Nguồn backlog | `docs/task/tasks/README.md` và `docs/task/tasks/<TASK-ID>.md` |
 
 ## 1. Mục đích
 
@@ -18,15 +18,17 @@ Baseline không thay thế acceptance criteria riêng của từng task. Khi có
 Phiên bản đầu tiên hoàn thành khi nhóm chứng minh được một luồng dữ liệu local end-to-end:
 
 ```text
-USGS → Airflow Extract → MinIO Bronze → Spark Java Silver
-→ Spark Java/Iceberg Gold → Trino verification → Power BI Import
+USGS API ─┐
+          ├→ Airflow ingest → MinIO Bronze → Spark Java Silver
+JMA 40y ──┘  → canonical event → Spark Java/Iceberg Gold
+             → Trino verification → Power BI Import
 ```
 
 MVP phải đáp ứng đồng thời:
 
 1. Chạy bằng Docker Compose trên một máy local theo cấu hình tài nguyên đã ghi nhận.
-2. Thu thập một cửa sổ dữ liệu UTC từ USGS và lưu response nguyên bản cùng metadata/checksum ở Bronze.
-3. Tạo Silver có schema logic được công bố, timestamp UTC/JST, validation, reject metrics và dedup theo `id`/`updated`.
+2. Thu thập một cửa sổ dữ liệu UTC từ USGS và một tập archive JMA đại diện; lưu payload nguyên bản cùng metadata/checksum ở Bronze.
+3. Tạo Silver có schema logic chung, timestamp UTC/JST, lineage, validation, reject metrics, dedup/revision trong từng nguồn và liên kết observation giữa hai nguồn.
 4. Tạo Gold Iceberg có dataset sự kiện hiện hành và dữ liệu phục vụ KPI; chỉ công bố sau commit và Trino verification.
 5. Có daily DAG theo đúng dependency Extract → Bronze → Silver → Gold → Verify, hỗ trợ retry và backfill có phạm vi.
 6. Power BI import qua Trino/ODBC và có ba trang: Tổng quan, Không gian, Độ sâu và độ lớn.
@@ -39,7 +41,7 @@ MVP phải đáp ứng đồng thời:
 
 | Nhóm | Nội dung bắt buộc |
 |---|---|
-| Nguồn | USGS Earthquake Catalog API và fixture dự phòng có thể tái lập |
+| Nguồn | USGS Earthquake Catalog API cho daily update, JMA archive cho lịch sử 40 năm và fixture dự phòng có thể tái lập |
 | Orchestration | Airflow daily run, retry có giới hạn, run context, backfill/reprocessing |
 | Storage | MinIO cho Bronze, Silver và warehouse Gold; staging tạm tách khỏi dữ liệu bền vững |
 | Compute | Spark Java cho parse, normalize, validation, dedup, bands, fact/current và aggregate cần thiết |
@@ -53,9 +55,9 @@ MVP phải đáp ứng đồng thời:
 
 Chỉ bắt đầu khi dependency Core ổn định và task P0/P1 trên đường găng không bị trễ:
 
-- `GLD-02`: ingest và chuẩn hóa boundary Nhật Bản.
-- `GLD-03`: spatial enrichment chi tiết bằng GIS/Sedona và báo cáo match rate.
-- Triển khai VPS, Prometheus/Grafana hoặc cải tiến hiệu năng vượt yêu cầu demo.
+- `QA-05`: profile dữ liệu lịch sử và tối ưu tài nguyên local.
+- `OPS-01`: smoke test backup và restore metadata.
+- Triển khai VPS, Prometheus/Grafana, GIS/Sedona nâng cao hoặc cải tiến hiệu năng vượt yêu cầu demo.
 
 Nếu không làm spatial Stretch, MVP vẫn giữ tọa độ thật và phân loại khu vực theo contract tối thiểu `Unknown`/`Offshore`; không đặt tọa độ giả và không loại event hợp lệ.
 
@@ -74,11 +76,11 @@ Các định nghĩa dưới đây trở thành baseline chính thức sau khi ba
 
 ### 4.1. KPI dashboard
 
-Mọi KPI dùng cùng filter context và mỗi `earthquake_id` chỉ được đếm một lần.
+Mọi KPI dùng cùng filter context và mỗi canonical event chỉ được đếm một lần.
 
 | KPI | Định nghĩa | Quy tắc hiển thị/kiểm chứng |
 |---|---|---|
-| Total Earthquakes | `DISTINCTCOUNT(earthquake_id)` | Số nguyên; đối chiếu `COUNT(DISTINCT ...)` ở Trino |
+| Total Earthquakes | `DISTINCTCOUNT(canonical_event_id)` | Số nguyên; đối chiếu `COUNT(DISTINCT ...)` ở Trino |
 | Average Magnitude | Trung bình `magnitude` khác null | 2 chữ số thập phân; null không đổi thành 0 |
 | Maximum Magnitude | Giá trị lớn nhất của `magnitude` khác null | 1–2 chữ số thập phân |
 | Average Depth | Trung bình `depth_km` hợp lệ | 2 chữ số thập phân, đơn vị km |
@@ -112,8 +114,10 @@ Không đặt tỷ lệ daily success, duration, freshness hoặc volume warning
 flowchart LR
     PLN["PLN-01 Scope/KPI/DoD"] --> REP["REP-01 Repository"]
     REP --> FND["Foundation services"]
-    FND --> EXT["Extract/Bronze"]
-    EXT --> SLV["Silver"]
+    FND --> USG["USGS Bronze"]
+    FND --> JMA["JMA Bronze"]
+    USG --> SLV["Silver đa nguồn"]
+    JMA --> SLV
     SLV --> GLD["Gold/Trino"]
     GLD --> ORC["E2E orchestration"]
     GLD --> BI["Power BI"]
@@ -125,7 +129,7 @@ flowchart LR
 Quy tắc:
 
 - P0 được ưu tiên trước P1; P2/Stretch không chiếm tài nguyên của đường găng.
-- Không bắt đầu task nếu dependency trong workbook chưa đạt, trừ fixture/test plan được backlog cho phép.
+- Không bắt đầu implementation nếu hard dependency trong file task chưa đạt, trừ fixture/mock/interface/test plan mà file task cho phép.
 - Mỗi task phải truyền deliverable/contract đã kiểm chứng cho downstream; không chỉ dựa vào mô tả miệng.
 - Một failure ở quality gate chặn downstream và Power BI refresh.
 
@@ -137,11 +141,16 @@ Các mục dưới đây không làm thay đổi phạm vi MVP. Owner task phả
 |---|---|---|
 | Cấu trúc module, wrapper và mount path | `REP-01` | Toàn bộ task code/platform |
 | Ma trận phiên bản Spark–Iceberg–Trino và Catalog | `SPK-01`, `QRY-01` | Gold/serving |
-| Bounding box/radius, overlap mặc định và source fixture | `EXT-01` | Extract/Silver |
-| Chính sách magnitude null, depth đặc biệt, schema version và reject reason | `SLV-01` | Silver/Gold |
-| Gold logical contract, band boundaries và aggregate grain | `GLD-01`, `GLD-04` | Trino/Power BI |
-| Driver ODBC, DSN và timeout | `ORC-05` | Power BI |
-| Schedule cuối, max active runs và resource profile | `ORC-04`, `QA-05` | Vận hành/demo |
+| Phạm vi nguồn, overlap và source priority | `CON-01` | USGS/JMA/Silver/BI |
+| Bronze object layout, manifest và checksum | `CON-02` | USGS/JMA/Silver |
+| Silver/Gold schema, null policy, lineage và KPI | `CON-03` | Parser/Gold/Power BI |
+| Fixture và test matrix dùng chung | `CON-04` | Parser/quality/Gold/BI |
+| Bounding box, daily window và request runtime | `USG-01` | USGS ingest/backfill |
+| JMA archive inventory, release và format metadata | `JMA-01` | JMA ingest/parser |
+| Validation, revision và canonical link | `SLV-05`, `SLV-06`, `SLV-07` | Gold/QA |
+| Gold bands, aggregate grain và snapshot publish | `GLD-01`, `GLD-02`, `GLD-03` | Trino/Power BI |
+| Driver ODBC, DSN và timeout | `BI-01` | Power BI |
+| Schedule, max active runs và resource profile | `ORC-02`, `ORC-05`, `QA-05` | Vận hành/demo |
 
 Mỗi owner phải cập nhật docs/contract và test tương ứng. Không hard-code giá trị chưa được owner task chốt.
 
@@ -151,7 +160,7 @@ Một task chỉ đủ điều kiện chuyển sang `Done` khi tất cả mục 
 
 - [ ] Dependency đã đạt hoặc ngoại lệ chuẩn bị fixture/test plan được ghi rõ.
 - [ ] Deliverable tồn tại trong repository hoặc môi trường demo và truy vết được bằng Task ID.
-- [ ] Mọi acceptance criteria của dòng task đã được kiểm tra.
+- [ ] Mọi acceptance criteria trong file task đã được kiểm tra.
 - [ ] Test tự động liên quan đạt; nếu chưa thể tự động hóa, có evidence thủ công lặp lại được.
 - [ ] Case lỗi, retry/rerun, idempotency và data-safety đã được xem xét khi thay đổi có liên quan.
 - [ ] Không có secret, dữ liệu nhạy cảm, build artifact hoặc local runtime file không cần thiết.
@@ -169,19 +178,19 @@ MVP chỉ hoàn tất khi:
 - [ ] Rerun, duplicate, late update, backfill nhỏ và failure recovery đạt.
 - [ ] Gold current snapshot đọc được qua Trino và mọi blocker quality gate đạt.
 - [ ] Ba trang Power BI refresh được; KPI khớp SQL với cùng filter.
-- [ ] Security/secret review và backup/restore smoke test đạt.
+- [ ] Security/secret review đạt; backup/restore chỉ là điều kiện release nếu nhóm đưa task Stretch `OPS-01` vào release.
 - [ ] Runbook không còn placeholder cho lệnh/service/port của phiên bản demo.
 - [ ] Demo 15–20 phút có fallback và mọi con số trình bày có evidence.
 - [ ] Release candidate gắn với commit/tag, config version và snapshot ID đã ghi nhận.
 
 ## 9. Phê duyệt PLN-01
 
-Task `PLN-01` chỉ chuyển `Done` sau khi ba thành viên xác nhận baseline này và không còn blocker phạm vi trên đường găng.
+Task `PLN-01` đã hoàn tất qua [PR #3](https://github.com/HoaiTam/japan-earthquake-etl/pull/3). Baseline này là mốc hiện hành; thay đổi Core/Stretch, KPI hoặc DoD phải cập nhật tài liệu và task contract liên quan trong cùng pull request.
 
 | Thành viên | Ngày xác nhận | Kết quả |
 |---|---|---|
-| Trần Minh Hoài Tâm | Chưa xác nhận | Pending |
-| Nguyễn Thanh Trí | Chưa xác nhận | Pending |
-| Lê Thị Thuỳ Trang | Chưa xác nhận | Pending |
+| Trần Minh Hoài Tâm | PR #3 | Confirmed |
+| Nguyễn Thanh Trí | PR #3 | Confirmed |
+| Lê Thị Thuỳ Trang | PR #3 | Confirmed |
 
 Nếu nhóm thay đổi Core/Stretch, KPI hoặc DoD sau phê duyệt, pull request phải nêu tác động tới dependency, effort, backfill/rebuild và tài liệu liên quan.
