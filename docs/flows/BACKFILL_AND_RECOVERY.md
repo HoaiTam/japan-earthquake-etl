@@ -142,8 +142,9 @@ Pipeline nên hỗ trợ in ra, nhưng chưa thực thi:
 
 ### Bước 5 — Đối soát
 
-- Không trùng `earthquake_id` ở tập Gold hiện hành.
-- Cùng `id` chỉ giữ `updated` mới nhất.
+- Không trùng `canonical_event_id` ở tập Gold hiện hành.
+- Trong từng nguồn, USGS giữ `updated` mới nhất theo `id`; JMA giữ source record theo catalog release hợp lệ mới nhất.
+- Source linking không làm tăng canonical count khi cùng event xuất hiện ở USGS và JMA.
 - Count theo ngày trước/sau có thể giải thích được.
 - Ngày ngoài phạm vi không bị thay đổi ngoài các late update được chủ động bao gồm.
 - Trino đọc được snapshot cuối.
@@ -200,4 +201,3 @@ Mỗi sự cố/backfill cần tối thiểu:
 - Không dùng `SELECT COUNT(*)` duy nhất để kết luận dữ liệu đúng.
 - Không rerun toàn pipeline nếu lỗi chỉ nằm ở Power BI.
 - Không chạy backfill lớn cùng daily run trên máy local hạn chế tài nguyên.
-

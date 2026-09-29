@@ -13,6 +13,7 @@ Thư mục này là nguồn tài liệu chính thức cho dự án **Nền tản
 | Hiểu nhanh đề tài, mục tiêu và công nghệ | [Giới thiệu đề tài](./GIOI_THIEU_DE_TAI_DONG_DAT_NHAT_BAN.md) |
 | Chốt yêu cầu và tiêu chí hoàn thành | [Đặc tả dự án](./specs/PROJECT_SPECIFICATION.md) |
 | Chốt MVP, KPI và Definition of Done | [Baseline PLN-01](./specs/MVP_SCOPE_KPI_AND_DOD.md) |
+| Hiểu phạm vi USGS/JMA, timezone và overlap | [Source coverage contract](./specs/SOURCE_COVERAGE.md) |
 | Hiểu cấu trúc module và mount path | [Repository layout](./specs/REPOSITORY_LAYOUT.md) |
 | Thiết lập biến môi trường và secret | [Configuration contract](./specs/CONFIGURATION_AND_SECRETS.md) |
 | Hiểu Compose network, volumes và baseline | [Compose foundation](./specs/COMPOSE_FOUNDATION.md) |
@@ -46,6 +47,7 @@ docs/
 ├── specs/
 │   ├── PROJECT_SPECIFICATION.md
 │   ├── MVP_SCOPE_KPI_AND_DOD.md
+│   ├── SOURCE_COVERAGE.md
 │   ├── CONFIGURATION_AND_SECRETS.md
 │   ├── COMPOSE_FOUNDATION.md
 │   ├── AIRFLOW_LOCAL.md

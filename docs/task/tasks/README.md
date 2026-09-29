@@ -38,7 +38,7 @@ Trạng thái hợp lệ: `Backlog`, `Ready`, `In Progress`, `Review`, `Blocked`
 
 | Task | Tuần | Workstream | Scope | Priority | Effort | Trạng thái |
 |---|---:|---|---|---|---:|---|
-| [CON-01](./CON-01.md) - Chốt phạm vi USGS và JMA | 2 | Source scope | Core | P0 | 5h | Ready |
+| [CON-01](./CON-01.md) - Chốt phạm vi USGS và JMA | 2 | Source scope | Core | P0 | 5h | Review |
 | [CON-02](./CON-02.md) - Thiết kế Bronze object và manifest | 2 | Bronze contract | Core | P0 | 5h | Ready |
 | [CON-04](./CON-04.md) - Chuẩn bị fixture và ma trận test dùng chung | 2 | Fixtures | Core | P1 | 3h | Ready |
 | [CON-03](./CON-03.md) - Thiết kế mô hình dữ liệu Silver và Gold | 2 | Silver and Gold contract | Core | P0 | 6h | Backlog |

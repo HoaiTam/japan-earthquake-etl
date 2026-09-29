@@ -63,8 +63,8 @@ Các ngưỡng miền nghiệp vụ hẹp hơn (ví dụ magnitude/depth tối �
 
 | ID | Quy tắc | Mức |
 |---|---|---|
-| SD-01 | Không còn duplicate `id` sau dedup trong snapshot Silver hợp nhất | Blocker |
-| SD-02 | Record được chọn cho mỗi `id` có `updated` lớn nhất | Blocker |
+| SD-01 | Không còn duplicate theo `(source_system, source_record_key, selected_release)` sau source-local dedup | Blocker |
+| SD-02 | USGS chọn `updated` mới nhất; JMA chọn catalog release hợp lệ mới nhất theo tie-break xác định | Blocker |
 | SD-03 | `valid_count + rejected_count = parsed_count` | Blocker |
 | SD-04 | `parsed_count <= source_feature_count` chỉ khi parser bỏ qua object không phải feature; mọi chênh lệch phải giải thích | Blocker |
 | SD-05 | Partition output khớp năm/tháng của event timestamp UTC | Blocker |
@@ -74,7 +74,7 @@ Các ngưỡng miền nghiệp vụ hẹp hơn (ví dụ magnitude/depth tối �
 
 | ID | Quy tắc | Mức | Ý nghĩa |
 |---|---|---|---|
-| G-01 | `earthquake_id` duy nhất trong fact/current view | Blocker | Không double count |
+| G-01 | `canonical_event_id` duy nhất trong fact/current view | Blocker | Không double count xuyên nguồn |
 | G-02 | Mọi event hợp lệ ở phạm vi publish có mặt trong fact | Blocker | Completeness |
 | G-03 | Khóa/ngày phân tích suy ra khớp event timestamp | Blocker | Group theo thời gian đúng |
 | G-04 | Bản ghi không match địa giới vẫn được giữ | Blocker | Không mất động đất ngoài khơi |
@@ -202,4 +202,3 @@ Kết thúc DAG, Airflow log một bảng tóm tắt:
 - Chính sách cho `magnitude = null` và depth âm nếu nguồn có trường hợp đặc biệt.
 - Công cụ metrics ngoài Airflow log (Prometheus/Grafana chỉ là mở rộng).
 - Retention của Bronze, log và snapshot Iceberg.
-

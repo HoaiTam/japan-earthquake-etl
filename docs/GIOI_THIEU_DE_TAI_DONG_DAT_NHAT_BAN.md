@@ -49,7 +49,9 @@ Kết quả của đề tài mang tính mô tả và hỗ trợ quan sát dữ l
 
 ### 4.1. Dữ liệu động đất
 
-Nguồn chính được đề xuất là **USGS Earthquake Catalog API**. API cho phép truy vấn sự kiện theo:
+Project dùng hai nguồn có vai trò khác nhau: **USGS Earthquake Catalog API** cho cập nhật hằng ngày và **JMA Seismological Bulletin** cho baseline lịch sử 40 năm `1984–2023`. Phạm vi chính thức, ROI và cách xử lý overlap nằm trong [source coverage contract](./specs/SOURCE_COVERAGE.md).
+
+USGS API cho phép truy vấn sự kiện theo:
 
 - Khoảng thời gian.
 - Vĩ độ và kinh độ.
@@ -76,6 +78,13 @@ Các trường dữ liệu chính gồm:
 
 Tài liệu: [USGS Earthquake Catalog API](https://earthquake.usgs.gov/fdsnws/event/1/)
 
+JMA cung cấp archive hypocenter theo năm, nén ZIP, với record fixed-width 96
+byte và origin time theo JST. Bronze lưu archive nguyên bản; Silver mới parse,
+chuẩn hóa UTC/JST và liên kết với USGS. Khi hai nguồn cùng mô tả một sự kiện,
+Gold chỉ đếm một canonical event nhưng vẫn giữ cả hai source observations.
+
+Tài liệu: [JMA Hypocenters](https://www.data.jma.go.jp/eqev/data/bulletin/hypo_e.html)
+
 ### 4.2. Dữ liệu địa lý
 
 Dữ liệu ranh giới hành chính Nhật Bản được sử dụng để gán sự kiện động đất cho tỉnh hoặc khu vực gần nhất. Có thể sử dụng dữ liệu Administrative Area N03 của Bộ Đất đai, Hạ tầng, Giao thông và Du lịch Nhật Bản.
@@ -88,7 +97,8 @@ Do nhiều trận động đất xảy ra ngoài khơi, hệ thống cần giữ
 
 ```mermaid
 flowchart LR
-    API["USGS Earthquake API"] --> AF1["Airflow - Extract"]
+    API["USGS Earthquake API"] --> AF1["Airflow - Source Ingest"]
+    JMA["JMA annual archives"] --> AF1
     MAP["Dữ liệu địa giới Nhật Bản"] --> AF1
     AF1 --> BRONZE["MinIO - Bronze"]
     BRONZE --> STAGE1["Airflow - Stage Bronze"]
@@ -132,8 +142,8 @@ Docker Compose cung cấp môi trường chạy thống nhất cho các thành p
 
 Pipeline dự kiến gồm các bước:
 
-1. Airflow gọi USGS API theo khoảng thời gian cấu hình.
-2. Dữ liệu GeoJSON gốc được lưu vào vùng Bronze trên MinIO.
+1. Airflow gọi USGS API theo cửa sổ UTC hoặc tải JMA archive theo year/catalog release.
+2. GeoJSON/ZIP gốc được lưu vào vùng Bronze trên MinIO cùng metadata/checksum.
 3. Airflow tải Bronze cần xử lý từ MinIO vào Docker shared volume.
 4. Airflow chạy Spark job `build_silver`.
 5. `build_silver` kiểm tra schema, chuẩn hóa kiểu dữ liệu, chuyển múi giờ, loại trùng và loại bỏ bản ghi không hợp lệ.
@@ -146,7 +156,9 @@ Pipeline dự kiến gồm các bước:
 12. Khi kiểm tra thành công, snapshot Gold mới trở thành phiên bản sẵn sàng cho BI.
 13. Power BI kết nối đến Trino và import dữ liệu từ các bảng Gold trên MinIO theo lịch làm mới.
 
-Pipeline cần bảo đảm tính **idempotent**: chạy lại cùng một khoảng thời gian không được tạo ra bản ghi trùng. Trường `id` được sử dụng làm khóa nghiệp vụ và trường `updated` được dùng để chọn phiên bản mới nhất của một sự kiện.
+Pipeline cần bảo đảm tính **idempotent**: chạy lại cùng input không được tạo ra
+observation hoặc canonical event trùng. USGS dùng `id`/`updated`; JMA dùng
+source record key/catalog release trước khi hai nguồn được liên kết.
 
 ## 7. Tổ chức dữ liệu trên MinIO
 
@@ -320,8 +332,8 @@ Các quy tắc kiểm tra dự kiến:
 - Kinh độ nằm trong khoảng hợp lệ từ -180 đến 180.
 - Độ lớn và độ sâu phải chuyển đổi được sang kiểu số.
 - Chỉ giữ sự kiện nằm trong vùng nghiên cứu đã cấu hình quanh Nhật Bản.
-- Bản ghi có cùng `id` phải giữ lại phiên bản có `updated` mới nhất.
-- Các bản ghi không hợp lệ bị loại hoàn toàn khi xây dựng tầng Silver và không được ghi sang một vùng dữ liệu riêng.
+- USGS có cùng `id` phải giữ revision `updated` mới nhất; JMA giữ release hợp lệ mới nhất theo source record key.
+- Bản ghi không hợp lệ không vào Silver valid nhưng vẫn có reject reason và lineage về Bronze.
 - Pipeline chỉ ghi nhận số lượng bản ghi đầu vào, hợp lệ, bị loại, cập nhật và đầu ra trong log Airflow để hỗ trợ kiểm tra quá trình chạy.
 
 ## 11. Mô hình dữ liệu Gold cho Power BI
@@ -330,7 +342,7 @@ Mô hình đề xuất theo dạng star schema. Toàn bộ fact và dimension đ
 
 ### Bảng sự kiện `fact_earthquake`
 
-- `earthquake_id`
+- `canonical_event_id`
 - `date_key`
 - `prefecture_key`
 - `event_time_utc`
@@ -420,7 +432,7 @@ USGS sử dụng UTC khi tham số thời gian không chỉ rõ múi giờ. Vì 
 1. Airflow truy vấn dữ liệu của ngày UTC trước đó và đọc chồng lại ba ngày gần nhất để nhận các sự kiện được USGS cập nhật muộn.
 2. Dữ liệu gốc được ghi vào Bronze trên MinIO.
 3. Airflow stage Bronze vào shared volume và chạy `build_silver`.
-4. Spark loại dữ liệu không hợp lệ, chuẩn hóa, chọn phiên bản có `updated` mới nhất theo `id`, ghi Silver Parquet và upload lên MinIO.
+4. Spark loại dữ liệu không hợp lệ, chuẩn hóa, xử lý revision trong từng nguồn, liên kết observation USGS/JMA và ghi Silver Parquet lên MinIO.
 5. Airflow stage partition Silver cần xử lý và chạy `build_gold`.
 6. Spark tạo fact, dimension và aggregate, sau đó commit snapshot Gold Iceberg trên MinIO.
 7. Airflow gửi truy vấn kiểm tra snapshot Gold qua Trino.
@@ -428,7 +440,9 @@ USGS sử dụng UTC khi tham số thời gian không chỉ rõ múi giờ. Vì 
 9. Power BI refresh sau thời điểm pipeline dự kiến hoàn tất và import dữ liệu qua Trino.
 10. Airflow ghi số lượng bản ghi, snapshot ID và trạng thái thực thi vào log.
 
-Airflow cần bật retry cho lỗi mạng hoặc lỗi tạm thời từ API. Pipeline sử dụng `id` và `updated` để chạy lại an toàn, cập nhật bản ghi đã thay đổi và không tạo dữ liệu trùng.
+Airflow cần bật retry cho lỗi mạng hoặc lỗi tạm thời từ API. Pipeline sử dụng
+`id`/`updated` cho revision USGS, source key/catalog release cho JMA và
+canonical linking để chạy lại an toàn mà không double count.
 
 Lịch chạy gợi ý:
 

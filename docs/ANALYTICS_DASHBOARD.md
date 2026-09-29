@@ -24,11 +24,11 @@ Dashboard hỗ trợ mô tả dữ liệu động đất quanh Nhật Bản theo
 
 ## 3. Định nghĩa KPI
 
-Mọi KPI phải tôn trọng cùng filter context và chỉ đếm mỗi `earthquake_id` một lần.
+Mọi KPI phải tôn trọng cùng filter context và chỉ đếm mỗi `canonical_event_id` một lần.
 
 | KPI | Định nghĩa logic | Định dạng |
 |---|---|---|
-| Total Earthquakes | `DISTINCTCOUNT(earthquake_id)` | Số nguyên |
+| Total Earthquakes | `DISTINCTCOUNT(canonical_event_id)` | Số nguyên |
 | Average Magnitude | Trung bình `magnitude` khác null | 2 chữ số thập phân |
 | Maximum Magnitude | Max `magnitude` khác null | 1–2 chữ số thập phân |
 | Average Depth | Trung bình `depth_km` hợp lệ | `0.00 km` |
@@ -45,7 +45,7 @@ Mọi KPI phải tôn trọng cùng filter context và chỉ đếm mỗi `earth
 - `Average Magnitude` bỏ qua null, không thay null bằng 0.
 - Ngưỡng “Strong” là tham số/filter. Baseline `PLN-01` đề xuất giá trị mặc định `5.0`; giá trị này trở thành chính thức sau khi ba thành viên phê duyệt baseline.
 - Tên múi giờ phải xuất hiện cạnh thời gian; ưu tiên JST cho người xem, giữ UTC để đối soát.
-- Tooltip hoặc trang thông tin phải nêu nguồn USGS và thời điểm refresh.
+- Tooltip hoặc trang thông tin phải nêu source coverage USGS/JMA, canonical source, catalog era và thời điểm refresh.
 
 ## 4. Bộ lọc dùng chung
 
@@ -56,6 +56,7 @@ Mọi KPI phải tôn trọng cùng filter context và chỉ đếm mỗi `earth
 - Tsunami flag.
 - Alert level.
 - Magnitude type khi cần kiểm tra chất lượng/nguồn đo.
+- Source coverage/canonical source và catalog era khi phân tích khác biệt giữa hai catalog.
 
 Filter mặc định không được âm thầm loại `Unknown` hoặc `Offshore`.
 
@@ -199,7 +200,7 @@ Tên catalog/schema/table là placeholder cho đến khi triển khai:
 
 ```sql
 SELECT
-    COUNT(DISTINCT earthquake_id) AS total_earthquakes,
+    COUNT(DISTINCT canonical_event_id) AS total_earthquakes,
     AVG(magnitude) AS average_magnitude,
     MAX(magnitude) AS maximum_magnitude,
     SUM(CASE WHEN tsunami_flag THEN 1 ELSE 0 END) AS tsunami_flagged

@@ -1,13 +1,21 @@
 # Japan Earthquake ETL
 
-Nền tảng ETL local-first để thu thập dữ liệu động đất từ USGS, xử lý bằng
-Spark Java theo mô hình Bronze–Silver–Gold, công bố bảng Gold qua Iceberg và
-Trino, sau đó phục vụ báo cáo Power BI.
+Nền tảng ETL local-first để thu thập dữ liệu cập nhật hằng ngày từ USGS và
+lịch sử 40 năm từ JMA, xử lý bằng Spark Java theo mô hình Bronze–Silver–Gold,
+công bố bảng Gold qua Iceberg và Trino, sau đó phục vụ báo cáo Power BI.
 
 > Trạng thái hiện tại: **foundation đã có full-stack smoke checklist**.
 > MinIO bucket bootstrap, Airflow local runtime, Spark Java build/runtime,
 > Iceberg REST Catalog và Trino đã được triển khai và kiểm tra cùng nhau; DAG
 > ETL thuộc các task tiếp theo.
+
+Source coverage USGS/JMA, vùng nghiên cứu, timezone và overlap được chốt tại
+[CON-01 source coverage contract](./docs/specs/SOURCE_COVERAGE.md). Kiểm tra
+contract không cần mạng bằng:
+
+```bash
+./scripts/check-source-coverage.sh
+```
 
 ## Chuẩn bị trên máy local
 
