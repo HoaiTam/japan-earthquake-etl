@@ -1,0 +1,84 @@
+---
+task_id: "GLD-04"
+status: "Backlog"
+week: 4
+block: "E - Gold & Serving"
+workstream: "Trino verification"
+scope: "Core"
+priority: "P0"
+effort_hours: 4
+assignee: "unassigned"
+reviewer: "unassigned"
+dependencies: ["GLD-03"]
+---
+
+# GLD-04 - Tạo Trino views và verification SQL
+
+## Mục đích
+
+Dùng làm giao diện SQL ổn định cho Power BI và kiểm chứng độc lập với Spark.
+
+## Phạm vi công việc
+
+Khai báo schema/views cho BI; kiểm tra uniqueness, completeness, aggregate consistency, snapshot freshness và sample queries.
+
+## Thành phần cần có
+
+- **Đầu vào và contract:** [GLD-03](./GLD-03.md)
+- **Phần triển khai:** Khai báo schema/views cho BI; kiểm tra uniqueness, completeness, aggregate consistency, snapshot freshness và sample queries.
+- **Kết quả bàn giao:** Trino views, verification queries và query smoke tests.
+- **Kiểm thử và evidence:** Kiểm tra từng acceptance criterion, lưu lệnh chạy/log/report có thể lặp lại và cập nhật mục Evidence bên dưới.
+
+## Deliverable
+
+- Trino views, verification queries và query smoke tests.
+
+## Tiêu chí hoàn thành
+
+- [ ] Trino đọc current snapshot.
+- [ ] mọi blocker đạt trước Published.
+- [ ] schema BI khớp contract.
+
+## Hard dependency
+
+- [GLD-03](./GLD-03.md)
+
+## Cách triển khai và phối hợp
+
+Đây là integration gate. Có thể chuẩn bị test plan, fixture và harness trước, nhưng chỉ được chuyển sang `Done` sau khi toàn bộ hard dependency cung cấp output thật và báo cáo đối soát đạt.
+
+1. Xác nhận hard dependency và đọc contract/tài liệu liên quan.
+2. Tạo branch mới từ `main`: `feat/gld-04-tao-trino-views-va-verification`.
+3. Triển khai đúng phạm vi; dùng fixture nhỏ, xác định được và không phụ thuộc mạng cho unit test.
+4. Chạy test/check phù hợp, đối chiếu acceptance criteria và cập nhật tài liệu nếu contract hoặc hành vi thay đổi.
+5. Cập nhật `status`, `assignee`, `reviewer` và Evidence ngay trong file này khi mở PR hoặc hoàn tất review.
+
+## Ranh giới
+
+- Không tự mở rộng sang deliverable của task khác.
+- Không đổi contract upstream trong PR implementation mà không cập nhật task contract liên quan và có review.
+- Không commit secret, credential, payload nhạy cảm, data dump lớn hoặc artifact build không cần thiết.
+- Không đánh dấu `Done` nếu chưa có evidence kiểm tra được.
+
+## Theo dõi
+
+- **Trạng thái:** Backlog
+- **Assignee:** Chưa ghi lại
+- **Reviewer:** Chưa ghi lại
+- **Evidence / PR:** Chưa có
+- **Kỹ năng phù hợp:** Trino, SQL, data quality
+
+## Checklist bàn giao
+
+- [ ] Deliverable đã có trong repository hoặc môi trường demo.
+- [ ] Acceptance criteria đã được kiểm tra.
+- [ ] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
+- [ ] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
+- [ ] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
+- [ ] P0/P1 có reviewer khác assignee xác nhận.
+
+## Tài liệu liên quan
+
+- [Kế hoạch 6 tuần](../README.md)
+- [Các khối công việc](../WORK_BLOCKS.md)
+- [Baseline MVP, KPI và Definition of Done](../../specs/MVP_SCOPE_KPI_AND_DOD.md)

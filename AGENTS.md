@@ -6,19 +6,20 @@ Hướng dẫn này áp dụng cho toàn bộ repository `japan-earthquake-etl`.
 
 Trước khi bắt đầu một task, đọc theo thứ tự:
 
-1. Dòng task tương ứng trong `docs/task/JAPAN_EARTHQUAKE_ETL_TASKS.xlsx`.
-2. `docs/task/README.md`.
-3. Tài liệu kỹ thuật được task dẫn chiếu trong `docs/`.
-4. `docs/conventions_and_workflow/GIT_WORKFLOW.md` và `COMMIT_CONVENTION.md`.
+1. File `docs/task/tasks/<TASK-ID>.md` tương ứng.
+2. Chỉ mục `docs/task/tasks/README.md` để xem trạng thái và các task cùng khối.
+3. `docs/task/README.md` và `docs/task/WORK_BLOCKS.md`.
+4. Tài liệu kỹ thuật được task dẫn chiếu trong `docs/`.
+5. `docs/conventions_and_workflow/GIT_WORKFLOW.md` và `COMMIT_CONVENTION.md`.
 
-Nếu các tài liệu mâu thuẫn, ưu tiên acceptance criteria của task, sau đó là đặc tả dự án và tài liệu flow/quality liên quan. Hành vi đã được kiểm thử là bằng chứng để cập nhật lại tài liệu, không phải lý do giữ hai mô tả khác nhau.
+Nếu các tài liệu mâu thuẫn, ưu tiên acceptance criteria trong file task, sau đó là đặc tả dự án và tài liệu flow/quality liên quan. Hành vi đã được kiểm thử là bằng chứng để cập nhật lại tài liệu, không phải lý do giữ hai mô tả khác nhau.
 
 ## 2. Quy trình bắt buộc cho mỗi task
 
-- Kiểm tra dependency trước khi sửa file. Không triển khai task khi dependency chưa hoàn tất, trừ phần fixture hoặc test plan mà backlog cho phép.
+- Kiểm tra mục `Hard dependency` trong file task trước khi sửa file. Không triển khai task khi dependency chưa hoàn tất, trừ phần fixture, mock, interface hoặc test plan mà file task cho phép.
 - Tạo branch mới từ `main` trước thay đổi đầu tiên. Dùng dạng `<type>/<task-id-lowercase>-<short-description>`, ví dụ `docs/pln-01-scope-kpi-dod`.
 - Chỉ thay đổi phạm vi cần thiết cho deliverable và acceptance criteria của task.
-- Chuyển task sang `In Progress` khi bắt đầu. Chỉ chuyển `Review` khi đã có PR/evidence. Chỉ chuyển `Done` sau khi test, acceptance criteria và review đều đạt.
+- Cập nhật metadata và mục `Theo dõi` trong file task sang `In Progress` khi bắt đầu; đồng bộ trạng thái ở `docs/task/tasks/README.md`. Chỉ chuyển `Review` khi đã có PR/evidence. Chỉ chuyển `Done` sau khi test, acceptance criteria và review đều đạt.
 - P0/P1 phải có reviewer khác assignee. Không tự điền tên, approval hoặc evidence chưa tồn tại.
 - Trước khi bàn giao, chạy kiểm tra phù hợp, xem `git diff`, kiểm tra secret và cập nhật docs nếu contract, flow, schema logic hoặc cấu hình thay đổi.
 - Không tự commit, push, merge hoặc mở PR nếu người dùng chưa yêu cầu. Khi bàn giao, cung cấp lệnh Git dùng đường dẫn cụ thể; không mặc định dùng `git add .`.
@@ -31,8 +32,8 @@ Các nguyên tắc không được phá vỡ:
 
 - Pipeline batch hằng ngày theo cửa sổ dữ liệu UTC; timezone điều phối là `Asia/Ho_Chi_Minh`.
 - Bronze lưu response nguồn nguyên bản và metadata theo run, không bị sửa sau khi ghi thành công.
-- Silver dùng Spark Java để parse, chuẩn hóa, validate và deduplicate theo `id`, giữ bản ghi có `updated` mới nhất.
-- Gold là bảng Iceberg trên MinIO. Chỉ snapshot đã commit và verify qua Trino mới được coi là `Published`.
+- Silver dùng Spark Java để parse và chuẩn hóa USGS/JMA về observation contract chung, giữ lineage, validate, deduplicate/revision trong từng nguồn rồi liên kết observation giữa hai nguồn.
+- Gold chọn canonical event để tránh double count và lưu bằng bảng Iceberg trên MinIO. Chỉ snapshot đã commit và verify qua Trino mới được coi là `Published`.
 - Power BI đọc Gold qua Trino/ODBC ở chế độ Import, không đọc từng object Parquet và không dùng PostgreSQL làm serving copy.
 - Retry/rerun/backfill không được tạo duplicate logic hoặc sửa partition ngoài phạm vi.
 - Không làm mất event hợp lệ chỉ vì thiếu spatial enrichment; giữ `Unknown`/`Offshore` theo contract được chốt.

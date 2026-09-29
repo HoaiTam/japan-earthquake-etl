@@ -65,9 +65,9 @@ Giá trị mặc định local lấy từ `.env.example`:
 | Logical layer | URI mặc định | Owner downstream | Tính chất |
 |---|---|---|---|
 | Bucket | `s3://japan-earthquake` | MIO-01 | Một bucket dùng chung cho project local |
-| Bronze | `s3://japan-earthquake/bronze` | EXT-05/EXT-06 | Append-oriented theo `run_id` |
-| Silver | `s3://japan-earthquake/silver` | SLV-07 | Có thể thay output/partition theo contract rerun |
-| Gold warehouse | `s3://japan-earthquake/warehouse` | QRY-01/GLD-07 | Iceberg quản lý file và snapshot |
+| Bronze | `s3://japan-earthquake/bronze` | USG-03/JMA-03 | Append-oriented theo `run_id` |
+| Silver | `s3://japan-earthquake/silver` | SLV-08 | Có thể thay output/partition theo contract rerun |
+| Gold warehouse | `s3://japan-earthquake/warehouse` | QRY-01/GLD-03 | Iceberg quản lý file và snapshot |
 
 S3 không có thư mục thật. Bootstrap tạo object rỗng `.keep` dưới mỗi prefix để
 prefix xuất hiện ngay trong Console và để smoke test xác nhận init đã hoàn tất:
@@ -123,7 +123,7 @@ Pipeline không dùng root credential. Policy hiện tại cho phép:
 
 Không cấp `DeleteObject` cho Bronze để giảm rủi ro xóa raw response. Tuy vậy,
 `PutObject` cùng một key vẫn có thể thay object trên bucket chưa bật versioning;
-EXT-05 vẫn phải dùng path gắn `run_id` và từ chối overwrite mơ hồ để đáp ứng
+USG-03 và JMA-03 vẫn phải dùng path gắn `run_id`/catalog release và từ chối overwrite mơ hồ để đáp ứng
 tính bất biến nghiệp vụ.
 
 Secret chỉ đi qua environment. Script không in credential; `MC_CONFIG_DIR` đặt
@@ -224,9 +224,9 @@ service. Không publish thêm S3 API port `9000` chỉ để mở Console.
 
 ## 10. Handoff cho task downstream
 
-- EXT-05/EXT-06 dùng pipeline credential và ghi dưới `BRONZE_PREFIX`.
-- SLV-07 dùng cùng bucket và ghi dưới `SILVER_PREFIX`.
-- QRY-01/GLD-07 dùng đúng `WAREHOUSE_PATH`; không tạo warehouse song song.
+- USG-03/JMA-03 dùng pipeline credential và ghi dưới `BRONZE_PREFIX`.
+- SLV-08 dùng cùng bucket và ghi dưới `SILVER_PREFIX`.
+- QRY-01/GLD-03 dùng đúng `WAREHOUSE_PATH`; không tạo warehouse song song.
 - Consumer Compose phải chờ `minio-init` với
   `condition: service_completed_successfully`.
 - Không hard-code endpoint, bucket hoặc credential trong DAG, Java source,
