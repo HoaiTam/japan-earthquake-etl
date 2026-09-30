@@ -163,24 +163,19 @@ source record key/catalog release trước khi hai nguồn được liên kết.
 ## 7. Tổ chức dữ liệu trên MinIO
 
 ```text
-earthquake-data/
+japan-earthquake/
 ├── bronze/
-│   ├── usgs/ingest_date=YYYY-MM-DD/*.geojson
-│   └── boundaries/source=mlit/*
+│   ├── usgs/ingest_date=YYYY-MM-DD/run_id=<id>/attempt=<nn>/*
+│   └── jma/year=YYYY/catalog_release=<release>/*
 ├── silver/
-│   └── earthquakes/year=YYYY/month=MM/*.parquet
+│   └── source_observation/event_year_utc=YYYY/event_month_utc=MM/source_system=<source>/*.parquet
 └── warehouse/
-    └── earthquake_gold/
-        ├── fact_earthquake/
-        ├── dim_date/
-        ├── dim_prefecture/
-        ├── dim_magnitude_band/
-        ├── dim_depth_band/
-        └── agg_daily_statistics/
+    └── <Iceberg-managed data and metadata>
 ```
 
 - **Bronze:** dữ liệu nguyên bản, phục vụ truy vết và chạy lại pipeline.
-- **Silver:** chỉ chứa dữ liệu hợp lệ sau khi đã làm sạch, chuẩn hóa và loại trùng. Các bản ghi không hợp lệ bị loại khỏi luồng xử lý và không được lưu thành một vùng dữ liệu riêng.
+- **Silver:** observation hợp lệ được chuẩn hóa và giữ revision/lineage; record
+  lỗi nằm trong logical `reject_record` để đối soát nhưng không đi vào Gold.
 - **Gold:** các bảng Iceberg chứa fact, dimension và aggregate đã sẵn sàng cho phân tích. Bên trong mỗi bảng, Iceberg quản lý các file dữ liệu Parquet và file metadata; ứng dụng không tự chọn một file Parquet riêng lẻ để coi là toàn bộ bảng.
 
 Silver sử dụng Parquet. Gold sử dụng Apache Iceberg với các data file Parquet để có schema rõ ràng, quản lý snapshot và cập nhật bảng an toàn hơn.
@@ -248,18 +243,14 @@ Power BI có thể gửi một câu SQL đến Trino thông qua phần Advanced 
 
 ```sql
 SELECT
-    d.year,
-    d.month,
-    p.prefecture_name,
-    COUNT(*) AS earthquake_count,
-    AVG(f.magnitude) AS average_magnitude,
-    MAX(f.magnitude) AS maximum_magnitude
-FROM lakehouse.gold.fact_earthquake AS f
-JOIN lakehouse.gold.dim_date AS d
-    ON f.date_key = d.date_key
-LEFT JOIN lakehouse.gold.dim_prefecture AS p
-    ON f.prefecture_key = p.prefecture_key
-GROUP BY d.year, d.month, p.prefecture_name;
+    year(event_time_jst) AS event_year_jst,
+    month(event_time_jst) AS event_month_jst,
+    region_name,
+    COUNT(DISTINCT canonical_event_id) AS earthquake_count,
+    AVG(magnitude) AS average_magnitude,
+    MAX(magnitude) AS maximum_magnitude
+FROM lakehouse.gold.earthquake_event_current
+GROUP BY year(event_time_jst), month(event_time_jst), region_name;
 ```
 
 Trino phân tích câu SQL, hỏi Catalog để xác định snapshot và chỉ đọc các file Parquet liên quan trên MinIO. Power BI chỉ nhận result set cuối cùng; Power BI không cần biết vị trí hoặc tên của từng file vật lý.
@@ -326,25 +317,33 @@ Thông tin đăng nhập MinIO, PostgreSQL và các cấu hình nhạy cảm đ�
 
 Các quy tắc kiểm tra dự kiến:
 
-- `id` không được rỗng và không được trùng trong phiên bản dữ liệu hiện tại.
-- `time` và `updated` phải chuyển đổi được sang timestamp.
+- `source_record_key` không được rỗng; mỗi key chỉ có một revision hiện hành
+  trong phạm vi từng `source_system`.
+- `event_time_utc` phải parse được; `source_updated_at_utc` bắt buộc với USGS
+  và được null với JMA.
 - Vĩ độ nằm trong khoảng hợp lệ từ -90 đến 90.
 - Kinh độ nằm trong khoảng hợp lệ từ -180 đến 180.
-- Độ lớn và độ sâu phải chuyển đổi được sang kiểu số.
-- Chỉ giữ sự kiện nằm trong vùng nghiên cứu đã cấu hình quanh Nhật Bản.
+- Độ lớn và độ sâu có thể thiếu và được giữ null; giá trị có mặt phải parse
+  thành số hữu hạn.
+- Silver giữ observation và đánh dấu `is_in_study_area`; Gold serving view mặc
+  định chỉ lấy natural earthquake trong ROI.
 - USGS có cùng `id` phải giữ revision `updated` mới nhất; JMA giữ release hợp lệ mới nhất theo source record key.
 - Bản ghi không hợp lệ không vào Silver valid nhưng vẫn có reject reason và lineage về Bronze.
 - Pipeline chỉ ghi nhận số lượng bản ghi đầu vào, hợp lệ, bị loại, cập nhật và đầu ra trong log Airflow để hỗ trợ kiểm tra quá trình chạy.
 
 ## 11. Mô hình dữ liệu Gold cho Power BI
 
-Mô hình đề xuất theo dạng star schema. Toàn bộ fact và dimension được lưu dưới dạng bảng Iceberg ở Gold trên MinIO. Trino công bố các bảng này dưới catalog/schema SQL để Power BI truy vấn.
+Mô hình logic theo [contract `CON-03`](./specs/SILVER_GOLD_DATA_MODEL.md).
+Gold Iceberg trên MinIO có `event_current` với grain một canonical event,
+`event_source_bridge` cho provenance và serving view
+`earthquake_event_current` cho Power BI.
 
-### Bảng sự kiện `fact_earthquake`
+### Dataset `gold.event_current`
 
 - `canonical_event_id`
-- `date_key`
-- `prefecture_key`
+- `event_date_key_utc`
+- `event_date_key_jst`
+- `region_key`
 - `event_time_utc`
 - `event_time_jst`
 - `latitude`
@@ -355,13 +354,16 @@ Mô hình đề xuất theo dạng star schema. Toàn bộ fact và dimension đ
 - `tsunami_flag`
 - `alert_level`
 - `significance`
-- `place_description`
-- `distance_to_prefecture_km`
+- `place_name`
+- `magnitude_band_code`
+- `depth_band_code`
+- `source_coverage_code`
+- `canonical_source_system`
 
 ### Các bảng chiều
 
 - `dim_date`
-- `dim_prefecture`
+- `dim_region`
 - `dim_magnitude_band`
 - `dim_depth_band`
 

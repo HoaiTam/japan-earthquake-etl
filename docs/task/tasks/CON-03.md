@@ -1,6 +1,6 @@
 ---
 task_id: "CON-03"
-status: "Backlog"
+status: "Done"
 week: 2
 block: "A - Hợp đồng dữ liệu"
 workstream: "Silver and Gold contract"
@@ -26,16 +26,16 @@ Chốt observation theo nguồn, lineage, UTC/JST, tọa độ, magnitude/depth,
 
 - **Đầu vào và contract:** [CON-01](./CON-01.md)
 - **Phần triển khai:** Chốt observation theo nguồn, lineage, UTC/JST, tọa độ, magnitude/depth, quality flags, source record key, canonical event, dimension/band và KPI Gold.
-- **Kết quả bàn giao:** Logical schema, field mapping USGS/JMA, data dictionary và query examples; không khóa DDL database vật lý.
+- **Kết quả bàn giao:** [Logical data model Silver/Gold](../../specs/SILVER_GOLD_DATA_MODEL.md), field mapping USGS/JMA, data dictionary và query examples; không khóa DDL database vật lý.
 - **Kiểm thử và evidence:** Kiểm tra từng acceptance criterion, lưu lệnh chạy/log/report có thể lặp lại và cập nhật mục Evidence bên dưới.
 
 ## Deliverable
 
-- Logical schema, field mapping USGS/JMA, data dictionary và query examples; không khóa DDL database vật lý.
+- [Logical data model Silver/Gold](../../specs/SILVER_GOLD_DATA_MODEL.md), field mapping USGS/JMA, data dictionary và query examples; không khóa DDL database vật lý.
 
 ## Tiêu chí hoàn thành
 
-- [ ] Parser, quality rule, canonicalization, Gold và Power BI dùng cùng tên trường, kiểu dữ liệu và null policy.
+- [x] Parser, quality rule, canonicalization, Gold và Power BI dùng cùng tên trường, kiểu dữ liệu và null policy.
 
 ## Hard dependency
 
@@ -60,23 +60,26 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
+- **Trạng thái:** Done
 - **Assignee:** Chưa ghi lại
 - **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Evidence / PR:** [Data model contract check](../../../scripts/check-data-model-contract.sh); `check-bronze-contract.sh`, `check-source-coverage.sh`, `check-repository-layout.sh`, kiểm tra 540 local links trong 97 file Markdown và `git diff --check` đều đạt.
 - **Kỹ năng phù hợp:** Data modeling, SQL, Iceberg
 
 ## Checklist bàn giao
 
-- [ ] Deliverable đã có trong repository hoặc môi trường demo.
-- [ ] Acceptance criteria đã được kiểm tra.
-- [ ] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
-- [ ] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
-- [ ] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
-- [ ] P0/P1 có reviewer khác assignee xác nhận.
+- [x] Deliverable đã có trong repository hoặc môi trường demo.
+- [x] Acceptance criteria đã được kiểm tra.
+- [x] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
+- [x] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
+- [x] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
+- [ ] Reviewer độc lập đã xác nhận (khuyến nghị, không chặn `Done`).
 
 ## Tài liệu liên quan
 
+- [Logical data model Silver/Gold](../../specs/SILVER_GOLD_DATA_MODEL.md)
+- [Source coverage contract](../../specs/SOURCE_COVERAGE.md)
+- [Bronze storage contract](../../specs/BRONZE_STORAGE_CONTRACT.md)
 - [Kế hoạch 6 tuần](../README.md)
 - [Các khối công việc](../WORK_BLOCKS.md)
 - [Baseline MVP, KPI và Definition of Done](../../specs/MVP_SCOPE_KPI_AND_DOD.md)

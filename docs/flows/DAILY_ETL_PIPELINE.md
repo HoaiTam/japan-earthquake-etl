@@ -10,7 +10,7 @@
 
 ## 1. Mục đích
 
-Tài liệu này mô tả happy path của một lần chạy pipeline. Các trường hợp chạy bù, retry có chọn lọc và khôi phục sau lỗi được mô tả tại [Backfill và phục hồi](./BACKFILL_AND_RECOVERY.md). Phạm vi nguồn, ROI, timezone và overlap tuân theo [source coverage contract](../specs/SOURCE_COVERAGE.md); layout raw và manifest tuân theo [Bronze storage contract](../specs/BRONZE_STORAGE_CONTRACT.md).
+Tài liệu này mô tả happy path của một lần chạy pipeline. Các trường hợp chạy bù, retry có chọn lọc và khôi phục sau lỗi được mô tả tại [Backfill và phục hồi](./BACKFILL_AND_RECOVERY.md). Phạm vi nguồn, ROI, timezone và overlap tuân theo [source coverage contract](../specs/SOURCE_COVERAGE.md); layout raw và manifest tuân theo [Bronze storage contract](../specs/BRONZE_STORAGE_CONTRACT.md); schema và KPI tuân theo [Silver/Gold logical data model](../specs/SILVER_GOLD_DATA_MODEL.md).
 
 ## 2. Cửa sổ dữ liệu
 
@@ -120,7 +120,7 @@ Tên cuối cùng sẽ được xác nhận khi mã nguồn được tạo.
 **Output dự kiến:**
 
 ```text
-silver/earthquakes/year=YYYY/month=MM/*.parquet
+silver/source_observation/event_year_utc=YYYY/event_month_utc=MM/source_system=<source>/*.parquet
 ```
 
 ### P05 — Build Gold
@@ -129,8 +129,9 @@ silver/earthquakes/year=YYYY/month=MM/*.parquet
 
 **Xử lý:**
 
-- Enrich khu vực nếu boundary dataset sẵn sàng.
-- Tạo các thuộc tính phân nhóm magnitude/depth dùng thống nhất.
+- Enrich khu vực nếu boundary dataset sẵn sàng; giữ `UNKNOWN`/`OFFSHORE` khi
+  không map được.
+- Tạo `event_current`, source bridge và các magnitude/depth band theo contract.
 - Tính các aggregate cần thiết cho dashboard nếu có lợi cho hiệu năng.
 - Ghi vào bảng Iceberg theo chiến lược merge/overwrite partition đã thống nhất.
 - Commit snapshot nguyên tử; lưu snapshot ID trong log/XCom phù hợp.

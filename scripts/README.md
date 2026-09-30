@@ -38,6 +38,8 @@ Hiện có:
 - `check-bronze-contract.sh`: kiểm tra layout object, manifest, lifecycle
   `BronzeReady`/`Rejected` và retry rule của `CON-02`; không gọi mạng hoặc
   truy cập MinIO.
+- `check-data-model-contract.sh`: kiểm tra dataset, field, lineage, null policy,
+  bands và KPI bắt buộc của logical model Silver/Gold `CON-03`.
 
 Full checklist và hướng xử lý lỗi:
 [Foundation environment smoke contract](../docs/specs/FOUNDATION_SMOKE.md).

@@ -11,6 +11,9 @@
 
 Dashboard hỗ trợ mô tả dữ liệu động đất quanh Nhật Bản theo thời gian, không gian, độ lớn và độ sâu. Kết quả dùng cho học tập/phân tích dữ liệu, không phải dự báo hay cảnh báo thiên tai.
 
+Tên field, Gold serving grain, dimension/band và KPI semantics tuân theo
+[Silver/Gold logical data model](./specs/SILVER_GOLD_DATA_MODEL.md).
+
 ## 2. Câu hỏi phân tích
 
 1. Số sự kiện thay đổi thế nào theo ngày, tháng và năm?
@@ -43,7 +46,7 @@ Mọi KPI phải tôn trọng cùng filter context và chỉ đếm mỗi `canon
 
 - Không dùng `COUNT(*)` nếu query có join có thể nhân bản event.
 - `Average Magnitude` bỏ qua null, không thay null bằng 0.
-- Ngưỡng “Strong” là tham số/filter. Baseline `PLN-01` đề xuất giá trị mặc định `5.0`; giá trị này trở thành chính thức sau khi ba thành viên phê duyệt baseline.
+- Ngưỡng “Strong” là tham số/filter với giá trị mặc định `5.0` theo contract `CON-03`.
 - Tên múi giờ phải xuất hiện cạnh thời gian; ưu tiên JST cho người xem, giữ UTC để đối soát.
 - Tooltip hoặc trang thông tin phải nêu source coverage USGS/JMA, canonical source, catalog era và thời điểm refresh.
 
@@ -139,13 +142,18 @@ Một trang drill-through tùy chọn có thể hiển thị:
 
 ## 9. Semantic model
 
-Thiết kế logic đề xuất là star schema với một fact sự kiện, dimension ngày/khu vực/band. Chi tiết schema vật lý chưa thuộc giai đoạn này.
+Semantic model đọc `gold.earthquake_event_current` với grain một dòng cho một
+`canonical_event_id`, cùng dimension ngày, khu vực, magnitude band và depth
+band theo contract `CON-03`. DDL/physical mapping vẫn thuộc task Gold/BI.
 
 Nguyên tắc:
 
 - Quan hệ one-to-many từ dimension tới fact.
 - Cross-filter một chiều mặc định.
-- Date dimension được đánh dấu là date table.
+- Date dimension được đánh dấu là date table; relationship mặc định dùng
+  `event_date_key_jst`, UTC date giữ để đối soát.
+- Drill-through provenance dùng `gold.event_source_bridge`; KPI trên fact luôn
+  distinct canonical ID để bridge không nhân bản event.
 - Measure tập trung trong một khu vực/bảng measure rõ ràng.
 - Ẩn technical key và cột không dành cho người xem.
 - Không tạo calculated column nặng trong Power BI nếu có thể tính ổn định ở Gold.
@@ -196,7 +204,7 @@ sequenceDiagram
 
 ## 12. Truy vấn kiểm chứng mẫu
 
-Tên catalog/schema/table là placeholder cho đến khi triển khai:
+Tên catalog là placeholder; logical schema/table tuân theo `CON-03`:
 
 ```sql
 SELECT
@@ -204,7 +212,7 @@ SELECT
     AVG(magnitude) AS average_magnitude,
     MAX(magnitude) AS maximum_magnitude,
     SUM(CASE WHEN tsunami_flag THEN 1 ELSE 0 END) AS tsunami_flagged
-FROM <catalog>.<gold_schema>.<earthquake_fact_or_view>
+FROM <catalog>.gold.earthquake_event_current
 WHERE event_time_utc >= TIMESTAMP '<start_utc>'
   AND event_time_utc < TIMESTAMP '<end_utc>';
 ```

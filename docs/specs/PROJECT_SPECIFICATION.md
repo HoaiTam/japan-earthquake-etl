@@ -84,9 +84,10 @@ Hệ thống phải lưu phản hồi nguồn theo lần ingest và không sửa
 
 ### FR-03 — Chuẩn hóa Silver
 
-Spark phải parse schema, chuẩn hóa timestamp, kiểu số, tọa độ, cờ boolean và tên trường cần thiết cho downstream.
+Spark phải parse schema, chuẩn hóa timestamp, kiểu số, tọa độ, cờ boolean và tên trường theo [Silver/Gold logical data model](./SILVER_GOLD_DATA_MODEL.md).
 
-**Chấp nhận khi:** dữ liệu Silver chỉ chứa bản ghi đáp ứng các quy tắc bắt buộc trong tài liệu chất lượng dữ liệu.
+**Chấp nhận khi:** `silver.source_observation` chỉ chứa record đạt rule bắt
+buộc; record lỗi có reason và Bronze lineage trong `silver.reject_record`.
 
 ### FR-04 — Loại trùng và xử lý cập nhật muộn
 
@@ -102,7 +103,7 @@ Khi dữ liệu địa giới sẵn sàng, hệ thống gán tỉnh/khu vực g�
 
 ### FR-06 — Xuất bản Gold
 
-Hệ thống phải tạo các bảng hoặc view phục vụ KPI, biểu đồ theo thời gian, vị trí, độ lớn và độ sâu. Việc xuất bản chỉ hoàn tất sau khi Iceberg commit snapshot thành công.
+Hệ thống phải tạo các bảng hoặc view theo logical model phục vụ KPI, biểu đồ theo thời gian, vị trí, độ lớn và độ sâu. Việc xuất bản chỉ hoàn tất sau khi Iceberg commit snapshot thành công và Trino verification đạt.
 
 **Chấp nhận khi:** Trino nhìn thấy snapshot mới và truy vấn kiểm tra sau commit đạt yêu cầu.
 

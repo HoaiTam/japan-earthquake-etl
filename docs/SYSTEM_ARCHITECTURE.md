@@ -116,15 +116,22 @@ Nét liền biểu diễn data flow; nét đứt biểu diễn quyền điều p
 
 ### Silver
 
-- Chứa observation USGS/JMA đã chuẩn hóa kiểu dữ liệu, timestamp, tọa độ và lineage.
-- Deduplicate revision trong từng nguồn, sau đó lưu source-link/canonical selection để tránh double count.
-- Định dạng Parquet, phân vùng theo thời gian sự kiện.
+- `source_observation` giữ từng revision USGS/JMA đã chuẩn hóa và lineage về
+  Bronze; record lỗi nằm ở `reject_record` với reason code.
+- Deduplicate revision trong từng nguồn, sau đó lưu `source_link` và
+  `canonical_membership`; candidate mơ hồ không được auto-merge.
+- Định dạng Parquet, partition logic theo `event_year_utc`, `event_month_utc`
+  và `source_system`.
 
 ### Gold
 
-- Chứa dữ liệu đã sẵn sàng cho KPI và dashboard.
-- Được quản lý như bảng Iceberg; consumer chỉ đọc snapshot đã commit.
-- Thiết kế bảng vật lý chi tiết được trì hoãn cho đến khi có mẫu dữ liệu và truy vấn thực tế.
+- `event_current` có đúng một dòng hiện hành cho mỗi `canonical_event_id` và
+  `event_source_bridge` giữ provenance về observations.
+- `earthquake_event_current` là serving view cho natural earthquake trong ROI;
+  dimensions/bands và KPI dùng cùng logical contract với Power BI.
+- Gold được quản lý bằng Iceberg; consumer chỉ đọc snapshot đã commit và verify.
+- DDL vật lý, partition transform và merge implementation thuộc task Gold,
+  không được đổi logical grain/null/KPI đã chốt.
 
 ## 6. Biên giao tiếp
 
@@ -151,6 +158,8 @@ và warehouse dùng chung với MinIO.
 ROI, range 1984–2023 của JMA, USGS daily window và chính sách overlap.
 [Bronze storage contract](./specs/BRONZE_STORAGE_CONTRACT.md) chốt object path,
 manifest, checksum, trạng thái `BronzeReady` và retry/quarantine.
+[Silver/Gold logical data model](./specs/SILVER_GOLD_DATA_MODEL.md) chốt dataset,
+field name/type/null policy, lineage, canonical event, bands và KPI.
 
 ## 7. Tính nhất quán và công bố dữ liệu
 
@@ -269,4 +278,4 @@ log; xem [Foundation smoke contract](./specs/FOUNDATION_SMOKE.md).
 - Giới hạn kích thước/chia nhỏ từng USGS API request.
 - Chiến lược merge Gold cho backfill và late update.
 - Driver ODBC được dùng trên máy Power BI.
-- Tên bảng fact/dimension Gold cuối cùng và mapping vào semantic model.
+- Catalog/schema/table vật lý và mapping deployment của logical datasets.
