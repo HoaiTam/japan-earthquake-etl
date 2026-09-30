@@ -50,6 +50,7 @@ docs/specs/ICEBERG_TRINO.md
 docs/specs/REPOSITORY_LAYOUT.md
 docs/specs/SPARK_STANDALONE.md
 docs/specs/SOURCE_COVERAGE.md
+docs/specs/BRONZE_STORAGE_CONTRACT.md
 scripts/README.md
 scripts/check-airflow.sh
 scripts/check-compose.sh
@@ -59,6 +60,7 @@ scripts/check-minio.sh
 scripts/check-query.sh
 scripts/check-spark.sh
 scripts/check-source-coverage.sh
+scripts/check-bronze-contract.sh
 scripts/smoke-airflow.sh
 scripts/smoke-foundation.sh
 scripts/smoke-minio.sh

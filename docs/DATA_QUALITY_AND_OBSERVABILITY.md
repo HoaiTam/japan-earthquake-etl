@@ -12,7 +12,11 @@
 - Đối soát được số lượng bản ghi qua từng tầng.
 - Cung cấp đủ context để retry hoặc backfill đúng phạm vi.
 
-Project không xây quarantine dataset riêng ở phiên bản đầu tiên. Bản ghi Silver không hợp lệ bị loại khỏi output, nhưng số lượng và nhóm lý do phải được ghi trong metric/log. Bronze nguyên bản vẫn là bằng chứng để điều tra và xử lý lại.
+Project không xây business quarantine dataset riêng ở phiên bản đầu tiên. Payload
+Bronze lỗi có thể được giữ ở `bronze/_quarantine` như failure evidence, nhưng
+không được resolver chọn làm input. Bản ghi Silver không hợp lệ bị loại khỏi
+output, nhưng số lượng và nhóm lý do phải được ghi trong metric/log. Bronze
+nguyên bản vẫn là bằng chứng để điều tra và xử lý lại.
 
 ## 2. Phân loại kiểm tra
 
@@ -33,10 +37,11 @@ Project không xây quarantine dataset riêng ở phiên bản đầu tiên. B�
 | B-01 | HTTP response thành công và body không bị cắt | Blocker | Retry/fail extract |
 | B-02 | Body parse được thành JSON/GeoJSON | Blocker | Không ghi nhận Bronze ready |
 | B-03 | Có cấu trúc `features` dạng array | Blocker | Fail và điều tra contract |
-| B-04 | Metadata có run ID, fetch time, window và feature count | Blocker | Fail Bronze task |
+| B-04 | Manifest có `run_id`, source URL, retrieval time, window và feature count/count estimate | Blocker | Fail Bronze task |
 | B-05 | Object đọc lại được sau upload | Blocker | Retry upload |
 | B-06 | Checksum đã lưu khớp nội dung | Blocker | Fail/ghi lại object mới |
 | B-07 | Feature count bằng độ dài `features` | Blocker | Fail contract check |
+| B-08 | Manifest trỏ đúng raw object và có `bronze_status=BronzeReady` | Blocker | Không đưa vào Silver |
 
 Response có `features = []` có thể hợp lệ. Khi đó phải log `empty_valid_response=true`; không được suy luận đó là lỗi chỉ vì count bằng 0.
 

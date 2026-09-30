@@ -35,6 +35,9 @@ Hiện có:
 - `check-source-coverage.sh`: kiểm tra các quyết định bắt buộc của source
   coverage contract `CON-01`, range JMA 40 năm, ROI, USGS seed/overlap và link
   theo dõi task; không gọi mạng hoặc tải dữ liệu.
+- `check-bronze-contract.sh`: kiểm tra layout object, manifest, lifecycle
+  `BronzeReady`/`Rejected` và retry rule của `CON-02`; không gọi mạng hoặc
+  truy cập MinIO.
 
 Full checklist và hướng xử lý lỗi:
 [Foundation environment smoke contract](../docs/specs/FOUNDATION_SMOKE.md).

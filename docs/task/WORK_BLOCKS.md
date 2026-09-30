@@ -42,7 +42,8 @@ Làm phần gì:
 Có những gì:
 
 - Source coverage và source priority.
-- Object naming, checksum, catalog release và run context.
+- [Bronze storage contract](../specs/BRONZE_STORAGE_CONTRACT.md), object naming,
+  checksum, catalog release và run context.
 - Field mapping USGS/JMA, UTC/JST, null policy, key và data dictionary.
 - Fixture success, empty, invalid, duplicate và revised record.
 
@@ -66,7 +67,8 @@ Có những gì:
 
 - Config validation và request builder.
 - Java HTTP client, mock tests và response validator.
-- Raw object theo `ingest_date/run_id`, `metadata.json` và run summary.
+- Raw object theo `ingest_date/run_id/attempt`, manifest `BronzeReady` và run
+  summary; payload lỗi đi vào `_quarantine` và không được Silver chọn.
 
 Dùng để làm gì:
 

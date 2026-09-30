@@ -8,7 +8,7 @@ Backlog được lưu hoàn toàn bằng Markdown. Mỗi task có một file đ�
 - Thời gian thực hiện là 6 tuần.
 - Capacity tham khảo là 15 giờ/người/tuần, tương đương 270 giờ toàn nhóm.
 - Assignee, reviewer, trạng thái và evidence được cập nhật trực tiếp trong file của từng task.
-- Mỗi task chỉ có một assignee chính; reviewer phải là người khác assignee.
+- Mỗi task chỉ có một assignee chính; nếu có reviewer thì reviewer phải là người khác assignee.
 - Task `Core` cần hoàn thành để đạt tiêu chí phiên bản đầu tiên.
 - Task `Stretch` chỉ thực hiện sau khi các dependency Core ổn định.
 - Có thiết kế logical data model cho Bronze, Silver, Gold, Iceberg và Trino; không xây thêm business database quan hệ hoặc DDL vật lý ngoài phạm vi lakehouse.
@@ -55,7 +55,7 @@ Chi tiết “làm phần gì”, “có những gì” và “dùng để làm 
 4. Mỗi người tự cộng `effort_hours` của các task đã nhận và giữ tải theo tuần trong khoảng cân bằng.
 5. Không để một người giữ toàn bộ kiến thức của một chuỗi quan trọng. Người review nên thuộc stream khác khi có thể.
 6. Khi bắt đầu, cập nhật metadata và mục `Theo dõi` trong file task sang `In Progress`, điền assignee và đồng bộ dòng tương ứng trong chỉ mục.
-7. Khi mở PR chuyển sang `Review`; chỉ dùng `Done` sau khi đạt tiêu chí hoàn thành và có evidence.
+7. Dùng `Review` khi công việc còn chờ kiểm tra để hoàn tất. Khi deliverable, tiêu chí hoàn thành, test/check, evidence và tài liệu liên quan đã đạt, tự động chuyển sang `Done` trước khi bàn giao; việc chưa có reviewer không chặn trạng thái này.
 8. Ghi link PR, commit, ảnh hoặc log xác nhận vào mục `Evidence / PR` của file task.
 
 ## 5. Definition of Done chung
@@ -67,7 +67,7 @@ Một task chỉ được xem là `Done` khi:
 - Test liên quan đạt; nếu chưa có test tự động phải có bằng chứng thủ công.
 - Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
 - Tài liệu/contract được cập nhật nếu hành vi, cấu hình hoặc schema logic thay đổi.
-- Có reviewer khác assignee xác nhận đối với task P0/P1.
+- Reviewer khác assignee được khuyến nghị đối với task P0/P1 nhưng không phải điều kiện chặn `Done`.
 
 ## 6. Cấu trúc của mỗi file task
 
@@ -81,7 +81,7 @@ Một task chỉ được xem là `Done` khi:
 | `Hard dependency` | Task phải hoàn tất trước; mỗi mã có link đến file nguồn |
 | `effort_hours` | Ước lượng giờ công của assignee chính |
 | `Assignee` | Người chịu trách nhiệm chính, do nhóm pick |
-| `Reviewer` | Người kiểm tra, khác assignee |
+| `Reviewer` | Người kiểm tra, khác assignee; có thể để `unassigned` và không chặn `Done` |
 | `Status` | `Backlog`, `Ready`, `In Progress`, `Review`, `Blocked`, `Done` |
 | `Evidence / PR` | Link hoặc mô tả bằng chứng hoàn thành |
 | `Mục đích` | Task tạo giá trị gì cho pipeline |

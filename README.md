@@ -17,6 +17,14 @@ contract không cần mạng bằng:
 ./scripts/check-source-coverage.sh
 ```
 
+Bronze object path, manifest, checksum, retry và trạng thái `BronzeReady` được
+chốt tại [CON-02 Bronze storage contract](./docs/specs/BRONZE_STORAGE_CONTRACT.md).
+Kiểm tra contract không cần mạng bằng:
+
+```bash
+./scripts/check-bronze-contract.sh
+```
+
 ## Chuẩn bị trên máy local
 
 Static scaffold check chỉ cần Git và shell POSIX. Spark build local cần JDK 17,
