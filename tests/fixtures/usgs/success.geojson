@@ -1,0 +1,50 @@
+{
+  "type": "FeatureCollection",
+  "metadata": {
+    "generated": 1693539300000,
+    "url": "https://example.invalid/usgs/fixtures/success",
+    "title": "Synthetic USGS success fixture",
+    "status": 200,
+    "api": "1.14.1",
+    "count": 1
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "mag": 5.2,
+        "place": "Synthetic Tokyo Bay",
+        "time": 1693539296780,
+        "updated": 1693542896780,
+        "tz": null,
+        "url": "https://example.invalid/usgs/event/fx-usgs-success-001",
+        "detail": "https://example.invalid/usgs/event/fx-usgs-success-001.geojson",
+        "felt": 12,
+        "cdi": 3.1,
+        "mmi": 3.0,
+        "alert": "green",
+        "status": "reviewed",
+        "tsunami": 0,
+        "sig": 416,
+        "net": "fx",
+        "code": "success001",
+        "ids": ",fx-success001,",
+        "sources": ",fx,",
+        "types": ",origin,phase-data,",
+        "nst": 42,
+        "dmin": 0.2,
+        "rms": 0.5,
+        "gap": 55,
+        "magType": "mww",
+        "type": "earthquake",
+        "title": "M 5.2 - Synthetic Tokyo Bay"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [139.76, 35.67, 10.0]
+      },
+      "id": "fx-usgs-success-001"
+    }
+  ],
+  "bbox": [139.76, 35.67, 10.0, 139.76, 35.67, 10.0]
+}

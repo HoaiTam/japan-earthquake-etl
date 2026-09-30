@@ -1,0 +1,51 @@
+{
+  "type": "FeatureCollection",
+  "metadata": {
+    "generated": 1693539300000,
+    "url": "https://example.invalid/usgs/fixtures/duplicate",
+    "title": "Synthetic USGS duplicate fixture",
+    "status": 200,
+    "api": "1.14.1",
+    "count": 2
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "mag": 4.6,
+        "place": "Synthetic duplicate event",
+        "time": 1693539296780,
+        "updated": 1693542896780,
+        "status": "reviewed",
+        "tsunami": 0,
+        "sig": 326,
+        "magType": "mb",
+        "type": "earthquake"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [142.1, 38.2, 35.0]
+      },
+      "id": "fx-usgs-duplicate-001"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "mag": 4.6,
+        "place": "Synthetic duplicate event",
+        "time": 1693539296780,
+        "updated": 1693542896780,
+        "status": "reviewed",
+        "tsunami": 0,
+        "sig": 326,
+        "magType": "mb",
+        "type": "earthquake"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [142.1, 38.2, 35.0]
+      },
+      "id": "fx-usgs-duplicate-001"
+    }
+  ]
+}

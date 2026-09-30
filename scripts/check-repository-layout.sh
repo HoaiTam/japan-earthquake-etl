@@ -24,6 +24,7 @@ trino/catalog
 
 required_files="
 .dockerignore
+.gitattributes
 .env.example
 README.md
 .mvn/wrapper/maven-wrapper.properties
@@ -63,6 +64,8 @@ scripts/check-spark.sh
 scripts/check-source-coverage.sh
 scripts/check-bronze-contract.sh
 scripts/check-data-model-contract.sh
+scripts/build-shared-fixtures.sh
+scripts/check-shared-fixtures.sh
 scripts/smoke-airflow.sh
 scripts/smoke-foundation.sh
 scripts/smoke-minio.sh
@@ -77,6 +80,9 @@ spark/src/main/java/vn/edu/uit/ie212/earthquake/spark/HelloWorldJob.java
 spark/src/test/java/vn/edu/uit/ie212/earthquake/spark/HelloWorldJobTest.java
 tests/README.md
 tests/fixtures/README.md
+tests/fixtures/TEST_MATRIX.md
+tests/fixtures/cases.json
+tests/fixtures/SHA256SUMS
 tests/integration/README.md
 trino/README.md
 trino/catalog/README.md

@@ -1,0 +1,51 @@
+{
+  "type": "FeatureCollection",
+  "metadata": {
+    "generated": 1704067201000,
+    "url": "https://example.invalid/usgs/fixtures/timezone-boundary",
+    "title": "Synthetic USGS half-open boundary fixture",
+    "status": 200,
+    "api": "1.14.1",
+    "count": 2
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "mag": 3.0,
+        "place": "ROI minimum and one millisecond before window end",
+        "time": 1704067199999,
+        "updated": 1704067205000,
+        "status": "reviewed",
+        "tsunami": 0,
+        "sig": 138,
+        "magType": "mb",
+        "type": "earthquake"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [120.0, 20.0, 0.0]
+      },
+      "id": "fx-usgs-before-window-end"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "mag": 3.1,
+        "place": "Exactly at exclusive window end",
+        "time": 1704067200000,
+        "updated": 1704067205000,
+        "status": "reviewed",
+        "tsunami": 0,
+        "sig": 148,
+        "magType": "mb",
+        "type": "earthquake"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [155.0, 50.0, 70.0]
+      },
+      "id": "fx-usgs-at-window-end"
+    }
+  ]
+}

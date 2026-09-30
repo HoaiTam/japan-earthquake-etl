@@ -22,6 +22,7 @@ runtime smoke.
 
 ```text
 project-root/
+├── .gitattributes
 ├── README.md
 ├── AGENTS.md
 ├── .env.example
@@ -67,7 +68,9 @@ project-root/
 │   ├── check-minio.sh
 │   ├── check-query.sh
 │   ├── check-repository-layout.sh
+│   ├── check-shared-fixtures.sh
 │   ├── check-spark.sh
+│   ├── build-shared-fixtures.sh
 │   ├── smoke-airflow.sh
 │   ├── smoke-foundation.sh
 │   ├── smoke-minio.sh
@@ -84,7 +87,12 @@ project-root/
 ├── tests/
 │   ├── README.md
 │   ├── fixtures/
-│   │   └── README.md
+│   │   ├── README.md
+│   │   ├── TEST_MATRIX.md
+│   │   ├── cases.json
+│   │   ├── SHA256SUMS
+│   │   ├── usgs/
+│   │   └── jma/
 │   └── integration/
 │       └── README.md
 └── trino/
@@ -107,7 +115,7 @@ không tạo Maven module cạnh tranh.
 | `spark/` | Maven module, Java source và unit fixture | JAR/`target/` đã build |
 | `trino/catalog/` | Catalog properties không chứa secret | Password hoặc access key thật |
 | `compose/` | Script init/healthcheck và asset cho service | `compose.yaml`; file này đặt tại root |
-| `tests/fixtures/` | Fixture nhỏ dùng chung, có nguồn và mục đích rõ | Data dump hoặc dữ liệu runtime |
+| `tests/fixtures/` | Fixture synthetic dùng chung, expected matrix và checksum theo `CON-04` | Data dump hoặc dữ liệu runtime |
 | `tests/integration/` | Test xuyên service/module | Unit test riêng của Spark/Airflow |
 | `scripts/` | Script lặp lại được cho dev/CI/operations | Credential hoặc thao tác xóa rộng mặc định |
 
@@ -150,6 +158,7 @@ Chạy scaffold, Maven và Spark contract check:
 ```bash
 ./scripts/check-repository-layout.sh
 ./scripts/check-spark.sh
+./scripts/check-shared-fixtures.sh
 ```
 
 Script layout thất bại nếu thiếu module, Maven source/test layout, tài liệu hoặc
@@ -169,3 +178,4 @@ kiểm chứng chúng trong cùng một project mà không xóa service/volume.
 | `SPK-01` | Đã thêm Maven Wrapper, POM, Java package, Hello World, standalone cluster và smoke test |
 | `QRY-01` | Đã thêm Trino/Iceberg REST Catalog config, catalog state volume và query smoke |
 | `FND-01` | Đã thêm full-stack health, init, network, volume/mount và startup-log checklist |
+| `CON-04` | Đã thêm fixture USGS/JMA offline, expected matrix, deterministic ZIP và checksum validator |

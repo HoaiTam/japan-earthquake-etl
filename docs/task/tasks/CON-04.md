@@ -1,6 +1,6 @@
 ---
 task_id: "CON-04"
-status: "Ready"
+status: "Done"
 week: 2
 block: "A - Hợp đồng dữ liệu"
 workstream: "Fixtures"
@@ -26,17 +26,17 @@ Tạo mẫu USGS GeoJSON và JMA fixed-width/ZIP nhỏ cho success, empty, inval
 
 - **Đầu vào và contract:** Không có hard dependency.
 - **Phần triển khai:** Tạo mẫu USGS GeoJSON và JMA fixed-width/ZIP nhỏ cho success, empty, invalid, duplicate, revised event, timezone và checksum mismatch.
-- **Kết quả bàn giao:** Fixture không phụ thuộc mạng và test matrix theo từng contract.
+- **Kết quả bàn giao:** [Shared source fixtures](../../../tests/fixtures/README.md), [`cases.json`](../../../tests/fixtures/cases.json) và [test matrix](../../../tests/fixtures/TEST_MATRIX.md) không phụ thuộc mạng.
 - **Kiểm thử và evidence:** Kiểm tra từng acceptance criterion, lưu lệnh chạy/log/report có thể lặp lại và cập nhật mục Evidence bên dưới.
 
 ## Deliverable
 
-- Fixture không phụ thuộc mạng và test matrix theo từng contract.
+- [Fixture USGS/JMA và test matrix](../../../tests/fixtures/README.md) không phụ thuộc mạng, có expected count/reason code theo contract.
 
 ## Tiêu chí hoàn thành
 
-- [ ] Fixture nhỏ, xác định được, không chứa secret.
-- [ ] mỗi case ghi rõ input, expected output và reason code.
+- [x] Fixture nhỏ, xác định được, không chứa secret.
+- [x] Mỗi case ghi rõ input, expected output và reason code.
 
 ## Hard dependency
 
@@ -61,23 +61,29 @@ Có thể bắt đầu ngay. Chốt output contract hoặc fixture nhỏ trướ
 
 ## Theo dõi
 
-- **Trạng thái:** Ready
+- **Trạng thái:** Done
 - **Assignee:** Chưa ghi lại
 - **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Evidence / PR:** [Shared fixture checker](../../../scripts/check-shared-fixtures.sh) đạt 17 case; ZIP/checksum tái tạo ổn định; `check-source-coverage.sh`, `check-bronze-contract.sh`, `check-data-model-contract.sh`, `check-repository-layout.sh`, local Markdown link check và `git diff --check` đều đạt.
 - **Kỹ năng phù hợp:** Test design, JSON, fixed-width
 
 ## Checklist bàn giao
 
-- [ ] Deliverable đã có trong repository hoặc môi trường demo.
-- [ ] Acceptance criteria đã được kiểm tra.
-- [ ] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
-- [ ] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
-- [ ] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
-- [ ] P0/P1 có reviewer khác assignee xác nhận.
+- [x] Deliverable đã có trong repository hoặc môi trường demo.
+- [x] Acceptance criteria đã được kiểm tra.
+- [x] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
+- [x] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
+- [x] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
+- [ ] Reviewer độc lập đã xác nhận (khuyến nghị, không chặn `Done`).
 
 ## Tài liệu liên quan
 
+- [Shared source fixtures](../../../tests/fixtures/README.md)
+- [Machine-readable test cases](../../../tests/fixtures/cases.json)
+- [Human-readable test matrix](../../../tests/fixtures/TEST_MATRIX.md)
+- [Source coverage contract](../../specs/SOURCE_COVERAGE.md)
+- [Bronze storage contract](../../specs/BRONZE_STORAGE_CONTRACT.md)
+- [Silver/Gold logical model](../../specs/SILVER_GOLD_DATA_MODEL.md)
 - [Kế hoạch 6 tuần](../README.md)
 - [Các khối công việc](../WORK_BLOCKS.md)
 - [Baseline MVP, KPI và Definition of Done](../../specs/MVP_SCOPE_KPI_AND_DOD.md)

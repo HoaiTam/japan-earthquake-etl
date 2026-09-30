@@ -1,0 +1,32 @@
+{
+  "type": "FeatureCollection",
+  "metadata": {
+    "generated": 1692061210000,
+    "url": "https://example.invalid/usgs/fixtures/ambiguous",
+    "title": "Synthetic USGS ambiguous source-link fixture",
+    "status": 200,
+    "api": "1.14.1",
+    "count": 1
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "mag": 5.1,
+        "place": "Between two synthetic JMA candidates",
+        "time": 1692061202000,
+        "updated": 1692064800000,
+        "status": "reviewed",
+        "tsunami": 0,
+        "sig": 400,
+        "magType": "mww",
+        "type": "earthquake"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [139.751, 35.6675, 10.5]
+      },
+      "id": "fx-usgs-ambiguous-001"
+    }
+  ]
+}
