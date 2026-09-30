@@ -1,0 +1,70 @@
+{
+  "type": "FeatureCollection",
+  "metadata": {
+    "generated": 1693539300000,
+    "url": "https://example.invalid/usgs/fixtures/invalid-fields",
+    "title": "Synthetic USGS invalid field fixture",
+    "status": 200,
+    "api": "1.14.1",
+    "count": 3
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "mag": 4.1,
+        "place": "Missing source key",
+        "time": 1693539296780,
+        "updated": 1693542896780,
+        "status": "reviewed",
+        "tsunami": 0,
+        "sig": 259,
+        "magType": "mb",
+        "type": "earthquake"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [139.7, 35.6, 20.0]
+      },
+      "id": ""
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "mag": 3.8,
+        "place": "Invalid event time",
+        "time": "not-an-epoch-millis",
+        "updated": 1693542896780,
+        "status": "automatic",
+        "tsunami": 0,
+        "sig": 222,
+        "magType": "mb",
+        "type": "earthquake"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [140.0, 36.0, 30.0]
+      },
+      "id": "fx-usgs-invalid-time"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "mag": 4.0,
+        "place": "Invalid coordinates and depth",
+        "time": 1693539296780,
+        "updated": 1693542896780,
+        "status": "reviewed",
+        "tsunami": 0,
+        "sig": 246,
+        "magType": "mb",
+        "type": "earthquake"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [181.0, 91.0, "not-a-number"]
+      },
+      "id": "fx-usgs-invalid-coordinate"
+    }
+  ]
+}

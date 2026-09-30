@@ -46,7 +46,9 @@ Có những gì:
   checksum, catalog release và run context.
 - [Silver/Gold logical data model](../specs/SILVER_GOLD_DATA_MODEL.md), field
   mapping USGS/JMA, UTC/JST, null policy, key và data dictionary.
-- Fixture success, empty, invalid, duplicate và revised record.
+- [Fixture và test matrix dùng chung](../../tests/fixtures/README.md) cho
+  success, empty, invalid, duplicate, revised, timezone, checksum và ambiguous
+  source link.
 
 Dùng để làm gì:
 

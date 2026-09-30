@@ -1,0 +1,8 @@
+scripts/build-shared-fixtures.sh text eol=lf
+scripts/check-shared-fixtures.sh text eol=lf
+tests/fixtures/**/*.geojson text eol=lf
+tests/fixtures/**/*.hyp text eol=lf
+tests/fixtures/**/*.json text eol=lf
+tests/fixtures/**/*.sha256 text eol=lf
+tests/fixtures/SHA256SUMS text eol=lf
+tests/fixtures/**/*.zip binary

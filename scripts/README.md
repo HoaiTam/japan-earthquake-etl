@@ -40,6 +40,10 @@ Hiện có:
   truy cập MinIO.
 - `check-data-model-contract.sh`: kiểm tra dataset, field, lineage, null policy,
   bands và KPI bắt buộc của logical model Silver/Gold `CON-03`.
+- `build-shared-fixtures.sh`: tái tạo JMA fixed-width/ZIP và checksum xác định
+  của `CON-04` sau khi maintainer chủ động đổi fixture.
+- `check-shared-fixtures.sh`: kiểm tra coverage test matrix, GeoJSON, JMA record
+  96 byte, ZIP content, checksum và secret hygiene của fixture `CON-04`.
 
 Full checklist và hướng xử lý lỗi:
 [Foundation environment smoke contract](../docs/specs/FOUNDATION_SMOKE.md).

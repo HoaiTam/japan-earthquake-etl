@@ -16,6 +16,7 @@ Thư mục này là nguồn tài liệu chính thức cho dự án **Nền tản
 | Hiểu phạm vi USGS/JMA, timezone và overlap | [Source coverage contract](./specs/SOURCE_COVERAGE.md) |
 | Hiểu Bronze object, manifest, checksum và retry | [Bronze storage contract](./specs/BRONZE_STORAGE_CONTRACT.md) |
 | Hiểu schema Silver/Gold, null policy, bands và KPI | [Silver/Gold logical data model](./specs/SILVER_GOLD_DATA_MODEL.md) |
+| Dùng fixture USGS/JMA và expected test matrix | [Shared source fixtures](../tests/fixtures/README.md) |
 | Hiểu cấu trúc module và mount path | [Repository layout](./specs/REPOSITORY_LAYOUT.md) |
 | Thiết lập biến môi trường và secret | [Configuration contract](./specs/CONFIGURATION_AND_SECRETS.md) |
 | Hiểu Compose network, volumes và baseline | [Compose foundation](./specs/COMPOSE_FOUNDATION.md) |

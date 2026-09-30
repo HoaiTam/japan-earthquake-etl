@@ -33,6 +33,14 @@ Kiểm tra contract không cần mạng bằng:
 ./scripts/check-data-model-contract.sh
 ```
 
+Fixture USGS/JMA dùng chung cho parser, quality, dedup và Gold nằm tại
+[`tests/fixtures`](./tests/fixtures/README.md). Bộ fixture là dữ liệu synthetic,
+không phụ thuộc mạng và có ma trận expected output/reason code. Kiểm tra bằng:
+
+```bash
+./scripts/check-shared-fixtures.sh
+```
+
 ## Chuẩn bị trên máy local
 
 Static scaffold check chỉ cần Git và shell POSIX. Spark build local cần JDK 17,
