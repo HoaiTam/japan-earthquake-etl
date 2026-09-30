@@ -44,7 +44,8 @@ Có những gì:
 - Source coverage và source priority.
 - [Bronze storage contract](../specs/BRONZE_STORAGE_CONTRACT.md), object naming,
   checksum, catalog release và run context.
-- Field mapping USGS/JMA, UTC/JST, null policy, key và data dictionary.
+- [Silver/Gold logical data model](../specs/SILVER_GOLD_DATA_MODEL.md), field
+  mapping USGS/JMA, UTC/JST, null policy, key và data dictionary.
 - Fixture success, empty, invalid, duplicate và revised record.
 
 Dùng để làm gì:

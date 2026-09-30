@@ -119,14 +119,14 @@ Giải thích được chênh lệch giữa source, valid, rejected, duplicate v
 3. Chạy một query group theo tháng/khu vực.
 4. Chỉ ra Trino đang đọc current Iceberg snapshot.
 
-Query mẫu cần thay tên placeholder bằng tên thật:
+Query mẫu chỉ còn placeholder catalog; logical schema/table theo `CON-03`:
 
 ```sql
 SELECT
     COUNT(DISTINCT canonical_event_id) AS total_events,
     AVG(magnitude) AS avg_magnitude,
     MAX(magnitude) AS max_magnitude
-FROM <catalog>.<schema>.<earthquake_fact_or_view>;
+FROM <catalog>.gold.earthquake_event_current;
 ```
 
 ### Thành công khi

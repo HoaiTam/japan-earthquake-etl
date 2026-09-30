@@ -18,6 +18,9 @@ không được resolver chọn làm input. Bản ghi Silver không hợp lệ b
 output, nhưng số lượng và nhóm lý do phải được ghi trong metric/log. Bronze
 nguyên bản vẫn là bằng chứng để điều tra và xử lý lại.
 
+Tên trường, type, null policy, reject schema và Gold grain tuân theo
+[Silver/Gold logical data model](./specs/SILVER_GOLD_DATA_MODEL.md).
+
 ## 2. Phân loại kiểm tra
 
 | Loại | Câu hỏi |
@@ -51,16 +54,17 @@ Response có `features = []` có thể hợp lệ. Khi đó phải log `empty_va
 
 | ID | Trường | Quy tắc | Khi vi phạm |
 |---|---|---|---|
-| S-01 | `id` | Khác null/rỗng | Loại record |
-| S-02 | `time` | Parse được thành timestamp UTC | Loại record |
-| S-03 | `updated` | Parse được; không trước một mốc vô lý đã cấu hình | Loại record |
+| S-01 | `source_record_key` | Khác null/rỗng, ổn định trong nguồn | Loại record |
+| S-02 | `event_time_utc` | Parse được thành timestamp UTC | Loại record |
+| S-03 | `source_updated_at_utc` | USGS bắt buộc parse được; JMA được null | Loại USGS record sai |
 | S-04 | `latitude` | Số trong `[-90, 90]` | Loại record |
 | S-05 | `longitude` | Số trong `[-180, 180]` | Loại record |
-| S-06 | `depth_km` | Parse được thành số | Loại record và ghi reason |
-| S-07 | `magnitude` | Null hoặc parse được thành số; chính sách null phải nhất quán | Giữ/loại theo cấu hình đã chốt |
-| S-08 | `tsunami_flag` | Chuẩn hóa về boolean/0–1 | Loại nếu giá trị nguồn không nhận diện được |
-| S-09 | Vùng nghiên cứu | Nằm trong ranh giới truy vấn đã cấu hình | Loại nếu ngoài phạm vi |
+| S-06 | `depth_km` | Null hoặc số hữu hạn; negative được giữ và gắn warning | Loại nếu sai kiểu/non-finite |
+| S-07 | `magnitude` | Null hoặc số hữu hạn; null không đổi thành `0` | Giữ null; loại nếu sai kiểu/non-finite |
+| S-08 | `tsunami_flag` | Null hoặc boolean map từ source value nhận diện được | Loại nếu source value không nhận diện được |
+| S-09 | `is_in_study_area` | Tính theo envelope `CON-01` | Giữ observation ngoài ROI; loại khỏi serving view mặc định |
 | S-10 | `event_time_jst` | Quy đổi đúng từ UTC, không parse lại chuỗi local | Fail transform/test |
+| S-11 | Lineage | Có manifest ID, raw URI/SHA, locator, run ID và parser version | Loại record khỏi publish |
 
 Các ngưỡng miền nghiệp vụ hẹp hơn (ví dụ magnitude/depth tối đa hợp lý) cần được xác nhận trên mẫu dữ liệu trước khi dùng làm blocker. Trước đó có thể log warning để tránh loại nhầm sự kiện hiếm.
 
@@ -68,7 +72,7 @@ Các ngưỡng miền nghiệp vụ hẹp hơn (ví dụ magnitude/depth tối �
 
 | ID | Quy tắc | Mức |
 |---|---|---|
-| SD-01 | Không còn duplicate theo `(source_system, source_record_key, selected_release)` sau source-local dedup | Blocker |
+| SD-01 | Mỗi `(source_system, source_record_key)` có đúng một `is_current_source_revision=true` sau source-local dedup | Blocker |
 | SD-02 | USGS chọn `updated` mới nhất; JMA chọn catalog release hợp lệ mới nhất theo tie-break xác định | Blocker |
 | SD-03 | `valid_count + rejected_count = parsed_count` | Blocker |
 | SD-04 | `parsed_count <= source_feature_count` chỉ khi parser bỏ qua object không phải feature; mọi chênh lệch phải giải thích | Blocker |
@@ -202,8 +206,6 @@ Kết thúc DAG, Airflow log một bảng tóm tắt:
 
 ## 12. Điều chưa chốt
 
-- Schema versioning mechanism cụ thể.
 - Threshold volume/freshness sau khi có baseline.
-- Chính sách cho `magnitude = null` và depth âm nếu nguồn có trường hợp đặc biệt.
 - Công cụ metrics ngoài Airflow log (Prometheus/Grafana chỉ là mở rộng).
 - Retention của Bronze, log và snapshot Iceberg.

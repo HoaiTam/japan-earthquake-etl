@@ -25,6 +25,14 @@ Kiểm tra contract không cần mạng bằng:
 ./scripts/check-bronze-contract.sh
 ```
 
+Tên trường, kiểu dữ liệu, null policy, canonical event, magnitude/depth bands
+và KPI Silver/Gold được chốt tại [CON-03 logical data model](./docs/specs/SILVER_GOLD_DATA_MODEL.md).
+Kiểm tra contract không cần mạng bằng:
+
+```bash
+./scripts/check-data-model-contract.sh
+```
+
 ## Chuẩn bị trên máy local
 
 Static scaffold check chỉ cần Git và shell POSIX. Spark build local cần JDK 17,

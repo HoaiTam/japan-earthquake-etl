@@ -143,7 +143,7 @@ Các mục dưới đây không làm thay đổi phạm vi MVP. Owner task phả
 | Ma trận phiên bản Spark–Iceberg–Trino và Catalog | `SPK-01`, `QRY-01` | Gold/serving |
 | Phạm vi nguồn, overlap và source priority | `CON-01` | USGS/JMA/Silver/BI |
 | Bronze object layout, manifest và checksum | `CON-02` | USGS/JMA/Silver |
-| Silver/Gold schema, null policy, lineage và KPI | `CON-03` | Parser/Gold/Power BI |
+| [Silver/Gold schema, null policy, lineage và KPI](./SILVER_GOLD_DATA_MODEL.md) | `CON-03` | Parser/Gold/Power BI |
 | Fixture và test matrix dùng chung | `CON-04` | Parser/quality/Gold/BI |
 | Bounding box, daily window và request runtime | `USG-01` | USGS ingest/backfill |
 | JMA archive inventory, release và format metadata | `JMA-01` | JMA ingest/parser |
