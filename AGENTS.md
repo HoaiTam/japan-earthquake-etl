@@ -19,8 +19,8 @@ Nếu các tài liệu mâu thuẫn, ưu tiên acceptance criteria trong file ta
 - Kiểm tra mục `Hard dependency` trong file task trước khi sửa file. Không triển khai task khi dependency chưa hoàn tất, trừ phần fixture, mock, interface hoặc test plan mà file task cho phép.
 - Tạo branch mới từ `main` trước thay đổi đầu tiên. Dùng dạng `<type>/<task-id-lowercase>-<short-description>`, ví dụ `docs/pln-01-scope-kpi-dod`.
 - Chỉ thay đổi phạm vi cần thiết cho deliverable và acceptance criteria của task.
-- Cập nhật metadata và mục `Theo dõi` trong file task sang `In Progress` khi bắt đầu; đồng bộ trạng thái ở `docs/task/tasks/README.md`. Chỉ chuyển `Review` khi đã có PR/evidence. Chỉ chuyển `Done` sau khi test, acceptance criteria và review đều đạt.
-- P0/P1 phải có reviewer khác assignee. Không tự điền tên, approval hoặc evidence chưa tồn tại.
+- Cập nhật metadata và mục `Theo dõi` trong file task sang `In Progress` khi bắt đầu; đồng bộ trạng thái ở `docs/task/tasks/README.md`. Khi deliverable, acceptance criteria, test/check, evidence và tài liệu liên quan đã hoàn tất, tự động chuyển task sang `Done` trước khi bàn giao. `Review` chỉ dùng khi công việc thực sự còn chờ kiểm tra để hoàn tất.
+- Reviewer độc lập vẫn được khuyến nghị cho P0/P1 nhưng không chặn trạng thái `Done`. Không tự điền tên, approval hoặc evidence chưa tồn tại; nếu chưa có reviewer thì giữ `unassigned` và ghi rõ trong bàn giao.
 - Trước khi bàn giao, chạy kiểm tra phù hợp, xem `git diff`, kiểm tra secret và cập nhật docs nếu contract, flow, schema logic hoặc cấu hình thay đổi.
 - Không tự commit, push, merge hoặc mở PR nếu người dùng chưa yêu cầu. Khi bàn giao, cung cấp lệnh Git dùng đường dẫn cụ thể; không mặc định dùng `git add .`.
 

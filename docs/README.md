@@ -14,6 +14,7 @@ Thư mục này là nguồn tài liệu chính thức cho dự án **Nền tản
 | Chốt yêu cầu và tiêu chí hoàn thành | [Đặc tả dự án](./specs/PROJECT_SPECIFICATION.md) |
 | Chốt MVP, KPI và Definition of Done | [Baseline PLN-01](./specs/MVP_SCOPE_KPI_AND_DOD.md) |
 | Hiểu phạm vi USGS/JMA, timezone và overlap | [Source coverage contract](./specs/SOURCE_COVERAGE.md) |
+| Hiểu Bronze object, manifest, checksum và retry | [Bronze storage contract](./specs/BRONZE_STORAGE_CONTRACT.md) |
 | Hiểu cấu trúc module và mount path | [Repository layout](./specs/REPOSITORY_LAYOUT.md) |
 | Thiết lập biến môi trường và secret | [Configuration contract](./specs/CONFIGURATION_AND_SECRETS.md) |
 | Hiểu Compose network, volumes và baseline | [Compose foundation](./specs/COMPOSE_FOUNDATION.md) |
@@ -48,6 +49,7 @@ docs/
 │   ├── PROJECT_SPECIFICATION.md
 │   ├── MVP_SCOPE_KPI_AND_DOD.md
 │   ├── SOURCE_COVERAGE.md
+│   ├── BRONZE_STORAGE_CONTRACT.md
 │   ├── CONFIGURATION_AND_SECRETS.md
 │   ├── COMPOSE_FOUNDATION.md
 │   ├── AIRFLOW_LOCAL.md

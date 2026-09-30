@@ -78,7 +78,7 @@ Hệ thống phải truy vấn USGS theo cửa sổ UTC hằng ngày và tải J
 
 ### FR-02 — Bảo toàn Bronze
 
-Hệ thống phải lưu phản hồi nguồn theo lần ingest và không sửa nội dung object đã ghi thành công.
+Hệ thống phải lưu phản hồi nguồn theo lần ingest và không sửa nội dung object đã ghi thành công. Object path, manifest, checksum và trạng thái `BronzeReady` phải tuân theo [Bronze storage contract](./BRONZE_STORAGE_CONTRACT.md).
 
 **Chấp nhận khi:** một lần chạy Silver có thể truy ngược về đúng input Bronze.
 

@@ -10,7 +10,7 @@
 
 ## 1. Mục đích
 
-Tài liệu này mô tả happy path của một lần chạy pipeline. Các trường hợp chạy bù, retry có chọn lọc và khôi phục sau lỗi được mô tả tại [Backfill và phục hồi](./BACKFILL_AND_RECOVERY.md). Phạm vi nguồn, ROI, timezone và overlap tuân theo [source coverage contract](../specs/SOURCE_COVERAGE.md).
+Tài liệu này mô tả happy path của một lần chạy pipeline. Các trường hợp chạy bù, retry có chọn lọc và khôi phục sau lỗi được mô tả tại [Backfill và phục hồi](./BACKFILL_AND_RECOVERY.md). Phạm vi nguồn, ROI, timezone và overlap tuân theo [source coverage contract](../specs/SOURCE_COVERAGE.md); layout raw và manifest tuân theo [Bronze storage contract](../specs/BRONZE_STORAGE_CONTRACT.md).
 
 ## 2. Cửa sổ dữ liệu
 
@@ -96,8 +96,8 @@ flowchart TD
 **Output dự kiến:**
 
 ```text
-bronze/usgs/ingest_date=YYYY-MM-DD/run_id=<run-id>/earthquakes.geojson
-bronze/usgs/ingest_date=YYYY-MM-DD/run_id=<run-id>/metadata.json
+bronze/usgs/ingest_date=YYYY-MM-DD/run_id=<run-id>/attempt=<nn>/response.geojson
+bronze/usgs/ingest_date=YYYY-MM-DD/run_id=<run-id>/attempt=<nn>/manifest.json
 ```
 
 Tên cuối cùng sẽ được xác nhận khi mã nguồn được tạo.
@@ -227,7 +227,7 @@ Việc không có sự kiện trong một cửa sổ nhỏ không mặc định 
 
 Một daily run chỉ hoàn tất khi:
 
-1. Bronze và ingest metadata tồn tại.
+1. Bronze raw object và manifest `BronzeReady` tồn tại, readback/checksum đã được xác nhận.
 2. Silver của các partition liên quan đã publish.
 3. Gold snapshot đã commit.
 4. Trino verification đạt.

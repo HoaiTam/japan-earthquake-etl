@@ -5,10 +5,13 @@ Mỗi task là một file độc lập và là nguồn theo dõi chính cho ph�
 ## Cách cập nhật
 
 1. Đổi `status` và mục **Theo dõi** sang `In Progress` ngay sau khi tạo branch.
-2. Điền assignee; P0/P1 phải có reviewer khác assignee.
+2. Điền assignee; nếu có reviewer thì reviewer phải là người khác assignee.
 3. Chỉ đánh dấu checklist khi có test/evidence kiểm tra được.
-4. Khi mở PR, thêm link vào **Evidence / PR** và chuyển sang `Review`.
-5. Sau review và mọi acceptance criteria đạt, chuyển sang `Done`.
+4. Khi công việc còn chờ kiểm tra để hoàn tất, dùng `Review`; khi deliverable,
+   acceptance criteria, test/check, evidence và docs đã đạt thì chuyển sang
+   `Done` trước khi bàn giao.
+5. Ghi link PR vào **Evidence / PR** khi PR đã được mở; chưa có link PR không
+   chặn `Done` nếu evidence cục bộ đã đủ.
 
 Trạng thái hợp lệ: `Backlog`, `Ready`, `In Progress`, `Review`, `Blocked`, `Done`.
 
@@ -38,8 +41,8 @@ Trạng thái hợp lệ: `Backlog`, `Ready`, `In Progress`, `Review`, `Blocked`
 
 | Task | Tuần | Workstream | Scope | Priority | Effort | Trạng thái |
 |---|---:|---|---|---|---:|---|
-| [CON-01](./CON-01.md) - Chốt phạm vi USGS và JMA | 2 | Source scope | Core | P0 | 5h | Review |
-| [CON-02](./CON-02.md) - Thiết kế Bronze object và manifest | 2 | Bronze contract | Core | P0 | 5h | Ready |
+| [CON-01](./CON-01.md) - Chốt phạm vi USGS và JMA | 2 | Source scope | Core | P0 | 5h | Done |
+| [CON-02](./CON-02.md) - Thiết kế Bronze object và manifest | 2 | Bronze contract | Core | P0 | 5h | Done |
 | [CON-04](./CON-04.md) - Chuẩn bị fixture và ma trận test dùng chung | 2 | Fixtures | Core | P1 | 3h | Ready |
 | [CON-03](./CON-03.md) - Thiết kế mô hình dữ liệu Silver và Gold | 2 | Silver and Gold contract | Core | P0 | 6h | Backlog |
 

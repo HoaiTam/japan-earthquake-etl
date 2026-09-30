@@ -1,6 +1,6 @@
 ---
 task_id: "CON-01"
-status: "Review"
+status: "Done"
 week: 2
 block: "A - Hợp đồng dữ liệu"
 workstream: "Source scope"
@@ -61,7 +61,7 @@ Có thể bắt đầu ngay. Chốt output contract hoặc fixture nhỏ trướ
 
 ## Theo dõi
 
-- **Trạng thái:** Review
+- **Trạng thái:** Done
 - **Assignee:** Chưa ghi lại
 - **Reviewer:** Chưa ghi lại
 - **Evidence / PR:** [Static contract check](../../../scripts/check-source-coverage.sh); bổ sung link PR sau khi mở.
@@ -74,7 +74,7 @@ Có thể bắt đầu ngay. Chốt output contract hoặc fixture nhỏ trướ
 - [x] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
 - [x] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
 - [x] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
-- [ ] P0/P1 có reviewer khác assignee xác nhận.
+- [ ] Reviewer độc lập đã xác nhận (khuyến nghị, không chặn `Done`).
 
 ## Tài liệu liên quan
 

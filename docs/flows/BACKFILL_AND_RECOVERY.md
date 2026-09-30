@@ -23,6 +23,11 @@
 6. Chỉ refresh Power BI sau khi run cuối cùng đạt trạng thái `Published`.
 7. Với thao tác có khả năng thay đổi nhiều partition, chạy dry-run/preview phạm vi trước khi submit.
 
+Bronze input phải được resolve bằng manifest `BronzeReady` và `raw_object_uri`
+theo [Bronze storage contract](../specs/BRONZE_STORAGE_CONTRACT.md). Retry
+Silver/Gold tái sử dụng đúng manifest đã verify; re-extract dùng `run_id`/
+`attempt` mới và không ghi đè raw object cũ.
+
 ## 3. Chọn loại xử lý
 
 ```mermaid

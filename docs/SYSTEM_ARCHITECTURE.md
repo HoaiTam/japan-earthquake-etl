@@ -149,6 +149,8 @@ và volume `minio_data`; xem
 và warehouse dùng chung với MinIO.
 [Source coverage contract](./specs/SOURCE_COVERAGE.md) chốt vai trò USGS/JMA,
 ROI, range 1984–2023 của JMA, USGS daily window và chính sách overlap.
+[Bronze storage contract](./specs/BRONZE_STORAGE_CONTRACT.md) chốt object path,
+manifest, checksum, trạng thái `BronzeReady` và retry/quarantine.
 
 ## 7. Tính nhất quán và công bố dữ liệu
 
