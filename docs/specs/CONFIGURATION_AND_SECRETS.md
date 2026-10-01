@@ -64,6 +64,10 @@ Checker chỉ báo tên key/file lỗi và không in giá trị cấu hình. Ch�
 | `USGS_MAX_WINDOW_DAYS` | Có | Không | Giới hạn kích thước một request, dùng để chia backfill |
 | `USGS_REQUEST_LIMIT` | Có | Không | Giới hạn số feature mỗi page (`1..20000`) |
 | `USGS_HTTP_TIMEOUT_MS` | Có | Không | Timeout HTTP dành cho client USGS |
+| `USGS_HTTP_MAX_ATTEMPTS` | Có | Không | Tổng số lần thử tối đa cho timeout/network/429/5xx |
+| `USGS_HTTP_INITIAL_BACKOFF_MS` | Có | Không | Exponential backoff ban đầu |
+| `USGS_HTTP_MAX_BACKOFF_MS` | Có | Không | Trần backoff và `Retry-After` dạng giây |
+| `USGS_MAX_RESPONSE_BYTES` | Có | Không | Guard kích thước body trước khi giữ trong memory |
 | `USGS_EVENT_TYPE` | Có | Không | Baseline phải là `earthquake` |
 | `STRONG_MAGNITUDE_THRESHOLD` | Có | Không | Ngưỡng KPI strong earthquake |
 | `DATA_BUCKET` | Có | Không | Bucket chung của data lake |

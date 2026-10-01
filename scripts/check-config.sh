@@ -31,6 +31,10 @@ USGS_SEED_START_UTC
 USGS_MAX_WINDOW_DAYS
 USGS_REQUEST_LIMIT
 USGS_HTTP_TIMEOUT_MS
+USGS_HTTP_MAX_ATTEMPTS
+USGS_HTTP_INITIAL_BACKOFF_MS
+USGS_HTTP_MAX_BACKOFF_MS
+USGS_MAX_RESPONSE_BYTES
 USGS_EVENT_TYPE
 STRONG_MAGNITUDE_THRESHOLD
 DATA_BUCKET
@@ -296,6 +300,21 @@ validate_semantics() {
     validate_integer "$file" USGS_MAX_WINDOW_DAYS 1 31
     validate_integer "$file" USGS_REQUEST_LIMIT 1 20000
     validate_integer "$file" USGS_HTTP_TIMEOUT_MS 1000 300000
+    validate_integer "$file" USGS_HTTP_MAX_ATTEMPTS 1 8
+    validate_integer "$file" USGS_HTTP_INITIAL_BACKOFF_MS 0 300000
+    validate_integer "$file" USGS_HTTP_MAX_BACKOFF_MS 0 300000
+    validate_integer "$file" USGS_MAX_RESPONSE_BYTES 1024 50000000
+
+    initial_backoff_ms=$(read_value "$file" USGS_HTTP_INITIAL_BACKOFF_MS)
+    max_backoff_ms=$(read_value "$file" USGS_HTTP_MAX_BACKOFF_MS)
+    case "$initial_backoff_ms:$max_backoff_ms" in
+        *[!0-9:]*|*:|:*) ;;
+        *)
+            if [ "$max_backoff_ms" -lt "$initial_backoff_ms" ]; then
+                report_error "USGS_HTTP_MAX_BACKOFF_MS must be greater than or equal to initial backoff"
+            fi
+            ;;
+    esac
     validate_integer "$file" MINIO_CONSOLE_HOST_PORT 1 65535
     validate_integer "$file" AIRFLOW_UID 1 2147483647
     validate_integer "$file" AIRFLOW_WEB_HOST_PORT 1 65535

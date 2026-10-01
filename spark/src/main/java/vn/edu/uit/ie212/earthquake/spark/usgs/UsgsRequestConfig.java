@@ -12,6 +12,9 @@ public final class UsgsRequestConfig {
     static final int MAX_USGS_LIMIT = 20_000;
     static final int MAX_WINDOW_DAYS = 31;
     static final int MAX_TIMEOUT_MILLIS = 300_000;
+    static final int MAX_HTTP_ATTEMPTS = 8;
+    static final int MAX_BACKOFF_MILLIS = 300_000;
+    static final int MAX_RESPONSE_BYTES = 50_000_000;
 
     private final URI endpoint;
     private final double minLatitude;
@@ -23,6 +26,10 @@ public final class UsgsRequestConfig {
     private final int maxWindowDays;
     private final int requestLimit;
     private final Duration requestTimeout;
+    private final int httpMaxAttempts;
+    private final Duration retryInitialBackoff;
+    private final Duration retryMaxBackoff;
+    private final int maxResponseBytes;
     private final String eventType;
 
     private UsgsRequestConfig(
@@ -36,6 +43,10 @@ public final class UsgsRequestConfig {
             int maxWindowDays,
             int requestLimit,
             Duration requestTimeout,
+            int httpMaxAttempts,
+            Duration retryInitialBackoff,
+            Duration retryMaxBackoff,
+            int maxResponseBytes,
             String eventType) {
         this.endpoint = endpoint;
         this.minLatitude = minLatitude;
@@ -47,6 +58,10 @@ public final class UsgsRequestConfig {
         this.maxWindowDays = maxWindowDays;
         this.requestLimit = requestLimit;
         this.requestTimeout = requestTimeout;
+        this.httpMaxAttempts = httpMaxAttempts;
+        this.retryInitialBackoff = retryInitialBackoff;
+        this.retryMaxBackoff = retryMaxBackoff;
+        this.maxResponseBytes = maxResponseBytes;
         this.eventType = eventType;
     }
 
@@ -71,6 +86,16 @@ public final class UsgsRequestConfig {
         int maxWindowDays = parseInteger(environment, "USGS_MAX_WINDOW_DAYS", 1, MAX_WINDOW_DAYS);
         int requestLimit = parseInteger(environment, "USGS_REQUEST_LIMIT", 1, MAX_USGS_LIMIT);
         int timeoutMillis = parseInteger(environment, "USGS_HTTP_TIMEOUT_MS", 1_000, MAX_TIMEOUT_MILLIS);
+        int httpMaxAttempts = parseInteger(environment, "USGS_HTTP_MAX_ATTEMPTS", 1, MAX_HTTP_ATTEMPTS);
+        int retryInitialBackoffMillis = parseInteger(
+                environment, "USGS_HTTP_INITIAL_BACKOFF_MS", 0, MAX_BACKOFF_MILLIS);
+        int retryMaxBackoffMillis = parseInteger(
+                environment, "USGS_HTTP_MAX_BACKOFF_MS", 0, MAX_BACKOFF_MILLIS);
+        if (retryMaxBackoffMillis < retryInitialBackoffMillis) {
+            throw invalid("USGS_HTTP_MAX_BACKOFF_MS", "must be greater than or equal to initial backoff");
+        }
+        int maxResponseBytes = parseInteger(
+                environment, "USGS_MAX_RESPONSE_BYTES", 1_024, MAX_RESPONSE_BYTES);
         String eventType = required(environment, "USGS_EVENT_TYPE")
                 .toLowerCase(Locale.ROOT);
         if (!eventType.equals("earthquake")) {
@@ -88,6 +113,10 @@ public final class UsgsRequestConfig {
                 maxWindowDays,
                 requestLimit,
                 Duration.ofMillis(timeoutMillis),
+                httpMaxAttempts,
+                Duration.ofMillis(retryInitialBackoffMillis),
+                Duration.ofMillis(retryMaxBackoffMillis),
+                maxResponseBytes,
                 eventType);
     }
 
@@ -208,6 +237,22 @@ public final class UsgsRequestConfig {
 
     public Duration requestTimeout() {
         return requestTimeout;
+    }
+
+    public int httpMaxAttempts() {
+        return httpMaxAttempts;
+    }
+
+    public Duration retryInitialBackoff() {
+        return retryInitialBackoff;
+    }
+
+    public Duration retryMaxBackoff() {
+        return retryMaxBackoff;
+    }
+
+    public int maxResponseBytes() {
+        return maxResponseBytes;
     }
 
     public String eventType() {

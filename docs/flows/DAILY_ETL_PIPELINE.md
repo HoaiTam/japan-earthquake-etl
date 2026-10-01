@@ -80,7 +80,8 @@ flowchart TD
   GeoJSON, bounding box Nhật Bản và `eventtype=earthquake`.
 - Truyền thời gian, bounding box và các bộ lọc đã cấu hình; `USGS endtime` được
   gửi là thời điểm kết thúc độc quyền trừ 1 ms.
-- Đặt timeout; retry lỗi mạng, HTTP `429` và lỗi server tạm thời.
+- Dùng `USG-02` HTTP client để đặt timeout, retry lỗi mạng/HTTP `429`/`5xx`,
+  guard kích thước response và pagination khi count vượt `limit`.
 - Không retry vô hạn lỗi tham số hoặc response không đúng hợp đồng.
 
 **Output:** response nguyên bản cùng metadata request/response không chứa secret.
