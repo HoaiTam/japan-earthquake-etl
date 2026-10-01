@@ -54,6 +54,7 @@ docs/specs/USGS_REQUEST_CONTRACT.md
 docs/specs/USGS_HTTP_CLIENT_CONTRACT.md
 docs/specs/USGS_BRONZE_WRITER_CONTRACT.md
 docs/specs/USGS_AIRFLOW_INGEST_CONTRACT.md
+docs/specs/USGS_BRONZE_QA_CONTRACT.md
 docs/specs/MINIO_STORAGE.md
 docs/specs/ICEBERG_TRINO.md
 docs/specs/REPOSITORY_LAYOUT.md

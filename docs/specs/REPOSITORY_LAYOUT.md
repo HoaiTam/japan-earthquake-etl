@@ -67,6 +67,7 @@ project-root/
 │       ├── USGS_HTTP_CLIENT_CONTRACT.md
 │       ├── USGS_BRONZE_WRITER_CONTRACT.md
 │       ├── USGS_AIRFLOW_INGEST_CONTRACT.md
+│       ├── USGS_BRONZE_QA_CONTRACT.md
 │       └── REPOSITORY_LAYOUT.md
 ├── scripts/
 │   ├── README.md

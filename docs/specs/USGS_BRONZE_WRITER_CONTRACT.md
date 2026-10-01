@@ -81,6 +81,8 @@ không bị xóa để giữ bằng chứng cho USG-05.
 
 `UsgsBronzeWriterTest` kiểm tra validator success/empty/invalid, raw + manifest
 readback/checksum, idempotent rerun, quarantine và ambiguous overwrite.
+`UsgsBronzeFixtureAcceptanceTest` của `USG-05` chạy cùng các fixture dùng chung
+để đối soát `run_id`, byte length, `record_count_estimate` và checksum mismatch.
 
 ```bash
 ./mvnw --batch-mode --no-transfer-progress -pl spark -am test

@@ -36,8 +36,8 @@ Hiện có:
   coverage contract `CON-01`, range JMA 40 năm, ROI, USGS seed/overlap và link
   theo dõi task; không gọi mạng hoặc tải dữ liệu.
 - `mvnw --batch-mode --no-transfer-progress -pl spark -am test`: chạy unit test
-  offline cho `USG-01` request planner, `USG-02` HTTP client và `USG-03` Bronze
-  writer; test
+  offline cho `USG-01` request planner, `USG-02` HTTP client, `USG-03` Bronze
+  writer và `USG-05` fixture acceptance; test
   không gọi USGS API thật.
 - `python3 -m unittest discover -s airflow/tests -p 'test_*.py'`: kiểm tra DAG
   USGS, interval UTC, retry context, runner boundary và Bronze publish gate mà

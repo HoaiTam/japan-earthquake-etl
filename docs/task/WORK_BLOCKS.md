@@ -75,6 +75,9 @@ Có những gì:
 - [USGS Bronze writer contract](../specs/USGS_BRONZE_WRITER_CONTRACT.md), raw
   object theo `ingest_date/run_id/attempt`, manifest `BronzeReady` và run
   summary; payload lỗi đi vào `_quarantine` và không được Silver chọn.
+- [USGS Bronze QA contract](../specs/USGS_BRONZE_QA_CONTRACT.md), fixture/mock
+  matrix và acceptance test cho success, empty, lỗi HTTP, timeout, checksum và
+  đối soát `run_id`/record count giữa object và manifest.
 
 Dùng để làm gì:
 

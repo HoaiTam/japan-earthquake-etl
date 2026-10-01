@@ -32,6 +32,10 @@ verify, publish gate và run summary. DAG truyền cùng logical window qua retr
 chỉ mở đường cho Silver sau khi Bronze đã verify theo [USGS Airflow ingest
 contract](./docs/specs/USGS_AIRFLOW_INGEST_CONTRACT.md).
 
+USG-05 dùng fixture và mock HTTP để kiểm thử success/empty/invalid, timeout,
+`429/5xx`, checksum mismatch và đối soát manifest/count trước khi mở gate cho
+Silver. Ma trận nằm tại [USGS Bronze QA contract](./docs/specs/USGS_BRONZE_QA_CONTRACT.md).
+
 Bronze object path, manifest, checksum, retry và trạng thái `BronzeReady` được
 chốt tại [CON-02 Bronze storage contract](./docs/specs/BRONZE_STORAGE_CONTRACT.md).
 Kiểm tra contract không cần mạng bằng:

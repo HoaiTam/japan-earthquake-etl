@@ -18,6 +18,7 @@ Thư mục này là nguồn tài liệu chính thức cho dự án **Nền tản
 | Hiểu retry, size guard và pagination USGS | [USGS HTTP client contract](./specs/USGS_HTTP_CLIENT_CONTRACT.md) |
 | Hiểu validate và ghi raw USGS vào Bronze | [USGS Bronze writer contract](./specs/USGS_BRONZE_WRITER_CONTRACT.md) |
 | Hiểu DAG, runner protocol và publish gate USGS | [USGS Airflow ingest contract](./specs/USGS_AIRFLOW_INGEST_CONTRACT.md) |
+| Hiểu ma trận QA từ USGS đến Bronze | [USGS Bronze QA contract](./specs/USGS_BRONZE_QA_CONTRACT.md) |
 | Hiểu Bronze object, manifest, checksum và retry | [Bronze storage contract](./specs/BRONZE_STORAGE_CONTRACT.md) |
 | Hiểu schema Silver/Gold, null policy, bands và KPI | [Silver/Gold logical data model](./specs/SILVER_GOLD_DATA_MODEL.md) |
 | Dùng fixture USGS/JMA và expected test matrix | [Shared source fixtures](../tests/fixtures/README.md) |
@@ -59,6 +60,7 @@ docs/
 │   ├── USGS_HTTP_CLIENT_CONTRACT.md
 │   ├── USGS_BRONZE_WRITER_CONTRACT.md
 │   ├── USGS_AIRFLOW_INGEST_CONTRACT.md
+│   ├── USGS_BRONZE_QA_CONTRACT.md
 │   ├── BRONZE_STORAGE_CONTRACT.md
 │   ├── SILVER_GOLD_DATA_MODEL.md
 │   ├── CONFIGURATION_AND_SECRETS.md
