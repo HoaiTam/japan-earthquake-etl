@@ -69,6 +69,9 @@ Checker chỉ báo tên key/file lỗi và không in giá trị cấu hình. Ch�
 | `USGS_HTTP_MAX_BACKOFF_MS` | Có | Không | Trần backoff và `Retry-After` dạng giây |
 | `USGS_MAX_RESPONSE_BYTES` | Có | Không | Guard kích thước body trước khi giữ trong memory |
 | `USGS_EVENT_TYPE` | Có | Không | Baseline phải là `earthquake` |
+| `USGS_INGEST_RUNNER_COMMAND` | Runtime USG-04 | Không | Command bridge gọi HTTP client/Bronze writer; để trống chỉ khi dry-run |
+| `USGS_INGEST_RUNNER_TIMEOUT_SECONDS` | Không | Không | Timeout cho mỗi phase runner; default `3600` |
+| `USGS_INGEST_DRY_RUN` | Không | Không | Chỉ bật cho test DAG không network; production là `false` |
 | `STRONG_MAGNITUDE_THRESHOLD` | Có | Không | Ngưỡng KPI strong earthquake |
 | `DATA_BUCKET` | Có | Không | Bucket chung của data lake |
 | `BRONZE_PREFIX` | Có | Không | Prefix lưu response nguồn |
@@ -78,6 +81,10 @@ Checker chỉ báo tên key/file lỗi và không in giá trị cấu hình. Ch�
 `WAREHOUSE_PATH` phải nằm trong `DATA_BUCKET`. Tọa độ/bounding box Nhật Bản,
 seed USGS, overlap và request guardrail thuộc contract của `USG-01`; các giá trị
 ở `.env.example` là default local đã được chốt, không phải credential.
+
+Airflow truyền các biến USGS không nhạy cảm vào container. Runner command không
+được đặt credential trong chuỗi lệnh; credential MinIO/API phải đi qua
+environment hoặc secret backend của deployment.
 
 ### MinIO
 

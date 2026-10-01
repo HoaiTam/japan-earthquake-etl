@@ -10,9 +10,10 @@
 
 Runbook mô tả thứ tự chuẩn để chuẩn bị, khởi động, kiểm tra, chạy pipeline và
 xử lý lỗi. Repository đã có scaffold, configuration contract, Compose
-foundation, MinIO runtime, Airflow local runtime và Spark standalone. DAG ETL
-chưa có; Iceberg REST Catalog và Trino đã có static/runtime acceptance riêng,
-và FND-01 kiểm tra toàn bộ các component trong cùng một Compose project.
+foundation, MinIO runtime, Airflow local runtime, USGS Bronze ingest DAG và
+Spark standalone. Silver/Gold DAG chưa có; Iceberg REST Catalog và Trino đã có
+static/runtime acceptance riêng, và FND-01 kiểm tra toàn bộ các component
+trong cùng một Compose project.
 
 ## 2. Yêu cầu máy
 

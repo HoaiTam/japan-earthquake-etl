@@ -41,7 +41,8 @@ flowchart TD
     RETRY --> EXTRACT
     VALIDATE_RESPONSE -- Có --> WRITE_BRONZE["Ghi GeoJSON và ingest metadata vào Bronze"]
     WRITE_BRONZE --> VERIFY_BRONZE["Kiểm tra object và record count"]
-    VERIFY_BRONZE --> STAGE_BRONZE["Stage đúng input theo run ID"]
+    VERIFY_BRONZE --> GATE["bronze_ready_gate"]
+    GATE --> STAGE_BRONZE["Stage đúng input theo run ID"]
     STAGE_BRONZE --> BUILD_SILVER["Spark Java build_silver"]
     BUILD_SILVER --> CHECK_SILVER{"Silver quality gate đạt?"}
     CHECK_SILVER -- Không --> FAIL["DAG failed — dừng downstream"]
@@ -70,6 +71,9 @@ flowchart TD
 
 **Output:** run context dùng chung cho các task.
 
+USG-04 giữ context này qua XCom dưới dạng metadata nhỏ; raw body không đi qua
+XCom. Retry dùng lại cùng `logical_run_key` và cửa sổ đã resolve.
+
 ### P02 — Extract USGS
 
 **Input:** run context.
@@ -85,6 +89,10 @@ flowchart TD
 - Không retry vô hạn lỗi tham số hoặc response không đúng hợp đồng.
 
 **Output:** response nguyên bản cùng metadata request/response không chứa secret.
+
+Trong DAG, bước này được thực thi qua runner protocol của [USGS Airflow ingest
+contract](../specs/USGS_AIRFLOW_INGEST_CONTRACT.md); runner bridge sử dụng
+`USG-02` và `USG-03`.
 
 ### P03 — Ghi Bronze
 
@@ -105,6 +113,9 @@ bronze/usgs/ingest_date=YYYY-MM-DD/run_id=<run-id>/attempt=<nn>/manifest.json
 ```
 
 Tên cuối cùng sẽ được xác nhận khi mã nguồn được tạo.
+
+`bronze_ready_gate` chỉ thành công sau readback/checksum và manifest
+`BronzeReady`; Silver phải đặt dependency vào gate này.
 
 ### P04 — Build Silver
 

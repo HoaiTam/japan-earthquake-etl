@@ -31,8 +31,12 @@ README.md
 airflow/README.md
 airflow/dags/README.md
 airflow/dags/afl_01_smoke.py
+airflow/dags/usg_04_usgs_ingest.py
+airflow/dags/usgs_ingest_runtime.py
 airflow/tests/README.md
 airflow/tests/test_smoke_dag_contract.py
+airflow/tests/test_usg_04_dag_contract.py
+airflow/tests/test_usgs_ingest_runtime.py
 compose/README.md
 compose/airflow/smoke.sh
 compose/minio/Dockerfile
@@ -49,6 +53,7 @@ docs/specs/FOUNDATION_SMOKE.md
 docs/specs/USGS_REQUEST_CONTRACT.md
 docs/specs/USGS_HTTP_CLIENT_CONTRACT.md
 docs/specs/USGS_BRONZE_WRITER_CONTRACT.md
+docs/specs/USGS_AIRFLOW_INGEST_CONTRACT.md
 docs/specs/MINIO_STORAGE.md
 docs/specs/ICEBERG_TRINO.md
 docs/specs/REPOSITORY_LAYOUT.md

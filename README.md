@@ -27,6 +27,11 @@ USG-03 kiểm tra envelope GeoJSON, giữ raw bytes bất biến, đọc lại c
 tạo manifest `BronzeReady`; payload lỗi được lưu ở `_quarantine` theo [USGS
 Bronze writer contract](./docs/specs/USGS_BRONZE_WRITER_CONTRACT.md).
 
+USG-04 thêm DAG `usg_04_usgs_ingest` với task group resolve/fetch/validate/upload/
+verify, publish gate và run summary. DAG truyền cùng logical window qua retry và
+chỉ mở đường cho Silver sau khi Bronze đã verify theo [USGS Airflow ingest
+contract](./docs/specs/USGS_AIRFLOW_INGEST_CONTRACT.md).
+
 Bronze object path, manifest, checksum, retry và trạng thái `BronzeReady` được
 chốt tại [CON-02 Bronze storage contract](./docs/specs/BRONZE_STORAGE_CONTRACT.md).
 Kiểm tra contract không cần mạng bằng:
