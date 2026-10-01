@@ -72,7 +72,8 @@ Có những gì:
   và request builder daily/backfill không gọi mạng.
 - [USGS HTTP client contract](../specs/USGS_HTTP_CLIENT_CONTRACT.md), Java HTTP
   client, mock tests và response validator.
-- Raw object theo `ingest_date/run_id/attempt`, manifest `BronzeReady` và run
+- [USGS Bronze writer contract](../specs/USGS_BRONZE_WRITER_CONTRACT.md), raw
+  object theo `ingest_date/run_id/attempt`, manifest `BronzeReady` và run
   summary; payload lỗi đi vào `_quarantine` và không được Silver chọn.
 
 Dùng để làm gì:

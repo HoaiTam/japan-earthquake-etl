@@ -36,7 +36,8 @@ Hiện có:
   coverage contract `CON-01`, range JMA 40 năm, ROI, USGS seed/overlap và link
   theo dõi task; không gọi mạng hoặc tải dữ liệu.
 - `mvnw --batch-mode --no-transfer-progress -pl spark -am test`: chạy unit test
-  offline cho `USG-01` request planner và `USG-02` HTTP client mock server; test
+  offline cho `USG-01` request planner, `USG-02` HTTP client và `USG-03` Bronze
+  writer; test
   không gọi USGS API thật.
 - `check-bronze-contract.sh`: kiểm tra layout object, manifest, lifecycle
   `BronzeReady`/`Rejected` và retry rule của `CON-02`; không gọi mạng hoặc

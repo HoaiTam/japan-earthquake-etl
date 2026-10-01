@@ -60,6 +60,7 @@ project-root/
 │       ├── FOUNDATION_SMOKE.md
 │       ├── USGS_REQUEST_CONTRACT.md
 │       ├── USGS_HTTP_CLIENT_CONTRACT.md
+│       ├── USGS_BRONZE_WRITER_CONTRACT.md
 │       └── REPOSITORY_LAYOUT.md
 ├── scripts/
 │   ├── README.md
