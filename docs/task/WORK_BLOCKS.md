@@ -68,7 +68,8 @@ Làm phần gì:
 
 Có những gì:
 
-- Config validation và request builder.
+- [USGS request contract](../specs/USGS_REQUEST_CONTRACT.md), config validation
+  và request builder daily/backfill không gọi mạng.
 - Java HTTP client, mock tests và response validator.
 - Raw object theo `ingest_date/run_id/attempt`, manifest `BronzeReady` và run
   summary; payload lỗi đi vào `_quarantine` và không được Silver chọn.

@@ -58,6 +58,7 @@ project-root/
 │       ├── SPARK_STANDALONE.md
 │       ├── ICEBERG_TRINO.md
 │       ├── FOUNDATION_SMOKE.md
+│       ├── USGS_REQUEST_CONTRACT.md
 │       └── REPOSITORY_LAYOUT.md
 ├── scripts/
 │   ├── README.md

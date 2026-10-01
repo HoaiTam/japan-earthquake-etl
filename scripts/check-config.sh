@@ -23,6 +23,15 @@ PIPELINE_TIMEZONE
 PIPELINE_SCHEDULE_CRON
 PIPELINE_OVERLAP_DAYS
 USGS_API_BASE_URL
+USGS_MIN_LATITUDE
+USGS_MAX_LATITUDE
+USGS_MIN_LONGITUDE
+USGS_MAX_LONGITUDE
+USGS_SEED_START_UTC
+USGS_MAX_WINDOW_DAYS
+USGS_REQUEST_LIMIT
+USGS_HTTP_TIMEOUT_MS
+USGS_EVENT_TYPE
 STRONG_MAGNITUDE_THRESHOLD
 DATA_BUCKET
 BRONZE_PREFIX
@@ -219,6 +228,24 @@ validate_integer() {
     fi
 }
 
+validate_decimal_range() {
+    file=$1
+    key=$2
+    minimum=$3
+    maximum=$4
+    value=$(read_value "$file" "$key")
+
+    if ! printf '%s\n' "$value" | grep -Eq '^-?[0-9][0-9]*([.][0-9][0-9]*)?$'; then
+        report_error "$key must be a decimal number"
+        return
+    fi
+
+    if ! awk -v value="$value" -v minimum="$minimum" -v maximum="$maximum" \
+        'BEGIN { exit !(value >= minimum && value <= maximum) }'; then
+        report_error "$key must be between $minimum and $maximum"
+    fi
+}
+
 validate_s3_prefix() {
     file=$1
     key=$2
@@ -265,7 +292,10 @@ validate_semantics() {
     file=$1
 
     validate_integer "$file" CONFIG_VERSION 1 999999
-    validate_integer "$file" PIPELINE_OVERLAP_DAYS 0 999999
+    validate_integer "$file" PIPELINE_OVERLAP_DAYS 0 31
+    validate_integer "$file" USGS_MAX_WINDOW_DAYS 1 31
+    validate_integer "$file" USGS_REQUEST_LIMIT 1 20000
+    validate_integer "$file" USGS_HTTP_TIMEOUT_MS 1000 300000
     validate_integer "$file" MINIO_CONSOLE_HOST_PORT 1 65535
     validate_integer "$file" AIRFLOW_UID 1 2147483647
     validate_integer "$file" AIRFLOW_WEB_HOST_PORT 1 65535
@@ -299,6 +329,31 @@ validate_semantics() {
         https://*) ;;
         *) report_error "USGS_API_BASE_URL must be an https:// URI" ;;
     esac
+
+    validate_decimal_range "$file" USGS_MIN_LATITUDE -90 90
+    validate_decimal_range "$file" USGS_MAX_LATITUDE -90 90
+    validate_decimal_range "$file" USGS_MIN_LONGITUDE -180 180
+    validate_decimal_range "$file" USGS_MAX_LONGITUDE -180 180
+
+    min_latitude=$(read_value "$file" USGS_MIN_LATITUDE)
+    max_latitude=$(read_value "$file" USGS_MAX_LATITUDE)
+    min_longitude=$(read_value "$file" USGS_MIN_LONGITUDE)
+    max_longitude=$(read_value "$file" USGS_MAX_LONGITUDE)
+    if ! awk -v min_latitude="$min_latitude" -v max_latitude="$max_latitude" \
+        -v min_longitude="$min_longitude" -v max_longitude="$max_longitude" \
+        'BEGIN { exit !(min_latitude <= max_latitude && min_longitude <= max_longitude) }'; then
+        report_error "USGS latitude/longitude bounds must be ordered min <= max"
+    fi
+
+    seed_start_utc=$(read_value "$file" USGS_SEED_START_UTC)
+    if ! printf '%s\n' "$seed_start_utc" | grep -Eq '^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]:[0-9][0-9](\.[0-9][0-9]*)?Z$'; then
+        report_error "USGS_SEED_START_UTC must be an ISO-8601 timestamp with explicit Z suffix"
+    fi
+
+    usgs_event_type=$(read_value "$file" USGS_EVENT_TYPE)
+    if [ "$usgs_event_type" != "earthquake" ]; then
+        report_error "USGS_EVENT_TYPE must be earthquake"
+    fi
 
     spark_master=$(read_value "$file" SPARK_MASTER_URL)
     if [ "$spark_master" != "spark://spark-master:7077" ]; then

@@ -17,6 +17,11 @@ contract không cần mạng bằng:
 ./scripts/check-source-coverage.sh
 ```
 
+Request daily/backfill USGS, bounding box, seed `2023-01-01`, revision overlap
+và quy tắc chia chunk được chốt tại [USGS request contract](./docs/specs/USGS_REQUEST_CONTRACT.md).
+Builder Java của `USG-01` chỉ lập kế hoạch request, không gọi mạng; `USG-02`
+tiếp nhận plan để thực hiện HTTP client, retry và pagination.
+
 Bronze object path, manifest, checksum, retry và trạng thái `BronzeReady` được
 chốt tại [CON-02 Bronze storage contract](./docs/specs/BRONZE_STORAGE_CONTRACT.md).
 Kiểm tra contract không cần mạng bằng:
@@ -194,6 +199,7 @@ Chi tiết ownership, mount path và quy tắc mở rộng nằm trong
 | `./scripts/smoke-query.sh` | Chạy được khi có `.env` và Docker daemon | `QRY-01` |
 | `./scripts/check-foundation.sh` | Chạy toàn bộ static foundation checks | `FND-01` |
 | `./scripts/smoke-foundation.sh` | Chạy full-stack smoke khi có `.env` và Docker daemon | `FND-01` |
+| `./mvnw --batch-mode --no-transfer-progress -pl spark -am test` | Chạy unit test request planner offline | `USG-01` |
 
 Hướng dẫn vận hành đầy đủ được duy trì trong
 [Local operations runbook](./docs/LOCAL_OPERATIONS_RUNBOOK.md).
