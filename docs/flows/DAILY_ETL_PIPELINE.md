@@ -88,7 +88,8 @@ flowchart TD
 
 ### P03 — Ghi Bronze
 
-**Input:** response GeoJSON hợp lệ ở mức cú pháp.
+**Input:** response GeoJSON hợp lệ ở mức cú pháp từ `USG-02`; lifecycle chi
+tiết nằm trong [USGS Bronze writer contract](../specs/USGS_BRONZE_WRITER_CONTRACT.md).
 
 **Xử lý:**
 

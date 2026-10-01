@@ -23,6 +23,10 @@ Builder Java của `USG-01` chỉ lập kế hoạch request, không gọi mạn
 tiếp nhận plan để thực hiện HTTP client, retry và pagination theo [USGS HTTP
 client contract](./docs/specs/USGS_HTTP_CLIENT_CONTRACT.md).
 
+USG-03 kiểm tra envelope GeoJSON, giữ raw bytes bất biến, đọc lại checksum và
+tạo manifest `BronzeReady`; payload lỗi được lưu ở `_quarantine` theo [USGS
+Bronze writer contract](./docs/specs/USGS_BRONZE_WRITER_CONTRACT.md).
+
 Bronze object path, manifest, checksum, retry và trạng thái `BronzeReady` được
 chốt tại [CON-02 Bronze storage contract](./docs/specs/BRONZE_STORAGE_CONTRACT.md).
 Kiểm tra contract không cần mạng bằng:
