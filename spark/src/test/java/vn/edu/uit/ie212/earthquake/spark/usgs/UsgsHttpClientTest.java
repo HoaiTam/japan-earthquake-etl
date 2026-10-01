@@ -7,6 +7,7 @@ import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URLDecoder;
 import java.net.http.HttpClient;
+import java.net.http.HttpTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
@@ -134,6 +135,30 @@ class UsgsHttpClientTest {
                         .fetch(request(20000)));
 
         assertEquals(1024, exception.maximumBytes());
+    }
+
+    @Test
+    void stopsTimedOutRequestWithoutRetryingWhenAttemptsAreExhausted() throws Exception {
+        server.createContext("/query", exchange -> {
+            try {
+                Thread.sleep(2_000L);
+                respond(exchange, 200, "late response");
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+            }
+        });
+        server.start();
+
+        Map<String, String> values = testConfig();
+        values.put("USGS_HTTP_TIMEOUT_MS", "1000");
+        values.put("USGS_HTTP_MAX_ATTEMPTS", "1");
+        UsgsHttpException exception = assertThrows(
+                UsgsHttpException.class,
+                () -> newClient(values, new ArrayList<>(), testLogger(new RecordingHandler()))
+                        .fetch(request(20000)));
+
+        assertEquals(1, exception.attempts());
+        assertTrue(exception.getCause() instanceof HttpTimeoutException);
     }
 
     @Test

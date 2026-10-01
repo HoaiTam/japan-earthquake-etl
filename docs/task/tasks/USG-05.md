@@ -1,6 +1,6 @@
 ---
 task_id: "USG-05"
-status: "Backlog"
+status: "Done"
 week: 2
 block: "B - USGS Bronze"
 workstream: "QA"
@@ -35,8 +35,8 @@ Bao phủ success, empty, invalid JSON, timeout, 429/5xx, checksum mismatch và 
 
 ## Tiêu chí hoàn thành
 
-- [ ] Test ổn định, không phụ thuộc mạng cho unit test.
-- [ ] object, manifest và log đối soát được.
+- [x] Test ổn định, không phụ thuộc mạng cho unit test.
+- [x] object, manifest và log đối soát được.
 
 ## Hard dependency
 
@@ -47,7 +47,7 @@ Bao phủ success, empty, invalid JSON, timeout, 429/5xx, checksum mismatch và 
 Đây là integration gate. Có thể chuẩn bị test plan, fixture và harness trước, nhưng chỉ được chuyển sang `Done` sau khi toàn bộ hard dependency cung cấp output thật và báo cáo đối soát đạt.
 
 1. Xác nhận hard dependency và đọc contract/tài liệu liên quan.
-2. Tạo branch mới từ `main`: `feat/usg-05-kiem-thu-usgs-en-bronze`.
+2. Tạo branch mới cho task: `feat/usg-05-usgs-bronze-tests` trên nền output của `USG-04`.
 3. Triển khai đúng phạm vi; dùng fixture nhỏ, xác định được và không phụ thuộc mạng cho unit test.
 4. Chạy test/check phù hợp, đối chiếu acceptance criteria và cập nhật tài liệu nếu contract hoặc hành vi thay đổi.
 5. Cập nhật `status`, `assignee`, `reviewer` và Evidence ngay trong file này khi mở PR hoặc hoàn tất review.
@@ -61,19 +61,20 @@ Bao phủ success, empty, invalid JSON, timeout, 429/5xx, checksum mismatch và 
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
+- **Trạng thái:** Done
 - **Assignee:** Chưa ghi lại
 - **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Evidence / PR:** Đã hoàn tất trên branch `feat/usg-05-usgs-bronze-tests`; chưa commit/push hoặc mở PR.
+- **Evidence kiểm thử:** `./scripts/check-shared-fixtures.sh` đạt 17 cases; `./mvnw --batch-mode --no-transfer-progress -pl spark -am test` đạt 25 tests, 0 failures, 0 errors. `UsgsBronzeFixtureAcceptanceTest` đối soát raw object, manifest, run_id, record count, checksum/readback và quarantine; `UsgsHttpClientTest` bao phủ timeout, 429, 5xx, 4xx, pagination và response-size guard.
 - **Kỹ năng phù hợp:** JUnit, mocking, integration test
 
 ## Checklist bàn giao
 
-- [ ] Deliverable đã có trong repository hoặc môi trường demo.
-- [ ] Acceptance criteria đã được kiểm tra.
-- [ ] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
-- [ ] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
-- [ ] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
+- [x] Deliverable đã có trong repository hoặc môi trường demo.
+- [x] Acceptance criteria đã được kiểm tra.
+- [x] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
+- [x] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
+- [x] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
 - [ ] P0/P1 có reviewer khác assignee xác nhận.
 
 ## Tài liệu liên quan
@@ -81,3 +82,6 @@ Bao phủ success, empty, invalid JSON, timeout, 429/5xx, checksum mismatch và 
 - [Kế hoạch 6 tuần](../README.md)
 - [Các khối công việc](../WORK_BLOCKS.md)
 - [Baseline MVP, KPI và Definition of Done](../../specs/MVP_SCOPE_KPI_AND_DOD.md)
+- [USGS Bronze QA contract](../../specs/USGS_BRONZE_QA_CONTRACT.md)
+- [USGS Bronze writer contract](../../specs/USGS_BRONZE_WRITER_CONTRACT.md)
+- [USGS HTTP client contract](../../specs/USGS_HTTP_CLIENT_CONTRACT.md)
