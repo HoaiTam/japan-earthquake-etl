@@ -19,7 +19,7 @@ Lịch tham khảo là **07:15 giờ Việt Nam**, sau khi ngày UTC trước đ
 Với ngày chạy logic `D`:
 
 - Cửa sổ bắt buộc: toàn bộ ngày UTC `D - 1`.
-- Cửa sổ revision mặc định: đọc ba ngày UTC hoàn chỉnh gần nhất để nhận sự kiện được USGS sửa muộn.
+- Cửa sổ revision mặc định: đọc ba ngày UTC hoàn chỉnh gần nhất để nhận sự kiện được USGS sửa muộn; cách tính và seed clipping nằm trong [USGS request contract](../specs/USGS_REQUEST_CONTRACT.md).
 - Mọi timestamp truyền cho API phải có timezone rõ ràng.
 - Giá trị phải cấu hình được; thay default ba ngày là contract change và phải có evidence trước/sau.
 
@@ -76,8 +76,10 @@ flowchart TD
 
 **Xử lý:**
 
-- Gọi endpoint query ở định dạng GeoJSON.
-- Truyền thời gian, bounding box/radius và các bộ lọc đã cấu hình.
+- Dùng request plan của `USG-01` để tạo các chunk half-open UTC, endpoint
+  GeoJSON, bounding box Nhật Bản và `eventtype=earthquake`.
+- Truyền thời gian, bounding box và các bộ lọc đã cấu hình; `USGS endtime` được
+  gửi là thời điểm kết thúc độc quyền trừ 1 ms.
 - Đặt timeout; retry lỗi mạng, HTTP `429` và lỗi server tạm thời.
 - Không retry vô hạn lỗi tham số hoặc response không đúng hợp đồng.
 

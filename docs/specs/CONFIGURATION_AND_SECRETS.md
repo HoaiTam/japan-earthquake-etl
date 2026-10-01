@@ -58,15 +58,22 @@ Checker chỉ báo tên key/file lỗi và không in giá trị cấu hình. Ch�
 | `PIPELINE_SCHEDULE_CRON` | Có | Không | Lịch daily; default local là 07:15 |
 | `PIPELINE_OVERLAP_DAYS` | Có | Không | Số ngày đọc chồng để nhận late update |
 | `USGS_API_BASE_URL` | Có | Không | Endpoint extract HTTPS |
+| `USGS_MIN_LATITUDE` / `USGS_MAX_LATITUDE` | Có | Không | Bounding box vĩ độ ROI Nhật Bản (`20.0` / `50.0`) |
+| `USGS_MIN_LONGITUDE` / `USGS_MAX_LONGITUDE` | Có | Không | Bounding box kinh độ ROI Nhật Bản (`120.0` / `155.0`) |
+| `USGS_SEED_START_UTC` | Có | Không | Mốc USGS sớm nhất được query (`2023-01-01T00:00:00Z`) |
+| `USGS_MAX_WINDOW_DAYS` | Có | Không | Giới hạn kích thước một request, dùng để chia backfill |
+| `USGS_REQUEST_LIMIT` | Có | Không | Giới hạn số feature mỗi page (`1..20000`) |
+| `USGS_HTTP_TIMEOUT_MS` | Có | Không | Timeout HTTP dành cho client USGS |
+| `USGS_EVENT_TYPE` | Có | Không | Baseline phải là `earthquake` |
 | `STRONG_MAGNITUDE_THRESHOLD` | Có | Không | Ngưỡng KPI strong earthquake |
 | `DATA_BUCKET` | Có | Không | Bucket chung của data lake |
 | `BRONZE_PREFIX` | Có | Không | Prefix lưu response nguồn |
 | `SILVER_PREFIX` | Có | Không | Prefix lưu Silver Parquet |
 | `WAREHOUSE_PATH` | Có | Không | URI `s3://` dùng chung cho Gold/Iceberg |
 
-`WAREHOUSE_PATH` phải nằm trong `DATA_BUCKET`. Tọa độ/bounding box Nhật Bản
-thuộc contract của `CON-01` và `USG-01`; CFG-01 không đặt giá trị giả để tránh trở thành
-default ngoài ý muốn.
+`WAREHOUSE_PATH` phải nằm trong `DATA_BUCKET`. Tọa độ/bounding box Nhật Bản,
+seed USGS, overlap và request guardrail thuộc contract của `USG-01`; các giá trị
+ở `.env.example` là default local đã được chốt, không phải credential.
 
 ### MinIO
 

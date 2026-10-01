@@ -46,6 +46,7 @@ docs/specs/COMPOSE_FOUNDATION.md
 docs/specs/CONFIGURATION_AND_SECRETS.md
 docs/specs/AIRFLOW_LOCAL.md
 docs/specs/FOUNDATION_SMOKE.md
+docs/specs/USGS_REQUEST_CONTRACT.md
 docs/specs/MINIO_STORAGE.md
 docs/specs/ICEBERG_TRINO.md
 docs/specs/REPOSITORY_LAYOUT.md

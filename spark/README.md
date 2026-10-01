@@ -32,6 +32,12 @@ Chạy acceptance trên Spark standalone bằng Docker:
 Runtime smoke chỉ thành công khi worker ở trạng thái `ALIVE`, executor chạy trên
 worker và `spark-submit` trả exit code `0`.
 
+`USG-01` đặt request config/planner dưới package
+`vn.edu.uit.ie212.earthquake.spark.usgs`. Planner chỉ tạo URI và các cửa sổ UTC
+cho daily/backfill, không gọi mạng; contract chi tiết nằm ở
+[USGS request contract](../docs/specs/USGS_REQUEST_CONTRACT.md). Unit test có thể
+chạy độc lập bằng `./mvnw --batch-mode --no-transfer-progress -pl spark -am test`.
+
 Không commit `target/`, JAR hoặc local metastore. Kiến trúc service, dependency,
 version matrix, marker output và cách mở rộng được mô tả trong
 [Spark standalone contract](../docs/specs/SPARK_STANDALONE.md).
