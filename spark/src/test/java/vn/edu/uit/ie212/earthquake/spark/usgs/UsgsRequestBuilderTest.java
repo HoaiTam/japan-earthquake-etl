@@ -109,6 +109,11 @@ class UsgsRequestBuilderTest {
         Map<String, String> invalidLimit = config();
         invalidLimit.put("USGS_REQUEST_LIMIT", "20001");
         assertThrows(IllegalArgumentException.class, () -> UsgsRequestConfig.fromEnvironment(invalidLimit));
+
+        Map<String, String> invalidBackoff = config();
+        invalidBackoff.put("USGS_HTTP_INITIAL_BACKOFF_MS", "5000");
+        invalidBackoff.put("USGS_HTTP_MAX_BACKOFF_MS", "1000");
+        assertThrows(IllegalArgumentException.class, () -> UsgsRequestConfig.fromEnvironment(invalidBackoff));
     }
 
     private static Map<String, String> config() {
@@ -123,6 +128,10 @@ class UsgsRequestBuilderTest {
         values.put("USGS_MAX_WINDOW_DAYS", "3");
         values.put("USGS_REQUEST_LIMIT", "20000");
         values.put("USGS_HTTP_TIMEOUT_MS", "30000");
+        values.put("USGS_HTTP_MAX_ATTEMPTS", "4");
+        values.put("USGS_HTTP_INITIAL_BACKOFF_MS", "250");
+        values.put("USGS_HTTP_MAX_BACKOFF_MS", "4000");
+        values.put("USGS_MAX_RESPONSE_BYTES", "10485760");
         values.put("USGS_EVENT_TYPE", "earthquake");
         return values;
     }

@@ -15,6 +15,7 @@ Thư mục này là nguồn tài liệu chính thức cho dự án **Nền tản
 | Chốt MVP, KPI và Definition of Done | [Baseline PLN-01](./specs/MVP_SCOPE_KPI_AND_DOD.md) |
 | Hiểu phạm vi USGS/JMA, timezone và overlap | [Source coverage contract](./specs/SOURCE_COVERAGE.md) |
 | Hiểu cách tạo daily/backfill request USGS | [USGS request contract](./specs/USGS_REQUEST_CONTRACT.md) |
+| Hiểu retry, size guard và pagination USGS | [USGS HTTP client contract](./specs/USGS_HTTP_CLIENT_CONTRACT.md) |
 | Hiểu Bronze object, manifest, checksum và retry | [Bronze storage contract](./specs/BRONZE_STORAGE_CONTRACT.md) |
 | Hiểu schema Silver/Gold, null policy, bands và KPI | [Silver/Gold logical data model](./specs/SILVER_GOLD_DATA_MODEL.md) |
 | Dùng fixture USGS/JMA và expected test matrix | [Shared source fixtures](../tests/fixtures/README.md) |
@@ -53,6 +54,7 @@ docs/
 │   ├── MVP_SCOPE_KPI_AND_DOD.md
 │   ├── SOURCE_COVERAGE.md
 │   ├── USGS_REQUEST_CONTRACT.md
+│   ├── USGS_HTTP_CLIENT_CONTRACT.md
 │   ├── BRONZE_STORAGE_CONTRACT.md
 │   ├── SILVER_GOLD_DATA_MODEL.md
 │   ├── CONFIGURATION_AND_SECRETS.md

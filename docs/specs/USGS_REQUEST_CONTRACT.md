@@ -100,6 +100,8 @@ USG-01 không triển khai HTTP client, retry/backoff, response validation, Bron
 writer, manifest hoặc Airflow task. Các phần đó lần lượt thuộc `USG-02`,
 `USG-03` và `USG-04`; `USG-05` sẽ tích hợp kiểm thử đến Bronze.
 
+Chi tiết hành vi HTTP của `USG-02` nằm trong [USGS HTTP client contract](./USGS_HTTP_CLIENT_CONTRACT.md).
+
 Chạy test:
 
 ```bash

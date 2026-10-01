@@ -59,6 +59,7 @@ project-root/
 │       ├── ICEBERG_TRINO.md
 │       ├── FOUNDATION_SMOKE.md
 │       ├── USGS_REQUEST_CONTRACT.md
+│       ├── USGS_HTTP_CLIENT_CONTRACT.md
 │       └── REPOSITORY_LAYOUT.md
 ├── scripts/
 │   ├── README.md

@@ -37,6 +37,7 @@ worker và `spark-submit` trả exit code `0`.
 cho daily/backfill, không gọi mạng; contract chi tiết nằm ở
 [USGS request contract](../docs/specs/USGS_REQUEST_CONTRACT.md). Unit test có thể
 chạy độc lập bằng `./mvnw --batch-mode --no-transfer-progress -pl spark -am test`.
+HTTP timeout/retry, size guard và pagination nằm trong [USGS HTTP client contract](../docs/specs/USGS_HTTP_CLIENT_CONTRACT.md).
 
 Không commit `target/`, JAR hoặc local metastore. Kiến trúc service, dependency,
 version matrix, marker output và cách mở rộng được mô tả trong

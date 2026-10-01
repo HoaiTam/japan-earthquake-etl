@@ -20,7 +20,8 @@ contract không cần mạng bằng:
 Request daily/backfill USGS, bounding box, seed `2023-01-01`, revision overlap
 và quy tắc chia chunk được chốt tại [USGS request contract](./docs/specs/USGS_REQUEST_CONTRACT.md).
 Builder Java của `USG-01` chỉ lập kế hoạch request, không gọi mạng; `USG-02`
-tiếp nhận plan để thực hiện HTTP client, retry và pagination.
+tiếp nhận plan để thực hiện HTTP client, retry và pagination theo [USGS HTTP
+client contract](./docs/specs/USGS_HTTP_CLIENT_CONTRACT.md).
 
 Bronze object path, manifest, checksum, retry và trạng thái `BronzeReady` được
 chốt tại [CON-02 Bronze storage contract](./docs/specs/BRONZE_STORAGE_CONTRACT.md).
