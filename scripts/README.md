@@ -16,7 +16,7 @@ Hiện có:
 - `smoke-minio.sh`: dùng `.env` local để bootstrap MinIO và kiểm tra ghi/đọc
   object bằng pipeline credential; không xóa bucket hoặc volume.
 - `check-airflow.sh`: chạy unit test DAG và validate service, image, executor,
-  healthcheck, dependency, mount và host exposure của `AFL-01`.
+  healthcheck, dependency, mount và host exposure của `AFL-01`/`USG-04`.
 - `smoke-airflow.sh`: khởi động Airflow local, chờ các component healthy và
   trigger `afl_01_smoke`; không xóa metadata/log volume.
 - `check-spark.sh`: chạy Maven verify và kiểm tra JAR, dependency, image,
@@ -39,6 +39,9 @@ Hiện có:
   offline cho `USG-01` request planner, `USG-02` HTTP client và `USG-03` Bronze
   writer; test
   không gọi USGS API thật.
+- `python3 -m unittest discover -s airflow/tests -p 'test_*.py'`: kiểm tra DAG
+  USGS, interval UTC, retry context, runner boundary và Bronze publish gate mà
+  không gọi mạng.
 - `check-bronze-contract.sh`: kiểm tra layout object, manifest, lifecycle
   `BronzeReady`/`Rejected` và retry rule của `CON-02`; không gọi mạng hoặc
   truy cập MinIO.

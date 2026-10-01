@@ -38,7 +38,11 @@ require_fixed() {
 
 for relative_path in \
     airflow/dags/afl_01_smoke.py \
+    airflow/dags/usg_04_usgs_ingest.py \
+    airflow/dags/usgs_ingest_runtime.py \
     airflow/tests/test_smoke_dag_contract.py \
+    airflow/tests/test_usg_04_dag_contract.py \
+    airflow/tests/test_usgs_ingest_runtime.py \
     compose/airflow/smoke.sh
 do
     if [ ! -f "$project_root/$relative_path" ]; then
@@ -48,6 +52,37 @@ done
 
 if [ ! -x "$project_root/compose/airflow/smoke.sh" ]; then
     report_error "compose/airflow/smoke.sh must be executable"
+fi
+
+if [ -f "$project_root/airflow/dags/usg_04_usgs_ingest.py" ]; then
+    usgs_dag_source=$(cat "$project_root/airflow/dags/usg_04_usgs_ingest.py")
+    for expected in \
+        'usg_04_usgs_ingest' \
+        'group_id="usgs_ingest"' \
+        'task_id="resolve_interval"' \
+        'task_id="fetch"' \
+        'task_id="validate"' \
+        'task_id="upload"' \
+        'task_id="verify"' \
+        'task_id="bronze_ready_gate"' \
+        'task_id="run_summary"'; do
+        if ! printf '%s\n' "$usgs_dag_source" | grep -Fq "$expected"; then
+            report_error "USG-04 DAG is missing required contract marker: $expected"
+        fi
+    done
+fi
+
+if [ -f "$project_root/airflow/dags/usgs_ingest_runtime.py" ]; then
+    usgs_runtime_source=$(cat "$project_root/airflow/dags/usgs_ingest_runtime.py")
+    for expected in \
+        'USGS_INGEST_RUNNER_COMMAND' \
+        'PUBLIC_RESULT_KEYS' \
+        'USGS_INGEST_DRY_RUN' \
+        'BronzeReady'; do
+        if ! printf '%s\n' "$usgs_runtime_source" | grep -Fq "$expected"; then
+            report_error "USG-04 runtime boundary is missing required marker: $expected"
+        fi
+    done
 fi
 
 if [ ! -f "$compose_file" ]; then

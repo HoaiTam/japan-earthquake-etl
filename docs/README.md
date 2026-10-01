@@ -2,9 +2,9 @@
 
 Thư mục này là nguồn tài liệu chính thức cho dự án **Nền tảng phân tích dữ liệu động đất tại Nhật Bản**. Bộ tài liệu mô tả hệ thống ở mức đủ để bắt đầu triển khai, kiểm thử và trình diễn; các giá trị phụ thuộc mã nguồn sẽ được cập nhật sau khi project có phiên bản chạy được.
 
-> Trạng thái hiện tại: **Foundation đã có full-stack smoke checklist** — object
-> storage, Airflow local, Spark Java, Iceberg REST Catalog và Trino đã có static
-> contract cùng runtime acceptance; DAG ETL chưa triển khai.
+> Trạng thái hiện tại: **Foundation đã có full-stack smoke checklist**; USGS
+> request, HTTP client, Bronze writer và Airflow ingest DAG đã có contract cùng
+> unit/static acceptance. Silver/Gold DAG vẫn chưa triển khai.
 
 ## 1. Đọc tài liệu theo nhu cầu
 
@@ -17,6 +17,7 @@ Thư mục này là nguồn tài liệu chính thức cho dự án **Nền tản
 | Hiểu cách tạo daily/backfill request USGS | [USGS request contract](./specs/USGS_REQUEST_CONTRACT.md) |
 | Hiểu retry, size guard và pagination USGS | [USGS HTTP client contract](./specs/USGS_HTTP_CLIENT_CONTRACT.md) |
 | Hiểu validate và ghi raw USGS vào Bronze | [USGS Bronze writer contract](./specs/USGS_BRONZE_WRITER_CONTRACT.md) |
+| Hiểu DAG, runner protocol và publish gate USGS | [USGS Airflow ingest contract](./specs/USGS_AIRFLOW_INGEST_CONTRACT.md) |
 | Hiểu Bronze object, manifest, checksum và retry | [Bronze storage contract](./specs/BRONZE_STORAGE_CONTRACT.md) |
 | Hiểu schema Silver/Gold, null policy, bands và KPI | [Silver/Gold logical data model](./specs/SILVER_GOLD_DATA_MODEL.md) |
 | Dùng fixture USGS/JMA và expected test matrix | [Shared source fixtures](../tests/fixtures/README.md) |
@@ -57,6 +58,7 @@ docs/
 │   ├── USGS_REQUEST_CONTRACT.md
 │   ├── USGS_HTTP_CLIENT_CONTRACT.md
 │   ├── USGS_BRONZE_WRITER_CONTRACT.md
+│   ├── USGS_AIRFLOW_INGEST_CONTRACT.md
 │   ├── BRONZE_STORAGE_CONTRACT.md
 │   ├── SILVER_GOLD_DATA_MODEL.md
 │   ├── CONFIGURATION_AND_SECRETS.md
@@ -97,7 +99,7 @@ Chưa bao gồm theo phạm vi hiện tại:
 
 - Thiết kế database chi tiết, DBML, DDL hoặc migration.
 - Schema vật lý cuối cùng của các bảng Iceberg.
-- DAG ETL, Gold jobs và lệnh backfill thực tế.
+- Silver/Gold DAG, Gold jobs và lệnh backfill thực tế.
 
 ## 4. Quy ước trạng thái
 

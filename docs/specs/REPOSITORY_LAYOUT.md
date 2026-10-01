@@ -34,9 +34,14 @@ project-root/
 ├── airflow/
 │   ├── README.md
 │   ├── dags/
-│   │   └── README.md
+│   │   ├── README.md
+│   │   ├── usg_04_usgs_ingest.py
+│   │   └── usgs_ingest_runtime.py
 │   └── tests/
-│       └── README.md
+│       ├── README.md
+│       ├── test_smoke_dag_contract.py
+│       ├── test_usg_04_dag_contract.py
+│       └── test_usgs_ingest_runtime.py
 ├── compose/
 │   ├── README.md
 │   ├── airflow/
@@ -61,6 +66,7 @@ project-root/
 │       ├── USGS_REQUEST_CONTRACT.md
 │       ├── USGS_HTTP_CLIENT_CONTRACT.md
 │       ├── USGS_BRONZE_WRITER_CONTRACT.md
+│       ├── USGS_AIRFLOW_INGEST_CONTRACT.md
 │       └── REPOSITORY_LAYOUT.md
 ├── scripts/
 │   ├── README.md

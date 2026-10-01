@@ -53,7 +53,7 @@ Trạng thái hợp lệ: `Backlog`, `Ready`, `In Progress`, `Review`, `Blocked`
 | [USG-01](./USG-01.md) - Đặc tả request USGS và cấu hình runtime | 2 | Request configuration | Core | P0 | 5h | Done |
 | [USG-02](./USG-02.md) - Xây USGS HTTP client có retry an toàn | 2 | HTTP client | Core | P0 | 6h | Done |
 | [USG-03](./USG-03.md) - Validate và lưu USGS raw vào Bronze | 2 | Bronze writer | Core | P0 | 7h | Done |
-| [USG-04](./USG-04.md) - Tích hợp USGS ingest vào Airflow | 2 | Airflow integration | Core | P0 | 4h | Backlog |
+| [USG-04](./USG-04.md) - Tích hợp USGS ingest vào Airflow | 2 | Airflow integration | Core | P0 | 4h | Done |
 | [USG-05](./USG-05.md) - Kiểm thử USGS đến Bronze | 2 | QA | Core | P0 | 4h | Backlog |
 
 ## C - JMA Bronze
