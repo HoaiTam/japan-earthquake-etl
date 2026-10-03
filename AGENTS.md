@@ -19,7 +19,7 @@ Nếu các tài liệu mâu thuẫn, ưu tiên acceptance criteria trong file ta
 - Kiểm tra mục `Hard dependency` trong file task trước khi sửa file. Không triển khai task khi dependency chưa hoàn tất, trừ phần fixture, mock, interface hoặc test plan mà file task cho phép.
 - Tạo branch mới từ `main` trước thay đổi đầu tiên. Dùng dạng `<type>/<task-id-lowercase>-<short-description>`, ví dụ `docs/pln-01-scope-kpi-dod`.
 - Chỉ thay đổi phạm vi cần thiết cho deliverable và acceptance criteria của task.
-- Cập nhật metadata và mục `Theo dõi` trong file task sang `In Progress` khi bắt đầu; đồng bộ trạng thái ở `docs/task/tasks/README.md`. Khi deliverable, acceptance criteria, test/check, evidence và tài liệu liên quan đã hoàn tất, tự động chuyển task sang `Done` trước khi bàn giao. `Review` chỉ dùng khi công việc thực sự còn chờ kiểm tra để hoàn tất.
+- Cập nhật metadata và mục `Theo dõi` trong file task sang `In Progress` khi bắt đầu; đồng bộ trạng thái ở `docs/task/tasks/README.md`. `Needs Update` dùng cho task từng hoàn tất nhưng baseline/contract mới làm output cũ chưa còn đủ. Khi deliverable, acceptance criteria, test/check, evidence và tài liệu liên quan đã hoàn tất, tự động chuyển task sang `Done` trước khi bàn giao. `Review` chỉ dùng khi công việc thực sự còn chờ kiểm tra để hoàn tất.
 - Reviewer độc lập vẫn được khuyến nghị cho P0/P1 nhưng không chặn trạng thái `Done`. Không tự điền tên, approval hoặc evidence chưa tồn tại; nếu chưa có reviewer thì giữ `unassigned` và ghi rõ trong bàn giao.
 - Trước khi bàn giao, chạy kiểm tra phù hợp, xem `git diff`, kiểm tra secret và cập nhật docs nếu contract, flow, schema logic hoặc cấu hình thay đổi.
 - Không tự commit, push, merge hoặc mở PR nếu người dùng chưa yêu cầu. Khi bàn giao, cung cấp lệnh Git dùng đường dẫn cụ thể; không mặc định dùng `git add .`.
@@ -34,7 +34,9 @@ Các nguyên tắc không được phá vỡ:
 - Bronze lưu response nguồn nguyên bản và metadata theo run, không bị sửa sau khi ghi thành công.
 - Silver dùng Spark Java để parse và chuẩn hóa USGS/JMA về observation contract chung, giữ lineage, validate, deduplicate/revision trong từng nguồn rồi liên kết observation giữa hai nguồn.
 - Gold chọn canonical event để tránh double count và lưu bằng bảng Iceberg trên MinIO. Chỉ snapshot đã commit và verify qua Trino mới được coi là `Published`.
-- Power BI đọc Gold qua Trino/ODBC ở chế độ Import, không đọc từng object Parquet và không dùng PostgreSQL làm serving copy.
+- Core ML pin Gold snapshot, tạo candidate/feature bằng Spark, chạy Window/DBSCAN/HDBSCAN theo từng mainshock qua bundle Colab có checksum, rồi validate/import vào Iceberg `ml.*`; không ghi nhãn thử nghiệm vào Gold core.
+- Static report/Trino verification là output Core. Power BI đọc qua Trino/ODBC ở chế độ Import nhưng là Stretch, không chặn MVP HDBSCAN và không đọc từng object Parquet.
+- Kết quả là sequence/aftershock candidate hồi cứu; không tuyên bố dự đoán động đất hoặc quan hệ nhân quả vật lý.
 - Retry/rerun/backfill không được tạo duplicate logic hoặc sửa partition ngoài phạm vi.
 - Không làm mất event hợp lệ chỉ vì thiếu spatial enrichment; giữ `Unknown`/`Offshore` theo contract được chốt.
 
@@ -59,7 +61,7 @@ Chạy các lệnh build/test được repository cung cấp. Không phát minh 
 
 ## 6. Quy ước triển khai
 
-- Xử lý dữ liệu chính dùng Java và Spark SQL/DataFrame API.
+- Xử lý dữ liệu ETL và tạo ML dataset dùng Java/Spark SQL/DataFrame API. Python chỉ dùng cho notebook/module experiment Window/DBSCAN/HDBSCAN và report khoa học theo contract đã version hóa.
 - Cấu hình thay đổi theo môi trường phải nằm ngoài mã nguồn và có validation rõ ràng.
 - Mọi job dùng run context thống nhất: `run_id`, `[window_start_utc, window_end_utc)`, `processing_date`, input đã resolve, output logic, `is_backfill` và phiên bản cấu hình nếu có.
 - Input/output của run hoặc backfill phải được resolve rõ; không dùng wildcard rộng.

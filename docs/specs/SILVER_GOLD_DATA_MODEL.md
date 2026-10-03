@@ -17,6 +17,12 @@ Phạm vi nguồn, timezone và source priority kế thừa từ [source coverag
 contract](./SOURCE_COVERAGE.md). Bronze lineage kế thừa từ [Bronze storage
 contract](./BRONZE_STORAGE_CONTRACT.md).
 
+> **Lưu ý chuyển tiếp:** phần Silver/Gold v1 dưới đây vẫn còn hiệu lực, nhưng
+> `CON-03` đã chuyển sang `Needs Update` để bổ sung logical schema/lifecycle
+> `ml.dataset_manifest`, candidate, membership và summary. Xem
+> [roadmap HDBSCAN](../task/HDBSCAN_WORKSTREAM.md); không hiểu việc contract này
+> chưa có `ml.*` là các bảng đó nằm ngoài phạm vi.
+
 ## 1. Quyết định tóm tắt
 
 | Nội dung | Quyết định |

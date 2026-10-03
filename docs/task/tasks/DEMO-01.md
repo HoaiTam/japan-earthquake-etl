@@ -1,15 +1,15 @@
 ---
 task_id: "DEMO-01"
 status: "Backlog"
-week: 6
-block: "H - QA & Release"
+week: 8
+block: "K - QA & Release"
 workstream: "Demo"
 scope: "Core"
 priority: "P0"
 effort_hours: 4
 assignee: "unassigned"
 reviewer: "unassigned"
-dependencies: ["BI-05", "QA-01"]
+dependencies: ["QA-01", "MLQ-01", "MLI-04"]
 ---
 
 # DEMO-01 - Chuẩn bị dữ liệu và kịch bản demo
@@ -20,12 +20,12 @@ Dùng để trình bày rõ giá trị của từng tầng dữ liệu và giả
 
 ## Phạm vi công việc
 
-Chọn daily window nhỏ, một số năm JMA đại diện, fixture dự phòng, SQL kiểm chứng, ảnh/log và thứ tự trình bày theo block.
+Chọn daily/JMA evidence đại diện và một dataset/experiment nhỏ; chuẩn bị SQL, static report, ảnh/log, fixture/bundle fallback và thứ tự trình bày từ source đến HDBSCAN.
 
 ## Thành phần cần có
 
-- **Đầu vào và contract:** [BI-05](./BI-05.md), [QA-01](./QA-01.md)
-- **Phần triển khai:** Chọn daily window nhỏ, một số năm JMA đại diện, fixture dự phòng, SQL kiểm chứng, ảnh/log và thứ tự trình bày theo block.
+- **Đầu vào và contract:** [QA-01](./QA-01.md), [MLQ-01](./MLQ-01.md), [MLI-04](./MLI-04.md)
+- **Phần triển khai:** Trình bày Bronze/Silver/Gold ngắn gọn rồi tập trung dataset manifest, feature, comparison, import gate và ML report.
 - **Kết quả bàn giao:** Demo package và preflight checklist.
 - **Kiểm thử và evidence:** Kiểm tra từng acceptance criterion, lưu lệnh chạy/log/report có thể lặp lại và cập nhật mục Evidence bên dưới.
 
@@ -35,14 +35,16 @@ Chọn daily window nhỏ, một số năm JMA đại diện, fixture dự phòn
 
 ## Tiêu chí hoàn thành
 
-- [ ] Demo có fallback mạng/ODBC.
+- [ ] Demo có fallback mạng/Drive/Colab và không phụ thuộc Power BI.
 - [ ] mọi con số có run_id/query evidence.
 - [ ] không cần chạy lại 40 năm trên sân khấu.
+- [ ] Nêu rõ output là aftershock candidate, không phải dự đoán/quan hệ nhân quả.
 
 ## Hard dependency
 
-- [BI-05](./BI-05.md)
 - [QA-01](./QA-01.md)
+- [MLQ-01](./MLQ-01.md)
+- [MLI-04](./MLI-04.md)
 
 ## Cách triển khai và phối hợp
 
@@ -80,6 +82,6 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Tài liệu liên quan
 
-- [Kế hoạch 6 tuần](../README.md)
+- [Kế hoạch 8 tuần](../README.md)
 - [Các khối công việc](../WORK_BLOCKS.md)
 - [Baseline MVP, KPI và Definition of Done](../../specs/MVP_SCOPE_KPI_AND_DOD.md)

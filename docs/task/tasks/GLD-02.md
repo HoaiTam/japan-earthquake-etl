@@ -4,8 +4,8 @@ status: "Backlog"
 week: 4
 block: "E - Gold & Serving"
 workstream: "Aggregates"
-scope: "Core"
-priority: "P1"
+scope: "Stretch"
+priority: "P2"
 effort_hours: 4
 assignee: "unassigned"
 reviewer: "unassigned"
@@ -16,7 +16,7 @@ dependencies: ["CON-03", "GLD-01"]
 
 ## Mục đích
 
-Dùng để dashboard truy vấn nhanh và có KPI đã được kiểm soát ở tầng dữ liệu.
+Dùng để tối ưu dashboard tùy chọn sau khi đường găng HDBSCAN ổn định; không chặn Gold snapshot hoặc ML dataset.
 
 ## Phạm vi công việc
 
@@ -56,6 +56,7 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 ## Ranh giới
 
 - Không tự mở rộng sang deliverable của task khác.
+- Không được trở thành hard dependency của `GLD-03`, `MLD-*` hoặc `MLQ-01`.
 - Không đổi contract upstream trong PR implementation mà không cập nhật task contract liên quan và có review.
 - Không commit secret, credential, payload nhạy cảm, data dump lớn hoặc artifact build không cần thiết.
 - Không đánh dấu `Done` nếu chưa có evidence kiểm tra được.
@@ -79,6 +80,6 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Tài liệu liên quan
 
-- [Kế hoạch 6 tuần](../README.md)
+- [Kế hoạch 8 tuần](../README.md)
 - [Các khối công việc](../WORK_BLOCKS.md)
 - [Baseline MVP, KPI và Definition of Done](../../specs/MVP_SCOPE_KPI_AND_DOD.md)

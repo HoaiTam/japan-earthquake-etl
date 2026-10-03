@@ -12,7 +12,7 @@ reviewer: "unassigned"
 dependencies: ["CON-02", "CON-03"]
 ---
 
-# ORC-01 - Hoàn thiện DAG end-to-end theo contract
+# ORC-01 - Hoàn thiện DAG ETL đến Gold theo contract
 
 ## Mục đích
 
@@ -20,7 +20,7 @@ Dùng làm khung tích hợp sớm; nhóm Airflow không phải chờ toàn bộ
 
 ## Phạm vi công việc
 
-Nối source readiness, Bronze, Silver, Gold, verify và publish; truyền run context; cho phép dùng mock/fixture trong lúc block nguồn chưa xong.
+Nối source readiness, Bronze, Silver, Gold, verify và publish; truyền run context; cho phép dùng mock/fixture trong lúc block nguồn chưa xong. DAG kết thúc ở Gold Published và không chờ Colab.
 
 ## Thành phần cần có
 
@@ -56,6 +56,7 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Ranh giới
 
+- Build/import ML là hai DAG riêng thuộc `MLI-02` và `MLI-03`; không đặt external Colab step vào daily critical path.
 - Không tự mở rộng sang deliverable của task khác.
 - Không đổi contract upstream trong PR implementation mà không cập nhật task contract liên quan và có review.
 - Không commit secret, credential, payload nhạy cảm, data dump lớn hoặc artifact build không cần thiết.
@@ -80,6 +81,6 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Tài liệu liên quan
 
-- [Kế hoạch 6 tuần](../README.md)
+- [Kế hoạch 8 tuần](../README.md)
 - [Các khối công việc](../WORK_BLOCKS.md)
 - [Baseline MVP, KPI và Definition of Done](../../specs/MVP_SCOPE_KPI_AND_DOD.md)

@@ -37,7 +37,8 @@ Thư mục này là nguồn tài liệu chính thức cho dự án **Nền tản
 | Thiết kế báo cáo Power BI | [Đặc tả dashboard](./ANALYTICS_DASHBOARD.md) |
 | Cài đặt và vận hành trên máy local | [Runbook local](./LOCAL_OPERATIONS_RUNBOOK.md) |
 | Chuẩn bị buổi trình diễn | [Kịch bản demo](./DEMO_FLOWS.md) |
-| Pick và theo dõi task trong 6 tuần | [Kế hoạch task](./task/README.md) |
+| Hiểu roadmap Gold → HDBSCAN → ML Iceberg | [Roadmap HDBSCAN](./task/HDBSCAN_WORKSTREAM.md) |
+| Pick và theo dõi task trong 8 tuần | [Kế hoạch task](./task/README.md) |
 | Làm việc với Git | [Git workflow](./conventions_and_workflow/GIT_WORKFLOW.md) |
 | Viết commit thống nhất | [Commit convention](./conventions_and_workflow/COMMIT_CONVENTION.md) |
 
@@ -77,6 +78,7 @@ docs/
 ├── task/
 │   ├── README.md
 │   ├── WORK_BLOCKS.md
+│   ├── HDBSCAN_WORKSTREAM.md
 │   └── tasks/
 │       ├── README.md
 │       └── <TASK-ID>.md
@@ -90,11 +92,11 @@ docs/
 Đã bao gồm:
 
 - Mục tiêu, phạm vi, yêu cầu chức năng và phi chức năng.
-- Kiến trúc local-first với Airflow, Spark, MinIO, Iceberg, Trino và Power BI.
+- Kiến trúc local-first với Airflow, Spark, MinIO, Iceberg, Trino và HDBSCAN; Power BI là phần trình bày tùy chọn.
 - Happy path, backfill, retry, idempotency và các điểm kiểm soát dữ liệu.
 - KPI, bố cục dashboard, quy trình demo và runbook vận hành.
 - Cấu trúc repository, ownership module và mount contract.
-- Backlog 6 tuần bằng Markdown, với một file riêng cho từng task để pick, review và lưu evidence.
+- Backlog 8 tuần bằng Markdown, với một file riêng cho từng task để pick, review và lưu evidence.
 - Quy ước Git và commit cho nhóm.
 
 Chưa bao gồm theo phạm vi hiện tại:

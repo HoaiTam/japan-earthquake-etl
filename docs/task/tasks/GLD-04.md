@@ -16,11 +16,11 @@ dependencies: ["GLD-03"]
 
 ## Mục đích
 
-Dùng làm giao diện SQL ổn định cho Power BI và kiểm chứng độc lập với Spark.
+Dùng làm giao diện SQL ổn định để kiểm chứng Gold độc lập với Spark và cung cấp snapshot đã Published cho ML; Power BI chỉ là consumer tùy chọn.
 
 ## Phạm vi công việc
 
-Khai báo schema/views cho BI; kiểm tra uniqueness, completeness, aggregate consistency, snapshot freshness và sample queries.
+Khai báo schema/views Gold; kiểm tra uniqueness, completeness, source/catalog era, aggregate consistency và snapshot freshness; cung cấp query resolve snapshot cho `MLD-01`.
 
 ## Thành phần cần có
 
@@ -37,7 +37,7 @@ Khai báo schema/views cho BI; kiểm tra uniqueness, completeness, aggregate co
 
 - [ ] Trino đọc current snapshot.
 - [ ] mọi blocker đạt trước Published.
-- [ ] schema BI khớp contract.
+- [ ] schema Gold/ML input khớp contract và snapshot ID truy vết được.
 
 ## Hard dependency
 
@@ -79,6 +79,6 @@ Khai báo schema/views cho BI; kiểm tra uniqueness, completeness, aggregate co
 
 ## Tài liệu liên quan
 
-- [Kế hoạch 6 tuần](../README.md)
+- [Kế hoạch 8 tuần](../README.md)
 - [Các khối công việc](../WORK_BLOCKS.md)
 - [Baseline MVP, KPI và Definition of Done](../../specs/MVP_SCOPE_KPI_AND_DOD.md)

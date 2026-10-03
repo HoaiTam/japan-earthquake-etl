@@ -16,16 +16,16 @@ dependencies: ["CON-03", "CON-04"]
 
 ## Mục đích
 
-Dùng làm dataset chi tiết duy nhất cho phân tích và tránh để Power BI tự xử lý logic nguồn.
+Dùng làm dataset canonical duy nhất cho phân tích và ML, tránh double count JMA–USGS hoặc để consumer tự lặp lại logic nguồn.
 
 ## Phạm vi công việc
 
-Tạo event current với khóa canonical, time/location, magnitude/depth, source coverage; tạo date/region/source và magnitude/depth bands.
+Tạo `gold.earthquake_event_current` với canonical key, time/location, magnitude/depth/type, JMA catalog era, quality/source coverage và provenance bridge. Dimensions/bands chỉ giữ phần cần cho kiểm chứng; dashboard aggregates thuộc `GLD-02` Stretch.
 
 ## Thành phần cần có
 
 - **Đầu vào và contract:** [CON-03](./CON-03.md), [CON-04](./CON-04.md)
-- **Phần triển khai:** Tạo event current với khóa canonical, time/location, magnitude/depth, source coverage; tạo date/region/source và magnitude/depth bands.
+- **Phần triển khai:** Tạo event current/bridge đủ field cho filter ML: natural event, study area, primary JMA, `UNIFIED`, quality status và source lineage.
 - **Kết quả bàn giao:** Gold event transformation, dimension/band mapping và tests.
 - **Kiểm thử và evidence:** Kiểm tra từng acceptance criterion, lưu lệnh chạy/log/report có thể lặp lại và cập nhật mục Evidence bên dưới.
 
@@ -39,6 +39,7 @@ Tạo event current với khóa canonical, time/location, magnitude/depth, sourc
 - [ ] null policy đúng.
 - [ ] giá trị biên band không chồng lấn.
 - [ ] count giải thích được từ Silver.
+- [ ] Các field bắt buộc cho MLD audit/filter có giá trị và provenance đúng contract.
 
 ## Hard dependency
 
@@ -81,6 +82,6 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Tài liệu liên quan
 
-- [Kế hoạch 6 tuần](../README.md)
+- [Kế hoạch 8 tuần](../README.md)
 - [Các khối công việc](../WORK_BLOCKS.md)
 - [Baseline MVP, KPI và Definition of Done](../../specs/MVP_SCOPE_KPI_AND_DOD.md)

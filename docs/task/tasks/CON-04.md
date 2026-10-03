@@ -84,6 +84,6 @@ Có thể bắt đầu ngay. Chốt output contract hoặc fixture nhỏ trướ
 - [Source coverage contract](../../specs/SOURCE_COVERAGE.md)
 - [Bronze storage contract](../../specs/BRONZE_STORAGE_CONTRACT.md)
 - [Silver/Gold logical model](../../specs/SILVER_GOLD_DATA_MODEL.md)
-- [Kế hoạch 6 tuần](../README.md)
+- [Kế hoạch 8 tuần](../README.md)
 - [Các khối công việc](../WORK_BLOCKS.md)
 - [Baseline MVP, KPI và Definition of Done](../../specs/MVP_SCOPE_KPI_AND_DOD.md)

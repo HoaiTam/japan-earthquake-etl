@@ -1,6 +1,6 @@
 ---
 task_id: "PLN-01"
-status: "Done"
+status: "Needs Update"
 week: 1
 block: "Foundation"
 workstream: "Planning"
@@ -20,13 +20,13 @@ Cố định ranh giới MVP, KPI và Definition of Done để cả nhóm dùng 
 
 ## Phạm vi công việc
 
-Rà tài liệu hiện tại, chốt phạm vi MVP, phần Stretch, KPI và tiêu chí bàn giao.
+Rà tài liệu hiện tại, chốt phạm vi MVP, phần Stretch, KPI và tiêu chí bàn giao. Bản cập nhật phải đưa quy trình nhận diện chuỗi dư chấn bằng Window/DBSCAN/HDBSCAN vào Core, chuyển Power BI thành phần tùy chọn và giữ rõ giới hạn đây là clustering hồi cứu, không phải dự đoán động đất.
 
 ## Thành phần cần có
 
 - **Đầu vào và contract:** Không có hard dependency.
-- **Phần triển khai:** Rà tài liệu hiện tại, chốt phạm vi MVP, phần Stretch, KPI và tiêu chí bàn giao.
-- **Kết quả bàn giao:** Biên bản scope và checklist DoD được cập nhật trong docs.
+- **Phần triển khai:** Cập nhật baseline theo luồng Gold snapshot → ML dataset → Colab experiment → validate/import → Iceberg `ml.*` → static report; phân loại lại Power BI và KPI nghiệm thu.
+- **Kết quả bàn giao:** Biên bản scope, đường găng, capacity 8 tuần và checklist DoD HDBSCAN được cập nhật trong docs.
 - **Kiểm thử và evidence:** Kiểm tra từng acceptance criterion, lưu lệnh chạy/log/report có thể lặp lại và cập nhật mục Evidence bên dưới.
 
 ## Deliverable
@@ -36,7 +36,8 @@ Rà tài liệu hiện tại, chốt phạm vi MVP, phần Stretch, KPI và tiê
 ## Tiêu chí hoàn thành
 
 - [x] Ba thành viên thống nhất phạm vi.
-- [x] không còn yêu cầu mơ hồ trên đường găng.
+- [ ] Phương án HDBSCAN, dataset/experiment lifecycle và ranh giới không dự đoán được đưa vào baseline chính thức.
+- [ ] Core/Stretch, đường găng, effort và Definition of Done mới được ba thành viên xác nhận.
 
 ## Hard dependency
 
@@ -47,7 +48,7 @@ Rà tài liệu hiện tại, chốt phạm vi MVP, phần Stretch, KPI và tiê
 Có thể bắt đầu ngay. Chốt output contract hoặc fixture nhỏ trước để các task tiêu thụ có thể làm song song.
 
 1. Xác nhận hard dependency và đọc contract/tài liệu liên quan.
-2. Tạo branch mới từ `main`: `docs/pln-01-chot-scope-kpi-va-definition`.
+2. Tạo branch mới từ `main`: `docs/pln-01-hdbscan-scope-update`.
 3. Triển khai đúng phạm vi; dùng fixture nhỏ, xác định được và không phụ thuộc mạng cho unit test.
 4. Chạy test/check phù hợp, đối chiếu acceptance criteria và cập nhật tài liệu nếu contract hoặc hành vi thay đổi.
 5. Cập nhật `status`, `assignee`, `reviewer` và Evidence ngay trong file này khi mở PR hoặc hoàn tất review.
@@ -61,23 +62,24 @@ Có thể bắt đầu ngay. Chốt output contract hoặc fixture nhỏ trướ
 
 ## Theo dõi
 
-- **Trạng thái:** Done
+- **Trạng thái:** Needs Update
 - **Assignee:** Chưa ghi lại
 - **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** [PR #3](https://github.com/HoaiTam/japan-earthquake-etl/pull/3)
+- **Evidence / PR:** Baseline cũ đã hoàn tất tại [PR #3](https://github.com/HoaiTam/japan-earthquake-etl/pull/3). Cần cập nhật vì baseline cũ đặt Data Science ngoài phạm vi, bắt buộc Power BI và chưa có lifecycle dataset/experiment HDBSCAN.
 - **Kỹ năng phù hợp:** Phân tích yêu cầu, tài liệu
 
 ## Checklist bàn giao
 
-- [x] Deliverable đã có trong repository hoặc môi trường demo.
-- [x] Acceptance criteria đã được kiểm tra.
-- [x] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
-- [x] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
+- [ ] Deliverable cập nhật đã có trong repository hoặc môi trường demo.
+- [ ] Acceptance criteria mới đã được kiểm tra.
+- [ ] Test/check tài liệu đạt hoặc có evidence thủ công có thể lặp lại.
+- [ ] Baseline, roadmap và task downstream đã đồng bộ.
 - [x] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
-- [x] P0/P1 có reviewer khác assignee xác nhận.
+- [ ] Reviewer độc lập xác nhận baseline HDBSCAN cập nhật (khuyến nghị, không chặn `Done`).
 
 ## Tài liệu liên quan
 
-- [Kế hoạch 6 tuần](../README.md)
+- [Kế hoạch 8 tuần](../README.md)
+- [Roadmap HDBSCAN](../HDBSCAN_WORKSTREAM.md)
 - [Các khối công việc](../WORK_BLOCKS.md)
 - [Baseline MVP, KPI và Definition of Done](../../specs/MVP_SCOPE_KPI_AND_DOD.md)

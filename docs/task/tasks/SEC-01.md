@@ -2,7 +2,7 @@
 task_id: "SEC-01"
 status: "Backlog"
 week: 6
-block: "H - QA & Release"
+block: "K - QA & Release"
 workstream: "Security"
 scope: "Core"
 priority: "P1"
@@ -20,7 +20,7 @@ Dùng để bảo đảm source credentials và storage không bị lộ khi nh�
 
 ## Phạm vi công việc
 
-Kiểm tra env, Git history, logs, default credentials, exposed ports, DSN và bucket permissions cho toàn bộ block mới.
+Kiểm tra env, Git history, logs, default credentials, exposed ports, DSN, Drive handoff và bucket/prefix permissions cho ETL lẫn ML artifacts.
 
 ## Thành phần cần có
 
@@ -38,6 +38,7 @@ Kiểm tra env, Git history, logs, default credentials, exposed ports, DSN và b
 - [ ] Không có secret trong repo/log.
 - [ ] chỉ port cần thiết được expose.
 - [ ] sample config không chứa credential thật.
+- [ ] Colab không có MinIO/pipeline credential và result bundle không rò local account path.
 
 ## Hard dependency
 
@@ -79,6 +80,6 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Tài liệu liên quan
 
-- [Kế hoạch 6 tuần](../README.md)
+- [Kế hoạch 8 tuần](../README.md)
 - [Các khối công việc](../WORK_BLOCKS.md)
 - [Baseline MVP, KPI và Definition of Done](../../specs/MVP_SCOPE_KPI_AND_DOD.md)

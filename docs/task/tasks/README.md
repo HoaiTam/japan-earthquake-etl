@@ -7,27 +7,29 @@ Mỗi task là một file độc lập và là nguồn theo dõi chính cho ph�
 1. Đổi `status` và mục **Theo dõi** sang `In Progress` ngay sau khi tạo branch.
 2. Điền assignee; nếu có reviewer thì reviewer phải là người khác assignee.
 3. Chỉ đánh dấu checklist khi có test/evidence kiểm tra được.
-4. Khi công việc còn chờ kiểm tra để hoàn tất, dùng `Review`; khi deliverable,
+4. Dùng `Needs Update` khi một task từng hoàn tất nhưng baseline/contract mới
+   làm deliverable cũ chưa còn đủ. Khi công việc còn chờ kiểm tra để hoàn tất, dùng `Review`; khi deliverable,
    acceptance criteria, test/check, evidence và docs đã đạt thì chuyển sang
    `Done` trước khi bàn giao.
 5. Ghi link PR vào **Evidence / PR** khi PR đã được mở; chưa có link PR không
    chặn `Done` nếu evidence cục bộ đã đủ.
 
-Trạng thái hợp lệ: `Backlog`, `Ready`, `In Progress`, `Review`, `Blocked`, `Done`.
+Trạng thái hợp lệ: `Backlog`, `Ready`, `In Progress`, `Review`, `Blocked`, `Needs Update`, `Done`.
 
 ## Tổng quan
 
-- Tổng số task: **56**.
-- Foundation: **9 task đã hoàn tất**.
-- Core: **54 task**.
-- Stretch: **2 task**.
-- Tổng effort kế hoạch: **270 giờ**.
+- Tổng số task: **71**.
+- Foundation: **8 task `Done`, 1 task `Needs Update`**.
+- Task cần cập nhật do phương án HDBSCAN: **2** (`PLN-01`, `CON-03`).
+- Core: **63 task**.
+- Stretch: **8 task**.
+- Tổng effort kế hoạch: **357 giờ** cho capacity 8 tuần.
 
 ## Foundation
 
 | Task | Tuần | Workstream | Scope | Priority | Effort | Trạng thái |
 |---|---:|---|---|---|---:|---|
-| [PLN-01](./PLN-01.md) - Chốt scope, KPI và Definition of Done | 1 | Planning | Core | P0 | 4h | Done |
+| [PLN-01](./PLN-01.md) - Chốt scope, KPI và Definition of Done | 1 | Planning | Core | P0 | 4h | Needs Update |
 | [REP-01](./REP-01.md) - Scaffold cấu trúc repository | 1 | Repository | Core | P0 | 4h | Done |
 | [CFG-01](./CFG-01.md) - Thiết lập cấu hình và secret hygiene | 1 | Configuration | Core | P0 | 3h | Done |
 | [CMP-01](./CMP-01.md) - Tạo Docker Compose network và volumes | 1 | Platform | Core | P0 | 5h | Done |
@@ -44,7 +46,7 @@ Trạng thái hợp lệ: `Backlog`, `Ready`, `In Progress`, `Review`, `Blocked`
 | [CON-01](./CON-01.md) - Chốt phạm vi USGS và JMA | 2 | Source scope | Core | P0 | 5h | Done |
 | [CON-02](./CON-02.md) - Thiết kế Bronze object và manifest | 2 | Bronze contract | Core | P0 | 5h | Done |
 | [CON-04](./CON-04.md) - Chuẩn bị fixture và ma trận test dùng chung | 2 | Fixtures | Core | P1 | 3h | Done |
-| [CON-03](./CON-03.md) - Thiết kế mô hình dữ liệu Silver và Gold | 2 | Silver and Gold contract | Core | P0 | 6h | Done |
+| [CON-03](./CON-03.md) - Thiết kế mô hình dữ liệu Silver, Gold và ML | 2 | Data model contract | Core | P0 | 6h | Needs Update |
 
 ## B - USGS Bronze
 
@@ -85,7 +87,7 @@ Trạng thái hợp lệ: `Backlog`, `Ready`, `In Progress`, `Review`, `Blocked`
 | Task | Tuần | Workstream | Scope | Priority | Effort | Trạng thái |
 |---|---:|---|---|---|---:|---|
 | [GLD-01](./GLD-01.md) - Xây canonical event, dimensions và bands | 4 | Analytics model | Core | P0 | 6h | Backlog |
-| [GLD-02](./GLD-02.md) - Tạo aggregate phục vụ dashboard | 4 | Aggregates | Core | P1 | 4h | Backlog |
+| [GLD-02](./GLD-02.md) - Tạo aggregate phục vụ dashboard | 4 | Aggregates | Stretch | P2 | 4h | Backlog |
 | [GLD-03](./GLD-03.md) - Ghi Gold Iceberg và commit snapshot | 4 | Iceberg publish | Core | P0 | 6h | Backlog |
 | [GLD-04](./GLD-04.md) - Tạo Trino views và verification SQL | 4 | Trino verification | Core | P0 | 4h | Backlog |
 
@@ -93,33 +95,63 @@ Trạng thái hợp lệ: `Backlog`, `Ready`, `In Progress`, `Review`, `Blocked`
 
 | Task | Tuần | Workstream | Scope | Priority | Effort | Trạng thái |
 |---|---:|---|---|---|---:|---|
-| [ORC-01](./ORC-01.md) - Hoàn thiện DAG end-to-end theo contract | 5 | DAG skeleton | Core | P0 | 4h | Backlog |
+| [ORC-01](./ORC-01.md) - Hoàn thiện DAG ETL đến Gold theo contract | 5 | DAG skeleton | Core | P0 | 4h | Backlog |
 | [ORC-02](./ORC-02.md) - Cấu hình lịch và readiness cho hai nguồn | 5 | Scheduling | Core | P1 | 4h | Backlog |
 | [ORC-03](./ORC-03.md) - Implement backfill và reprocessing | 5 | Backfill | Core | P0 | 5h | Backlog |
 | [ORC-04](./ORC-04.md) - Chuẩn hóa logging và run summary | 5 | Observability | Core | P1 | 4h | Backlog |
 | [ORC-05](./ORC-05.md) - Chốt recovery, concurrency và tài nguyên | 5 | Recovery and resources | Core | P1 | 4h | Backlog |
 
-## G - Power BI
+## G - ML Dataset
 
 | Task | Tuần | Workstream | Scope | Priority | Effort | Trạng thái |
 |---|---:|---|---|---|---:|---|
-| [BI-01](./BI-01.md) - Tạo kết nối Trino và Power Query | 5 | Connectivity | Core | P0 | 4h | Backlog |
-| [BI-02](./BI-02.md) - Tạo semantic model và KPI measures | 5 | Semantic model | Core | P0 | 5h | Backlog |
-| [BI-03](./BI-03.md) - Xây trang Tổng quan | 5 | Overview dashboard | Core | P1 | 5h | Backlog |
-| [BI-04](./BI-04.md) - Xây trang Không gian và Độ sâu - Độ lớn | 5 | Detail dashboards | Core | P1 | 5h | Backlog |
-| [BI-05](./BI-05.md) - Thiết lập refresh và đối soát BI | 5 | Refresh and reconciliation | Core | P0 | 5h | Backlog |
+| [MLD-01](./MLD-01.md) - Pin Gold snapshot và tạo dataset manifest | 5 | Dataset identity | Core | P0 | 5h | Backlog |
+| [MLD-02](./MLD-02.md) - Audit Gold và xác định magnitude of completeness | 5 | Input audit and completeness | Core | P0 | 7h | Backlog |
+| [MLD-03](./MLD-03.md) - Chọn mainshock và tạo candidate windows | 5 | Mainshock and candidate windows | Core | P0 | 7h | Backlog |
+| [MLD-04](./MLD-04.md) - Tạo và scale feature không-thời gian 4-D | 6 | Spacetime features | Core | P0 | 6h | Backlog |
+| [MLD-05](./MLD-05.md) - Validate feature snapshot và export Parquet bundle | 6 | Feature validation and export | Core | P0 | 5h | Backlog |
 
-## H - QA & Release
+## H - Experiment
+
+| Task | Tuần | Workstream | Scope | Priority | Effort | Trạng thái |
+|---|---:|---|---|---|---:|---|
+| [EXP-01](./EXP-01.md) - Tạo Colab harness và khóa môi trường thí nghiệm | 6 | Colab harness | Core | P0 | 5h | Backlog |
+| [EXP-02](./EXP-02.md) - Chạy Window, DBSCAN và HDBSCAN global | 6 | Baseline algorithms | Core | P0 | 7h | Backlog |
+| [EXP-03](./EXP-03.md) - Xây HDBSCAN adaptive và giải quyết multi-sequence | 7 | Adaptive HDBSCAN | Core | P0 | 6h | Backlog |
+| [EXP-04](./EXP-04.md) - Đánh giá quality, physical consistency và stability | 7 | Scientific evaluation | Core | P0 | 7h | Backlog |
+| [EXP-05](./EXP-05.md) - Chạy out-of-period extension 2018-2023 | 7 | Out-of-period evaluation | Core | P0 | 5h | Backlog |
+
+## I - ML Integration
+
+| Task | Tuần | Workstream | Scope | Priority | Effort | Trạng thái |
+|---|---:|---|---|---|---:|---|
+| [MLI-01](./MLI-01.md) - Khóa result bundle và experiment lifecycle | 6 | Result bundle contract | Core | P0 | 5h | Backlog |
+| [MLI-02](./MLI-02.md) - Tạo Airflow DAG build ML dataset | 6 | Dataset build orchestration | Core | P0 | 5h | Backlog |
+| [MLI-03](./MLI-03.md) - Validate/import kết quả và commit bảng ML Iceberg | 7 | Result import and Iceberg publish | Core | P0 | 7h | Backlog |
+| [MLI-04](./MLI-04.md) - Tạo Trino views và static report cho experiment | 8 | ML serving and report | Core | P0 | 4h | Backlog |
+| [MLQ-01](./MLQ-01.md) - Chạy E2E Gold snapshot đến ML report | 8 | ML end-to-end QA | Core | P0 | 6h | Backlog |
+
+## J - Power BI tùy chọn
+
+| Task | Tuần | Workstream | Scope | Priority | Effort | Trạng thái |
+|---|---:|---|---|---|---:|---|
+| [BI-01](./BI-01.md) - Tạo kết nối Trino và Power Query | 7 | Connectivity | Stretch | P2 | 4h | Backlog |
+| [BI-02](./BI-02.md) - Tạo semantic model và KPI measures | 5 | Semantic model | Stretch | P2 | 5h | Backlog |
+| [BI-03](./BI-03.md) - Xây trang Tổng quan | 8 | Overview dashboard | Stretch | P2 | 5h | Backlog |
+| [BI-04](./BI-04.md) - Xây trang Không gian và Độ sâu - Độ lớn | 8 | Detail dashboards | Stretch | P2 | 5h | Backlog |
+| [BI-05](./BI-05.md) - Thiết lập refresh và đối soát BI | 8 | Refresh and reconciliation | Stretch | P2 | 5h | Backlog |
+
+## K - QA & Release
 
 | Task | Tuần | Workstream | Scope | Priority | Effort | Trạng thái |
 |---|---:|---|---|---|---:|---|
 | [DOC-01](./DOC-01.md) - Cập nhật tài liệu theo từng block | 6 | Documentation | Core | P0 | 4h | Ready |
-| [DEMO-01](./DEMO-01.md) - Chuẩn bị dữ liệu và kịch bản demo | 6 | Demo | Core | P0 | 4h | Backlog |
-| [DEMO-02](./DEMO-02.md) - Rehearsal và tạo release candidate | 6 | Release | Core | P0 | 6h | Backlog |
+| [DEMO-01](./DEMO-01.md) - Chuẩn bị dữ liệu và kịch bản demo | 8 | Demo | Core | P0 | 4h | Backlog |
+| [DEMO-02](./DEMO-02.md) - Rehearsal và tạo release candidate | 8 | Release | Core | P0 | 6h | Backlog |
 | [OPS-01](./OPS-01.md) - Smoke test backup và restore metadata | 6 | Backup and restore | Stretch | P2 | 4h | Backlog |
-| [QA-01](./QA-01.md) - Chạy E2E daily đa nguồn | 6 | E2E | Core | P0 | 5h | Backlog |
-| [QA-02](./QA-02.md) - Test rerun, duplicate và late revision | 6 | Idempotency | Core | P0 | 5h | Backlog |
-| [QA-03](./QA-03.md) - Kiểm thử JMA historical backfill | 6 | Historical backfill | Core | P0 | 5h | Backlog |
-| [QA-04](./QA-04.md) - Test failure và recovery theo tầng | 6 | Failure recovery | Core | P0 | 4h | Backlog |
-| [QA-05](./QA-05.md) - Profile dữ liệu lịch sử và tài nguyên local | 6 | Performance | Stretch | P2 | 4h | Backlog |
+| [QA-01](./QA-01.md) - Chạy E2E daily đa nguồn | 7 | E2E | Core | P0 | 5h | Backlog |
+| [QA-02](./QA-02.md) - Test rerun, duplicate và late revision | 7 | Idempotency | Core | P0 | 5h | Backlog |
+| [QA-03](./QA-03.md) - Kiểm thử JMA historical backfill | 7 | Historical backfill | Core | P0 | 5h | Backlog |
+| [QA-04](./QA-04.md) - Test failure và recovery theo tầng | 8 | Failure recovery | Core | P0 | 4h | Backlog |
+| [QA-05](./QA-05.md) - Profile dữ liệu lịch sử và tài nguyên local | 8 | Performance | Stretch | P2 | 4h | Backlog |
 | [SEC-01](./SEC-01.md) - Review secret và bề mặt truy cập | 6 | Security | Core | P1 | 4h | Backlog |

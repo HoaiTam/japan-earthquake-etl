@@ -9,7 +9,7 @@ priority: "P0"
 effort_hours: 6
 assignee: "unassigned"
 reviewer: "unassigned"
-dependencies: ["GLD-01", "GLD-02"]
+dependencies: ["GLD-01"]
 ---
 
 # GLD-03 - Ghi Gold Iceberg và commit snapshot
@@ -24,7 +24,7 @@ Tạo schema/table Iceberg, write affected partitions, commit snapshot, ghi snap
 
 ## Thành phần cần có
 
-- **Đầu vào và contract:** [GLD-01](./GLD-01.md), [GLD-02](./GLD-02.md)
+- **Đầu vào và contract:** [GLD-01](./GLD-01.md)
 - **Phần triển khai:** Tạo schema/table Iceberg, write affected partitions, commit snapshot, ghi snapshot_id và không publish khi quality gate thất bại.
 - **Kết quả bàn giao:** Iceberg tables, Spark write logic và commit metadata.
 - **Kiểm thử và evidence:** Kiểm tra từng acceptance criterion, lưu lệnh chạy/log/report có thể lặp lại và cập nhật mục Evidence bên dưới.
@@ -38,11 +38,11 @@ Tạo schema/table Iceberg, write affected partitions, commit snapshot, ghi snap
 - [ ] Consumer chỉ thấy snapshot hoàn chỉnh.
 - [ ] lỗi commit không đánh dấu Published.
 - [ ] rerun không tạo duplicate logic.
+- [ ] Snapshot ID/publication metadata đủ để `MLD-01` pin và time-travel.
 
 ## Hard dependency
 
 - [GLD-01](./GLD-01.md)
-- [GLD-02](./GLD-02.md)
 
 ## Cách triển khai và phối hợp
 
@@ -80,6 +80,6 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Tài liệu liên quan
 
-- [Kế hoạch 6 tuần](../README.md)
+- [Kế hoạch 8 tuần](../README.md)
 - [Các khối công việc](../WORK_BLOCKS.md)
 - [Baseline MVP, KPI và Definition of Done](../../specs/MVP_SCOPE_KPI_AND_DOD.md)

@@ -3,7 +3,7 @@
 | Thuộc tính | Giá trị |
 |---|---|
 | Task | `PLN-01` |
-| Trạng thái tài liệu | Đã phê duyệt qua `PLN-01` |
+| Trạng thái tài liệu | `Needs Update` theo phương án HDBSCAN |
 | Phạm vi | Phiên bản local-first trong kế hoạch 6 tuần |
 | Nguồn backlog | `docs/task/tasks/README.md` và `docs/task/tasks/<TASK-ID>.md` |
 
@@ -12,6 +12,12 @@
 Tài liệu này là baseline dùng để quyết định một yêu cầu thuộc MVP, Stretch hay ngoài phạm vi; thống nhất KPI phải kiểm chứng; xác định đường găng; và cung cấp Definition of Done chung cho các task.
 
 Baseline không thay thế acceptance criteria riêng của từng task. Khi có khác biệt, task phải cập nhật tài liệu liên quan trong cùng pull request.
+
+> **Lưu ý chuyển tiếp:** baseline bên dưới là quyết định đã duyệt trước khi bổ
+> sung phương án HDBSCAN. `PLN-01` hiện ở `Needs Update`; trong thời gian cập
+> nhật, dùng [roadmap HDBSCAN](../task/HDBSCAN_WORKSTREAM.md) và các task
+> `MLD/EXP/MLI/MLQ` cho Core mới. Các dòng đặt Data Science ngoài phạm vi hoặc
+> Power BI là điều kiện bắt buộc không còn dùng để chặn roadmap mới.
 
 ## 2. Kết quả MVP bắt buộc
 
