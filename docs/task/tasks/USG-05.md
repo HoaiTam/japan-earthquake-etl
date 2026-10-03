@@ -79,7 +79,7 @@ Bao phủ success, empty, invalid JSON, timeout, 429/5xx, checksum mismatch và 
 
 ## Tài liệu liên quan
 
-- [Kế hoạch 6 tuần](../README.md)
+- [Kế hoạch 8 tuần](../README.md)
 - [Các khối công việc](../WORK_BLOCKS.md)
 - [Baseline MVP, KPI và Definition of Done](../../specs/MVP_SCOPE_KPI_AND_DOD.md)
 - [USGS Bronze QA contract](../../specs/USGS_BRONZE_QA_CONTRACT.md)

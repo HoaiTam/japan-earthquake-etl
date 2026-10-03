@@ -80,6 +80,6 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Tài liệu liên quan
 
-- [Kế hoạch 6 tuần](../README.md)
+- [Kế hoạch 8 tuần](../README.md)
 - [Các khối công việc](../WORK_BLOCKS.md)
 - [Baseline MVP, KPI và Definition of Done](../../specs/MVP_SCOPE_KPI_AND_DOD.md)

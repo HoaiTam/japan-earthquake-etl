@@ -82,6 +82,6 @@ Có thể bắt đầu ngay. Chốt output contract hoặc fixture nhỏ trướ
 - [Bronze storage contract](../../specs/BRONZE_STORAGE_CONTRACT.md)
 - [MinIO storage và bootstrap contract](../../specs/MINIO_STORAGE.md)
 - [Source coverage contract](../../specs/SOURCE_COVERAGE.md)
-- [Kế hoạch 6 tuần](../README.md)
+- [Kế hoạch 8 tuần](../README.md)
 - [Các khối công việc](../WORK_BLOCKS.md)
 - [Baseline MVP, KPI và Definition of Done](../../specs/MVP_SCOPE_KPI_AND_DOD.md)
