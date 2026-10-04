@@ -19,6 +19,7 @@ Thư mục này là nguồn tài liệu chính thức cho dự án **Nền tản
 | Hiểu MinIO, bucket/prefix và cách bootstrap | [MinIO storage contract](./specs/MINIO_STORAGE.md) |
 | Hiểu Airflow local, metadata DB và DAG smoke | [Airflow local contract](./specs/AIRFLOW_LOCAL.md) |
 | Hiểu Spark standalone, Java build và smoke | [Spark standalone contract](./specs/SPARK_STANDALONE.md) |
+| Hiểu inventory, versioning và format archive JMA | [JMA archive inventory](./specs/JMA_ARCHIVE_INVENTORY.md) |
 | Hiểu Iceberg REST Catalog, Trino và query smoke | [Iceberg/Trino contract](./specs/ICEBERG_TRINO.md) |
 | Chạy full-stack foundation smoke và xử lý lỗi | [Foundation smoke contract](./specs/FOUNDATION_SMOKE.md) |
 | Hiểu các thành phần và cách chúng kết nối | [Kiến trúc hệ thống](./SYSTEM_ARCHITECTURE.md) |
@@ -51,6 +52,7 @@ docs/
 │   ├── AIRFLOW_LOCAL.md
 │   ├── MINIO_STORAGE.md
 │   ├── SPARK_STANDALONE.md
+│   ├── JMA_ARCHIVE_INVENTORY.md
 │   ├── ICEBERG_TRINO.md
 │   ├── FOUNDATION_SMOKE.md
 │   └── REPOSITORY_LAYOUT.md

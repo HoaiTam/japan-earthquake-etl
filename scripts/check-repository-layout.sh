@@ -13,6 +13,7 @@ compose/airflow
 compose/minio
 compose/spark
 compose/trino
+config/jma
 scripts
 spark/src/main/java
 spark/src/test/java
@@ -41,12 +42,14 @@ compose/spark/Dockerfile
 compose/spark/smoke.sh
 compose/trino/smoke.sh
 compose.yaml
+config/jma/hypocenter_archives_v1.csv
 docs/specs/COMPOSE_FOUNDATION.md
 docs/specs/CONFIGURATION_AND_SECRETS.md
 docs/specs/AIRFLOW_LOCAL.md
 docs/specs/FOUNDATION_SMOKE.md
 docs/specs/MINIO_STORAGE.md
 docs/specs/ICEBERG_TRINO.md
+docs/specs/JMA_ARCHIVE_INVENTORY.md
 docs/specs/REPOSITORY_LAYOUT.md
 docs/specs/SPARK_STANDALONE.md
 scripts/README.md
@@ -54,6 +57,7 @@ scripts/check-airflow.sh
 scripts/check-compose.sh
 scripts/check-config.sh
 scripts/check-foundation.sh
+scripts/check-jma-inventory.sh
 scripts/check-minio.sh
 scripts/check-query.sh
 scripts/check-spark.sh

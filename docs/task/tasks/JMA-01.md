@@ -1,6 +1,6 @@
 ---
 task_id: "JMA-01"
-status: "Backlog"
+status: "Done"
 week: 3
 block: "C - JMA Bronze"
 workstream: "Archive inventory"
@@ -31,13 +31,15 @@ Xác định dải năm, URL/file name, catalog release, format 96-byte, timezon
 
 ## Deliverable
 
-- JMA archive inventory và source-format contract.
+- [JMA archive inventory và source-format contract](../../specs/JMA_ARCHIVE_INVENTORY.md).
+- [Inventory CSV máy đọc được](../../../config/jma/hypocenter_archives_v1.csv)
+  gồm 40 năm và 41 archive entries.
 
 ## Tiêu chí hoàn thành
 
-- [ ] Mỗi năm có URL/version dự kiến.
-- [ ] ghi rõ cách nhận biết file sửa.
-- [ ] quy tắc citation và metadata không bị bỏ sót.
+- [x] Mỗi năm có URL/version dự kiến.
+- [x] Ghi rõ cách nhận biết file sửa.
+- [x] Quy tắc citation và metadata không bị bỏ sót.
 
 ## Hard dependency
 
@@ -62,23 +64,29 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
+- **Trạng thái:** Done
 - **Assignee:** Chưa ghi lại
 - **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Evidence / PR:** `./scripts/check-jma-inventory.sh` và
+  `./scripts/check-jma-inventory.sh --live` đạt ngày 2026-10-04; 41/41 URL trả
+  ZIP metadata khớp inventory. Probe tạm `h1984`, `h199701`, `h199710` và
+  `h2023` xác nhận một member/archive, mỗi record 96 byte và không commit raw
+  payload.
 - **Kỹ năng phù hợp:** JMA catalog, metadata, research
 
 ## Checklist bàn giao
 
-- [ ] Deliverable đã có trong repository hoặc môi trường demo.
-- [ ] Acceptance criteria đã được kiểm tra.
-- [ ] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
-- [ ] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
-- [ ] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
-- [ ] P0/P1 có reviewer khác assignee xác nhận.
+- [x] Deliverable đã có trong repository hoặc môi trường demo.
+- [x] Acceptance criteria đã được kiểm tra.
+- [x] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
+- [x] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
+- [x] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
+- [ ] Reviewer độc lập đã xác nhận (khuyến nghị cho P0, không chặn `Done`).
 
 ## Tài liệu liên quan
 
+- [JMA archive inventory và source-format contract](../../specs/JMA_ARCHIVE_INVENTORY.md)
+- [Inventory CSV](../../../config/jma/hypocenter_archives_v1.csv)
 - [Kế hoạch 6 tuần](../README.md)
 - [Các khối công việc](../WORK_BLOCKS.md)
 - [Baseline MVP, KPI và Definition of Done](../../specs/MVP_SCOPE_KPI_AND_DOD.md)
