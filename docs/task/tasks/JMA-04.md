@@ -1,7 +1,7 @@
 ---
 task_id: "JMA-04"
 status: "Backlog"
-week: 3
+week: 4
 block: "C - JMA Bronze"
 workstream: "Backfill orchestration"
 scope: "Core"

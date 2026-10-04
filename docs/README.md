@@ -45,6 +45,7 @@ Thư mục này là nguồn tài liệu chính thức cho dự án **Nền tản
 | Chuẩn bị buổi trình diễn | [Kịch bản demo](./DEMO_FLOWS.md) |
 | Hiểu roadmap Gold → HDBSCAN → ML Iceberg | [Roadmap HDBSCAN](./task/HDBSCAN_WORKSTREAM.md) |
 | Pick và theo dõi task trong 8 tuần | [Kế hoạch task](./task/README.md) |
+| Chia ba luồng độc lập và kiểm tra cuối tuần 3 | [Kế hoạch tuần 3](./task/WEEK_3_PARALLEL_PLAN.md) |
 | Làm việc với Git | [Git workflow](./conventions_and_workflow/GIT_WORKFLOW.md) |
 | Viết commit thống nhất | [Commit convention](./conventions_and_workflow/COMMIT_CONVENTION.md) |
 
@@ -85,6 +86,7 @@ docs/
 ├── task/
 │   ├── README.md
 │   ├── WORK_BLOCKS.md
+│   ├── WEEK_3_PARALLEL_PLAN.md
 │   ├── HDBSCAN_WORKSTREAM.md
 │   └── tasks/
 │       ├── README.md

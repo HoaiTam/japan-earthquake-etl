@@ -1,12 +1,18 @@
 # Kế hoạch task 8 tuần
 
-Backlog được lưu hoàn toàn bằng Markdown. Mỗi task có một file độc lập trong [danh mục task](./tasks/README.md); phạm vi, thành phần và mục đích của từng khối được giải thích tại [Các khối công việc sau Foundation](./WORK_BLOCKS.md).
+Backlog được lưu hoàn toàn bằng Markdown. Mỗi task có một file độc lập trong
+[danh mục task](./tasks/README.md); phạm vi, thành phần và mục đích của từng
+khối được giải thích tại [Các khối công việc sau Foundation](./WORK_BLOCKS.md).
+Phân công gần nhất nằm tại [Kế hoạch tuần 3 — ba luồng không chờ
+nhau](./WEEK_3_PARALLEL_PLAN.md).
 
 ## 1. Giả định lập kế hoạch
 
 - Nhóm có 3 thành viên.
 - Thời gian thực hiện là 8 tuần.
-- Capacity tham khảo là 15 giờ/người/tuần, tương đương 360 giờ toàn nhóm; backlog hiện dùng 357 giờ.
+- Capacity tham khảo là 15 giờ/người/tuần, tương đương 360 giờ toàn nhóm trong
+  8 tuần. Backlog có 364 giờ task vì 12 giờ data-readiness được người điều phối
+  làm trước tuần 3; 352 giờ còn lại nằm trong capacity 8 tuần.
 - Assignee, reviewer, trạng thái và evidence được cập nhật trực tiếp trong file của từng task.
 - Mỗi task chỉ có một assignee chính; nếu có reviewer thì reviewer phải là người khác assignee.
 - Task `Core` cần hoàn thành để đạt tiêu chí phiên bản đầu tiên.
@@ -23,14 +29,18 @@ Nếu capacity thực tế khác 15 giờ/người/tuần, nhóm dùng trường
 |---:|---|---|---:|
 | 1 | Foundation và môi trường local | Các service nền chạy, health check đạt, có smoke checklist | 45 giờ |
 | 2 | Contracts đa nguồn và USGS Bronze | Contract chung được chốt; USGS raw, manifest và smoke test Bronze đạt | 45 giờ |
-| 3 | JMA Bronze và parser hai nguồn | Archive JMA theo năm vào Bronze; USGS/JMA parse về cùng Silver contract | 45 giờ |
-| 4 | Silver publish, canonical event và Gold | Silver đối soát/idempotent; Gold snapshot commit và verify bằng Trino | 45 giờ |
+| Trước tuần 3 | Data readiness do người điều phối thực hiện | Live USGS Bronze, inventory JMA và catalog hai sample thật được khóa | 12 giờ |
+| 3 | Ba luồng JMA/Silver độc lập | JMA downloader/writer, hai parser, resolver, quality, lineage và Silver writer đạt unit acceptance; integration bằng hai sample nhỏ | 41 giờ task + 4 giờ review |
+| 4 | JMA orchestration, Silver integration và Gold | JMA backfill/QA, Silver dedup/link/E2E và Gold snapshot/verification tiếp tục theo dependency | 44 giờ |
 | 5 | Điều phối ETL và chuẩn bị ML dataset | DAG ETL retry/backfill hoạt động; Gold snapshot được pin; audit/Mc/mainshock/window bắt đầu | 45 giờ |
 | 6 | Feature và baseline experiment | Feature 4-D được validate/export; notebook chạy Window/DBSCAN/HDBSCAN global | 45 giờ |
 | 7 | Evaluation và ML import | Adaptive/out-of-period, stability/Omori, ETL QA và import gate được kiểm tra | 44 giờ |
 | 8 | Tích hợp, QA, tài liệu và demo | ML tables/report, E2E, recovery, demo và Power BI Stretch được xác nhận | 43 giờ |
 
-Tổng effort gồm cả task Stretch là **357 giờ**. `GLD-02`, `BI-01..05`, `QA-05` và `OPS-01` là Stretch, có thể hoãn nếu ảnh hưởng đường găng Core.
+Tổng effort gồm cả task Stretch là **364 giờ**. Sau 12 giờ pre-week, kế hoạch
+còn **352 giờ task** trong 8 tuần; 8 giờ capacity không gắn task, trong đó 4 giờ
+được giữ cho review/integration tuần 3. `GLD-02`, `BI-01..05`, `QA-05` và `OPS-01` là Stretch, có
+thể hoãn nếu ảnh hưởng đường găng Core.
 
 ## 3. Khối công việc sau Foundation
 
@@ -38,8 +48,8 @@ Các task được chia thành mười một khối để nhóm có thể giao n
 
 | Khối | Task | Phạm vi | Mục đích |
 |---|---|---|---|
-| A - Hợp đồng dữ liệu | `CON-01..04` | Phạm vi nguồn, Bronze contract, Silver/Gold/ML model và fixture | Tạo giao diện chung trước khi code để các khối khác làm song song |
-| B - USGS Bronze | `USG-01..05` | Request, HTTP client, raw writer, Airflow và tests | Cung cấp dữ liệu cập nhật hằng ngày có thể audit |
+| A - Hợp đồng dữ liệu | `CON-01..04`, `DAT-01` | Phạm vi nguồn, Bronze contract, Silver/Gold/ML model, fixture và catalog sample thật | Tạo giao diện/input chung trước khi code để các khối khác làm song song |
+| B - USGS Bronze | `USG-01..06` | Request, HTTP client, raw writer, Airflow, tests và live MinIO runner | Cung cấp dữ liệu cập nhật hằng ngày có thể audit và một manifest thật để tích hợp |
 | C - JMA Bronze | `JMA-01..05` | Inventory 40 năm, downloader, versioning, Bronze và backfill | Cung cấp lịch sử JMA bất biến theo catalog release |
 | D - Silver đa nguồn | `SLV-01..09` | Parser, normalize, lineage, quality, dedup, source linking và Parquet | Tạo observation chuẩn và tránh double count hai nguồn |
 | E - Gold & Serving | `GLD-01..04` | Canonical event, Iceberg snapshot, Trino verification; dashboard aggregate là Stretch | Tạo lớp bảng/SQL ổn định cho ML và analytics |
@@ -98,11 +108,19 @@ Một task chỉ được xem là `Done` khi:
 ## 7. Giảm phụ thuộc và làm song song
 
 - Block B và C triển khai song song sau khi `CON-01` chốt phạm vi nguồn.
+- `USG-06`, `JMA-01` và `DAT-01` khóa hai sample thật trước tuần 3; sample chỉ
+  dùng cho integration, còn unit test tiếp tục dùng fixture xác định.
 - Parser `SLV-02` và `SLV-03` triển khai song song bằng fixture sau `CON-03`/`CON-04`; không cần chờ downloader hoàn chỉnh.
 - Gold và Airflow ETL có thể phát triển với Silver fixture/mock; notebook và result validator có thể phát triển bằng feature/result bundle nhỏ trước khi Gold thật sẵn sàng.
 - `MLD-01/02`, `EXP-01` và `MLI-01` khóa contract/fixture độc lập để ba luồng Dataset, Experiment và Import làm song song.
-- Chỉ các integration gate `USG-05`, `JMA-05`, `SLV-09`, `GLD-04`, `QA-01` và `MLQ-01` mới chờ output chạy thật của nhiều khối.
+- `USG-05` là gate bằng fixture/mock; `USG-06` là gate chạy thật USGS → MinIO.
+  Các integration gate đa khối còn lại là `JMA-05`, `SLV-09`, `GLD-04`,
+  `QA-01` và `MLQ-01`.
 - Nếu dependency chưa sẵn sàng, assignee vẫn có thể hoàn thành test plan, fixture, interface, query hoặc dashboard mock; không tự đổi contract đã chốt.
+
+Ba luồng, handoff contract và checklist kiểm tra cuối tuần được chốt trong
+[kế hoạch tuần 3](./WEEK_3_PARALLEL_PLAN.md). Mỗi task vẫn dùng branch/PR riêng;
+không gộp cả một luồng vào một branch.
 
 ## 8. Điều chỉnh kế hoạch
 

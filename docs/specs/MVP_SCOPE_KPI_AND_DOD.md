@@ -4,7 +4,7 @@
 |---|---|
 | Task | `PLN-01` |
 | Trạng thái tài liệu | Baseline HDBSCAN hiện hành |
-| Kế hoạch | 8 tuần, 3 thành viên, 357 giờ trên capacity tham khảo 360 giờ |
+| Kế hoạch | 8 tuần, 3 thành viên, 364 giờ task; 12 giờ data-readiness trước tuần 3 và 352 giờ trong capacity tham khảo 360 giờ |
 | Nguồn backlog | [`docs/task/tasks/README.md`](../task/tasks/README.md) và file riêng của từng task |
 | Roadmap kỹ thuật | [Roadmap HDBSCAN từ Gold đến ML Iceberg](../task/HDBSCAN_WORKSTREAM.md) |
 
