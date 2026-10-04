@@ -14,6 +14,9 @@ Hiện có:
   `CFG-01`; dùng `--require-local` trước runtime và không in giá trị cấu hình.
 - `check-compose.sh`: validate Compose schema, network, named volumes và
   lifecycle labels cho `CMP-01` mà không khởi động service.
+- `check-jma-inventory.sh`: kiểm tra offline đủ 40 năm/41 archive, URL,
+  interval JST, era và source-format contract của `JMA-01`; thêm `--live` để
+  đối soát HTTP header mà không tải toàn bộ archive.
 - `check-minio.sh`: validate service, image pin, healthcheck, mount, dependency
   và host exposure của `MIO-01` mà không khởi động container.
 - `smoke-minio.sh`: dùng `.env` local để bootstrap MinIO và kiểm tra ghi/đọc

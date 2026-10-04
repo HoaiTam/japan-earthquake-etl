@@ -31,6 +31,9 @@ project-root/
 ├── mvnw
 ├── mvnw.cmd
 ├── pom.xml
+├── config/
+│   └── jma/
+│       └── hypocenter_archives_v1.csv
 ├── airflow/
 │   ├── README.md
 │   ├── dags/
@@ -61,6 +64,7 @@ project-root/
 │       ├── CONFIGURATION_AND_SECRETS.md
 │       ├── MINIO_STORAGE.md
 │       ├── SPARK_STANDALONE.md
+│       ├── JMA_ARCHIVE_INVENTORY.md
 │       ├── ICEBERG_TRINO.md
 │       ├── FOUNDATION_SMOKE.md
 │       ├── USGS_REQUEST_CONTRACT.md
@@ -75,6 +79,7 @@ project-root/
 │   ├── check-compose.sh
 │   ├── check-config.sh
 │   ├── check-foundation.sh
+│   ├── check-jma-inventory.sh
 │   ├── check-minio.sh
 │   ├── check-query.sh
 │   ├── check-repository-layout.sh
@@ -123,6 +128,7 @@ không tạo Maven module cạnh tranh. Maven `groupId` có thể giữ định 
 |---|---|---|
 | `airflow/dags/` | DAG và helper chỉ phục vụ DAG | Secret, log, database Airflow |
 | `airflow/tests/` | Unit/import test cho DAG | Test Spark hoặc test E2E Compose |
+| `config/jma/` | Inventory source machine-readable đã review | Credential, raw ZIP hoặc metadata runtime |
 | `spark/` | Maven module, Java source và unit fixture | JAR/`target/` đã build |
 | `trino/catalog/` | Catalog properties không chứa secret | Password hoặc access key thật |
 | `compose/` | Script init/healthcheck và asset cho service | `compose.yaml`; file này đặt tại root |
