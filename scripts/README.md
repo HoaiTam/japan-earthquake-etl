@@ -49,7 +49,8 @@ Hiện có:
   `BronzeReady`/`Rejected` và retry rule của `CON-02`; không gọi mạng hoặc
   truy cập MinIO.
 - `check-data-model-contract.sh`: kiểm tra dataset, field, lineage, null policy,
-  bands và KPI bắt buộc của logical model Silver/Gold `CON-03`.
+  bands và KPI Silver/Gold cùng grain, lifecycle, enum, reason code và publish
+  gate ML bắt buộc của contract `CON-03`; không gọi mạng.
 - `build-shared-fixtures.sh`: tái tạo JMA fixed-width/ZIP và checksum xác định
   của `CON-04` sau khi maintainer chủ động đổi fixture.
 - `check-shared-fixtures.sh`: kiểm tra coverage test matrix, GeoJSON, JMA record

@@ -73,6 +73,6 @@ khóa schema; evidence thật cần import snapshot từ `MLI-03`.
 ## Tài liệu liên quan
 
 - [Roadmap HDBSCAN](../HDBSCAN_WORKSTREAM.md)
+- [ML logical data model](../../specs/ML_DATA_MODEL.md)
 - [MLI-03](./MLI-03.md)
 - [EXP-04](./EXP-04.md)
-

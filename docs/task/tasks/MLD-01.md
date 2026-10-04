@@ -75,5 +75,5 @@ chặn trạng thái `Done`.
 
 - [Roadmap HDBSCAN](../HDBSCAN_WORKSTREAM.md)
 - [Logical data model](../../specs/SILVER_GOLD_DATA_MODEL.md)
+- [ML logical data model](../../specs/ML_DATA_MODEL.md)
 - [GLD-04](./GLD-04.md)
-

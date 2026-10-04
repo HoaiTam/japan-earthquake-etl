@@ -20,7 +20,7 @@ Trạng thái hợp lệ: `Backlog`, `Ready`, `In Progress`, `Review`, `Blocked`
 
 - Tổng số task: **71**.
 - Foundation: **9 task `Done`**.
-- Task còn cần cập nhật do phương án HDBSCAN: **1** (`CON-03`).
+- Task còn ở trạng thái `Needs Update`: **0**.
 - Core: **63 task**.
 - Stretch: **8 task**.
 - Tổng effort kế hoạch: **357 giờ** cho capacity 8 tuần.
@@ -46,7 +46,7 @@ Trạng thái hợp lệ: `Backlog`, `Ready`, `In Progress`, `Review`, `Blocked`
 | [CON-01](./CON-01.md) - Chốt phạm vi USGS và JMA | 2 | Source scope | Core | P0 | 5h | Done |
 | [CON-02](./CON-02.md) - Thiết kế Bronze object và manifest | 2 | Bronze contract | Core | P0 | 5h | Done |
 | [CON-04](./CON-04.md) - Chuẩn bị fixture và ma trận test dùng chung | 2 | Fixtures | Core | P1 | 3h | Done |
-| [CON-03](./CON-03.md) - Thiết kế mô hình dữ liệu Silver, Gold và ML | 2 | Data model contract | Core | P0 | 6h | Needs Update |
+| [CON-03](./CON-03.md) - Thiết kế mô hình dữ liệu Silver, Gold và ML | 2 | Data model contract | Core | P0 | 6h | Done |
 
 ## B - USGS Bronze
 

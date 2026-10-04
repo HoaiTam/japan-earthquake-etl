@@ -50,7 +50,7 @@ grep -F -- '| [PLN-01](./PLN-01.md) - Chốt scope, KPI và Definition of Done |
     fail "task index does not mark PLN-01 Done"
 grep -F -- '| `PLN-01` | `Done` |' "$roadmap" >/dev/null || \
     fail "HDBSCAN roadmap does not mark PLN-01 Done"
-grep -F -- '| `CON-03` | `Needs Update` |' "$roadmap" >/dev/null || \
-    fail "CON-03 update requirement was lost"
+grep -F -- '| `CON-03` | `Done` |' "$roadmap" >/dev/null || \
+    fail "HDBSCAN roadmap does not mark CON-03 Done"
 
 printf 'PLN-01 HDBSCAN MVP baseline check passed.\n'

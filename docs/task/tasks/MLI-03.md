@@ -23,7 +23,8 @@ không được ghi partial table hoặc sửa Gold core.
 
 - Tạo Airflow import DAG: receive run → download/stage → verify checksum → validate dataset/config/schema/grain/lineage → commit → register artifacts.
 - Spark validate ID tồn tại trong candidate snapshot, probability/range, noise/cluster, role/time và summary reconciliation.
-- Commit idempotent `ml.sequence_membership`, `ml.sequence_summary` và experiment metadata bằng Iceberg snapshot.
+- Commit idempotent `ml.sequence_membership`, `ml.sequence_summary` và
+  `ml.experiment_run` metadata bằng Iceberg snapshot.
 - Ghi rejected reason/evidence; chỉ publish `CANDIDATE` sau verify.
 
 ## Deliverable
@@ -74,6 +75,6 @@ trước khi Colab sinh output thật.
 ## Tài liệu liên quan
 
 - [Roadmap HDBSCAN](../HDBSCAN_WORKSTREAM.md)
+- [ML logical data model](../../specs/ML_DATA_MODEL.md)
 - [MLI-01](./MLI-01.md)
 - [GLD-03](./GLD-03.md)
-

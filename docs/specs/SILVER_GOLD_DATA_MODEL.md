@@ -1,27 +1,28 @@
 ---
 contract_id: "CON-03"
-contract_version: "1.0"
-status: "Draft"
+contract_version: "2.0"
+status: "Active"
 silver_schema_version: "1.0"
 gold_schema_version: "1.0"
+ml_schema_version: "1.0"
 ---
 
-# Logical data model: Silver và Gold
+# Logical data model: Silver, Gold và ML
 
 Tài liệu này là hợp đồng tên trường, kiểu dữ liệu, null policy, lineage,
-canonical event và KPI dùng chung cho parser USGS/JMA, quality rules, Spark,
-Iceberg, Trino và Power BI. Đây là logical model; catalog/schema/table DDL vật
-lý, partition transform và merge implementation thuộc các task triển khai sau.
+canonical event và ranh giới Gold → ML dùng chung cho parser USGS/JMA, quality
+rules, Spark, Colab, Airflow, Iceberg, Trino và consumer tùy chọn. Đây là
+logical model; catalog/schema/table DDL vật lý, partition transform và merge
+implementation thuộc các task triển khai sau.
 
 Phạm vi nguồn, timezone và source priority kế thừa từ [source coverage
 contract](./SOURCE_COVERAGE.md). Bronze lineage kế thừa từ [Bronze storage
-contract](./BRONZE_STORAGE_CONTRACT.md).
+contract](./BRONZE_STORAGE_CONTRACT.md). Schema, grain, null policy, lineage,
+lifecycle và reason code của namespace `ml` nằm tại [ML logical data
+model](./ML_DATA_MODEL.md); hai file cùng tạo thành contract `CON-03` v2.
 
-> **Lưu ý chuyển tiếp:** phần Silver/Gold v1 dưới đây vẫn còn hiệu lực, nhưng
-> `CON-03` đã chuyển sang `Needs Update` để bổ sung logical schema/lifecycle
-> `ml.dataset_manifest`, candidate, membership và summary. Xem
-> [roadmap HDBSCAN](../task/HDBSCAN_WORKSTREAM.md); không hiểu việc contract này
-> chưa có `ml.*` là các bảng đó nằm ngoài phạm vi.
+Silver/Gold schema vẫn ở version `1.0`; bản v2 chỉ bổ sung namespace ML theo
+kiểu additive. Kết quả Window/DBSCAN/HDBSCAN không được thêm vào Gold core.
 
 ## 1. Quyết định tóm tắt
 
@@ -33,7 +34,12 @@ contract](./BRONZE_STORAGE_CONTRACT.md).
 | Grain source link | Một dòng cho một cặp candidate observation và quyết định match |
 | Grain canonical membership | Một current observation thuộc đúng một canonical event |
 | Grain Gold current | Một dòng cho một `canonical_event_id` hiện hành |
-| Gold serving | Iceberg current snapshot, Trino view ổn định cho Power BI Import |
+| Gold serving | Iceberg snapshot đã Published, Trino view ổn định cho ML và consumer |
+| Grain ML dataset | Một dòng cho một `dataset_id` bất biến |
+| Grain ML candidate | Một dòng cho `(dataset_id, mainshock_event_id, candidate_event_id)` |
+| Grain ML membership | Một dòng cho `(experiment_run_id, mainshock_event_id, candidate_event_id)` |
+| Grain ML summary | Một dòng cho `(experiment_run_id, mainshock_event_id)` |
+| Ranh giới ML | Experiment cùng tồn tại theo run; publish qua quality gate, không sửa Gold |
 | Time chuẩn | `event_time_utc`; JST là giá trị dẫn xuất bằng `Asia/Tokyo` |
 | Null số | Giữ `null`; không đổi magnitude/depth thiếu thành `0` |
 | Khu vực thiếu | Gold dùng dimension member `UNKNOWN`; ngoài khơi dùng `OFFSHORE` |
@@ -56,7 +62,13 @@ flowchart LR
     G --> V["gold.earthquake_event_current"]
     G --> B["gold.event_source_bridge"]
     V --> A["gold.event_daily"]
-    V --> T["Trino / Power BI"]
+    V --> T["Trino / consumer"]
+    V --> DM["ml.dataset_manifest"]
+    DM --> C["ml.sequence_candidate_snapshot"]
+    C --> E["External experiments"]
+    E --> MR["ml.experiment_run"]
+    MR --> MM["ml.sequence_membership"]
+    MR --> MS["ml.sequence_summary"]
 ```
 
 Các dataset logic ổn định:
@@ -72,6 +84,12 @@ Các dataset logic ổn định:
 | `gold.event_source_bridge` | Một canonical event → một source observation | Drill-through, provenance |
 | `gold.event_daily` | Một ngày và tổ hợp dimension | Dashboard aggregate |
 | `gold.publication_status` | Một Gold snapshot đã publish | Freshness, vận hành |
+| `ml.dataset_manifest` | Một dataset pin Gold snapshot và config | Dataset build, experiment |
+| `ml.mainshock_candidate_snapshot` | Một mainshock trong dataset | Window/feature build |
+| `ml.sequence_candidate_snapshot` | Một event trong một mainshock window | Export, experiment |
+| `ml.experiment_run` | Một artifact/config run bất biến | Import gate, serving |
+| `ml.sequence_membership` | Một assignment của event trong run/window | Evaluation, report |
+| `ml.sequence_summary` | Một summary của run/mainshock | Evaluation, report |
 
 ## 3. Kiểu dữ liệu logic
 
@@ -86,6 +104,7 @@ Các dataset logic ổn định:
 | `timestamp_utc` | `TimestampType`, Spark session UTC | `TIMESTAMP`, semantics UTC | Date/Time có nhãn UTC |
 | `timestamp_local` | `TimestampType`, giá trị local dẫn xuất | `TIMESTAMP` | Date/Time có nhãn JST |
 | `array<string>` | `ArrayType(StringType)` | `ARRAY(VARCHAR)` | Flatten/bridge trước khi import |
+| `json_string` | `StringType`, canonical JSON UTF-8 | `VARCHAR` | Parse/flatten qua serving view |
 
 Quy ước bắt buộc:
 
@@ -590,9 +609,25 @@ ORDER BY source_coverage_code;
 - Parser, quality, canonicalization, Gold và Power BI không được tự đặt alias
   khác contract mà không có mapping/version rõ.
 - Physical DDL, Iceberg partition transform và merge strategy thuộc
-  `GLD-03`; không được làm thay đổi logical grain/null/KPI ở đây.
+  `GLD-03`/`MLI-03`; không được làm thay đổi logical grain/null/KPI ở đây.
 - Threshold source linking thuộc `SLV-07`; thay threshold cần version
   `match_model_version` và báo cáo ảnh hưởng.
+- Đổi identity input của `dataset_id`/`experiment_run_id`, lifecycle transition,
+  algorithm enum hoặc reason-code semantics là breaking change của ML contract.
+- Thêm metric nullable hoặc reason code theo kiểu additive là minor change nếu
+  consumer cũ được phép bỏ qua field/code chưa biết.
 
 Mọi PR thay model phải nêu dataset/partition bị ảnh hưởng, khả năng đọc dữ liệu
-cũ, nhu cầu rebuild/backfill và cách đối soát Trino–Power BI.
+cũ, nhu cầu rebuild/backfill và cách đối soát Trino với report/consumer.
+
+## 17. Contract namespace ML
+
+[ML logical data model](./ML_DATA_MODEL.md) khóa:
+
+- identity và lifecycle của dataset/experiment;
+- grain, key, field, null policy và lineage của các bảng `ml.*`;
+- mapping giữa feature/result bundle và Iceberg;
+- quality gate, reason code, query examples và acceptance scenarios.
+
+Consumer `MLD-*`, `EXP-*`, `MLI-*` và `MLQ-01` phải dùng contract đó, không tự
+thêm alias field hoặc ghi cluster label vào `gold.event_current`.

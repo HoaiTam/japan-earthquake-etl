@@ -51,6 +51,8 @@ Kiểm tra contract không cần mạng bằng:
 
 Tên trường, kiểu dữ liệu, null policy, canonical event, magnitude/depth bands
 và KPI Silver/Gold được chốt tại [CON-03 logical data model](./docs/specs/SILVER_GOLD_DATA_MODEL.md).
+Grain, lineage, bundle mapping và lifecycle dataset/experiment HDBSCAN được
+khóa riêng tại [ML logical data model](./docs/specs/ML_DATA_MODEL.md).
 Kiểm tra contract không cần mạng bằng:
 
 ```bash

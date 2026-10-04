@@ -48,9 +48,9 @@ Có những gì:
 - Source coverage và source priority.
 - [Bronze storage contract](../specs/BRONZE_STORAGE_CONTRACT.md), object naming,
   checksum, catalog release và run context.
-- [Silver/Gold logical data model](../specs/SILVER_GOLD_DATA_MODEL.md), được
-  `CON-03` mở rộng thêm grain/lifecycle `ml.*`, field mapping, UTC/JST, null
-  policy, key và data dictionary.
+- [Silver/Gold logical data model](../specs/SILVER_GOLD_DATA_MODEL.md) và
+  [ML logical data model](../specs/ML_DATA_MODEL.md), khóa field mapping,
+  UTC/JST, null policy, key, grain và dataset/experiment lifecycle.
 - [Fixture và test matrix dùng chung](../../tests/fixtures/README.md) cho
   success, empty, invalid, duplicate, revised, timezone, checksum và ambiguous
   source link.
@@ -234,7 +234,8 @@ Làm phần gì:
 Có những gì:
 
 - `_SUCCESS.json`, bundle validator, rejected reason và artifact registry.
-- Iceberg tables `ml.dataset_manifest`, `ml.sequence_candidate_snapshot`,
+- Iceberg tables `ml.dataset_manifest`, `ml.mainshock_candidate_snapshot`,
+  `ml.sequence_candidate_snapshot`, `ml.experiment_run`,
   `ml.sequence_membership`, `ml.sequence_summary`.
 - Trino verification SQL, report so sánh và evidence theo dataset/run.
 
