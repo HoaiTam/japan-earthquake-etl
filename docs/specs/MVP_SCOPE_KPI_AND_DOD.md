@@ -78,8 +78,8 @@ không giả định free Colab là một job service ổn định có thể tri
 
 Các bảng Core trong namespace `ml` gồm `ml.dataset_manifest`,
 `ml.mainshock_candidate_snapshot`, `ml.sequence_candidate_snapshot`,
-`ml.sequence_membership` và `ml.sequence_summary`. Grain, key và lifecycle chi
-tiết do `CON-03` khóa trước khi implementation ghi Iceberg.
+`ml.experiment_run`, `ml.sequence_membership` và `ml.sequence_summary`. Grain,
+key và lifecycle chi tiết do `CON-03` khóa trước khi implementation ghi Iceberg.
 
 ## 4. Phân loại phạm vi
 

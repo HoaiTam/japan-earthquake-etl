@@ -73,5 +73,5 @@ chỉ smoke với export contract thật mới chặn `Done`.
 ## Tài liệu liên quan
 
 - [Roadmap HDBSCAN](../HDBSCAN_WORKSTREAM.md)
+- [ML logical data model](../../specs/ML_DATA_MODEL.md)
 - [MLD-05](./MLD-05.md)
-

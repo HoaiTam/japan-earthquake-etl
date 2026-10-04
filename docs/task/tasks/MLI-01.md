@@ -73,5 +73,5 @@ ngay sau khi schema được review.
 ## Tài liệu liên quan
 
 - [Roadmap HDBSCAN](../HDBSCAN_WORKSTREAM.md)
+- [ML logical data model](../../specs/ML_DATA_MODEL.md)
 - [CON-03](./CON-03.md)
-

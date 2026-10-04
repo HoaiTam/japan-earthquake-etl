@@ -98,18 +98,22 @@ flowchart LR
 | Task | Trạng thái mới | Lý do |
 |---|---|---|
 | `PLN-01` | `Done` | Baseline đã đưa HDBSCAN vào Core, Power BI sang Stretch và chốt lại KPI/DoD |
-| `CON-03` | `Needs Update` | Chưa có grain/schema/lifecycle cho dataset và experiment `ml.*` |
+| `CON-03` | `Done` | Đã khóa grain/schema/lifecycle dataset, experiment và publication gate `ml.*` |
 | `GLD-01/03/04` | `Backlog`, scope cập nhật | Gold phải là input snapshot ổn định cho ML |
 | `GLD-02` | `Backlog`, chuyển Stretch | Aggregate dashboard không nằm trên đường găng HDBSCAN |
 | `BI-01..05` | `Backlog`, chuyển Stretch | Power BI là output tùy chọn sau static report |
 | `QA/SEC/DOC/DEMO` | `Backlog/Ready`, scope cập nhật | Phải bao phủ external bundle, import gate và ML reproducibility |
 
-Các task Bronze, Silver và foundation còn lại vẫn giữ `Done` vì phương án mới
-không thay đổi contract đã kiểm chứng của chúng.
+Các task Foundation và USGS Bronze đã hoàn tất vẫn giữ `Done` vì phương án mới
+không làm mất evidence đã kiểm chứng. JMA, Silver, Gold và các khối downstream
+giữ trạng thái riêng trong task index; không được suy ra `Done` từ bảng tác động
+này.
 
 ## 7. Definition of Done cấp workstream
 
 - Một Gold snapshot được pin và truy vết trong `ml.dataset_manifest`.
+- Dataset/experiment lifecycle được ghi qua `ml.dataset_manifest` và
+  `ml.experiment_run`; import thành công chỉ tạo `CANDIDATE`, không tự approve.
 - `Mc`, window, feature/scaling và model config đều có version.
 - Mỗi candidate có grain `(dataset_id, mainshock_event_id, candidate_event_id)`.
 - Window/DBSCAN/HDBSCAN đọc cùng `dataset_id`; cluster của mainshock được chọn
