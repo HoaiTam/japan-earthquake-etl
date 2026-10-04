@@ -59,7 +59,7 @@ Trạng thái hợp lệ: `Backlog`, `Ready`, `In Progress`, `Review`, `Blocked`
 | [USG-03](./USG-03.md) - Validate và lưu USGS raw vào Bronze | 2 | Bronze writer | Core | P0 | 7h | Done |
 | [USG-04](./USG-04.md) - Tích hợp USGS ingest vào Airflow | 2 | Airflow integration | Core | P0 | 4h | Done |
 | [USG-05](./USG-05.md) - Kiểm thử USGS đến Bronze | 2 | QA | Core | P0 | 4h | Done |
-| [USG-06](./USG-06.md) - Kết nối live runner và ghi USGS thật vào Bronze | 2 | Live Bronze integration | Core | P0 | 4h | Ready |
+| [USG-06](./USG-06.md) - Kết nối live runner và ghi USGS thật vào Bronze | 2 | Live Bronze integration | Core | P0 | 4h | Done |
 
 ## C - JMA Bronze
 

@@ -6,7 +6,7 @@
 | Trạng thái | Implemented và verified bằng runtime smoke |
 | Spark / Scala / Java | `3.5.9` / `2.12` / `17` |
 | Maven / Maven Wrapper | `3.9.16` / `3.3.4` (`only-script`) |
-| Java package gốc | `vn.edu.uit.ie212.earthquake.spark` |
+| Java package gốc | `ie212.earthquake.spark` |
 | JAR local | `spark/target/japan-earthquake-etl.jar` |
 | JAR trong image | `/opt/spark/jobs/japan-earthquake-etl.jar` |
 
@@ -63,6 +63,10 @@ phải chạy trên `spark-worker`. Client vì vậy có hostname ổn định v
 Root `pom.xml` quản lý phiên bản và module; `spark/pom.xml` chứa dependency và
 build của Spark job. Chạy từ project root:
 
+Source code dùng package ngắn `ie212.earthquake` để cây thư mục dễ đọc. Maven
+`groupId` vẫn là `vn.edu.uit.ie212.earthquake` vì đây là định danh artifact,
+không quyết định đường dẫn package Java.
+
 ```bash
 ./mvnw --batch-mode --no-transfer-progress clean verify
 ```
@@ -74,7 +78,7 @@ Build phải thỏa các điều kiện:
   đóng gói lại toàn bộ Spark classes.
 - Unit test chạy trước khi JAR được tạo.
 - Manifest có main class
-  `vn.edu.uit.ie212.earthquake.spark.HelloWorldJob`.
+  `ie212.earthquake.spark.HelloWorldJob`.
 - Không commit `target/`, JAR hoặc metastore local.
 
 Maven Wrapper tải Maven từ Apache theo URL và SHA-256 đã pin trong

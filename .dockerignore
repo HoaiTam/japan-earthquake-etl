@@ -2,9 +2,15 @@
 !.dockerignore
 !pom.xml
 !compose/
+!compose/airflow/
+!compose/airflow/Dockerfile
+!compose/airflow/usgs-runner.sh
 !compose/spark/
 !compose/spark/Dockerfile
 !spark/
 !spark/pom.xml
 !spark/src/
 !spark/src/**
+!tests/
+!tests/fixtures/
+!tests/fixtures/**

@@ -5,6 +5,9 @@ service như script init hoặc healthcheck không thuộc module khác.
 
 Asset hiện có:
 
+- `airflow/Dockerfile`: build runner JAR, ghép Java 17 vào Airflow 3.3.2.
+- `airflow/usgs-runner.sh`: executable bridge cho phase protocol của DAG USGS.
+- `airflow/usgs-live-smoke.sh`: fixed-window live acceptance và immutable rerun.
 - `airflow/smoke.sh`: kiểm tra DAG import, trigger `afl_01_smoke` và chờ trạng
   thái terminal.
 - `minio/Dockerfile`: build security release đã pin từ source upstream.
@@ -37,6 +40,8 @@ Chi tiết network, volume lifecycle và extension baseline nằm tại
 [Compose foundation contract](../docs/specs/COMPOSE_FOUNDATION.md).
 Hành vi Airflow, metadata DB và DAG smoke nằm tại
 [Airflow local contract](../docs/specs/AIRFLOW_LOCAL.md).
+Luồng USGS thật đến MinIO, command và evidence nằm tại
+[USGS live Bronze runbook](../docs/specs/USGS_LIVE_BRONZE_RUNBOOK.md).
 Hành vi MinIO, quyền truy cập và lệnh runtime nằm tại
 [MinIO storage contract](../docs/specs/MINIO_STORAGE.md).
 Hành vi Spark master/worker/client, build và smoke nằm tại

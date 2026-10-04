@@ -107,6 +107,7 @@ mật riêng.
 | `airflow-scheduler` | Schedule và LocalExecutor | `SchedulerJob` heartbeat | Long-running |
 | `airflow-dag-processor` | Parse/serialize DAG | `DagProcessorJob` heartbeat | Long-running |
 | `airflow-smoke` | Trigger và verify DAG smoke | Script exit code | One-shot, profile `smoke` |
+| `usgs-live-smoke` | Trigger fixed USGS window, verify MinIO và rerun | Script exit code | One-shot, profile `live` |
 
 Airflow 3 tách DAG parsing thành process riêng, vì vậy scheduler healthy không
 thay thế healthcheck của DAG processor.
@@ -133,14 +134,14 @@ context, retry hoặc data interval contract của DAG production.
   `Asia/Ho_Chi_Minh`; `catchup=False`, `max_active_runs=1`.
 - Task group `usgs_ingest` gồm `resolve_interval`, `fetch`, `validate`, `upload`,
   `verify`, `bronze_ready_gate` và `run_summary`.
-- DAG paused khi tạo. Chỉ unpause sau khi `USGS_INGEST_RUNNER_COMMAND` đã được
-  cấu hình; command bridge gọi HTTP client/Bronze writer của USG-02/03.
+- DAG paused khi tạo. Custom image USG-06 đã cấu hình
+  `USGS_INGEST_RUNNER_COMMAND`; chỉ unpause sau khi credential/MinIO đã sẵn sàng.
 - Raw payload không đi qua XCom. Mỗi phase nhận context JSON trong
   `/opt/pipeline/staging/usgs/<run-id>/`; summary được whitelist và ghi lại ở
   `run_summary.json`.
 - `bronze_ready_gate` là upstream bắt buộc của Silver. Verify lỗi hoặc trả
   trạng thái khác `BronzeReady` thì Airflow không schedule downstream.
-- Chi tiết command protocol và dry-run nằm trong [USGS Airflow ingest contract](./USGS_AIRFLOW_INGEST_CONTRACT.md).
+- Chi tiết command protocol và dry-run nằm trong [USGS Airflow ingest contract](./USGS_AIRFLOW_INGEST_CONTRACT.md); live operator flow nằm trong [USGS live Bronze runbook](./USGS_LIVE_BRONZE_RUNBOOK.md).
 
 ## 6. Cấu hình và secret
 

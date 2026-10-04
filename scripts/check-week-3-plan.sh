@@ -63,7 +63,7 @@ stretch_count=$(awk -F ': ' '$1 == "scope" && $2 == "\"Stretch\"" { count++ } EN
 [ "$(sum_effort JMA-02 SLV-01 SLV-05 JMA-03 SLV-03 SLV-02 SLV-04 SLV-08)" -eq 41 ] || \
     fail 'three implementation lanes must total 41 hours'
 
-[ "$(task_field status USG-06)" = Ready ] || fail 'USG-06 must be Ready'
+[ "$(task_field status USG-06)" = Done ] || fail 'USG-06 must be Done'
 [ "$(task_field status JMA-01)" = Ready ] || fail 'JMA-01 must be Ready'
 [ "$(task_field status DAT-01)" = Backlog ] || \
     fail 'DAT-01 must wait for USG-06 and JMA-01'

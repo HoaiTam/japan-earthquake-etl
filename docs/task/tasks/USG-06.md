@@ -1,6 +1,6 @@
 ---
 task_id: "USG-06"
-status: "Ready"
+status: "Done"
 week: 2
 block: "B - USGS Bronze"
 workstream: "Live Bronze integration"
@@ -53,11 +53,11 @@ window tại runtime.
 
 ## Tiêu chí hoàn thành
 
-- [ ] DAG chạy real mode khi `USGS_INGEST_DRY_RUN=false`, không còn fail vì thiếu runner command.
-- [ ] Fixed window tạo raw GeoJSON và manifest `BronzeReady` trên MinIO; URI/checksum/count đối soát được.
-- [ ] Retry cùng logical run không ghi đè khác nội dung hoặc tạo duplicate logic.
-- [ ] Lỗi HTTP/payload/checksum không vượt qua `bronze_ready_gate`.
-- [ ] Command, log, manifest và test fixture không chứa credential hoặc toàn bộ payload nguồn.
+- [x] DAG chạy real mode khi `USGS_INGEST_DRY_RUN=false`, không còn fail vì thiếu runner command.
+- [x] Fixed window tạo raw GeoJSON và manifest `BronzeReady` trên MinIO; URI/checksum/count đối soát được.
+- [x] Retry cùng logical run không ghi đè khác nội dung hoặc tạo duplicate logic.
+- [x] Lỗi HTTP/payload/checksum không vượt qua `bronze_ready_gate`.
+- [x] Command, log, manifest và test fixture không chứa credential hoặc toàn bộ payload nguồn.
 
 ## Hard dependency
 
@@ -84,19 +84,19 @@ MinIO adapter đã đạt unit test.
 
 ## Theo dõi
 
-- **Trạng thái:** Ready
+- **Trạng thái:** Done
 - **Assignee:** Chưa nhận
 - **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Evidence / PR:** 34 Java tests và 15 Airflow tests đạt; `./scripts/check-usgs-live.sh`; `./scripts/smoke-usgs-live.sh` pass ngày 2026-10-04 với run `usg06-live-20261004T121205Z-db580aece6dc`, manifest `s3://japan-earthquake/bronze/usgs/ingest_date=2023-01-01/run_id=usg06-live-20261004T121205Z-db580aece6dc/attempt=01/manifest.json`, SHA-256 `8667f9b7ac02ce0e88c78767bd51dee1fdf1292ac987a7cdc00c3aaec6b0545e`, count `16`, readback verified và rerun reuse.
 - **Kỹ năng phù hợp:** Java CLI, Airflow runner protocol, MinIO SDK, integration testing
 
 ## Checklist bàn giao
 
-- [ ] Deliverable và test/evidence tồn tại trong repository hoặc môi trường demo.
-- [ ] Acceptance criteria đã được kiểm tra.
-- [ ] Live window và rerun có manifest/checksum/count evidence.
-- [ ] Runbook/config contract đã cập nhật.
-- [ ] Không chứa secret, raw data dump hoặc build artifact không cần thiết.
+- [x] Deliverable và test/evidence tồn tại trong repository hoặc môi trường demo.
+- [x] Acceptance criteria đã được kiểm tra.
+- [x] Live window và rerun có manifest/checksum/count evidence.
+- [x] Runbook/config contract đã cập nhật.
+- [x] Không chứa secret, raw data dump hoặc build artifact không cần thiết.
 - [ ] Reviewer độc lập được khuyến nghị cho P0.
 
 ## Tài liệu liên quan
@@ -105,5 +105,5 @@ MinIO adapter đã đạt unit test.
 - [USGS Bronze writer contract](../../specs/USGS_BRONZE_WRITER_CONTRACT.md)
 - [Bronze storage contract](../../specs/BRONZE_STORAGE_CONTRACT.md)
 - [Configuration and secrets](../../specs/CONFIGURATION_AND_SECRETS.md)
+- [USGS live Bronze runbook](../../specs/USGS_LIVE_BRONZE_RUNBOOK.md)
 - [Kế hoạch tuần 3 song song](../WEEK_3_PARALLEL_PLAN.md)
-

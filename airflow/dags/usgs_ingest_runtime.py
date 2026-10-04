@@ -36,6 +36,7 @@ PUBLIC_RESULT_KEYS = {
     "sha256",
     "artifact_uri",
     "quarantine_uri",
+    "idempotent_reuse",
 }
 
 
@@ -98,20 +99,38 @@ def resolve_run_context(
     """Resolve one deterministic UTC window from Airflow's run context."""
 
     env = os.environ if environment is None else environment
-    run_at = _as_utc(context.get("data_interval_end") or context.get("logical_date"))
-    current_day_start = run_at.replace(hour=0, minute=0, second=0, microsecond=0)
-    target_end = current_day_start
-    target_start = target_end - timedelta(days=1)
-
     seed_value = env.get("USGS_SEED_START_UTC", "2023-01-01T00:00:00Z")
     seed_start = _as_utc(seed_value)
     overlap_days = _int_env(env, "PIPELINE_OVERLAP_DAYS", 3)
-    query_start = max(seed_start, target_end - timedelta(days=overlap_days))
+    is_backfill = _bool_value(_conf_value(context, "is_backfill", False))
+    requested_start = _conf_value(context, "window_start_utc")
+    requested_end = _conf_value(context, "window_end_utc")
+    if requested_start is not None or requested_end is not None:
+        if not is_backfill:
+            raise UsgsRunnerError(
+                "explicit USGS window requires is_backfill=true"
+            )
+        if requested_start is None or requested_end is None:
+            raise UsgsRunnerError(
+                "window_start_utc and window_end_utc must be supplied together"
+            )
+        if not str(requested_start).endswith("Z") or not str(requested_end).endswith("Z"):
+            raise UsgsRunnerError("explicit USGS window must use UTC Z timestamps")
+        target_start = _as_utc(requested_start)
+        target_end = _as_utc(requested_end)
+        query_start = target_start
+    else:
+        run_at = _as_utc(context.get("data_interval_end") or context.get("logical_date"))
+        current_day_start = run_at.replace(hour=0, minute=0, second=0, microsecond=0)
+        target_end = current_day_start
+        target_start = target_end - timedelta(days=1)
+        query_start = max(seed_start, target_end - timedelta(days=overlap_days))
+    if query_start < seed_start:
+        raise UsgsRunnerError("USGS window starts before USGS_SEED_START_UTC")
     if not target_start < target_end:
         raise UsgsRunnerError("USGS target window must be non-empty")
 
     run_id = str(context.get("run_id") or "manual-usgs-run")
-    is_backfill = _bool_value(_conf_value(context, "is_backfill", False))
     logical_run_key = (
         f"USGS|{_iso(query_start)}|{_iso(target_end)}|"
         f"{'backfill' if is_backfill else 'daily'}"
@@ -129,6 +148,7 @@ def resolve_run_context(
         "logical_run_key": logical_run_key,
         "config_version": env.get("CONFIG_VERSION", "1"),
         "revision_overlap_days": overlap_days,
+        "explicit_window": requested_start is not None,
     }
 
 

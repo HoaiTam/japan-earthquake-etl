@@ -16,7 +16,7 @@ Nó tách việc tính cửa sổ và kiểm tra cấu hình khỏi network I/O,
 được tái lập bằng unit test offline trước khi `USG-02` thêm retry và pagination.
 
 Java implementation nằm dưới
-`vn.edu.uit.ie212.earthquake.spark.usgs`:
+`ie212.earthquake.spark.usgs`:
 
 - `UsgsRequestConfig` đọc và validate environment.
 - `UsgsRequestBuilder` tạo daily/backfill plan, không gọi mạng.
@@ -83,12 +83,12 @@ minlongitude=120.0
 maxlongitude=155.0
 orderby=time-asc
 limit=20000
-offset=0
+offset=1
 ```
 
-Builder không thêm `minmagnitude`, không lọc theo KPI và luôn đặt `offset=0` cho
-request đầu tiên của mỗi chunk. URI được tạo theo thứ tự tham số ổn định để log,
-fixture và test có thể so sánh deterministically.
+Builder không thêm `minmagnitude`, không lọc theo KPI và luôn đặt `offset=1` cho
+request đầu tiên của mỗi chunk vì USGS dùng offset một-gốc. URI được tạo theo
+thứ tự tham số ổn định để log, fixture và test có thể so sánh deterministically.
 
 ## 5. Kiểm thử và ranh giới
 

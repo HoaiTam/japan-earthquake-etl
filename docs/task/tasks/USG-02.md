@@ -35,7 +35,7 @@ Cài timeout, retry/backoff cho 429/5xx, response size guard, count pre-check kh
 - [USGS HTTP client contract](../../specs/USGS_HTTP_CLIENT_CONTRACT.md).
 - `UsgsHttpClient`, `UsgsHttpResponse`, `UsgsHttpException` và
   `UsgsResponseTooLargeException` trong package
-  `vn.edu.uit.ie212.earthquake.spark.usgs`.
+  `ie212.earthquake.spark.usgs`.
 - Mock-server tests cho retry/backoff, `Retry-After`, 4xx, response-size guard,
   logging metadata và count pagination.
 

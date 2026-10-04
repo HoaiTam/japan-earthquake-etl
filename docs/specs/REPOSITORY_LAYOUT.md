@@ -90,9 +90,9 @@ project-root/
 │   ├── README.md
 │   ├── pom.xml
 │   └── src/
-│       ├── main/java/vn/edu/uit/ie212/earthquake/spark/
+│       ├── main/java/ie212/earthquake/spark/
 │       └── test/
-│           ├── java/vn/edu/uit/ie212/earthquake/spark/
+│           ├── java/ie212/earthquake/spark/
 │           └── resources/fixtures/
 ├── tests/
 │   ├── README.md
@@ -113,8 +113,9 @@ project-root/
 ```
 
 Package gốc đã được `SPK-01` chốt là
-`vn.edu.uit.ie212.earthquake.spark`. Job downstream đặt dưới namespace này và
-không tạo Maven module cạnh tranh.
+`ie212.earthquake.spark`. Job downstream đặt dưới namespace này và
+không tạo Maven module cạnh tranh. Maven `groupId` có thể giữ định danh đầy đủ
+`vn.edu.uit.ie212.earthquake`; giá trị này độc lập với cây package Java.
 
 ## 3. Ownership theo module
 

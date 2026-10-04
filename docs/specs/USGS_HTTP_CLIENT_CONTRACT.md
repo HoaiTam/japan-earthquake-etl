@@ -29,8 +29,8 @@ API chính:
 - `fetch(request)`: lấy đúng một page, giữ bytes nguyên bản.
 - `count(request)`: đổi `format=geojson` thành `format=count` và trả tổng số
   feature của cùng window/filter.
-- `fetchAll(request)`: count trước, sau đó lấy các page với `offset=0, limit,
-  2*limit,...`; mỗi page trả riêng để Bronze quyết định cách lưu.
+- `fetchAll(request)`: count trước, sau đó lấy các page với `offset=1,
+  1+limit, 1+2*limit,...`; mỗi page trả riêng để Bronze quyết định cách lưu.
 
 ## 2. Retry policy
 
@@ -69,7 +69,8 @@ window/bounding box/event type. Nếu count bằng `0`, trả danh sách page r�
 empty result là trạng thái hợp lệ và không phải lỗi HTTP.
 
 Nếu count lớn hơn `limit`, client tạo page mới bằng cách thay `offset`, không
-thay đổi target/query window. Với limit `2` và count `5`, offset là `0, 2, 4`.
+thay đổi target/query window. Với limit `2` và count `5`, offset là `1, 3, 5`
+theo contract một-gốc của USGS.
 Client giới hạn tổng count trong miền offset Java và không lặp vô hạn nếu server
 trả count bất thường.
 

@@ -34,7 +34,7 @@ Chốt endpoint FDSN, bounding box Nhật Bản, cửa sổ [start,end) UTC, ove
 
 - [USGS request contract](../../specs/USGS_REQUEST_CONTRACT.md).
 - `UsgsRequestConfig`, `UsgsRequestBuilder`, `UsgsRequestPlan` và `UsgsRequest`
-  trong Spark package `vn.edu.uit.ie212.earthquake.spark.usgs`.
+  trong Spark package `ie212.earthquake.spark.usgs`.
 - Unit test offline cho daily overlap, seed clipping, backfill chunking và
   invalid configuration.
 

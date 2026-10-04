@@ -8,7 +8,7 @@ compose_file=${COMPOSE_FILE:-"$project_root/compose.yaml"}
 env_file=${ENV_FILE:-"$project_root/.env.example"}
 spark_image=japan-earthquake-etl/spark:3.5.9-java17
 job_jar="$project_root/spark/target/japan-earthquake-etl.jar"
-main_class_path=vn/edu/uit/ie212/earthquake/spark/HelloWorldJob.class
+main_class_path=ie212/earthquake/spark/HelloWorldJob.class
 failed=0
 
 report_error() {
@@ -44,8 +44,8 @@ for relative_path in \
     mvnw.cmd \
     pom.xml \
     spark/pom.xml \
-    spark/src/main/java/vn/edu/uit/ie212/earthquake/spark/HelloWorldJob.java \
-    spark/src/test/java/vn/edu/uit/ie212/earthquake/spark/HelloWorldJobTest.java \
+    spark/src/main/java/ie212/earthquake/spark/HelloWorldJob.java \
+    spark/src/test/java/ie212/earthquake/spark/HelloWorldJobTest.java \
     compose/spark/Dockerfile \
     compose/spark/smoke.sh
 do
@@ -101,7 +101,7 @@ else
     fi
 
     if ! unzip -p "$job_jar" META-INF/MANIFEST.MF \
-        | grep -Fq 'Main-Class: vn.edu.uit.ie212.earthquake.spark.HelloWorldJob'; then
+        | grep -Fq 'Main-Class: ie212.earthquake.spark.HelloWorldJob'; then
         report_error "Spark JAR manifest does not declare HelloWorldJob"
     fi
 fi

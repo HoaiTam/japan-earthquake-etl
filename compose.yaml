@@ -62,21 +62,32 @@ x-airflow-environment: &airflow-environment
   USGS_HTTP_MAX_BACKOFF_MS: ${USGS_HTTP_MAX_BACKOFF_MS:?USGS_HTTP_MAX_BACKOFF_MS is required}
   USGS_MAX_RESPONSE_BYTES: ${USGS_MAX_RESPONSE_BYTES:?USGS_MAX_RESPONSE_BYTES is required}
   USGS_EVENT_TYPE: ${USGS_EVENT_TYPE:?USGS_EVENT_TYPE is required}
-  USGS_INGEST_RUNNER_COMMAND: ${USGS_INGEST_RUNNER_COMMAND:-}
+  USGS_INGEST_RUNNER_COMMAND: ${USGS_INGEST_RUNNER_COMMAND:-/opt/pipeline/bin/usgs-ingest-runner}
   USGS_INGEST_RUNNER_TIMEOUT_SECONDS: ${USGS_INGEST_RUNNER_TIMEOUT_SECONDS:-3600}
   USGS_INGEST_DRY_RUN: ${USGS_INGEST_DRY_RUN:-false}
+  MINIO_ENDPOINT: ${MINIO_ENDPOINT:?MINIO_ENDPOINT is required}
+  MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:?MINIO_ACCESS_KEY is required}
+  MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:?MINIO_SECRET_KEY is required}
+  DATA_BUCKET: ${DATA_BUCKET:?DATA_BUCKET is required}
+  BRONZE_PREFIX: ${BRONZE_PREFIX:?BRONZE_PREFIX is required}
 
 x-airflow-common: &airflow-common
   <<:
     - *runtime-defaults
     - *resource-baseline
-  image: apache/airflow:3.3.2-python3.13
+  build:
+    context: .
+    dockerfile: compose/airflow/Dockerfile
+  image: japan-earthquake-etl/airflow:3.3.2-python3.13-java17
+  pull_policy: build
   user: ${AIRFLOW_UID:?AIRFLOW_UID is required}:0
   environment: *airflow-environment
   depends_on:
     airflow-postgres:
       <<: *healthy-dependency
     airflow-init:
+      <<: *completed-dependency
+    minio-init:
       <<: *completed-dependency
   security_opt:
     - no-new-privileges:true
@@ -353,6 +364,44 @@ services:
       - type: bind
         source: ./compose/airflow/smoke.sh
         target: /opt/airflow/smoke/run.sh
+        read_only: true
+      - type: volume
+        source: airflow_logs
+        target: /opt/airflow/logs
+      - type: volume
+        source: pipeline_staging
+        target: /opt/pipeline/staging
+
+  usgs-live-smoke:
+    <<: *airflow-common
+    pull_policy: never
+    profiles:
+      - live
+    entrypoint:
+      - /bin/bash
+      - /opt/airflow/smoke/usgs-live.sh
+    restart: "no"
+    depends_on:
+      airflow-postgres:
+        <<: *healthy-dependency
+      airflow-init:
+        <<: *completed-dependency
+      airflow-api-server:
+        <<: *healthy-dependency
+      airflow-scheduler:
+        <<: *healthy-dependency
+      airflow-dag-processor:
+        <<: *healthy-dependency
+      minio-init:
+        <<: *completed-dependency
+    volumes:
+      - type: bind
+        source: ./airflow/dags
+        target: /opt/airflow/dags
+        read_only: true
+      - type: bind
+        source: ./compose/airflow/usgs-live-smoke.sh
+        target: /opt/airflow/smoke/usgs-live.sh
         read_only: true
       - type: volume
         source: airflow_logs
