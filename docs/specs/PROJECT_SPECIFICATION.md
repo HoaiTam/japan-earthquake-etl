@@ -2,10 +2,15 @@
 
 | Thuộc tính | Giá trị |
 |---|---|
-| Trạng thái | Draft |
+| Trạng thái | Đặc tả nền tảng; phạm vi MVP do baseline PLN-01 điều khiển |
 | Phạm vi | Phiên bản local-first |
 | Ngôn ngữ xử lý chính | Java |
 | Cập nhật dữ liệu dự kiến | Một lần mỗi ngày |
+
+> **Phạm vi hiện hành:** [baseline PLN-01](./MVP_SCOPE_KPI_AND_DOD.md) đưa
+> Window/DBSCAN/HDBSCAN vào Core và chuyển Power BI thành Stretch. Khi nội dung
+> trong đặc tả nền tảng này khác baseline, dùng baseline; `DOC-01` chịu trách
+> nhiệm đồng bộ toàn bộ mô tả kiến trúc/runbook sau khi các contract ML ổn định.
 
 ## 1. Bối cảnh
 

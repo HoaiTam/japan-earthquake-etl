@@ -97,7 +97,7 @@ flowchart LR
 
 | Task | Trạng thái mới | Lý do |
 |---|---|---|
-| `PLN-01` | `Needs Update` | Baseline cũ loại Data Science khỏi MVP và bắt buộc Power BI |
+| `PLN-01` | `Done` | Baseline đã đưa HDBSCAN vào Core, Power BI sang Stretch và chốt lại KPI/DoD |
 | `CON-03` | `Needs Update` | Chưa có grain/schema/lifecycle cho dataset và experiment `ml.*` |
 | `GLD-01/03/04` | `Backlog`, scope cập nhật | Gold phải là input snapshot ổn định cho ML |
 | `GLD-02` | `Backlog`, chuyển Stretch | Aggregate dashboard không nằm trên đường găng HDBSCAN |

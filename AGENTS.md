@@ -47,7 +47,7 @@ Các nguyên tắc không được phá vỡ:
 - Kiểm tra các trường hợp tối thiểu liên quan: response rỗng hợp lệ, null/sai kiểu, duplicate, late update, retry và rerun.
 - Không công bố Gold khi blocker quality gate thất bại.
 - Đối soát count phải giải thích được input, parsed, valid, rejected, duplicate/superseded và output.
-- KPI Power BI phải khớp truy vấn Trino độc lập với cùng filter context.
+- Nếu thực hiện Power BI Stretch, KPI phải khớp truy vấn Trino độc lập với cùng filter context.
 
 Chạy các lệnh build/test được repository cung cấp. Không phát minh lệnh placeholder trong runbook. Nếu module chưa tồn tại, ghi rõ kiểm tra nào chưa thể chạy.
 
