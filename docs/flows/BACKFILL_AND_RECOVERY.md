@@ -23,6 +23,11 @@
 6. Chỉ refresh Power BI sau khi run cuối cùng đạt trạng thái `Published`.
 7. Với thao tác có khả năng thay đổi nhiều partition, chạy dry-run/preview phạm vi trước khi submit.
 
+Bronze input phải được resolve bằng manifest `BronzeReady` và `raw_object_uri`
+theo [Bronze storage contract](../specs/BRONZE_STORAGE_CONTRACT.md). Retry
+Silver/Gold tái sử dụng đúng manifest đã verify; re-extract dùng `run_id`/
+`attempt` mới và không ghi đè raw object cũ.
+
 ## 3. Chọn loại xử lý
 
 ```mermaid
@@ -142,8 +147,9 @@ Pipeline nên hỗ trợ in ra, nhưng chưa thực thi:
 
 ### Bước 5 — Đối soát
 
-- Không trùng `earthquake_id` ở tập Gold hiện hành.
-- Cùng `id` chỉ giữ `updated` mới nhất.
+- Không trùng `canonical_event_id` ở tập Gold hiện hành.
+- Trong từng nguồn, USGS giữ `updated` mới nhất theo `id`; JMA giữ source record theo catalog release hợp lệ mới nhất.
+- Source linking không làm tăng canonical count khi cùng event xuất hiện ở USGS và JMA.
 - Count theo ngày trước/sau có thể giải thích được.
 - Ngày ngoài phạm vi không bị thay đổi ngoài các late update được chủ động bao gồm.
 - Trino đọc được snapshot cuối.
@@ -200,4 +206,3 @@ Mỗi sự cố/backfill cần tối thiểu:
 - Không dùng `SELECT COUNT(*)` duy nhất để kết luận dữ liệu đúng.
 - Không rerun toàn pipeline nếu lỗi chỉ nằm ở Power BI.
 - Không chạy backfill lớn cùng daily run trên máy local hạn chế tài nguyên.
-

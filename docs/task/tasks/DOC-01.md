@@ -2,7 +2,7 @@
 task_id: "DOC-01"
 status: "Ready"
 week: 6
-block: "H - QA & Release"
+block: "K - QA & Release"
 workstream: "Documentation"
 scope: "Core"
 priority: "P0"
@@ -20,12 +20,12 @@ Dùng để tài liệu được cập nhật liên tục theo PR; final review 
 
 ## Phạm vi công việc
 
-Thay mô tả USGS-only bằng kiến trúc USGS/JMA; cập nhật source contract, data layers, object layout, parser, canonicalization, runbook và known issues.
+Đồng bộ kiến trúc USGS/JMA và HDBSCAN; cập nhật source/data layers, canonicalization, Gold-to-ML flow, Colab handoff, experiment/import lifecycle, runbook và known issues.
 
 ## Thành phần cần có
 
 - **Đầu vào và contract:** Không có hard dependency.
-- **Phần triển khai:** Thay mô tả USGS-only bằng kiến trúc USGS/JMA; cập nhật source contract, data layers, object layout, parser, canonicalization, runbook và known issues.
+- **Phần triển khai:** Đồng bộ ETL + HDBSCAN end-to-end, thuật ngữ candidate, hai DAG ML, static report và ranh giới không prediction/causal.
 - **Kết quả bàn giao:** Bộ docs khớp hệ thống thực tế và link nội bộ hợp lệ.
 - **Kiểm thử và evidence:** Kiểm tra từng acceptance criterion, lưu lệnh chạy/log/report có thể lặp lại và cập nhật mục Evidence bên dưới.
 
@@ -37,6 +37,7 @@ Thay mô tả USGS-only bằng kiến trúc USGS/JMA; cập nhật source contra
 
 - [ ] Thành viên mới hiểu làm gì, gồm gì, dùng để làm gì và chạy được theo runbook.
 - [ ] không còn mô tả mâu thuẫn.
+- [ ] Thành viên mới tái lập được một dataset/experiment nhỏ mà không cần credential trong notebook.
 
 ## Hard dependency
 
@@ -78,6 +79,6 @@ Có thể bắt đầu ngay. Chốt output contract hoặc fixture nhỏ trướ
 
 ## Tài liệu liên quan
 
-- [Kế hoạch 6 tuần](../README.md)
+- [Kế hoạch 8 tuần](../README.md)
 - [Các khối công việc](../WORK_BLOCKS.md)
 - [Baseline MVP, KPI và Definition of Done](../../specs/MVP_SCOPE_KPI_AND_DOD.md)

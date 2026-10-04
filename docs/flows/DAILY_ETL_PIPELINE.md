@@ -10,7 +10,7 @@
 
 ## 1. Mục đích
 
-Tài liệu này mô tả happy path của một lần chạy pipeline. Các trường hợp chạy bù, retry có chọn lọc và khôi phục sau lỗi được mô tả tại [Backfill và phục hồi](./BACKFILL_AND_RECOVERY.md).
+Tài liệu này mô tả happy path của một lần chạy pipeline. Các trường hợp chạy bù, retry có chọn lọc và khôi phục sau lỗi được mô tả tại [Backfill và phục hồi](./BACKFILL_AND_RECOVERY.md). Phạm vi nguồn, ROI, timezone và overlap tuân theo [source coverage contract](../specs/SOURCE_COVERAGE.md); layout raw và manifest tuân theo [Bronze storage contract](../specs/BRONZE_STORAGE_CONTRACT.md); schema và KPI tuân theo [Silver/Gold logical data model](../specs/SILVER_GOLD_DATA_MODEL.md).
 
 ## 2. Cửa sổ dữ liệu
 
@@ -19,11 +19,15 @@ Lịch tham khảo là **07:15 giờ Việt Nam**, sau khi ngày UTC trước đ
 Với ngày chạy logic `D`:
 
 - Cửa sổ bắt buộc: toàn bộ ngày UTC `D - 1`.
-- Cửa sổ overlap đề xuất: đọc thêm ba ngày gần nhất để nhận sự kiện được USGS sửa muộn.
+- Cửa sổ revision mặc định: đọc ba ngày UTC hoàn chỉnh gần nhất để nhận sự kiện được USGS sửa muộn; cách tính và seed clipping nằm trong [USGS request contract](../specs/USGS_REQUEST_CONTRACT.md).
 - Mọi timestamp truyền cho API phải có timezone rõ ràng.
-- Giá trị overlap phải cấu hình được; con số ba ngày cần được hiệu chỉnh sau khi quan sát dữ liệu thực tế.
+- Giá trị phải cấu hình được; thay default ba ngày là contract change và phải có evidence trước/sau.
 
 Ví dụ, DAG chạy lúc `2026-09-16 07:15 Asia/Ho_Chi_Minh` có ngày UTC bắt buộc là `2026-09-15` và có thể đọc chồng từ `2026-09-13T00:00:00Z` đến trước `2026-09-16T00:00:00Z`.
+
+JMA không phải nguồn daily event-level. Catalog index/update metadata được kiểm
+tra riêng; chỉ year/release mới hoặc đổi checksum mới đi qua JMA ingest. Daily
+Gold có thể dùng observation JMA đã publish cùng USGS mới.
 
 ## 3. Luồng tổng thể
 
@@ -37,7 +41,8 @@ flowchart TD
     RETRY --> EXTRACT
     VALIDATE_RESPONSE -- Có --> WRITE_BRONZE["Ghi GeoJSON và ingest metadata vào Bronze"]
     WRITE_BRONZE --> VERIFY_BRONZE["Kiểm tra object và record count"]
-    VERIFY_BRONZE --> STAGE_BRONZE["Stage đúng input theo run ID"]
+    VERIFY_BRONZE --> GATE["bronze_ready_gate"]
+    GATE --> STAGE_BRONZE["Stage đúng input theo run ID"]
     STAGE_BRONZE --> BUILD_SILVER["Spark Java build_silver"]
     BUILD_SILVER --> CHECK_SILVER{"Silver quality gate đạt?"}
     CHECK_SILVER -- Không --> FAIL["DAG failed — dừng downstream"]
@@ -66,22 +71,33 @@ flowchart TD
 
 **Output:** run context dùng chung cho các task.
 
+USG-04 giữ context này qua XCom dưới dạng metadata nhỏ; raw body không đi qua
+XCom. Retry dùng lại cùng `logical_run_key` và cửa sổ đã resolve.
+
 ### P02 — Extract USGS
 
 **Input:** run context.
 
 **Xử lý:**
 
-- Gọi endpoint query ở định dạng GeoJSON.
-- Truyền thời gian, bounding box/radius và các bộ lọc đã cấu hình.
-- Đặt timeout; retry lỗi mạng, HTTP `429` và lỗi server tạm thời.
+- Dùng request plan của `USG-01` để tạo các chunk half-open UTC, endpoint
+  GeoJSON, bounding box Nhật Bản và `eventtype=earthquake`.
+- Truyền thời gian, bounding box và các bộ lọc đã cấu hình; `USGS endtime` được
+  gửi là thời điểm kết thúc độc quyền trừ 1 ms.
+- Dùng `USG-02` HTTP client để đặt timeout, retry lỗi mạng/HTTP `429`/`5xx`,
+  guard kích thước response và pagination khi count vượt `limit`.
 - Không retry vô hạn lỗi tham số hoặc response không đúng hợp đồng.
 
 **Output:** response nguyên bản cùng metadata request/response không chứa secret.
 
+Trong DAG, bước này được thực thi qua runner protocol của [USGS Airflow ingest
+contract](../specs/USGS_AIRFLOW_INGEST_CONTRACT.md); runner bridge sử dụng
+`USG-02` và `USG-03`.
+
 ### P03 — Ghi Bronze
 
-**Input:** response GeoJSON hợp lệ ở mức cú pháp.
+**Input:** response GeoJSON hợp lệ ở mức cú pháp từ `USG-02`; lifecycle chi
+tiết nằm trong [USGS Bronze writer contract](../specs/USGS_BRONZE_WRITER_CONTRACT.md).
 
 **Xử lý:**
 
@@ -92,11 +108,14 @@ flowchart TD
 **Output dự kiến:**
 
 ```text
-bronze/usgs/ingest_date=YYYY-MM-DD/run_id=<run-id>/earthquakes.geojson
-bronze/usgs/ingest_date=YYYY-MM-DD/run_id=<run-id>/metadata.json
+bronze/usgs/ingest_date=YYYY-MM-DD/run_id=<run-id>/attempt=<nn>/response.geojson
+bronze/usgs/ingest_date=YYYY-MM-DD/run_id=<run-id>/attempt=<nn>/manifest.json
 ```
 
 Tên cuối cùng sẽ được xác nhận khi mã nguồn được tạo.
+
+`bronze_ready_gate` chỉ thành công sau readback/checksum và manifest
+`BronzeReady`; Silver phải đặt dependency vào gate này.
 
 ### P04 — Build Silver
 
@@ -109,14 +128,14 @@ Tên cuối cùng sẽ được xác nhận khi mã nguồn được tạo.
 3. Ép kiểu magnitude, depth, latitude, longitude và flags.
 4. Kiểm tra range, required field và tính hợp lệ.
 5. Loại bản ghi không hợp lệ; ghi count và lý do tổng hợp vào log.
-6. Hợp nhất với dữ liệu liên quan trong overlap window.
-7. Với cùng `id`, giữ record có `updated` lớn nhất; tie-break phải xác định được.
+6. Deduplicate revision trong từng nguồn (`id`/`updated` cho USGS; source key/catalog release cho JMA).
+7. Liên kết observation xuyên nguồn theo contract; candidate mơ hồ không được auto-merge.
 8. Ghi Parquet tạm, chạy quality gate rồi mới upload Silver.
 
 **Output dự kiến:**
 
 ```text
-silver/earthquakes/year=YYYY/month=MM/*.parquet
+silver/source_observation/event_year_utc=YYYY/event_month_utc=MM/source_system=<source>/*.parquet
 ```
 
 ### P05 — Build Gold
@@ -125,8 +144,9 @@ silver/earthquakes/year=YYYY/month=MM/*.parquet
 
 **Xử lý:**
 
-- Enrich khu vực nếu boundary dataset sẵn sàng.
-- Tạo các thuộc tính phân nhóm magnitude/depth dùng thống nhất.
+- Enrich khu vực nếu boundary dataset sẵn sàng; giữ `UNKNOWN`/`OFFSHORE` khi
+  không map được.
+- Tạo `event_current`, source bridge và các magnitude/depth band theo contract.
 - Tính các aggregate cần thiết cho dashboard nếu có lợi cho hiệu năng.
 - Ghi vào bảng Iceberg theo chiến lược merge/overwrite partition đã thống nhất.
 - Commit snapshot nguyên tử; lưu snapshot ID trong log/XCom phù hợp.
@@ -223,10 +243,9 @@ Việc không có sự kiện trong một cửa sổ nhỏ không mặc định 
 
 Một daily run chỉ hoàn tất khi:
 
-1. Bronze và ingest metadata tồn tại.
+1. Bronze raw object và manifest `BronzeReady` tồn tại, readback/checksum đã được xác nhận.
 2. Silver của các partition liên quan đã publish.
 3. Gold snapshot đã commit.
 4. Trino verification đạt.
 5. Metric đối soát đã ghi đầy đủ.
 6. Run được đánh dấu thành công và có thể refresh Power BI.
-

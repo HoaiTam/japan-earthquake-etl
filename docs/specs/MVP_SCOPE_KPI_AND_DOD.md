@@ -3,194 +3,250 @@
 | Thuộc tính | Giá trị |
 |---|---|
 | Task | `PLN-01` |
-| Trạng thái tài liệu | Đã phê duyệt qua `PLN-01` |
-| Phạm vi | Phiên bản local-first trong kế hoạch 6 tuần |
-| Nguồn backlog | `docs/task/tasks/README.md` và `docs/task/tasks/<TASK-ID>.md` |
+| Trạng thái tài liệu | Baseline HDBSCAN hiện hành |
+| Kế hoạch | 8 tuần, 3 thành viên, 364 giờ task; 12 giờ data-readiness trước tuần 3 và 352 giờ trong capacity tham khảo 360 giờ |
+| Nguồn backlog | [`docs/task/tasks/README.md`](../task/tasks/README.md) và file riêng của từng task |
+| Roadmap kỹ thuật | [Roadmap HDBSCAN từ Gold đến ML Iceberg](../task/HDBSCAN_WORKSTREAM.md) |
 
-## 1. Mục đích
+## 1. Mục đích và thứ tự ưu tiên
 
-Tài liệu này là baseline dùng để quyết định một yêu cầu thuộc MVP, Stretch hay ngoài phạm vi; thống nhất KPI phải kiểm chứng; xác định đường găng; và cung cấp Definition of Done chung cho các task.
+Tài liệu này là baseline chính thức để quyết định một yêu cầu thuộc Core,
+Stretch hay ngoài phạm vi; thống nhất KPI nghiệm thu; xác định đường găng; và
+cung cấp Definition of Done dùng chung cho dự án.
 
-Baseline không thay thế acceptance criteria riêng của từng task. Khi có khác biệt, task phải cập nhật tài liệu liên quan trong cùng pull request.
+Baseline không thay acceptance criteria riêng của từng task. Baseline này quyết
+định ranh giới Core/Stretch, KPI và DoD cấp MVP; file task quyết định deliverable
+cụ thể; contract của owner task quyết định schema/interface. Tài liệu mô tả tổng
+quan không được ghi đè ba nguồn đó. Mọi thay đổi Core/Stretch, KPI hoặc DoD phải
+cập nhật các tài liệu bị tác động trong cùng pull request.
+
+Baseline tại PR #3 là mốc lịch sử và đã bị phiên bản này thay thế. Quy trình
+Window/DBSCAN/HDBSCAN hiện thuộc Core; Power BI là Stretch và không chặn MVP.
 
 ## 2. Kết quả MVP bắt buộc
 
-Phiên bản đầu tiên hoàn thành khi nhóm chứng minh được một luồng dữ liệu local end-to-end:
+Phiên bản đầu tiên hoàn thành khi nhóm chứng minh được luồng local-first sau:
 
-```text
-USGS API ─┐
-          ├→ Airflow ingest → MinIO Bronze → Spark Java Silver
-JMA 40y ──┘  → canonical event → Spark Java/Iceberg Gold
-             → Trino verification → Power BI Import
+```mermaid
+flowchart LR
+    USGS["USGS API<br/>daily UTC"] --> BUSGS["Bronze USGS<br/>raw + manifest"]
+    JMA["JMA archive<br/>versioned history"] --> BJMA["Bronze JMA<br/>raw + manifest"]
+    BUSGS --> SILVER["Silver observations<br/>normalize · quality · lineage"]
+    BJMA --> SILVER
+    SILVER --> GOLD["Gold canonical event<br/>Iceberg snapshot"]
+    GOLD --> DATASET["ML dataset<br/>audit · Mc · windows · 4-D feature"]
+    DATASET --> BUNDLE["Parquet bundle<br/>manifest · checksum"]
+    BUNDLE --> EXP["External/Colab experiment<br/>Window · DBSCAN · HDBSCAN"]
+    EXP --> IMPORT["Airflow import gate<br/>schema · grain · lineage"]
+    IMPORT --> ML["Iceberg ml.*<br/>Trino + static report"]
+    ML -. "Stretch" .-> BI["Power BI"]
 ```
 
 MVP phải đáp ứng đồng thời:
 
-1. Chạy bằng Docker Compose trên một máy local theo cấu hình tài nguyên đã ghi nhận.
-2. Thu thập một cửa sổ dữ liệu UTC từ USGS và một tập archive JMA đại diện; lưu payload nguyên bản cùng metadata/checksum ở Bronze.
-3. Tạo Silver có schema logic chung, timestamp UTC/JST, lineage, validation, reject metrics, dedup/revision trong từng nguồn và liên kết observation giữa hai nguồn.
-4. Tạo Gold Iceberg có dataset sự kiện hiện hành và dữ liệu phục vụ KPI; chỉ công bố sau commit và Trino verification.
-5. Có daily DAG theo đúng dependency Extract → Bronze → Silver → Gold → Verify, hỗ trợ retry và backfill có phạm vi.
-6. Power BI import qua Trino/ODBC và có ba trang: Tổng quan, Không gian, Độ sâu và độ lớn.
-7. Có bằng chứng rerun/idempotency, late update, backfill nhỏ, failure recovery và đối soát Trino–Power BI.
-8. Có runbook, tài liệu kiến trúc, quality rules và kịch bản demo khớp hệ thống thực tế.
+1. Chạy các service nền bằng Docker Compose trên một máy local theo cấu hình tài nguyên đã ghi nhận.
+2. Thu thập USGS theo cửa sổ UTC và JMA theo archive/release; lưu payload nguyên bản cùng manifest/checksum ở Bronze.
+3. Tạo Silver chung cho hai nguồn với timestamp UTC/JST, lineage, validation, reject metrics, revision/dedup và source linking để không double count.
+4. Publish Gold Iceberg canonical chỉ sau quality gate; pin được snapshot và kiểm chứng độc lập qua Trino.
+5. Điều phối source → Bronze → Silver → Gold bằng Airflow, có retry, backfill/reprocessing theo phạm vi và run summary.
+6. Từ một Gold snapshot cố định, tạo dataset có version gồm audit, `Mc`, mainshock, candidate windows và feature không-thời gian 4-D.
+7. Chạy Window, DBSCAN, HDBSCAN global và HDBSCAN adaptive trên cùng `dataset_id`, theo từng mainshock window.
+8. Đánh giá chất lượng clustering, tính nhất quán vật lý, độ ổn định và out-of-period; không dùng accuracy/F1 như ground truth tuyệt đối khi chưa có nhãn chuẩn.
+9. Validate result bundle trước khi import vào Iceberg `ml.*`; tạo Trino verification và static report truy vết được dataset/experiment.
+10. Có evidence rerun/idempotency, late revision, historical backfill, failure recovery, secret review, runbook và demo khớp hệ thống thực tế.
 
-## 3. Phân loại phạm vi
+## 3. Ranh giới dữ liệu nghiên cứu
 
-### 3.1. Core
+| Hạng mục | Baseline |
+|---|---|
+| Reproduction period | `2000-01-01T00:00:00Z <= event_time < 2018-10-01T00:00:00Z` |
+| Extension period | `2018-10-01T00:00:00Z <= event_time < 2024-01-01T00:00:00Z` |
+| Catalog nghiên cứu | Natural events trong study area, catalog era `UNIFIED`, primary JMA, đủ latitude/longitude/depth/magnitude |
+| Mainshock | Depth `50–200 km` (bao gồm hai biên), magnitude `> 5.5` |
+| Magnitude completeness | `Mc` phải được estimate, lưu method/version và có evidence; không hard-code không giải thích |
+| Candidate grain | `(dataset_id, mainshock_event_id, candidate_event_id)` |
+| Feature baseline | `[x_scaled, y_scaled, z_scaled, time_scaled]`, chuyển tọa độ sang km trước khi scale |
+| Đơn vị fit | Từng mainshock window; không fit HDBSCAN một lần trên toàn catalog |
+| Diễn giải | Sequence/aftershock candidate theo mô hình thống kê hồi cứu, không phải dự đoán hay chứng minh quan hệ nhân quả |
+
+Mọi dataset phải pin `gold_snapshot_id` và có `dataset_id` bất biến. Mọi kết
+quả phải có `experiment_run_id`, thuật toán/config version, code/notebook/package
+version và checksum. Colab không nhận credential MinIO/pipeline, không ghi trực
+tiếp Gold hoặc `ml.*`; dữ liệu ra/vào được trao đổi bằng bundle độc lập. Airflow
+build dataset kết thúc ở bundle sẵn sàng và chỉ import sau completion manifest;
+không giả định free Colab là một job service ổn định có thể trigger tự động.
+
+Các bảng Core trong namespace `ml` gồm `ml.dataset_manifest`,
+`ml.mainshock_candidate_snapshot`, `ml.sequence_candidate_snapshot`,
+`ml.experiment_run`, `ml.sequence_membership` và `ml.sequence_summary`. Grain,
+key và lifecycle chi tiết do `CON-03` khóa trước khi implementation ghi Iceberg.
+
+## 4. Phân loại phạm vi
+
+### 4.1. Core
 
 | Nhóm | Nội dung bắt buộc |
 |---|---|
-| Nguồn | USGS Earthquake Catalog API cho daily update, JMA archive cho lịch sử 40 năm và fixture dự phòng có thể tái lập |
-| Orchestration | Airflow daily run, retry có giới hạn, run context, backfill/reprocessing |
-| Storage | MinIO cho Bronze, Silver và warehouse Gold; staging tạm tách khỏi dữ liệu bền vững |
-| Compute | Spark Java cho parse, normalize, validation, dedup, bands, fact/current và aggregate cần thiết |
-| Lakehouse | Apache Iceberg cho Gold, Catalog dùng chung giữa Spark và Trino |
-| Serving | Trino SQL trên current Iceberg snapshot; Power BI Import qua ODBC |
-| Quality | Blocker gates, count reconciliation, uniqueness, schema/BI contract và snapshot verification |
-| Analytics | KPI thống nhất, ba trang dashboard, filter dùng chung, freshness/snapshot metadata |
-| Operations | Secret hygiene, health checks, backup/restore smoke test, runbook và demo evidence |
+| Nguồn | USGS cho daily update, JMA cho lịch sử có version và fixture có thể tái lập |
+| Data engineering | Bronze raw/manifest, Silver đa nguồn, Gold canonical Iceberg, Trino verification |
+| Orchestration | Airflow schedule, retry, backfill/reprocessing, recovery boundary và run summary |
+| ML dataset | Pin Gold snapshot, dataset manifest, audit/`Mc`, mainshock/window, feature 4-D, Parquet/checksum bundle |
+| Experiment | Window, DBSCAN, HDBSCAN global/adaptive dùng cùng dataset và package/config có version |
+| Scientific evaluation | DBCV/noise/membership, Modified Omori consistency, sensitivity/stability, out-of-period và failure/resource reporting |
+| ML integration | Result bundle contract, build/import DAG, validation gate, Iceberg `ml.*`, Trino/static report |
+| Quality & release | ETL/ML E2E, idempotency/revision/recovery, security, docs, demo và release evidence |
 
-### 3.2. Stretch
+### 4.2. Stretch
 
-Chỉ bắt đầu khi dependency Core ổn định và task P0/P1 trên đường găng không bị trễ:
+Chỉ bắt đầu khi dependency Core ổn định và đường găng P0/P1 không bị trễ:
 
-- `QA-05`: profile dữ liệu lịch sử và tối ưu tài nguyên local.
-- `OPS-01`: smoke test backup và restore metadata.
-- Triển khai VPS, Prometheus/Grafana, GIS/Sedona nâng cao hoặc cải tiến hiệu năng vượt yêu cầu demo.
+- `GLD-02`: aggregate tối ưu riêng cho dashboard.
+- `BI-01..05`: kết nối, semantic model, dashboard, refresh và reconciliation Power BI.
+- `QA-05`: profile toàn bộ lịch sử và tối ưu tài nguyên local.
+- `OPS-01`: smoke test backup/restore metadata.
+- Shallow control group, OPTICS, GIS/Sedona nâng cao, quan sát bằng Prometheus/Grafana hoặc tối ưu vượt yêu cầu demo.
 
-Nếu không làm spatial Stretch, MVP vẫn giữ tọa độ thật và phân loại khu vực theo contract tối thiểu `Unknown`/`Offshore`; không đặt tọa độ giả và không loại event hợp lệ.
+Nếu không làm Power BI, MVP vẫn phải có Trino verification và static report.
+Nếu không làm spatial Stretch, hệ thống giữ tọa độ thật và dùng giá trị
+`Unknown`/`Offshore` theo contract; không đặt tọa độ giả hoặc loại event hợp lệ.
 
-### 3.3. Ngoài phạm vi phiên bản đầu tiên
+### 4.3. Ngoài phạm vi phiên bản đầu tiên
 
 - Dự đoán động đất, cảnh báo thiên tai thời gian thực hoặc tuyên bố quan hệ nhân quả.
 - Streaming/near-real-time, high availability, multi-node production và autoscaling.
 - Ứng dụng web/mobile, tài khoản người dùng hoặc phân quyền ứng dụng.
-- Data Science, Generative AI và bản đồ rủi ro dân cư khi chưa có dữ liệu phơi nhiễm.
-- Database serving riêng, bản sao Gold trong PostgreSQL, DDL/migration vật lý chi tiết.
-- Xóa/rebuild toàn bộ data lake như cơ chế retry hoặc backfill mặc định.
+- Generative AI, bản đồ rủi ro dân cư khi chưa có dữ liệu phơi nhiễm.
+- Database serving riêng hoặc bản sao dữ liệu nghiệp vụ trong PostgreSQL; PostgreSQL Compose chỉ lưu metadata Airflow.
+- Để notebook ghi trực tiếp Gold/ML hoặc cấp credential MinIO/pipeline cho Colab.
+- Xóa/rebuild toàn bộ data lake làm cơ chế retry/backfill mặc định.
 
-## 4. KPI baseline
+## 5. KPI baseline
 
-Các định nghĩa dưới đây trở thành baseline chính thức sau khi ba thành viên xác nhận tại mục 9.
+Các KPI dưới đây là điều kiện kiểm chứng, không phải ngưỡng khoa học được bịa
+trước khi có dữ liệu. Owner task phải ghi lại phương pháp, input, version và
+evidence. Các ngưỡng vận hành mới chỉ được khóa sau run đại diện.
 
-### 4.1. KPI dashboard
-
-Mọi KPI dùng cùng filter context và mỗi canonical event chỉ được đếm một lần.
-
-| KPI | Định nghĩa | Quy tắc hiển thị/kiểm chứng |
-|---|---|---|
-| Total Earthquakes | `DISTINCTCOUNT(canonical_event_id)` | Số nguyên; đối chiếu `COUNT(DISTINCT ...)` ở Trino |
-| Average Magnitude | Trung bình `magnitude` khác null | 2 chữ số thập phân; null không đổi thành 0 |
-| Maximum Magnitude | Giá trị lớn nhất của `magnitude` khác null | 1–2 chữ số thập phân |
-| Average Depth | Trung bình `depth_km` hợp lệ | 2 chữ số thập phân, đơn vị km |
-| Strong Earthquakes | Số event có `magnitude >= strong_threshold` | Ngưỡng là tham số; baseline đề xuất mặc định `5.0`, không phải phân loại cảnh báo |
-| Tsunami Flagged | Số event có `tsunami_flag = true` | Số nguyên |
-| Alerted Events | Số event có `alert_level` khác null/none | Số nguyên |
-| Offshore/Unknown Rate | Event `Offshore` hoặc `Unknown` chia Total Earthquakes | Phần trăm; mẫu số là total trong cùng filter |
-| Latest Event Time | `MAX(event_time_jst)` trong filter | Hiển thị rõ `JST`; UTC được giữ để đối soát |
-| Data Freshness | Thời gian từ event/snapshot mới nhất đến thời điểm Power BI refresh | Hiển thị timestamp refresh và snapshot ID; không ghi real-time |
-
-### 4.2. KPI nghiệm thu hệ thống
+### 5.1. KPI dữ liệu và vận hành
 
 | KPI | Điều kiện đạt | Evidence tối thiểu |
 |---|---|---|
-| End-to-end success | Một daily interval hoàn tất đến trạng thái `Published` | Airflow run ID, Bronze URI, Silver summary, snapshot ID và Trino verify |
-| Idempotency | Chạy cùng fixture/input hai lần cho cùng tập khóa và KPI | So sánh distinct IDs, counts và KPI giữa hai run |
-| Latest update wins | Cùng `id` giữ record có `updated` mới nhất với tie-break xác định | Fixture late update và assertion |
-| Count reconciliation | Mọi chênh lệch source → parsed → valid/rejected → dedup → output giải thích được | Run summary có count theo reason |
-| Gold integrity | Fact/current không trùng ID; aggregate khớp fact với cùng filter | Verification SQL và snapshot ID |
-| BI consistency | Total, average/max, tsunami, region và date filter khớp Trino | Reconciliation checklist |
-| Recovery | Retry/reprocessing chạy lại đúng tầng và BI không refresh trước `Published` | Evidence cho extract, Silver, Gold và verify failure |
-| Local reproducibility | Thành viên mới làm theo runbook có thể khởi động và chạy smoke flow | Command log/checklist không dùng placeholder |
+| End-to-end ETL | Một daily interval đạt `Published` đến Gold | Airflow run ID, Bronze URI, Silver summary, Gold snapshot ID và Trino verify |
+| Idempotency | Chạy lại cùng input không sinh thêm logical record hoặc đổi kết quả ngoài policy revision | So sánh keys, counts và snapshot/query trước–sau |
+| Latest revision wins | Observation có revision mới được chọn bằng tie-break xác định, raw history vẫn còn | Fixture late revision và assertion |
+| Count reconciliation | Source → parsed → valid/rejected → dedup/link → Gold đều giải thích được | Run summary theo source và reason code |
+| Gold integrity | Canonical current không trùng key, field bắt buộc hợp lệ và snapshot chỉ Published sau verify | Verification SQL gắn snapshot ID |
+| Recovery | Retry/reprocess đúng tầng, không xóa dữ liệu và không publish output dở | Evidence lỗi có kiểm soát và run phục hồi |
+| Local reproducibility | Thành viên mới có thể làm theo runbook để khởi động và chạy smoke flow | Command log/checklist không còn placeholder |
 
-Không đặt tỷ lệ daily success, duration, freshness hoặc volume warning bằng số tùy ý trước khi có baseline thực nghiệm. `QA-05` và các run đại diện chịu trách nhiệm chốt ngưỡng vận hành.
+### 5.2. KPI ML dataset và artifact
 
-## 5. Đường găng và điều kiện bắt đầu
+| KPI | Điều kiện đạt | Evidence tối thiểu |
+|---|---|---|
+| Dataset identity | Mỗi dataset pin Gold snapshot, filter/time split và các version xử lý | `ml.dataset_manifest` hoặc fixture tương đương |
+| Candidate integrity | Grain duy nhất; mainshock có offset thời gian 0; event ngoài window bị loại có reason | Quality report theo `dataset_id` |
+| Feature validity | Tọa độ đã đổi sang km, feature hữu hạn, scaling có version và resource guard | Feature summary + test biên/null/non-finite |
+| Bundle integrity | Manifest, Parquet, checksums và counts khớp; consumer reject file bị sửa | Bundle validator log |
+| Fair comparison | Bốn thuật toán đọc cùng `dataset_id` và cùng candidate population | Experiment config + input checksum |
+| Result integrity | Membership/summary/metrics đúng schema, grain, lineage và hoàn tất bằng `_SUCCESS.json` | Result validation report |
+| Import safety | Sai checksum/schema/grain/lineage bị reject trước Iceberg commit | Import gate tests + accepted/rejected evidence |
 
-Đường găng logic:
+### 5.3. KPI đánh giá nghiên cứu
+
+| Nhóm | Điều kiện báo cáo |
+|---|---|
+| Cluster quality | DBCV khi khả dụng, noise rate, số/kích thước cluster và membership probability distribution |
+| Physical consistency | Decay theo Modified Omori hoặc kiểm tra tương đương được mô tả; nêu rõ giả định và trường hợp không fit được |
+| Stability/sensitivity | Báo mức thay đổi theo parameter/seed/sample; dùng Jaccard/ARI khi phù hợp và không che failure window |
+| Out-of-period | Áp dụng rule/config đã khóa từ reproduction sang extension `2018-10-01..2023-12-31` và báo drift/failure |
+| Resource | Runtime, memory, số candidate/mainshock và cửa sổ bị skip/fail được ghi nhận |
+| Interpretation | Dùng thuật ngữ candidate; không đổi metric unsupervised thành accuracy/F1 nếu không có nhãn chuẩn độc lập |
+
+### 5.4. KPI trình bày
+
+- Static report Core phải đối soát được với Trino trên cùng `dataset_id` và `experiment_run_id`.
+- Nếu Power BI Stretch được thực hiện, total/average/max/source/date filters phải khớp truy vấn Trino với cùng filter context và snapshot.
+- Mọi báo cáo hiển thị data snapshot, dataset/config version, thời điểm tạo và limitation không prediction/causal.
+
+## 6. Đường găng và điều kiện bắt đầu
 
 ```mermaid
 flowchart LR
-    PLN["PLN-01 Scope/KPI/DoD"] --> REP["REP-01 Repository"]
-    REP --> FND["Foundation services"]
-    FND --> USG["USGS Bronze"]
-    FND --> JMA["JMA Bronze"]
-    USG --> SLV["Silver đa nguồn"]
-    JMA --> SLV
-    SLV --> GLD["Gold/Trino"]
-    GLD --> ORC["E2E orchestration"]
-    GLD --> BI["Power BI"]
-    ORC --> QA["QA/Recovery"]
-    BI --> QA
-    QA --> DOC["Docs/Demo/Release"]
+    PLN["PLN-01<br/>Scope · KPI · DoD"] --> CON["CON-03<br/>Silver · Gold · ML contract"]
+    SRC["USGS + JMA Bronze"] --> SLV["Silver multi-source"]
+    CON --> SLV
+    SLV --> GLD["Gold snapshot + Trino"]
+    GLD --> MLD["MLD<br/>dataset + export"]
+    MLD --> EXP["EXP<br/>algorithms + evaluation"]
+    EXP --> MLI["MLI<br/>validate + import"]
+    MLI --> MLQ["MLQ-01<br/>ML E2E"]
+    MLQ --> REL["Docs · Demo · Release"]
+    MLI -. "optional" .-> BI["Power BI Stretch"]
 ```
 
-Quy tắc:
+Các contract/fixture cho `EXP-01` và `MLI-01` có thể làm song song trước khi
+Gold thật sẵn sàng. Chỉ integration gate mới chờ output thật. P0 được ưu tiên
+trước P1; Stretch không chiếm tài nguyên của đường găng Core. Failure tại một
+quality gate phải chặn publish/import downstream.
 
-- P0 được ưu tiên trước P1; P2/Stretch không chiếm tài nguyên của đường găng.
-- Không bắt đầu implementation nếu hard dependency trong file task chưa đạt, trừ fixture/mock/interface/test plan mà file task cho phép.
-- Mỗi task phải truyền deliverable/contract đã kiểm chứng cho downstream; không chỉ dựa vào mô tả miệng.
-- Một failure ở quality gate chặn downstream và Power BI refresh.
-
-## 6. Quyết định được giao cho task downstream
-
-Các mục dưới đây không làm thay đổi phạm vi MVP. Owner task phải chốt trước khi consumer phụ thuộc bắt đầu:
+## 7. Quyết định được giao cho task downstream
 
 | Quyết định | Owner task | Consumer chính |
 |---|---|---|
-| Cấu trúc module, wrapper và mount path | `REP-01` | Toàn bộ task code/platform |
-| Ma trận phiên bản Spark–Iceberg–Trino và Catalog | `SPK-01`, `QRY-01` | Gold/serving |
-| Phạm vi nguồn, overlap và source priority | `CON-01` | USGS/JMA/Silver/BI |
-| Bronze object layout, manifest và checksum | `CON-02` | USGS/JMA/Silver |
-| Silver/Gold schema, null policy, lineage và KPI | `CON-03` | Parser/Gold/Power BI |
-| Fixture và test matrix dùng chung | `CON-04` | Parser/quality/Gold/BI |
-| Bounding box, daily window và request runtime | `USG-01` | USGS ingest/backfill |
-| JMA archive inventory, release và format metadata | `JMA-01` | JMA ingest/parser |
-| Validation, revision và canonical link | `SLV-05`, `SLV-06`, `SLV-07` | Gold/QA |
-| Gold bands, aggregate grain và snapshot publish | `GLD-01`, `GLD-02`, `GLD-03` | Trino/Power BI |
-| Driver ODBC, DSN và timeout | `BI-01` | Power BI |
-| Schedule, max active runs và resource profile | `ORC-02`, `ORC-05`, `QA-05` | Vận hành/demo |
+| Cấu trúc module, wrapper và mount path | `REP-01` | Toàn bộ code/platform |
+| Phiên bản Spark–Iceberg–Trino và Catalog | `SPK-01`, `QRY-01` | Gold/ML serving |
+| Phạm vi nguồn, overlap và source priority | `CON-01` | USGS/JMA/Silver/Gold |
+| Bronze layout, manifest và checksum | `CON-02` | USGS/JMA/Silver |
+| Silver/Gold/ML grain, null, lineage và lifecycle | `CON-03` | Parser/Gold/ML |
+| Fixture và test matrix dùng chung | `CON-04` | Parser/quality/Gold/ML |
+| Request UTC, overlap và runtime USGS | `USG-01` | USGS ingest/backfill |
+| JMA inventory, release và format metadata | `JMA-01` | JMA ingest/parser |
+| Validation, revision và canonical link | `SLV-05..07` | Gold/QA/ML |
+| Gold event model và snapshot publish | `GLD-01`, `GLD-03`, `GLD-04` | ML dataset/Trino |
+| Dataset identity, time split và Gold snapshot | `MLD-01` | MLD/EXP/MLI |
+| `Mc`, mainshock/window và feature/scaling version | `MLD-02..04` | Export/experiment |
+| Export bundle contract | `MLD-05` | Colab experiment |
+| Algorithm/config và evaluation policy | `EXP-02..05` | Scientific report |
+| Result bundle và experiment lifecycle | `MLI-01` | Import/report |
+| Build/import/publish gates | `MLI-02..04` | ML E2E/consumer |
+| Schedule, concurrency và resources | `ORC-02`, `ORC-05`, `QA-05` | Vận hành/demo |
 
-Mỗi owner phải cập nhật docs/contract và test tương ứng. Không hard-code giá trị chưa được owner task chốt.
+Owner phải cập nhật docs/contract và test tương ứng. Consumer không được
+hard-code giá trị chưa được owner chốt hoặc lặp lại logic trong notebook/BI.
 
-## 7. Definition of Done cho task
+## 8. Definition of Done cho task
 
 Một task chỉ đủ điều kiện chuyển sang `Done` khi tất cả mục áp dụng đều đạt:
 
-- [ ] Dependency đã đạt hoặc ngoại lệ chuẩn bị fixture/test plan được ghi rõ.
+- [ ] Hard dependency đã đạt; ngoại lệ phát triển bằng fixture/mock được ghi rõ.
 - [ ] Deliverable tồn tại trong repository hoặc môi trường demo và truy vết được bằng Task ID.
-- [ ] Mọi acceptance criteria trong file task đã được kiểm tra.
-- [ ] Test tự động liên quan đạt; nếu chưa thể tự động hóa, có evidence thủ công lặp lại được.
-- [ ] Case lỗi, retry/rerun, idempotency và data-safety đã được xem xét khi thay đổi có liên quan.
-- [ ] Không có secret, dữ liệu nhạy cảm, build artifact hoặc local runtime file không cần thiết.
-- [ ] Docs/contract/config được cập nhật trong cùng thay đổi nếu hành vi thay đổi.
-- [ ] `git diff` chỉ chứa thay đổi trong phạm vi task và không có whitespace error.
-- [ ] Evidence/PR ghi run ID, query, log, ảnh hoặc commit phù hợp với loại task.
-- [ ] Task P0/P1 có reviewer khác assignee xác nhận.
+- [ ] Acceptance criteria trong file task đã được kiểm tra.
+- [ ] Test/check liên quan đạt; kiểm tra thủ công phải lặp lại được và có evidence.
+- [ ] Case lỗi, retry/rerun, idempotency và data safety đã được xem xét khi liên quan.
+- [ ] Không có secret, dữ liệu nhạy cảm, data dump lớn, build artifact hoặc local runtime file không cần thiết.
+- [ ] Docs/contract/config được cập nhật cùng thay đổi hành vi/schema.
+- [ ] `git diff` chỉ chứa thay đổi đúng phạm vi và `git diff --check` đạt.
+- [ ] Evidence ghi command/query/log/report/commit phù hợp với loại task.
+- [ ] Reviewer khác assignee được khuyến nghị cho P0/P1 nhưng chưa có reviewer không chặn `Done`.
 
-## 8. Definition of Done cho MVP
+## 9. Definition of Done cho MVP
 
 MVP chỉ hoàn tất khi:
 
-- [ ] Tất cả task Core bắt buộc trên đường găng đã `Done`; task Stretch còn lại được ghi `Deferred` hoặc giữ ngoài release.
-- [ ] Daily happy path chạy end-to-end và có evidence xuyên suốt một `run_id`.
-- [ ] Rerun, duplicate, late update, backfill nhỏ và failure recovery đạt.
-- [ ] Gold current snapshot đọc được qua Trino và mọi blocker quality gate đạt.
-- [ ] Ba trang Power BI refresh được; KPI khớp SQL với cùng filter.
-- [ ] Security/secret review đạt; backup/restore chỉ là điều kiện release nếu nhóm đưa task Stretch `OPS-01` vào release.
-- [ ] Runbook không còn placeholder cho lệnh/service/port của phiên bản demo.
-- [ ] Demo 15–20 phút có fallback và mọi con số trình bày có evidence.
-- [ ] Release candidate gắn với commit/tag, config version và snapshot ID đã ghi nhận.
+- [ ] Tất cả task Core trên đường găng đạt `Done`; Stretch còn lại được ghi rõ là deferred/ngoài release.
+- [ ] Daily USGS và historical JMA đi qua Bronze → Silver → Gold với evidence xuyên suốt run/source version.
+- [ ] Rerun, duplicate, late revision, backfill có phạm vi và failure recovery đạt.
+- [ ] Gold canonical snapshot đọc được qua Trino và mọi blocker quality gate đạt.
+- [ ] Một `dataset_id` pin snapshot đi qua audit/`Mc`/window/feature/export bằng bundle hợp lệ.
+- [ ] Window, DBSCAN, HDBSCAN global/adaptive chạy trên cùng dataset; evaluation và limitation được báo cáo.
+- [ ] Result bundle hợp lệ được import vào `ml.*`; bundle sai bị reject trước commit.
+- [ ] Trino verification và static report khớp `dataset_id`/`experiment_run_id`; Power BI không phải điều kiện chặn.
+- [ ] Security/secret review đạt; runbook không còn placeholder cho phiên bản demo.
+- [ ] Demo có fixture/bundle fallback và mọi số liệu trình bày truy vết được về snapshot/config/evidence.
+- [ ] Release candidate gắn commit/tag, config version, Gold snapshot, dataset và experiment run đã ghi nhận.
 
-## 9. Phê duyệt PLN-01
+## 10. Quản lý thay đổi PLN-01
 
-Task `PLN-01` đã hoàn tất qua [PR #3](https://github.com/HoaiTam/japan-earthquake-etl/pull/3). Baseline này là mốc hiện hành; thay đổi Core/Stretch, KPI hoặc DoD phải cập nhật tài liệu và task contract liên quan trong cùng pull request.
-
-| Thành viên | Ngày xác nhận | Kết quả |
-|---|---|---|
-| Trần Minh Hoài Tâm | PR #3 | Confirmed |
-| Nguyễn Thanh Trí | PR #3 | Confirmed |
-| Lê Thị Thuỳ Trang | PR #3 | Confirmed |
-
-Nếu nhóm thay đổi Core/Stretch, KPI hoặc DoD sau phê duyệt, pull request phải nêu tác động tới dependency, effort, backfill/rebuild và tài liệu liên quan.
+- [PR #3](https://github.com/HoaiTam/japan-earthquake-etl/pull/3) chỉ còn là evidence của baseline cũ.
+- Bản cập nhật HDBSCAN được thực hiện trong task `PLN-01` trên branch `docs/pln-01-hdbscan-scope-update`.
+- Team review qua pull request được khuyến nghị. Không ghi nhận tên người xác nhận mới nếu chưa có review/evidence thực tế.
+- Pull request đổi Core/Stretch, KPI hoặc DoD phải nêu tác động tới dependency, effort, backfill/rebuild, security và tài liệu downstream.

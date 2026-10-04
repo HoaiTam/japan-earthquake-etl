@@ -3,7 +3,7 @@
 set -euo pipefail
 
 job_jar=/opt/spark/jobs/japan-earthquake-etl.jar
-main_class=vn.edu.uit.ie212.earthquake.spark.HelloWorldJob
+main_class=ie212.earthquake.spark.HelloWorldJob
 output_file=$(mktemp)
 
 cleanup() {

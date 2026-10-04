@@ -1,0 +1,350 @@
+{
+  "matrix_version": "1.0",
+  "contracts": {
+    "source_coverage": "CON-01/1.0",
+    "bronze_storage": "CON-02/1.0",
+    "silver_gold_model": "CON-03/1.0"
+  },
+  "provenance": "Synthetic data created for deterministic offline tests; not copied from a source catalog.",
+  "cases": [
+    {
+      "case_id": "FX-USGS-01",
+      "source_system": "USGS",
+      "category": "success",
+      "input_paths": ["usgs/success.geojson"],
+      "consumer_stages": ["USG-03", "SLV-02", "SLV-04", "GLD-01"],
+      "expected": {
+        "bronze_status": "BronzeReady",
+        "parsed_count": 1,
+        "valid_count": 1,
+        "rejected_count": 0,
+        "current_count": 1,
+        "canonical_count": 1,
+        "reason_codes": [],
+        "assertions": [
+          "event_time_utc=2023-09-01T03:34:56.780Z",
+          "latitude=35.67",
+          "longitude=139.76",
+          "magnitude=5.2"
+        ]
+      }
+    },
+    {
+      "case_id": "FX-USGS-02",
+      "source_system": "USGS",
+      "category": "empty",
+      "input_paths": ["usgs/empty.geojson"],
+      "consumer_stages": ["USG-03", "SLV-02"],
+      "expected": {
+        "bronze_status": "BronzeReady",
+        "parsed_count": 0,
+        "valid_count": 0,
+        "rejected_count": 0,
+        "current_count": 0,
+        "canonical_count": 0,
+        "reason_codes": [],
+        "assertions": ["empty_valid=true", "record_count_estimate=0"]
+      }
+    },
+    {
+      "case_id": "FX-USGS-03",
+      "source_system": "USGS",
+      "category": "invalid",
+      "input_paths": ["usgs/invalid-json.geojson"],
+      "consumer_stages": ["USG-03"],
+      "expected": {
+        "bronze_status": "Rejected",
+        "parsed_count": 0,
+        "valid_count": 0,
+        "rejected_count": 0,
+        "current_count": 0,
+        "canonical_count": 0,
+        "reason_codes": ["SOURCE_STRUCTURE_INVALID"],
+        "assertions": ["no_BronzeReady_manifest=true"]
+      }
+    },
+    {
+      "case_id": "FX-USGS-04",
+      "source_system": "USGS",
+      "category": "invalid",
+      "input_paths": ["usgs/invalid-fields.geojson"],
+      "consumer_stages": ["SLV-02", "SLV-05"],
+      "expected": {
+        "bronze_status": "BronzeReady",
+        "parsed_count": 3,
+        "valid_count": 0,
+        "rejected_count": 3,
+        "current_count": 0,
+        "canonical_count": 0,
+        "reason_codes": [
+          "MISSING_SOURCE_KEY",
+          "INVALID_EVENT_TIME",
+          "INVALID_LATITUDE",
+          "INVALID_LONGITUDE",
+          "INVALID_NUMBER"
+        ],
+        "assertions": ["valid_count+rejected_count=parsed_count"]
+      }
+    },
+    {
+      "case_id": "FX-USGS-05",
+      "source_system": "USGS",
+      "category": "duplicate",
+      "input_paths": ["usgs/duplicate.geojson"],
+      "consumer_stages": ["SLV-02", "SLV-06"],
+      "expected": {
+        "bronze_status": "BronzeReady",
+        "parsed_count": 2,
+        "valid_count": 2,
+        "rejected_count": 0,
+        "current_count": 1,
+        "canonical_count": 1,
+        "reason_codes": ["DUPLICATE_SOURCE_RECORD"],
+        "assertions": ["same_source_record_key=true", "rerun_result_stable=true"]
+      }
+    },
+    {
+      "case_id": "FX-USGS-06",
+      "source_system": "USGS",
+      "category": "revised",
+      "input_paths": ["usgs/revision-v1.geojson", "usgs/revision-v2.geojson"],
+      "consumer_stages": ["SLV-02", "SLV-06"],
+      "expected": {
+        "bronze_status": "BronzeReady",
+        "parsed_count": 2,
+        "valid_count": 2,
+        "rejected_count": 0,
+        "current_count": 1,
+        "canonical_count": 1,
+        "reason_codes": ["SOURCE_REVISION_SUPERSEDED"],
+        "assertions": [
+          "current_updated=1696446600000",
+          "current_magnitude=4.2",
+          "history_count=2"
+        ]
+      }
+    },
+    {
+      "case_id": "FX-USGS-07",
+      "source_system": "USGS",
+      "category": "timezone",
+      "input_paths": ["usgs/timezone-boundary.geojson"],
+      "consumer_stages": ["USG-01", "SLV-02", "SLV-05"],
+      "expected": {
+        "bronze_status": "BronzeReady",
+        "parsed_count": 2,
+        "valid_count": 2,
+        "rejected_count": 0,
+        "current_count": 2,
+        "canonical_count": 2,
+        "reason_codes": ["WINDOW_END_EXCLUSIVE"],
+        "assertions": [
+          "window=[2023-12-31T00:00:00Z,2024-01-01T00:00:00Z)",
+          "selected_for_window_count=1",
+          "roi_boundary_is_inclusive=true"
+        ]
+      }
+    },
+    {
+      "case_id": "FX-USGS-08",
+      "source_system": "USGS",
+      "category": "checksum_mismatch",
+      "input_paths": ["usgs/success.geojson", "usgs/checksum-mismatch.sha256"],
+      "consumer_stages": ["USG-03", "SLV-01"],
+      "expected": {
+        "bronze_status": "Rejected",
+        "parsed_count": 0,
+        "valid_count": 0,
+        "rejected_count": 0,
+        "current_count": 0,
+        "canonical_count": 0,
+        "reason_codes": ["CHECKSUM_MISMATCH"],
+        "assertions": ["no_BronzeReady_manifest=true", "resolver_selects_input=false"]
+      }
+    },
+    {
+      "case_id": "FX-JMA-01",
+      "source_system": "JMA_BULLETIN",
+      "category": "success",
+      "input_paths": ["jma/fixed-width/success.hyp", "jma/archives/success.zip"],
+      "consumer_stages": ["JMA-03", "SLV-03", "SLV-04", "GLD-01"],
+      "expected": {
+        "bronze_status": "BronzeReady",
+        "parsed_count": 2,
+        "valid_count": 2,
+        "rejected_count": 0,
+        "current_count": 2,
+        "canonical_count": 2,
+        "reason_codes": [],
+        "assertions": [
+          "first_event_time_utc=2023-09-01T03:34:56.780Z",
+          "first_magnitude=5.2",
+          "natural_earthquake_count=1",
+          "artificial_event_count=1"
+        ]
+      }
+    },
+    {
+      "case_id": "FX-JMA-02",
+      "source_system": "JMA_BULLETIN",
+      "category": "empty",
+      "input_paths": ["jma/fixed-width/empty.hyp", "jma/archives/empty.zip"],
+      "consumer_stages": ["JMA-03", "SLV-03"],
+      "expected": {
+        "bronze_status": "BronzeReady",
+        "parsed_count": 0,
+        "valid_count": 0,
+        "rejected_count": 0,
+        "current_count": 0,
+        "canonical_count": 0,
+        "reason_codes": [],
+        "assertions": ["empty_valid=true", "record_count_estimate=0"]
+      }
+    },
+    {
+      "case_id": "FX-JMA-03",
+      "source_system": "JMA_BULLETIN",
+      "category": "invalid",
+      "input_paths": [
+        "jma/fixed-width/invalid-record-length.hyp",
+        "jma/archives/invalid-record-length.zip"
+      ],
+      "consumer_stages": ["JMA-03", "SLV-03"],
+      "expected": {
+        "bronze_status": "Rejected",
+        "parsed_count": 0,
+        "valid_count": 0,
+        "rejected_count": 0,
+        "current_count": 0,
+        "canonical_count": 0,
+        "reason_codes": ["INVALID_RECORD_LENGTH"],
+        "assertions": ["record_length_bytes=95", "no_BronzeReady_manifest=true"]
+      }
+    },
+    {
+      "case_id": "FX-JMA-04",
+      "source_system": "JMA_BULLETIN",
+      "category": "duplicate",
+      "input_paths": ["jma/fixed-width/duplicate.hyp", "jma/archives/duplicate.zip"],
+      "consumer_stages": ["SLV-03", "SLV-06"],
+      "expected": {
+        "bronze_status": "BronzeReady",
+        "parsed_count": 2,
+        "valid_count": 2,
+        "rejected_count": 0,
+        "current_count": 1,
+        "canonical_count": 1,
+        "reason_codes": ["DUPLICATE_SOURCE_RECORD"],
+        "assertions": ["same_source_record_key=true", "rerun_result_stable=true"]
+      }
+    },
+    {
+      "case_id": "FX-JMA-05",
+      "source_system": "JMA_BULLETIN",
+      "category": "revised",
+      "input_paths": [
+        "jma/archives/revision-v1.zip",
+        "jma/archives/revision-v2.zip"
+      ],
+      "consumer_stages": ["JMA-02", "SLV-03", "SLV-06"],
+      "expected": {
+        "bronze_status": "BronzeReady",
+        "parsed_count": 2,
+        "valid_count": 2,
+        "rejected_count": 0,
+        "current_count": 1,
+        "canonical_count": 1,
+        "reason_codes": ["SOURCE_REVISION_SUPERSEDED"],
+        "assertions": [
+          "release_v2_is_current=true",
+          "current_magnitude=4.2",
+          "history_count=2"
+        ]
+      }
+    },
+    {
+      "case_id": "FX-JMA-06",
+      "source_system": "JMA_BULLETIN",
+      "category": "timezone",
+      "input_paths": [
+        "jma/fixed-width/timezone-boundary.hyp",
+        "jma/archives/timezone-boundary.zip"
+      ],
+      "consumer_stages": ["SLV-03", "SLV-05"],
+      "expected": {
+        "bronze_status": "BronzeReady",
+        "parsed_count": 3,
+        "valid_count": 3,
+        "rejected_count": 0,
+        "current_count": 3,
+        "canonical_count": 3,
+        "reason_codes": [],
+        "assertions": [
+          "2023-12-31T23:59:00JST=2023-12-31T14:59:00Z",
+          "1997-09-30T23:59:59JST_catalog_era=LEGACY",
+          "1997-10-01T00:00:00JST_catalog_era=UNIFIED"
+        ]
+      }
+    },
+    {
+      "case_id": "FX-JMA-07",
+      "source_system": "JMA_BULLETIN",
+      "category": "checksum_mismatch",
+      "input_paths": ["jma/archives/success.zip", "jma/checksum-mismatch.sha256"],
+      "consumer_stages": ["JMA-03", "SLV-01"],
+      "expected": {
+        "bronze_status": "Rejected",
+        "parsed_count": 0,
+        "valid_count": 0,
+        "rejected_count": 0,
+        "current_count": 0,
+        "canonical_count": 0,
+        "reason_codes": ["CHECKSUM_MISMATCH"],
+        "assertions": ["no_BronzeReady_manifest=true", "resolver_selects_input=false"]
+      }
+    },
+    {
+      "case_id": "FX-LINK-01",
+      "source_system": "MULTI_SOURCE",
+      "category": "ambiguous",
+      "input_paths": ["usgs/ambiguous.geojson", "jma/archives/ambiguous.zip"],
+      "consumer_stages": ["SLV-07", "GLD-01"],
+      "expected": {
+        "bronze_status": "BronzeReady",
+        "parsed_count": 3,
+        "valid_count": 3,
+        "rejected_count": 0,
+        "current_count": 3,
+        "canonical_count": 3,
+        "reason_codes": ["AMBIGUOUS_SOURCE_MATCH"],
+        "assertions": [
+          "candidate_pair_count=2",
+          "link_decision=AMBIGUOUS",
+          "auto_merge=false"
+        ]
+      }
+    },
+    {
+      "case_id": "FX-LINK-02",
+      "source_system": "MULTI_SOURCE",
+      "category": "accepted_match",
+      "input_paths": ["usgs/success.geojson", "jma/archives/success.zip"],
+      "consumer_stages": ["SLV-07", "GLD-01"],
+      "expected": {
+        "bronze_status": "BronzeReady",
+        "parsed_count": 3,
+        "valid_count": 3,
+        "rejected_count": 0,
+        "current_count": 3,
+        "canonical_count": 2,
+        "reason_codes": [],
+        "assertions": [
+          "accepted_pair_count=1",
+          "matched_event_source_coverage=USGS_JMA",
+          "matched_event_bridge_count=2",
+          "artificial_jma_event_remains_single_source=true"
+        ]
+      }
+    }
+  ]
+}

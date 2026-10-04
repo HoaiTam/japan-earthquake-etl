@@ -1,0 +1,12 @@
+{
+  "type": "FeatureCollection",
+  "metadata": {
+    "generated": 1693539300000,
+    "url": "https://example.invalid/usgs/fixtures/empty",
+    "title": "Synthetic USGS empty fixture",
+    "status": 200,
+    "api": "1.14.1",
+    "count": 0
+  },
+  "features": []
+}

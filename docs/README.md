@@ -2,9 +2,14 @@
 
 Thư mục này là nguồn tài liệu chính thức cho dự án **Nền tảng phân tích dữ liệu động đất tại Nhật Bản**. Bộ tài liệu mô tả hệ thống ở mức đủ để bắt đầu triển khai, kiểm thử và trình diễn; các giá trị phụ thuộc mã nguồn sẽ được cập nhật sau khi project có phiên bản chạy được.
 
-> Trạng thái hiện tại: **Foundation đã có full-stack smoke checklist** — object
-> storage, Airflow local, Spark Java, Iceberg REST Catalog và Trino đã có static
-> contract cùng runtime acceptance; DAG ETL chưa triển khai.
+> Trạng thái hiện tại: **Foundation đã có full-stack smoke checklist**; USGS
+> request, HTTP client, Bronze writer và Airflow ingest DAG đã có contract cùng
+> unit/static acceptance. Silver/Gold DAG vẫn chưa triển khai.
+
+> Phạm vi hiện hành dùng [baseline PLN-01](./specs/MVP_SCOPE_KPI_AND_DOD.md):
+> HDBSCAN lifecycle thuộc Core, static report là output bắt buộc và Power BI là
+> Stretch. Các tài liệu mô tả Power BI như điều kiện MVP được hiểu theo baseline
+> cũ cho đến khi `DOC-01` đồng bộ toàn bộ narrative/runbook.
 
 ## 1. Đọc tài liệu theo nhu cầu
 
@@ -13,6 +18,16 @@ Thư mục này là nguồn tài liệu chính thức cho dự án **Nền tản
 | Hiểu nhanh đề tài, mục tiêu và công nghệ | [Giới thiệu đề tài](./GIOI_THIEU_DE_TAI_DONG_DAT_NHAT_BAN.md) |
 | Chốt yêu cầu và tiêu chí hoàn thành | [Đặc tả dự án](./specs/PROJECT_SPECIFICATION.md) |
 | Chốt MVP, KPI và Definition of Done | [Baseline PLN-01](./specs/MVP_SCOPE_KPI_AND_DOD.md) |
+| Hiểu phạm vi USGS/JMA, timezone và overlap | [Source coverage contract](./specs/SOURCE_COVERAGE.md) |
+| Hiểu cách tạo daily/backfill request USGS | [USGS request contract](./specs/USGS_REQUEST_CONTRACT.md) |
+| Hiểu retry, size guard và pagination USGS | [USGS HTTP client contract](./specs/USGS_HTTP_CLIENT_CONTRACT.md) |
+| Hiểu validate và ghi raw USGS vào Bronze | [USGS Bronze writer contract](./specs/USGS_BRONZE_WRITER_CONTRACT.md) |
+| Hiểu DAG, runner protocol và publish gate USGS | [USGS Airflow ingest contract](./specs/USGS_AIRFLOW_INGEST_CONTRACT.md) |
+| Hiểu ma trận QA từ USGS đến Bronze | [USGS Bronze QA contract](./specs/USGS_BRONZE_QA_CONTRACT.md) |
+| Hiểu Bronze object, manifest, checksum và retry | [Bronze storage contract](./specs/BRONZE_STORAGE_CONTRACT.md) |
+| Hiểu schema Silver/Gold, null policy, bands và KPI | [Silver/Gold logical data model](./specs/SILVER_GOLD_DATA_MODEL.md) |
+| Hiểu grain, lineage và lifecycle dataset/experiment ML | [ML logical data model](./specs/ML_DATA_MODEL.md) |
+| Dùng fixture USGS/JMA và expected test matrix | [Shared source fixtures](../tests/fixtures/README.md) |
 | Hiểu cấu trúc module và mount path | [Repository layout](./specs/REPOSITORY_LAYOUT.md) |
 | Thiết lập biến môi trường và secret | [Configuration contract](./specs/CONFIGURATION_AND_SECRETS.md) |
 | Hiểu Compose network, volumes và baseline | [Compose foundation](./specs/COMPOSE_FOUNDATION.md) |
@@ -29,7 +44,9 @@ Thư mục này là nguồn tài liệu chính thức cho dự án **Nền tản
 | Thiết kế báo cáo Power BI | [Đặc tả dashboard](./ANALYTICS_DASHBOARD.md) |
 | Cài đặt và vận hành trên máy local | [Runbook local](./LOCAL_OPERATIONS_RUNBOOK.md) |
 | Chuẩn bị buổi trình diễn | [Kịch bản demo](./DEMO_FLOWS.md) |
-| Pick và theo dõi task trong 6 tuần | [Kế hoạch task](./task/README.md) |
+| Hiểu roadmap Gold → HDBSCAN → ML Iceberg | [Roadmap HDBSCAN](./task/HDBSCAN_WORKSTREAM.md) |
+| Pick và theo dõi task trong 8 tuần | [Kế hoạch task](./task/README.md) |
+| Chia ba luồng độc lập và kiểm tra cuối tuần 3 | [Kế hoạch tuần 3](./task/WEEK_3_PARALLEL_PLAN.md) |
 | Làm việc với Git | [Git workflow](./conventions_and_workflow/GIT_WORKFLOW.md) |
 | Viết commit thống nhất | [Commit convention](./conventions_and_workflow/COMMIT_CONVENTION.md) |
 
@@ -47,6 +64,16 @@ docs/
 ├── specs/
 │   ├── PROJECT_SPECIFICATION.md
 │   ├── MVP_SCOPE_KPI_AND_DOD.md
+│   ├── SOURCE_COVERAGE.md
+│   ├── USGS_REQUEST_CONTRACT.md
+│   ├── USGS_HTTP_CLIENT_CONTRACT.md
+│   ├── USGS_BRONZE_WRITER_CONTRACT.md
+│   ├── USGS_AIRFLOW_INGEST_CONTRACT.md
+│   ├── USGS_LIVE_BRONZE_RUNBOOK.md
+│   ├── USGS_BRONZE_QA_CONTRACT.md
+│   ├── BRONZE_STORAGE_CONTRACT.md
+│   ├── SILVER_GOLD_DATA_MODEL.md
+│   ├── ML_DATA_MODEL.md
 │   ├── CONFIGURATION_AND_SECRETS.md
 │   ├── COMPOSE_FOUNDATION.md
 │   ├── AIRFLOW_LOCAL.md
@@ -62,6 +89,8 @@ docs/
 ├── task/
 │   ├── README.md
 │   ├── WORK_BLOCKS.md
+│   ├── WEEK_3_PARALLEL_PLAN.md
+│   ├── HDBSCAN_WORKSTREAM.md
 │   └── tasks/
 │       ├── README.md
 │       └── <TASK-ID>.md
@@ -75,18 +104,18 @@ docs/
 Đã bao gồm:
 
 - Mục tiêu, phạm vi, yêu cầu chức năng và phi chức năng.
-- Kiến trúc local-first với Airflow, Spark, MinIO, Iceberg, Trino và Power BI.
+- Kiến trúc local-first với Airflow, Spark, MinIO, Iceberg, Trino và HDBSCAN; Power BI là phần trình bày tùy chọn.
 - Happy path, backfill, retry, idempotency và các điểm kiểm soát dữ liệu.
 - KPI, bố cục dashboard, quy trình demo và runbook vận hành.
 - Cấu trúc repository, ownership module và mount contract.
-- Backlog 6 tuần bằng Markdown, với một file riêng cho từng task để pick, review và lưu evidence.
+- Backlog 8 tuần bằng Markdown, với một file riêng cho từng task để pick, review và lưu evidence.
 - Quy ước Git và commit cho nhóm.
 
 Chưa bao gồm theo phạm vi hiện tại:
 
 - Thiết kế database chi tiết, DBML, DDL hoặc migration.
 - Schema vật lý cuối cùng của các bảng Iceberg.
-- DAG ETL, Gold jobs và lệnh backfill thực tế.
+- Silver/Gold DAG, Gold jobs và lệnh backfill thực tế.
 
 ## 4. Quy ước trạng thái
 

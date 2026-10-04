@@ -1,0 +1,32 @@
+{
+  "type": "FeatureCollection",
+  "metadata": {
+    "generated": 1696442600000,
+    "url": "https://example.invalid/usgs/fixtures/revision-v1",
+    "title": "Synthetic USGS revision v1 fixture",
+    "status": 200,
+    "api": "1.14.1",
+    "count": 1
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "mag": 4.0,
+        "place": "Synthetic revision event",
+        "time": 1696442521250,
+        "updated": 1696443000000,
+        "status": "automatic",
+        "tsunami": 0,
+        "sig": 246,
+        "magType": "mb",
+        "type": "earthquake"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [140.25, 36.5, 25.0]
+      },
+      "id": "fx-usgs-revision-001"
+    }
+  ]
+}

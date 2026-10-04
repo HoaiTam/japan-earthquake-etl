@@ -85,8 +85,6 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Tài liệu liên quan
 
-- [JMA archive inventory và source-format contract](../../specs/JMA_ARCHIVE_INVENTORY.md)
-- [Inventory CSV](../../../config/jma/hypocenter_archives_v1.csv)
-- [Kế hoạch 6 tuần](../README.md)
+- [Kế hoạch 8 tuần](../README.md)
 - [Các khối công việc](../WORK_BLOCKS.md)
 - [Baseline MVP, KPI và Definition of Done](../../specs/MVP_SCOPE_KPI_AND_DOD.md)

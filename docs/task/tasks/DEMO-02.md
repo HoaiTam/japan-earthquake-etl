@@ -1,15 +1,15 @@
 ---
 task_id: "DEMO-02"
 status: "Backlog"
-week: 6
-block: "H - QA & Release"
+week: 8
+block: "K - QA & Release"
 workstream: "Release"
 scope: "Core"
 priority: "P0"
 effort_hours: 6
 assignee: "unassigned"
 reviewer: "unassigned"
-dependencies: ["QA-01", "QA-02", "QA-04", "SEC-01", "DOC-01", "DEMO-01"]
+dependencies: ["QA-01", "QA-02", "QA-04", "MLQ-01", "SEC-01", "DOC-01", "DEMO-01"]
 ---
 
 # DEMO-02 - Rehearsal và tạo release candidate
@@ -24,7 +24,7 @@ Chạy rehearsal 15-20 phút, sửa blocker, đóng known issues, xác nhận ch
 
 ## Thành phần cần có
 
-- **Đầu vào và contract:** [QA-01](./QA-01.md), [QA-02](./QA-02.md), [QA-04](./QA-04.md), [SEC-01](./SEC-01.md), [DOC-01](./DOC-01.md), [DEMO-01](./DEMO-01.md)
+- **Đầu vào và contract:** [QA-01](./QA-01.md), [QA-02](./QA-02.md), [QA-04](./QA-04.md), [MLQ-01](./MLQ-01.md), [SEC-01](./SEC-01.md), [DOC-01](./DOC-01.md), [DEMO-01](./DEMO-01.md)
 - **Phần triển khai:** Chạy rehearsal 15-20 phút, sửa blocker, đóng known issues, xác nhận checklist Core và gắn tag/commit demo sau phê duyệt.
 - **Kết quả bàn giao:** Release candidate, tag đề xuất và biên bản rehearsal.
 - **Kiểm thử và evidence:** Kiểm tra từng acceptance criterion, lưu lệnh chạy/log/report có thể lặp lại và cập nhật mục Evidence bên dưới.
@@ -36,13 +36,14 @@ Chạy rehearsal 15-20 phút, sửa blocker, đóng known issues, xác nhận ch
 ## Tiêu chí hoàn thành
 
 - [ ] Ba thành viên thực hiện được phần của mình.
-- [ ] E2E, recovery, security, docs và demo checklist đạt.
+- [ ] ETL E2E, ML E2E/reproducibility, recovery, security, docs và demo checklist đạt.
 
 ## Hard dependency
 
 - [QA-01](./QA-01.md)
 - [QA-02](./QA-02.md)
 - [QA-04](./QA-04.md)
+- [MLQ-01](./MLQ-01.md)
 - [SEC-01](./SEC-01.md)
 - [DOC-01](./DOC-01.md)
 - [DEMO-01](./DEMO-01.md)
@@ -83,6 +84,6 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Tài liệu liên quan
 
-- [Kế hoạch 6 tuần](../README.md)
+- [Kế hoạch 8 tuần](../README.md)
 - [Các khối công việc](../WORK_BLOCKS.md)
 - [Baseline MVP, KPI và Definition of Done](../../specs/MVP_SCOPE_KPI_AND_DOD.md)

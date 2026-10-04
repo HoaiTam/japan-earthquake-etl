@@ -65,7 +65,7 @@ Giá trị mặc định local lấy từ `.env.example`:
 | Logical layer | URI mặc định | Owner downstream | Tính chất |
 |---|---|---|---|
 | Bucket | `s3://japan-earthquake` | MIO-01 | Một bucket dùng chung cho project local |
-| Bronze | `s3://japan-earthquake/bronze` | USG-03/JMA-03 | Append-oriented theo `run_id` |
+| Bronze | `s3://japan-earthquake/bronze` | USG-03/JMA-03 | Raw immutable theo `run_id`/`attempt`; layout tại [Bronze storage contract](./BRONZE_STORAGE_CONTRACT.md) |
 | Silver | `s3://japan-earthquake/silver` | SLV-08 | Có thể thay output/partition theo contract rerun |
 | Gold warehouse | `s3://japan-earthquake/warehouse` | QRY-01/GLD-03 | Iceberg quản lý file và snapshot |
 
@@ -82,6 +82,11 @@ japan-earthquake/
 `.keep` chỉ là bootstrap marker, không phải dữ liệu nghiệp vụ, manifest hay dấu
 hiệu một pipeline run đã hoàn thành. Writer downstream phải dùng object/path
 contract của task sở hữu và không suy ra trạng thái publish từ marker này.
+
+Bronze object và manifest phải tuân theo [Bronze storage
+contract](./BRONZE_STORAGE_CONTRACT.md). Manifest `BronzeReady` là commit point
+logic; object trong `_staging` hoặc `_quarantine` không được resolver Silver
+chọn.
 
 `WAREHOUSE_PATH` phải nằm trong `DATA_BUCKET`; Bronze, Silver và warehouse
 prefix phải khác nhau. `scripts/check-config.sh` và `compose/minio/init.sh` đều
@@ -123,8 +128,9 @@ Pipeline không dùng root credential. Policy hiện tại cho phép:
 
 Không cấp `DeleteObject` cho Bronze để giảm rủi ro xóa raw response. Tuy vậy,
 `PutObject` cùng một key vẫn có thể thay object trên bucket chưa bật versioning;
-USG-03 và JMA-03 vẫn phải dùng path gắn `run_id`/catalog release và từ chối overwrite mơ hồ để đáp ứng
-tính bất biến nghiệp vụ.
+USG-03 và JMA-03 vẫn phải dùng path gắn `run_id`/`attempt`/catalog release và
+từ chối overwrite mơ hồ theo Bronze storage contract để đáp ứng tính bất biến
+nghiệp vụ.
 
 Secret chỉ đi qua environment. Script không in credential; `MC_CONFIG_DIR` đặt
 trong tmpfs `/tmp` và init/smoke container dùng root filesystem read-only.

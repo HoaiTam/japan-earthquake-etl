@@ -1,6 +1,6 @@
 ---
 task_id: "CON-02"
-status: "Ready"
+status: "Done"
 week: 2
 block: "A - Hợp đồng dữ liệu"
 workstream: "Bronze contract"
@@ -26,7 +26,7 @@ Quy định path MinIO, file raw bất biến, manifest, checksum, source URL, r
 
 - **Đầu vào và contract:** Không có hard dependency.
 - **Phần triển khai:** Quy định path MinIO, file raw bất biến, manifest, checksum, source URL, retrieval time, run_id, catalog release và cách lưu archive/response của từng nguồn.
-- **Kết quả bàn giao:** Bronze storage contract và ví dụ object layout cho USGS/JMA.
+- **Kết quả bàn giao:** [Bronze storage contract](../../specs/BRONZE_STORAGE_CONTRACT.md) và ví dụ object layout cho USGS/JMA.
 - **Kiểm thử và evidence:** Kiểm tra từng acceptance criterion, lưu lệnh chạy/log/report có thể lặp lại và cập nhật mục Evidence bên dưới.
 
 ## Deliverable
@@ -35,9 +35,9 @@ Quy định path MinIO, file raw bất biến, manifest, checksum, source URL, r
 
 ## Tiêu chí hoàn thành
 
-- [ ] Có thể truy vết từ manifest về đúng object raw.
-- [ ] retry không ghi đè mơ hồ.
-- [ ] file lỗi không được đánh dấu BronzeReady.
+- [x] Có thể truy vết từ manifest về đúng object raw.
+- [x] retry không ghi đè mơ hồ.
+- [x] file lỗi không được đánh dấu BronzeReady.
 
 ## Hard dependency
 
@@ -62,23 +62,26 @@ Có thể bắt đầu ngay. Chốt output contract hoặc fixture nhỏ trướ
 
 ## Theo dõi
 
-- **Trạng thái:** Ready
+- **Trạng thái:** Done
 - **Assignee:** Chưa ghi lại
 - **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Evidence / PR:** [Bronze storage contract check](../../../scripts/check-bronze-contract.sh); `check-source-coverage.sh`, `check-repository-layout.sh`, `git diff --check` đều đạt.
 - **Kỹ năng phù hợp:** MinIO, metadata, data contract
 
 ## Checklist bàn giao
 
-- [ ] Deliverable đã có trong repository hoặc môi trường demo.
-- [ ] Acceptance criteria đã được kiểm tra.
-- [ ] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
-- [ ] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
-- [ ] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
-- [ ] P0/P1 có reviewer khác assignee xác nhận.
+- [x] Deliverable đã có trong repository hoặc môi trường demo.
+- [x] Acceptance criteria đã được kiểm tra.
+- [x] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
+- [x] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
+- [x] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
+- [ ] Reviewer độc lập đã xác nhận (khuyến nghị, không chặn `Done`).
 
 ## Tài liệu liên quan
 
-- [Kế hoạch 6 tuần](../README.md)
+- [Bronze storage contract](../../specs/BRONZE_STORAGE_CONTRACT.md)
+- [MinIO storage và bootstrap contract](../../specs/MINIO_STORAGE.md)
+- [Source coverage contract](../../specs/SOURCE_COVERAGE.md)
+- [Kế hoạch 8 tuần](../README.md)
 - [Các khối công việc](../WORK_BLOCKS.md)
 - [Baseline MVP, KPI và Definition of Done](../../specs/MVP_SCOPE_KPI_AND_DOD.md)

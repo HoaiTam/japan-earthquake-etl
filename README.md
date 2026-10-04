@@ -1,13 +1,71 @@
 # Japan Earthquake ETL
 
-Nền tảng ETL local-first để thu thập dữ liệu động đất từ USGS, xử lý bằng
-Spark Java theo mô hình Bronze–Silver–Gold, công bố bảng Gold qua Iceberg và
-Trino, sau đó phục vụ báo cáo Power BI.
+Nền tảng ETL local-first để thu thập dữ liệu cập nhật hằng ngày từ USGS và
+lịch sử 40 năm từ JMA, xử lý bằng Spark Java theo mô hình Bronze–Silver–Gold,
+công bố bảng Gold qua Iceberg/Trino, rồi tạo dataset và so sánh
+Window/DBSCAN/HDBSCAN theo từng mainshock để nhập kết quả đã kiểm tra vào
+Iceberg `ml.*`. Static report là output Core; Power BI là phần Stretch tùy chọn.
+
+Phạm vi, KPI và Definition of Done hiện hành nằm tại
+[baseline PLN-01](./docs/specs/MVP_SCOPE_KPI_AND_DOD.md).
 
 > Trạng thái hiện tại: **foundation đã có full-stack smoke checklist**.
 > MinIO bucket bootstrap, Airflow local runtime, Spark Java build/runtime,
 > Iceberg REST Catalog và Trino đã được triển khai và kiểm tra cùng nhau; DAG
 > ETL thuộc các task tiếp theo.
+
+Source coverage USGS/JMA, vùng nghiên cứu, timezone và overlap được chốt tại
+[CON-01 source coverage contract](./docs/specs/SOURCE_COVERAGE.md). Kiểm tra
+contract không cần mạng bằng:
+
+```bash
+./scripts/check-source-coverage.sh
+```
+
+Request daily/backfill USGS, bounding box, seed `2023-01-01`, revision overlap
+và quy tắc chia chunk được chốt tại [USGS request contract](./docs/specs/USGS_REQUEST_CONTRACT.md).
+Builder Java của `USG-01` chỉ lập kế hoạch request, không gọi mạng; `USG-02`
+tiếp nhận plan để thực hiện HTTP client, retry và pagination theo [USGS HTTP
+client contract](./docs/specs/USGS_HTTP_CLIENT_CONTRACT.md).
+
+USG-03 kiểm tra envelope GeoJSON, giữ raw bytes bất biến, đọc lại checksum và
+tạo manifest `BronzeReady`; payload lỗi được lưu ở `_quarantine` theo [USGS
+Bronze writer contract](./docs/specs/USGS_BRONZE_WRITER_CONTRACT.md).
+
+USG-04 thêm DAG `usg_04_usgs_ingest` với task group resolve/fetch/validate/upload/
+verify, publish gate và run summary. DAG truyền cùng logical window qua retry và
+chỉ mở đường cho Silver sau khi Bronze đã verify theo [USGS Airflow ingest
+contract](./docs/specs/USGS_AIRFLOW_INGEST_CONTRACT.md).
+
+USG-05 dùng fixture và mock HTTP để kiểm thử success/empty/invalid, timeout,
+`429/5xx`, checksum mismatch và đối soát manifest/count trước khi mở gate cho
+Silver. Ma trận nằm tại [USGS Bronze QA contract](./docs/specs/USGS_BRONZE_QA_CONTRACT.md).
+
+Bronze object path, manifest, checksum, retry và trạng thái `BronzeReady` được
+chốt tại [CON-02 Bronze storage contract](./docs/specs/BRONZE_STORAGE_CONTRACT.md).
+Kiểm tra contract không cần mạng bằng:
+
+```bash
+./scripts/check-bronze-contract.sh
+```
+
+Tên trường, kiểu dữ liệu, null policy, canonical event, magnitude/depth bands
+và KPI Silver/Gold được chốt tại [CON-03 logical data model](./docs/specs/SILVER_GOLD_DATA_MODEL.md).
+Grain, lineage, bundle mapping và lifecycle dataset/experiment HDBSCAN được
+khóa riêng tại [ML logical data model](./docs/specs/ML_DATA_MODEL.md).
+Kiểm tra contract không cần mạng bằng:
+
+```bash
+./scripts/check-data-model-contract.sh
+```
+
+Fixture USGS/JMA dùng chung cho parser, quality, dedup và Gold nằm tại
+[`tests/fixtures`](./tests/fixtures/README.md). Bộ fixture là dữ liệu synthetic,
+không phụ thuộc mạng và có ma trận expected output/reason code. Kiểm tra bằng:
+
+```bash
+./scripts/check-shared-fixtures.sh
+```
 
 ## Chuẩn bị trên máy local
 
@@ -162,6 +220,7 @@ Chi tiết ownership, mount path và quy tắc mở rộng nằm trong
 | `./scripts/smoke-query.sh` | Chạy được khi có `.env` và Docker daemon | `QRY-01` |
 | `./scripts/check-foundation.sh` | Chạy toàn bộ static foundation checks | `FND-01` |
 | `./scripts/smoke-foundation.sh` | Chạy full-stack smoke khi có `.env` và Docker daemon | `FND-01` |
+| `./mvnw --batch-mode --no-transfer-progress -pl spark -am test` | Chạy unit test request planner offline | `USG-01` |
 
 Hướng dẫn vận hành đầy đủ được duy trì trong
 [Local operations runbook](./docs/LOCAL_OPERATIONS_RUNBOOK.md).

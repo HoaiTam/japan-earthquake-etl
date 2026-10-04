@@ -23,9 +23,10 @@ nơi khai báo, parse, schedule và thực thi DAG. Phạm vi gồm:
 - DAG `afl_01_smoke` và runner xác nhận một task thực sự được scheduler chạy
   đến trạng thái `success`.
 
-Task này chưa triển khai DAG ETL, USGS extract, S3 connection, Spark submit,
-retry/backfill nghiệp vụ hoặc data quality gate. Những task downstream phải mở
-rộng contract này thay vì tạo một Airflow stack khác.
+Task này chưa triển khai các DAG Silver/Gold, S3 connection dùng chung, Spark
+submit hoặc quality gate cuối pipeline. `USG-04` mở rộng runtime này bằng DAG
+USGS Bronze; các task downstream phải dùng cùng stack thay vì tạo Airflow
+service khác.
 
 ## 2. Kiến trúc và trình tự khởi động
 
@@ -106,6 +107,7 @@ mật riêng.
 | `airflow-scheduler` | Schedule và LocalExecutor | `SchedulerJob` heartbeat | Long-running |
 | `airflow-dag-processor` | Parse/serialize DAG | `DagProcessorJob` heartbeat | Long-running |
 | `airflow-smoke` | Trigger và verify DAG smoke | Script exit code | One-shot, profile `smoke` |
+| `usgs-live-smoke` | Trigger fixed USGS window, verify MinIO và rerun | Script exit code | One-shot, profile `live` |
 
 Airflow 3 tách DAG parsing thành process riêng, vì vậy scheduler healthy không
 thay thế healthcheck của DAG processor.
@@ -125,6 +127,21 @@ Contract:
 
 DAG này chỉ kiểm tra Airflow runtime. Không dùng nó làm template để bỏ qua run
 context, retry hoặc data interval contract của DAG production.
+
+### 5.1. USG-04 USGS ingest
+
+- DAG ID: `usg_04_usgs_ingest`; schedule mặc định `15 7 * * *` theo
+  `Asia/Ho_Chi_Minh`; `catchup=False`, `max_active_runs=1`.
+- Task group `usgs_ingest` gồm `resolve_interval`, `fetch`, `validate`, `upload`,
+  `verify`, `bronze_ready_gate` và `run_summary`.
+- DAG paused khi tạo. Custom image USG-06 đã cấu hình
+  `USGS_INGEST_RUNNER_COMMAND`; chỉ unpause sau khi credential/MinIO đã sẵn sàng.
+- Raw payload không đi qua XCom. Mỗi phase nhận context JSON trong
+  `/opt/pipeline/staging/usgs/<run-id>/`; summary được whitelist và ghi lại ở
+  `run_summary.json`.
+- `bronze_ready_gate` là upstream bắt buộc của Silver. Verify lỗi hoặc trả
+  trạng thái khác `BronzeReady` thì Airflow không schedule downstream.
+- Chi tiết command protocol và dry-run nằm trong [USGS Airflow ingest contract](./USGS_AIRFLOW_INGEST_CONTRACT.md); live operator flow nằm trong [USGS live Bronze runbook](./USGS_LIVE_BRONZE_RUNBOOK.md).
 
 ## 6. Cấu hình và secret
 

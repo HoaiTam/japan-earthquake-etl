@@ -2,10 +2,15 @@
 
 | Thuộc tính | Giá trị |
 |---|---|
-| Trạng thái | Draft |
+| Trạng thái | Đặc tả nền tảng; phạm vi MVP do baseline PLN-01 điều khiển |
 | Phạm vi | Phiên bản local-first |
 | Ngôn ngữ xử lý chính | Java |
 | Cập nhật dữ liệu dự kiến | Một lần mỗi ngày |
+
+> **Phạm vi hiện hành:** [baseline PLN-01](./MVP_SCOPE_KPI_AND_DOD.md) đưa
+> Window/DBSCAN/HDBSCAN vào Core và chuyển Power BI thành Stretch. Khi nội dung
+> trong đặc tả nền tảng này khác baseline, dùng baseline; `DOC-01` chịu trách
+> nhiệm đồng bộ toàn bộ mô tả kiến trúc/runbook sau khi các contract ML ổn định.
 
 ## 1. Bối cảnh
 
@@ -17,7 +22,7 @@ Project xây dựng một pipeline dữ liệu có thể chạy lại, lưu đư
 
 1. Thu thập được dữ liệu động đất trong vùng nghiên cứu quanh Nhật Bản theo lịch.
 2. Lưu được dữ liệu gốc để truy vết và tái xử lý.
-3. Tạo được dữ liệu sạch, không trùng theo mã sự kiện và giữ phiên bản cập nhật mới nhất.
+3. Tạo được observation sạch theo từng nguồn, giữ revision mới nhất và không đếm trùng cùng một động đất giữa USGS/JMA.
 4. Xuất bản dữ liệu phân tích ở tầng Gold dưới dạng bảng Iceberg.
 5. Cho phép Trino truy vấn Gold và Power BI import kết quả.
 6. Quan sát được trạng thái từng lần chạy, số lượng bản ghi và nguyên nhân thất bại.
@@ -38,7 +43,8 @@ Hệ thống không có nghiệp vụ đăng ký người dùng hoặc phân quy
 
 ### 4.1. Trong phạm vi
 
-- USGS Earthquake Catalog API là nguồn sự kiện chính.
+- USGS Earthquake Catalog API là nguồn cập nhật hằng ngày từ năm 2023 trở đi.
+- JMA Seismological Bulletin là baseline lịch sử 40 năm `1984–2023`; phạm vi chính thức nằm trong [source coverage contract](./SOURCE_COVERAGE.md).
 - Dữ liệu địa giới Nhật Bản là nguồn enrichment tùy theo khả năng hoàn thành.
 - Lưu trữ Bronze, Silver và Gold trên MinIO.
 - Spark job viết bằng Java để làm sạch, chuẩn hóa, loại trùng và tổng hợp.
@@ -61,6 +67,7 @@ Hệ thống không có nghiệp vụ đăng ký người dùng hoặc phân quy
 
 - Máy chạy pipeline có kết nối Internet khi extract dữ liệu.
 - Nguồn USGS có thể cập nhật lại sự kiện đã công bố; pipeline phải đọc chồng một khoảng thời gian gần nhất.
+- JMA có thể thay archive đã công bố; pipeline phải version theo checksum/catalog release và chỉ xử lý lại năm bị ảnh hưởng.
 - Airflow và Spark không chạy nhiều job nặng đồng thời trên máy ít RAM.
 - Power BI Desktop chạy trên Windows; backend có thể chạy trên cùng máy hoặc máy khác trong mạng local.
 - Múi giờ lưu chuẩn là UTC; JST (`Asia/Tokyo`) được bổ sung để phân tích và hiển thị.
@@ -70,25 +77,26 @@ Hệ thống không có nghiệp vụ đăng ký người dùng hoặc phân quy
 
 ### FR-01 — Thu thập sự kiện
 
-Hệ thống phải truy vấn USGS theo cửa sổ thời gian và vùng nghiên cứu cấu hình được. Kết quả nguyên bản phải được lưu trước khi biến đổi.
+Hệ thống phải truy vấn USGS theo cửa sổ UTC hằng ngày và tải JMA theo inventory năm/catalog release trong cùng vùng nghiên cứu. GeoJSON/ZIP nguyên bản phải được lưu trước khi biến đổi.
 
 **Chấp nhận khi:** có thể xác định lần chạy, khoảng thời gian truy vấn, object Bronze và số bản ghi nguồn.
 
 ### FR-02 — Bảo toàn Bronze
 
-Hệ thống phải lưu phản hồi nguồn theo lần ingest và không sửa nội dung object đã ghi thành công.
+Hệ thống phải lưu phản hồi nguồn theo lần ingest và không sửa nội dung object đã ghi thành công. Object path, manifest, checksum và trạng thái `BronzeReady` phải tuân theo [Bronze storage contract](./BRONZE_STORAGE_CONTRACT.md).
 
 **Chấp nhận khi:** một lần chạy Silver có thể truy ngược về đúng input Bronze.
 
 ### FR-03 — Chuẩn hóa Silver
 
-Spark phải parse schema, chuẩn hóa timestamp, kiểu số, tọa độ, cờ boolean và tên trường cần thiết cho downstream.
+Spark phải parse schema, chuẩn hóa timestamp, kiểu số, tọa độ, cờ boolean và tên trường theo [Silver/Gold logical data model](./SILVER_GOLD_DATA_MODEL.md).
 
-**Chấp nhận khi:** dữ liệu Silver chỉ chứa bản ghi đáp ứng các quy tắc bắt buộc trong tài liệu chất lượng dữ liệu.
+**Chấp nhận khi:** `silver.source_observation` chỉ chứa record đạt rule bắt
+buộc; record lỗi có reason và Bronze lineage trong `silver.reject_record`.
 
 ### FR-04 — Loại trùng và xử lý cập nhật muộn
 
-Với cùng `id`, hệ thống phải giữ bản ghi có `updated` mới nhất. Chạy lại cùng cửa sổ dữ liệu không được làm tăng số bản ghi logic nếu nguồn không thay đổi.
+Trong từng nguồn, hệ thống phải giữ revision hợp lệ mới nhất (`id`/`updated` cho USGS, source key/catalog release cho JMA). Sau đó hệ thống liên kết observation và chỉ tạo một canonical event khi match đủ tin cậy. Chạy lại cùng input không được làm tăng số canonical event.
 
 **Chấp nhận khi:** kiểm thử rerun cho kết quả cùng tập khóa và cùng phiên bản dữ liệu.
 
@@ -100,7 +108,7 @@ Khi dữ liệu địa giới sẵn sàng, hệ thống gán tỉnh/khu vực g�
 
 ### FR-06 — Xuất bản Gold
 
-Hệ thống phải tạo các bảng hoặc view phục vụ KPI, biểu đồ theo thời gian, vị trí, độ lớn và độ sâu. Việc xuất bản chỉ hoàn tất sau khi Iceberg commit snapshot thành công.
+Hệ thống phải tạo các bảng hoặc view theo logical model phục vụ KPI, biểu đồ theo thời gian, vị trí, độ lớn và độ sâu. Việc xuất bản chỉ hoàn tất sau khi Iceberg commit snapshot thành công và Trino verification đạt.
 
 **Chấp nhận khi:** Trino nhìn thấy snapshot mới và truy vấn kiểm tra sau commit đạt yêu cầu.
 
@@ -144,8 +152,8 @@ Mỗi lần chạy phải ghi tối thiểu: run ID, cửa sổ dữ liệu, th�
 
 ## 8. Tiêu chí hoàn thành phiên bản đầu tiên
 
-- Một DAG run lấy được dữ liệu của ngày UTC trước đó và ghi Bronze.
-- Spark tạo Silver hợp lệ, loại trùng và giữ bản cập nhật mới nhất.
+- Một DAG run lấy được USGS của ngày UTC trước đó; một historical run lấy được các năm JMA đại diện và ghi Bronze có version.
+- Spark tạo Silver observation hợp lệ, xử lý revision trong từng nguồn và tránh double count xuyên nguồn.
 - Spark commit Gold Iceberg; Trino truy vấn được snapshot mới.
 - Các data quality gate bắt buộc đều đạt.
 - Power BI refresh được và hiển thị ba trang dashboard đã đặc tả.
@@ -158,6 +166,8 @@ Mỗi lần chạy phải ghi tối thiểu: run ID, cửa sổ dữ liệu, th�
 | Rủi ro | Ảnh hưởng | Hướng xử lý |
 |---|---|---|
 | USGS timeout/rate limit | Thiếu dữ liệu lần chạy | Retry có backoff, giới hạn cửa sổ query, backfill |
+| JMA archive cũ bị thay đổi | Lịch sử hoặc KPI đổi ngoài dự kiến | Lưu checksum/catalog release, reprocess đúng năm và đối soát trước/sau |
+| Match nhầm USGS/JMA | Hai event khác nhau bị gộp | Không auto-merge candidate mơ hồ; giữ observation và match evidence |
 | Driver ODBC không tương thích đầy đủ | Power BI không refresh | Kiểm thử sớm, chuẩn bị driver tương thích khác |
 | Thiếu RAM khi chạy nhiều service | Container bị kill/job chậm | Giới hạn concurrency, chạy Spark và BI refresh lệch giờ |
 | Spatial join phức tạp | Trễ phạm vi chính | Giữ tọa độ; enrichment là bước có thể tắt |
@@ -176,3 +186,5 @@ Mỗi lần chạy phải ghi tối thiểu: run ID, cửa sổ dữ liệu, th�
 | Data interval | Khoảng thời gian dữ liệu mà một DAG run chịu trách nhiệm |
 | Backfill | Chạy pipeline cho một hoặc nhiều khoảng ngày trong quá khứ |
 | Late update | Sự kiện đã tồn tại nhưng nguồn cập nhật lại sau đó |
+| Source observation | Bản mô tả sự kiện từ một nguồn/catalog cụ thể, còn đầy đủ lineage |
+| Canonical event | Thực thể dùng để đếm một động đất một lần sau source linking |

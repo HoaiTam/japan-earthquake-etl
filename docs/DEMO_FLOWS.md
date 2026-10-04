@@ -55,7 +55,7 @@
 ### Thao tác
 
 1. Mở [Giới thiệu đề tài](./GIOI_THIEU_DE_TAI_DONG_DAT_NHAT_BAN.md).
-2. Nêu nguồn USGS, chu kỳ batch hằng ngày và mục tiêu phân tích.
+2. Nêu vai trò USGS daily, JMA historical 40 năm, chu kỳ batch và mục tiêu phân tích.
 3. Mở [Kiến trúc hệ thống](./SYSTEM_ARCHITECTURE.md), đi theo luồng Airflow → MinIO → Spark → Iceberg → Trino → Power BI.
 
 ### Điểm cần nói
@@ -119,14 +119,14 @@ Giải thích được chênh lệch giữa source, valid, rejected, duplicate v
 3. Chạy một query group theo tháng/khu vực.
 4. Chỉ ra Trino đang đọc current Iceberg snapshot.
 
-Query mẫu cần thay tên placeholder bằng tên thật:
+Query mẫu chỉ còn placeholder catalog; logical schema/table theo `CON-03`:
 
 ```sql
 SELECT
-    COUNT(DISTINCT earthquake_id) AS total_events,
+    COUNT(DISTINCT canonical_event_id) AS total_events,
     AVG(magnitude) AS avg_magnitude,
     MAX(magnitude) AS max_magnitude
-FROM <catalog>.<schema>.<earthquake_fact_or_view>;
+FROM <catalog>.gold.earthquake_event_current;
 ```
 
 ### Thành công khi
@@ -215,4 +215,3 @@ Fallback phải được nói rõ; không trình bày output lưu sẵn như k�
 - [ ] Nêu rõ dữ liệu mô tả và giới hạn sử dụng.
 - [ ] Dừng job thử không cần thiết.
 - [ ] Backup file Power BI và ghi lại commit/snapshot demo.
-
