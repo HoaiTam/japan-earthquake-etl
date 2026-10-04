@@ -2,7 +2,12 @@
 
 Nền tảng ETL local-first để thu thập dữ liệu cập nhật hằng ngày từ USGS và
 lịch sử 40 năm từ JMA, xử lý bằng Spark Java theo mô hình Bronze–Silver–Gold,
-công bố bảng Gold qua Iceberg và Trino, sau đó phục vụ báo cáo Power BI.
+công bố bảng Gold qua Iceberg/Trino, rồi tạo dataset và so sánh
+Window/DBSCAN/HDBSCAN theo từng mainshock để nhập kết quả đã kiểm tra vào
+Iceberg `ml.*`. Static report là output Core; Power BI là phần Stretch tùy chọn.
+
+Phạm vi, KPI và Definition of Done hiện hành nằm tại
+[baseline PLN-01](./docs/specs/MVP_SCOPE_KPI_AND_DOD.md).
 
 > Trạng thái hiện tại: **foundation đã có full-stack smoke checklist**.
 > MinIO bucket bootstrap, Airflow local runtime, Spark Java build/runtime,

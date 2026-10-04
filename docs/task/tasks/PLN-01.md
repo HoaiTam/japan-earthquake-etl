@@ -1,6 +1,6 @@
 ---
 task_id: "PLN-01"
-status: "Needs Update"
+status: "Done"
 week: 1
 block: "Foundation"
 workstream: "Planning"
@@ -35,9 +35,10 @@ Rà tài liệu hiện tại, chốt phạm vi MVP, phần Stretch, KPI và tiê
 
 ## Tiêu chí hoàn thành
 
-- [x] Ba thành viên thống nhất phạm vi.
-- [ ] Phương án HDBSCAN, dataset/experiment lifecycle và ranh giới không dự đoán được đưa vào baseline chính thức.
-- [ ] Core/Stretch, đường găng, effort và Definition of Done mới được ba thành viên xác nhận.
+- [x] Phương án HDBSCAN, dataset/experiment lifecycle và ranh giới không dự đoán được đưa vào baseline chính thức.
+- [x] Core/Stretch, đường găng, capacity 8 tuần và Definition of Done được đồng bộ với task index.
+- [x] KPI bao phủ ETL, ML dataset/artifact, scientific evaluation và report/import gate mà không dùng accuracy giả khi thiếu ground truth.
+- [x] Baseline có static check lặp lại được; reviewer độc lập được khuyến nghị nhưng không chặn `Done`.
 
 ## Hard dependency
 
@@ -62,18 +63,19 @@ Có thể bắt đầu ngay. Chốt output contract hoặc fixture nhỏ trướ
 
 ## Theo dõi
 
-- **Trạng thái:** Needs Update
+- **Trạng thái:** Done
 - **Assignee:** Chưa ghi lại
 - **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Baseline cũ đã hoàn tất tại [PR #3](https://github.com/HoaiTam/japan-earthquake-etl/pull/3). Cần cập nhật vì baseline cũ đặt Data Science ngoài phạm vi, bắt buộc Power BI và chưa có lifecycle dataset/experiment HDBSCAN.
+- **Evidence / PR:** Hoàn tất trên branch `docs/pln-01-hdbscan-scope-update`; chưa commit/push hoặc mở PR. Baseline cũ tại [PR #3](https://github.com/HoaiTam/japan-earthquake-etl/pull/3) được giữ làm mốc lịch sử nhưng đã bị baseline HDBSCAN hiện hành thay thế.
+- **Evidence kiểm thử:** `./scripts/check-mvp-baseline.sh` kiểm tra scope 8 tuần, HDBSCAN Core, Power BI Stretch, research split/grain/feature/artifact gate và trạng thái task/roadmap; `git diff --check` kiểm tra lỗi whitespace.
 - **Kỹ năng phù hợp:** Phân tích yêu cầu, tài liệu
 
 ## Checklist bàn giao
 
-- [ ] Deliverable cập nhật đã có trong repository hoặc môi trường demo.
-- [ ] Acceptance criteria mới đã được kiểm tra.
-- [ ] Test/check tài liệu đạt hoặc có evidence thủ công có thể lặp lại.
-- [ ] Baseline, roadmap và task downstream đã đồng bộ.
+- [x] Deliverable cập nhật đã có trong repository hoặc môi trường demo.
+- [x] Acceptance criteria mới đã được kiểm tra.
+- [x] Test/check tài liệu đạt hoặc có evidence thủ công có thể lặp lại.
+- [x] Baseline, roadmap và task downstream đã đồng bộ.
 - [x] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
 - [ ] Reviewer độc lập xác nhận baseline HDBSCAN cập nhật (khuyến nghị, không chặn `Done`).
 

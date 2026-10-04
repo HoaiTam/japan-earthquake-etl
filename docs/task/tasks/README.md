@@ -19,8 +19,8 @@ Trạng thái hợp lệ: `Backlog`, `Ready`, `In Progress`, `Review`, `Blocked`
 ## Tổng quan
 
 - Tổng số task: **71**.
-- Foundation: **8 task `Done`, 1 task `Needs Update`**.
-- Task cần cập nhật do phương án HDBSCAN: **2** (`PLN-01`, `CON-03`).
+- Foundation: **9 task `Done`**.
+- Task còn cần cập nhật do phương án HDBSCAN: **1** (`CON-03`).
 - Core: **63 task**.
 - Stretch: **8 task**.
 - Tổng effort kế hoạch: **357 giờ** cho capacity 8 tuần.
@@ -29,7 +29,7 @@ Trạng thái hợp lệ: `Backlog`, `Ready`, `In Progress`, `Review`, `Blocked`
 
 | Task | Tuần | Workstream | Scope | Priority | Effort | Trạng thái |
 |---|---:|---|---|---|---:|---|
-| [PLN-01](./PLN-01.md) - Chốt scope, KPI và Definition of Done | 1 | Planning | Core | P0 | 4h | Needs Update |
+| [PLN-01](./PLN-01.md) - Chốt scope, KPI và Definition of Done | 1 | Planning | Core | P0 | 4h | Done |
 | [REP-01](./REP-01.md) - Scaffold cấu trúc repository | 1 | Repository | Core | P0 | 4h | Done |
 | [CFG-01](./CFG-01.md) - Thiết lập cấu hình và secret hygiene | 1 | Configuration | Core | P0 | 3h | Done |
 | [CMP-01](./CMP-01.md) - Tạo Docker Compose network và volumes | 1 | Platform | Core | P0 | 5h | Done |

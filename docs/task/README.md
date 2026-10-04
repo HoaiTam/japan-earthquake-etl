@@ -116,4 +116,9 @@ Một task chỉ được xem là `Done` khi:
 
 Phạm vi MVP, KPI, đường găng và Definition of Done dùng chung được tập hợp tại [Baseline phạm vi MVP, KPI và Definition of Done](../specs/MVP_SCOPE_KPI_AND_DOD.md).
 
-`PLN-01` từng hoàn tất qua [PR #3](https://github.com/HoaiTam/japan-earthquake-etl/pull/3) nhưng hiện ở `Needs Update` vì phương án HDBSCAN thay đổi Core/Stretch, đường găng và Definition of Done. Cho đến khi update hoàn tất, [roadmap HDBSCAN](./HDBSCAN_WORKSTREAM.md) và task riêng là nguồn lập kế hoạch; implementation không được tự suy diễn thêm ngoài các contract này.
+`PLN-01` đã cập nhật baseline HDBSCAN: quy trình Gold snapshot → ML dataset →
+Window/DBSCAN/HDBSCAN → validate/import → Iceberg `ml.*` → static report là
+Core; Power BI là Stretch. [Roadmap HDBSCAN](./HDBSCAN_WORKSTREAM.md), baseline
+và task riêng phải được dùng cùng nhau; implementation không tự suy diễn thêm
+ngoài contract đã được owner task chốt. [PR #3](https://github.com/HoaiTam/japan-earthquake-etl/pull/3)
+chỉ còn là mốc lịch sử của baseline cũ.

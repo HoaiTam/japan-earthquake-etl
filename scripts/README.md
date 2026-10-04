@@ -6,6 +6,9 @@ theo mặc định.
 
 Hiện có:
 
+- `check-mvp-baseline.sh`: kiểm tra baseline `PLN-01` đã chốt kế hoạch 8 tuần,
+  HDBSCAN Core, Power BI Stretch, research split/feature/grain, artifact gate và
+  trạng thái đồng bộ giữa task index với roadmap; không gọi mạng.
 - `check-repository-layout.sh`: smoke check cho scaffold `REP-01`.
 - `check-config.sh`: kiểm tra `.env.example`, `.env` và secret hygiene cho
   `CFG-01`; dùng `--require-local` trước runtime và không in giá trị cấu hình.

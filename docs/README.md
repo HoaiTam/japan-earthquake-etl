@@ -6,6 +6,11 @@ Thư mục này là nguồn tài liệu chính thức cho dự án **Nền tản
 > request, HTTP client, Bronze writer và Airflow ingest DAG đã có contract cùng
 > unit/static acceptance. Silver/Gold DAG vẫn chưa triển khai.
 
+> Phạm vi hiện hành dùng [baseline PLN-01](./specs/MVP_SCOPE_KPI_AND_DOD.md):
+> HDBSCAN lifecycle thuộc Core, static report là output bắt buộc và Power BI là
+> Stretch. Các tài liệu mô tả Power BI như điều kiện MVP được hiểu theo baseline
+> cũ cho đến khi `DOC-01` đồng bộ toàn bộ narrative/runbook.
+
 ## 1. Đọc tài liệu theo nhu cầu
 
 | Nhu cầu | Tài liệu |
