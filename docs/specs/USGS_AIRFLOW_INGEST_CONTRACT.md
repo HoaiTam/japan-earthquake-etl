@@ -2,7 +2,7 @@
 
 | Thuộc tính | Giá trị |
 |---|---|
-| Task | `USG-04` |
+| Task | `USG-04`, live bridge `USG-06` |
 | DAG ID | `usg_04_usgs_ingest` |
 | Schedule mặc định | `15 7 * * *` theo `Asia/Ho_Chi_Minh` |
 | Input | Airflow data interval và run context |
@@ -13,8 +13,9 @@
 `usg_04_usgs_ingest.py` chỉ điều phối lifecycle USGS; nó không đưa raw payload
 vào XCom và không tự thay thế HTTP client hoặc Bronze writer của `USG-02` và
 `USG-03`. Các task trong group `usgs_ingest` gọi một runner bên ngoài qua
-`USGS_INGEST_RUNNER_COMMAND`. Runner triển khai deployment-specific bridge để
-gọi Java HTTP client/Bronze writer và trả summary metadata nhỏ.
+`USGS_INGEST_RUNNER_COMMAND`. `USG-06` cung cấp bridge thật trong custom Airflow
+image: executable Java runner gọi HTTP client/Bronze writer, dùng MinIO adapter
+và trả summary metadata nhỏ.
 
 Luồng task là:
 
@@ -45,6 +46,11 @@ MinIO connection ở môi trường chạy.
 Các task sau chỉ nhận context từ XCom và ghi context/summary vào staging volume.
 Retry không tính lại một logical window mới và không đổi `logical_run_key`.
 
+Manual integration run có thể truyền `is_backfill=true` cùng
+`window_start_utc`/`window_end_utc` tường minh. Hai timestamp phải có hậu tố
+`Z`, start nhỏ hơn end và không được trước seed. Chế độ này giữ nguyên fixed
+window, không áp overlap lần hai.
+
 ## 3. Runner protocol
 
 Airflow tạo một file JSON nhỏ tại:
@@ -59,21 +65,26 @@ File gồm `phase`, `run_context` và summary của phase trước. Airflow gọ
 <USGS_INGEST_RUNNER_COMMAND> --phase <phase> --context-file <path>
 ```
 
-Runner phải:
+Runner được đóng gói tại `/opt/pipeline/bin/usgs-ingest-runner` và phải:
 
 1. Dùng `USG-02` để fetch response và `USG-03` để validate/write/verify raw.
 2. Không in response body, credential hoặc header nhạy cảm.
 3. Trả đúng một JSON object summary ở dòng cuối stdout; exit code khác `0` là
    task failure.
 4. Trả `phase`, `status=ok` và chỉ metadata như `bronze_status`,
-   `manifest_uri`, `raw_object_uri`, `record_count_estimate`, `sha256` hoặc
-   `verified`.
+   `manifest_uri`, `raw_object_uri`, `record_count_estimate`, `sha256`,
+   `verified` hoặc `idempotent_reuse`.
 
 Airflow chỉ giữ whitelist metadata trong XCom. Payload bytes phải ở Bronze hoặc
 staging do runner quản lý; không đưa payload vào log/metadata database.
 
-`USGS_INGEST_DRY_RUN=true` chỉ dành cho kiểm thử DAG không có network. Chế độ
-thật phải cấu hình command; nếu không, task fail fast với lỗi rõ ràng.
+`fetch` giữ raw response ở staging; `validate` kiểm tra GeoJSON; `upload` dùng
+conditional put để không overwrite Bronze; `verify` đọc lại raw/manifest từ
+MinIO. Mỗi phase mở rồi đóng MinIO SDK client để process runner kết thúc ngay.
+
+`USGS_INGEST_DRY_RUN=true` chỉ dành cho kiểm thử DAG không có network. Custom
+Airflow image đặt sẵn command production; nếu operator xóa command trong real
+mode, task fail fast với lỗi rõ ràng.
 
 ## 4. Publish gate
 
@@ -115,6 +126,13 @@ python3 -m unittest discover -s airflow/tests -p 'test_*.py'
 ./scripts/check-airflow.sh
 ```
 
-Runtime acceptance dùng `USGS_INGEST_DRY_RUN=true` hoặc runner fixture. Chỉ
-integration test có credential/MinIO thật mới được bật DAG production; không
-đưa `.env` hoặc payload thật vào repository.
+Live acceptance dùng fixed window ba ngày, credential local và MinIO thật:
+
+```bash
+./scripts/check-usgs-live.sh
+./scripts/smoke-usgs-live.sh
+```
+
+Không đưa `.env` hoặc payload thật vào repository. Command, evidence, failure
+mapping và giới hạn một request được mô tả trong
+[USGS live Bronze runbook](./USGS_LIVE_BRONZE_RUNBOOK.md).

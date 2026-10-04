@@ -6,7 +6,8 @@ script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 project_root=$(CDPATH= cd -- "$script_dir/.." && pwd)
 compose_file=${COMPOSE_FILE:-"$project_root/compose.yaml"}
 env_file=${ENV_FILE:-"$project_root/.env.example"}
-airflow_image=apache/airflow:3.3.2-python3.13
+airflow_image=japan-earthquake-etl/airflow:3.3.2-python3.13-java17
+airflow_init_image=apache/airflow:3.3.2-python3.13
 postgres_image=postgres:16.12-bookworm
 failed=0
 
@@ -43,6 +44,9 @@ for relative_path in \
     airflow/tests/test_smoke_dag_contract.py \
     airflow/tests/test_usg_04_dag_contract.py \
     airflow/tests/test_usgs_ingest_runtime.py \
+    compose/airflow/Dockerfile \
+    compose/airflow/usgs-runner.sh \
+    compose/airflow/usgs-live-smoke.sh \
     compose/airflow/smoke.sh
 do
     if [ ! -f "$project_root/$relative_path" ]; then
@@ -50,9 +54,15 @@ do
     fi
 done
 
-if [ ! -x "$project_root/compose/airflow/smoke.sh" ]; then
-    report_error "compose/airflow/smoke.sh must be executable"
-fi
+for executable_path in \
+    compose/airflow/smoke.sh \
+    compose/airflow/usgs-runner.sh \
+    compose/airflow/usgs-live-smoke.sh
+do
+    if [ ! -x "$project_root/$executable_path" ]; then
+        report_error "$executable_path must be executable"
+    fi
+done
 
 if [ -f "$project_root/airflow/dags/usg_04_usgs_ingest.py" ]; then
     usgs_dag_source=$(cat "$project_root/airflow/dags/usg_04_usgs_ingest.py")
@@ -149,7 +159,7 @@ if printf '%s\n' "$postgres_block" | grep -Fq "published:"; then
     report_error "Airflow PostgreSQL must not publish a host port"
 fi
 
-require_fixed "$init_block" "image: $airflow_image" \
+require_fixed "$init_block" "image: $airflow_init_image" \
     "airflow-init must use the reviewed Airflow image"
 require_fixed "$init_block" "_AIRFLOW_DB_MIGRATE: \"true\"" \
     "airflow-init must migrate the metadata database"

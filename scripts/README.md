@@ -56,8 +56,14 @@ Hiện có:
 - `check-shared-fixtures.sh`: kiểm tra coverage test matrix, GeoJSON, JMA record
   96 byte, ZIP content, checksum và secret hygiene của fixture `CON-04`.
 - `check-week-3-plan.sh`: kiểm tra `USG-06`/`DAT-01`, tổng task/effort, cổng
-  data-readiness 12 giờ, ba luồng implementation 41 giờ và trạng thái Ready
+  data-readiness 12 giờ, ba luồng implementation 41 giờ và trạng thái gate
   cần thiết cho kế hoạch tuần 3; không gọi mạng hoặc tải raw data.
+- `check-usgs-live.sh`: build/test runner Java, MinIO adapter, Airflow phase
+  protocol, runbook và Compose live profile của `USG-06`; unit test không gọi
+  USGS thật.
+- `smoke-usgs-live.sh`: chạy DAG thật cho fixed window
+  `[2023-01-01, 2023-01-04)`, verify manifest/raw trên MinIO và rerun cùng
+  logical run để kiểm tra immutable reuse; cần `.env` hợp lệ và Internet.
 
 Full checklist và hướng xử lý lỗi:
 [Foundation environment smoke contract](../docs/specs/FOUNDATION_SMOKE.md).

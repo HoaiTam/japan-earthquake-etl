@@ -85,8 +85,8 @@ mvnw
 mvnw.cmd
 spark/README.md
 spark/pom.xml
-spark/src/main/java/vn/edu/uit/ie212/earthquake/spark/HelloWorldJob.java
-spark/src/test/java/vn/edu/uit/ie212/earthquake/spark/HelloWorldJobTest.java
+spark/src/main/java/ie212/earthquake/spark/HelloWorldJob.java
+spark/src/test/java/ie212/earthquake/spark/HelloWorldJobTest.java
 tests/README.md
 tests/fixtures/README.md
 tests/fixtures/TEST_MATRIX.md

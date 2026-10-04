@@ -43,6 +43,52 @@ class UsgsIngestRuntimeTest(unittest.TestCase):
         self.assertEqual("2023-01-02T00:00:00Z", result["window_end_utc"])
         self.assertEqual("2023-01-01", result["processing_date"])
 
+    def test_explicit_backfill_window_is_preserved_for_live_smoke(self) -> None:
+        context = {
+            "run_id": "usg06-live-smoke",
+            "dag_run": {
+                "conf": {
+                    "is_backfill": True,
+                    "window_start_utc": "2023-01-01T00:00:00Z",
+                    "window_end_utc": "2023-01-04T00:00:00Z",
+                }
+            },
+        }
+
+        result = resolve_run_context(context)
+
+        self.assertEqual("2023-01-01T00:00:00Z", result["window_start_utc"])
+        self.assertEqual("2023-01-04T00:00:00Z", result["window_end_utc"])
+        self.assertEqual("2023-01-01T00:00:00Z", result["target_window_start_utc"])
+        self.assertTrue(result["is_backfill"])
+        self.assertTrue(result["explicit_window"])
+
+    def test_explicit_window_requires_backfill_and_both_utc_bounds(self) -> None:
+        with self.assertRaises(UsgsRunnerError):
+            resolve_run_context(
+                {
+                    "dag_run": {
+                        "conf": {
+                            "window_start_utc": "2023-01-01T00:00:00Z",
+                            "window_end_utc": "2023-01-04T00:00:00Z",
+                        }
+                    }
+                }
+            )
+
+        with self.assertRaises(UsgsRunnerError):
+            resolve_run_context(
+                {
+                    "dag_run": {
+                        "conf": {
+                            "is_backfill": True,
+                            "window_start_utc": "2023-01-01T00:00:00+00:00",
+                            "window_end_utc": "2023-01-04T00:00:00Z",
+                        }
+                    }
+                }
+            )
+
     def test_dry_run_is_safe_and_summary_is_written_outside_xcom(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             environment = {
