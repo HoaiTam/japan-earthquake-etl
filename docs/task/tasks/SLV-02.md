@@ -1,6 +1,6 @@
 ---
 task_id: "SLV-02"
-status: "Backlog"
+status: "Ready"
 week: 3
 block: "D - Silver đa nguồn"
 workstream: "USGS parser"
@@ -63,7 +63,7 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
+- **Trạng thái:** Ready
 - **Assignee:** Chưa ghi lại
 - **Reviewer:** Chưa ghi lại
 - **Evidence / PR:** Chưa có

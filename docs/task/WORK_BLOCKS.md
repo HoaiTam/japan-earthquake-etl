@@ -30,11 +30,13 @@ PostgreSQL trong Compose chỉ lưu metadata của Airflow. Dữ liệu nghiệp
 - Contract, fixture, mock task và sample view là giao diện làm việc hợp lệ. Thành viên không phải chờ toàn bộ upstream chạy thật mới bắt đầu.
 - Mỗi block có unit/integration test riêng. E2E chỉ được dùng làm cổng tích hợp cuối, không thay thế test của từng block.
 - Mọi thay đổi contract phải được review trước khi các block tiêu thụ cập nhật theo; không sửa ngầm schema trong một PR implementation.
-- Integration gate chính là `USG-05`, `JMA-05`, `SLV-09`, `GLD-04`, `QA-01` và `MLQ-01`. `BI-05` chỉ là gate của phần Power BI Stretch.
+- `USG-05` là acceptance bằng fixture/mock; `USG-06` là gate chạy thật USGS →
+  MinIO. Integration gate đa khối là `JMA-05`, `SLV-09`, `GLD-04`, `QA-01`
+  và `MLQ-01`. `BI-05` chỉ là gate của phần Power BI Stretch.
 
 ## 3. Khối A - Hợp đồng dữ liệu
 
-Task: `CON-01..04`.
+Task: `CON-01..04`, `DAT-01`.
 
 Làm phần gì:
 
@@ -42,6 +44,8 @@ Làm phần gì:
 - Chốt cách lưu Bronze raw và manifest.
 - Thiết kế logical schema Silver/Gold/ML, lineage, canonical event, dataset và experiment.
 - Chuẩn bị fixture dùng chung cho các nhóm code và test.
+- Đăng ký một USGS sample và một JMA sample thật, nhỏ, cố định để ghép luồng
+  cuối tuần mà không đưa raw dump vào Git.
 
 Có những gì:
 
@@ -54,15 +58,20 @@ Có những gì:
 - [Fixture và test matrix dùng chung](../../tests/fixtures/README.md) cho
   success, empty, invalid, duplicate, revised, timezone, checksum và ambiguous
   source link.
+- Real-sample catalog có source identity, release/window, logical URI,
+  checksum, size và expected count; USGS là `BRONZE_READY`, JMA ban đầu là
+  `STAGED_SOURCE`.
 
 Dùng để làm gì:
 
 - Cho phép USGS, JMA, Silver, Gold, Airflow, ML dataset, experiment và import phát triển song song trên cùng một giao diện.
 - Ngăn mỗi nhóm tự đặt tên trường, tự chọn timezone hoặc tự hiểu khác nhau về “một động đất”.
+- Cho phép ba luồng tuần 3 dùng cùng sample identity khi integration nhưng vẫn
+  chạy unit test hằng ngày hoàn toàn offline.
 
 ## 4. Khối B - USGS Bronze
 
-Task: `USG-01..05`.
+Task: `USG-01..06`.
 
 Làm phần gì:
 
@@ -70,6 +79,8 @@ Làm phần gì:
 - Xây HTTP client có timeout, retry/backoff và giới hạn response.
 - Validate GeoJSON, lưu raw response, manifest và checksum vào MinIO.
 - Đóng gói thành Airflow task group và kiểm thử đến Bronze.
+- Nối DAG/Java runner với MinIO adapter và xác nhận một fixed live window tạo
+  manifest `BronzeReady` thật.
 
 Có những gì:
 
@@ -83,11 +94,14 @@ Có những gì:
 - [USGS Bronze QA contract](../specs/USGS_BRONZE_QA_CONTRACT.md), fixture/mock
   matrix và acceptance test cho success, empty, lỗi HTTP, timeout, checksum và
   đối soát `run_id`/record count giữa object và manifest.
+- Runner CLI tuân thủ phase protocol, MinIO `BronzeObjectStore`, live smoke có
+  phạm vi và evidence chỉ chứa metadata/checksum/count.
 
 Dùng để làm gì:
 
 - Cung cấp luồng cập nhật động đất hằng ngày có thể retry, audit và reprocess.
 - Silver chỉ nhận manifest đã verify, không phụ thuộc trực tiếp vào API.
+- Cung cấp USGS sample thật cho `DAT-01` mà không biến unit test thành network test.
 
 ## 5. Khối C - JMA Bronze
 

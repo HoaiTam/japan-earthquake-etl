@@ -18,12 +18,13 @@ Trạng thái hợp lệ: `Backlog`, `Ready`, `In Progress`, `Review`, `Blocked`
 
 ## Tổng quan
 
-- Tổng số task: **71**.
+- Tổng số task: **73**.
 - Foundation: **9 task `Done`**.
 - Task còn ở trạng thái `Needs Update`: **0**.
-- Core: **63 task**.
+- Core: **65 task**.
 - Stretch: **8 task**.
-- Tổng effort kế hoạch: **357 giờ** cho capacity 8 tuần.
+- Tổng effort task: **364 giờ**; trong đó 12 giờ data-readiness được thực hiện
+  trước tuần 3, còn 352 giờ nằm trong capacity 8 tuần của nhóm.
 
 ## Foundation
 
@@ -47,6 +48,7 @@ Trạng thái hợp lệ: `Backlog`, `Ready`, `In Progress`, `Review`, `Blocked`
 | [CON-02](./CON-02.md) - Thiết kế Bronze object và manifest | 2 | Bronze contract | Core | P0 | 5h | Done |
 | [CON-04](./CON-04.md) - Chuẩn bị fixture và ma trận test dùng chung | 2 | Fixtures | Core | P1 | 3h | Done |
 | [CON-03](./CON-03.md) - Thiết kế mô hình dữ liệu Silver, Gold và ML | 2 | Data model contract | Core | P0 | 6h | Done |
+| [DAT-01](./DAT-01.md) - Chuẩn bị bộ dữ liệu mẫu thật từ USGS và JMA | 3 | Shared real samples | Core | P0 | 3h | Backlog |
 
 ## B - USGS Bronze
 
@@ -57,29 +59,30 @@ Trạng thái hợp lệ: `Backlog`, `Ready`, `In Progress`, `Review`, `Blocked`
 | [USG-03](./USG-03.md) - Validate và lưu USGS raw vào Bronze | 2 | Bronze writer | Core | P0 | 7h | Done |
 | [USG-04](./USG-04.md) - Tích hợp USGS ingest vào Airflow | 2 | Airflow integration | Core | P0 | 4h | Done |
 | [USG-05](./USG-05.md) - Kiểm thử USGS đến Bronze | 2 | QA | Core | P0 | 4h | Done |
+| [USG-06](./USG-06.md) - Kết nối live runner và ghi USGS thật vào Bronze | 2 | Live Bronze integration | Core | P0 | 4h | Ready |
 
 ## C - JMA Bronze
 
 | Task | Tuần | Workstream | Scope | Priority | Effort | Trạng thái |
 |---|---:|---|---|---|---:|---|
-| [JMA-01](./JMA-01.md) - Lập danh mục 40 năm archive JMA | 3 | Archive inventory | Core | P0 | 5h | Backlog |
+| [JMA-01](./JMA-01.md) - Lập danh mục 40 năm archive JMA | 3 | Archive inventory | Core | P0 | 5h | Ready |
 | [JMA-02](./JMA-02.md) - Xây JMA downloader và phát hiện file thay đổi | 3 | Downloader | Core | P0 | 6h | Backlog |
 | [JMA-03](./JMA-03.md) - Validate và lưu JMA archive vào Bronze | 3 | Bronze writer | Core | P0 | 7h | Backlog |
-| [JMA-04](./JMA-04.md) - Tạo workflow ingest JMA theo năm | 3 | Backfill orchestration | Core | P0 | 5h | Backlog |
-| [JMA-05](./JMA-05.md) - Kiểm thử JMA đến Bronze | 3 | QA | Core | P0 | 4h | Backlog |
+| [JMA-04](./JMA-04.md) - Tạo workflow ingest JMA theo năm | 4 | Backfill orchestration | Core | P0 | 5h | Backlog |
+| [JMA-05](./JMA-05.md) - Kiểm thử JMA đến Bronze | 4 | QA | Core | P0 | 4h | Backlog |
 
 ## D - Silver đa nguồn
 
 | Task | Tuần | Workstream | Scope | Priority | Effort | Trạng thái |
 |---|---:|---|---|---|---:|---|
-| [SLV-01](./SLV-01.md) - Resolve đúng Bronze input cho Spark | 3 | Input staging | Core | P0 | 3h | Backlog |
-| [SLV-02](./SLV-02.md) - Parse và chuẩn hóa USGS observation | 3 | USGS parser | Core | P0 | 5h | Backlog |
-| [SLV-03](./SLV-03.md) - Parse và chuẩn hóa JMA fixed-width | 3 | JMA parser | Core | P0 | 6h | Backlog |
-| [SLV-04](./SLV-04.md) - Tạo source key và lineage đa nguồn | 3 | Lineage | Core | P0 | 4h | Backlog |
-| [SLV-05](./SLV-05.md) - Áp dụng validation và reject metrics | 4 | Quality | Core | P0 | 5h | Backlog |
+| [SLV-01](./SLV-01.md) - Resolve đúng Bronze input cho Spark | 3 | Input staging | Core | P0 | 3h | Ready |
+| [SLV-02](./SLV-02.md) - Parse và chuẩn hóa USGS observation | 3 | USGS parser | Core | P0 | 5h | Ready |
+| [SLV-03](./SLV-03.md) - Parse và chuẩn hóa JMA fixed-width | 3 | JMA parser | Core | P0 | 6h | Ready |
+| [SLV-04](./SLV-04.md) - Tạo source key và lineage đa nguồn | 3 | Lineage | Core | P0 | 4h | Ready |
+| [SLV-05](./SLV-05.md) - Áp dụng validation và reject metrics | 3 | Quality | Core | P0 | 5h | Ready |
 | [SLV-06](./SLV-06.md) - Deduplicate và xử lý revision trong từng nguồn | 4 | Source dedup | Core | P0 | 5h | Backlog |
 | [SLV-07](./SLV-07.md) - Liên kết observation và chọn canonical event | 4 | Entity resolution | Core | P0 | 6h | Backlog |
-| [SLV-08](./SLV-08.md) - Ghi Silver Parquet theo source và thời gian | 4 | Silver storage | Core | P0 | 5h | Backlog |
+| [SLV-08](./SLV-08.md) - Ghi Silver Parquet theo source và thời gian | 3 | Silver storage | Core | P0 | 5h | Ready |
 | [SLV-09](./SLV-09.md) - Tích hợp và kiểm thử Silver đa nguồn | 4 | Integration QA | Core | P0 | 4h | Backlog |
 
 ## E - Gold & Serving
