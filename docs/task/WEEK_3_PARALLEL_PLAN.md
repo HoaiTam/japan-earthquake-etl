@@ -10,11 +10,15 @@ trong phiên integration cuối tuần.
 |---|---:|---|
 | [`USG-06`](./tasks/USG-06.md) | 4h | Live runner, MinIO adapter và một USGS manifest `BronzeReady` |
 | [`JMA-01`](./tasks/JMA-01.md) | 5h | Inventory/source-format contract và một archive đại diện đã xác định |
-| [`DAT-01`](./tasks/DAT-01.md) | 3h | Catalog metadata cho một USGS window và một JMA staged archive |
+| [`DAT-01`](./tasks/DAT-01.md) | 3h | [Catalog metadata](../specs/SHARED_REAL_SAMPLE_DATA.md) cho một USGS window và một JMA staged archive |
 
 Tổng pre-week: **12 giờ**. Chỉ bắt đầu lịch bên dưới khi ba task đạt `Done`.
 Nếu gate chưa đạt, thành viên vẫn có thể làm unit/interface bằng fixture nhưng
 không được nhận là đã integration-test với sample thật.
+
+Catalog máy đọc được tại
+[`tests/fixtures/real-samples/catalog.json`](../../tests/fixtures/real-samples/catalog.json);
+file này chỉ chứa metadata. Raw USGS/JMA tiếp tục nằm trong MinIO.
 
 ## 2. Hai loại input dùng trong tuần
 

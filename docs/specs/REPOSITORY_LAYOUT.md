@@ -72,6 +72,7 @@ project-root/
 │       ├── USGS_BRONZE_WRITER_CONTRACT.md
 │       ├── USGS_AIRFLOW_INGEST_CONTRACT.md
 │       ├── USGS_BRONZE_QA_CONTRACT.md
+│       ├── SHARED_REAL_SAMPLE_DATA.md
 │       └── REPOSITORY_LAYOUT.md
 ├── scripts/
 │   ├── README.md
@@ -82,6 +83,7 @@ project-root/
 │   ├── check-jma-inventory.sh
 │   ├── check-minio.sh
 │   ├── check-query.sh
+│   ├── check-real-sample-catalog.sh
 │   ├── check-repository-layout.sh
 │   ├── check-shared-fixtures.sh
 │   ├── check-spark.sh
@@ -90,7 +92,8 @@ project-root/
 │   ├── smoke-foundation.sh
 │   ├── smoke-minio.sh
 │   ├── smoke-query.sh
-│   └── smoke-spark.sh
+│   ├── smoke-spark.sh
+│   └── verify-real-samples.sh
 ├── spark/
 │   ├── README.md
 │   ├── pom.xml
@@ -106,6 +109,8 @@ project-root/
 │   │   ├── TEST_MATRIX.md
 │   │   ├── cases.json
 │   │   ├── SHA256SUMS
+│   │   ├── real-samples/
+│   │   │   └── catalog.json
 │   │   ├── usgs/
 │   │   └── jma/
 │   └── integration/
@@ -132,7 +137,7 @@ không tạo Maven module cạnh tranh. Maven `groupId` có thể giữ định 
 | `spark/` | Maven module, Java source và unit fixture | JAR/`target/` đã build |
 | `trino/catalog/` | Catalog properties không chứa secret | Password hoặc access key thật |
 | `compose/` | Script init/healthcheck và asset cho service | `compose.yaml`; file này đặt tại root |
-| `tests/fixtures/` | Fixture synthetic dùng chung, expected matrix và checksum theo `CON-04` | Data dump hoặc dữ liệu runtime |
+| `tests/fixtures/` | Fixture synthetic theo `CON-04` và catalog metadata-only của real sample `DAT-01` | Raw real sample, data dump hoặc dữ liệu runtime |
 | `tests/integration/` | Test xuyên service/module | Unit test riêng của Spark/Airflow |
 | `scripts/` | Script lặp lại được cho dev/CI/operations | Credential hoặc thao tác xóa rộng mặc định |
 

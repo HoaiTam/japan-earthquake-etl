@@ -2,8 +2,10 @@
 
 Bộ fixture `CON-04` cung cấp input nhỏ, xác định và chạy hoàn toàn offline cho
 USGS Bronze, JMA Bronze, parser Silver, quality, dedup/revision, source linking
-và Gold. Dữ liệu đều là **synthetic**, không sao chép event thật và không chứa
-credential hay endpoint riêng tư.
+và Gold. Payload dưới `usgs/` và `jma/` đều là **synthetic**, không sao chép
+event thật và không chứa credential hay endpoint riêng tư. Thư mục
+`real-samples/` chỉ giữ catalog metadata `DAT-01`; raw sample thật nằm trong
+MinIO/staging và không được commit.
 
 Expected output của từng case nằm trong hai dạng:
 
@@ -17,6 +19,8 @@ tests/fixtures/
 ├── cases.json
 ├── TEST_MATRIX.md
 ├── SHA256SUMS
+├── real-samples/
+│   └── catalog.json
 ├── usgs/
 │   ├── success.geojson
 │   ├── empty.geojson
@@ -57,6 +61,16 @@ Script kiểm tra:
 - ZIP mở được, chỉ chứa `hypo.dat` và bytes khớp fixed-width source;
 - checksum chuẩn không drift và checksum mismatch thực sự sai;
 - không có chuỗi giống credential trong fixture.
+
+Catalog metadata thật được kiểm tra riêng bằng:
+
+```bash
+./scripts/check-real-sample-catalog.sh
+```
+
+Không dùng `real-samples/catalog.json` thay cho fixture unit test: URI trong
+catalog là handoff cho integration có MinIO, không phải yêu cầu gọi network
+hoặc tải raw về source tree.
 
 Sau khi chủ động sửa dữ liệu nguồn trong bộ fixture, tái tạo JMA files, ZIP và
 checksum bằng:

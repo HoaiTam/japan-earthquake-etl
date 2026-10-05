@@ -64,9 +64,17 @@ stretch_count=$(awk -F ': ' '$1 == "scope" && $2 == "\"Stretch\"" { count++ } EN
     fail 'three implementation lanes must total 41 hours'
 
 [ "$(task_field status USG-06)" = Done ] || fail 'USG-06 must be Done'
-[ "$(task_field status JMA-01)" = Ready ] || fail 'JMA-01 must be Ready'
-[ "$(task_field status DAT-01)" = Backlog ] || \
-    fail 'DAT-01 must wait for USG-06 and JMA-01'
+[ "$(task_field status JMA-01)" = Done ] || fail 'JMA-01 must be Done'
+[ "$(task_field status DAT-01)" = Done ] || \
+    fail 'DAT-01 must be Done before the week 3 integration lanes start'
+
+for required_file in \
+    "$project_root/docs/specs/SHARED_REAL_SAMPLE_DATA.md" \
+    "$project_root/tests/fixtures/real-samples/catalog.json" \
+    "$project_root/scripts/check-real-sample-catalog.sh"
+do
+    [ -f "$required_file" ] || fail "missing ${required_file#"$project_root/"}"
+done
 
 for task_id in SLV-01 SLV-02 SLV-03 SLV-04 SLV-05 SLV-08; do
     [ "$(task_field status "$task_id")" = Ready ] || fail "$task_id must be Ready"

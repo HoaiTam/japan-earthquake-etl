@@ -58,6 +58,12 @@ Hiện có:
   của `CON-04` sau khi maintainer chủ động đổi fixture.
 - `check-shared-fixtures.sh`: kiểm tra coverage test matrix, GeoJSON, JMA record
   96 byte, ZIP content, checksum và secret hygiene của fixture `CON-04`.
+- `check-real-sample-catalog.sh`: kiểm tra offline catalog `DAT-01` có đúng một
+  USGS `BRONZE_READY` và một JMA `STAGED_SOURCE`, đối chiếu inventory/runbook,
+  checksum metadata và bảo đảm Git không chứa raw sample.
+- `verify-real-samples.sh`: đọc lại USGS manifest/raw và JMA staged ZIP từ
+  MinIO, kiểm tra checksum, size, member cùng record count/length; dùng
+  `DAT01_AIRFLOW_CONTAINER` hoặc `ENV_FILE`, không in payload/credential.
 - `check-week-3-plan.sh`: kiểm tra `USG-06`/`DAT-01`, tổng task/effort, cổng
   data-readiness 12 giờ, ba luồng implementation 41 giờ và trạng thái gate
   cần thiết cho kế hoạch tuần 3; không gọi mạng hoặc tải raw data.

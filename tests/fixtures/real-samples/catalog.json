@@ -1,0 +1,74 @@
+{
+  "catalog_version": "1.0",
+  "catalog_id": "dat01-real-samples-v1",
+  "verified_at_utc": "2026-10-04T12:57:09Z",
+  "samples": [
+    {
+      "sample_id": "usgs-fixed-window-2023-01-01-2023-01-04-v1",
+      "sample_state": "BRONZE_READY",
+      "source_system": "USGS",
+      "source_kind": "event_api",
+      "source_url": "https://earthquake.usgs.gov/fdsnws/event/1/query",
+      "run_id": "usg06-live-20261004T121205Z-db580aece6dc",
+      "attempt": 1,
+      "data_interval": {
+        "window_start_utc": "2023-01-01T00:00:00Z",
+        "window_end_utc": "2023-01-04T00:00:00Z",
+        "interval_semantics": "[start,end)"
+      },
+      "manifest_uri": "s3://japan-earthquake/bronze/usgs/ingest_date=2023-01-01/run_id=usg06-live-20261004T121205Z-db580aece6dc/attempt=01/manifest.json",
+      "raw_object_uri": "s3://japan-earthquake/bronze/usgs/ingest_date=2023-01-01/run_id=usg06-live-20261004T121205Z-db580aece6dc/attempt=01/response.geojson",
+      "media_type": "application/geo+json",
+      "content_length_bytes": 11771,
+      "sha256": "8667f9b7ac02ce0e88c78767bd51dee1fdf1292ac987a7cdc00c3aaec6b0545e",
+      "expected_record_count": 16,
+      "retrieved_at_utc": "2026-10-04T12:12:24.473063262Z",
+      "validation": {
+        "bronze_status": "BronzeReady",
+        "manifest_readback_verified": true,
+        "raw_readback_verified": true,
+        "checksum_verified": true,
+        "record_count_verified": true
+      },
+      "synthetic_fixture_hint": "tests/fixtures/usgs/success.geojson"
+    },
+    {
+      "sample_id": "jma-h2023-e5ced2bf7275",
+      "sample_state": "STAGED_SOURCE",
+      "source_system": "JMA_BULLETIN",
+      "source_kind": "annual_archive",
+      "source_url": "https://www.data.jma.go.jp/eqev/data/bulletin/data/hypo/h2023.zip",
+      "year": 2023,
+      "segment": "full-year",
+      "archive_name": "h2023.zip",
+      "member_name": "h2023",
+      "catalog_release": "jma-lm-20251210T014153Z-sha256-e5ced2bf7275",
+      "source_last_modified_utc": "2025-12-10T01:41:53Z",
+      "data_interval": {
+        "native_start_jst": "2023-01-01T00:00:00+09:00",
+        "native_end_jst": "2024-01-01T00:00:00+09:00",
+        "native_timezone": "Asia/Tokyo",
+        "interval_semantics": "[start,end)"
+      },
+      "staged_object_uri": "s3://japan-earthquake/bronze/_staging/jma/ingest_date=2026-10-04/run_id=dat01-jma-2023-e5ced2bf7275/attempt=01/archive.zip",
+      "bronze_manifest_uri": null,
+      "media_type": "application/zip",
+      "content_length_bytes": 6977812,
+      "sha256": "e5ced2bf7275825ba75405b071bb54e9d4c2a5eb55aa6bc9b8d670de1f58b98f",
+      "expected_member_count": 1,
+      "expected_record_count": 257020,
+      "record_length_bytes": 96,
+      "record_format": "jma-hypocenter-96-byte-v1",
+      "geodetic_datum": "Japanese Geodetic Datum 2000",
+      "retrieved_at_utc": "2026-10-04T12:56:17Z",
+      "validation": {
+        "zip_open_verified": true,
+        "member_name_verified": true,
+        "record_length_verified": true,
+        "source_checksum_verified": true,
+        "staged_object_readback_verified": true
+      },
+      "synthetic_fixture_hint": "tests/fixtures/jma/archives/success.zip"
+    }
+  ]
+}

@@ -24,6 +24,7 @@ Thư mục này là nguồn tài liệu chính thức cho dự án **Nền tản
 | Hiểu validate và ghi raw USGS vào Bronze | [USGS Bronze writer contract](./specs/USGS_BRONZE_WRITER_CONTRACT.md) |
 | Hiểu DAG, runner protocol và publish gate USGS | [USGS Airflow ingest contract](./specs/USGS_AIRFLOW_INGEST_CONTRACT.md) |
 | Hiểu ma trận QA từ USGS đến Bronze | [USGS Bronze QA contract](./specs/USGS_BRONZE_QA_CONTRACT.md) |
+| Dùng hai sample thật USGS/JMA đã khóa cho integration | [Shared real-sample catalog](./specs/SHARED_REAL_SAMPLE_DATA.md) |
 | Hiểu Bronze object, manifest, checksum và retry | [Bronze storage contract](./specs/BRONZE_STORAGE_CONTRACT.md) |
 | Hiểu schema Silver/Gold, null policy, bands và KPI | [Silver/Gold logical data model](./specs/SILVER_GOLD_DATA_MODEL.md) |
 | Hiểu grain, lineage và lifecycle dataset/experiment ML | [ML logical data model](./specs/ML_DATA_MODEL.md) |
@@ -71,6 +72,7 @@ docs/
 │   ├── USGS_AIRFLOW_INGEST_CONTRACT.md
 │   ├── USGS_LIVE_BRONZE_RUNBOOK.md
 │   ├── USGS_BRONZE_QA_CONTRACT.md
+│   ├── SHARED_REAL_SAMPLE_DATA.md
 │   ├── BRONZE_STORAGE_CONTRACT.md
 │   ├── SILVER_GOLD_DATA_MODEL.md
 │   ├── ML_DATA_MODEL.md
