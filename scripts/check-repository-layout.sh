@@ -19,6 +19,7 @@ spark/src/main/java
 spark/src/test/java
 spark/src/test/resources/fixtures
 tests/fixtures
+tests/fixtures/real-samples
 tests/integration
 trino/catalog
 "
@@ -60,6 +61,7 @@ docs/specs/USGS_BRONZE_QA_CONTRACT.md
 docs/specs/MINIO_STORAGE.md
 docs/specs/ICEBERG_TRINO.md
 docs/specs/JMA_ARCHIVE_INVENTORY.md
+docs/specs/SHARED_REAL_SAMPLE_DATA.md
 docs/specs/REPOSITORY_LAYOUT.md
 docs/specs/SPARK_STANDALONE.md
 docs/specs/SOURCE_COVERAGE.md
@@ -73,6 +75,8 @@ scripts/check-foundation.sh
 scripts/check-jma-inventory.sh
 scripts/check-minio.sh
 scripts/check-query.sh
+scripts/check-real-sample-catalog.sh
+scripts/check-repository-layout.sh
 scripts/check-spark.sh
 scripts/check-source-coverage.sh
 scripts/check-bronze-contract.sh
@@ -84,6 +88,7 @@ scripts/smoke-foundation.sh
 scripts/smoke-minio.sh
 scripts/smoke-query.sh
 scripts/smoke-spark.sh
+scripts/verify-real-samples.sh
 pom.xml
 mvnw
 mvnw.cmd
@@ -96,6 +101,7 @@ tests/fixtures/README.md
 tests/fixtures/TEST_MATRIX.md
 tests/fixtures/cases.json
 tests/fixtures/SHA256SUMS
+tests/fixtures/real-samples/catalog.json
 tests/integration/README.md
 trino/README.md
 trino/catalog/README.md

@@ -1,6 +1,6 @@
 ---
 task_id: "DAT-01"
-status: "Backlog"
+status: "Done"
 week: 3
 block: "A - Hợp đồng dữ liệu"
 workstream: "Shared real samples"
@@ -39,16 +39,18 @@ thuộc network hoặc phải tải toàn bộ 40 năm trong lúc phát triển.
 
 - `docs/specs/SHARED_REAL_SAMPLE_DATA.md` mô tả cách lấy, verify và dùng sample.
 - `tests/fixtures/real-samples/catalog.json` chỉ chứa metadata, URI logic, checksum và expected counts; không chứa raw data.
+- `scripts/check-real-sample-catalog.sh` kiểm tra catalog offline và
+  `scripts/verify-real-samples.sh` đọc lại hai object từ MinIO.
 - USGS entry ở trạng thái `BRONZE_READY` và trỏ tới manifest do `USG-06` tạo.
 - JMA entry ở trạng thái `STAGED_SOURCE`; chỉ `JMA-03` mới được chuyển thành Bronze manifest `BronzeReady`.
 
 ## Tiêu chí hoàn thành
 
-- [ ] Catalog có đúng một fixed USGS window và một JMA archive/release đại diện.
-- [ ] Cả hai entry có source identity, time/year, size, SHA-256 và expected count có thể đối soát.
-- [ ] USGS manifest đọc lại được; JMA staged archive mở được và record structure phù hợp inventory.
-- [ ] Consumer có thể dùng sample/fixture mà không cần chờ downloader hoặc gọi network trong unit test.
-- [ ] Git không chứa raw GeoJSON/ZIP lớn, credential, signed URL hoặc absolute path cá nhân.
+- [x] Catalog có đúng một fixed USGS window và một JMA archive/release đại diện.
+- [x] Cả hai entry có source identity, time/year, size, SHA-256 và expected count có thể đối soát.
+- [x] USGS manifest đọc lại được; JMA staged archive mở được và record structure phù hợp inventory.
+- [x] Consumer có thể dùng sample/fixture mà không cần chờ downloader hoặc gọi network trong unit test.
+- [x] Git không chứa raw GeoJSON/ZIP lớn, credential, signed URL hoặc absolute path cá nhân.
 
 ## Hard dependency
 
@@ -76,25 +78,29 @@ dùng cùng sample identity nhưng vẫn phát triển hằng ngày bằng fixtu
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
+- **Trạng thái:** Done
 - **Assignee:** Chưa nhận
 - **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Evidence / PR:** `./scripts/check-real-sample-catalog.sh` và
+  `./scripts/verify-real-samples.sh` đạt; live readback ngày `2026-10-04` xác
+  nhận USGS `11,771` byte/`16` event từ manifest
+  `BronzeReady`, và JMA `h2023.zip` `6,977,812` byte/`257,020` record 96 byte
+  từ object `STAGED_SOURCE`. Cả hai checksum khớp catalog; raw không được commit.
 - **Kỹ năng phù hợp:** Data sampling, checksums, source metadata, test data management
 
 ## Checklist bàn giao
 
-- [ ] Deliverable và catalog metadata tồn tại trong repository.
-- [ ] Acceptance criteria và checksum/readback đã được kiểm tra.
-- [ ] Trạng thái `BRONZE_READY`/`STAGED_SOURCE` được dùng đúng.
-- [ ] Consumer docs và kế hoạch tuần 3 đã liên kết catalog.
-- [ ] Không chứa secret, signed URL, raw dump hoặc build artifact.
+- [x] Deliverable và catalog metadata tồn tại trong repository.
+- [x] Acceptance criteria và checksum/readback đã được kiểm tra.
+- [x] Trạng thái `BRONZE_READY`/`STAGED_SOURCE` được dùng đúng.
+- [x] Consumer docs và kế hoạch tuần 3 đã liên kết catalog.
+- [x] Không chứa secret, signed URL, raw dump hoặc build artifact.
 - [ ] Reviewer độc lập được khuyến nghị cho P0.
 
 ## Tài liệu liên quan
 
 - [Source coverage contract](../../specs/SOURCE_COVERAGE.md)
 - [Bronze storage contract](../../specs/BRONZE_STORAGE_CONTRACT.md)
+- [Shared real-sample catalog](../../specs/SHARED_REAL_SAMPLE_DATA.md)
 - [Shared synthetic fixtures](../../../tests/fixtures/README.md)
 - [Kế hoạch tuần 3 song song](../WEEK_3_PARALLEL_PLAN.md)
-
