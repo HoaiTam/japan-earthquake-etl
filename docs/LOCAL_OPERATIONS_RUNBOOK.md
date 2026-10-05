@@ -22,7 +22,7 @@ trong cùng một Compose project.
 | CPU | Từ 4 core |
 | RAM | 16 GiB trở lên; 8 GiB chỉ thử nghiệm và chạy tuần tự |
 | Dung lượng trống | Từ 50 GiB |
-| Phần mềm | Git, Docker Engine/Desktop, Docker Compose plugin, JDK 17, `curl` hoặc `wget`, `unzip` |
+| Phần mềm | GNU Make, Git, Docker Engine/Desktop, Docker Compose plugin, JDK 17+, Python 3, `curl` hoặc `wget`, `jq`, `rg`, `unzip`, `shasum` hoặc `sha256sum` |
 | Power BI | Power BI Desktop trên Windows và ODBC driver tương thích Trino |
 | Mạng | Truy cập được USGS API khi extract |
 
@@ -35,6 +35,35 @@ docker compose version
 java -version
 ```
 
+### 2.1. Entry point ngắn qua Makefile
+
+Chạy tại root repository (hoặc dùng `make -C /path/to/japan-earthquake-etl`):
+
+```bash
+make help
+make test
+make env-init
+# Sửa .env, thay mọi placeholder secret trước khi startup.
+make check-config-local
+make up
+make status
+make smoke
+make verify-samples
+make logs-follow SERVICE=airflow-scheduler
+make stop
+```
+
+`test` không cần Docker daemon hoặc dữ liệu nguồn thật; `up` build đủ custom
+image trước khi start và chờ healthy, nhưng không tự trigger ETL test.
+`smoke` chạy acceptance FND-01 trên runtime thật; `verify-samples` chỉ readback
+DAT-01 đã có, không tải dữ liệu. `stop` giữ container/volume; `down` chỉ gỡ
+container/network, không xóa named volume. Không có target reset dữ liệu.
+
+Phạm vi từng target, startup từng khối, USGS live/JMA HEAD, khác biệt giữa
+`ENV_FILE` và `CHECK_ENV_FILE`, cùng ví dụ custom config được mô tả tại
+[Makefile command guide](./MAKEFILE_COMMANDS.md). Các lệnh script/Compose bên
+dưới vẫn là entrypoint gốc để debug chi tiết.
+
 ## 3. Cấu trúc repository hiện tại
 
 ```text
@@ -42,6 +71,7 @@ project-root/
 ├── .env.example
 ├── .mvn/wrapper/
 ├── compose.yaml
+├── Makefile
 ├── mvnw
 ├── pom.xml
 ├── airflow/

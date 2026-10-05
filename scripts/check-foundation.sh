@@ -5,7 +5,7 @@ set -eu
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 project_root=$(CDPATH= cd -- "$script_dir/.." && pwd)
 compose_file=${COMPOSE_FILE:-"$project_root/compose.yaml"}
-compose_env_file=${ENV_FILE:-"$project_root/.env.example"}
+compose_env_file=${CHECK_ENV_FILE:-${ENV_FILE:-"$project_root/.env.example"}}
 local_env_file=${ENV_FILE:-"$project_root/.env"}
 require_local=0
 failed=0
@@ -103,6 +103,7 @@ if [ "$require_local" -eq 1 ]; then
         "$project_root/scripts/check-config.sh" --require-local
 else
     run_check "CFG-01 repository configuration" \
+        env ENV_FILE="$local_env_file" \
         "$project_root/scripts/check-config.sh"
 fi
 

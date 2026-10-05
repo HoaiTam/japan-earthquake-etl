@@ -4,6 +4,13 @@ Thư mục này chứa script dùng chung cho phát triển, CI và vận hành 
 phải chạy từ bất kỳ working directory nào, fail fast và không xóa data/volume
 theo mặc định.
 
+Từ root repository có thể dùng `make help` để xem các wrapper test, build,
+startup, log và stop. `make test` gom contract + unit test không gọi nguồn thật;
+`make check` thêm static platform validation; `make smoke` gọi full runtime
+foundation acceptance. Mỗi target `check-*`/`smoke-*` giữ tên script bỏ `.sh`,
+không thay đổi logic script gốc. Hướng dẫn đầy đủ tại
+[Makefile command guide](../docs/MAKEFILE_COMMANDS.md).
+
 Hiện có:
 
 - `check-mvp-baseline.sh`: kiểm tra baseline `PLN-01` đã chốt kế hoạch 8 tuần,
@@ -35,6 +42,8 @@ Hiện có:
   acceptance tạo–ghi–đọc Iceberg table; giữ service và durable volumes.
 - `check-foundation.sh`: gom toàn bộ static contract từ repository/config đến
   MinIO, Airflow, Spark và query layer; dùng `--require-local` trước full smoke.
+  `CHECK_ENV_FILE` chọn config Compose static riêng, còn `ENV_FILE` dùng cho
+  config local để không coi placeholder của `.env.example` là credential thật.
 - `smoke-foundation.sh`: build/start toàn bộ foundation stack, chạy bốn smoke
   hành vi và xác nhận health, init exit code, network, volume/mount cùng startup
   log; không dừng service hoặc xóa volume.
