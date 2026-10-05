@@ -69,6 +69,32 @@ không phụ thuộc mạng và có ma trận expected output/reason code. Kiể
 
 ## Chuẩn bị trên máy local
 
+### Lệnh ngắn qua Makefile
+
+Chạy từ thư mục gốc repository; `make` mặc định chỉ hiện hướng dẫn:
+
+```bash
+make help
+make test                # Contract + unit test Java/Airflow; không start Docker.
+make env-init            # Chỉ tạo .env nếu chưa có, không ghi đè.
+# Thay toàn bộ change-me-* trong .env trước khi chạy các lệnh dưới.
+make check-config-local
+make up                  # Build/start toàn bộ foundation, chờ healthy.
+make smoke               # Full foundation runtime smoke.
+make verify-samples      # Readback USGS/JMA DAT-01 đã tồn tại trên MinIO.
+make logs-follow SERVICE=airflow-scheduler
+make stop                # Giữ container và volume dữ liệu.
+```
+
+Có target riêng cho từng component (`up-airflow`, `up-spark`, `up-query`,
+`smoke-minio`, ...), `smoke-usgs-live` để gọi USGS thật và `down` để gỡ
+container/network nhưng giữ named volume. `make test` không gọi nguồn thật;
+Maven có thể tải dependency lần đầu. Hướng dẫn đầy đủ về phạm vi, biến
+`ENV_FILE`/`CHECK_ENV_FILE` và an toàn dữ liệu nằm tại
+[Makefile command guide](./docs/MAKEFILE_COMMANDS.md).
+
+### Các entrypoint script gốc
+
 Static scaffold check chỉ cần Git và shell POSIX. Spark build local cần JDK 17,
 `curl` hoặc `wget`, `unzip`; runtime smoke cần Docker Engine/Desktop và Docker
 Compose plugin. Từ thư mục gốc repository, chạy:
@@ -176,6 +202,7 @@ service/volume sau khi chạy để debug. Checklist và troubleshooting nằm t
 ├── .env.example              # Mẫu cấu hình không chứa secret thật
 ├── .mvn/wrapper/             # Maven Wrapper config đã pin version/checksum
 ├── compose.yaml              # Network, volumes và Compose baseline
+├── Makefile                  # Lệnh ngắn cho test/build/start/smoke/log/stop
 ├── mvnw / mvnw.cmd           # Maven Wrapper entrypoint
 ├── pom.xml                   # Maven reactor và version management
 ├── airflow/                  # DAG và test orchestration

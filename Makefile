@@ -1,0 +1,177 @@
+# Command wrappers only: scripts remain the source of validation/runtime logic.
+# Compatible with GNU Make 3.81 (the default on macOS).
+SHELL := /bin/sh
+.DEFAULT_GOAL := help
+.NOTPARALLEL:
+
+ENV_FILE ?= .env
+CHECK_ENV_FILE ?= .env.example
+COMPOSE_FILE ?= compose.yaml
+WAIT_TIMEOUT ?= 300
+SERVICE ?=
+TAIL ?= 100
+DAT01_AIRFLOW_CONTAINER ?=
+
+COMPOSE = docker compose --env-file "$(ENV_FILE)" -f "$(COMPOSE_FILE)"
+RUNTIME_ENV = ENV_FILE="$(ENV_FILE)" COMPOSE_FILE="$(COMPOSE_FILE)"
+CHECK_ENV = ENV_FILE="$(CHECK_ENV_FILE)" COMPOSE_FILE="$(COMPOSE_FILE)"
+FOUNDATION_SERVICES := minio airflow-postgres airflow-api-server \
+	airflow-scheduler airflow-dag-processor spark-master spark-worker iceberg-rest trino
+
+CONTRACT_CHECKS := check-mvp-baseline check-repository-layout \
+	check-source-coverage check-bronze-contract check-data-model-contract \
+	check-shared-fixtures check-real-sample-catalog check-week-3-plan check-jma-inventory
+STATIC_CHECKS := check-compose check-minio check-airflow check-spark \
+	check-query check-usgs-live
+COMPONENT_SMOKES := smoke-minio smoke-airflow smoke-spark smoke-query smoke-usgs-live
+
+.PHONY: help env-init require-env check-config check-config-local config \
+	test test-contracts test-java test-airflow package-java check \
+	$(CONTRACT_CHECKS) $(STATIC_CHECKS) check-foundation check-jma-inventory-live build-shared-fixtures \
+	build up start up-minio up-airflow up-spark up-query status ps logs logs-follow \
+	restart stop down smoke smoke-foundation $(COMPONENT_SMOKES) \
+	verify-samples verify-real-samples
+
+help: ## Hiện toàn bộ lệnh (mặc định, không khởi động service)
+	@printf 'Chạy từ thư mục gốc repository: make <target> [VARIABLE=value]\n\n'
+	@awk 'BEGIN { FS = ":.*## " } /^[a-zA-Z0-9_-]+:.*## / { printf "  %-29s %s\n", $$1, $$2 }' Makefile
+	@printf '\nBiến: ENV_FILE=.env, CHECK_ENV_FILE=.env.example, COMPOSE_FILE=compose.yaml\n'
+	@printf '      SERVICE=<service>, TAIL=100, WAIT_TIMEOUT=300 (giây)\n'
+	@printf '      DAT01_AIRFLOW_CONTAINER=<container> (readback không cần .env)\n'
+	@printf '\nVí dụ: make test; make up; make logs-follow SERVICE=airflow-scheduler\n'
+
+env-init: ## Tạo ENV_FILE từ .env.example nếu chưa có; không ghi đè
+	@if [ -e "$(ENV_FILE)" ] || [ -L "$(ENV_FILE)" ]; then \
+		printf 'Giữ nguyên cấu hình đã có: %s\n' "$(ENV_FILE)"; \
+	else \
+		umask 077; cp -n .env.example "$(ENV_FILE)" && \
+		printf 'Đã tạo %s. Thay toàn bộ change-me-* trước khi chạy runtime.\n' "$(ENV_FILE)"; \
+	fi
+
+require-env:
+	@test -f "$(ENV_FILE)" || { \
+		printf 'Thiếu %s. Chạy make env-init hoặc đặt ENV_FILE=/path/to/local.env.\n' "$(ENV_FILE)" >&2; \
+		exit 1; \
+	}
+
+check-config: ## Kiểm tra cấu hình mẫu, cấu hình local nếu có và secret hygiene
+	@$(RUNTIME_ENV) ./scripts/check-config.sh
+
+check-config-local: ## Bắt buộc ENV_FILE hợp lệ, không còn placeholder secret
+	@$(RUNTIME_ENV) ./scripts/check-config.sh --require-local
+
+config: check-config-local ## Validate toàn bộ Compose profile; không in secret
+	@$(COMPOSE) --profile smoke --profile live --profile validation config --quiet
+
+test: test-contracts test-java test-airflow ## Toàn bộ contract và unit test; không cần Docker daemon/nguồn thật
+
+test-contracts: $(CONTRACT_CHECKS) ## Kiểm tra docs, contract, fixture và catalog mẫu; không cần mạng
+
+test-java: ## Unit test Spark/USGS Java bằng Maven Wrapper (HTTP/storage mock)
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am test
+
+test-airflow: ## Unit test DAG/runner Airflow bằng unittest; không cần Airflow runtime
+	@python3 -m unittest discover -s airflow/tests -p 'test_*.py'
+
+package-java: ## Clean, test, verify và đóng gói Spark JAR
+	@./mvnw --batch-mode --no-transfer-progress clean verify
+
+check: test-contracts check-config check-foundation check-usgs-live ## Full static readiness, gồm Compose và Maven verify; không start service
+
+check-mvp-baseline: ## Kiểm tra baseline PLN-01, scope/KPI/DoD và task index
+check-repository-layout: ## Kiểm tra scaffold, module và mount source
+check-source-coverage: ## Kiểm tra range/ROI/timezone/overlap USGS và JMA
+check-bronze-contract: ## Kiểm tra object path, manifest, checksum và retry contract
+check-data-model-contract: ## Kiểm tra logical model Silver/Gold/ML và publish gate
+check-shared-fixtures: ## Kiểm tra fixture synthetic USGS/JMA, ZIP và checksum
+check-real-sample-catalog: ## Kiểm tra metadata DAT-01 offline; không đọc MinIO
+check-week-3-plan: ## Kiểm tra kế hoạch chia việc và data-readiness gate
+check-jma-inventory: ## Kiểm tra inventory 40 năm/41 archive JMA offline
+
+$(CONTRACT_CHECKS):
+	@./scripts/$@.sh
+
+check-compose: ## Validate Compose foundation bằng CHECK_ENV_FILE; không start service
+check-minio: ## Kiểm tra static contract MinIO
+check-airflow: ## Kiểm tra static contract Airflow và unit test DAG
+check-spark: ## Kiểm tra static contract Spark và Maven clean verify
+check-query: ## Kiểm tra static contract Iceberg REST/Trino
+check-foundation: ## Toàn bộ static foundation check bằng CHECK_ENV_FILE
+check-usgs-live: ## Kiểm tra USG-06 runner/profile cùng unit test mock; không gọi USGS
+
+$(STATIC_CHECKS):
+	@$(CHECK_ENV) ./scripts/$@.sh
+
+check-foundation:
+	@$(RUNTIME_ENV) CHECK_ENV_FILE="$(CHECK_ENV_FILE)" ./scripts/check-foundation.sh
+
+check-jma-inventory-live: ## Đối soát HTTP header 41 archive JMA; cần mạng, không tải ZIP
+	@./scripts/check-jma-inventory.sh --live
+
+build-shared-fixtures: ## Chủ động tái tạo fixture synthetic/checksum (có sửa file tracked)
+	@./scripts/build-shared-fixtures.sh
+
+build: check-config-local ## Build ba image local: MinIO, Airflow Java17 và Spark
+	@$(COMPOSE) build minio airflow-api-server spark-master
+
+up: build ## Build và khởi động toàn bộ 9 foundation service; chờ healthy
+	@$(COMPOSE) up -d --no-build --wait --wait-timeout "$(WAIT_TIMEOUT)" $(FOUNDATION_SERVICES)
+
+start: up ## Alias của up
+
+up-minio: check-config-local ## Build/start MinIO, chờ healthy và bootstrap bucket bằng init
+	@$(COMPOSE) build minio
+	@$(COMPOSE) up -d --no-build --wait --wait-timeout "$(WAIT_TIMEOUT)" minio
+	@$(COMPOSE) run --rm --no-deps minio-init
+
+up-airflow: check-config-local ## Build/start Airflow và dependency MinIO/PostgreSQL/init
+	@$(COMPOSE) build minio airflow-api-server
+	@$(COMPOSE) up -d --no-build --wait --wait-timeout "$(WAIT_TIMEOUT)" \
+		airflow-api-server airflow-scheduler airflow-dag-processor
+
+up-spark: check-config-local ## Build image chung trước khi start Spark master/worker
+	@$(COMPOSE) build spark-master
+	@$(COMPOSE) up -d --no-build --wait --wait-timeout "$(WAIT_TIMEOUT)" spark-master spark-worker
+
+up-query: check-config-local ## Start Iceberg REST/Trino và dependency MinIO/init
+	@$(COMPOSE) build minio
+	@$(COMPOSE) up -d --no-build --wait --wait-timeout "$(WAIT_TIMEOUT)" iceberg-rest trino
+
+status: require-env ## Xem toàn bộ container, gồm init đã thoát; SERVICE để lọc
+	@$(COMPOSE) ps -a $(SERVICE)
+
+ps: status ## Alias của status
+
+logs: require-env ## Xem TAIL dòng log gần nhất; SERVICE để lọc
+	@$(COMPOSE) logs --tail "$(TAIL)" $(SERVICE)
+
+logs-follow: require-env ## Theo dõi log realtime; Ctrl+C chỉ thoát xem log
+	@$(COMPOSE) logs --follow --tail "$(TAIL)" $(SERVICE)
+
+restart: check-config-local ## Restart container đã có; SERVICE để chọn service, không rebuild
+	@$(COMPOSE) restart $(SERVICE)
+
+stop: require-env ## Dừng container, giữ nguyên container/network/named volume
+	@$(COMPOSE) stop $(SERVICE)
+
+down: require-env ## Gỡ container/network của stack; giữ nguyên named volume dữ liệu
+	@$(COMPOSE) down
+
+smoke: smoke-foundation ## Alias full foundation runtime smoke; không gồm gọi USGS thật
+
+smoke-foundation: build ## Build đủ image, start stack và test MinIO/Airflow/Spark/Trino thật
+	@$(RUNTIME_ENV) FOUNDATION_WAIT_TIMEOUT_SECONDS="$(WAIT_TIMEOUT)" ./scripts/smoke-foundation.sh
+
+smoke-minio: ## Bootstrap/start MinIO và test ghi/đọc object thật
+smoke-airflow: ## Start Airflow và trigger DAG afl_01_smoke thật
+smoke-spark: ## Build/start Spark và submit HelloWorldJob thật
+smoke-query: ## Start query stack và tạo/ghi/đọc/xóa đúng table smoke
+smoke-usgs-live: ## Gọi USGS thật cho 2023-01-01..04 UTC, ghi Bronze và kiểm tra rerun
+
+$(COMPONENT_SMOKES): check-config-local
+	@$(RUNTIME_ENV) ./scripts/$@.sh
+
+verify-samples: verify-real-samples ## Alias đọc lại hai sample DAT-01 từ MinIO
+
+verify-real-samples: ## Readback checksum/count USGS/JMA đã có; không tải nguồn hoặc tự start
+	@$(RUNTIME_ENV) DAT01_AIRFLOW_CONTAINER="$(DAT01_AIRFLOW_CONTAINER)" ./scripts/verify-real-samples.sh
