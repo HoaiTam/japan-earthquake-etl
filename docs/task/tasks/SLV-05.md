@@ -66,7 +66,7 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 - **Trạng thái:** Done
 - **Assignee:** codex
 - **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Implementation và quality summary test/fixture trên branch `feat/slv-05-quality-validation`; quality tests 4/4 và toàn bộ Spark Maven tests 44/44 đạt với JDK 17/Maven 3.9.16; contract checks data-model/repository/week-3 đạt. Reviewer vẫn `unassigned`.
+- **Evidence / PR:** [PR #32](https://github.com/HoaiTam/japan-earthquake-etl/pull/32) trên branch `feat/slv-05-quality-validation`; rebase lên `origin/main` tại `9003352` ngày 2026-10-06, không có conflict. Maven `-pl spark -am clean test` đạt 44/44 tests (quality 4/4) với JDK 17/Maven 3.9.16; contract checks data-model/repository/week-3 và `git diff --check` đạt. SLV-05 hiện là Java API, không có biến môi trường riêng; run ID và đường dẫn quality summary do caller truyền vào. Reviewer vẫn `unassigned`.
 - **Kỹ năng phù hợp:** Data quality, Spark
 
 ## Checklist bàn giao
