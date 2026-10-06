@@ -1,13 +1,13 @@
 ---
 task_id: "SLV-05"
-status: "Ready"
+status: "Done"
 week: 3
 block: "D - Silver đa nguồn"
 workstream: "Quality"
 scope: "Core"
 priority: "P0"
 effort_hours: 5
-assignee: "unassigned"
+assignee: "codex"
 reviewer: "unassigned"
 dependencies: ["CON-03", "CON-04"]
 ---
@@ -35,9 +35,9 @@ Kiểm tra required fields, parseability, tọa độ, thời gian, range, JMA q
 
 ## Tiêu chí hoàn thành
 
-- [ ] valid + rejected = parsed.
-- [ ] blocker dừng publish.
-- [ ] rejected vẫn truy vết được về Bronze.
+- [x] valid + rejected = parsed.
+- [x] blocker dừng publish.
+- [x] rejected vẫn truy vết được về Bronze.
 
 ## Hard dependency
 
@@ -63,19 +63,19 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Theo dõi
 
-- **Trạng thái:** Ready
-- **Assignee:** Chưa ghi lại
+- **Trạng thái:** Done
+- **Assignee:** codex
 - **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Evidence / PR:** Implementation và quality summary test/fixture trên branch `feat/person1-week3-input-quality`; quality tests 4/4 và toàn bộ Spark Maven tests 44/44 đạt với JDK 17/Maven 3.9.16; contract checks data-model/repository/week-3 đạt. Reviewer vẫn `unassigned`.
 - **Kỹ năng phù hợp:** Data quality, Spark
 
 ## Checklist bàn giao
 
-- [ ] Deliverable đã có trong repository hoặc môi trường demo.
-- [ ] Acceptance criteria đã được kiểm tra.
-- [ ] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
-- [ ] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
-- [ ] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
+- [x] Deliverable đã có trong repository hoặc môi trường demo.
+- [x] Acceptance criteria đã được kiểm tra.
+- [x] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
+- [x] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
+- [x] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
 - [ ] P0/P1 có reviewer khác assignee xác nhận.
 
 ## Tài liệu liên quan

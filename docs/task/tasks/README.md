@@ -66,7 +66,7 @@ Trạng thái hợp lệ: `Backlog`, `Ready`, `In Progress`, `Review`, `Blocked`
 | Task | Tuần | Workstream | Scope | Priority | Effort | Trạng thái |
 |---|---:|---|---|---|---:|---|
 | [JMA-01](./JMA-01.md) - Lập danh mục 40 năm archive JMA | 3 | Archive inventory | Core | P0 | 5h | Done |
-| [JMA-02](./JMA-02.md) - Xây JMA downloader và phát hiện file thay đổi | 3 | Downloader | Core | P0 | 6h | Backlog |
+| [JMA-02](./JMA-02.md) - Xây JMA downloader và phát hiện file thay đổi | 3 | Downloader | Core | P0 | 6h | Done |
 | [JMA-03](./JMA-03.md) - Validate và lưu JMA archive vào Bronze | 3 | Bronze writer | Core | P0 | 7h | Backlog |
 | [JMA-04](./JMA-04.md) - Tạo workflow ingest JMA theo năm | 4 | Backfill orchestration | Core | P0 | 5h | Backlog |
 | [JMA-05](./JMA-05.md) - Kiểm thử JMA đến Bronze | 4 | QA | Core | P0 | 4h | Backlog |
@@ -75,11 +75,11 @@ Trạng thái hợp lệ: `Backlog`, `Ready`, `In Progress`, `Review`, `Blocked`
 
 | Task | Tuần | Workstream | Scope | Priority | Effort | Trạng thái |
 |---|---:|---|---|---|---:|---|
-| [SLV-01](./SLV-01.md) - Resolve đúng Bronze input cho Spark | 3 | Input staging | Core | P0 | 3h | Ready |
+| [SLV-01](./SLV-01.md) - Resolve đúng Bronze input cho Spark | 3 | Input staging | Core | P0 | 3h | Done |
 | [SLV-02](./SLV-02.md) - Parse và chuẩn hóa USGS observation | 3 | USGS parser | Core | P0 | 5h | Ready |
 | [SLV-03](./SLV-03.md) - Parse và chuẩn hóa JMA fixed-width | 3 | JMA parser | Core | P0 | 6h | Ready |
 | [SLV-04](./SLV-04.md) - Tạo source key và lineage đa nguồn | 3 | Lineage | Core | P0 | 4h | Ready |
-| [SLV-05](./SLV-05.md) - Áp dụng validation và reject metrics | 3 | Quality | Core | P0 | 5h | Ready |
+| [SLV-05](./SLV-05.md) - Áp dụng validation và reject metrics | 3 | Quality | Core | P0 | 5h | Done |
 | [SLV-06](./SLV-06.md) - Deduplicate và xử lý revision trong từng nguồn | 4 | Source dedup | Core | P0 | 5h | Backlog |
 | [SLV-07](./SLV-07.md) - Liên kết observation và chọn canonical event | 4 | Entity resolution | Core | P0 | 6h | Backlog |
 | [SLV-08](./SLV-08.md) - Ghi Silver Parquet theo source và thời gian | 3 | Silver storage | Core | P0 | 5h | Ready |

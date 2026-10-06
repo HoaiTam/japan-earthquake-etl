@@ -1,13 +1,13 @@
 ---
 task_id: "JMA-02"
-status: "Backlog"
+status: "Done"
 week: 3
 block: "C - JMA Bronze"
 workstream: "Downloader"
 scope: "Core"
 priority: "P0"
 effort_hours: 6
-assignee: "unassigned"
+assignee: "codex"
 reviewer: "unassigned"
 dependencies: ["JMA-01"]
 ---
@@ -35,9 +35,9 @@ Tải từng archive theo inventory, giới hạn concurrency, hỗ trợ resume
 
 ## Tiêu chí hoàn thành
 
-- [ ] Không tải mù toàn bộ khi rerun.
-- [ ] file thay đổi được nhận biết.
-- [ ] lỗi một năm không làm mất evidence của năm khác.
+- [x] Không tải mù toàn bộ khi rerun.
+- [x] file thay đổi được nhận biết.
+- [x] lỗi một năm không làm mất evidence của năm khác.
 
 ## Hard dependency
 
@@ -62,19 +62,19 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
-- **Assignee:** Chưa ghi lại
+- **Trạng thái:** Done
+- **Assignee:** codex
 - **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Evidence / PR:** Implementation trên branch `feat/person1-week3-input-quality`; JMA downloader tests 3/3 và toàn bộ Spark Maven tests 44/44 đạt với JDK 17/Maven 3.9.16; contract checks JMA/Bronze/repository/week-3 đạt. Reviewer vẫn `unassigned`.
 - **Kỹ năng phù hợp:** Java HTTP, archive download, checksum
 
 ## Checklist bàn giao
 
-- [ ] Deliverable đã có trong repository hoặc môi trường demo.
-- [ ] Acceptance criteria đã được kiểm tra.
-- [ ] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
-- [ ] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
-- [ ] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
+- [x] Deliverable đã có trong repository hoặc môi trường demo.
+- [x] Acceptance criteria đã được kiểm tra.
+- [x] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
+- [x] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
+- [x] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
 - [ ] P0/P1 có reviewer khác assignee xác nhận.
 
 ## Tài liệu liên quan

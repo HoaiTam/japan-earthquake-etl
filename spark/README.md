@@ -47,6 +47,19 @@ executable `spark/target/japan-earthquake-etl-runner.jar`; custom Airflow image
 metadata JSON. Static/live commands cùng evidence nằm trong
 [USGS live Bronze runbook](../docs/specs/USGS_LIVE_BRONZE_RUNBOOK.md).
 
+Luồng tuần 3 của Người 1 nằm trong hai package mới:
+
+- `ie212.earthquake.spark.jma`: đọc inventory CSV, preflight HEAD, tải có giới
+  hạn đồng thời, resume qua HTTP Range, lưu metadata/sha256 và giữ release cũ
+  khi archive đổi. ZIP/member validation thuộc `JMA-03`.
+- `ie212.earthquake.spark.silver`: resolve đúng manifest `BronzeReady`, kiểm tra
+  checksum/readback trước khi stage, rồi validate observation với reject reason,
+  lineage và quality summary. Resolver không quét wildcard hoặc chọn object
+  `latest` mơ hồ.
+
+Các lớp này dùng transport/store interface để unit test bằng fixture và mock
+offline; chúng chưa tự kích hoạt DAG hoặc publish Iceberg output.
+
 Không commit `target/`, JAR hoặc local metastore. Kiến trúc service, dependency,
 version matrix, marker output và cách mở rộng được mô tả trong
 [Spark standalone contract](../docs/specs/SPARK_STANDALONE.md).
