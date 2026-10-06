@@ -65,7 +65,7 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 - **Trạng thái:** Done
 - **Assignee:** codex
 - **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Implementation trên branch `feat/slv-01-bronze-input-resolver`; resolver tests 2/2 và toàn bộ Spark Maven tests 44/44 đạt với JDK 17/Maven 3.9.16; contract checks Bronze/data-model/repository/week-3 đạt. Reviewer vẫn `unassigned`.
+- **Evidence / PR:** [PR #31](https://github.com/HoaiTam/japan-earthquake-etl/pull/31) trên branch `feat/slv-01-bronze-input-resolver`; rebase lên `origin/main` tại `2f93898` ngày 2026-10-06, giữ cả phần JMA-02 và SLV-01 trong `spark/README.md`. Maven `-pl spark -am clean test` đạt 40/40 tests (resolver 2/2) với JDK 17/Maven 3.9.16; contract checks Bronze/data-model/repository/week-3 và `git diff --check` đạt. Reviewer vẫn `unassigned`.
 - **Kỹ năng phù hợp:** Airflow, MinIO, staging
 
 ## Checklist bàn giao
