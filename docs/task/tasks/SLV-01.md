@@ -1,13 +1,13 @@
 ---
 task_id: "SLV-01"
-status: "Ready"
+status: "Done"
 week: 3
 block: "D - Silver đa nguồn"
 workstream: "Input staging"
 scope: "Core"
 priority: "P0"
 effort_hours: 3
-assignee: "unassigned"
+assignee: "codex"
 reviewer: "unassigned"
 dependencies: ["CON-02"]
 ---
@@ -35,9 +35,9 @@ Dùng làm giao diện chung để parser hai nguồn không cần biết cách 
 
 ## Tiêu chí hoàn thành
 
-- [ ] Spark chỉ đọc object đã verify thuộc run.
-- [ ] retry tái sử dụng Bronze hợp lệ.
-- [ ] input có thể truy vết.
+- [x] Spark chỉ đọc object đã verify thuộc run.
+- [x] retry tái sử dụng Bronze hợp lệ.
+- [x] input có thể truy vết.
 
 ## Hard dependency
 
@@ -62,19 +62,19 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Theo dõi
 
-- **Trạng thái:** Ready
-- **Assignee:** Chưa ghi lại
+- **Trạng thái:** Done
+- **Assignee:** codex
 - **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Evidence / PR:** Implementation trên branch `feat/slv-01-bronze-input-resolver`; resolver tests 2/2 và toàn bộ Spark Maven tests 44/44 đạt với JDK 17/Maven 3.9.16; contract checks Bronze/data-model/repository/week-3 đạt. Reviewer vẫn `unassigned`.
 - **Kỹ năng phù hợp:** Airflow, MinIO, staging
 
 ## Checklist bàn giao
 
-- [ ] Deliverable đã có trong repository hoặc môi trường demo.
-- [ ] Acceptance criteria đã được kiểm tra.
-- [ ] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
-- [ ] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
-- [ ] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
+- [x] Deliverable đã có trong repository hoặc môi trường demo.
+- [x] Acceptance criteria đã được kiểm tra.
+- [x] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
+- [x] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
+- [x] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
 - [ ] P0/P1 có reviewer khác assignee xác nhận.
 
 ## Tài liệu liên quan

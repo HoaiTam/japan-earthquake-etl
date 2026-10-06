@@ -52,6 +52,11 @@ preflight HEAD, tải có giới hạn đồng thời, resume qua HTTP Range, l�
 metadata/SHA-256 và giữ release cũ khi archive đổi. ZIP/member validation
 thuộc `JMA-03`.
 
+`SLV-01` thêm package `ie212.earthquake.spark.silver` để resolve đúng một
+manifest BronzeReady theo run/source, kiểm tra validation flags, raw object
+length/SHA-256 và stage deterministic. Resolver không quét wildcard hoặc chọn
+object latest mơ hồ; adapter hỗ trợ local path và BronzeObjectStore MinIO/S3.
+
 Không commit `target/`, JAR hoặc local metastore. Kiến trúc service, dependency,
 version matrix, marker output và cách mở rộng được mô tả trong
 [Spark standalone contract](../docs/specs/SPARK_STANDALONE.md).

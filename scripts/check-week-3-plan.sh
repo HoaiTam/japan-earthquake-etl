@@ -77,7 +77,11 @@ do
 done
 
 for task_id in SLV-01 SLV-02 SLV-03 SLV-04 SLV-05 SLV-08; do
-    [ "$(task_field status "$task_id")" = Ready ] || fail "$task_id must be Ready"
+    task_status=$(task_field status "$task_id")
+    case "$task_status" in
+        Ready|In\ Progress|Review|Done) ;;
+        *) fail "$task_id must be Ready, In Progress, Review or Done" ;;
+    esac
 done
 
 for expected in \
