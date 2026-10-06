@@ -47,6 +47,11 @@ executable `spark/target/japan-earthquake-etl-runner.jar`; custom Airflow image
 metadata JSON. Static/live commands cùng evidence nằm trong
 [USGS live Bronze runbook](../docs/specs/USGS_LIVE_BRONZE_RUNBOOK.md).
 
+`JMA-02` thêm package `ie212.earthquake.spark.jma` để đọc inventory CSV,
+preflight HEAD, tải có giới hạn đồng thời, resume qua HTTP Range, lưu
+metadata/SHA-256 và giữ release cũ khi archive đổi. ZIP/member validation
+thuộc `JMA-03`.
+
 Không commit `target/`, JAR hoặc local metastore. Kiến trúc service, dependency,
 version matrix, marker output và cách mở rộng được mô tả trong
 [Spark standalone contract](../docs/specs/SPARK_STANDALONE.md).
