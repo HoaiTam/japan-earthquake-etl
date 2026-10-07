@@ -1,13 +1,13 @@
 ---
 task_id: "SLV-08"
-status: "Ready"
+status: "In Progress"
 week: 3
 block: "D - Silver đa nguồn"
 workstream: "Silver storage"
 scope: "Core"
 priority: "P0"
 effort_hours: 5
-assignee: "unassigned"
+assignee: "codex"
 reviewer: "unassigned"
 dependencies: ["CON-03"]
 ---
@@ -62,10 +62,10 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Theo dõi
 
-- **Trạng thái:** Ready
-- **Assignee:** Chưa ghi lại
+- **Trạng thái:** In Progress
+- **Assignee:** codex
 - **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Evidence / PR:** Đang triển khai trên branch `feat/slv-08-ghi-silver-parquet-theo-source`
 - **Kỹ năng phù hợp:** Parquet, Spark, MinIO
 
 ## Checklist bàn giao
