@@ -77,6 +77,7 @@ Internet khi dependency chưa được cache.
 | `test-java` | Maven unit test module Spark: USGS planner/client/Bronze writer/QA/live runner |
 | `test-airflow` | Unittest DAG, interval/retry, phase protocol và publish gate |
 | `test-jma-backfill` | JMA-04 downloader/Java runner/planner/DAG, fixture/storage/HTTP mock; không gọi nguồn |
+| `test-jma-qa` | JMA-05 offline success/error/revision/resume và independent readback verifier; không gọi nguồn/MinIO thật |
 | `jma-preview JMA_YEARS=1997,2023` | Preview offline ba exact archive entries; chỉ ghi plan metadata ở staging |
 | `package-java` | Maven `clean verify`, gồm unit test và đóng gói JAR |
 | `check` | Contract + config hygiene + full static foundation/USG-06, gồm Compose validation và Maven verify |
@@ -128,6 +129,10 @@ Các lệnh có tương tác nguồn/storage thật phải được gọi riêng
 # ghi Bronze và kiểm tra immutable reuse trong cùng logical run.
 make smoke-usgs-live
 
+# JMA-05: preview → ingest → rerun 1997 (hai segment), 2000, 2023;
+# readback hai sample DAT-01, raw/manifest, SHA/release/count bất biến.
+make smoke-jma-live
+
 # HTTP HEAD 41 archive JMA để đối soát inventory; không tải ZIP.
 make check-jma-inventory-live
 
@@ -141,6 +146,12 @@ Airflow API container và MinIO đang chạy, sample đã được nạp theo
 manifest/raw `BronzeReady` cùng checksum/count và JMA staged ZIP
 `STAGED_SOURCE` cùng checksum/member/record length/count; không coi staged ZIP
 JMA là BronzeReady hoặc Silver đã parse.
+
+`smoke-jma-live` build/start Airflow và dependencies, chạy DAG manual thật rồi
+Java verify exact keys/readback và so baseline trước–sau rerun. Giữ nguyên
+catalog DAT-01 hai entry; metadata sample 2000/report QA lưu riêng trên staging.
+Phạm vi, report paths, timeout/recovery và handoff ở
+[JMA Bronze QA](./specs/JMA_BRONZE_QA.md). Không tải full 40 năm hoặc chạy Silver/Gold/ML.
 
 Nếu stack đang chạy nhưng chưa có `.env` trên host, có thể readback bằng
 container name (credential được dùng bên trong container, không chép ra host):

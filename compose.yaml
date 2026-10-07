@@ -417,6 +417,35 @@ services:
         source: pipeline_staging
         target: /opt/pipeline/staging
 
+  jma-live-qa:
+    <<: *airflow-common
+    pull_policy: never
+    profiles:
+      - live
+    entrypoint:
+      - python
+      - /opt/airflow/smoke/jma-live-qa.py
+    restart: "no"
+    volumes:
+      - type: bind
+        source: ./airflow/dags
+        target: /opt/airflow/dags
+        read_only: true
+      - type: bind
+        source: ./compose/airflow/jma-live-qa.py
+        target: /opt/airflow/smoke/jma-live-qa.py
+        read_only: true
+      - type: bind
+        source: ./tests/fixtures/real-samples/catalog.json
+        target: /opt/airflow/smoke/dat01-catalog.json
+        read_only: true
+      - type: volume
+        source: airflow_logs
+        target: /opt/airflow/logs
+      - type: volume
+        source: pipeline_staging
+        target: /opt/pipeline/staging
+
   spark-master:
     <<:
       - *spark-common

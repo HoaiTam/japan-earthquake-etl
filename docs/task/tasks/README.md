@@ -83,7 +83,7 @@ assignee/evidence chính thức nằm trong từng file.
 | [JMA-02](./JMA-02.md) - Xây JMA downloader và phát hiện file thay đổi | 3 | Downloader | Core | P0 | 6h | Done |
 | [JMA-03](./JMA-03.md) - Validate và lưu JMA archive vào Bronze | 3 | Bronze writer | Core | P0 | 7h | Done |
 | [JMA-04](./JMA-04.md) - Tạo workflow ingest JMA theo năm | 4 | Backfill orchestration | Core | P0 | 5h | Done |
-| [JMA-05](./JMA-05.md) - Kiểm thử JMA đến Bronze | 4 | QA | Core | P0 | 4h | Backlog |
+| [JMA-05](./JMA-05.md) - Kiểm thử JMA đến Bronze | 4 | QA | Core | P0 | 4h | Done |
 
 ## D - Silver đa nguồn
 

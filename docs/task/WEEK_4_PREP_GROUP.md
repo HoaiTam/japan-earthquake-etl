@@ -61,15 +61,20 @@ Dữ liệu này phục vụ integration/pilot. Một năm reproduction không �
 ## 3. Điều kiện bàn giao nhóm mở đường
 
 - [ ] JMA-04/05 và ORC-01 đạt acceptance riêng, tests/docs/evidence và status/index đồng bộ.
-- [ ] JMA sample có BronzeReady manifest thật, raw SHA/readback/rerun verified.
-- [ ] USGS sample vẫn truy vết được bằng exact manifest; lỗi sample/readback được ghi rõ.
-- [ ] Sample reproduction 2000 có metadata/coverage thật; 1997 giữ hai segment.
+- [x] JMA sample có BronzeReady manifest thật, raw SHA/readback/rerun verified.
+- [x] USGS sample vẫn truy vết được bằng exact manifest; lỗi sample/readback được ghi rõ.
+- [x] Sample reproduction 2000 có metadata/coverage thật; 1997 giữ hai segment.
 - [ ] Phase/run-context fixtures đủ cho các owners viết/test adapter độc lập.
 - [ ] Ghi rõ ORC-01 đã kiểm thử skeleton/mock, chưa gọi toàn ETL Published.
 - [ ] Không chứa credential/raw lớn và không chạy/xóa full lake/warehouse.
 
 Nhóm này mở đường cho data và orchestration, không thay SilverReady/Gold
 Published. Không đưa SLV-09/GLD-04 vào đây vì còn chờ dedup/link/writer.
+
+JMA-04/05 đã Done; [evidence JMA-05](../evidence/JMA-05.md) bàn giao 4 exact
+Bronze manifests/counts/coverage. [ORC-01 - Hoàn thiện DAG ETL đến Gold theo
+contract](./tasks/ORC-01.md) còn phải triển khai/kiểm thử khung phase/DAG;
+chưa đánh dấu cả nhóm hoàn tất chỉ vì BronzeReady đã có.
 ThanhTris/Trang có thể viết SLV-06/07, GLD-01, MLI-01 bằng fixture trong lúc
 HoaiTam làm nhóm chuẩn bị; không yêu cầu mọi người chờ 13h mới bắt đầu.
 

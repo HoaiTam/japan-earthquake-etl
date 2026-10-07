@@ -39,6 +39,10 @@ class JmaDagContractTest(unittest.TestCase):
         compose = (REPOSITORY / "compose.yaml").read_text()
         self.assertIn("compose/airflow/jma-runner.sh", dockerfile)
         self.assertIn("config/jma/hypocenter_archives_v1.csv", dockerfile)
+        self.assertIn("COPY config/jma ./config/jma", dockerfile)
+        dockerignore = (REPOSITORY / ".dockerignore").read_text()
+        for path in ("!config/", "!config/jma/", "!config/jma/hypocenter_archives_v1.csv", "!compose/airflow/jma-runner.sh"):
+            self.assertIn(path, dockerignore)
         self.assertIn("ie212.earthquake.spark.jma.JmaYearIngestRunner", wrapper)
         for key in ("JMA_INGEST_RUNNER_COMMAND", "JMA_INGEST_RUNNER_TIMEOUT_SECONDS", "JMA_STAGING_ROOT",
                     "JMA_INVENTORY_PATH", "JMA_MAX_ARCHIVE_BYTES", "JMA_HTTP_TIMEOUT_MS", "JMA_BACKFILL_MAX_CONCURRENCY"):

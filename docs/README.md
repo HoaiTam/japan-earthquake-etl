@@ -37,6 +37,7 @@ Thư mục này là nguồn tài liệu chính thức cho dự án **Nền tản
 | Hiểu Spark standalone, Java build và smoke | [Spark standalone contract](./specs/SPARK_STANDALONE.md) |
 | Hiểu inventory, versioning và format archive JMA | [JMA archive inventory](./specs/JMA_ARCHIVE_INVENTORY.md) |
 | Preview/ingest JMA theo năm, retry/reuse và summary | [JMA year backfill](./specs/JMA_YEAR_BACKFILL.md) |
+| Kiểm thử JMA → Bronze thật, readback DAT-01 và rerun | [JMA Bronze QA](./specs/JMA_BRONZE_QA.md) |
 | Hiểu Iceberg REST Catalog, Trino và query smoke | [Iceberg/Trino contract](./specs/ICEBERG_TRINO.md) |
 | Chạy full-stack foundation smoke và xử lý lỗi | [Foundation smoke contract](./specs/FOUNDATION_SMOKE.md) |
 | Hiểu các thành phần và cách chúng kết nối | [Kiến trúc hệ thống](./SYSTEM_ARCHITECTURE.md) |
@@ -119,7 +120,8 @@ Chưa bao gồm theo phạm vi hiện tại:
 - Thiết kế database chi tiết, DBML, DDL hoặc migration.
 - Schema vật lý cuối cùng của các bảng Iceberg.
 - Silver/Gold DAG, Gold jobs và lệnh backfill Silver/Gold thực tế; JMA Bronze
-  đã có manual workflow/runner ở JMA-04, live QA theo JMA-05.
+  đã có manual workflow/runner ở JMA-04 và [live QA JMA-05](./evidence/JMA-05.md)
+  cho 1997/2000/2023, không phải full historical hoặc Silver/Gold Published.
 
 ## 4. Quy ước trạng thái
 
