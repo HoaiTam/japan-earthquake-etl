@@ -1,13 +1,13 @@
 ---
 task_id: "ORC-04"
 status: "Backlog"
-week: 5
+week: 4
 block: "F - Điều phối"
 workstream: "Observability"
 scope: "Core"
 priority: "P1"
 effort_hours: 4
-assignee: "unassigned"
+assignee: "HoaiTam"
 reviewer: "unassigned"
 dependencies: ["ORC-01"]
 ---
@@ -45,6 +45,14 @@ Ghi input, fetched, parsed, valid, rejected, duplicate, linked, published, snaps
 
 ## Cách triển khai và phối hợp
 
+### Phân công tuần 4 mở rộng
+
+- **Owner / effort:** HoaiTam, 4h Core; đưa từ tuần 5 lên [kế hoạch tuần 4](../WEEK_4_PARALLEL_PLAN.md).
+- **Làm trước:** Structured log/summary serializer và count fixtures theo ORC-01 phase I/O; không chờ network để viết tests.
+- **Làm gì / có gì:** Run/source/release/snapshot context, fetched/parsed/valid/rejected/duplicate/superseded/linked/current counts, durations và status/reasons.
+- **Dùng để làm gì:** Đối soát và điều tra failure mà không log full payload hoặc credential.
+- **Nghiệm thu / handoff:** Runtime summary trace về exact manifests/snapshots, counts có định nghĩa không trộn history/current hoặc link/event grain; secret/redaction tests và failed/empty/rerun summaries. Không suy Published chỉ từ task exit code hoặc mock marker.
+
 Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trước khi toàn bộ upstream chạy thật. Chỉ được chuyển sang `Done` khi hard dependency đã đạt và acceptance criteria được kiểm tra trên output phù hợp.
 
 1. Xác nhận hard dependency và đọc contract/tài liệu liên quan.
@@ -63,7 +71,7 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 ## Theo dõi
 
 - **Trạng thái:** Backlog
-- **Assignee:** Chưa ghi lại
+- **Assignee:** HoaiTam
 - **Reviewer:** Chưa ghi lại
 - **Evidence / PR:** Chưa có
 - **Kỹ năng phù hợp:** Logging, metrics, Airflow
@@ -79,6 +87,8 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Tài liệu liên quan
 
+- [Kế hoạch tuần 4 mở rộng](../WEEK_4_PARALLEL_PLAN.md)
+- [Quality và observability](../../DATA_QUALITY_AND_OBSERVABILITY.md)
 - [Kế hoạch 8 tuần](../README.md)
 - [Các khối công việc](../WORK_BLOCKS.md)
 - [Baseline MVP, KPI và Definition of Done](../../specs/MVP_SCOPE_KPI_AND_DOD.md)

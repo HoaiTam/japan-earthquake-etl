@@ -1,13 +1,13 @@
 ---
 task_id: "MLI-01"
-status: "Backlog"
-week: 6
+status: "Ready"
+week: 4
 block: "I - ML Integration"
 workstream: "Result bundle contract"
 scope: "Core"
 priority: "P0"
 effort_hours: 5
-assignee: "unassigned"
+assignee: "Trang"
 reviewer: "unassigned"
 dependencies: ["CON-03"]
 ---
@@ -46,6 +46,13 @@ triển song song và kết quả thiếu/giả mạo không đi vào Iceberg.
 
 ## Cách làm song song
 
+### Phân công tuần 4 mở rộng
+
+- **Owner / effort:** Trang, 5h Core; đưa từ tuần 6 lên [kế hoạch tuần 4](../WEEK_4_PARALLEL_PLAN.md). CON-03 đã Done nên task Ready, có thể làm độc lập khi chờ live Silver/Gold.
+- **Làm gì / có gì:** Machine-readable layout/schema/grain/null/enum/range/checksum/count/lifecycle cho result bundle, validator interface và fixtures success/invalid/ID reuse theo ML logical model.
+- **Dùng để làm gì:** Khóa Colab/import handoff sớm; các owners notebook/import có fixture mà không cần model thật.
+- **Handoff / nghiệm thu:** `_SUCCESS` chỉ RESULT_READY; import chỉ CANDIDATE, approval cần review khoa học. Test checksum/schema/duplicate/unknown event/probability/noise/role/count và run reuse; không triển khai algorithm hoặc ML import DAG, không fake notebook/model/APPROVED chưa có.
+
 Contract/fixture không cần model thật, vì vậy `MLI-03` và `EXP-01` có thể dùng
 ngay sau khi schema được review.
 
@@ -57,8 +64,8 @@ ngay sau khi schema được review.
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
-- **Assignee:** Chưa ghi lại
+- **Trạng thái:** Ready
+- **Assignee:** Trang
 - **Reviewer:** Chưa ghi lại
 - **Evidence / PR:** Chưa có
 - **Kỹ năng phù hợp:** Data contracts, Parquet schema, validation
@@ -72,6 +79,7 @@ ngay sau khi schema được review.
 
 ## Tài liệu liên quan
 
+- [Kế hoạch tuần 4 mở rộng](../WEEK_4_PARALLEL_PLAN.md)
 - [Roadmap HDBSCAN](../HDBSCAN_WORKSTREAM.md)
 - [ML logical data model](../../specs/ML_DATA_MODEL.md)
 - [CON-03](./CON-03.md)

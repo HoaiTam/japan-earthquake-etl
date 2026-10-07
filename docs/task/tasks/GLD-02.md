@@ -7,7 +7,7 @@ workstream: "Aggregates"
 scope: "Stretch"
 priority: "P2"
 effort_hours: 4
-assignee: "unassigned"
+assignee: "Trang"
 reviewer: "unassigned"
 dependencies: ["CON-03", "GLD-01"]
 ---
@@ -45,6 +45,14 @@ Tính count, avg/max magnitude, avg depth, tsunami/intensity/source counts theo 
 
 ## Cách triển khai và phối hợp
 
+### Phân công tuần 4 — Stretch, chưa cam kết
+
+- **Owner dự kiến / effort:** Trang, 4h Stretch; xem [kế hoạch tuần 4](../WEEK_4_PARALLEL_PLAN.md).
+- **Ưu tiên:** Giữ Backlog. Chỉ pick khi GLD-01 đã Done, Core/gate thật ổn định và nhóm xác nhận ít nhất 4h capacity bổ sung; không lấy 7h buffer review/tích hợp của kế hoạch mở rộng để làm dashboard.
+- **Làm gì / có gì:** Aggregate/view theo date/region/band và non-null counts/sums; test fact ↔ aggregate với cùng filter, không double count sau bridge join.
+- **Dùng để làm gì:** Tối ưu consumer BI tùy chọn; không phải dependency của GLD-03/04 hoặc ML.
+- **Nếu thiếu thời gian:** Ghi deferred và lập lịch lại khi nhóm chốt, không tự đổi effort/week hoặc đánh dấu Done. Không dùng việc chưa làm GLD-02 để chặn nghiệm thu Core tuần 4.
+
 Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trước khi toàn bộ upstream chạy thật. Chỉ được chuyển sang `Done` khi hard dependency đã đạt và acceptance criteria được kiểm tra trên output phù hợp.
 
 1. Xác nhận hard dependency và đọc contract/tài liệu liên quan.
@@ -64,7 +72,7 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 ## Theo dõi
 
 - **Trạng thái:** Backlog
-- **Assignee:** Chưa ghi lại
+- **Assignee:** Trang
 - **Reviewer:** Chưa ghi lại
 - **Evidence / PR:** Chưa có
 - **Kỹ năng phù hợp:** Spark SQL, aggregation
@@ -80,6 +88,8 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Tài liệu liên quan
 
+- [Phân công tuần 4](../WEEK_4_PARALLEL_PLAN.md)
+- [Silver/Gold logical model](../../specs/SILVER_GOLD_DATA_MODEL.md)
 - [Kế hoạch 8 tuần](../README.md)
 - [Các khối công việc](../WORK_BLOCKS.md)
 - [Baseline MVP, KPI và Definition of Done](../../specs/MVP_SCOPE_KPI_AND_DOD.md)

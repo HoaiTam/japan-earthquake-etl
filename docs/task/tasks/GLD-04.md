@@ -7,7 +7,7 @@ workstream: "Trino verification"
 scope: "Core"
 priority: "P0"
 effort_hours: 4
-assignee: "unassigned"
+assignee: "Trang"
 reviewer: "unassigned"
 dependencies: ["GLD-03"]
 ---
@@ -45,6 +45,15 @@ Khai báo schema/views Gold; kiểm tra uniqueness, completeness, source/catalog
 
 ## Cách triển khai và phối hợp
 
+### Phân công tuần 4
+
+- **Owner / effort:** Trang, 4h Core; thuộc khối Gold + ML identity/contract/security trong [kế hoạch tuần 4](../WEEK_4_PARALLEL_PLAN.md). Chuyển từ ThanhTris để giữ chuỗi Gold → snapshot pin cùng owner; review SQL vẫn đề xuất ThanhTris, chưa ghi approval.
+- **Làm trước:** Trino SQL, expected output và query harness theo CON-03 khi làm GLD-01/03; hiện Backlog vì chưa bắt đầu. Khi làm phần chuẩn bị được phép, ghi In Progress và dependency GLD-03 còn chờ.
+- **Làm gì / có gì:** Natural/ROI serving views, uniqueness/completeness/provenance/source-era/schema queries, snapshot consistency và verification report gắn Gold run/snapshot.
+- **Dùng để làm gì:** Kiểm chứng Gold độc lập với Spark; chỉ passed snapshot được Published và được MLD-01 pin. Aggregate dashboard GLD-02 không phải gate của task này.
+- **Handoff:** Nhận table identity/snapshot/commit metadata từ GLD-03; trả verify status/reasons và publication evidence. Verify đúng snapshot vừa commit, không query latest mơ hồ rồi gắn một ID khác.
+- **Nghiệm thu:** GLD-03 Done và Trino đọc snapshot thật; blocker lỗi chặn Published. Hạ tầng `make smoke-query` không thay cho Gold verification, mock SQL không đủ evidence hoàn thành.
+
 Đây là integration gate. Có thể chuẩn bị test plan, fixture và harness trước, nhưng chỉ được chuyển sang `Done` sau khi toàn bộ hard dependency cung cấp output thật và báo cáo đối soát đạt.
 
 1. Xác nhận hard dependency và đọc contract/tài liệu liên quan.
@@ -63,7 +72,7 @@ Khai báo schema/views Gold; kiểm tra uniqueness, completeness, source/catalog
 ## Theo dõi
 
 - **Trạng thái:** Backlog
-- **Assignee:** Chưa ghi lại
+- **Assignee:** Trang
 - **Reviewer:** Chưa ghi lại
 - **Evidence / PR:** Chưa có
 - **Kỹ năng phù hợp:** Trino, SQL, data quality
@@ -79,6 +88,9 @@ Khai báo schema/views Gold; kiểm tra uniqueness, completeness, source/catalog
 
 ## Tài liệu liên quan
 
+- [Phân công tuần 4](../WEEK_4_PARALLEL_PLAN.md)
+- [Silver/Gold logical model](../../specs/SILVER_GOLD_DATA_MODEL.md)
+- [Iceberg REST Catalog và Trino](../../specs/ICEBERG_TRINO.md)
 - [Kế hoạch 8 tuần](../README.md)
 - [Các khối công việc](../WORK_BLOCKS.md)
 - [Baseline MVP, KPI và Definition of Done](../../specs/MVP_SCOPE_KPI_AND_DOD.md)

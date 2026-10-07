@@ -1,13 +1,13 @@
 ---
 task_id: "SEC-01"
 status: "Backlog"
-week: 6
+week: 4
 block: "K - QA & Release"
 workstream: "Security"
 scope: "Core"
 priority: "P1"
 effort_hours: 4
-assignee: "unassigned"
+assignee: "Trang"
 reviewer: "unassigned"
 dependencies: ["ORC-05"]
 ---
@@ -46,6 +46,14 @@ Kiểm tra env, Git history, logs, default credentials, exposed ports, DSN, Driv
 
 ## Cách triển khai và phối hợp
 
+### Phân công tuần 4 mở rộng
+
+- **Owner / effort:** Trang, 4h Core; đưa từ tuần 6 lên [kế hoạch tuần 4](../WEEK_4_PARALLEL_PLAN.md), hiện Backlog vì ORC-05 chưa Done.
+- **Làm trước:** Checklist/static tests và leak-pattern fixtures, không in credential thật hoặc đọc account/resource ngoài project scope.
+- **Làm gì / có gì:** Audit config/Git/logs/ports/prefix permissions, default credential/DSN và ML bundle path/token boundary; issue/fix report có scope.
+- **Dùng để làm gì:** ETL/runtime evidence và result fixtures chia sẻ được mà không lộ secret hoặc local account path.
+- **Handoff / nghiệm thu:** Sau ORC-05 nhận profile/endpoints/permissions/log scope thật, chạy checks và ghi findings/fix evidence; không tự public port hoặc dùng root credential để vượt permission. Thành phần notebook/export chưa tồn tại ghi rõ chưa kiểm tra, không xác nhận trước các artifacts tương lai; acceptance chưa đủ thì giữ chưa Done và review lại khi downstream được thêm.
+
 Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trước khi toàn bộ upstream chạy thật. Chỉ được chuyển sang `Done` khi hard dependency đã đạt và acceptance criteria được kiểm tra trên output phù hợp.
 
 1. Xác nhận hard dependency và đọc contract/tài liệu liên quan.
@@ -64,7 +72,7 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 ## Theo dõi
 
 - **Trạng thái:** Backlog
-- **Assignee:** Chưa ghi lại
+- **Assignee:** Trang
 - **Reviewer:** Chưa ghi lại
 - **Evidence / PR:** Chưa có
 - **Kỹ năng phù hợp:** Security, Docker, Git
@@ -80,6 +88,8 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Tài liệu liên quan
 
+- [Kế hoạch tuần 4 mở rộng](../WEEK_4_PARALLEL_PLAN.md)
+- [Configuration và secret hygiene](../../specs/CONFIGURATION_AND_SECRETS.md)
 - [Kế hoạch 8 tuần](../README.md)
 - [Các khối công việc](../WORK_BLOCKS.md)
 - [Baseline MVP, KPI và Definition of Done](../../specs/MVP_SCOPE_KPI_AND_DOD.md)

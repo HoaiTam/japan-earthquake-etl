@@ -1,13 +1,13 @@
 ---
 task_id: "SLV-07"
-status: "Backlog"
+status: "Ready"
 week: 4
 block: "D - Silver đa nguồn"
 workstream: "Entity resolution"
 scope: "Core"
 priority: "P0"
 effort_hours: 6
-assignee: "unassigned"
+assignee: "ThanhTris"
 reviewer: "unassigned"
 dependencies: ["CON-01", "CON-03", "CON-04"]
 ---
@@ -48,6 +48,15 @@ Tạo candidate theo ngưỡng thời gian/khoảng cách/depth/magnitude; lưu 
 
 ## Cách triển khai và phối hợp
 
+### Phân công tuần 4
+
+- **Owner / effort:** ThanhTris, 6h Core; xem [kế hoạch tuần 4](../WEEK_4_PARALLEL_PLAN.md).
+- **Bắt đầu ngay:** CON-01/03/04 đã Done; fixture current observations cho accepted/unmatched/ambiguous và test biên, không chờ SLV-06 chạy thật mới viết unit.
+- **Làm gì / có gì:** Candidate matching có threshold/model version, score/reasons, source-link và canonical membership; identity ổn định, source priority, supersession mapping theo [CON-03](../../specs/SILVER_GOLD_DATA_MODEL.md).
+- **Dùng để làm gì:** Một canonical event cho overlap accepted, giữ cả hai observations gốc và unmatched events; AMBIGUOUS không auto-merge.
+- **Handoff:** Membership/link/model version và report cho GLD-01/SLV-09; GLD-01 tiêu thụ ID/primary đã chọn, không thực hiện matching lần hai.
+- **Nghiệm thu:** Unit acceptance độc lập bằng fixture; khi ghép dữ liệu thật dùng current output SLV-06. Đổi primary/rerun không đổi canonical ID, threshold/version và ambiguous decision có evidence.
+
 Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trước khi toàn bộ upstream chạy thật. Chỉ được chuyển sang `Done` khi hard dependency đã đạt và acceptance criteria được kiểm tra trên output phù hợp.
 
 1. Xác nhận hard dependency và đọc contract/tài liệu liên quan.
@@ -65,8 +74,8 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
-- **Assignee:** Chưa ghi lại
+- **Trạng thái:** Ready
+- **Assignee:** ThanhTris
 - **Reviewer:** Chưa ghi lại
 - **Evidence / PR:** Chưa có
 - **Kỹ năng phù hợp:** Entity resolution, geospatial, Spark
@@ -82,6 +91,8 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Tài liệu liên quan
 
+- [Phân công tuần 4](../WEEK_4_PARALLEL_PLAN.md)
+- [Silver/Gold model: linking và canonical membership](../../specs/SILVER_GOLD_DATA_MODEL.md)
 - [Kế hoạch 8 tuần](../README.md)
 - [Các khối công việc](../WORK_BLOCKS.md)
 - [Baseline MVP, KPI và Definition of Done](../../specs/MVP_SCOPE_KPI_AND_DOD.md)

@@ -311,3 +311,15 @@ Dùng để làm gì:
 - Power BI chỉ được pick khi Core ML không bị trễ.
 
 Reviewer nên thuộc luồng khác để tránh một người vừa viết contract vừa tự xác nhận implementation của chính contract đó.
+
+Phân công tuần 4 mở rộng nằm tại [WEEK_4_PARALLEL_PLAN.md](./WEEK_4_PARALLEL_PLAN.md):
+
+- [Nhóm mở đường](./WEEK_4_PREP_GROUP.md): HoaiTam làm JMA-04/JMA-05/ORC-01 trước, 13h đã tính trong tải tuần.
+- HoaiTam: sau mở đường làm ORC-02..05 (17h) — vận hành ETL; tổng 30h Core + 2h buffer.
+- ThanhTris: SLV-06/07/09 và MLD-02/03 — Silver current/canonical và ML audit/candidate; 29h Core + 3h buffer.
+- Trang: GLD-01/03/04, MLD-01, MLI-01, SEC-01 — Gold/pin dataset/result contract/security; 30h Core + 2h buffer. GLD-02 chỉ Stretch khi có capacity bổ sung.
+
+Ownership không thay hard dependency: mọi người làm fixture/mock độc lập,
+nhưng SilverReady, Gold Published và ML audit thật phải có evidence theo thứ tự
+gate. Đây là tải tăng tốc khoảng 32h/người, không phải lịch 15h ban đầu;
+EXP-01/DOC-01 không được nhận Done trước feature/export/experiment evidence.
