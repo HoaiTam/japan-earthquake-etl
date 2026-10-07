@@ -7,7 +7,7 @@ workstream: "Integration QA"
 scope: "Core"
 priority: "P0"
 effort_hours: 4
-assignee: "unassigned"
+assignee: "ThanhTris"
 reviewer: "unassigned"
 dependencies: ["USG-05", "JMA-05", "SLV-02", "SLV-03", "SLV-04", "SLV-05", "SLV-06", "SLV-07", "SLV-08"]
 ---
@@ -52,6 +52,16 @@ Chạy manifest USGS/JMA qua parser, lineage, validation, dedup/link và publish
 
 ## Cách triển khai và phối hợp
 
+### Phân công tuần 4
+
+- **Owner / effort:** ThanhTris, 4h Core; thuộc khối Silver + ML audit/candidate trong [kế hoạch tuần 4](../WEEK_4_PARALLEL_PLAN.md). Chuyển từ HoaiTam để owner dedup/link trực tiếp ghép và kiểm thử.
+- **Làm trước:** Test plan/harness/reconciliation bằng fixture/mock; hiện Backlog vì chưa bắt đầu. Khi làm phần chuẩn bị được phép, ghi In Progress và dependency JMA-05/SLV-06/07 còn chờ.
+- **Làm gì / có gì:** Ghép exact manifests → resolver → USGS/JMA parser → quality → source dedup → linking → verified Silver output, gồm history/current/link/membership handoff cần cho Gold.
+- **Dùng để làm gì:** Xác nhận SilverReady của cả hai nguồn bằng dữ liệu thật thay vì suy ra từ tests của từng component.
+- **Input / handoff:** Hai sample DAT-01 và JMA 2000 có manifest/evidence bổ sung từ JMA-05; JMA chỉ vào parser sau BronzeReady. Bàn giao exact output/context, current/member datasets và run-level reconciliation cho GLD-01/03, không wildcard/latest. Ghi coverage mẫu thật, không coi sample là toàn lịch sử nghiên cứu.
+- **Nghiệm thu:** Các hard dependency đã đạt, live MinIO readback và Spark Java 17 runtime có evidence; rerun/revision không duplicate logic. Đối soát riêng raw/parse/quality rejects, duplicate/superseded/current và canonical, không cộng history với current.
+- **Ranh giới tích hợp:** SLV-08 ở baseline chỉ ghi observations/rejects; không mặc nhiên giả định link/membership đã được persist. Adapter/handoff bổ sung phải giữ CON-03; không triển khai lại dedup/link hoặc Gold writer trong task này.
+
 Đây là integration gate. Có thể chuẩn bị test plan, fixture và harness trước, nhưng chỉ được chuyển sang `Done` sau khi toàn bộ hard dependency cung cấp output thật và báo cáo đối soát đạt.
 
 1. Xác nhận hard dependency và đọc contract/tài liệu liên quan.
@@ -70,7 +80,7 @@ Chạy manifest USGS/JMA qua parser, lineage, validation, dedup/link và publish
 ## Theo dõi
 
 - **Trạng thái:** Backlog
-- **Assignee:** Chưa ghi lại
+- **Assignee:** ThanhTris
 - **Reviewer:** Chưa ghi lại
 - **Evidence / PR:** Chưa có
 - **Kỹ năng phù hợp:** Spark integration, reconciliation
@@ -86,6 +96,9 @@ Chạy manifest USGS/JMA qua parser, lineage, validation, dedup/link và publish
 
 ## Tài liệu liên quan
 
+- [Phân công tuần 4](../WEEK_4_PARALLEL_PLAN.md)
+- [Shared real samples](../../specs/SHARED_REAL_SAMPLE_DATA.md)
+- [Silver/Gold logical model](../../specs/SILVER_GOLD_DATA_MODEL.md)
 - [Kế hoạch 8 tuần](../README.md)
 - [Các khối công việc](../WORK_BLOCKS.md)
 - [Baseline MVP, KPI và Definition of Done](../../specs/MVP_SCOPE_KPI_AND_DOD.md)

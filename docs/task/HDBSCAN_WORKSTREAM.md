@@ -64,6 +64,14 @@ không còn là hard dependency của MVP HDBSCAN.
 Ba luồng Dataset, Experiment và Integration không cần chờ nhau để viết
 interface/test. Chỉ `MLQ-01` là integration gate buộc phải dùng output thật.
 
+Trong [kế hoạch tuần 4 mở rộng](./WEEK_4_PARALLEL_PLAN.md), MLD-01..03 và
+MLI-01 được đưa lên tuần 4: Trang pin snapshot/result contract, ThanhTris audit/
+Mc/window pilot. JMA-05 trong [nhóm mở đường](./WEEK_4_PREP_GROUP.md) bổ sung
+sample reproduction 2000, không tune reproduction bằng sample 2023 extension.
+EXP-01 vẫn tuần 6 vì còn hard dependency MLD-05; có thể chuẩn bị fixture nhưng
+chưa nhận Done. MLD-01..03 không tự chuyển dataset thành EXPORTED khi feature/
+export chưa đạt, và pilot theo vài năm không đại diện toàn research period.
+
 ## 5. Dependency chính
 
 ```mermaid

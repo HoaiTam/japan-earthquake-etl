@@ -1,13 +1,13 @@
 ---
 task_id: "SLV-06"
-status: "Backlog"
+status: "Ready"
 week: 4
 block: "D - Silver đa nguồn"
 workstream: "Source dedup"
 scope: "Core"
 priority: "P0"
 effort_hours: 5
-assignee: "unassigned"
+assignee: "ThanhTris"
 reviewer: "unassigned"
 dependencies: ["CON-03", "CON-04"]
 ---
@@ -46,6 +46,15 @@ USGS giữ updated mới nhất theo id; JMA xử lý cùng source key/catalog r
 
 ## Cách triển khai và phối hợp
 
+### Phân công tuần 4
+
+- **Owner / effort:** ThanhTris, 5h Core; xem [kế hoạch tuần 4](../WEEK_4_PARALLEL_PLAN.md).
+- **Bắt đầu ngay:** CON-03/CON-04 đã Done; dựng observations theo shared model để test mà không chờ ingest/live parser.
+- **Làm gì / có gì:** Source-local window/tie-break theo [CON-03](../../specs/SILVER_GOLD_DATA_MODEL.md), USGS updated và JMA normalized release order; giữ history/current flags cùng metrics exact duplicate/superseded/current.
+- **Dùng để làm gì:** Có đúng một current revision cho mỗi source key, không mất raw/history và không dedup USGS với JMA tại bước này.
+- **Handoff:** Current observations cho SLV-07; history/current và reconciliation cho SLV-09. Giữ schema/key SLV-02/SLV-04, không tự đổi identity algorithm.
+- **Nghiệm thu:** Rerun/permutation/tie-break, late revision và JMA release ordering; revision cũ còn audit được. Không coi superseded history là parse/quality reject.
+
 Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trước khi toàn bộ upstream chạy thật. Chỉ được chuyển sang `Done` khi hard dependency đã đạt và acceptance criteria được kiểm tra trên output phù hợp.
 
 1. Xác nhận hard dependency và đọc contract/tài liệu liên quan.
@@ -63,8 +72,8 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
-- **Assignee:** Chưa ghi lại
+- **Trạng thái:** Ready
+- **Assignee:** ThanhTris
 - **Reviewer:** Chưa ghi lại
 - **Evidence / PR:** Chưa có
 - **Kỹ năng phù hợp:** Spark window, idempotency
@@ -80,6 +89,8 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Tài liệu liên quan
 
+- [Phân công tuần 4](../WEEK_4_PARALLEL_PLAN.md)
+- [Silver/Gold model: dedup và revision](../../specs/SILVER_GOLD_DATA_MODEL.md)
 - [Kế hoạch 8 tuần](../README.md)
 - [Các khối công việc](../WORK_BLOCKS.md)
 - [Baseline MVP, KPI và Definition of Done](../../specs/MVP_SCOPE_KPI_AND_DOD.md)

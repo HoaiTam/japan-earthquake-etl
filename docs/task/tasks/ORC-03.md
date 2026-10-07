@@ -1,13 +1,13 @@
 ---
 task_id: "ORC-03"
 status: "Backlog"
-week: 5
+week: 4
 block: "F - Điều phối"
 workstream: "Backfill"
 scope: "Core"
 priority: "P0"
 effort_hours: 5
-assignee: "unassigned"
+assignee: "HoaiTam"
 reviewer: "unassigned"
 dependencies: ["ORC-01"]
 ---
@@ -45,6 +45,14 @@ Hỗ trợ khoảng UTC cho USGS, danh sách năm/release cho JMA, tái sử d�
 
 ## Cách triển khai và phối hợp
 
+### Phân công tuần 4 mở rộng
+
+- **Owner / effort:** HoaiTam, 5h Core; đưa từ tuần 5 lên [kế hoạch tuần 4](../WEEK_4_PARALLEL_PLAN.md), sau nhóm mở đường ORC-01.
+- **Làm trước:** Planner/preview parameters và retry tests bằng exact-input fixture; chưa chạy downstream thật nếu chưa ready.
+- **Làm gì / có gì:** USGS half-open UTC range, JMA year/segment/release selection, Bronze reuse và Silver/Gold affected-scope reprocess; gọi workflow JMA-04, không viết downloader thứ hai.
+- **Dùng để làm gì:** Phục hồi có phạm vi, không xóa/rebuild lake hoặc tải lại nguồn không đổi.
+- **Nghiệm thu / handoff:** Preview đúng input/output, revision/rerun không duplicate hoặc sửa partition ngoài scope; bàn giao commands/runbook và scope summary cho ORC-04/05. Test thật nhỏ sau các adapters sẵn sàng, không full 40 năm.
+
 Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trước khi toàn bộ upstream chạy thật. Chỉ được chuyển sang `Done` khi hard dependency đã đạt và acceptance criteria được kiểm tra trên output phù hợp.
 
 1. Xác nhận hard dependency và đọc contract/tài liệu liên quan.
@@ -63,7 +71,7 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 ## Theo dõi
 
 - **Trạng thái:** Backlog
-- **Assignee:** Chưa ghi lại
+- **Assignee:** HoaiTam
 - **Reviewer:** Chưa ghi lại
 - **Evidence / PR:** Chưa có
 - **Kỹ năng phù hợp:** Airflow backfill, idempotency
@@ -79,6 +87,7 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Tài liệu liên quan
 
+- [Kế hoạch tuần 4 mở rộng](../WEEK_4_PARALLEL_PLAN.md)
 - [Kế hoạch 8 tuần](../README.md)
 - [Các khối công việc](../WORK_BLOCKS.md)
 - [Baseline MVP, KPI và Definition of Done](../../specs/MVP_SCOPE_KPI_AND_DOD.md)

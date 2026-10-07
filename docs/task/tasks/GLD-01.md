@@ -1,13 +1,13 @@
 ---
 task_id: "GLD-01"
-status: "Backlog"
+status: "Ready"
 week: 4
 block: "E - Gold & Serving"
 workstream: "Analytics model"
 scope: "Core"
 priority: "P0"
 effort_hours: 6
-assignee: "unassigned"
+assignee: "Trang"
 reviewer: "unassigned"
 dependencies: ["CON-03", "CON-04"]
 ---
@@ -48,6 +48,15 @@ Tạo `gold.earthquake_event_current` với canonical key, time/location, magnit
 
 ## Cách triển khai và phối hợp
 
+### Phân công tuần 4
+
+- **Owner / effort:** Trang, 6h Core; xem [kế hoạch tuần 4](../WEEK_4_PARALLEL_PLAN.md).
+- **Bắt đầu ngay:** CON-03/CON-04 đã Done; dựng current-observation/membership fixture theo contract, không chờ Silver thật để test transformation.
+- **Làm gì / có gì:** `gold.event_current`, source bridge và dimension/band mapping; natural/ROI view `gold.earthquake_event_current`; giữ JMA era/source/quality và field-level provenance đủ ML audit/filter.
+- **Dùng để làm gì:** Dataset canonical duy nhất không double count; chọn field theo primary/source rules, không average/coalesce hai nguồn tùy ý.
+- **Handoff:** Gold outputs theo [CON-03](../../specs/SILVER_GOLD_DATA_MODEL.md) cho GLD-03; input thật lấy từ SLV-09 SilverReady và membership SLV-07. Không sinh canonical ID hoặc matching lần hai.
+- **Nghiệm thu:** Unique canonical, bridge không nhân fact, null/bands/Unknown/Offshore và ML filter fields có tests. Task transformation có thể đạt acceptance bằng fixture; không nhận Gold thật Published trước GLD-03/04.
+
 Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trước khi toàn bộ upstream chạy thật. Chỉ được chuyển sang `Done` khi hard dependency đã đạt và acceptance criteria được kiểm tra trên output phù hợp.
 
 1. Xác nhận hard dependency và đọc contract/tài liệu liên quan.
@@ -65,8 +74,8 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
-- **Assignee:** Chưa ghi lại
+- **Trạng thái:** Ready
+- **Assignee:** Trang
 - **Reviewer:** Chưa ghi lại
 - **Evidence / PR:** Chưa có
 - **Kỹ năng phù hợp:** Spark SQL, analytics modeling
@@ -82,6 +91,8 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Tài liệu liên quan
 
+- [Phân công tuần 4](../WEEK_4_PARALLEL_PLAN.md)
+- [Silver/Gold logical model](../../specs/SILVER_GOLD_DATA_MODEL.md)
 - [Kế hoạch 8 tuần](../README.md)
 - [Các khối công việc](../WORK_BLOCKS.md)
 - [Baseline MVP, KPI và Definition of Done](../../specs/MVP_SCOPE_KPI_AND_DOD.md)

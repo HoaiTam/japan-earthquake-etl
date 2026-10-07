@@ -3,16 +3,22 @@
 Backlog được lưu hoàn toàn bằng Markdown. Mỗi task có một file độc lập trong
 [danh mục task](./tasks/README.md); phạm vi, thành phần và mục đích của từng
 khối được giải thích tại [Các khối công việc sau Foundation](./WORK_BLOCKS.md).
-Phân công gần nhất nằm tại [Kế hoạch tuần 3 — ba luồng không chờ
-nhau](./WEEK_3_PARALLEL_PLAN.md).
+Phân công gần nhất nằm tại [Kế hoạch tuần 4 mở rộng](./WEEK_4_PARALLEL_PLAN.md),
+gồm [nhóm mở đường để HoaiTam làm trước](./WEEK_4_PREP_GROUP.md) và ba khối
+triển khai. [Kế hoạch tuần 3](./WEEK_3_PARALLEL_PLAN.md) giữ lại để đối chiếu
+handoff/evidence.
 
 ## 1. Giả định lập kế hoạch
 
 - Nhóm có 3 thành viên.
 - Thời gian thực hiện là 8 tuần.
-- Capacity tham khảo là 15 giờ/người/tuần, tương đương 360 giờ toàn nhóm trong
+- Capacity sơ bộ là 15 giờ/người/tuần, tương đương 360 giờ toàn nhóm trong
   8 tuần. Backlog có 364 giờ task vì 12 giờ data-readiness được người điều phối
-  làm trước tuần 3; 352 giờ còn lại nằm trong capacity 8 tuần.
+  làm trước tuần 3; 352 giờ còn lại là task trong 8 tuần.
+- Theo yêu cầu tăng khối lượng, riêng tuần 4 dùng phương án **89h Core + 7h
+  review/tích hợp**, khoảng **32h/người**. Đây là tải đề xuất, không phải capacity
+  thực tế đã xác nhận; không ép 18 task vào mức 15h cũ. Giữ nguyên effort/scope/
+  hard dependency, chuyển lịch ORC-01..05, MLD-01..03, MLI-01 và SEC-01 lên tuần 4.
 - Assignee, reviewer, trạng thái và evidence được cập nhật trực tiếp trong file của từng task.
 - Mỗi task chỉ có một assignee chính; nếu có reviewer thì reviewer phải là người khác assignee.
 - Task `Core` cần hoàn thành để đạt tiêu chí phiên bản đầu tiên.
@@ -31,16 +37,21 @@ Nếu capacity thực tế khác 15 giờ/người/tuần, nhóm dùng trường
 | 2 | Contracts đa nguồn và USGS Bronze | Contract chung được chốt; USGS raw, manifest và smoke test Bronze đạt | 45 giờ |
 | Trước tuần 3 | Data readiness do người điều phối thực hiện | Live USGS Bronze, inventory JMA và catalog hai sample thật được khóa | 12 giờ |
 | 3 | Ba luồng JMA/Silver độc lập | JMA downloader/writer, hai parser, resolver, quality, lineage và Silver writer đạt unit acceptance; integration bằng hai sample nhỏ | 41 giờ task + 4 giờ review |
-| 4 | JMA orchestration, Silver integration và Gold | JMA backfill/QA, Silver dedup/link/E2E và Gold snapshot/verification tiếp tục theo dependency | 44 giờ |
-| 5 | Điều phối ETL và chuẩn bị ML dataset | DAG ETL retry/backfill hoạt động; Gold snapshot được pin; audit/Mc/mainshock/window bắt đầu | 45 giờ |
-| 6 | Feature và baseline experiment | Feature 4-D được validate/export; notebook chạy Window/DBSCAN/HDBSCAN global | 45 giờ |
+| 4 | Nhóm mở đường + ETL/Gold/ML pilot mở rộng | JMA Bronze thật, DAG/run context, SilverReady, Gold Published, pinned dataset/audit/candidate pilot và security evidence | 89 giờ Core + 7 giờ review/tích hợp; GLD-02 Stretch 4h ngoài cam kết |
+| 5 | Chốt lại sau review tuần 4 | Ưu tiên Core/gate tuần 4 còn thiếu; chuẩn bị feature/export; không lấp lịch bằng BI khi Core chưa đạt | Task còn gắn tuần 5: BI-02 Stretch 5h; không cộng lại 40h đã chuyển lên tuần 4 |
+| 6 | Feature và baseline experiment | Feature 4-D được validate/export; notebook chạy Window/DBSCAN/HDBSCAN global; MLI-01/SEC-01 đã đưa lên tuần 4 | 36 giờ task còn lại; lịch thực thi chốt lại sau tuần 4 |
 | 7 | Evaluation và ML import | Adaptive/out-of-period, stability/Omori, ETL QA và import gate được kiểm tra | 44 giờ |
 | 8 | Tích hợp, QA, tài liệu và demo | ML tables/report, E2E, recovery, demo và Power BI Stretch được xác nhận | 43 giờ |
 
 Tổng effort gồm cả task Stretch là **364 giờ**. Sau 12 giờ pre-week, kế hoạch
-còn **352 giờ task** trong 8 tuần; 8 giờ capacity không gắn task, trong đó 4 giờ
-được giữ cho review/integration tuần 3. `GLD-02`, `BI-01..05`, `QA-05` và `OPS-01` là Stretch, có
-thể hoãn nếu ảnh hưởng đường găng Core.
+còn **352 giờ task** trong 8 tuần. Không tăng effort để tăng số task: tuần 4
+đưa 49h task từ tuần 5/6 lên làm sớm, nên tuần 4 có 93h nếu tính cả Stretch,
+tuần 5 còn 5h và tuần 6 còn 36h gắn trong backlog. Tổng giờ không đổi; review/
+tích hợp là capacity dự phòng, không phải effort task mới. 8h dư trong capacity
+360h của lịch sơ bộ chỉ là mốc tham khảo cũ (4h dành tuần 3); không dùng nó để
+khẳng định phương án tăng tốc tuần 4 vừa mức 15h/người. Sau tuần 4 nhóm chốt
+lại lịch tuần 5/6 theo output và capacity thật. `GLD-02`, `BI-01..05`, `QA-05`
+và `OPS-01` là Stretch, có thể hoãn nếu ảnh hưởng đường găng Core.
 
 ## 3. Khối công việc sau Foundation
 
@@ -120,7 +131,12 @@ Một task chỉ được xem là `Done` khi:
 
 Ba luồng, handoff contract và checklist kiểm tra cuối tuần được chốt trong
 [kế hoạch tuần 3](./WEEK_3_PARALLEL_PLAN.md). Mỗi task vẫn dùng branch/PR riêng;
-không gộp cả một luồng vào một branch.
+không gộp cả một luồng vào một branch. [Phân công tuần 4 mở rộng](./WEEK_4_PARALLEL_PLAN.md)
+tách nhóm mở đường JMA-04/JMA-05/ORC-01 (13h HoaiTam làm trước), rồi ba khối
+vận hành ETL, Silver + ML audit/candidate, Gold + ML identity/contract/security.
+Tổng task mỗi người là 30/29/30h, đã tính nhóm mở đường; chỉ gate thật chờ
+upstream, fixture/mock/test plan có thể chuẩn bị ngay. Không đổi dependency để
+nhận notebook/export chưa có là đã Done.
 
 ## 8. Điều chỉnh kế hoạch
 

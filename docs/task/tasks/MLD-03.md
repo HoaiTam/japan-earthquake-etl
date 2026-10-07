@@ -1,13 +1,13 @@
 ---
 task_id: "MLD-03"
 status: "Backlog"
-week: 5
+week: 4
 block: "G - ML Dataset"
 workstream: "Mainshock and candidate windows"
 scope: "Core"
 priority: "P0"
 effort_hours: 7
-assignee: "unassigned"
+assignee: "ThanhTris"
 reviewer: "unassigned"
 dependencies: ["MLD-01", "MLD-02"]
 ---
@@ -47,6 +47,14 @@ cho clustering nhưng tránh full cross join toàn Nhật Bản.
 
 ## Cách làm song song
 
+### Phân công tuần 4 mở rộng
+
+- **Owner / effort:** ThanhTris, 7h Core; đưa từ tuần 5 lên [kế hoạch tuần 4](../WEEK_4_PARALLEL_PLAN.md), sau MLD-01/02 cho integration thật.
+- **Làm trước:** Mainshock/window resolver và range-join tests bằng Gold/candidate fixture, versioned Mc mock; hiện Backlog, chỉ prepare parts được phép.
+- **Làm gì / có gì:** Mainshock depth 50–200 km inclusive/magnitude >5.5, versioned pre/post/radius rule, time/bounding-box/distance prefilter, unique window grain và hard-limit reasons/counts.
+- **Dùng để làm gì:** Cửa sổ candidate cho MLD-04/05, không full cross join catalog và không coi event ở nhiều windows là duplicate sai.
+- **Handoff / nghiệm thu:** Pin input qua MLD-01, dùng Mc thật có scope từ MLD-02; test physical plan, PRE/POST/mainshock presence và no silent truncate. Output mới là window stage của candidate, không giả feature vector/export hoặc aftershock labels đã có; dataset giữ BUILDING tới gate feature/export.
+
 Window resolver/range-join tests có thể dùng candidate fixture và một `Mc` giả
 lập có version; integration chỉ thay input bằng output thật của `MLD-02`.
 
@@ -59,7 +67,7 @@ lập có version; integration chỉ thay input bằng output thật của `MLD-
 ## Theo dõi
 
 - **Trạng thái:** Backlog
-- **Assignee:** Chưa ghi lại
+- **Assignee:** ThanhTris
 - **Reviewer:** Chưa ghi lại
 - **Evidence / PR:** Chưa có
 - **Kỹ năng phù hợp:** Spark range join, geospatial filtering, test design
@@ -73,6 +81,7 @@ lập có version; integration chỉ thay input bằng output thật của `MLD-
 
 ## Tài liệu liên quan
 
+- [Kế hoạch tuần 4 mở rộng](../WEEK_4_PARALLEL_PLAN.md)
+- [ML logical model](../../specs/ML_DATA_MODEL.md)
 - [Roadmap HDBSCAN](../HDBSCAN_WORKSTREAM.md)
 - [MLD-02](./MLD-02.md)
-

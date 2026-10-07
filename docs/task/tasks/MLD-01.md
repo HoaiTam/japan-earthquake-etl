@@ -1,13 +1,13 @@
 ---
 task_id: "MLD-01"
 status: "Backlog"
-week: 5
+week: 4
 block: "G - ML Dataset"
 workstream: "Dataset identity"
 scope: "Core"
 priority: "P0"
 effort_hours: 5
-assignee: "unassigned"
+assignee: "Trang"
 reviewer: "unassigned"
 dependencies: ["CON-03", "GLD-04"]
 ---
@@ -46,6 +46,14 @@ vẫn tái lập được khi Gold có revision/snapshot mới.
 
 ## Cách làm song song
 
+### Phân công tuần 4 mở rộng
+
+- **Owner / effort:** Trang, 5h Core; đưa từ tuần 5 lên khối Gold + ML identity trong [kế hoạch tuần 4](../WEEK_4_PARALLEL_PLAN.md).
+- **Làm trước:** Snapshot/publication metadata mock, canonical identity payload và period-boundary tests theo CON-03; hiện Backlog vì GLD-04 chưa Done.
+- **Làm gì / có gì:** Resolve exact Published Gold snapshot, dataset ID/manifest cho reproduction và extension, lineage/filter/config/cutoff và rerun conflict detection.
+- **Dùng để làm gì:** MLD-02/03 đọc cùng snapshot/config, không bị current table trôi giữa audit và candidate build.
+- **Handoff / nghiệm thu:** Sau GLD-04 verify thật, pin snapshot và bàn giao manifest/coverage cho ThanhTris. Dữ liệu pilot 2000/2023 không phải toàn research period. Không fake VALIDATED/EXPORTED khi feature/export chưa đạt; manifest có thể BUILDING còn implementation identity task đạt acceptance riêng.
+
 Có thể hoàn thành schema, identity rule và unit test bằng snapshot metadata giả
 lập trước khi Gold thật sẵn sàng. Integration evidence với snapshot thật mới
 chặn trạng thái `Done`.
@@ -59,7 +67,7 @@ chặn trạng thái `Done`.
 ## Theo dõi
 
 - **Trạng thái:** Backlog
-- **Assignee:** Chưa ghi lại
+- **Assignee:** Trang
 - **Reviewer:** Chưa ghi lại
 - **Evidence / PR:** Chưa có
 - **Kỹ năng phù hợp:** Iceberg snapshots, Spark SQL, data lineage
@@ -73,6 +81,7 @@ chặn trạng thái `Done`.
 
 ## Tài liệu liên quan
 
+- [Kế hoạch tuần 4 mở rộng](../WEEK_4_PARALLEL_PLAN.md)
 - [Roadmap HDBSCAN](../HDBSCAN_WORKSTREAM.md)
 - [Logical data model](../../specs/SILVER_GOLD_DATA_MODEL.md)
 - [ML logical data model](../../specs/ML_DATA_MODEL.md)

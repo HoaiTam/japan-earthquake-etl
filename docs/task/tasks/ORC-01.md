@@ -1,13 +1,13 @@
 ---
 task_id: "ORC-01"
-status: "Backlog"
-week: 5
+status: "Ready"
+week: 4
 block: "F - Điều phối"
 workstream: "DAG skeleton"
 scope: "Core"
 priority: "P0"
 effort_hours: 4
-assignee: "unassigned"
+assignee: "HoaiTam"
 reviewer: "unassigned"
 dependencies: ["CON-02", "CON-03"]
 ---
@@ -46,6 +46,15 @@ Nối source readiness, Bronze, Silver, Gold, verify và publish; truyền run c
 
 ## Cách triển khai và phối hợp
 
+### Phân công tuần 4 mở rộng — nhóm mở đường
+
+- **Owner / effort:** HoaiTam, 4h Core; đưa từ tuần 5 lên tuần 4, bước 3/3 của [nhóm mở đường](../WEEK_4_PREP_GROUP.md).
+- **Bắt đầu ngay:** CON-02/03 đã Done. Test DAG structure/phase I/O/run context bằng contract và mock; không chờ Silver/Gold runtime để viết skeleton.
+- **Làm gì / có gì:** Task groups source readiness → Bronze → Silver → Gold → verify → publish, exact input/output scope, UTC interval/backfill context và failure propagation.
+- **Dùng để làm gì:** Giao diện chung cho các adapter và ORC-02..05, tránh mỗi người tự đặt runner/summary protocol.
+- **Handoff:** Versioned phase/run-context fixture và mock adapter boundary cho các owners; runtime command/adapter thật được nối khi component sẵn sàng. Mock/dry-run thành công không mở real-mode Published gate.
+- **Nghiệm thu / ranh giới:** Acceptance skeleton đạt unit/static tests, docs chỉ rõ mock/runtime giới hạn; không gọi đây là evidence toàn ETL Published, không đặt Colab trong daily critical path. 4h này đã nằm trong 13h mở đường và 30h task tuần của HoaiTam.
+
 Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trước khi toàn bộ upstream chạy thật. Chỉ được chuyển sang `Done` khi hard dependency đã đạt và acceptance criteria được kiểm tra trên output phù hợp.
 
 1. Xác nhận hard dependency và đọc contract/tài liệu liên quan.
@@ -64,8 +73,8 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
-- **Assignee:** Chưa ghi lại
+- **Trạng thái:** Ready
+- **Assignee:** HoaiTam
 - **Reviewer:** Chưa ghi lại
 - **Evidence / PR:** Chưa có
 - **Kỹ năng phù hợp:** Airflow, orchestration
@@ -81,6 +90,10 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Tài liệu liên quan
 
+- [Nhóm mở đường tuần 4](../WEEK_4_PREP_GROUP.md)
+- [Kế hoạch tuần 4 mở rộng](../WEEK_4_PARALLEL_PLAN.md)
+- [Bronze contract](../../specs/BRONZE_STORAGE_CONTRACT.md)
+- [Silver/Gold model](../../specs/SILVER_GOLD_DATA_MODEL.md)
 - [Kế hoạch 8 tuần](../README.md)
 - [Các khối công việc](../WORK_BLOCKS.md)
 - [Baseline MVP, KPI và Definition of Done](../../specs/MVP_SCOPE_KPI_AND_DOD.md)

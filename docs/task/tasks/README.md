@@ -28,7 +28,17 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 - Core: **65 task**.
 - Stretch: **8 task**.
 - Tổng effort task: **364 giờ**; trong đó 12 giờ data-readiness được thực hiện
-  trước tuần 3, còn 352 giờ nằm trong capacity 8 tuần của nhóm.
+  trước tuần 3, còn 352 giờ task trong 8 tuần; lịch tuần 4 đã mở rộng từ capacity sơ bộ.
+
+Phân công hiện tại: [Kế hoạch tuần 4 mở rộng](../WEEK_4_PARALLEL_PLAN.md).
+[Nhóm mở đường](../WEEK_4_PREP_GROUP.md) gồm JMA-04/JMA-05/ORC-01, 13h HoaiTam
+làm trước, đã tính trong tổng tuần. Sau đó giao 18 task Core: HoaiTam 30h,
+ThanhTris 29h, Trang 30h; 7h review/tích hợp dự phòng, khoảng 32h/người.
+GLD-02 Stretch 4h ngoài cam kết. Đã chuyển 10 task (49h) từ tuần 5/6 lên
+`week: 4`, đồng bộ metadata/index; tổng backlog/effort không đổi. Task đủ
+dependency Done chuyển Ready; task chờ gate Backlog, được chuẩn bị fixture/mock
+và ghi In Progress khi thực sự bắt đầu. Không dùng mock làm evidence gate thật;
+assignee/evidence chính thức nằm trong từng file.
 
 ## Foundation
 
@@ -72,7 +82,7 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 | [JMA-01](./JMA-01.md) - Lập danh mục 40 năm archive JMA | 3 | Archive inventory | Core | P0 | 5h | Done |
 | [JMA-02](./JMA-02.md) - Xây JMA downloader và phát hiện file thay đổi | 3 | Downloader | Core | P0 | 6h | Done |
 | [JMA-03](./JMA-03.md) - Validate và lưu JMA archive vào Bronze | 3 | Bronze writer | Core | P0 | 7h | Done |
-| [JMA-04](./JMA-04.md) - Tạo workflow ingest JMA theo năm | 4 | Backfill orchestration | Core | P0 | 5h | Backlog |
+| [JMA-04](./JMA-04.md) - Tạo workflow ingest JMA theo năm | 4 | Backfill orchestration | Core | P0 | 5h | Ready |
 | [JMA-05](./JMA-05.md) - Kiểm thử JMA đến Bronze | 4 | QA | Core | P0 | 4h | Backlog |
 
 ## D - Silver đa nguồn
@@ -84,8 +94,8 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 | [SLV-03](./SLV-03.md) - Parse và chuẩn hóa JMA fixed-width | 3 | JMA parser | Core | P0 | 6h | Done |
 | [SLV-04](./SLV-04.md) - Tạo source key và lineage đa nguồn | 3 | Lineage | Core | P0 | 4h | Done |
 | [SLV-05](./SLV-05.md) - Áp dụng validation và reject metrics | 3 | Quality | Core | P0 | 5h | Done |
-| [SLV-06](./SLV-06.md) - Deduplicate và xử lý revision trong từng nguồn | 4 | Source dedup | Core | P0 | 5h | Backlog |
-| [SLV-07](./SLV-07.md) - Liên kết observation và chọn canonical event | 4 | Entity resolution | Core | P0 | 6h | Backlog |
+| [SLV-06](./SLV-06.md) - Deduplicate và xử lý revision trong từng nguồn | 4 | Source dedup | Core | P0 | 5h | Ready |
+| [SLV-07](./SLV-07.md) - Liên kết observation và chọn canonical event | 4 | Entity resolution | Core | P0 | 6h | Ready |
 | [SLV-08](./SLV-08.md) - Ghi Silver Parquet theo source và thời gian | 3 | Silver storage | Core | P0 | 5h | Done |
 | [SLV-09](./SLV-09.md) - Tích hợp và kiểm thử Silver đa nguồn | 4 | Integration QA | Core | P0 | 4h | Backlog |
 
@@ -93,7 +103,7 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 
 | Task | Tuần | Workstream | Scope | Priority | Effort | Trạng thái |
 |---|---:|---|---|---|---:|---|
-| [GLD-01](./GLD-01.md) - Xây canonical event, dimensions và bands | 4 | Analytics model | Core | P0 | 6h | Backlog |
+| [GLD-01](./GLD-01.md) - Xây canonical event, dimensions và bands | 4 | Analytics model | Core | P0 | 6h | Ready |
 | [GLD-02](./GLD-02.md) - Tạo aggregate phục vụ dashboard | 4 | Aggregates | Stretch | P2 | 4h | Backlog |
 | [GLD-03](./GLD-03.md) - Ghi Gold Iceberg và commit snapshot | 4 | Iceberg publish | Core | P0 | 6h | Backlog |
 | [GLD-04](./GLD-04.md) - Tạo Trino views và verification SQL | 4 | Trino verification | Core | P0 | 4h | Backlog |
@@ -102,19 +112,19 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 
 | Task | Tuần | Workstream | Scope | Priority | Effort | Trạng thái |
 |---|---:|---|---|---|---:|---|
-| [ORC-01](./ORC-01.md) - Hoàn thiện DAG ETL đến Gold theo contract | 5 | DAG skeleton | Core | P0 | 4h | Backlog |
-| [ORC-02](./ORC-02.md) - Cấu hình lịch và readiness cho hai nguồn | 5 | Scheduling | Core | P1 | 4h | Backlog |
-| [ORC-03](./ORC-03.md) - Implement backfill và reprocessing | 5 | Backfill | Core | P0 | 5h | Backlog |
-| [ORC-04](./ORC-04.md) - Chuẩn hóa logging và run summary | 5 | Observability | Core | P1 | 4h | Backlog |
-| [ORC-05](./ORC-05.md) - Chốt recovery, concurrency và tài nguyên | 5 | Recovery and resources | Core | P1 | 4h | Backlog |
+| [ORC-01](./ORC-01.md) - Hoàn thiện DAG ETL đến Gold theo contract | 4 | DAG skeleton | Core | P0 | 4h | Ready |
+| [ORC-02](./ORC-02.md) - Cấu hình lịch và readiness cho hai nguồn | 4 | Scheduling | Core | P1 | 4h | Backlog |
+| [ORC-03](./ORC-03.md) - Implement backfill và reprocessing | 4 | Backfill | Core | P0 | 5h | Backlog |
+| [ORC-04](./ORC-04.md) - Chuẩn hóa logging và run summary | 4 | Observability | Core | P1 | 4h | Backlog |
+| [ORC-05](./ORC-05.md) - Chốt recovery, concurrency và tài nguyên | 4 | Recovery and resources | Core | P1 | 4h | Backlog |
 
 ## G - ML Dataset
 
 | Task | Tuần | Workstream | Scope | Priority | Effort | Trạng thái |
 |---|---:|---|---|---|---:|---|
-| [MLD-01](./MLD-01.md) - Pin Gold snapshot và tạo dataset manifest | 5 | Dataset identity | Core | P0 | 5h | Backlog |
-| [MLD-02](./MLD-02.md) - Audit Gold và xác định magnitude of completeness | 5 | Input audit and completeness | Core | P0 | 7h | Backlog |
-| [MLD-03](./MLD-03.md) - Chọn mainshock và tạo candidate windows | 5 | Mainshock and candidate windows | Core | P0 | 7h | Backlog |
+| [MLD-01](./MLD-01.md) - Pin Gold snapshot và tạo dataset manifest | 4 | Dataset identity | Core | P0 | 5h | Backlog |
+| [MLD-02](./MLD-02.md) - Audit Gold và xác định magnitude of completeness | 4 | Input audit and completeness | Core | P0 | 7h | Backlog |
+| [MLD-03](./MLD-03.md) - Chọn mainshock và tạo candidate windows | 4 | Mainshock and candidate windows | Core | P0 | 7h | Backlog |
 | [MLD-04](./MLD-04.md) - Tạo và scale feature không-thời gian 4-D | 6 | Spacetime features | Core | P0 | 6h | Backlog |
 | [MLD-05](./MLD-05.md) - Validate feature snapshot và export Parquet bundle | 6 | Feature validation and export | Core | P0 | 5h | Backlog |
 
@@ -132,7 +142,7 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 
 | Task | Tuần | Workstream | Scope | Priority | Effort | Trạng thái |
 |---|---:|---|---|---|---:|---|
-| [MLI-01](./MLI-01.md) - Khóa result bundle và experiment lifecycle | 6 | Result bundle contract | Core | P0 | 5h | Backlog |
+| [MLI-01](./MLI-01.md) - Khóa result bundle và experiment lifecycle | 4 | Result bundle contract | Core | P0 | 5h | Ready |
 | [MLI-02](./MLI-02.md) - Tạo Airflow DAG build ML dataset | 6 | Dataset build orchestration | Core | P0 | 5h | Backlog |
 | [MLI-03](./MLI-03.md) - Validate/import kết quả và commit bảng ML Iceberg | 7 | Result import and Iceberg publish | Core | P0 | 7h | Backlog |
 | [MLI-04](./MLI-04.md) - Tạo Trino views và static report cho experiment | 8 | ML serving and report | Core | P0 | 4h | Backlog |
@@ -161,4 +171,4 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 | [QA-03](./QA-03.md) - Kiểm thử JMA historical backfill | 7 | Historical backfill | Core | P0 | 5h | Backlog |
 | [QA-04](./QA-04.md) - Test failure và recovery theo tầng | 8 | Failure recovery | Core | P0 | 4h | Backlog |
 | [QA-05](./QA-05.md) - Profile dữ liệu lịch sử và tài nguyên local | 8 | Performance | Stretch | P2 | 4h | Backlog |
-| [SEC-01](./SEC-01.md) - Review secret và bề mặt truy cập | 6 | Security | Core | P1 | 4h | Backlog |
+| [SEC-01](./SEC-01.md) - Review secret và bề mặt truy cập | 4 | Security | Core | P1 | 4h | Backlog |

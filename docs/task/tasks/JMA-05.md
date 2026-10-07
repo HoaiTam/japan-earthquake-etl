@@ -7,7 +7,7 @@ workstream: "QA"
 scope: "Core"
 priority: "P0"
 effort_hours: 4
-assignee: "unassigned"
+assignee: "HoaiTam"
 reviewer: "unassigned"
 dependencies: ["JMA-04"]
 ---
@@ -44,6 +44,16 @@ Test archive hợp lệ, ZIP hỏng, sai record length, file thay đổi, resume
 
 ## Cách triển khai và phối hợp
 
+### Phân công tuần 4
+
+- **Owner / effort:** HoaiTam, 4h Core; xem [kế hoạch tuần 4](../WEEK_4_PARALLEL_PLAN.md).
+- **Nhóm:** [Mở đường — làm trước](../WEEK_4_PREP_GROUP.md), bước 2/3 sau JMA-04; bàn giao input thật cho ba khối triển khai.
+- **Làm trước:** Test plan, ZIP/checksum/failure/resume fixtures và readback harness; hiện Backlog vì chưa bắt đầu. Khi làm phần chuẩn bị được phép, ghi In Progress và dependency JMA-04 còn chờ.
+- **Làm gì / có gì:** Kiểm thử workflow JMA-04 với archive hợp lệ/hỏng, revision, retry/rerun; report year/segment/release/run, manifest/raw checksum/count và readback.
+- **Dùng để làm gì:** Gate JMA BronzeReady thật trước Silver và historical backfill lớn, không chỉ xác nhận validator mock.
+- **Input / handoff:** Dùng sample JMA DAT-01 và exact manifest do workflow/writer tạo; bổ sung archive 2000 thuộc reproduction cho ML pilot, ghi metadata/evidence riêng, không đổi catalog DAT-01 đang khóa hai entry. Bàn giao BronzeReady evidence cho SLV-09; không đổi STAGED_SOURCE thành Ready chỉ bằng sửa catalog metadata.
+- **Nghiệm thu:** Chỉ Done khi JMA-04 đã đạt và run thật/readback/rerun đối soát được trên các năm đại diện 2000, 2023 và 1997 (hai segment riêng). Không bịa count archive 2000; test offline bao phủ case lỗi, full 40 năm không thuộc task QA này. Một năm reproduction chỉ là pilot, chưa phải dataset/Mc đầy đủ giai đoạn nghiên cứu.
+
 Đây là integration gate. Có thể chuẩn bị test plan, fixture và harness trước, nhưng chỉ được chuyển sang `Done` sau khi toàn bộ hard dependency cung cấp output thật và báo cáo đối soát đạt.
 
 1. Xác nhận hard dependency và đọc contract/tài liệu liên quan.
@@ -62,7 +72,7 @@ Test archive hợp lệ, ZIP hỏng, sai record length, file thay đổi, resume
 ## Theo dõi
 
 - **Trạng thái:** Backlog
-- **Assignee:** Chưa ghi lại
+- **Assignee:** HoaiTam
 - **Reviewer:** Chưa ghi lại
 - **Evidence / PR:** Chưa có
 - **Kỹ năng phù hợp:** Fixture testing, Airflow, MinIO
@@ -78,6 +88,10 @@ Test archive hợp lệ, ZIP hỏng, sai record length, file thay đổi, resume
 
 ## Tài liệu liên quan
 
+- [Phân công tuần 4](../WEEK_4_PARALLEL_PLAN.md)
+- [Nhóm mở đường tuần 4](../WEEK_4_PREP_GROUP.md)
+- [Shared real samples](../../specs/SHARED_REAL_SAMPLE_DATA.md)
+- [JMA writer/handoff](../../specs/JMA_BRONZE_WRITER_CONTRACT.md)
 - [Kế hoạch 8 tuần](../README.md)
 - [Các khối công việc](../WORK_BLOCKS.md)
 - [Baseline MVP, KPI và Definition of Done](../../specs/MVP_SCOPE_KPI_AND_DOD.md)
