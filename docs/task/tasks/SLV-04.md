@@ -1,13 +1,13 @@
 ---
 task_id: "SLV-04"
-status: "Ready"
+status: "In Progress"
 week: 3
 block: "D - Silver đa nguồn"
 workstream: "Lineage"
 scope: "Core"
 priority: "P0"
 effort_hours: 4
-assignee: "unassigned"
+assignee: "codex"
 reviewer: "unassigned"
 dependencies: ["CON-03"]
 ---
@@ -62,10 +62,10 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Theo dõi
 
-- **Trạng thái:** Ready
-- **Assignee:** Chưa ghi lại
-- **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Trạng thái:** In Progress
+- **Assignee:** codex
+- **Reviewer:** unassigned
+- **Evidence / PR:** Đang triển khai trên branch `feat/slv-04-tao-source-key-va-lineage`.
 - **Kỹ năng phù hợp:** Data lineage, hashing, Spark
 
 ## Checklist bàn giao
