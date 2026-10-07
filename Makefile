@@ -20,7 +20,7 @@ FOUNDATION_SERVICES := minio airflow-postgres airflow-api-server \
 
 CONTRACT_CHECKS := check-mvp-baseline check-repository-layout \
 	check-source-coverage check-bronze-contract check-data-model-contract \
-	check-shared-fixtures check-real-sample-catalog check-week-3-plan check-jma-inventory
+	check-shared-fixtures check-real-sample-catalog check-week-3-plan check-jma-inventory check-task-status
 STATIC_CHECKS := check-compose check-minio check-airflow check-spark \
 	check-query check-usgs-live
 COMPONENT_SMOKES := smoke-minio smoke-airflow smoke-spark smoke-query smoke-usgs-live
@@ -87,6 +87,7 @@ check-shared-fixtures: ## Kiểm tra fixture synthetic USGS/JMA, ZIP và checksu
 check-real-sample-catalog: ## Kiểm tra metadata DAT-01 offline; không đọc MinIO
 check-week-3-plan: ## Kiểm tra kế hoạch chia việc và data-readiness gate
 check-jma-inventory: ## Kiểm tra inventory 40 năm/41 archive JMA offline
+check-task-status: ## Đối chiếu trạng thái metadata, Theo dõi và danh mục của mọi task
 
 $(CONTRACT_CHECKS):
 	@./scripts/$@.sh

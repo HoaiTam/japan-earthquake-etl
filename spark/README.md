@@ -77,6 +77,14 @@ tuân thủ nghiêm ngặt nguyên tắc tạo ID opaque (`evt_` + SHA-256) từ
 tuyệt đối không dùng time/tọa độ. `SilverLineage` cung cấp cơ chế audit và kiểm chứng
 ngược về raw record locator/hash và raw object SHA-256 từ Bronze.
 
+`SLV-05` dùng trực tiếp model chung của SLV-02 để validate, đối soát
+valid/rejected/parsed và xuất quality summary đầy đủ Bronze lineage. Overload
+nhận `UsgsParseResult` bao gồm parser rejects trong run gate; overload
+`SilverParquetWriter.write(request, quality)` chặn storage writes khi gate fail
+hoặc request không khớp run/datasets đã validate. Cách dùng, JMA flag mapping,
+giới hạn của API persistence thấp tầng và regression tests nằm trong
+[Silver quality validation](../docs/specs/SILVER_QUALITY_VALIDATION.md).
+
 `SLV-08` triển khai `SilverPartitionKey`, `SilverStorageLayout`, `SilverPartitionManifest`,
 `SilverObjectStore`, `FileSilverObjectStore`, `MinioSilverObjectStore`, `SilverParquetSerializer`,
 `SilverParquetWriter`, `SilverWriteRequest` và `SilverWriteResult`. Module tổ chức partition theo

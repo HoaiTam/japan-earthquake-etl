@@ -20,5 +20,15 @@ public record SilverQualityResult(
         if (validCount + rejectedCount != parsedCount) {
             throw new IllegalArgumentException("valid + rejected must equal parsed");
         }
+        if (validCount != validObservations.size() || rejectedCount != rejectedRecords.size()) {
+            throw new IllegalArgumentException("counts must match observation and reject datasets");
+        }
+    }
+
+    /** Fail before a caller touches storage; a boolean summary alone is not a publish gate. */
+    public void requirePublishable() {
+        if (publishBlocked || rejectedCount > 0) {
+            throw new IllegalStateException("Silver publish blocked by quality validation for run " + ingestRunId);
+        }
     }
 }
