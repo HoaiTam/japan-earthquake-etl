@@ -1,13 +1,13 @@
 ---
 task_id: "SLV-02"
-status: "Ready"
+status: "Done"
 week: 3
 block: "D - Silver đa nguồn"
 workstream: "USGS parser"
 scope: "Core"
 priority: "P0"
 effort_hours: 5
-assignee: "unassigned"
+assignee: "codex"
 reviewer: "unassigned"
 dependencies: ["CON-03", "CON-04"]
 ---
@@ -35,9 +35,9 @@ Dùng để chuyển raw USGS thành observation chuẩn mà không phụ thuộ
 
 ## Tiêu chí hoàn thành
 
-- [ ] Fixture chuẩn parse đúng.
-- [ ] null/sai type tạo validation result rõ.
-- [ ] không biến null thành 0.
+- [x] Fixture chuẩn parse đúng.
+- [x] null/sai type tạo validation result rõ.
+- [x] không biến null thành 0.
 
 ## Hard dependency
 
@@ -63,19 +63,19 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Theo dõi
 
-- **Trạng thái:** Ready
-- **Assignee:** Chưa ghi lại
-- **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Trạng thái:** Done
+- **Assignee:** codex
+- **Reviewer:** unassigned
+- **Evidence / PR:** Hoàn tất trên branch `feat/slv-02-parse-va-chuan-hoa-usgs`; Maven test suite đạt 52/52 tests (bao gồm 12 tests mới trong `UsgsGeoJsonParserTest` kiểm tra toàn bộ ma trận fixture USGS `FX-USGS-01` đến `FX-USGS-07`). Khởi tạo đầy đủ các record `SilverObservation`, `SilverRejectRecord`, `SilverSchemas`, `UsgsParseContext`, `UsgsParseResult` và lớp xử lý `UsgsGeoJsonParser` tích hợp với `ResolvedBronzeInput` từ SLV-01. Kịch bản kiểm tra `check-week-3-plan.sh`, `check-repository-layout.sh`, `check-mvp-baseline.sh` và `git diff --check` đều đạt. Reviewer giữ `unassigned`.
 - **Kỹ năng phù hợp:** Spark SQL, Java, GeoJSON
 
 ## Checklist bàn giao
 
-- [ ] Deliverable đã có trong repository hoặc môi trường demo.
-- [ ] Acceptance criteria đã được kiểm tra.
-- [ ] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
-- [ ] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
-- [ ] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
+- [x] Deliverable đã có trong repository hoặc môi trường demo.
+- [x] Acceptance criteria đã được kiểm tra.
+- [x] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
+- [x] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
+- [x] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
 - [ ] P0/P1 có reviewer khác assignee xác nhận.
 
 ## Tài liệu liên quan

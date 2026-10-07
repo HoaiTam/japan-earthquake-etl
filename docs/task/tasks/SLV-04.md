@@ -1,13 +1,13 @@
 ---
 task_id: "SLV-04"
-status: "Ready"
+status: "Done"
 week: 3
 block: "D - Silver đa nguồn"
 workstream: "Lineage"
 scope: "Core"
 priority: "P0"
 effort_hours: 4
-assignee: "unassigned"
+assignee: "codex"
 reviewer: "unassigned"
 dependencies: ["CON-03"]
 ---
@@ -35,9 +35,9 @@ Dùng để audit, reprocess và liên kết nhiều observation về cùng mộ
 
 ## Tiêu chí hoàn thành
 
-- [ ] Mỗi observation truy vết về đúng raw record.
-- [ ] key ổn định khi rerun cùng input.
-- [ ] không dùng time/coordinate như canonical event ID.
+- [x] Mỗi observation truy vết về đúng raw record.
+- [x] key ổn định khi rerun cùng input.
+- [x] không dùng time/coordinate như canonical event ID.
 
 ## Hard dependency
 
@@ -62,19 +62,19 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Theo dõi
 
-- **Trạng thái:** Ready
-- **Assignee:** Chưa ghi lại
-- **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Trạng thái:** Done
+- **Assignee:** codex
+- **Reviewer:** unassigned
+- **Evidence / PR:** Hoàn tất trên branch `feat/slv-04-tao-source-key-va-lineage`; Maven test suite đạt 59/59 tests (bao gồm 7 tests mới trong `SilverLineageAndKeyTest`). Đã chuẩn hóa lớp `SourceKeyGenerator` và `SilverLineage` cho cả hai nguồn USGS và JMA; JMA key dùng thuật toán version `jma_k1` từ identity fields chính thức bảo đảm `same_source_record_key=true` khi cập nhật revision; `canonical_event_id` được sinh độc lập dưới dạng `evt_` + 32 hex chars, hoàn toàn không phụ thuộc thời gian hay tọa độ; `SilverLineage` hỗ trợ đối soát toàn vẹn byte-level về raw record locator/hash và raw object SHA-256. Kịch bản kiểm tra `check-week-3-plan.sh`, `check-repository-layout.sh`, `check-mvp-baseline.sh` và `git diff --check` đều đạt. Reviewer giữ `unassigned`.
 - **Kỹ năng phù hợp:** Data lineage, hashing, Spark
 
 ## Checklist bàn giao
 
-- [ ] Deliverable đã có trong repository hoặc môi trường demo.
-- [ ] Acceptance criteria đã được kiểm tra.
-- [ ] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
-- [ ] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
-- [ ] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
+- [x] Deliverable đã có trong repository hoặc môi trường demo.
+- [x] Acceptance criteria đã được kiểm tra.
+- [x] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
+- [x] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
+- [x] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
 - [ ] P0/P1 có reviewer khác assignee xác nhận.
 
 ## Tài liệu liên quan
