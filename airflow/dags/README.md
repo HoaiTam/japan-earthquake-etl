@@ -16,3 +16,9 @@ staging volume, không đưa raw payload vào XCom. Chi tiết protocol nằm tr
 Runner thật được đóng gói trong custom Airflow image bởi `USG-06`; fixed-window
 operator flow và evidence xem tại
 [USGS live Bronze runbook](../../docs/specs/USGS_LIVE_BRONZE_RUNBOOK.md).
+
+`jma_04_year_backfill.py` là DAG manual JMA, paused khi tạo, không catchup.
+Task group map exact năm/segment đã preview, giữ hai archive 1997, không đưa
+ZIP vào XCom. Helper `jma_backfill_runtime.py` quản lý context/subprocess và
+failure summary; Java xử lý HTTP/ZIP/MinIO. Hướng dẫn ở
+[JMA year backfill](../../docs/specs/JMA_YEAR_BACKFILL.md).

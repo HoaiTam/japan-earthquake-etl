@@ -11,6 +11,7 @@ WAIT_TIMEOUT ?= 300
 SERVICE ?=
 TAIL ?= 100
 DAT01_AIRFLOW_CONTAINER ?=
+JMA_YEARS ?=
 
 COMPOSE = docker compose --env-file "$(ENV_FILE)" -f "$(COMPOSE_FILE)"
 RUNTIME_ENV = ENV_FILE="$(ENV_FILE)" COMPOSE_FILE="$(COMPOSE_FILE)"
@@ -26,7 +27,7 @@ STATIC_CHECKS := check-compose check-minio check-airflow check-spark \
 COMPONENT_SMOKES := smoke-minio smoke-airflow smoke-spark smoke-query smoke-usgs-live
 
 .PHONY: help env-init require-env check-config check-config-local config \
-	test test-contracts test-java test-jma-bronze test-jma-parser test-airflow package-java check \
+	test test-contracts test-java test-jma-bronze test-jma-parser test-jma-backfill jma-preview test-airflow package-java check \
 	$(CONTRACT_CHECKS) $(STATIC_CHECKS) check-foundation check-jma-inventory-live build-shared-fixtures \
 	build up start up-minio up-airflow up-spark up-query status ps logs logs-follow \
 	restart stop down smoke smoke-foundation $(COMPONENT_SMOKES) \
@@ -77,6 +78,14 @@ test-jma-bronze: ## Kiểm thử riêng JMA-03 ZIP validator, Bronze writer và 
 test-jma-parser: ## Kiểm thử riêng SLV-03 JMA fixed-width, code mapping và handoff Silver offline
 	@./mvnw --batch-mode --no-transfer-progress -pl spark -am \
 		-Dtest=JmaFixedWidthParserTest,JmaParserIntegrationTest -Dsurefire.failIfNoSpecifiedTests=false test
+
+test-jma-backfill: ## Kiểm thử JMA-04 downloader/runner/planner/DAG bằng fixture/mock, không tải nguồn
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am \
+		-Dtest=JmaArchiveDownloaderTest,JmaYearIngestRunnerTest -Dsurefire.failIfNoSpecifiedTests=false test
+	@python3 -m unittest discover -s airflow/tests -p 'test_jma_*.py'
+
+jma-preview: ## Preview offline các năm chỉ định; ví dụ JMA_YEARS=1997,2023
+	@python3 scripts/preview-jma-backfill.py --years "$(JMA_YEARS)"
 
 test-airflow: ## Unit test DAG/runner Airflow bằng unittest; không cần Airflow runtime
 	@python3 -m unittest discover -s airflow/tests -p 'test_*.py'

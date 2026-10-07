@@ -109,7 +109,9 @@ MLI-01 độc lập bằng CON-03/schema fixture, không cần model thật.
 
 Đây là thứ tự ghép dữ liệu thật, không phải thứ tự bắt đầu toàn bộ task.
 Không xóa hard dependency để tạo cảm giác độc lập. Tại PR phân công có 6
-task Ready: JMA-04, SLV-06, SLV-07, GLD-01, ORC-01, MLI-01. Các task còn lại
+task đã Ready khi lập kế hoạch: JMA-04, SLV-06, SLV-07, GLD-01, ORC-01, MLI-01.
+Trạng thái hiện tại theo file task/index (JMA-04 đã Done implementation/offline).
+Các task còn lại
 Backlog; khi thực sự làm fixture/mock/test plan được phép thì ghi In Progress
 và dependency còn chờ. Chỉ Done khi acceptance/dependency/tests/docs/evidence
 đạt; chưa có reviewer không cho phép bịa approval.
@@ -128,8 +130,9 @@ và dependency còn chờ. Chỉ Done khi acceptance/dependency/tests/docs/evide
 
 Rủi ro baseline phải xử lý trong PR của owner, không sửa ngầm shared contract:
 
-- JMA-02 state chưa đủ HTTP GET status/type cho JMA-03: giữ metadata transport
-  thật ở adapter; Range 206 đối soát full archive size. Không bịa HTTP 200.
+- JMA-04 bổ sung HTTP GET status/type cho result/state downloader. State JMA-02
+  cũ thiếu metadata cần GET lại; Range 206 đối soát full archive size, không bịa
+  HTTP 200. Workflow/offline acceptance đã có; live evidence ở JMA-05.
 - SLV-01 nhận manifest local path: stage exact manifest từ store; không dùng
   `Path.of("s3://...")`. SLV-08 hiện chỉ ghi observations/rejects, không giả
   định link/membership đã persist đủ cho Gold.

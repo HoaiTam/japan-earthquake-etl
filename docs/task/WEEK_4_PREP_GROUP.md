@@ -23,7 +23,8 @@ Mỗi task vẫn tạo branch/PR riêng, không dùng một branch cho cả nhó
 - Resolve danh sách năm/range thành exact inventory entries; 1997 là hai segment.
 - Preview source/archive/release và output scope trước khi ghi, giới hạn tải/concurrency.
 - Nối JMA-02 download với JMA-03 validation/immutable raw + manifest-last writer.
-- Giữ HTTP transport metadata thật; state downloader không tự đủ metadata writer.
+- Giữ HTTP transport metadata thật; JMA-04 bổ sung GET metadata vào downloader
+  state/result. State JMA-02 cũ cần GET lại trước khi writer dùng, không tự bịa HTTP 200.
 - Reuse archive đã verify, retry riêng năm/segment lỗi và report status/reason từng entry.
 
 ### JMA-05 — evidence và dữ liệu để mọi người test

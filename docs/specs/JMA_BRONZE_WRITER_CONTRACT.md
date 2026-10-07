@@ -134,10 +134,12 @@ Các reason chính:
 - `JmaDownloadResult.succeeded()` không có nghĩa `BronzeReady`. Caller phải
   đọc đúng `archivePath`, truyền `sha256`, `contentLengthBytes`,
   `catalogRelease` và inventory entry vào `JmaBronzeWriteRequest`.
-- HTTP metadata phải được caller giữ từ transport thật. `state.json` JMA-02
-  hiện chưa lưu đủ GET status/content-type; không tự bịa HTTP `200` hoặc dùng
-  `observed_*` trong CSV thay metadata download. Với resume `206`, length kỳ
-  vọng là **toàn archive**, không phải Content-Length của phần Range cuối.
+- HTTP metadata phải được caller giữ từ transport thật. JMA-04 bổ sung GET
+  status/content-type/final URI/headers/retrieval time vào result và state;
+  state JMA-02 cũ thiếu fields này cần GET lại, không tự bịa HTTP `200` hoặc
+  dùng `observed_*` trong CSV. Với resume `206`, length kỳ vọng là **toàn
+  archive**, không phải Content-Length của phần Range cuối. Xem
+  [JMA year backfill](./JMA_YEAR_BACKFILL.md) về API tương thích và publication reuse.
 - SLV-01 hiện nhận manifest **local path**: đọc/download chính xác manifest
   key từ store ra staging trước, rồi dùng `ObjectStoreBronzeInputReader` để
   đọc raw key. Không gọi `Path.of()` với URI `s3://`.
@@ -167,7 +169,8 @@ mock JMA-02 → Bronze → SLV-01 với raw S3 URI. Test đối chiếu status/r
 `tests/fixtures/cases.json`, không sửa fixture dùng chung.
 
 Live download, ghi MinIO thật, DAG/backfill 40 năm và parse Silver JMA chưa
-được cung cấp bởi JMA-03; tiếp tục ở JMA-04/JMA-05/SLV-03. Không có migration
+được cung cấp bởi JMA-03; JMA-04 hiện có workflow có phạm vi/runner, live QA
+ở JMA-05 và parser ở SLV-03. Không có migration
 hoặc xóa dữ liệu Bronze bắt buộc.
 
 Evidence ngày 2026-10-07: `make test-jma-bronze` đạt **21/21 tests** (5

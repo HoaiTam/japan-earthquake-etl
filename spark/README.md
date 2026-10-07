@@ -59,6 +59,14 @@ normalize/filter event tại Bronze. Chạy riêng bằng `make test-jma-bronze`
 Thành phần, metadata, retry/revision và handoff JMA-02 → SLV-01 nằm trong
 [JMA Bronze writer contract](../docs/specs/JMA_BRONZE_WRITER_CONTRACT.md).
 
+`JMA-04` thêm `JmaYearIngestRunner` vào cùng shaded JAR, gọi qua
+`/opt/pipeline/bin/jma-ingest-runner --context-file <path>`. Một process ingest
+một exact year/segment bằng downloader/writer, giữ metadata GET thật và
+verify publication trước trả Ready. Reuse pointer theo SHA kiểm tra lại raw
+và manifest, không nhân bản raw cho run mới khi cache còn hợp lệ. Chạy riêng
+`make test-jma-backfill`; protocol và cache/recovery boundary ở
+[JMA year backfill](../docs/specs/JMA_YEAR_BACKFILL.md).
+
 `SLV-01` thêm package `ie212.earthquake.spark.silver` để resolve đúng một
 manifest BronzeReady theo run/source, kiểm tra validation flags, raw object
 length/SHA-256 và stage deterministic. Resolver không quét wildcard hoặc chọn
