@@ -57,6 +57,16 @@ manifest BronzeReady theo run/source, kiểm tra validation flags, raw object
 length/SHA-256 và stage deterministic. Resolver không quét wildcard hoặc chọn
 object latest mơ hồ; adapter hỗ trợ local path và BronzeObjectStore MinIO/S3.
 
+`SLV-02` triển khai `UsgsGeoJsonParser`, `SilverObservation`, `SilverRejectRecord`,
+`SilverSchemas`, `UsgsParseContext` và `UsgsParseResult` dưới package
+`ie212.earthquake.spark.silver`. Parser ánh xạ GeoJSON FeatureCollection sang
+schema Silver `1.0` (CON-03), chuẩn hóa UTC/JST (`Asia/Tokyo`), envelope kỹ thuật
+`[20.0, 50.0]` x `[120.0, 155.0]`, coordinates, depth, magnitude, alert/tsunami và
+source updated timestamp. Parser giữ nguyên chính sách null (không ép null thành 0),
+phân loại reject record với reason code rõ ràng (`MISSING_SOURCE_KEY`, `INVALID_EVENT_TIME`,
+`INVALID_LATITUDE`, `INVALID_LONGITUDE`, `INVALID_NUMBER`), và giữ negative depth kèm cờ
+cảnh báo `NEGATIVE_DEPTH`.
+
 Không commit `target/`, JAR hoặc local metastore. Kiến trúc service, dependency,
 version matrix, marker output và cách mở rộng được mô tả trong
 [Spark standalone contract](../docs/specs/SPARK_STANDALONE.md).
