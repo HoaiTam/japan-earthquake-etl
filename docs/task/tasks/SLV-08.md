@@ -1,13 +1,13 @@
 ---
 task_id: "SLV-08"
-status: "Ready"
+status: "Done"
 week: 3
 block: "D - Silver đa nguồn"
 workstream: "Silver storage"
 scope: "Core"
 priority: "P0"
 effort_hours: 5
-assignee: "unassigned"
+assignee: "Trang"
 reviewer: "unassigned"
 dependencies: ["CON-03"]
 ---
@@ -35,9 +35,9 @@ Ghi output tạm, verify schema/count, publish partition event_year/event_month/
 
 ## Tiêu chí hoàn thành
 
-- [ ] Không có output dở được coi là hoàn tất.
-- [ ] retry không append duplicate.
-- [ ] partition khớp event time UTC.
+- [x] Không có output dở được coi là hoàn tất.
+- [x] retry không append duplicate.
+- [x] partition khớp event time UTC.
 
 ## Hard dependency
 
@@ -62,19 +62,19 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Theo dõi
 
-- **Trạng thái:** Ready
-- **Assignee:** Chưa ghi lại
-- **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Trạng thái:** Done
+- **Assignee:** Trang
+- **Reviewer:** unassigned
+- **Evidence / PR:** Hoàn tất trên branch `feat/slv-08-ghi-silver-parquet-theo-source`. Đã triển khai đầy đủ `SilverPartitionKey`, `SilverStorageLayout`, `SilverPartitionManifest`, `SilverObjectStore` (với `FileSilverObjectStore` và `MinioSilverObjectStore`), `SilverParquetSerializer`, `SilverParquetWriter`, `SilverWriteRequest` và `SilverWriteResult`. Module tổ chức partition theo đúng thứ bậc `source_observation/event_year_utc=YYYY/event_month_utc=MM/source_system=<source_system>` và `reject_record/event_year_utc=YYYY/event_month_utc=MM/source_system=<source_system>` dựa trên `event_time_utc` (UTC). Áp dụng quy trình atomic staging (`_staging/<run_id>/...`), đối soát checksum SHA-256, schema và row count trước khi promote vào partition chính thức; đảm bảo retry/rerun ghi đè sạch sẽ không append duplicate record. Tự động xuất marker `_SUCCESS` và `manifest.json` ghi nhận metadata partition, danh sách file, SHA-256, số dòng và summary chất lượng dữ liệu. Bộ test suite Spark đạt 71/71 tests (bao gồm 10 tests mới trong `SilverParquetWriterTest` và 2 tests trong `MinioSilverObjectStoreTest`). Các kịch bản `check-spark.sh`, `check-week-3-plan.sh`, `check-repository-layout.sh`, `check-mvp-baseline.sh` và `git diff --check` đều đạt. Reviewer giữ `unassigned`.
 - **Kỹ năng phù hợp:** Parquet, Spark, MinIO
 
 ## Checklist bàn giao
 
-- [ ] Deliverable đã có trong repository hoặc môi trường demo.
-- [ ] Acceptance criteria đã được kiểm tra.
-- [ ] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
-- [ ] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
-- [ ] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
+- [x] Deliverable đã có trong repository hoặc môi trường demo.
+- [x] Acceptance criteria đã được kiểm tra.
+- [x] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
+- [x] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
+- [x] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
 - [ ] P0/P1 có reviewer khác assignee xác nhận.
 
 ## Tài liệu liên quan

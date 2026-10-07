@@ -7,7 +7,7 @@ workstream: "USGS parser"
 scope: "Core"
 priority: "P0"
 effort_hours: 5
-assignee: "codex"
+assignee: "Trang"
 reviewer: "unassigned"
 dependencies: ["CON-03", "CON-04"]
 ---
@@ -64,7 +64,7 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 ## Theo dõi
 
 - **Trạng thái:** Done
-- **Assignee:** codex
+- **Assignee:** Trang
 - **Reviewer:** unassigned
 - **Evidence / PR:** Hoàn tất trên branch `feat/slv-02-parse-va-chuan-hoa-usgs`; Maven test suite đạt 52/52 tests (bao gồm 12 tests mới trong `UsgsGeoJsonParserTest` kiểm tra toàn bộ ma trận fixture USGS `FX-USGS-01` đến `FX-USGS-07`). Khởi tạo đầy đủ các record `SilverObservation`, `SilverRejectRecord`, `SilverSchemas`, `UsgsParseContext`, `UsgsParseResult` và lớp xử lý `UsgsGeoJsonParser` tích hợp với `ResolvedBronzeInput` từ SLV-01. Kịch bản kiểm tra `check-week-3-plan.sh`, `check-repository-layout.sh`, `check-mvp-baseline.sh` và `git diff --check` đều đạt. Reviewer giữ `unassigned`.
 - **Kỹ năng phù hợp:** Spark SQL, Java, GeoJSON
