@@ -7,7 +7,7 @@ workstream: "Quality"
 scope: "Core"
 priority: "P0"
 effort_hours: 5
-assignee: "HoaiTam"
+assignee: "ThanhTris"
 reviewer: "unassigned"
 dependencies: ["CON-03", "CON-04"]
 ---
