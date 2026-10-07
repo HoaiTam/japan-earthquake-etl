@@ -88,5 +88,6 @@ Khi hoàn thành, báo cáo tối thiểu:
 - File đã thay đổi.
 - Test/check đã chạy và kết quả.
 - Giới hạn hoặc bước review còn lại.
+- Trong phần **Giới hạn / Rủi ro / Bước tiếp theo** của bàn giao, mô tả PR và docs, nếu phần còn thiếu thuộc task chưa thực hiện hoặc chưa hoàn tất, phải ghi **mã task, tên task và phần việc còn thiếu**; kèm link file task khi phù hợp. Ví dụ: chưa kiểm thử JMA → MinIO live — [JMA-05 - Kiểm thử JMA đến Bronze](docs/task/tasks/JMA-05.md). Không chỉ ghi chung chung “làm sau” hoặc “chưa kiểm thử”; nếu chưa có task phụ trách thì ghi rõ “chưa có task”, không tự đoán mã task.
 - Các lệnh `git diff`, `git add <paths>`, `git commit` và `git push -u origin <branch>` phù hợp.
 - Tự động gửi mô tả PR bằng tiếng Việt để người dùng copy, không chờ yêu cầu riêng. Đặt toàn bộ mô tả trong một khối code `markdown`, không lồng code fence bên trong; gồm mục tiêu/task, thay đổi chính, docs, test/check thực tế và giới hạn hoặc review còn lại. Không tự đăng mô tả lên GitHub khi chưa được yêu cầu.
