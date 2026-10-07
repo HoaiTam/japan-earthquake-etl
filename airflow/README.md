@@ -2,6 +2,13 @@
 
 Module này chứa orchestration code của pipeline.
 
+`ORC-01` cung cấp DAG manual `orc_01_etl_pipeline`, 6 task groups/8 task với
+strict failure gates và run context có version. `make etl-preview`/
+`make etl-mock` không gọi nguồn/storage; mock không thể thành real Published.
+Real mode cần explicit scope và `ETL_PHASE_RUNNER_COMMAND` (hiện chưa có
+adapter toàn chuỗi). Thành phần, phase I/O và owners còn thiếu xem
+[ETL orchestration contract](../docs/specs/ETL_ORCHESTRATION_CONTRACT.md).
+
 - `dags/`: DAG và helper được Airflow import.
 - `tests/`: unit test và DAG import test.
 

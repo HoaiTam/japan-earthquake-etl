@@ -11,8 +11,9 @@ Phạm vi, KPI và Definition of Done hiện hành nằm tại
 
 > Trạng thái hiện tại: **foundation đã có full-stack smoke checklist**.
 > MinIO bucket bootstrap, Airflow local runtime, Spark Java build/runtime,
-> Iceberg REST Catalog và Trino đã được triển khai và kiểm tra cùng nhau; DAG
-> ETL thuộc các task tiếp theo.
+> Iceberg REST Catalog và Trino đã được triển khai và kiểm tra cùng nhau.
+> ORC-01 đã có khung DAG ETL/phase gates và tests mock; chưa có daily ETL thật
+> đến Gold Published (SLV-09, GLD-03/04 và QA-01 chưa hoàn tất).
 
 Source coverage USGS/JMA, vùng nghiên cứu, timezone và overlap được chốt tại
 [CON-01 source coverage contract](./docs/specs/SOURCE_COVERAGE.md). Kiểm tra
@@ -36,6 +37,12 @@ USG-04 thêm DAG `usg_04_usgs_ingest` với task group resolve/fetch/validate/up
 verify, publish gate và run summary. DAG truyền cùng logical window qua retry và
 chỉ mở đường cho Silver sau khi Bronze đã verify theo [USGS Airflow ingest
 contract](./docs/specs/USGS_AIRFLOW_INGEST_CONTRACT.md).
+
+ORC-01 thêm DAG manual `orc_01_etl_pipeline`: sáu task groups, exact
+manifest/SHA/partition/snapshot scope và cổng Trino trước publication. Team
+test offline bằng `make test-orchestration`, `make etl-preview`, `make etl-mock`;
+mock chỉ trả `MockComplete`, không publish Gold. Thành phần và handoff adapter ở
+[ETL orchestration contract](./docs/specs/ETL_ORCHESTRATION_CONTRACT.md).
 
 USG-05 dùng fixture và mock HTTP để kiểm thử success/empty/invalid, timeout,
 `429/5xx`, checksum mismatch và đối soát manifest/count trước khi mở gate cho

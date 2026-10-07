@@ -27,7 +27,7 @@ STATIC_CHECKS := check-compose check-minio check-airflow check-spark \
 COMPONENT_SMOKES := smoke-minio smoke-airflow smoke-spark smoke-query smoke-usgs-live smoke-jma-live
 
 .PHONY: help env-init require-env check-config check-config-local config \
-	test test-contracts test-java test-jma-bronze test-jma-parser test-jma-backfill test-jma-qa jma-preview test-airflow package-java check \
+	test test-contracts test-java test-jma-bronze test-jma-parser test-jma-backfill test-jma-qa jma-preview test-airflow test-orchestration etl-preview etl-mock package-java check \
 	$(CONTRACT_CHECKS) $(STATIC_CHECKS) check-foundation check-jma-inventory-live build-shared-fixtures \
 	build up start up-minio up-airflow up-spark up-query status ps logs logs-follow \
 	restart stop down smoke smoke-foundation $(COMPONENT_SMOKES) \
@@ -95,6 +95,15 @@ jma-preview: ## Preview offline các năm chỉ định; ví dụ JMA_YEARS=1997
 
 test-airflow: ## Unit test DAG/runner Airflow bằng unittest; không cần Airflow runtime
 	@python3 -m unittest discover -s airflow/tests -p 'test_*.py'
+
+test-orchestration: ## ORC-01 phase/gate/DAG structure bằng fixture/mock, không cần mạng hoặc Airflow
+	@python3 -m unittest discover -s airflow/tests -p 'test_etl_*.py'
+
+etl-preview: ## Preview ORC-01 run context và exact scope từ fixture; không ghi hoặc gọi service
+	@python3 scripts/preview-etl-pipeline.py
+
+etl-mock: ## Chạy sáu phase ORC-01 offline; chỉ MockComplete, không Published
+	@python3 scripts/preview-etl-pipeline.py --execute-mock
 
 package-java: ## Clean, test, verify và đóng gói Spark JAR
 	@./mvnw --batch-mode --no-transfer-progress clean verify

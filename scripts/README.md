@@ -13,6 +13,12 @@ không thay đổi logic script gốc. Hướng dẫn đầy đủ tại
 
 Hiện có:
 
+- `preview-etl-pipeline.py`: preview/run sáu phase fixture ORC-01 offline,
+  không đọc `.env`, ghi staging hoặc gọi service. `make etl-preview`,
+  `make etl-mock`; mock chỉ trả `MockComplete`, `published=false`.
+  Giao diện task groups/adapters và task runtime chưa hoàn tất xem
+  [ETL orchestration contract](../docs/specs/ETL_ORCHESTRATION_CONTRACT.md).
+
 - `smoke-jma-live.sh`: build/start Airflow và chạy live QA JMA-05 cho 1997
   (hai segment), 2000, 2023; preview/ingest/rerun qua scheduler thật, Java đọc
   lại raw/manifest/DAT-01 và so SHA/count/release với baseline. Wrapper

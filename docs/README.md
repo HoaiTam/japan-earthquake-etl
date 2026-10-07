@@ -4,7 +4,8 @@ Thư mục này là nguồn tài liệu chính thức cho dự án **Nền tản
 
 > Trạng thái hiện tại: **Foundation đã có full-stack smoke checklist**; USGS
 > request, HTTP client, Bronze writer và Airflow ingest DAG đã có contract cùng
-> unit/static acceptance. Silver/Gold DAG vẫn chưa triển khai.
+> unit/static acceptance. ORC-01 đã có khung DAG Silver/Gold bằng contract/mock,
+> chưa có daily ETL thật đến Published; xem [giao diện và task còn thiếu](./specs/ETL_ORCHESTRATION_CONTRACT.md#7-handoff-giới-hạn-và-task-còn-thiếu).
 
 > Phạm vi hiện hành dùng [baseline PLN-01](./specs/MVP_SCOPE_KPI_AND_DOD.md):
 > HDBSCAN lifecycle thuộc Core, static report là output bắt buộc và Power BI là
@@ -23,6 +24,7 @@ Thư mục này là nguồn tài liệu chính thức cho dự án **Nền tản
 | Hiểu retry, size guard và pagination USGS | [USGS HTTP client contract](./specs/USGS_HTTP_CLIENT_CONTRACT.md) |
 | Hiểu validate và ghi raw USGS vào Bronze | [USGS Bronze writer contract](./specs/USGS_BRONZE_WRITER_CONTRACT.md) |
 | Hiểu DAG, runner protocol và publish gate USGS | [USGS Airflow ingest contract](./specs/USGS_AIRFLOW_INGEST_CONTRACT.md) |
+| Ghép ETL task groups, phase I/O, mock/real boundary và test offline | [ETL orchestration contract](./specs/ETL_ORCHESTRATION_CONTRACT.md) |
 | Hiểu ma trận QA từ USGS đến Bronze | [USGS Bronze QA contract](./specs/USGS_BRONZE_QA_CONTRACT.md) |
 | Dùng hai sample thật USGS/JMA đã khóa cho integration | [Shared real-sample catalog](./specs/SHARED_REAL_SAMPLE_DATA.md) |
 | Hiểu Bronze object, manifest, checksum và retry | [Bronze storage contract](./specs/BRONZE_STORAGE_CONTRACT.md) |
@@ -119,7 +121,11 @@ Chưa bao gồm theo phạm vi hiện tại:
 
 - Thiết kế database chi tiết, DBML, DDL hoặc migration.
 - Schema vật lý cuối cùng của các bảng Iceberg.
-- Silver/Gold DAG, Gold jobs và lệnh backfill Silver/Gold thực tế; JMA Bronze
+- Silver/Gold adapters/jobs thật và lệnh backfill Silver/Gold thực tế
+  (SLV-09 - Tích hợp và kiểm thử Silver đa nguồn, GLD-03 - Ghi Gold Iceberg và
+  commit snapshot, GLD-04 - Tạo Trino views và verification SQL, ORC-03 -
+  Implement backfill và reprocessing); khung DAG ORC-01 đã có tests mock.
+  JMA Bronze
   đã có manual workflow/runner ở JMA-04 và [live QA JMA-05](./evidence/JMA-05.md)
   cho 1997/2000/2023, không phải full historical hoặc Silver/Gold Published.
 

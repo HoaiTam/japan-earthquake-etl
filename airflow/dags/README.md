@@ -4,6 +4,13 @@
 schedule/timezone, data interval, retry, dependency và run context theo tài
 liệu flow. Không đọc secret trực tiếp từ file trong repository.
 
+`orc_01_etl_pipeline.py` là khung DAG manual/paused đến Gold, 6 task groups,
+strict `all_success`. `etl_pipeline_runtime.py` kiểm tra versioned context và
+phase metadata, không xử lý raw records. Fixture ở `fixtures/orc_01_mock_v1.json`
+chỉ trả `MockComplete`; real mode thiếu adapter/scope sẽ fail closed. Chi tiết
+handoff và task runtime còn thiếu ở
+[ETL orchestration contract](../../docs/specs/ETL_ORCHESTRATION_CONTRACT.md).
+
 `afl_01_smoke.py` là DAG thủ công của foundation. DAG luôn được unpause khi tạo,
 không catchup và không truy cập hệ thống bên ngoài để smoke test phản ánh riêng
 khả năng parse, schedule và execute task của Airflow.

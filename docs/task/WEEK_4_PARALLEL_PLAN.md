@@ -116,6 +116,12 @@ Các task chờ gate còn Backlog; khi thực sự làm fixture/mock/test plan �
 và dependency còn chờ. Chỉ Done khi acceptance/dependency/tests/docs/evidence
 đạt; chưa có reviewer không cho phép bịa approval.
 
+ORC-01 hiện đã Done skeleton: 6 task groups/8 task, strict failure gates,
+phase/context fixture v1.0 và tests/import graph; [evidence ORC-01](../evidence/ORC-01.md).
+Nhóm mở đường đã bàn giao đúng acceptance riêng. ORC-02..05 có thể dùng
+[giao diện adapter](../specs/ETL_ORCHESTRATION_CONTRACT.md) để bắt đầu; không
+chuyển status downstream hoặc nhận Gold Published chỉ vì mock đạt.
+
 | Producer → consumer | Handoff / ranh giới |
 |---|---|
 | JMA-04/05 → SLV-09 | Exact manifest/raw key, year/segment/release/SHA/count/run; 1997 hai segment, raw ZIP nguyên bản |
@@ -170,7 +176,7 @@ runbook; không dùng smoke hạ tầng làm evidence pipeline Published.
 
 ### Checklist cuối tuần
 
-- [ ] Nhóm mở đường bàn giao đủ manifests/checksums/coverage và phase I/O.
+- [x] Nhóm mở đường bàn giao đủ manifests/checksums/coverage và phase I/O (ORC-01 skeleton/mock, không phải ETL Published).
 - [ ] Task đã đạt có evidence riêng và metadata/Theo dõi/index khớp; task chưa
   đạt giữ đúng status. 18 task là kế hoạch, không phải 18 task Done.
 - [ ] Source → Bronze → Silver → Gold verify → pinned dataset/candidate pilot
