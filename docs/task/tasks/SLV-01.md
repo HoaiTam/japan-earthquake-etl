@@ -7,7 +7,7 @@ workstream: "Input staging"
 scope: "Core"
 priority: "P0"
 effort_hours: 3
-assignee: "codex"
+assignee: "ThanhTris"
 reviewer: "unassigned"
 dependencies: ["CON-02"]
 ---
@@ -63,7 +63,7 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 ## Theo dõi
 
 - **Trạng thái:** Done
-- **Assignee:** codex
+- **Assignee:** ThanhTris
 - **Reviewer:** Chưa ghi lại
 - **Evidence / PR:** [PR #31](https://github.com/HoaiTam/japan-earthquake-etl/pull/31) trên branch `feat/slv-01-bronze-input-resolver`; rebase lên `origin/main` tại `2f93898` ngày 2026-10-06, giữ cả phần JMA-02 và SLV-01 trong `spark/README.md`. Maven `-pl spark -am clean test` đạt 40/40 tests (resolver 2/2) với JDK 17/Maven 3.9.16; contract checks Bronze/data-model/repository/week-3 và `git diff --check` đạt. Reviewer vẫn `unassigned`.
 - **Kỹ năng phù hợp:** Airflow, MinIO, staging
