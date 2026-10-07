@@ -25,3 +25,10 @@ identity; quy trình nằm tại
 Log, metadata database, credential và dữ liệu staging là runtime state, không
 được commit vào module. Compose chỉ bind `dags/` tới `/opt/airflow/dags` ở chế
 độ read-only; log và staging dùng named volume riêng.
+
+`JMA-04` thêm DAG manual `jma_04_year_backfill` và task group
+`jma_year_backfill`: explicit years/range, preview mặc định, mapped archive
+tasks giới hạn concurrency, retry và summary chạy cả khi archive lỗi. Java
+runner nối downloader/writer, verify exact publication rồi mới trả Ready;
+preview không tạo BronzeReady giả. Thành phần, protocol và lệnh vận hành xem
+[JMA year backfill](../docs/specs/JMA_YEAR_BACKFILL.md).

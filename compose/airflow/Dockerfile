@@ -28,5 +28,10 @@ COPY --from=build --chown=airflow:0 \
 COPY --chown=airflow:0 --chmod=0755 \
     compose/airflow/usgs-runner.sh \
     /opt/pipeline/bin/usgs-ingest-runner
+COPY --chown=airflow:0 --chmod=0755 \
+    compose/airflow/jma-runner.sh \
+    /opt/pipeline/bin/jma-ingest-runner
+COPY --chown=airflow:0 config/jma/hypocenter_archives_v1.csv \
+    /opt/pipeline/config/jma/hypocenter_archives_v1.csv
 
 USER airflow

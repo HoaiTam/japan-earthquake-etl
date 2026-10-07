@@ -143,6 +143,15 @@ context, retry hoặc data interval contract của DAG production.
   trạng thái khác `BronzeReady` thì Airflow không schedule downstream.
 - Chi tiết command protocol và dry-run nằm trong [USGS Airflow ingest contract](./USGS_AIRFLOW_INGEST_CONTRACT.md); live operator flow nằm trong [USGS live Bronze runbook](./USGS_LIVE_BRONZE_RUNBOOK.md).
 
+### 5.2. JMA-04 year backfill
+
+JMA-04 bổ sung DAG manual `jma_04_year_backfill` với task group map archive,
+preview mặc định và summary/failure gate. Runner và pinned inventory được
+đóng gói cùng custom image; shared staging volume giữ cache/context/pointers.
+Xem [JMA year backfill](./JMA_YEAR_BACKFILL.md) để chọn years/range, retry/reuse,
+giới hạn concurrency và test. Không schedule JMA daily hoặc tải full 40 năm
+khi start service; live QA phải được ghi riêng ở JMA-05.
+
 ## 6. Cấu hình và secret
 
 Giá trị local lấy từ `.env`; `.env.example` chỉ chứa placeholder.

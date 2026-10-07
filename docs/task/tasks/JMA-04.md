@@ -1,6 +1,6 @@
 ---
 task_id: "JMA-04"
-status: "Ready"
+status: "Done"
 week: 4
 block: "C - JMA Bronze"
 workstream: "Backfill orchestration"
@@ -32,12 +32,14 @@ Nhận danh sách năm hoặc khoảng năm, preview phạm vi, chạy có giớ
 ## Deliverable
 
 - Airflow JMA backfill task group và year-level run summary.
+- [JMA year backfill runbook](../../specs/JMA_YEAR_BACKFILL.md): thành phần,
+  input, metadata HTTP, retry/cache/reuse, failure gate và lệnh test/chạy thật.
 
 ## Tiêu chí hoàn thành
 
-- [ ] Có thể chạy lại một năm độc lập.
-- [ ] không tải lại file không đổi.
-- [ ] failure không để trạng thái nửa hoàn tất.
+- [x] Có thể chạy lại một năm độc lập.
+- [x] không tải lại file không đổi.
+- [x] failure không để trạng thái nửa hoàn tất.
 
 ## Hard dependency
 
@@ -74,22 +76,41 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Theo dõi
 
-- **Trạng thái:** Ready
+- **Trạng thái:** Done
 - **Assignee:** HoaiTam
 - **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Branch / baseline:** `feat/jma-04-year-backfill-workflow` từ main `01c4b5e`
+  (merge PR #39); chưa commit/push/mở PR, không sửa `.env` hoặc `.metals/`.
+- **Evidence 2026-10-07:** `make test-jma-backfill` gồm 16/16 Java tests và
+  18/18 Python tests; full `make check` gồm 153/153 Java tests, 33/33 Airflow
+  tests, static Compose/foundation/USG-06 và checker 73 task. JDK 21.0.11,
+  compiler `--release 17`; HTTP tests dùng localhost mock, storage dùng file/mock.
+- **Acceptance evidence:** Preview `make jma-preview JMA_YEARS=1997,2023`
+  resolve đúng 3 archive; year list/range/rerun riêng có scope bất biến;
+  same/new-run reuse chỉ 1 GET và 1 raw/manifest publication; header-only
+  change không tạo copy, forced revision giữ bản cũ. Manifest write failure
+  không Ready và recover cùng attempt; tampered/raw/missing result hoặc chỉ
+  một segment 1997 không mở gate; crash invalidate Ready cũ trước retry.
+- **Giới hạn / handoff:** Chưa có reviewer độc lập (`unassigned`), chưa chạy
+  Airflow import/scheduler/mapped execution, JDK17/Spark/MinIO hoặc nguồn JMA
+  thật (Docker daemon chưa chạy). Live QA/sample 2000/2023/1997 thuộc JMA-05.
+  Không sửa DAT-01 catalog, shared fixture hoặc Bronze manifest 1.0; không
+  tải 40 năm/xóa data. Resume HTTP có giới hạn như runbook; cache mất có thể
+  tạo publication mới, không tuyên bố exactly-once physical storage.
 - **Kỹ năng phù hợp:** Airflow backfill, idempotency
 
 ## Checklist bàn giao
 
-- [ ] Deliverable đã có trong repository hoặc môi trường demo.
-- [ ] Acceptance criteria đã được kiểm tra.
-- [ ] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
-- [ ] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
-- [ ] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
+- [x] Deliverable đã có trong repository hoặc môi trường demo.
+- [x] Acceptance criteria đã được kiểm tra.
+- [x] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
+- [x] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
+- [x] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
 - [ ] P0/P1 có reviewer khác assignee xác nhận.
 
 ## Tài liệu liên quan
+
+- [JMA year backfill runbook](../../specs/JMA_YEAR_BACKFILL.md)
 
 - [Phân công tuần 4](../WEEK_4_PARALLEL_PLAN.md)
 - [Nhóm mở đường tuần 4](../WEEK_4_PREP_GROUP.md)

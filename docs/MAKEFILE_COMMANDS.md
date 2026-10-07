@@ -76,6 +76,8 @@ Internet khi dependency chưa được cache.
 | `test-contracts` | Baseline/scaffold, CON-01..04, inventory JMA, catalog DAT-01 và kế hoạch tuần 3 |
 | `test-java` | Maven unit test module Spark: USGS planner/client/Bronze writer/QA/live runner |
 | `test-airflow` | Unittest DAG, interval/retry, phase protocol và publish gate |
+| `test-jma-backfill` | JMA-04 downloader/Java runner/planner/DAG, fixture/storage/HTTP mock; không gọi nguồn |
+| `jma-preview JMA_YEARS=1997,2023` | Preview offline ba exact archive entries; chỉ ghi plan metadata ở staging |
 | `package-java` | Maven `clean verify`, gồm unit test và đóng gói JAR |
 | `check` | Contract + config hygiene + full static foundation/USG-06, gồm Compose validation và Maven verify |
 
@@ -94,6 +96,11 @@ Lưu ý: `check-usgs-live` **không** gọi USGS thật; đây là static/unit c
 code của USG-06. `check-airflow` và `check-spark` cũng chạy unit/build test,
 không chỉ kiểm tra văn bản. `build-shared-fixtures` là lệnh riêng có sửa fixture
 tracked, chỉ dùng khi maintainer chủ động tái tạo; không nằm trong `test`.
+
+JMA-04 có DAG manual `jma_04_year_backfill`; preview mặc định không download
+hoặc ghi Bronze. Hướng dẫn conf years/range, retry/reuse, giới hạn tài nguyên
+và cách chuyển sang real mode nằm ở [JMA year backfill](./specs/JMA_YEAR_BACKFILL.md).
+Airflow image phải rebuild bằng `make up-airflow` trước khi gọi Java runner mới.
 
 ## Smoke runtime và dữ liệu mẫu
 
@@ -173,6 +180,7 @@ Không có target xóa volume/bucket hoặc reset data.
 | `SERVICE` | Rỗng | Bộ lọc service cho status/log/restart/stop |
 | `TAIL` | `100` | Số dòng log gần nhất |
 | `DAT01_AIRFLOW_CONTAINER` | Rỗng | Container dùng cho readback DAT-01 thay cho Compose exec |
+| `JMA_YEARS` | Rỗng, phải chỉ định | List năm cho `jma-preview`; ví dụ `1997,2023` |
 
 `ENV_FILE` và `CHECK_ENV_FILE` được tách riêng: đặt `ENV_FILE` không tự đổi
 static config. Wrapper foundation truyền riêng hai file vào

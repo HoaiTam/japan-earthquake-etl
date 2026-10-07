@@ -13,6 +13,11 @@ không thay đổi logic script gốc. Hướng dẫn đầy đủ tại
 
 Hiện có:
 
+- `preview-jma-backfill.py`: resolve list năm từ inventory offline, ghi plan
+  metadata ở staging, không đọc `.env`, gọi nguồn hoặc ghi MinIO;
+  wrapper `make jma-preview JMA_YEARS=1997,2023`, chi tiết tại
+  [JMA year backfill](../docs/specs/JMA_YEAR_BACKFILL.md).
+
 - `check-mvp-baseline.sh`: kiểm tra baseline `PLN-01` đã chốt kế hoạch 8 tuần,
   HDBSCAN Core, Power BI Stretch, research split/feature/grain, artifact gate và
   trạng thái đồng bộ giữa task index với roadmap; không gọi mạng.

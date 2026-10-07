@@ -10,7 +10,13 @@ public record JmaHttpPayload(
         String etag,
         String lastModified,
         URI finalUri,
-        byte[] body) {
+        byte[] body,
+        String contentRange) {
+
+    public JmaHttpPayload(int statusCode, String contentType, Long contentLengthBytes,
+            String etag, String lastModified, URI finalUri, byte[] body) {
+        this(statusCode, contentType, contentLengthBytes, etag, lastModified, finalUri, body, null);
+    }
 
     public JmaHttpPayload {
         body = body == null ? new byte[0] : Arrays.copyOf(body, body.length);

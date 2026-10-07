@@ -1,0 +1,223 @@
+package ie212.earthquake.spark.jma;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import ie212.earthquake.spark.usgs.BronzeObjectStore;
+import ie212.earthquake.spark.usgs.FileBronzeObjectStore;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
+class JmaYearIngestRunnerTest {
+    private static final ObjectMapper JSON = new ObjectMapper();
+    private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-10-07T00:00:00Z"), ZoneOffset.UTC);
+    private static final Path INVENTORY = Path.of("../config/jma/hypocenter_archives_v1.csv");
+    @TempDir Path temporary;
+
+    @Test void rerunAnotherRunAndHeaderOnlyChangeReuseExactPublishedManifest() throws Exception {
+        FakeTransport transport = new FakeTransport();
+        CountingStore store = new CountingStore(temporary.resolve("store"));
+        JmaYearIngestRunner runner = runner(transport, store);
+        Map<String, Object> first = runner.run(context(2023, "full-year", "run-a", 1, false));
+        assertEquals("BronzeReady", first.get("status"));
+        assertEquals(2L, first.get("record_count_estimate"));
+        byte[] manifest = store.read((String) first.get("manifest_key"));
+        assertEquals(200, JSON.readTree(manifest).path("response").path("http_status").asInt());
+        assertEquals("2026-10-07", JSON.readTree(manifest).path("ingest_date_utc").asText());
+        Map<String, Object> second = runner.run(context(2023, "full-year", "run-b", 1, false));
+        assertEquals(first.get("manifest_uri"), second.get("manifest_uri"));
+        assertEquals(true, second.get("publication_reused"));
+        assertEquals(1, transport.gets.get());
+        transport.modified = "Thu, 01 Jan 2026 00:00:00 GMT";
+        Map<String, Object> sameBytes = runner.run(context(2023, "full-year", "run-c", 1, false));
+        assertEquals(first.get("manifest_uri"), sameBytes.get("manifest_uri"));
+        assertArrayEquals(manifest, store.read((String) first.get("manifest_key")));
+        assertEquals(2, transport.gets.get());
+        assertEquals(2, store.writes.get()); // one raw + one manifest; no rerun copies
+    }
+
+    @Test void forcedHeaderStableRevisionKeepsOldReleaseAndChangesExactManifest() throws Exception {
+        FakeTransport transport = new FakeTransport();
+        CountingStore store = new CountingStore(temporary.resolve("store"));
+        JmaYearIngestRunner runner = runner(transport, store);
+        Map<String, Object> first = runner.run(context(2023, "full-year", "run-a", 1, false));
+        byte[] original = store.read((String) first.get("raw_object_key"));
+        transport.recordValue = 'X';
+        Map<String, Object> revised = runner.run(context(2023, "full-year", "run-b", 1, true));
+        assertEquals("BronzeReady", revised.get("status"));
+        assertNotEquals(first.get("catalog_release"), revised.get("catalog_release"));
+        assertNotEquals(first.get("manifest_key"), revised.get("manifest_key"));
+        assertArrayEquals(original, store.read((String) first.get("raw_object_key")));
+        assertEquals(4, store.writes.get());
+    }
+
+    @Test void manifestFailureIsNotReadyAndSameAttemptRecoversWithoutRawOverwrite() throws Exception {
+        FakeTransport transport = new FakeTransport();
+        CountingStore store = new CountingStore(temporary.resolve("store"));
+        store.failManifest = true;
+        JmaYearIngestRunner runner = runner(transport, store);
+        Path input = context(2023, "full-year", "run-a", 1, false);
+        Map<String, Object> failed = runner.run(input);
+        assertEquals("FAILED", failed.get("status"));
+        assertEquals(false, failed.get("verified"));
+        assertNull(failed.get("bronze_status"));
+        Map<String, Object> recovered = runner.run(input);
+        assertEquals("BronzeReady", recovered.get("status"));
+        assertEquals(1, transport.gets.get());
+        assertEquals(2, store.writes.get());
+    }
+
+    @Test void corruptedArchiveIsQuarantinedAndNeverCachedAsReady() throws Exception {
+        FakeTransport transport = new FakeTransport();
+        transport.corrupt = true;
+        CountingStore store = new CountingStore(temporary.resolve("store"));
+        Map<String, Object> failed = runner(transport, store).run(context(2023, "full-year", "bad", 1, false));
+        assertEquals("FAILED", failed.get("status"));
+        assertEquals("Rejected", failed.get("bronze_status"));
+        assertEquals(false, failed.get("verified"));
+        assertTrue(((String) failed.get("manifest_key")).startsWith("bronze/_quarantine/"));
+        assertEquals("Rejected", JSON.readTree(store.read((String) failed.get("manifest_key"))).path("bronze_status").asText());
+        assertFalse(Files.exists(temporary.resolve("staging/downloads/year=2023/segment=full-year/publication-"
+                + failed.get("sha256") + ".json")));
+    }
+
+    @Test void tamperedRawOrManifestCannotPassRerunVerification() throws Exception {
+        FakeTransport transport = new FakeTransport();
+        CountingStore store = new CountingStore(temporary.resolve("store"));
+        JmaYearIngestRunner runner = runner(transport, store);
+        Map<String, Object> first = runner.run(context(2023, "full-year", "one", 1, false));
+        Path manifest = store.root.resolve((String) first.get("manifest_key"));
+        byte[] manifestBytes = Files.readAllBytes(manifest);
+        Files.writeString(manifest, "{}");
+        assertEquals("FAILED", runner.run(context(2023, "full-year", "two", 1, false)).get("status"));
+        Files.write(manifest, manifestBytes);
+        Files.writeString(store.root.resolve((String) first.get("raw_object_key")), "damaged");
+        assertEquals("FAILED", runner.run(context(2023, "full-year", "three", 1, false)).get("status"));
+        assertEquals(2, store.writes.get()); // no silent repair/overwrite of published objects
+    }
+
+    @Test void year1997SegmentsHaveSeparateLineageAndQuarantineNamespaces() throws Exception {
+        FakeTransport transport = new FakeTransport();
+        CountingStore store = new CountingStore(temporary.resolve("store"));
+        JmaYearIngestRunner runner = runner(transport, store);
+        var jan = runner.run(context(1997, "jan-sep", "year", 1, false));
+        var oct = runner.run(context(1997, "oct-dec", "year", 1, false));
+        assertEquals("BronzeReady", jan.get("status"));
+        assertEquals("BronzeReady", oct.get("status"));
+        assertNotEquals(jan.get("manifest_key"), oct.get("manifest_key"));
+        var manifest = JSON.readTree(store.read((String) oct.get("manifest_key")));
+        assertEquals("1997-10-01T00:00:00+09:00", manifest.path("data_interval").path("native_start").asText());
+        transport.corrupt = true;
+        transport.modified = "Thu, 01 Jan 2026 00:00:00 GMT";
+        var rejectedJan = runner.run(context(1997, "jan-sep", "failed-year", 1, false));
+        var rejectedOct = runner.run(context(1997, "oct-dec", "failed-year", 1, false));
+        assertNotEquals(rejectedJan.get("manifest_key"), rejectedOct.get("manifest_key"));
+        assertEquals("FAILED", rejectedOct.get("status"));
+        assertTrue(store.exists((String) jan.get("manifest_key")));
+    }
+
+    @Test void changedInventoryOrOutOfWindowScopeFailsBeforeNetworkOrStorage() throws Exception {
+        FakeTransport transport = new FakeTransport();
+        CountingStore store = new CountingStore(temporary.resolve("store"));
+        JmaYearIngestRunner runner = runner(transport, store);
+        Path input = context(2023, "full-year", "one", 1, false);
+        var node = (com.fasterxml.jackson.databind.node.ObjectNode) JSON.readTree(Files.readAllBytes(input));
+        ((com.fasterxml.jackson.databind.node.ObjectNode) node.path("run_context")).put("inventory_sha256", "0".repeat(64));
+        Files.write(input, JSON.writeValueAsBytes(node));
+        assertThrows(IOException.class, () -> runner.run(input));
+        assertEquals(0, transport.gets.get());
+        assertEquals(0, store.writes.get());
+        Path wrongSegment = context(1997, "full-year", "two", 1, false);
+        assertThrows(IOException.class, () -> runner.run(wrongSegment));
+    }
+
+    @Test void downloadFailureDoesNotWriteBronzeAndUnrelatedYearRemainsRunnable() throws Exception {
+        FakeTransport transport = new FakeTransport();
+        CountingStore store = new CountingStore(temporary.resolve("store"));
+        JmaYearIngestRunner runner = runner(transport, store);
+        transport.fail = true;
+        var failed = runner.run(context(2023, "full-year", "one", 1, false));
+        assertEquals("DOWNLOAD_FAILED", failed.get("reason"));
+        assertEquals(0, store.writes.get());
+        transport.fail = false;
+        assertEquals("BronzeReady", runner.run(context(2000, "full-year", "one", 1, false)).get("status"));
+    }
+
+    private JmaYearIngestRunner runner(FakeTransport transport, BronzeObjectStore store) {
+        return new JmaYearIngestRunner(Map.of("JMA_INVENTORY_PATH", INVENTORY.toString(),
+                "JMA_STAGING_ROOT", temporary.resolve("staging").toString()), transport, () -> store, CLOCK);
+    }
+
+    private Path context(int year, String segment, String run, int attempt, boolean force) throws IOException {
+        var root = JSON.createObjectNode();
+        root.put("phase", "ingest"); root.put("attempt", attempt); root.put("force_download", force);
+        var context = root.putObject("run_context");
+        context.put("run_id", run); context.put("run_id_path", run); context.put("config_version", "1");
+        context.put("processing_date", "2023-01-01"); context.put("is_backfill", true);
+        context.put("window_start_utc", "1983-12-31T15:00:00Z");
+        context.put("window_end_utc", "2023-12-31T15:00:00Z");
+        context.put("inventory_sha256", JmaBronzeWriter.sha256(Files.readAllBytes(INVENTORY)));
+        root.putObject("archive").put("year", year).put("segment", segment);
+        Path path = temporary.resolve("context-" + run + "-" + year + "-" + segment + ".json");
+        Files.write(path, JSON.writeValueAsBytes(root));
+        return path;
+    }
+
+    private static byte[] archive(String member, char value) throws IOException {
+        var bytes = new ByteArrayOutputStream();
+        try (var zip = new ZipOutputStream(bytes)) {
+            ZipEntry entry = new ZipEntry(member); entry.setTime(0); zip.putNextEntry(entry);
+            byte[] record = new byte[96]; Arrays.fill(record, (byte) value);
+            zip.write(record); zip.write('\n'); zip.write(record); // duplicates preserved at Bronze
+            zip.closeEntry();
+        }
+        return bytes.toByteArray();
+    }
+
+    private static final class FakeTransport implements JmaArchiveTransport {
+        String modified = "Wed, 10 Dec 2025 01:41:53 GMT";
+        char recordValue = 'J'; boolean corrupt; boolean fail;
+        AtomicInteger gets = new AtomicInteger();
+        private byte[] body(URI uri) throws IOException {
+            String name = Path.of(uri.getPath()).getFileName().toString().replace(".zip", "");
+            return corrupt ? "invalid zip".getBytes() : archive(name, recordValue);
+        }
+        @Override public JmaHttpMetadata head(URI uri) throws IOException {
+            if (fail) { throw new IOException("simulated source failure"); }
+            return new JmaHttpMetadata(200, "application/zip", (long) body(uri).length, null, modified, uri);
+        }
+        @Override public JmaHttpPayload get(URI uri, long offset) throws IOException {
+            gets.incrementAndGet();
+            byte[] bytes = body(uri);
+            return new JmaHttpPayload(200, "application/zip", (long) bytes.length, null, modified, uri, bytes);
+        }
+    }
+
+    private static final class CountingStore implements BronzeObjectStore {
+        final Path root; final FileBronzeObjectStore delegate; final AtomicInteger writes = new AtomicInteger();
+        boolean failManifest;
+        CountingStore(Path root) { this.root = root; delegate = new FileBronzeObjectStore(root); }
+        @Override public void putIfAbsent(String key, byte[] bytes, String type) throws IOException {
+            if (failManifest && key.endsWith("manifest.json")) {
+                failManifest = false; throw new IOException("simulated manifest failure");
+            }
+            delegate.putIfAbsent(key, bytes, type); writes.incrementAndGet();
+        }
+        @Override public byte[] read(String key) throws IOException { return delegate.read(key); }
+        @Override public boolean exists(String key) throws IOException { return delegate.exists(key); }
+        @Override public String uriForKey(String key) { return delegate.uriForKey(key); }
+    }
+}
