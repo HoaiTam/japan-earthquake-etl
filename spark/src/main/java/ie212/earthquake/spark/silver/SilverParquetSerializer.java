@@ -280,8 +280,10 @@ public final class SilverParquetSerializer {
             }
             if (expectedSchema != null) {
                 MessageType actualSchema = reader.getFileMetaData().getSchema();
-                if (!actualSchema.containsAllFields(expectedSchema.asGroupType())) {
-                    throw new IOException("Parquet schema does not contain all expected fields: " + actualSchema);
+                for (org.apache.parquet.schema.Type field : expectedSchema.getFields()) {
+                    if (!actualSchema.containsField(field.getName())) {
+                        throw new IOException("Parquet schema missing expected field: " + field.getName());
+                    }
                 }
             }
         }
@@ -381,21 +383,21 @@ public final class SilverParquetSerializer {
                 }
 
                 @Override
-                public void seek(long newPos) {
+                public void seek(long newPos) throws IOException {
                     this.position = newPos;
                     ((ByteArrayInputStream) getStream()).reset();
                     long skipped = ((ByteArrayInputStream) getStream()).skip(newPos);
                 }
 
                 @Override
-                public int read() {
+                public int read() throws IOException {
                     int val = super.read();
                     if (val != -1) position++;
                     return val;
                 }
 
                 @Override
-                public int read(byte[] b, int off, int len) {
+                public int read(byte[] b, int off, int len) throws IOException {
                     int bytesRead = super.read(b, off, len);
                     if (bytesRead > 0) position += bytesRead;
                     return bytesRead;
