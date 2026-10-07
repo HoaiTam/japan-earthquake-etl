@@ -118,10 +118,13 @@ contract/foundation/USG-06 static checks và checker **73 task**. Build dùng
 JDK 21.0.11 với compiler `--release 17`; runtime smoke/JDK 17 chưa được kiểm
 tra vì Docker daemon đang tắt. Không có thao tác ghi dữ liệu thật vào MinIO.
 
-Vì branch lấy từ PR #35 chưa merge, khi mở PR vào `main` nó sẽ chứa cả phần
-SLV-08 của PR #35 cho tới khi PR đó được merge. Local merge main chưa được
-commit để người dùng tự kiểm tra và commit cùng hotfix; không bỏ phần staged
-SLV-05 khi tạo commit.
+Hotfix đã được commit tại `572918c` và mở thành
+[PR #36](https://github.com/HoaiTam/japan-earthquake-etl/pull/36). PR #35 đã
+merge vào main tại `40710d4`; branch hotfix đồng bộ main này tại `1b6334c`
+và giữ nguyên API quality, lineage, checked writer cùng integration tests.
+Sau giải quyết conflict, cần đối chiếu metadata/index: assignee SLV-05 là
+`HoaiTam`; SLV-03 vẫn `Ready` theo file task, không phải `Done` chỉ vì một
+branch khác đã sửa bảng chỉ mục.
 
 Không thay đổi GitHub branch protection/CI settings trong hotfix. Không có
 migration hay backfill bắt buộc vì logical schema không đổi; nếu có run cũ

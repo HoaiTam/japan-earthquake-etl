@@ -7,7 +7,7 @@ workstream: "Quality"
 scope: "Core"
 priority: "P0"
 effort_hours: 5
-assignee: "ThanhTris"
+assignee: "HoaiTam"
 reviewer: "unassigned"
 dependencies: ["CON-03", "CON-04"]
 ---
@@ -67,7 +67,9 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 - **Assignee:** HoaiTam
 - **Reviewer:** Chưa ghi lại
 - **Evidence / PR gốc:** [PR #32](https://github.com/HoaiTam/japan-earthquake-etl/pull/32). Sau merge vào main `4f906ae`, clean build bị 6 compilation errors do API quality không khớp model của SLV-02; claim test trước tích hợp không đủ làm evidence cho main này.
-- **Hotfix:** Branch `fix/slv-05-shared-model-integration` bắt đầu từ [PR #35](https://github.com/HoaiTam/japan-earthquake-etl/pull/35) head `d92dee7`, đồng bộ main `4f906ae` bằng local merge chưa commit. Assignee của lần sửa là `HoaiTam`; giữ reviewer `unassigned`. Không mở/merge PR trên GitHub hoặc thay đổi JMA-03 đang dở.
+- **Hotfix / PR:** [PR #36](https://github.com/HoaiTam/japan-earthquake-etl/pull/36), branch `fix/slv-05-shared-model-integration`, bắt đầu từ [PR #35](https://github.com/HoaiTam/japan-earthquake-etl/pull/35) head `d92dee7`, tích hợp main `4f906ae` cùng hotfix tại commit `572918c`. Assignee của lần sửa là `HoaiTam`; giữ reviewer `unassigned`. Không thay đổi JMA-03 đang dở.
+- **Đồng bộ sau PR #35:** Main đã nhận SLV-08 tại `40710d4`; commit `1b6334c` giải quyết conflict trên GitHub và giữ nguyên code hotfix. Bản này sửa lại metadata assignee về `HoaiTam` và index SLV-03 về `Ready` cho khớp file task; không khôi phục API quality cũ hoặc đánh dấu JMA parser đã hoàn tất khi chưa có evidence.
+- **Kiểm thử lại sau conflict 2026-10-07:** Full `make check` đạt sau đồng bộ `1b6334c` và sửa metadata/index: **83/83 Java tests**, **15/15 Airflow tests**, checker **73 task** và toàn bộ static checks. Chạy bằng JDK 21.0.11 (`--release 17`) với quyền mở HTTP mock trên localhost; sandbox không cho bind cổng khiến 6 HTTP tests báo `Operation not permitted` ở lần chạy đầu, không phải compilation errors. Không chạy runtime smoke hoặc ghi dữ liệu nguồn thật.
 - **Evidence 2026-10-07:** `make test` và `make package-java` đạt; sau bổ sung case đối soát mixed rejects, `make check` chạy clean Maven verify và đạt **83/83 Java tests** (quality/integration **12/12**), **15/15 Airflow tests**, toàn bộ contract/foundation/USG-06 static checks. Build bằng JDK **21.0.11**, compiler target `--release 17`; chưa xác nhận smoke runtime JDK 17 vì Docker daemon đang tắt.
 - **Acceptance evidence:** Parser → quality → SLV-08 ghi Parquet thật trên file store, verify row count/SHA-256; blocked/mismatched gate không tạo staging/output/manifest/marker; parser rejects và quality rejects giữ đủ lineage, `valid + rejected = parsed`; null/negative depth/warning/duplicate không bị sửa hoặc lọc mất.
 - **Tracking regression:** `make check-task-status` đạt cho **73 task**; cùng checker chạy trên snapshot main `4f906ae` fail đúng `SLV-03 metadata=Ready but index=Done`. Index đã giữ SLV-03 `Ready` và SLV-05 `Done`. `sh -n`, `git diff --check`, `git diff --cached --check` đạt; configuration/secret hygiene check đạt.
