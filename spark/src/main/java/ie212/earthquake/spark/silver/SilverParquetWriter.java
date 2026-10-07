@@ -40,6 +40,20 @@ public final class SilverParquetWriter {
         this.writerVersion = Objects.requireNonNull(writerVersion, "writerVersion");
     }
 
+    /** Checked integration entry point: a blocked/mismatched quality result must cause zero storage writes. */
+    public SilverWriteResult write(SilverWriteRequest request, SilverQualityResult quality) throws IOException {
+        Objects.requireNonNull(request, "request");
+        Objects.requireNonNull(quality, "quality");
+        quality.requirePublishable();
+        if (!request.runId().equals(quality.ingestRunId())
+                || !request.observations().equals(quality.validObservations())
+                || !request.rejects().equals(quality.rejectedRecords())) {
+            throw new IllegalArgumentException("Silver write request must match the validated run and datasets");
+        }
+        return write(request);
+    }
+
+    /** Low-level persistence API; callers must supply their own run-level quality policy. */
     public SilverWriteResult write(SilverWriteRequest request) throws IOException {
         Objects.requireNonNull(request, "request");
         String runId = request.runId();

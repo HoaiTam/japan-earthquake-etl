@@ -7,7 +7,7 @@ workstream: "Downloader"
 scope: "Core"
 priority: "P0"
 effort_hours: 6
-assignee: "codex"
+assignee: "ThanhTris"
 reviewer: "unassigned"
 dependencies: ["JMA-01"]
 ---
@@ -63,7 +63,7 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 ## Theo dõi
 
 - **Trạng thái:** Done
-- **Assignee:** codex
+- **Assignee:** ThanhTris
 - **Reviewer:** Chưa ghi lại
 - **Evidence / PR:** Implementation trên branch `feat/jma-02-downloader`; JMA downloader tests 3/3 và toàn bộ Spark Maven tests 44/44 đạt với JDK 17/Maven 3.9.16; contract checks JMA/Bronze/repository/week-3 đạt. Reviewer vẫn `unassigned`.
 - **Kỹ năng phù hợp:** Java HTTP, archive download, checksum

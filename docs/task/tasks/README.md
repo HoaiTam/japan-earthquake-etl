@@ -16,6 +16,10 @@ Mỗi task là một file độc lập và là nguồn theo dõi chính cho ph�
 
 Trạng thái hợp lệ: `Backlog`, `Ready`, `In Progress`, `Review`, `Blocked`, `Needs Update`, `Done`.
 
+Sau khi cập nhật task, chạy `make check-task-status` để đối chiếu trạng thái
+frontmatter, mục `Theo dõi` và dòng index. Check này cũng nằm trong `make test`
+và `make check` để phát hiện trạng thái bị lệch khi tích hợp các branch.
+
 ## Tổng quan
 
 - Tổng số task: **73**.
@@ -79,7 +83,7 @@ Trạng thái hợp lệ: `Backlog`, `Ready`, `In Progress`, `Review`, `Blocked`
 | [SLV-02](./SLV-02.md) - Parse và chuẩn hóa USGS observation | 3 | USGS parser | Core | P0 | 5h | Done |
 | [SLV-03](./SLV-03.md) - Parse và chuẩn hóa JMA fixed-width | 3 | JMA parser | Core | P0 | 6h | Ready |
 | [SLV-04](./SLV-04.md) - Tạo source key và lineage đa nguồn | 3 | Lineage | Core | P0 | 4h | Done |
-| [SLV-05](./SLV-05.md) - Áp dụng validation và reject metrics | 3 | Quality | Core | P0 | 5h | Ready |
+| [SLV-05](./SLV-05.md) - Áp dụng validation và reject metrics | 3 | Quality | Core | P0 | 5h | Done |
 | [SLV-06](./SLV-06.md) - Deduplicate và xử lý revision trong từng nguồn | 4 | Source dedup | Core | P0 | 5h | Backlog |
 | [SLV-07](./SLV-07.md) - Liên kết observation và chọn canonical event | 4 | Entity resolution | Core | P0 | 6h | Backlog |
 | [SLV-08](./SLV-08.md) - Ghi Silver Parquet theo source và thời gian | 3 | Silver storage | Core | P0 | 5h | Done |
