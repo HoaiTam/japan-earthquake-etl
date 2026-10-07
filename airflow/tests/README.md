@@ -1,5 +1,12 @@
 # Airflow tests
 
+`test_etl_pipeline_runtime.py` kiểm tra ORC-01 context/phase gates, checksum/
+scope/snapshot bundle, real subprocess protocol bằng mock và việc mock không
+Published. `test_etl_dag_contract.py` dựng graph bằng SDK double để assert
+edges/groups/strict final leaf, không chỉ tìm chuỗi trong source. Chạy riêng
+bằng `make test-orchestration`; import bằng Airflow thật và giới hạn nghiệm
+thu xem [ETL orchestration contract](../../docs/specs/ETL_ORCHESTRATION_CONTRACT.md).
+
 Đặt DAG import test và unit test cho orchestration tại đây. Test xuyên service
 hoặc cần toàn bộ Compose stack thuộc `tests/integration/`.
 

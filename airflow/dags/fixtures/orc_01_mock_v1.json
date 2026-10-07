@@ -1,0 +1,196 @@
+{
+  "contract_version": "1.0",
+  "conf": {
+    "mode": "mock",
+    "window_start_utc": "2023-01-01T00:00:00Z",
+    "window_end_utc": "2023-01-04T00:00:00Z",
+    "processing_date": "2023-01-03",
+    "is_backfill": true,
+    "input_scope": {
+      "bronze_manifests": [
+        {
+          "source_system": "USGS",
+          "manifest_uri": "mock://orc-01/bronze/usgs/manifest.json",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "source_system": "JMA_BULLETIN",
+          "manifest_uri": "mock://orc-01/bronze/jma/manifest.json",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }
+      ]
+    },
+    "output_scope": {
+      "silver_partitions": [
+        {
+          "event_year_utc": 2023,
+          "event_month_utc": 1,
+          "source_system": "USGS"
+        },
+        {
+          "event_year_utc": 2023,
+          "event_month_utc": 1,
+          "source_system": "JMA_BULLETIN"
+        }
+      ],
+      "gold_tables": [
+        "iceberg.gold.event_current",
+        "iceberg.gold.event_source_bridge"
+      ]
+    }
+  },
+  "artifacts": {
+    "readiness": {
+      "sources_ready": [
+        "JMA_BULLETIN",
+        "USGS"
+      ],
+      "bronze_manifest_uris": [
+        "mock://orc-01/bronze/usgs/manifest.json",
+        "mock://orc-01/bronze/jma/manifest.json"
+      ]
+    },
+    "bronze": {
+      "bronze_inputs": [
+        {
+          "source_system": "USGS",
+          "manifest_uri": "mock://orc-01/bronze/usgs/manifest.json",
+          "raw_object_uri": "mock://orc-01/bronze/usgs/response.geojson",
+        "manifest_id": "mock-manifest-0",
+        "record_count_estimate": 2,
+          "ingest_run_id": "mock-ingest-0",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bronze_status": "BronzeReady",
+          "validation": {
+            "object_write_completed": true,
+            "raw_readback_verified": true,
+            "checksum_verified": true,
+            "source_structure_valid": true,
+            "manifest_consistent": true
+          }
+        },
+        {
+          "source_system": "JMA_BULLETIN",
+          "manifest_uri": "mock://orc-01/bronze/jma/manifest.json",
+          "raw_object_uri": "mock://orc-01/bronze/jma/archive.zip",
+        "manifest_id": "mock-manifest-1",
+        "record_count_estimate": 2,
+          "ingest_run_id": "mock-ingest-1",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "bronze_status": "BronzeReady",
+          "validation": {
+            "object_write_completed": true,
+            "raw_readback_verified": true,
+            "checksum_verified": true,
+            "source_structure_valid": true,
+            "manifest_consistent": true
+          }
+        }
+      ]
+    },
+    "silver": {
+      "input_manifest_uris": [
+        "mock://orc-01/bronze/usgs/manifest.json",
+        "mock://orc-01/bronze/jma/manifest.json"
+      ],
+      "datasets": [
+        {
+          "dataset": "source_observation",
+          "manifest_uri": "mock://orc-01/silver/source_observation/manifest.json",
+          "readback_verified": true
+        },
+        {
+          "dataset": "reject_record",
+          "manifest_uri": "mock://orc-01/silver/reject_record/manifest.json",
+          "readback_verified": true
+        },
+        {
+          "dataset": "source_link",
+          "manifest_uri": "mock://orc-01/silver/source_link/manifest.json",
+          "readback_verified": true
+        },
+        {
+          "dataset": "canonical_membership",
+          "manifest_uri": "mock://orc-01/silver/canonical_membership/manifest.json",
+          "readback_verified": true
+        }
+      ],
+      "partitions": [
+        {
+          "event_year_utc": 2023,
+          "event_month_utc": 1,
+          "source_system": "USGS"
+        },
+        {
+          "event_year_utc": 2023,
+          "event_month_utc": 1,
+          "source_system": "JMA_BULLETIN"
+        }
+      ],
+      "quality_passed": true
+    },
+    "gold": {
+      "input_manifest_uris": [
+        "mock://orc-01/silver/source_observation/manifest.json",
+        "mock://orc-01/silver/reject_record/manifest.json",
+        "mock://orc-01/silver/source_link/manifest.json",
+        "mock://orc-01/silver/canonical_membership/manifest.json"
+      ],
+      "snapshots": [
+        {
+          "table": "iceberg.gold.event_current",
+          "snapshot_id": "mock-101",
+          "committed": true
+        },
+        {
+          "table": "iceberg.gold.event_source_bridge",
+          "snapshot_id": "mock-102",
+          "committed": true
+        }
+      ],
+      "scope_verified": true
+    },
+    "verify": {
+      "snapshots": [
+        {
+          "table": "iceberg.gold.event_current",
+          "snapshot_id": "mock-101",
+          "committed": true
+        },
+        {
+          "table": "iceberg.gold.event_source_bridge",
+          "snapshot_id": "mock-102",
+          "committed": true
+        }
+      ],
+      "engine": "Trino",
+      "checks": {
+        "readable": true,
+        "counts_reconciled": true,
+        "canonical_unique": true,
+        "required_fields_valid": true,
+        "scope_respected": true,
+        "lineage_resolved": true
+      },
+      "report_uri": "mock://orc-01/verification/report.json"
+    },
+    "publish": {
+      "snapshots": [
+        {
+          "table": "iceberg.gold.event_current",
+          "snapshot_id": "mock-101",
+          "committed": true
+        },
+        {
+          "table": "iceberg.gold.event_source_bridge",
+          "snapshot_id": "mock-102",
+          "committed": true
+        }
+      ],
+      "verification_report_uri": "mock://orc-01/verification/report.json",
+      "publication_uri": "mock://orc-01/publication/receipt.json",
+      "published": false,
+      "publication_status": "MockComplete"
+    }
+  }
+}

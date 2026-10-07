@@ -8,6 +8,14 @@
 | Múi giờ điều phối | `Asia/Ho_Chi_Minh` |
 | Múi giờ cửa sổ dữ liệu | UTC |
 
+> Implementation hiện tại: ORC-01 đã có **khung manual DAG**
+> `orc_01_etl_pipeline` với contract/mock và strict failure gates. Phần daily
+> schedule/readiness thật thuộc ORC-02 - Cấu hình lịch và readiness cho hai
+> nguồn; SLV-09 - Tích hợp và kiểm thử Silver đa nguồn, GLD-03 - Ghi Gold
+> Iceberg và commit snapshot, GLD-04 - Tạo Trino views và verification SQL
+> chưa hoàn tất adapters đến Published. Phần bên dưới là target flow, không
+> phải evidence daily run đã đạt. Xem [giao diện/test/handoff ORC-01](../specs/ETL_ORCHESTRATION_CONTRACT.md).
+
 ## 1. Mục đích
 
 Tài liệu này mô tả happy path của một lần chạy pipeline. Các trường hợp chạy bù, retry có chọn lọc và khôi phục sau lỗi được mô tả tại [Backfill và phục hồi](./BACKFILL_AND_RECOVERY.md). Phạm vi nguồn, ROI, timezone và overlap tuân theo [source coverage contract](../specs/SOURCE_COVERAGE.md); layout raw và manifest tuân theo [Bronze storage contract](../specs/BRONZE_STORAGE_CONTRACT.md); schema và KPI tuân theo [Silver/Gold logical data model](../specs/SILVER_GOLD_DATA_MODEL.md).
@@ -53,7 +61,7 @@ flowchart TD
     COMMIT --> VERIFY_GOLD{"Trino verification đạt?"}
     VERIFY_GOLD -- Không --> FAIL
     VERIFY_GOLD -- Có --> READY["Đánh dấu run Published"]
-    READY --> REFRESH["Power BI refresh sau cửa sổ pipeline"]
+    READY -. "Stretch, không chặn Core" .-> REFRESH["Power BI refresh"]
 ```
 
 ## 4. Chi tiết từng bước
@@ -149,7 +157,9 @@ silver/source_observation/event_year_utc=YYYY/event_month_utc=MM/source_system=<
 - Tạo `event_current`, source bridge và các magnitude/depth band theo contract.
 - Tính các aggregate cần thiết cho dashboard nếu có lợi cho hiệu năng.
 - Ghi vào bảng Iceberg theo chiến lược merge/overwrite partition đã thống nhất.
-- Commit snapshot nguyên tử; lưu snapshot ID trong log/XCom phù hợp.
+- Commit snapshot của từng bảng; lưu đầy đủ table identity/snapshot ID của
+  bundle output. Nhiều bảng không mặc nhiên commit atomically và chỉ được
+  Published sau khi toàn bộ bảng trong scope đã commit và verify.
 
 Thiếu enrichment không được làm mất event. Record không match phải giữ tọa độ gốc và nhận giá trị khu vực quy ước.
 
@@ -161,10 +171,12 @@ Thiếu enrichment không được làm mất event. Record không match phải 
 
 - Truy vấn Trino để kiểm tra bảng có thể đọc.
 - Đối soát số lượng, uniqueness và range bắt buộc.
-- Xác nhận snapshot hiện tại đúng với snapshot vừa ghi.
+- Pin/query đúng từng committed snapshot trong bundle, không resolve latest
+  hoặc chỉ xác nhận current rồi query snapshot có thể đã đổi.
 - Ghi metric cuối cùng và đánh dấu run thành công.
 
-**Output:** trạng thái `Published`, cho phép Power BI refresh.
+**Output:** trạng thái `Published` cho consumer Core; Power BI refresh là
+Stretch. Mock ORC-01 chỉ `MockComplete`, không tạo publication metadata thật.
 
 ## 5. Sequence diagram
 

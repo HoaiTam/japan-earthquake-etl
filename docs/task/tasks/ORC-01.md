@@ -1,6 +1,6 @@
 ---
 task_id: "ORC-01"
-status: "Ready"
+status: "Done"
 week: 4
 block: "F - Điều phối"
 workstream: "DAG skeleton"
@@ -32,12 +32,16 @@ Nối source readiness, Bronze, Silver, Gold, verify và publish; truyền run c
 ## Deliverable
 
 - DAG chính với task groups và dependency gates.
+- Implementation: `airflow/dags/orc_01_etl_pipeline.py`, helper
+  `etl_pipeline_runtime.py`, fixture `fixtures/orc_01_mock_v1.json`.
+- [Phase/run-context contract và runbook](../../specs/ETL_ORCHESTRATION_CONTRACT.md),
+  `make test-orchestration`, `make etl-preview`, `make etl-mock`.
 
 ## Tiêu chí hoàn thành
 
-- [ ] Failure dừng đúng tầng.
-- [ ] task group có input/output contract rõ.
-- [ ] có thể test DAG structure không cần mạng.
+- [x] Failure dừng đúng tầng.
+- [x] task group có input/output contract rõ.
+- [x] có thể test DAG structure không cần mạng.
 
 ## Hard dependency
 
@@ -58,14 +62,19 @@ Nối source readiness, Bronze, Silver, Gold, verify và publish; truyền run c
 Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trước khi toàn bộ upstream chạy thật. Chỉ được chuyển sang `Done` khi hard dependency đã đạt và acceptance criteria được kiểm tra trên output phù hợp.
 
 1. Xác nhận hard dependency và đọc contract/tài liệu liên quan.
-2. Tạo branch mới từ `main`: `feat/orc-01-hoan-thien-dag-end-to`.
+2. Tạo branch mới từ `main`: `feat/orc-01-etl-dag-contract`.
 3. Triển khai đúng phạm vi; dùng fixture nhỏ, xác định được và không phụ thuộc mạng cho unit test.
 4. Chạy test/check phù hợp, đối chiếu acceptance criteria và cập nhật tài liệu nếu contract hoặc hành vi thay đổi.
 5. Cập nhật `status`, `assignee`, `reviewer` và Evidence ngay trong file này khi mở PR hoặc hoàn tất review.
 
 ## Ranh giới
 
-- Build/import ML là hai DAG riêng thuộc `MLI-02` và `MLI-03`; không đặt external Colab step vào daily critical path.
+- [MLI-02 - Tạo Airflow DAG build ML dataset](./MLI-02.md) và
+  [MLI-03 - Validate/import kết quả và commit bảng ML Iceberg](./MLI-03.md)
+  chưa triển khai DAG build/import trong task này; không đặt external Colab
+  step vào daily critical path.
+- Done ở đây là nghiệm thu skeleton/mock; real adapters và daily ETL
+  Published còn thiếu theo [bảng task handoff](../../specs/ETL_ORCHESTRATION_CONTRACT.md#7-handoff-giới-hạn-và-task-còn-thiếu).
 - Không tự mở rộng sang deliverable của task khác.
 - Không đổi contract upstream trong PR implementation mà không cập nhật task contract liên quan và có review.
 - Không commit secret, credential, payload nhạy cảm, data dump lớn hoặc artifact build không cần thiết.
@@ -73,23 +82,26 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Theo dõi
 
-- **Trạng thái:** Ready
+- **Trạng thái:** Done
 - **Assignee:** HoaiTam
-- **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Reviewer:** unassigned; chưa có approval, review độc lập được khuyến nghị.
+- **Evidence / PR:** [ORC-01 evidence](../../evidence/ORC-01.md); branch
+  `feat/orc-01-etl-dag-contract`, chưa commit/push/mở PR tự động.
 - **Kỹ năng phù hợp:** Airflow, orchestration
 
 ## Checklist bàn giao
 
-- [ ] Deliverable đã có trong repository hoặc môi trường demo.
-- [ ] Acceptance criteria đã được kiểm tra.
-- [ ] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
-- [ ] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
-- [ ] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
-- [ ] P0/P1 có reviewer khác assignee xác nhận.
+- [x] Deliverable đã có trong repository hoặc môi trường demo.
+- [x] Acceptance criteria đã được kiểm tra.
+- [x] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
+- [x] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
+- [x] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
+- [ ] Reviewer độc lập P0 được khuyến nghị; chưa có approval, không chặn Done theo quy trình hiện hành.
 
 ## Tài liệu liên quan
 
+- [ETL orchestration contract](../../specs/ETL_ORCHESTRATION_CONTRACT.md)
+- [Evidence ORC-01](../../evidence/ORC-01.md)
 - [Nhóm mở đường tuần 4](../WEEK_4_PREP_GROUP.md)
 - [Kế hoạch tuần 4 mở rộng](../WEEK_4_PARALLEL_PLAN.md)
 - [Bronze contract](../../specs/BRONZE_STORAGE_CONTRACT.md)

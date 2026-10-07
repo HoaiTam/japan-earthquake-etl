@@ -76,6 +76,9 @@ Internet khi dependency chưa được cache.
 | `test-contracts` | Baseline/scaffold, CON-01..04, inventory JMA, catalog DAT-01 và kế hoạch tuần 3 |
 | `test-java` | Maven unit test module Spark: USGS planner/client/Bronze writer/QA/live runner |
 | `test-airflow` | Unittest DAG, interval/retry, phase protocol và publish gate |
+| `test-orchestration` | ORC-01 context/phase/gates và dựng graph bằng SDK double, không cần Airflow trên host |
+| `etl-preview` | In run context/exact scope fixture ORC-01 offline, không ghi hoặc gọi service |
+| `etl-mock` | Chạy sáu phase fixture, chỉ `MockComplete`, `published=false`, không tạo Gold snapshot thật |
 | `test-jma-backfill` | JMA-04 downloader/Java runner/planner/DAG, fixture/storage/HTTP mock; không gọi nguồn |
 | `test-jma-qa` | JMA-05 offline success/error/revision/resume và independent readback verifier; không gọi nguồn/MinIO thật |
 | `jma-preview JMA_YEARS=1997,2023` | Preview offline ba exact archive entries; chỉ ghi plan metadata ở staging |
@@ -102,6 +105,11 @@ JMA-04 có DAG manual `jma_04_year_backfill`; preview mặc định không downl
 hoặc ghi Bronze. Hướng dẫn conf years/range, retry/reuse, giới hạn tài nguyên
 và cách chuyển sang real mode nằm ở [JMA year backfill](./specs/JMA_YEAR_BACKFILL.md).
 Airflow image phải rebuild bằng `make up-airflow` trước khi gọi Java runner mới.
+
+ORC-01 có khung DAG manual `orc_01_etl_pipeline`; commands mock không đọc `.env`
+hoặc gọi nguồn/MinIO/Spark/Trino. Real mode thiếu adapter hoặc explicit scope
+sẽ fail closed. Handoff, phase fields và phần còn thiếu theo mã/tên task ở
+[ETL orchestration contract](./specs/ETL_ORCHESTRATION_CONTRACT.md).
 
 ## Smoke runtime và dữ liệu mẫu
 

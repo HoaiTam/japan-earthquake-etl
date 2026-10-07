@@ -60,28 +60,33 @@ Dữ liệu này phục vụ integration/pilot. Một năm reproduction không �
 
 ## 3. Điều kiện bàn giao nhóm mở đường
 
-- [ ] JMA-04/05 và ORC-01 đạt acceptance riêng, tests/docs/evidence và status/index đồng bộ.
+- [x] JMA-04/05 và ORC-01 đạt acceptance riêng, tests/docs/evidence và status/index đồng bộ.
 - [x] JMA sample có BronzeReady manifest thật, raw SHA/readback/rerun verified.
 - [x] USGS sample vẫn truy vết được bằng exact manifest; lỗi sample/readback được ghi rõ.
 - [x] Sample reproduction 2000 có metadata/coverage thật; 1997 giữ hai segment.
-- [ ] Phase/run-context fixtures đủ cho các owners viết/test adapter độc lập.
-- [ ] Ghi rõ ORC-01 đã kiểm thử skeleton/mock, chưa gọi toàn ETL Published.
-- [ ] Không chứa credential/raw lớn và không chạy/xóa full lake/warehouse.
+- [x] Phase/run-context fixtures đủ cho các owners viết/test adapter độc lập.
+- [x] Ghi rõ ORC-01 đã kiểm thử skeleton/mock, chưa gọi toàn ETL Published.
+- [x] Không chứa credential/raw lớn và không chạy/xóa full lake/warehouse.
 
 Nhóm này mở đường cho data và orchestration, không thay SilverReady/Gold
 Published. Không đưa SLV-09/GLD-04 vào đây vì còn chờ dedup/link/writer.
 
 JMA-04/05 đã Done; [evidence JMA-05](../evidence/JMA-05.md) bàn giao 4 exact
 Bronze manifests/counts/coverage. [ORC-01 - Hoàn thiện DAG ETL đến Gold theo
-contract](./tasks/ORC-01.md) còn phải triển khai/kiểm thử khung phase/DAG;
-chưa đánh dấu cả nhóm hoàn tất chỉ vì BronzeReady đã có.
+contract](./tasks/ORC-01.md) đã Done skeleton/mock, có
+[phase/run-context contract](../specs/ETL_ORCHESTRATION_CONTRACT.md) và
+[evidence tests/import DAG](../evidence/ORC-01.md). Nhóm mở đường đạt acceptance
+riêng; đây không phải SilverReady/Gold Published thật. ORC-02..05 và
+SLV-09/GLD-03/04 tiếp tục nối adapters/runtime theo handoff, chưa nhận Done
+từ evidence mock; mã/tên/phần việc còn thiếu ghi đầy đủ trong contract ORC-01.
 ThanhTris/Trang có thể viết SLV-06/07, GLD-01, MLI-01 bằng fixture trong lúc
 HoaiTam làm nhóm chuẩn bị; không yêu cầu mọi người chờ 13h mới bắt đầu.
 
 ## 4. Kiểm tra và tài liệu
 
 Lệnh hiện có: `make test-contracts`, `make test`, `make check`,
-`git diff --check`; operator có cấu hình/service hợp lệ dùng
+`git diff --check`, `make test-orchestration`, `make etl-preview`, `make etl-mock`;
+ba lệnh ORC-01 không cần mạng và không publish dữ liệu. Operator có cấu hình/service hợp lệ dùng
 `make verify-samples` cho DAT-01. Commands business mới phải được owner bổ
 sung vào Makefile/runbook khi triển khai, không copy lệnh chưa tồn tại.
 
