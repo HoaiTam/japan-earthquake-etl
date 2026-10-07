@@ -7,7 +7,7 @@ workstream: "Lineage"
 scope: "Core"
 priority: "P0"
 effort_hours: 4
-assignee: "codex"
+assignee: "Trang"
 reviewer: "unassigned"
 dependencies: ["CON-03"]
 ---
@@ -63,7 +63,7 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 ## Theo dõi
 
 - **Trạng thái:** Done
-- **Assignee:** codex
+- **Assignee:** Trang
 - **Reviewer:** unassigned
 - **Evidence / PR:** Hoàn tất trên branch `feat/slv-04-tao-source-key-va-lineage`; Maven test suite đạt 59/59 tests (bao gồm 7 tests mới trong `SilverLineageAndKeyTest`). Đã chuẩn hóa lớp `SourceKeyGenerator` và `SilverLineage` cho cả hai nguồn USGS và JMA; JMA key dùng thuật toán version `jma_k1` từ identity fields chính thức bảo đảm `same_source_record_key=true` khi cập nhật revision; `canonical_event_id` được sinh độc lập dưới dạng `evt_` + 32 hex chars, hoàn toàn không phụ thuộc thời gian hay tọa độ; `SilverLineage` hỗ trợ đối soát toàn vẹn byte-level về raw record locator/hash và raw object SHA-256. Kịch bản kiểm tra `check-week-3-plan.sh`, `check-repository-layout.sh`, `check-mvp-baseline.sh` và `git diff --check` đều đạt. Reviewer giữ `unassigned`.
 - **Kỹ năng phù hợp:** Data lineage, hashing, Spark

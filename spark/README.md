@@ -77,6 +77,15 @@ tuân thủ nghiêm ngặt nguyên tắc tạo ID opaque (`evt_` + SHA-256) từ
 tuyệt đối không dùng time/tọa độ. `SilverLineage` cung cấp cơ chế audit và kiểm chứng
 ngược về raw record locator/hash và raw object SHA-256 từ Bronze.
 
+`SLV-08` triển khai `SilverPartitionKey`, `SilverStorageLayout`, `SilverPartitionManifest`,
+`SilverObjectStore`, `FileSilverObjectStore`, `MinioSilverObjectStore`, `SilverParquetSerializer`,
+`SilverParquetWriter`, `SilverWriteRequest` và `SilverWriteResult`. Module tổ chức partition theo
+đúng thứ bậc `source_observation/event_year_utc=YYYY/event_month_utc=MM/source_system=<source_system>`
+dựa trên `event_time_utc` (UTC). Áp dụng quy trình staging nguyên tử (`_staging/<run_id>/...`),
+đối soát checksum SHA-256 và row count trước khi promote vào partition chính thức; đảm bảo retry/rerun
+ghi đè sạch sẽ không append duplicate record. Tự động xuất marker `_SUCCESS` và `manifest.json`
+ghi nhận metadata partition, danh sách file, SHA-256, số dòng và summary chất lượng dữ liệu.
+
 Không commit `target/`, JAR hoặc local metastore. Kiến trúc service, dependency,
 version matrix, marker output và cách mở rộng được mô tả trong
 [Spark standalone contract](../docs/specs/SPARK_STANDALONE.md).
