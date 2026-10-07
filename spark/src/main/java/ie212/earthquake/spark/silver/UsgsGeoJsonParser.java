@@ -258,8 +258,8 @@ public final class UsgsGeoJsonParser {
                         context.processedAtUtc()));
             } else {
                 // Construct revision key and source observation ID
-                String sourceRevisionKey = (updatedMillis != null ? updatedMillis : "null") + ":" + rawRecordHash;
-                String sourceObservationId = "obs_" + sha256(SOURCE_SYSTEM + "|" + candidateKey + "|" + sourceRevisionKey);
+                String sourceRevisionKey = SourceKeyGenerator.usgsRevisionKey(updatedMillis, rawRecordHash);
+                String sourceObservationId = SourceKeyGenerator.observationId(SOURCE_SYSTEM, candidateKey, sourceRevisionKey);
 
                 // Derived timestamps and dates
                 LocalDateTime eventTimeJst = LocalDateTime.ofInstant(eventTimeUtc, ASIA_TOKYO);
