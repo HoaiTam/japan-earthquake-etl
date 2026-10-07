@@ -84,9 +84,18 @@ tuân thủ nghiêm ngặt nguyên tắc tạo ID opaque (`evt_` + SHA-256) từ
 tuyệt đối không dùng time/tọa độ. `SilverLineage` cung cấp cơ chế audit và kiểm chứng
 ngược về raw record locator/hash và raw object SHA-256 từ Bronze.
 
+`SLV-03` thêm `JmaFixedWidthParser`, `JmaParseContext`, `JmaParseResult`,
+`JmaCodeMapping` và `JmaNativeFields`: parse đúng cột 96 **byte**, JST → UTC,
+degree/minute, depth, hai magnitude/type, intensity/tsunami/region/agency/flags
+và catalog release. Dùng model/schema/key chung, giữ nullable values,
+duplicate/revision và native audit fields; không tự filter/dedup/link.
+`make test-jma-parser` chạy riêng tests offline, gồm Bronze/resolver → parser
+→ quality → Parquet readback. API, biên cột, code mapping và giới hạn nằm trong
+[JMA Silver parser](../docs/specs/JMA_SILVER_PARSER.md).
+
 `SLV-05` dùng trực tiếp model chung của SLV-02 để validate, đối soát
 valid/rejected/parsed và xuất quality summary đầy đủ Bronze lineage. Overload
-nhận `UsgsParseResult` bao gồm parser rejects trong run gate; overload
+nhận `UsgsParseResult` hoặc `JmaParseResult` bao gồm parser rejects trong run gate; overload
 `SilverParquetWriter.write(request, quality)` chặn storage writes khi gate fail
 hoặc request không khớp run/datasets đã validate. Cách dùng, JMA flag mapping,
 giới hạn của API persistence thấp tầng và regression tests nằm trong

@@ -26,7 +26,7 @@ STATIC_CHECKS := check-compose check-minio check-airflow check-spark \
 COMPONENT_SMOKES := smoke-minio smoke-airflow smoke-spark smoke-query smoke-usgs-live
 
 .PHONY: help env-init require-env check-config check-config-local config \
-	test test-contracts test-java test-jma-bronze test-airflow package-java check \
+	test test-contracts test-java test-jma-bronze test-jma-parser test-airflow package-java check \
 	$(CONTRACT_CHECKS) $(STATIC_CHECKS) check-foundation check-jma-inventory-live build-shared-fixtures \
 	build up start up-minio up-airflow up-spark up-query status ps logs logs-follow \
 	restart stop down smoke smoke-foundation $(COMPONENT_SMOKES) \
@@ -73,6 +73,10 @@ test-java: ## Unit test Spark/USGS Java bằng Maven Wrapper (HTTP/storage mock)
 test-jma-bronze: ## Kiểm thử riêng JMA-03 ZIP validator, Bronze writer và handoff bằng fixture/mock
 	@./mvnw --batch-mode --no-transfer-progress -pl spark -am \
 		-Dtest=JmaArchiveValidatorTest,JmaBronzeWriterTest -Dsurefire.failIfNoSpecifiedTests=false test
+
+test-jma-parser: ## Kiểm thử riêng SLV-03 JMA fixed-width, code mapping và handoff Silver offline
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am \
+		-Dtest=JmaFixedWidthParserTest,JmaParserIntegrationTest -Dsurefire.failIfNoSpecifiedTests=false test
 
 test-airflow: ## Unit test DAG/runner Airflow bằng unittest; không cần Airflow runtime
 	@python3 -m unittest discover -s airflow/tests -p 'test_*.py'

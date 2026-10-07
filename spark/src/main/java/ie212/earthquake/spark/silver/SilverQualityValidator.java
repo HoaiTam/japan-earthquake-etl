@@ -62,10 +62,21 @@ public final class SilverQualityValidator {
     /** Includes parser rejects in the run gate; validating only observations must not hide failed raw rows. */
     public SilverQualityResult validate(UsgsParseResult parsed, String ingestRunId) {
         Objects.requireNonNull(parsed, "parsed");
-        SilverQualityResult quality = validate(parsed.observations(), ingestRunId);
-        List<SilverRejectRecord> rejected = new ArrayList<>(parsed.rejects());
+        return validateParsed(parsed.observations(), parsed.rejects(), ingestRunId);
+    }
+
+    /** JMA parser rejects must also participate in the checked publication gate. */
+    public SilverQualityResult validate(JmaParseResult parsed, String ingestRunId) {
+        Objects.requireNonNull(parsed, "parsed");
+        return validateParsed(parsed.observations(), parsed.rejects(), ingestRunId);
+    }
+
+    private SilverQualityResult validateParsed(List<SilverObservation> observations,
+            List<SilverRejectRecord> parserRejects, String ingestRunId) {
+        SilverQualityResult quality = validate(observations, ingestRunId);
+        List<SilverRejectRecord> rejected = new ArrayList<>(parserRejects);
         Map<String, Long> counts = new LinkedHashMap<>(quality.reasonCounts());
-        for (SilverRejectRecord record : parsed.rejects()) {
+        for (SilverRejectRecord record : parserRejects) {
             if (record == null || !ingestRunId.equals(record.ingestRunId())) {
                 throw new IllegalArgumentException("parser rejects must belong to the requested ingest run");
             }
@@ -74,7 +85,7 @@ public final class SilverQualityValidator {
             }
         }
         rejected.addAll(quality.rejectedRecords());
-        return new SilverQualityResult(ingestRunId, parsed.parsedCount(), quality.validCount(), rejected.size(),
+        return new SilverQualityResult(ingestRunId, observations.size() + parserRejects.size(), quality.validCount(), rejected.size(),
                 !rejected.isEmpty(), quality.validObservations(), rejected, counts);
     }
 

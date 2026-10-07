@@ -89,3 +89,4 @@ Khi hoàn thành, báo cáo tối thiểu:
 - Test/check đã chạy và kết quả.
 - Giới hạn hoặc bước review còn lại.
 - Các lệnh `git diff`, `git add <paths>`, `git commit` và `git push -u origin <branch>` phù hợp.
+- Tự động gửi mô tả PR bằng tiếng Việt để người dùng copy, không chờ yêu cầu riêng. Đặt toàn bộ mô tả trong một khối code `markdown`, không lồng code fence bên trong; gồm mục tiêu/task, thay đổi chính, docs, test/check thực tế và giới hạn hoặc review còn lại. Không tự đăng mô tả lên GitHub khi chưa được yêu cầu.

@@ -1,7 +1,7 @@
 # Silver quality validation và tích hợp parser/writer
 
 Tài liệu triển khai `SLV-05`, dùng chung model `SilverObservation` và
-`SilverRejectRecord` của `SLV-02`. Logical schema vẫn là `CON-03` / Silver
+`SilverRejectRecord` của parser `SLV-02`/`SLV-03`. Logical schema vẫn là `CON-03` / Silver
 `1.0`; không tạo model giản lược riêng cho quality hoặc đổi schema Parquet.
 
 ## Làm phần gì, có những gì, dùng để làm gì?
@@ -21,7 +21,7 @@ Tài liệu triển khai `SLV-05`, dùng chung model `SilverObservation` và
 
 ```mermaid
 flowchart LR
-    P["USGS parser: observations + rejects"] --> Q["Quality: count + reason + lineage"]
+    P["USGS/JMA parsers: observations + rejects"] --> Q["Quality: count + reason + lineage"]
     Q --> S["JSON summary: source/run"]
     Q --> G{"Publish gate"}
     G -- "passed" --> W["SLV-08: Parquet + manifest + _SUCCESS"]
@@ -39,10 +39,13 @@ SilverWriteRequest request = new SilverWriteRequest(
 SilverWriteResult output = new SilverParquetWriter(store).write(request, quality);
 ```
 
-- Dùng overload nhận **toàn bộ `UsgsParseResult`**, không chỉ
+- Dùng overload nhận **toàn bộ `UsgsParseResult` hoặc `JmaParseResult`**, không chỉ
   `parsed.observations()`: parser rejects phải được cộng vào run gate. Nếu chỉ
   validate các dòng parse thành công, một input lỗi toàn bộ có thể bị nhầm là
   input rỗng hợp lệ.
+- SLV-03 thêm overload JMA và tái sử dụng cùng reject accounting/policy như
+  USGS, không thay schema hoặc bỏ raw flags. Cách parse/ZIP handoff nằm tại
+  [JMA Silver parser](./JMA_SILVER_PARSER.md).
 - `valid + rejected = parsed` đối soát cả parser rejects và quality rejects.
   Một row có thể có nhiều reason, vì vậy tổng reason count có thể lớn hơn
   rejected count. Mỗi reason chỉ được đếm một lần trên cùng row.
@@ -109,8 +112,8 @@ Unit test dùng fixture/local storage/mock, không gọi nguồn thật hoặc g
 `make check-task-status` kiểm tra frontmatter `status`, mục `Theo dõi` và
 dòng index của mọi task, đồng thời phát hiện thiếu/trùng dòng. Check được thêm
 vào `make test` và `make check`, không cần `rg` hoặc Python.
-SLV-03 vẫn `Ready` cho tới khi có parser/evidence; SLV-05 được đánh dấu `Done`
-sau khi hotfix và checks hoàn tất.
+SLV-03 chỉ được `Done` khi parser, docs và tests đạt; không suy trạng thái từ
+task quality. SLV-05 được đánh dấu `Done` sau khi hotfix và checks hoàn tất.
 
 Evidence ngày 2026-10-07: full `make check` đạt, gồm clean Maven verify
 **83/83 Java tests** (quality/integration **12/12**), **15/15 Airflow tests**,
@@ -122,9 +125,10 @@ Hotfix đã được commit tại `572918c` và mở thành
 [PR #36](https://github.com/HoaiTam/japan-earthquake-etl/pull/36). PR #35 đã
 merge vào main tại `40710d4`; branch hotfix đồng bộ main này tại `1b6334c`
 và giữ nguyên API quality, lineage, checked writer cùng integration tests.
-Sau giải quyết conflict, cần đối chiếu metadata/index: assignee SLV-05 là
-`HoaiTam`; SLV-03 vẫn `Ready` theo file task, không phải `Done` chỉ vì một
-branch khác đã sửa bảng chỉ mục.
+Tại thời điểm giải quyết conflict, assignee SLV-05 là `HoaiTam` và SLV-03
+vẫn `Ready` vì chưa có parser/evidence; không được đổi thành `Done` chỉ vì
+một branch khác sửa bảng chỉ mục. Trạng thái hiện hành luôn lấy từ file task
+và index đồng bộ, không từ evidence lịch sử của hotfix.
 
 Không thay đổi GitHub branch protection/CI settings trong hotfix. Không có
 migration hay backfill bắt buộc vì logical schema không đổi; nếu có run cũ
