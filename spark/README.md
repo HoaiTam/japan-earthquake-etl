@@ -52,6 +52,13 @@ preflight HEAD, tải có giới hạn đồng thời, resume qua HTTP Range, l�
 metadata/SHA-256 và giữ release cũ khi archive đổi. ZIP/member validation
 thuộc `JMA-03`.
 
+`JMA-03` thêm `JmaArchiveValidator` và `JmaBronzeWriter`: kiểm tra ZIP/member,
+CRC/size, record 96 byte; lưu ZIP nguyên bản và manifest CON-02 bất biến sau
+readback SHA-256. File hỏng đi vào quarantine, không `BronzeReady`; không
+normalize/filter event tại Bronze. Chạy riêng bằng `make test-jma-bronze`.
+Thành phần, metadata, retry/revision và handoff JMA-02 → SLV-01 nằm trong
+[JMA Bronze writer contract](../docs/specs/JMA_BRONZE_WRITER_CONTRACT.md).
+
 `SLV-01` thêm package `ie212.earthquake.spark.silver` để resolve đúng một
 manifest BronzeReady theo run/source, kiểm tra validation flags, raw object
 length/SHA-256 và stage deterministic. Resolver không quét wildcard hoặc chọn
