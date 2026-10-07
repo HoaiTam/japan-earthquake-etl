@@ -67,6 +67,16 @@ phân loại reject record với reason code rõ ràng (`MISSING_SOURCE_KEY`, `I
 `INVALID_LATITUDE`, `INVALID_LONGITUDE`, `INVALID_NUMBER`), và giữ negative depth kèm cờ
 cảnh báo `NEGATIVE_DEPTH`.
 
+`SLV-04` thêm `SourceKeyGenerator` và `SilverLineage` để version hóa thuật toán
+tạo khóa và liên kết lineage đa nguồn. USGS dùng feature `id`; JMA dùng thuật toán
+version hóa `jma_k1` từ các cột hypocenter chính thức (agency, origin time JST, tọa độ
+độ/phút), bảo đảm khóa giữ nguyên khi rerun hoặc qua revision cập nhật depth/magnitude.
+`source_revision_key` phản ánh catalog release/update timestamp và raw hash;
+`source_observation_id` tuân thủ công thức `obs_` + SHA-256. `canonical_event_id`
+tuân thủ nghiêm ngặt nguyên tắc tạo ID opaque (`evt_` + SHA-256) từ stable source identity,
+tuyệt đối không dùng time/tọa độ. `SilverLineage` cung cấp cơ chế audit và kiểm chứng
+ngược về raw record locator/hash và raw object SHA-256 từ Bronze.
+
 Không commit `target/`, JAR hoặc local metastore. Kiến trúc service, dependency,
 version matrix, marker output và cách mở rộng được mô tả trong
 [Spark standalone contract](../docs/specs/SPARK_STANDALONE.md).
