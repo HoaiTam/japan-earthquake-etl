@@ -94,6 +94,47 @@ class JmaYearIngestRunnerTest {
                 + failed.get("sha256") + ".json")));
     }
 
+    @Test void wrongRecordLengthIsRejectedByCompleteRunnerAndCannotBecomeReadyOnRerun() throws Exception {
+        FakeTransport transport = new FakeTransport(); transport.recordLength = 95;
+        CountingStore store = new CountingStore(temporary.resolve("store"));
+        var runner = runner(transport, store);
+        var first = runner.run(context(2000, "full-year", "bad-length", 1, false));
+        assertEquals("INVALID_RECORD_LENGTH", first.get("reason"));
+        assertEquals("Rejected", first.get("bronze_status"));
+        var second = runner.run(context(2000, "full-year", "bad-length-rerun", 1, false));
+        assertEquals(false, second.get("verified"));
+        assertEquals("FAILED", second.get("status"));
+        assertEquals(1, transport.gets.get());
+    }
+
+    @Test void trackedRangeResumePublishesWholeZipAndFullCountNotOnlyTail() throws Exception {
+        byte[] zip = archive("h2000", 'J'); int offset = 31;
+        URI uri = JmaArchiveInventory.read(INVENTORY).stream().filter(e -> e.year() == 2000).findFirst().orElseThrow().sourceUrl();
+        var transport = new JmaArchiveTransport() {
+            public JmaHttpMetadata head(URI source) { return new JmaHttpMetadata(200, "application/zip", (long) zip.length, null,
+                    "Wed, 10 Dec 2025 01:41:53 GMT", source); }
+            public JmaHttpPayload get(URI source, long start) {
+                assertEquals(offset, start);
+                return new JmaHttpPayload(206, "application/zip", (long) zip.length - start, null,
+                        "Wed, 10 Dec 2025 01:41:53 GMT", source, Arrays.copyOfRange(zip, (int) start, zip.length),
+                        "bytes " + start + "-" + (zip.length - 1) + "/" + zip.length);
+            }
+        };
+        Path root = temporary.resolve("staging/downloads/year=2000/segment=full-year"); Files.createDirectories(root);
+        Files.write(root.resolve("archive.zip.part"), Arrays.copyOf(zip, offset));
+        Files.write(root.resolve("partial-state.json"), JSON.writeValueAsBytes(JSON.createObjectNode()
+                .put("source_url", uri.toString()).put("content_length_bytes", zip.length).putNull("etag")
+                .put("last_modified", "Wed, 10 Dec 2025 01:41:53 GMT")));
+        CountingStore store = new CountingStore(temporary.resolve("store"));
+        var runner = new JmaYearIngestRunner(Map.of("JMA_INVENTORY_PATH", INVENTORY.toString(),
+                "JMA_STAGING_ROOT", temporary.resolve("staging").toString()), transport, () -> store, CLOCK);
+        var result = runner.run(context(2000, "full-year", "resume", 1, false));
+        assertEquals("BronzeReady", result.get("status"));
+        assertEquals(2L, result.get("record_count_estimate"));
+        assertArrayEquals(zip, store.read((String) result.get("raw_object_key")));
+        assertEquals(zip.length, JSON.readTree(store.read((String) result.get("manifest_key"))).path("content_length_bytes").asInt());
+    }
+
     @Test void tamperedRawOrManifestCannotPassRerunVerification() throws Exception {
         FakeTransport transport = new FakeTransport();
         CountingStore store = new CountingStore(temporary.resolve("store"));
@@ -177,10 +218,14 @@ class JmaYearIngestRunnerTest {
     }
 
     private static byte[] archive(String member, char value) throws IOException {
+        return archive(member, value, 96);
+    }
+
+    private static byte[] archive(String member, char value, int length) throws IOException {
         var bytes = new ByteArrayOutputStream();
         try (var zip = new ZipOutputStream(bytes)) {
             ZipEntry entry = new ZipEntry(member); entry.setTime(0); zip.putNextEntry(entry);
-            byte[] record = new byte[96]; Arrays.fill(record, (byte) value);
+            byte[] record = new byte[length]; Arrays.fill(record, (byte) value);
             zip.write(record); zip.write('\n'); zip.write(record); // duplicates preserved at Bronze
             zip.closeEntry();
         }
@@ -190,10 +235,11 @@ class JmaYearIngestRunnerTest {
     private static final class FakeTransport implements JmaArchiveTransport {
         String modified = "Wed, 10 Dec 2025 01:41:53 GMT";
         char recordValue = 'J'; boolean corrupt; boolean fail;
+        int recordLength = 96;
         AtomicInteger gets = new AtomicInteger();
         private byte[] body(URI uri) throws IOException {
             String name = Path.of(uri.getPath()).getFileName().toString().replace(".zip", "");
-            return corrupt ? "invalid zip".getBytes() : archive(name, recordValue);
+            return corrupt ? "invalid zip".getBytes() : archive(name, recordValue, recordLength);
         }
         @Override public JmaHttpMetadata head(URI uri) throws IOException {
             if (fail) { throw new IOException("simulated source failure"); }

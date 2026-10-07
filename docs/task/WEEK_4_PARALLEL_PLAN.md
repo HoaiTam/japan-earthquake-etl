@@ -110,9 +110,9 @@ MLI-01 độc lập bằng CON-03/schema fixture, không cần model thật.
 Đây là thứ tự ghép dữ liệu thật, không phải thứ tự bắt đầu toàn bộ task.
 Không xóa hard dependency để tạo cảm giác độc lập. Tại PR phân công có 6
 task đã Ready khi lập kế hoạch: JMA-04, SLV-06, SLV-07, GLD-01, ORC-01, MLI-01.
-Trạng thái hiện tại theo file task/index (JMA-04 đã Done implementation/offline).
-Các task còn lại
-Backlog; khi thực sự làm fixture/mock/test plan được phép thì ghi In Progress
+Trạng thái hiện tại theo file task/index: JMA-04 đã Done implementation/offline,
+JMA-05 đã Done live QA/readback/rerun, có [input evidence](../evidence/JMA-05.md).
+Các task chờ gate còn Backlog; khi thực sự làm fixture/mock/test plan được phép thì ghi In Progress
 và dependency còn chờ. Chỉ Done khi acceptance/dependency/tests/docs/evidence
 đạt; chưa có reviewer không cho phép bịa approval.
 

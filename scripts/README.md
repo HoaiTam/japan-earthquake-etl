@@ -13,6 +13,12 @@ không thay đổi logic script gốc. Hướng dẫn đầy đủ tại
 
 Hiện có:
 
+- `smoke-jma-live.sh`: build/start Airflow và chạy live QA JMA-05 cho 1997
+  (hai segment), 2000, 2023; preview/ingest/rerun qua scheduler thật, Java đọc
+  lại raw/manifest/DAT-01 và so SHA/count/release với baseline. Wrapper
+  `make smoke-jma-live`; offline `make test-jma-qa`. Report/handoff và giới
+  hạn nằm tại [JMA Bronze QA](../docs/specs/JMA_BRONZE_QA.md).
+
 - `preview-jma-backfill.py`: resolve list năm từ inventory offline, ghi plan
   metadata ở staging, không đọc `.env`, gọi nguồn hoặc ghi MinIO;
   wrapper `make jma-preview JMA_YEARS=1997,2023`, chi tiết tại

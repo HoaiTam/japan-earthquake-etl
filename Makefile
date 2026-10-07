@@ -24,10 +24,10 @@ CONTRACT_CHECKS := check-mvp-baseline check-repository-layout \
 	check-shared-fixtures check-real-sample-catalog check-week-3-plan check-jma-inventory check-task-status
 STATIC_CHECKS := check-compose check-minio check-airflow check-spark \
 	check-query check-usgs-live
-COMPONENT_SMOKES := smoke-minio smoke-airflow smoke-spark smoke-query smoke-usgs-live
+COMPONENT_SMOKES := smoke-minio smoke-airflow smoke-spark smoke-query smoke-usgs-live smoke-jma-live
 
 .PHONY: help env-init require-env check-config check-config-local config \
-	test test-contracts test-java test-jma-bronze test-jma-parser test-jma-backfill jma-preview test-airflow package-java check \
+	test test-contracts test-java test-jma-bronze test-jma-parser test-jma-backfill test-jma-qa jma-preview test-airflow package-java check \
 	$(CONTRACT_CHECKS) $(STATIC_CHECKS) check-foundation check-jma-inventory-live build-shared-fixtures \
 	build up start up-minio up-airflow up-spark up-query status ps logs logs-follow \
 	restart stop down smoke smoke-foundation $(COMPONENT_SMOKES) \
@@ -82,6 +82,12 @@ test-jma-parser: ## Kiểm thử riêng SLV-03 JMA fixed-width, code mapping và
 test-jma-backfill: ## Kiểm thử JMA-04 downloader/runner/planner/DAG bằng fixture/mock, không tải nguồn
 	@./mvnw --batch-mode --no-transfer-progress -pl spark -am \
 		-Dtest=JmaArchiveDownloaderTest,JmaYearIngestRunnerTest -Dsurefire.failIfNoSpecifiedTests=false test
+	@python3 -m unittest discover -s airflow/tests -p 'test_jma_*.py'
+
+test-jma-qa: ## JMA-05 offline error/readback/revision/resume QA, không gọi nguồn hoặc MinIO thật
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am \
+		-Dtest=JmaArchiveDownloaderTest,JmaArchiveValidatorTest,JmaBronzeWriterTest,JmaYearIngestRunnerTest,JmaBronzeQaVerifierTest \
+		-Dsurefire.failIfNoSpecifiedTests=false test
 	@python3 -m unittest discover -s airflow/tests -p 'test_jma_*.py'
 
 jma-preview: ## Preview offline các năm chỉ định; ví dụ JMA_YEARS=1997,2023
@@ -185,6 +191,7 @@ smoke-airflow: ## Start Airflow và trigger DAG afl_01_smoke thật
 smoke-spark: ## Build/start Spark và submit HelloWorldJob thật
 smoke-query: ## Start query stack và tạo/ghi/đọc/xóa đúng table smoke
 smoke-usgs-live: ## Gọi USGS thật cho 2023-01-01..04 UTC, ghi Bronze và kiểm tra rerun
+smoke-jma-live: ## JMA-05 live DAG 1997/2000/2023, readback DAT-01 và rerun; cần Docker/.env/Internet
 
 $(COMPONENT_SMOKES): check-config-local
 	@$(RUNTIME_ENV) ./scripts/$@.sh

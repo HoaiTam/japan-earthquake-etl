@@ -32,3 +32,8 @@ tasks giới hạn concurrency, retry và summary chạy cả khi archive lỗi.
 runner nối downloader/writer, verify exact publication rồi mới trả Ready;
 preview không tạo BronzeReady giả. Thành phần, protocol và lệnh vận hành xem
 [JMA year backfill](../docs/specs/JMA_YEAR_BACKFILL.md).
+
+`JMA-05` bổ sung `make smoke-jma-live`: profile QA trigger preview/first/rerun
+trên DAG JMA thật cho 1997/2000/2023, khôi phục pause state, giữ evidence trên
+shared staging; Java đối soát exact raw/manifest và DAT-01. Test harness
+offline không thay live gate. Xem [JMA Bronze QA](../docs/specs/JMA_BRONZE_QA.md).

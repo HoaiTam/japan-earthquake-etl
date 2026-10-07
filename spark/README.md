@@ -67,6 +67,12 @@ và manifest, không nhân bản raw cho run mới khi cache còn hợp lệ. Ch
 `make test-jma-backfill`; protocol và cache/recovery boundary ở
 [JMA year backfill](../docs/specs/JMA_YEAR_BACKFILL.md).
 
+`JMA-05` thêm `JmaBronzeQaVerifier` trong shaded runner JAR: read-only exact
+MinIO raw/manifest, ZIP/count/SHA/release/interval/provenance, DAT-01 và
+baseline trước rerun. Report chỉ metadata, không sửa object/catalog. Offline
+`make test-jma-qa`, live `make smoke-jma-live`; tham số CLI/report và scope ở
+[JMA Bronze QA](../docs/specs/JMA_BRONZE_QA.md).
+
 `SLV-01` thêm package `ie212.earthquake.spark.silver` để resolve đúng một
 manifest BronzeReady theo run/source, kiểm tra validation flags, raw object
 length/SHA-256 và stage deterministic. Resolver không quét wildcard hoặc chọn

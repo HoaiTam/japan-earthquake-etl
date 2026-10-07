@@ -198,6 +198,11 @@ Live source, MinIO/Spark/JDK17 runtime và Airflow mapped execution chưa đư�
 xác nhận trong task này; cần ghi evidence riêng ở JMA-05.
 
 - [JMA inventory](./JMA_ARCHIVE_INVENTORY.md)
+- [JMA-05 QA runbook](./JMA_BRONZE_QA.md) và [live evidence](../evidence/JMA-05.md):
+  xác nhận Java17/MinIO/Airflow mapped execution cho 4 archive 1997/2000/2023,
+  readback/rerun và DAT-01 nguyên trạng. Evidence này được cung cấp bởi JMA-05,
+  không đổi giới hạn/history acceptance của JMA-04; Spark/Silver integration
+  còn thuộc [SLV-09 - Tích hợp và kiểm thử Silver đa nguồn](../task/tasks/SLV-09.md).
 - [JMA Bronze writer](./JMA_BRONZE_WRITER_CONTRACT.md)
 - [Airflow local](./AIRFLOW_LOCAL.md)
 - [Nhóm mở đường tuần 4](../task/WEEK_4_PREP_GROUP.md)
