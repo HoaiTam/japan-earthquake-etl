@@ -87,6 +87,11 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Tài liệu liên quan
 
+- [ORC-03 backfill/reprocessing handoff](../../specs/BACKFILL_AND_REPROCESSING.md):
+  single-task/shared whole-run lease, immutable operation scope và fail-closed
+  baseline/idempotency protocol; ORC-05 kiểm stale-lease/cache-loss/partial commit
+  recovery, resource sizing và concurrency cho tất cả writer thật.
+
 - [Kế hoạch tuần 4 mở rộng](../WEEK_4_PARALLEL_PLAN.md)
 - [Kế hoạch 8 tuần](../README.md)
 - [Các khối công việc](../WORK_BLOCKS.md)

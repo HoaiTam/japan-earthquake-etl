@@ -213,7 +213,7 @@ Evidence thực tế ở [ORC-01 evidence](../evidence/ORC-01.md).
 | Owner task | Phần còn thiếu / cách dùng giao diện này |
 |---|---|
 | [ORC-02 - Cấu hình lịch và readiness cho hai nguồn](../task/tasks/ORC-02.md) | Nối readiness/source adapters, resolve exact source manifests/SHA, daily UTC/overlap USGS, JMA change/no-change và contention; hiện chưa có automatic planner/sensors |
-| [ORC-03 - Implement backfill và reprocessing](../task/tasks/ORC-03.md) | Preview real interval/year/release, existing Silver context và affected partitions, Bronze reuse và scoped recovery; gọi workflow JMA-04, không viết downloader thứ hai |
+| [ORC-03 - Implement backfill và reprocessing](../task/tasks/ORC-03.md) | Đã có manual planner/chunk/JMA-04 reuse, exact Bronze readback và versioned scoped-adapter handoff; [runbook](./BACKFILL_AND_REPROCESSING.md). Không thay ORC-01 `1.0`; scoped Silver/Gold adapter thật vẫn cần downstream owners |
 | [ORC-04 - Chuẩn hóa logging và run summary](../task/tasks/ORC-04.md) | Persistent success/failure summary, counts/reasons/duration từng source/layer và reconciliation; final XCom hiện chỉ receipt metadata |
 | [ORC-05 - Chốt recovery, concurrency và tài nguyên](../task/tasks/ORC-05.md) | Retry/resource/cross-DAG concurrency và recovery/idempotency thật; một-run/một-task/no-retry hiện là guard bảo thủ, chưa là resource benchmark |
 | [SLV-09 - Tích hợp và kiểm thử Silver đa nguồn](../task/tasks/SLV-09.md) | Real adapter/build/readback đủ observations/reject/link/membership; mock SilverReady không chứng minh integration thật |

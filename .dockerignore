@@ -6,6 +6,7 @@
 !compose/airflow/Dockerfile
 !compose/airflow/usgs-runner.sh
 !compose/airflow/jma-runner.sh
+!compose/airflow/bronze-reuse-runner.sh
 !config/
 !config/jma/
 !config/jma/hypocenter_archives_v1.csv

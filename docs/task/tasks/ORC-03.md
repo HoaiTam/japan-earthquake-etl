@@ -1,6 +1,6 @@
 ---
 task_id: "ORC-03"
-status: "Backlog"
+status: "Done"
 week: 4
 block: "F - Điều phối"
 workstream: "Backfill"
@@ -35,9 +35,9 @@ Hỗ trợ khoảng UTC cho USGS, danh sách năm/release cho JMA, tái sử d�
 
 ## Tiêu chí hoàn thành
 
-- [ ] Chạy lại không tạo duplicate.
-- [ ] không sửa partition ngoài phạm vi.
-- [ ] operator thấy trước input/output sẽ tác động.
+- [x] Chạy lại không tạo duplicate: live source/reuse rerun giữ nguyên exact raw/manifest pins trong cùng operation; không suy ra Gold dedup đã hoàn tất.
+- [x] không sửa partition ngoài phạm vi: immutable Bronze + old-object readback thật, scoped-adapter gates/test fixtures chặn scope sai; physical Silver/Gold acceptance thuộc SLV-09/GLD-03/GLD-04, chưa có adapter nên fail closed.
+- [x] operator thấy trước input/output sẽ tác động: preview ba actions, UTC chunks/JMA segments/releases, existing-state/baselines và affected logical scopes tường minh.
 
 ## Hard dependency
 
@@ -70,22 +70,29 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
+- **Trạng thái:** Done
 - **Assignee:** HoaiTam
-- **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Reviewer:** unassigned; chưa có approval độc lập.
+- **Evidence / PR:** Branch `feat/orc-03-backfill-reprocessing` từ `origin/main`
+  tại `ff4f460` (merge PR #45). [Evidence](../../evidence/ORC-03.md),
+  [live runtime pins](../../evidence/ORC-03-runtime.json): 22 Python + 28 Java
+  backfill tests; full checks 176 Java/111 Airflow/12 build-input tests; fresh
+  image, real Bronze reuse/source pilot rerun và DagBag import đạt.
 - **Kỹ năng phù hợp:** Airflow backfill, idempotency
 
 ## Checklist bàn giao
 
-- [ ] Deliverable đã có trong repository hoặc môi trường demo.
-- [ ] Acceptance criteria đã được kiểm tra.
-- [ ] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
-- [ ] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
-- [ ] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
+- [x] Deliverable đã có trong repository hoặc môi trường demo.
+- [x] Acceptance criteria đã được kiểm tra trong phạm vi orchestration/source/reuse + scoped contract; không giả định downstream Published thật.
+- [x] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
+- [x] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
+- [x] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
 - [ ] P0/P1 có reviewer khác assignee xác nhận.
 
 ## Tài liệu liên quan
+
+- [Runbook backfill/reprocessing và giới hạn có owner](../../specs/BACKFILL_AND_REPROCESSING.md)
+- [ORC-03 evidence](../../evidence/ORC-03.md)
 
 - [Kế hoạch tuần 4 mở rộng](../WEEK_4_PARALLEL_PLAN.md)
 - [Kế hoạch 8 tuần](../README.md)

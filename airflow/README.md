@@ -2,6 +2,11 @@
 
 Module này chứa orchestration code của pipeline.
 
+`ORC-03` thêm DAG manual `orc_03_backfill`: preview-first, USGS chunk UTC,
+JMA year/segment, exact Bronze release reuse và versioned scoped-reprocess
+handoff. Dùng `make backfill-preview`, `make test-backfill`; không tự chuyển
+BronzeVerified thành Published. Xem [runbook backfill/reprocessing](../docs/specs/BACKFILL_AND_REPROCESSING.md).
+
 `ORC-02` cung cấp daily owner `orc_02_daily_sources`, nguồn thật → SourcesReady
 (không Gold Published), JMA changed-year checks/weekly checksum audit và shared
 whole-run source lease. `SOURCE_SCHEDULE_PROFILE=multi-source` mặc định chuyển

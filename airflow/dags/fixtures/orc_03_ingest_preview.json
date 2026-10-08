@@ -1,0 +1,16 @@
+{
+  "operation_id": "orc03-pilot-2023-v1",
+  "processing_date": "2026-10-08",
+  "action": "ingest",
+  "preview": true,
+  "usgs": {
+    "window_start_utc": "2023-01-01T00:00:00Z",
+    "window_end_utc": "2023-01-08T00:00:00Z",
+    "chunk_days": 3
+  },
+  "jma": {
+    "years": [1997],
+    "segments": [{"year": 1997, "segment": "oct-dec"}],
+    "force_download": false
+  }
+}

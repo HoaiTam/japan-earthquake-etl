@@ -1,0 +1,45 @@
+{
+  "operation_id": "orc03-bootstrap-preview-v1",
+  "processing_date": "2026-10-08",
+  "action": "reprocess",
+  "preview": true,
+  "bronze_inputs": [
+    {
+      "source_system": "USGS",
+      "manifest_uri": "s3://japan-earthquake/bronze/usgs/ingest_date=2023-01-03/run_id=usgs-f108a8a8cb056eb13898927b72639a74/attempt=01/manifest.json",
+      "manifest_sha256": "cadd506c509491d89703c86aabd9d9ebe1b5558a0444647ec68a3dda11c1a363",
+      "sha256": "8fbb61c402c90c1f609d3b6dd30e2dadb7a02265988df924da316dc452f91363",
+      "window_start_utc": "2023-01-01T00:00:00Z",
+      "window_end_utc": "2023-01-04T00:00:00Z"
+    },
+    {
+      "source_system": "JMA_BULLETIN",
+      "manifest_uri": "s3://japan-earthquake/bronze/jma/year=2023/catalog_release=jma-lm-20251210T014153Z-sha256-e5ced2bf7275/ingest_date=2026-10-07/run_id=jma-922316b2ad88fa07587948c310215600-2023-full-year/attempt=01/manifest.json",
+      "manifest_sha256": "977defa4f2a1d4a2ba41a211ac0419419ca812d010522da4ef4d95c95f3582db",
+      "sha256": "e5ced2bf7275825ba75405b071bb54e9d4c2a5eb55aa6bc9b8d670de1f58b98f",
+      "year": 2023,
+      "segment": "full-year",
+      "catalog_release": "jma-lm-20251210T014153Z-sha256-e5ced2bf7275"
+    }
+  ],
+  "reprocess": {
+    "window_start_utc": "2023-01-01T00:00:00Z",
+    "window_end_utc": "2023-01-04T00:00:00Z",
+    "output_scope": {
+      "silver_partitions": [
+        {"event_year_utc": 2023, "event_month_utc": 1, "source_system": "USGS"},
+        {"event_year_utc": 2023, "event_month_utc": 1, "source_system": "JMA_BULLETIN"}
+      ],
+      "gold_tables": ["iceberg.gold.event_current", "iceberg.gold.event_source_bridge"]
+    },
+    "gold_partitions": [
+      {"table": "iceberg.gold.event_current", "event_year_utc": 2023, "event_month_utc": 1},
+      {"table": "iceberg.gold.event_source_bridge", "event_year_utc": 2023, "event_month_utc": 1}
+    ],
+    "existing_silver_manifests": [],
+    "baseline_snapshots": [
+      {"table": "iceberg.gold.event_current", "snapshot_id": null},
+      {"table": "iceberg.gold.event_source_bridge", "snapshot_id": null}
+    ]
+  }
+}
