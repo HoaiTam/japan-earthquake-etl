@@ -59,6 +59,14 @@ image trước khi start và chờ healthy, nhưng không tự trigger ETL test.
 DAT-01 đã có, không tải dữ liệu. `stop` giữ container/volume; `down` chỉ gỡ
 container/network, không xóa named volume. Không có target reset dữ liệu.
 
+Nếu Maven trong Docker build báo thiếu `../tests/fixtures` hoặc `../config/jma`,
+đây là lỗi đóng gói đầu vào kiểm thử, không phải lỗi `.env`. Chạy
+`make check-java-build-inputs` để kiểm tra fixture/inventory/allowlist và thứ tự
+COPY ở cả Java builder trước khi build lại. Không bỏ test hoặc xóa volume để
+né lỗi. `WAIT_TIMEOUT` chỉ áp dụng lúc chờ service healthy sau build; Maven
+có thể mất vài phút tải dependency khi cache chưa có. Xem hướng xử lý ở
+[Spark troubleshooting](./specs/SPARK_STANDALONE.md#9-troubleshooting).
+
 Phạm vi từng target, startup từng khối, USGS live/JMA HEAD, khác biệt giữa
 `ENV_FILE` và `CHECK_ENV_FILE`, cùng ví dụ custom config được mô tả tại
 [Makefile command guide](./MAKEFILE_COMMANDS.md). Các lệnh script/Compose bên

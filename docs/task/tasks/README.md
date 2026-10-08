@@ -54,6 +54,10 @@ assignee/evidence chính thức nằm trong từng file.
 | [QRY-01](./QRY-01.md) - Cấu hình Iceberg REST Catalog và Trino | 1 | Serving | Core | P1 | 7h | Done |
 | [FND-01](./FND-01.md) - Tạo smoke checklist cho môi trường | 1 | QA | Core | P0 | 4h | Done |
 
+SPK-01 được kiểm chứng lại ngày 2026-10-08 sau hotfix Docker builder thiếu
+fixture/inventory; assignee `HoaiTam`, reviewer `unassigned`. Xem
+[evidence build/Java 17/Spark runtime](../../evidence/SPK-01_DOCKER_BUILD_INPUTS.md).
+
 ## A - Hợp đồng dữ liệu
 
 | Task | Tuần | Workstream | Scope | Priority | Effort | Trạng thái |

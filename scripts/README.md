@@ -49,8 +49,15 @@ Hiện có:
   healthcheck, dependency, mount và host exposure của `AFL-01`/`USG-04`.
 - `smoke-airflow.sh`: khởi động Airflow local, chờ các component healthy và
   trigger `afl_01_smoke`; không xóa metadata/log volume.
-- `check-spark.sh`: chạy Maven verify và kiểm tra JAR, dependency, image,
-  healthcheck, mount, exposure cùng Compose contract của `SPK-01`.
+- `check-java-build-inputs.sh`: preflight offline fixture/inventory, allowlist
+  `.dockerignore` và COPY trong builder trước Maven verify của Spark/Airflow.
+  Mặc định resolve root từ script; một argument root tùy chọn phục vụ test cô
+  lập. Không đọc `.env`, gọi Docker/Maven hoặc sửa dữ liệu. Wrapper
+  `make check-java-build-inputs` chạy thêm 12 regression test; gate nằm trong
+  `test-contracts`, build/start Java image và `check-spark.sh`.
+- `check-spark.sh`: kiểm tra đầu vào Java builder trước Maven verify và kiểm
+  tra JAR, dependency, image, healthcheck, mount, exposure cùng Compose
+  contract của `SPK-01`.
 - `smoke-spark.sh`: build image một lần, chờ master/worker healthy và chạy
   `HelloWorldJob` trên worker; giữ cluster và staging volume để debug.
 - `check-query.sh`: validate catalog properties, digest-pinned images,
