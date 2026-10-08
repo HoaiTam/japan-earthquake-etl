@@ -16,13 +16,18 @@ không huấn luyện model và không tự tải toàn bộ 40 năm. Dependency
 
 ```mermaid
 flowchart LR
-    P["resolve_plan: explicit years/range"] --> A["select_archives"]
+    P["resolve_plan: explicit years/range"] --> L["acquire_source_lease (preview skips lease)"]
+    L --> A["select_archives"]
     A --> I["mapped ingest_archive: bounded concurrency"]
     I --> D["Java download/reuse ZIP"]
     D --> W["validate → immutable raw → manifest-last"]
     W --> V["readback/identity/count verification"]
     I --> S["all_done run_summary: success/failure per year"]
     S --> G["bronze_ready_gate: all required segments verified"]
+    G --> R["all_done release_source_lease"]
+    G --> E["all_success completion_gate"]
+    L --> E
+    R --> E
 ```
 
 Preview map rỗng, không gọi Java/MinIO; summary/gate trả `PREVIEW`,
@@ -97,7 +102,15 @@ Cache nằm trong `pipeline_staging`, không phải source of truth. Mất cache
 workflow có thể tải lại và tạo publication mới dưới run mới; không tuyên bố
 exactly-once physical storage khi staging bị mất. Không xóa volume/bucket để
 retry. Check revision cùng headers cần scoped `force_download`; schedule/check
-hằng tuần thuộc ORC-02, chưa tự động được bật bởi JMA-04.
+hằng tuần được cung cấp bởi
+[ORC-02 schedule/readiness](./SOURCE_SCHEDULE_AND_READINESS.md), không tự bật
+khi chạy manual DAG JMA-04.
+
+ORC-02 bổ sung `probe` (HEAD/cache/MinIO readback, không GET/ghi Bronze),
+`manifest_sha256` trong safe result và whole-run shared source lease cho DAG
+JMA-04. Plan/preview/mapping/ingest behavior giữ nguyên; thêm acquisition
+trước select, all_done release và strict completion leaf. Contention phải
+fail trước ingest; foreign cleanup không xóa owner của DAG khác.
 
 ## 4. Summary và failure gate
 

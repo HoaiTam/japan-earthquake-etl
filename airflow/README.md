@@ -2,6 +2,13 @@
 
 Module này chứa orchestration code của pipeline.
 
+`ORC-02` cung cấp daily owner `orc_02_daily_sources`, nguồn thật → SourcesReady
+(không Gold Published), JMA changed-year checks/weekly checksum audit và shared
+whole-run source lease. `SOURCE_SCHEDULE_PROFILE=multi-source` mặc định chuyển
+USG-04 sang manual để không có hai cron owner. Xem
+[source schedule/readiness](../docs/specs/SOURCE_SCHEDULE_AND_READINESS.md),
+`make test-source-schedule` và `make smoke-source-readiness`.
+
 `ORC-01` cung cấp DAG manual `orc_01_etl_pipeline`, 6 task groups/8 task với
 strict failure gates và run context có version. `make etl-preview`/
 `make etl-mock` không gọi nguồn/storage; mock không thể thành real Published.

@@ -33,6 +33,18 @@ COMPONENT_SMOKES := smoke-minio smoke-airflow smoke-spark smoke-query smoke-usgs
 	restart stop down smoke smoke-foundation $(COMPONENT_SMOKES) \
 	verify-samples verify-real-samples
 
+.PHONY: test-source-schedule smoke-source-readiness
+
+test-source-schedule: ## ORC-02 profile/UTC/JMA change/lease/DAG tests offline
+	@python3 -m unittest discover -s airflow/tests -p 'test_source*.py'
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am \
+		-Dtest=JmaYearIngestRunnerTest,UsgsIngestRunnerTest -Dsurefire.failIfNoSpecifiedTests=false test
+
+smoke-source-readiness: check-config-local ## ORC-02 real scheduler + USGS/JMA/MinIO; giữ data/volume và pause state
+	@$(COMPOSE) build airflow-api-server
+	@$(COMPOSE) up -d --no-build --wait --wait-timeout $(WAIT_TIMEOUT) airflow-api-server airflow-scheduler airflow-dag-processor
+	@$(COMPOSE) --profile live run --rm --no-deps source-readiness-qa
+
 help: ## Hiện toàn bộ lệnh (mặc định, không khởi động service)
 	@printf 'Chạy từ thư mục gốc repository: make <target> [VARIABLE=value]\n\n'
 	@awk 'BEGIN { FS = ":.*## " } /^[a-zA-Z0-9_-]+:.*## / { printf "  %-29s %s\n", $$1, $$2 }' Makefile

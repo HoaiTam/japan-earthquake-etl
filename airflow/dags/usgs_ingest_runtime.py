@@ -31,6 +31,7 @@ PUBLIC_RESULT_KEYS = {
     "valid",
     "verified",
     "manifest_uri",
+    "manifest_sha256",
     "raw_object_uri",
     "record_count_estimate",
     "sha256",
@@ -102,6 +103,8 @@ def resolve_run_context(
     seed_value = env.get("USGS_SEED_START_UTC", "2023-01-01T00:00:00Z")
     seed_start = _as_utc(seed_value)
     overlap_days = _int_env(env, "PIPELINE_OVERLAP_DAYS", 3)
+    if not 0 <= overlap_days <= 31:
+        raise UsgsRunnerError("PIPELINE_OVERLAP_DAYS must be within 0..31")
     is_backfill = _bool_value(_conf_value(context, "is_backfill", False))
     requested_start = _conf_value(context, "window_start_utc")
     requested_end = _conf_value(context, "window_end_utc")
@@ -124,11 +127,13 @@ def resolve_run_context(
         current_day_start = run_at.replace(hour=0, minute=0, second=0, microsecond=0)
         target_end = current_day_start
         target_start = target_end - timedelta(days=1)
-        query_start = max(seed_start, target_end - timedelta(days=overlap_days))
+        query_start = max(seed_start, min(target_start, target_end - timedelta(days=overlap_days)))
     if query_start < seed_start:
         raise UsgsRunnerError("USGS window starts before USGS_SEED_START_UTC")
     if not target_start < target_end:
         raise UsgsRunnerError("USGS target window must be non-empty")
+    if not query_start < target_end:
+        raise UsgsRunnerError("USGS resolved window must be non-empty after seed clipping")
 
     run_id = str(context.get("run_id") or "manual-usgs-run")
     logical_run_key = (
@@ -244,8 +249,7 @@ def execute_phase(
     except (OSError, subprocess.TimeoutExpired) as exc:
         raise UsgsRunnerError(f"USGS {phase} runner did not complete") from exc
     if completed.returncode != 0:
-        stderr_tail = completed.stderr.strip().splitlines()[-1:] or ["no error detail"]
-        raise UsgsRunnerError(f"USGS {phase} runner failed: {stderr_tail[0][:500]}")
+        raise UsgsRunnerError(f"USGS {phase} runner failed: RUNNER_FAILED")
 
     lines = [line.strip() for line in completed.stdout.splitlines() if line.strip()]
     if not lines:

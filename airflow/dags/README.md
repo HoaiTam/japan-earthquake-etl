@@ -15,7 +15,8 @@ handoff và task runtime còn thiếu ở
 không catchup và không truy cập hệ thống bên ngoài để smoke test phản ánh riêng
 khả năng parse, schedule và execute task của Airflow.
 
-`usg_04_usgs_ingest.py` là DAG daily USGS có task group `usgs_ingest` gồm
+`usg_04_usgs_ingest.py` là DAG USGS (manual mặc định ORC-02, daily ở profile
+`usgs-only`) có task group `usgs_ingest` gồm
 resolve/fetch/validate/upload/verify và `bronze_ready_gate`. DAG chỉ gọi runner
 được cấu hình qua `USGS_INGEST_RUNNER_COMMAND`; context/summary nằm trong
 staging volume, không đưa raw payload vào XCom. Chi tiết protocol nằm trong
@@ -29,3 +30,11 @@ Task group map exact năm/segment đã preview, giữ hai archive 1997, không �
 ZIP vào XCom. Helper `jma_backfill_runtime.py` quản lý context/subprocess và
 failure summary; Java xử lý HTTP/ZIP/MinIO. Hướng dẫn ở
 [JMA year backfill](../../docs/specs/JMA_YEAR_BACKFILL.md).
+
+`orc_02_daily_sources.py` là daily owner trong profile `multi-source`: explicit
+UTC data interval, JMA watchlist/change/weekly checksum checks và USGS Bronze
+thật. `source_schedule_runtime.py` chỉ xử lý metadata; Java giữ mọi source
+I/O/validation. `source_run_guard.py` khóa whole run giữa cả ba source DAG;
+all_done cleanup không che failure vì có strict completion leaf. `make
+test-source-schedule` / `make smoke-source-readiness` và ranh giới SourcesReady
+vs Published xem [contract ORC-02](../../docs/specs/SOURCE_SCHEDULE_AND_READINESS.md).

@@ -57,6 +57,9 @@ Checker chỉ báo tên key/file lỗi và không in giá trị cấu hình. Ch�
 | `PIPELINE_TIMEZONE` | Có | Không | Timezone điều phối; baseline là `Asia/Ho_Chi_Minh` |
 | `PIPELINE_SCHEDULE_CRON` | Có | Không | Lịch daily; default local là 07:15 |
 | `PIPELINE_OVERLAP_DAYS` | Có | Không | Số ngày đọc chồng để nhận late update |
+| `SOURCE_SCHEDULE_PROFILE` | Không | Không | ORC-02 `multi-source` default; `usgs-only` giữ lịch USG-04, chỉ một cron owner |
+| `JMA_READINESS_YEARS` | Không | Không | JSON explicit watchlist, default `[1997,2000,2023]`, không full historical coverage |
+| `JMA_CHECKSUM_AUDIT_WEEKDAY` | Không | Không | UTC weekday 0..6, Sunday=6; scoped forced checksum audit |
 | `USGS_API_BASE_URL` | Có | Không | Endpoint extract HTTPS |
 | `USGS_MIN_LATITUDE` / `USGS_MAX_LATITUDE` | Có | Không | Bounding box vĩ độ ROI Nhật Bản (`20.0` / `50.0`) |
 | `USGS_MIN_LONGITUDE` / `USGS_MAX_LONGITUDE` | Có | Không | Bounding box kinh độ ROI Nhật Bản (`120.0` / `155.0`) |
@@ -88,6 +91,11 @@ root credential chỉ có ở MinIO/bootstrap service. Custom Airflow image củ
 USG-06 đã chứa Java 17 và executable runner, vì vậy operator không cần mount JAR
 thủ công. Cách chạy thật nằm trong
 [USGS live Bronze runbook](./USGS_LIVE_BRONZE_RUNBOOK.md).
+
+ORC-02 truyền profile/watchlist và hai shared staging paths vào mọi Airflow
+component. `.env` cũ không bắt buộc thêm keys vì Compose có defaults; không
+copy secrets từ env vào plans/reports. Cách migrate cron owner, verify interval
+và kiểm thử thật ở [source schedule/readiness](./SOURCE_SCHEDULE_AND_READINESS.md).
 
 ### MinIO
 
