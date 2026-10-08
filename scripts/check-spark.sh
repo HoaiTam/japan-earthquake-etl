@@ -87,6 +87,8 @@ if [ "$failed" -ne 0 ]; then
     exit 1
 fi
 
+sh "$project_root/scripts/check-java-build-inputs.sh"
+
 "$project_root/mvnw" --batch-mode --no-transfer-progress clean verify
 
 if [ ! -f "$job_jar" ]; then

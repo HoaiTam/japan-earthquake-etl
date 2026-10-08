@@ -44,7 +44,7 @@ bị preflight chặn. Makefile không `include`/`source` file secret vào shell
 
 | Target | Làm gì / dùng khi nào |
 |---|---|
-| `build` | Validate local env, build đủ ba image custom; chưa start service |
+| `build` | Validate local env và đầu vào Java builder, build đủ ba image custom; chưa start service |
 | `up` / `start` | Build trước, start 9 foundation service, chờ health; dependency init chạy qua Compose |
 | `up-minio` | Start MinIO, chờ healthy rồi chạy init bootstrap bucket bằng container tạm |
 | `up-airflow` | Build/start API, scheduler, DAG processor cùng MinIO, PostgreSQL và init dependency |
@@ -73,7 +73,8 @@ Internet khi dependency chưa được cache.
 
 | Target | Phạm vi |
 |---|---|
-| `test-contracts` | Baseline/scaffold, CON-01..04, inventory JMA, catalog DAT-01 và kế hoạch tuần 3 |
+| `test-contracts` | Baseline/scaffold, CON-01..04, inventory JMA, catalog DAT-01, kế hoạch tuần 3 và Java Docker build inputs |
+| `check-java-build-inputs` | Preflight fixture/inventory/allowlist và COPY trước Maven verify ở Spark/Airflow; 12 regression test offline, không cần Docker/JDK/env |
 | `test-java` | Maven unit test module Spark: USGS planner/client/Bronze writer/QA/live runner |
 | `test-airflow` | Unittest DAG, interval/retry, phase protocol và publish gate |
 | `test-orchestration` | ORC-01 context/phase/gates và dựng graph bằng SDK double, không cần Airflow trên host |
@@ -91,6 +92,7 @@ script bỏ `.sh`. Ví dụ:
 ```bash
 make check-jma-inventory
 make check-shared-fixtures
+make check-java-build-inputs
 make check-real-sample-catalog
 make check-foundation
 make check-usgs-live
@@ -100,6 +102,14 @@ Lưu ý: `check-usgs-live` **không** gọi USGS thật; đây là static/unit c
 code của USG-06. `check-airflow` và `check-spark` cũng chạy unit/build test,
 không chỉ kiểm tra văn bản. `build-shared-fixtures` là lệnh riêng có sửa fixture
 tracked, chỉ dùng khi maintainer chủ động tái tạo; không nằm trong `test`.
+
+Nếu `make up` thất bại ở Maven với `../tests/fixtures`, `../config/jma` hoặc
+`Repository fixture root not found`, chạy `make check-java-build-inputs`, rồi
+build lại sau khi cập nhật Dockerfile. `build`, `up-spark`, `up-airflow` và
+`smoke-source-readiness` có gate này trước Docker build. Không bỏ test hoặc
+xóa volume. `WAIT_TIMEOUT=600` chỉ tăng thời gian chờ service healthy **sau**
+build, không đặt timeout cho Maven. Hướng dẫn và evidence tại
+[Spark build contract](./specs/SPARK_STANDALONE.md#41-đầu-vào-kiểm-thử-trong-docker-builder).
 
 JMA-04 có DAG manual `jma_04_year_backfill`; preview mặc định không download
 hoặc ghi Bronze. Hướng dẫn conf years/range, retry/reuse, giới hạn tài nguyên

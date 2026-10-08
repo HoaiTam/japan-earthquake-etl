@@ -28,7 +28,7 @@ COMPONENT_SMOKES := smoke-minio smoke-airflow smoke-spark smoke-query smoke-usgs
 
 .PHONY: help env-init require-env check-config check-config-local config \
 	test test-contracts test-java test-jma-bronze test-jma-parser test-jma-backfill test-jma-qa jma-preview test-airflow test-orchestration etl-preview etl-mock package-java check \
-	$(CONTRACT_CHECKS) $(STATIC_CHECKS) check-foundation check-jma-inventory-live build-shared-fixtures \
+	$(CONTRACT_CHECKS) $(STATIC_CHECKS) check-java-build-inputs check-foundation check-jma-inventory-live build-shared-fixtures \
 	build up start up-minio up-airflow up-spark up-query status ps logs logs-follow \
 	restart stop down smoke smoke-foundation $(COMPONENT_SMOKES) \
 	verify-samples verify-real-samples
@@ -40,7 +40,7 @@ test-source-schedule: ## ORC-02 profile/UTC/JMA change/lease/DAG tests offline
 	@./mvnw --batch-mode --no-transfer-progress -pl spark -am \
 		-Dtest=JmaYearIngestRunnerTest,UsgsIngestRunnerTest -Dsurefire.failIfNoSpecifiedTests=false test
 
-smoke-source-readiness: check-config-local ## ORC-02 real scheduler + USGS/JMA/MinIO; giữ data/volume và pause state
+smoke-source-readiness: check-config-local check-java-build-inputs ## ORC-02 real scheduler + USGS/JMA/MinIO; giữ data/volume và pause state
 	@$(COMPOSE) build airflow-api-server
 	@$(COMPOSE) up -d --no-build --wait --wait-timeout $(WAIT_TIMEOUT) airflow-api-server airflow-scheduler airflow-dag-processor
 	@$(COMPOSE) --profile live run --rm --no-deps source-readiness-qa
@@ -78,7 +78,11 @@ config: check-config-local ## Validate toàn bộ Compose profile; không in sec
 
 test: test-contracts test-java test-airflow ## Toàn bộ contract và unit test; không cần Docker daemon/nguồn thật
 
-test-contracts: $(CONTRACT_CHECKS) ## Kiểm tra docs, contract, fixture và catalog mẫu; không cần mạng
+test-contracts: $(CONTRACT_CHECKS) check-java-build-inputs ## Kiểm tra docs, contract, fixture và catalog mẫu; không cần mạng
+
+check-java-build-inputs: ## Kiểm tra đầu vào Maven trong Docker và regression test; không cần Docker/JDK/env
+	@./scripts/check-java-build-inputs.sh
+	@python3 -m unittest discover -s tests -p 'test_java_build_inputs.py'
 
 test-java: ## Unit test Spark/USGS Java bằng Maven Wrapper (HTTP/storage mock)
 	@./mvnw --batch-mode --no-transfer-progress -pl spark -am test
@@ -156,7 +160,7 @@ check-jma-inventory-live: ## Đối soát HTTP header 41 archive JMA; cần mạ
 build-shared-fixtures: ## Chủ động tái tạo fixture synthetic/checksum (có sửa file tracked)
 	@./scripts/build-shared-fixtures.sh
 
-build: check-config-local ## Build ba image local: MinIO, Airflow Java17 và Spark
+build: check-config-local check-java-build-inputs ## Build ba image local: MinIO, Airflow Java17 và Spark
 	@$(COMPOSE) build minio airflow-api-server spark-master
 
 up: build ## Build và khởi động toàn bộ 9 foundation service; chờ healthy
@@ -169,12 +173,12 @@ up-minio: check-config-local ## Build/start MinIO, chờ healthy và bootstrap b
 	@$(COMPOSE) up -d --no-build --wait --wait-timeout "$(WAIT_TIMEOUT)" minio
 	@$(COMPOSE) run --rm --no-deps minio-init
 
-up-airflow: check-config-local ## Build/start Airflow và dependency MinIO/PostgreSQL/init
+up-airflow: check-config-local check-java-build-inputs ## Build/start Airflow và dependency MinIO/PostgreSQL/init
 	@$(COMPOSE) build minio airflow-api-server
 	@$(COMPOSE) up -d --no-build --wait --wait-timeout "$(WAIT_TIMEOUT)" \
 		airflow-api-server airflow-scheduler airflow-dag-processor
 
-up-spark: check-config-local ## Build image chung trước khi start Spark master/worker
+up-spark: check-config-local check-java-build-inputs ## Build image chung trước khi start Spark master/worker
 	@$(COMPOSE) build spark-master
 	@$(COMPOSE) up -d --no-build --wait --wait-timeout "$(WAIT_TIMEOUT)" spark-master spark-worker
 

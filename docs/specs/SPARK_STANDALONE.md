@@ -85,6 +85,35 @@ Maven Wrapper tải Maven từ Apache theo URL và SHA-256 đã pin trong
 `.mvn/wrapper/maven-wrapper.properties`. Máy cần `curl` hoặc `wget`, `unzip` và
 JDK 17 nếu build ngoài Docker.
 
+### 4.1. Đầu vào kiểm thử trong Docker builder
+
+Unit test của module đã mở rộng sang USGS/JMA/Silver, nên chỉ copy `pom.xml`
+và `spark/src` không còn đủ. **Cả Spark và Airflow Java builder** phải copy:
+
+- `tests/fixtures` → `/workspace/tests/fixtures`: fixture synthetic offline
+  (GeoJSON, JMA fixed-width/ZIP, metadata và test matrix).
+- `config/jma` → `/workspace/config/jma`: inventory version hóa để test resolve
+  năm/segment/archive; không phải archive nguồn tải thật.
+
+Hai lệnh `COPY` phải nằm trong stage `AS build`, **trước** `RUN mvn ... clean
+verify`. Maven chạy test từ module `/workspace/spark`, vì vậy đường dẫn tương
+đối `../tests/fixtures` và `../config/jma` phải tồn tại. `.dockerignore` đã
+allowlist các đầu vào này; không cần mở rộng context sang `.env` hoặc raw data.
+Spark runtime stage vẫn chỉ nhận JAR, không nhận fixture, inventory hay secret.
+
+`make check-java-build-inputs` chạy preflight shell và regression unittest
+offline, không cần Docker, JDK hoặc `.env`. Preflight kiểm tra file đầu vào,
+allowlist chuẩn của repo và thứ tự COPY/Maven trong cả hai Dockerfile; không
+phải parser tổng quát cho mọi cú pháp Dockerfile/dockerignore. Docker build
+thật vẫn là gate cuối cùng. Test fixture/checksum đầy đủ vẫn thuộc
+`make check-shared-fixtures`, không được thay bằng kiểm tra file tồn tại.
+
+Gate này được gọi trước các target build/start Java image (`build`/`up`,
+`up-spark`, `up-airflow`, `smoke-source-readiness`), trong `test-contracts` và
+trước Maven verify của `check-spark.sh`. Không dùng `skipTests` để xử lý lỗi
+thiếu đầu vào. Khi bổ sung test đọc file ngoài `spark/src`, cập nhật builder,
+allowlist và regression test cùng PR.
+
 ## 5. Hello World contract
 
 `HelloWorldJob` tạo range `[0, 10)` với hai partition, rồi tính:
@@ -154,8 +183,9 @@ Static/build gate, không cần start cluster:
 ./scripts/check-spark.sh
 ```
 
-Script này chạy Maven verify, kiểm tra JAR/manifest/provided dependency, image
-version, Compose dependency/healthcheck/mount/exposure và Docker build context.
+Script này kiểm tra đầu vào Docker builder trước Maven verify, kiểm tra
+JAR/manifest/provided dependency, image version, Compose
+dependency/healthcheck/mount/exposure và Docker build context.
 
 Runtime acceptance, cần Docker daemon và `.env` hợp lệ:
 
@@ -190,10 +220,29 @@ Không thêm `-v` trong quy trình thường ngày.
   network `pipeline`; không đổi `spark.driver.host` thành `localhost`.
 - Maven Wrapper không tải được: kiểm tra network, `curl`/`wget`, `unzip`; không
   bỏ checksum hoặc commit Maven binary thay thế.
+- Docker build báo `NoSuchFileException: ../tests/fixtures/...`,
+  `../config/jma/hypocenter_archives_v1.csv` hoặc `Repository fixture root not
+  found`: kiểm tra mục 4.1 bằng `make check-java-build-inputs`, rồi chạy lại
+  `make build` hoặc `make up WAIT_TIMEOUT=600`. Không xóa volume/cache hay bỏ
+  test; đây là lỗi đầu vào builder, không phải thiếu credential trong `.env`.
+- Maven ở bước dependency collection lâu với `--no-transfer-progress` chưa
+  đủ để kết luận bị treo. Xem Docker Desktop build log hoặc chạy
+  `docker compose --env-file .env --progress=plain build spark-master` để thấy
+  kết quả Maven. `WAIT_TIMEOUT` chỉ giới hạn chờ health sau build, không giới
+  hạn thời gian Maven build/tải dependency. Cache Docker có thể tái sử dụng
+  Maven layer đã verify nếu đầu vào không đổi; ghi rõ cached/fresh trong evidence.
+- `failed to resolve source metadata`/`context deadline exceeded` với Docker
+  Hub: đây là lỗi registry/network, khác lỗi thiếu fixture trong Maven. Retry
+  sau khi kiểm tra mạng Docker Desktop; nếu `make build` đã thành công, có thể
+  kiểm tra runtime bằng hai lệnh `--no-build` trong evidence bên dưới. Không
+  bỏ test, đổi version pin hoặc xóa volume. Chưa có task riêng xử lý mạng registry.
 - JAR không có trong image: chạy `./scripts/check-spark.sh`, sau đó build lại
   `docker compose build spark-master`.
 - Port UI bị chiếm: đổi `SPARK_MASTER_UI_HOST_PORT` trong `.env`, không đổi port
   `8080` nội bộ.
+
+Evidence sửa lỗi builder ngày 2026-10-08:
+[SPK-01 Docker build inputs](../evidence/SPK-01_DOCKER_BUILD_INPUTS.md).
 
 ## 10. Handoff cho task downstream
 

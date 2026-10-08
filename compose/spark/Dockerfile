@@ -5,6 +5,8 @@ WORKDIR /workspace
 COPY pom.xml ./pom.xml
 COPY spark/pom.xml ./spark/pom.xml
 COPY spark/src ./spark/src
+COPY tests/fixtures ./tests/fixtures
+COPY config/jma ./config/jma
 
 RUN mvn --batch-mode --no-transfer-progress clean verify
 
