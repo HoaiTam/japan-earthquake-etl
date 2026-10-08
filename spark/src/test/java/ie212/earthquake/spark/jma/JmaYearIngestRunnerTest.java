@@ -197,6 +197,71 @@ class JmaYearIngestRunnerTest {
         assertEquals("BronzeReady", runner.run(context(2000, "full-year", "one", 1, false)).get("status"));
     }
 
+    @Test void unchangedProbeReadsVerifiedPublicationWithoutGetOrWrite() throws Exception {
+        FakeTransport transport = new FakeTransport(); CountingStore store = new CountingStore(temporary.resolve("store"));
+        var runner = runner(transport, store);
+        var first = runner.run(context(2023, "full-year", "bootstrap", 1, false));
+        var probe = runner.run(probeContext(2023, "full-year", "probe", false));
+        assertEquals("BronzeReady", probe.get("status"));
+        assertEquals("UNCHANGED", probe.get("readiness_decision"));
+        assertEquals(first.get("manifest_uri"), probe.get("manifest_uri"));
+        assertEquals(first.get("manifest_sha256"), probe.get("manifest_sha256"));
+        assertEquals(JmaBronzeWriter.sha256(store.read((String) first.get("manifest_key"))), probe.get("manifest_sha256"));
+        assertEquals(1, transport.gets.get()); assertEquals(2, store.writes.get());
+    }
+
+    @Test void changedAndWeeklyAuditProbesRequestScopedIngestButNeverGet() throws Exception {
+        FakeTransport transport = new FakeTransport(); CountingStore store = new CountingStore(temporary.resolve("store"));
+        var runner = runner(transport, store);
+        runner.run(context(2000, "full-year", "bootstrap", 1, false));
+        var audit = runner.run(probeContext(2000, "full-year", "audit", true));
+        assertEquals("NeedsIngest", audit.get("status")); assertEquals("CHECKSUM_AUDIT", audit.get("readiness_decision"));
+        assertEquals(false, audit.get("verified"));
+        transport.modified = "Thu, 01 Jan 2026 00:00:00 GMT";
+        var changed = runner.run(probeContext(2000, "full-year", "changed", false));
+        assertEquals("NeedsIngest", changed.get("status"));
+        assertEquals("CHANGED_OR_UNINITIALIZED", changed.get("readiness_decision"));
+        assertEquals(1, transport.gets.get()); assertEquals(2, store.writes.get());
+    }
+
+    @Test void uninitializedAndMissingValidatorProbesAreNotReady() throws Exception {
+        FakeTransport transport = new FakeTransport(); CountingStore store = new CountingStore(temporary.resolve("store"));
+        var runner = runner(transport, store);
+        assertEquals("NeedsIngest", runner.run(probeContext(2023, "full-year", "missing", false)).get("status"));
+        assertEquals(0, transport.gets.get()); assertEquals(0, store.writes.get());
+        runner.run(context(2023, "full-year", "bootstrap", 1, false));
+        transport.modified = null;
+        assertEquals("NeedsIngest", runner.run(probeContext(2023, "full-year", "no-validator", false)).get("status"));
+        assertEquals(1, transport.gets.get());
+    }
+
+    @Test void sourceFailureOrCorruptPublicationProbeFailsClosedWithoutRepair() throws Exception {
+        FakeTransport transport = new FakeTransport(); CountingStore store = new CountingStore(temporary.resolve("store"));
+        var runner = runner(transport, store);
+        var first = runner.run(context(2023, "full-year", "bootstrap", 1, false));
+        transport.fail = true;
+        assertEquals("FAILED", runner.run(probeContext(2023, "full-year", "offline", false)).get("status"));
+        transport.fail = false;
+        Files.writeString(store.root.resolve((String) first.get("manifest_key")), "{}");
+        assertEquals("FAILED", runner.run(probeContext(2023, "full-year", "corrupt", false)).get("status"));
+        assertEquals(1, transport.gets.get()); assertEquals(2, store.writes.get());
+    }
+
+    @Test void probeRequiresBoth1997SegmentsIndependently() throws Exception {
+        FakeTransport transport = new FakeTransport(); CountingStore store = new CountingStore(temporary.resolve("store"));
+        var runner = runner(transport, store);
+        runner.run(context(1997, "jan-sep", "bootstrap", 1, false));
+        assertEquals("BronzeReady", runner.run(probeContext(1997, "jan-sep", "check", false)).get("status"));
+        assertEquals("NeedsIngest", runner.run(probeContext(1997, "oct-dec", "check", false)).get("status"));
+        assertEquals(1, transport.gets.get());
+    }
+
+    private Path probeContext(int year, String segment, String run, boolean force) throws IOException {
+        Path path = context(year, segment, run, 1, force);
+        var input = (com.fasterxml.jackson.databind.node.ObjectNode) JSON.readTree(Files.readAllBytes(path));
+        input.put("phase", "probe"); Files.write(path, JSON.writeValueAsBytes(input)); return path;
+    }
+
     private JmaYearIngestRunner runner(FakeTransport transport, BronzeObjectStore store) {
         return new JmaYearIngestRunner(Map.of("JMA_INVENTORY_PATH", INVENTORY.toString(),
                 "JMA_STAGING_ROOT", temporary.resolve("staging").toString()), transport, () -> store, CLOCK);

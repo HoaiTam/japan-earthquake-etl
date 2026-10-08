@@ -26,6 +26,7 @@ PUBLIC_KEYS = {
     "verified", "reason", "download_status", "download_reused", "publication_reused",
     "catalog_release", "sha256", "record_count_estimate", "manifest_key", "manifest_uri",
     "raw_object_key", "raw_object_uri",
+    "manifest_sha256", "readiness_decision",
 }
 
 
@@ -187,10 +188,12 @@ def _public_result(result: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def execute_archive(plan: Mapping[str, Any], archive: Mapping[str, Any], attempt: int = 1,
-                    environment: Mapping[str, str] | None = None) -> dict[str, Any]:
+                    environment: Mapping[str, str] | None = None, phase: str = "ingest") -> dict[str, Any]:
     env = os.environ if environment is None else environment
     if plan["preview"]:
         raise JmaRunnerError("preview cannot invoke an ingest runner")
+    if phase not in {"ingest", "probe"}:
+        raise JmaRunnerError("unsupported archive phase")
     if isinstance(attempt, bool) or not isinstance(attempt, int) or attempt < 1:
         raise JmaRunnerError("attempt must be a positive integer")
     root = _entry_root(plan, archive, env)
@@ -200,7 +203,7 @@ def execute_archive(plan: Mapping[str, Any], archive: Mapping[str, Any], attempt
     # Invalidate prior success before starting: killed/timeout attempts cannot leave a stale Ready summary.
     _atomic_json(target, {**identity, "status": "RUNNING", "verified": False})
     context_file = root / f"attempt-{attempt}-input.json"
-    _atomic_json(context_file, {"phase": "ingest", "run_context": plan["run_context"], "archive": archive,
+    _atomic_json(context_file, {"phase": phase, "run_context": plan["run_context"], "archive": archive,
                                 "force_download": plan["force_download"], "attempt": attempt})
     failure = {**identity, "status": "FAILED", "verified": False, "reason": "RUNNER_FAILED"}
     try:
@@ -218,7 +221,10 @@ def execute_archive(plan: Mapping[str, Any], archive: Mapping[str, Any], attempt
         if not isinstance(result, dict) or any(result.get(key) != value for key, value in identity.items()):
             raise JmaRunnerError("runner identity differs")
         public = _public_result(result)
-        if not _ready(public):
+        needs_ingest = (phase == "probe" and public.get("status") == "NeedsIngest"
+                        and public.get("verified") is False and public.get("readiness_decision")
+                        in {"CHECKSUM_AUDIT", "CHANGED_OR_UNINITIALIZED"})
+        if not _ready(public) and not needs_ingest:
             # Preserve only safe failure metadata; never trust a partial Ready/status from a runner.
             public.update(status="FAILED", verified=False)
             public.pop("bronze_status", None)

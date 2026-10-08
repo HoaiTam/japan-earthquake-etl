@@ -96,6 +96,45 @@ public final class JmaArchiveDownloader {
         return downloadOne(entry, false);
     }
 
+    /** HEAD and checksum-validated local cache only. Null means ingest is needed; never GET here. */
+    public JmaDownloadResult probe(JmaArchiveEntry entry) throws IOException {
+        try {
+            JmaHttpMetadata head = transport.head(entry.sourceUrl());
+            validateHead(head);
+            return cached(entry, head);
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new IOException("JMA probe interrupted", exception);
+        }
+    }
+
+    private void validateHead(JmaHttpMetadata head) throws IOException {
+        if (head.statusCode() < 200 || head.statusCode() >= 300) {
+            throw new IOException("JMA preflight failed");
+        }
+        if (head.contentLengthBytes() != null && head.contentLengthBytes() > maxArchiveBytes) {
+            throw new IOException("ARCHIVE_SIZE_LIMIT");
+        }
+    }
+
+    private JmaDownloadResult cached(JmaArchiveEntry entry, JmaHttpMetadata head) throws IOException {
+        Path statePath = entryRoot(entry).resolve("state.json");
+        JsonNode previous = readJsonIfPresent(statePath);
+        if (previous != null && previous.hasNonNull("http_status") && previous.hasNonNull("content_type")
+                && entry.sourceUrl().toString().equals(previous.path("source_url").asText())
+                && (head.etag() != null || head.lastModified() != null) && samePreflight(previous, head)) {
+            Path archive = resolveArchive(previous, entryRoot(entry));
+            if (archive != null && Files.isRegularFile(archive)
+                    && Files.size(archive) == previous.path("content_length_bytes").asLong(-1L)
+                    && sha256(archive).equalsIgnoreCase(previous.path("sha256").asText())) {
+                return result(entry, "REUSED", archive, statePath, previous.path("catalog_release").asText(null),
+                        previous.path("sha256").asText(null), Files.size(archive), false, true, null,
+                        httpFromState(previous), Instant.parse(previous.path("retrieved_at_utc").asText()));
+            }
+        }
+        return null;
+    }
+
     public JmaDownloadResult downloadOne(JmaArchiveEntry entry, boolean forceDownload) {
         Objects.requireNonNull(entry, "entry");
         Path entryRoot = entryRoot(entry);
@@ -103,27 +142,10 @@ public final class JmaArchiveDownloader {
         try {
             Files.createDirectories(entryRoot);
             JmaHttpMetadata head = transport.head(entry.sourceUrl());
-            if (head.statusCode() < 200 || head.statusCode() >= 300) {
-                throw new IOException("JMA preflight returned HTTP " + head.statusCode());
-            }
+            validateHead(head);
             JsonNode previous = readJsonIfPresent(statePath);
-            if (head.contentLengthBytes() != null && head.contentLengthBytes() > maxArchiveBytes) {
-                throw new IOException("ARCHIVE_SIZE_LIMIT");
-            }
-            if (!forceDownload && previous != null && previous.hasNonNull("http_status")
-                    && previous.hasNonNull("content_type")
-                    && entry.sourceUrl().toString().equals(previous.path("source_url").asText())
-                    && (head.etag() != null || head.lastModified() != null)
-                    && samePreflight(previous, head)) {
-                Path archive = resolveArchive(previous, entryRoot);
-                if (archive != null && Files.isRegularFile(archive)
-                        && Files.size(archive) == previous.path("content_length_bytes").asLong(-1L)
-                        && sha256(archive).equalsIgnoreCase(previous.path("sha256").asText())) {
-                    return result(entry, "REUSED", archive, statePath, previous.path("catalog_release").asText(null),
-                            previous.path("sha256").asText(null), Files.size(archive), false, true, null,
-                            httpFromState(previous), Instant.parse(previous.path("retrieved_at_utc").asText()));
-                }
-            }
+            JmaDownloadResult reuse = forceDownload ? null : cached(entry, head);
+            if (reuse != null) { return reuse; }
 
             Path part = entryRoot.resolve("archive.zip.part");
             Path partialState = entryRoot.resolve("partial-state.json");

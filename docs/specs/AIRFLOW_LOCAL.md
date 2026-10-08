@@ -130,10 +130,12 @@ context, retry hoặc data interval contract của DAG production.
 
 ### 5.1. USG-04 USGS ingest
 
-- DAG ID: `usg_04_usgs_ingest`; schedule mặc định `15 7 * * *` theo
-  `Asia/Ho_Chi_Minh`; `catchup=False`, `max_active_runs=1`.
-- Task group `usgs_ingest` gồm `resolve_interval`, `fetch`, `validate`, `upload`,
-  `verify`, `bronze_ready_gate` và `run_summary`.
+- DAG ID: `usg_04_usgs_ingest`; manual trong ORC-02 `multi-source` default,
+  daily `15 7 * * *` / `Asia/Ho_Chi_Minh` ở profile `usgs-only`;
+  `catchup=False`, `max_active_runs=1`.
+- Task group `usgs_ingest` gồm `resolve_interval`, `acquire_source_lease`,
+  `fetch`, `validate`, `upload`, `verify`, `bronze_ready_gate`, `run_summary`,
+  `release_source_lease` và `completion_gate` (10 tasks sau ORC-02).
 - DAG paused khi tạo. Custom image USG-06 đã cấu hình
   `USGS_INGEST_RUNNER_COMMAND`; chỉ unpause sau khi credential/MinIO đã sẵn sàng.
 - Raw payload không đi qua XCom. Mỗi phase nhận context JSON trong
@@ -151,6 +153,16 @@ preview mặc định và summary/failure gate. Runner và pinned inventory đư
 Xem [JMA year backfill](./JMA_YEAR_BACKFILL.md) để chọn years/range, retry/reuse,
 giới hạn concurrency và test. Không schedule JMA daily hoặc tải full 40 năm
 khi start service; live QA phải được ghi riêng ở JMA-05.
+
+### 5.3. ORC-02 source schedule/readiness
+
+`orc_02_daily_sources` là daily owner mặc định, explicit
+`CronDataIntervalTimetable`, paused khi tạo, một active run/task. Java kiểm tra
+JMA changed-year readiness và thực thi USGS Bronze thật; summary chỉ
+`SourcesReady`, không Gold Published. Cả ba source DAG acquire/release chung
+whole-run lease trên staging và có strict final gate. Test/runtime commands,
+pilot watchlist, weekly checksum audit và owners downstream xem
+[source schedule/readiness](./SOURCE_SCHEDULE_AND_READINESS.md).
 
 ## 6. Cấu hình và secret
 

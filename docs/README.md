@@ -7,6 +7,10 @@ Thư mục này là nguồn tài liệu chính thức cho dự án **Nền tản
 > unit/static acceptance. ORC-01 đã có khung DAG Silver/Gold bằng contract/mock,
 > chưa có daily ETL thật đến Published; xem [giao diện và task còn thiếu](./specs/ETL_ORCHESTRATION_CONTRACT.md#7-handoff-giới-hạn-và-task-còn-thiếu).
 
+> ORC-02 bổ sung daily source readiness thật, JMA changed-year/weekly checksum
+> check và daily/backfill shared lease. Output `SourcesReady` chưa phải Gold
+> `Published`; xem [profile/runbook ORC-02](./specs/SOURCE_SCHEDULE_AND_READINESS.md).
+
 > Phạm vi hiện hành dùng [baseline PLN-01](./specs/MVP_SCOPE_KPI_AND_DOD.md):
 > HDBSCAN lifecycle thuộc Core, static report là output bắt buộc và Power BI là
 > Stretch. Các tài liệu mô tả Power BI như điều kiện MVP được hiểu theo baseline
@@ -25,6 +29,7 @@ Thư mục này là nguồn tài liệu chính thức cho dự án **Nền tản
 | Hiểu validate và ghi raw USGS vào Bronze | [USGS Bronze writer contract](./specs/USGS_BRONZE_WRITER_CONTRACT.md) |
 | Hiểu DAG, runner protocol và publish gate USGS | [USGS Airflow ingest contract](./specs/USGS_AIRFLOW_INGEST_CONTRACT.md) |
 | Ghép ETL task groups, phase I/O, mock/real boundary và test offline | [ETL orchestration contract](./specs/ETL_ORCHESTRATION_CONTRACT.md) |
+| Lịch hai nguồn, JMA changed-year, UTC interval và daily/backfill guard | [Source schedule/readiness](./specs/SOURCE_SCHEDULE_AND_READINESS.md) |
 | Hiểu ma trận QA từ USGS đến Bronze | [USGS Bronze QA contract](./specs/USGS_BRONZE_QA_CONTRACT.md) |
 | Dùng hai sample thật USGS/JMA đã khóa cho integration | [Shared real-sample catalog](./specs/SHARED_REAL_SAMPLE_DATA.md) |
 | Hiểu Bronze object, manifest, checksum và retry | [Bronze storage contract](./specs/BRONZE_STORAGE_CONTRACT.md) |

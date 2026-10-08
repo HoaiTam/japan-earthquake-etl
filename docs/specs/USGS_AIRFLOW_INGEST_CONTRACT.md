@@ -4,7 +4,7 @@
 |---|---|
 | Task | `USG-04`, live bridge `USG-06` |
 | DAG ID | `usg_04_usgs_ingest` |
-| Schedule mặc định | `15 7 * * *` theo `Asia/Ho_Chi_Minh` |
+| Schedule | Manual trong ORC-02 `multi-source`; `15 7 * * *` theo `Asia/Ho_Chi_Minh` ở `usgs-only` |
 | Input | Airflow data interval và run context |
 | Output | Bronze manifest đã verify và `run_summary.json` |
 
@@ -21,17 +21,28 @@ Luồng task là:
 
 ```mermaid
 flowchart LR
-    R["resolve_interval"] --> F["fetch"]
+    R["resolve_interval"] --> A["acquire_source_lease"]
+    A --> F["fetch"]
     F --> V["validate"]
     V --> U["upload"]
     U --> C["verify"]
     C --> G["bronze_ready_gate"]
     G --> S["run_summary"]
+    S --> L["all_done release_source_lease"]
+    S --> E["all_success completion_gate"]
+    A --> E
+    L --> E
 ```
 
 Airflow mặc định tạo DAG ở trạng thái paused để không gọi nguồn khi runner
 chưa được cấu hình. Có thể bật DAG sau khi kiểm tra command, credential và
 MinIO connection ở môi trường chạy.
+
+ORC-02 thêm whole-run source lease trước fetch, all_done release và strict
+completion leaf sau summary. Guard dùng chung với JMA backfill và daily hai
+nguồn, không chỉ serialize riêng USGS. Daily schedule mặc định chuyển sang
+`orc_02_daily_sources`; DAG này vẫn nhận scoped manual backfill/smoke như cũ.
+Chi tiết [schedule/readiness profile](./SOURCE_SCHEDULE_AND_READINESS.md).
 
 ## 2. Run context và cửa sổ
 
@@ -40,6 +51,7 @@ MinIO connection ở môi trường chạy.
 - `run_id`, `dag_id`, `logical_run_key`.
 - `window_start_utc` và `window_end_utc` dạng half-open `[start,end)`; mặc định
   đọc ba ngày UTC gần nhất và clip tại `USGS_SEED_START_UTC`.
+  Overlap=0/1 vẫn bao phủ target day; window clip rỗng bị reject.
 - `target_window_start_utc`, `target_window_end_utc` và `processing_date`.
 - `is_backfill`, `config_version` và số ngày overlap.
 
@@ -73,7 +85,8 @@ Runner được đóng gói tại `/opt/pipeline/bin/usgs-ingest-runner` và ph�
    task failure.
 4. Trả `phase`, `status=ok` và chỉ metadata như `bronze_status`,
    `manifest_uri`, `raw_object_uri`, `record_count_estimate`, `sha256`,
-   `verified` hoặc `idempotent_reuse`.
+   `manifest_sha256`, `verified` hoặc `idempotent_reuse`. Verify trả hash manifest
+   bytes riêng với raw SHA để downstream pin chính xác input.
 
 Airflow chỉ giữ whitelist metadata trong XCom. Payload bytes phải ở Bronze hoặc
 staging do runner quản lý; không đưa payload vào log/metadata database.

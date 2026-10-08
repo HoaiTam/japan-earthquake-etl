@@ -245,6 +245,7 @@ public final class UsgsIngestRunner {
             summary.put("verified", true);
             summary.put("raw_object_uri", objectStore.uriForKey(rawKey));
             summary.put("manifest_uri", objectStore.uriForKey(manifestKey));
+            summary.put("manifest_sha256", UsgsBronzeWriter.sha256(manifestBytes));
             summary.put("sha256", expectedSha256);
             summary.put("record_count_estimate", expectedCount);
             return summary;

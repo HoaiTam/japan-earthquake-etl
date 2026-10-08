@@ -60,7 +60,8 @@ public final class JmaYearIngestRunner {
     Map<String, Object> run(Path contextFile) throws IOException {
         JsonNode input = JSON.readTree(Files.readAllBytes(contextFile));
         JsonNode context = input.path("run_context");
-        if (!"ingest".equals(text(input, "phase")) || !context.path("is_backfill").asBoolean()) {
+        boolean probe = "probe".equals(text(input, "phase"));
+        if ((!probe && !"ingest".equals(text(input, "phase"))) || !context.path("is_backfill").asBoolean()) {
             throw new IllegalArgumentException("an explicit backfill context is required");
         }
         String runId = text(context, "run_id");
@@ -110,8 +111,15 @@ public final class JmaYearIngestRunner {
         try (FileChannel channel = FileChannel.open(entryRoot.resolve("ingest.lock"),
                 StandardOpenOption.CREATE, StandardOpenOption.WRITE); var lock = channel.lock()) {
             int maxBytes = integer(environment, "JMA_MAX_ARCHIVE_BYTES", 134217728, 1024, 134217728);
-            JmaDownloadResult download = new JmaArchiveDownloader(transport, staging.resolve("downloads"), clock, maxBytes)
-                    .downloadOne(entry, input.path("force_download").asBoolean());
+            var downloader = new JmaArchiveDownloader(transport, staging.resolve("downloads"), clock, maxBytes);
+            JmaDownloadResult download = probe ? downloader.probe(entry)
+                    : downloader.downloadOne(entry, input.path("force_download").asBoolean());
+            if (probe && (download == null || input.path("force_download").asBoolean()
+                    || !Files.isRegularFile(entryRoot.resolve("publication-" + download.sha256() + ".json")))) {
+                result.put("status", "NeedsIngest");
+                result.put("readiness_decision", input.path("force_download").asBoolean() ? "CHECKSUM_AUDIT" : "CHANGED_OR_UNINITIALIZED");
+                return result;
+            }
             result.put("download_status", download.status());
             if (!download.succeeded()) {
                 result.put("reason", "DOWNLOAD_FAILED");
@@ -127,6 +135,7 @@ public final class JmaYearIngestRunner {
                     JsonNode publication = JSON.readTree(Files.readAllBytes(pointer));
                     verify(store, entry, publication, download.sha256());
                     result.put("manifest_key", text(publication, "manifest_key"));
+                    result.put("manifest_sha256", text(publication, "manifest_sha256"));
                     result.put("raw_object_key", text(publication, "raw_object_key"));
                     result.put("record_count_estimate", publication.path("record_count_estimate").asLong());
                     result.put("catalog_release", text(publication, "catalog_release"));
@@ -158,6 +167,7 @@ public final class JmaYearIngestRunner {
                     publication.put("record_count_estimate", written.recordCountEstimate());
                     verify(store, entry, publication, download.sha256());
                     writeJson(pointer, publication);
+                    result.put("manifest_sha256", text(publication, "manifest_sha256"));
                     result.put("record_count_estimate", written.recordCountEstimate());
                     result.put("publication_reused", written.idempotentReuse());
                 }
@@ -166,6 +176,7 @@ public final class JmaYearIngestRunner {
                 result.put("status", "BronzeReady");
                 result.put("bronze_status", "BronzeReady");
                 result.put("verified", true);
+                if (probe) { result.put("readiness_decision", "UNCHANGED"); }
             } finally {
                 if (store instanceof AutoCloseable closeable) {
                     try { closeable.close(); }

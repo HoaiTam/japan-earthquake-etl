@@ -8,6 +8,7 @@ from airflow.exceptions import AirflowException
 from airflow.sdk import dag, get_current_context, task, task_group
 
 from jma_backfill_runtime import JmaRunnerError, execute_archive, require_complete, resolve_plan, write_run_summary
+from source_run_guard import lease, owner
 
 MAX_CONCURRENCY = int(os.environ.get("JMA_BACKFILL_MAX_CONCURRENCY", "2"))
 if not 1 <= MAX_CONCURRENCY <= 4:
@@ -30,12 +31,29 @@ def jma_backfill():
         return resolve_plan(get_current_context())
 
     @task(task_id="select_archives", retries=0)
-    def select_archives(plan):
+    def select_archives(plan, acquired):
         return [] if plan["preview"] else plan["archives"]
+
+    @task(task_id="acquire_source_lease", retries=0)
+    def acquire_source_lease(plan):
+        if plan["preview"]:
+            return {"status": "PREVIEW"}
+        return lease("acquire", owner(get_current_context()))
+
+    @task(task_id="release_source_lease", trigger_rule="all_done", retries=0)
+    def release_source_lease():
+        return lease("release", owner(get_current_context()))
+
+    @task(task_id="completion_gate", retries=0)
+    def completion_gate(ready, acquired, released):
+        if acquired["status"] != "PREVIEW" and released["status"] != "RELEASED":
+            raise AirflowException("source lease release failed")
+        return ready
 
     @task(task_id="ingest_archive", retries=2, retry_delay=timedelta(minutes=2),
           max_active_tis_per_dag=MAX_CONCURRENCY)
     def ingest_archive(plan, archive):
+        lease("assert", owner(get_current_context()))
         attempt = get_current_context()["ti"].try_number
         result = execute_archive(plan, archive, attempt)
         if result.get("status") != "BronzeReady" or result.get("verified") is not True:
@@ -56,11 +74,15 @@ def jma_backfill():
     @task_group(group_id="jma_year_backfill")
     def backfill_group():
         plan = plan_scope()
-        archives = select_archives(plan)
+        acquired = acquire_source_lease(plan)
+        archives = select_archives(plan, acquired)
         ingested = ingest_archive.partial(plan=plan).expand(archive=archives)
         summary = summarize(plan)
         ingested >> summary
-        gate(summary)
+        ready = gate(summary)
+        released = release_source_lease()
+        ready >> released
+        completion_gate(ready, acquired, released)
 
     backfill_group()
 

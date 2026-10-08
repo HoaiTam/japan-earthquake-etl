@@ -1,6 +1,6 @@
 ---
 task_id: "ORC-02"
-status: "Backlog"
+status: "Done"
 week: 4
 block: "F - Điều phối"
 workstream: "Scheduling"
@@ -35,9 +35,9 @@ Chốt daily schedule, timezone, overlap USGS, JMA catalog check, max active run
 
 ## Tiêu chí hoàn thành
 
-- [ ] Daily run ổn định.
-- [ ] JMA chỉ kích hoạt năm thay đổi.
-- [ ] timezone/data interval đúng.
+- [x] Daily run ổn định.
+- [x] JMA chỉ kích hoạt năm thay đổi.
+- [x] timezone/data interval đúng.
 
 ## Hard dependency
 
@@ -48,7 +48,7 @@ Chốt daily schedule, timezone, overlap USGS, JMA catalog check, max active run
 ### Phân công tuần 4 mở rộng
 
 - **Owner / effort:** HoaiTam, 4h Core; đưa từ tuần 5 lên khối vận hành của [kế hoạch tuần 4](../WEEK_4_PARALLEL_PLAN.md).
-- **Làm trước:** Readiness/schedule config và data-interval fixtures bằng I/O ORC-01; task hiện Backlog, chỉ hoàn tất khi dependency đạt.
+- **Dependency / kết quả:** ORC-01 đã Done; ORC-02 đã có profile, readiness source thật, data-interval fixtures và live evidence; không thay nghiệm thu toàn chuỗi Gold.
 - **Làm gì / có gì:** USGS UTC daily window/three-day revision overlap, JMA changed-year readiness, timezone điều phối, max-active-runs và daily/backfill collision guards.
 - **Dùng để làm gì:** Hai nguồn có nhịp khác nhau vào cùng ETL mà không chạy chồng hoặc xử lý sai ngày.
 - **Handoff / nghiệm thu:** Profile/ready checks cho DAG và ORC-03/05; kiểm tra UTC/JST/host boundary, no-change JMA và daily/backfill contention. Daily ổn định cần evidence runtime phù hợp, không chỉ cron string/mock success.
@@ -70,23 +70,64 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
+- **Trạng thái:** Done
 - **Assignee:** HoaiTam
-- **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Reviewer:** unassigned; khuyến nghị review độc lập cho P1, chưa có approval và không chặn Done theo workflow hiện hành.
+- **Evidence / PR:** [Evidence ORC-02](../../evidence/ORC-02.md), [runtime metadata](../../evidence/ORC-02-runtime.json); chưa mở PR.
 - **Kỹ năng phù hợp:** Airflow scheduling, config
+
+## Kết quả triển khai — 2026-10-08
+
+- Branch `feat/orc-02-cau-hinh-lich-va-readiness`, từ `origin/main` `f5a62d3`
+  (PR #43 ORC-01). [Runbook](../../specs/SOURCE_SCHEDULE_AND_READINESS.md)
+  giải thích thành phần, cấu hình, flow, test và handoff.
+- Daily DAG chạy 07:15 Asia/Ho_Chi_Minh = 00:15 UTC; explicit timetable,
+  catchup=false, max_active_runs=1. Profile chỉ một DAG sở hữu cron.
+- USGS resolve target ngày UTC trước interval end, overlap 3 ngày, pin scope
+  qua retry. Java fetch/validate/upload/verify; không dry-run giả Ready.
+- JMA probe inventory exact watchlist `[1997,2000,2023]`, HEAD + cache SHA và
+  MinIO readback; chỉ ingest segment cần cập nhật/bootstrap/checksum audit.
+  Năm 1997 verify đủ 2 segments. Không đổi bytes thì reuse exact publication.
+- Persistent whole-run lease giữa daily, USGS và JMA backfill; foreign
+  cleanup không xóa holder. Strict completion gate không che lỗi upstream.
+- `make check` đạt 167 Java + 89 Airflow Python tests. Live Airflow 3.3.2 đạt
+  scheduled + hai fixed-window runs (mỗi run 7 success tasks) và controlled
+  backfill contention; reports SourcesReady/verified, **published=false**.
+
+### Giới hạn / handoff
+
+- Docker build bị timeout mạng; live QA dùng clean-tested release-17 JAR copy
+  vào existing Airflow containers, runtime Java17. Chưa xác nhận image build
+  mới; container recreate từ image cũ sẽ mất JAR cập nhật. Cần chạy lại
+  `make smoke-source-readiness` khi mạng ổn; **chưa có task riêng** cho lỗi
+  mạng Docker Build. Chi tiết tại evidence, không nhận full build là passed.
+- [ORC-03 - Implement backfill và reprocessing](./ORC-03.md): historical
+  dispatcher/affected partitions và reprocess exact inputs.
+- [ORC-04 - Chuẩn hóa logging và run summary](./ORC-04.md): summary toàn ETL;
+  hiện report chỉ source gate.
+- [ORC-05 - Chốt recovery, concurrency và tài nguyên](./ORC-05.md): stale
+  lease recovery và tài nguyên Spark/Iceberg/ML; chưa distributed locking.
+- [SLV-09 - Tích hợp và kiểm thử Silver đa nguồn](./SLV-09.md),
+  [GLD-03 - Ghi Gold Iceberg và commit snapshot](./GLD-03.md),
+  [GLD-04 - Tạo Trino views và verification SQL](./GLD-04.md),
+  [QA-01 - Chạy E2E daily đa nguồn](./QA-01.md): adapters và output downstream
+  thật, committed/verified Gold Published; ORC-02 không tự trigger mock ETL.
+- [QA-05 - Profile dữ liệu lịch sử và tài nguyên local](./QA-05.md): sizing
+  full history; 3-year watchlist là pilot, không toàn bộ training coverage.
 
 ## Checklist bàn giao
 
-- [ ] Deliverable đã có trong repository hoặc môi trường demo.
-- [ ] Acceptance criteria đã được kiểm tra.
-- [ ] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
-- [ ] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
-- [ ] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
-- [ ] P0/P1 có reviewer khác assignee xác nhận.
+- [x] Deliverable đã có trong repository hoặc môi trường demo.
+- [x] Acceptance criteria đã được kiểm tra.
+- [x] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
+- [x] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
+- [x] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
+- [ ] Reviewer độc lập cho P1 (khuyến nghị, chưa xác nhận; không chặn Done).
 
 ## Tài liệu liên quan
 
+- [Lịch nguồn và readiness](../../specs/SOURCE_SCHEDULE_AND_READINESS.md)
+- [Evidence ORC-02](../../evidence/ORC-02.md)
 - [Kế hoạch tuần 4 mở rộng](../WEEK_4_PARALLEL_PLAN.md)
 - [Kế hoạch 8 tuần](../README.md)
 - [Các khối công việc](../WORK_BLOCKS.md)

@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -63,6 +64,8 @@ class UsgsIngestRunnerTest {
         assertEquals(true, verification.get("verified"));
         assertEquals(firstUpload.get("sha256"), verification.get("sha256"));
         assertEquals(1, verification.get("record_count_estimate"));
+        assertTrue(((String) verification.get("manifest_sha256")).matches("[0-9a-f]{64}"));
+        assertNotEquals(verification.get("sha256"), verification.get("manifest_sha256"));
     }
 
     @Test

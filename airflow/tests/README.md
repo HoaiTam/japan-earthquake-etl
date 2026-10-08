@@ -1,5 +1,12 @@
 # Airflow tests
 
+ORC-02: `test_source_schedule_runtime.py` kiểm tra UTC/JST/seed/overlap,
+immutable profile, changed/no-change/partial JMA, real-mode gates và whole-run
+lease (foreign cleanup fail closed). `test_source_schedule_dag.py` dựng graph
+offline, assert cleanup không là success leaf. `make test-source-schedule`
+gom Python cùng Java runner tests; nghiệm thu scheduler/USGS/JMA/MinIO thật
+qua `make smoke-source-readiness`, không gọi unit mocks là daily success.
+
 `test_etl_pipeline_runtime.py` kiểm tra ORC-01 context/phase gates, checksum/
 scope/snapshot bundle, real subprocess protocol bằng mock và việc mock không
 Published. `test_etl_dag_contract.py` dựng graph bằng SDK double để assert
