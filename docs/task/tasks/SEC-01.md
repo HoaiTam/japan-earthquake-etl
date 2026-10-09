@@ -74,7 +74,7 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 - **Trạng thái:** In Progress
 - **Assignee:** Trang
 - **Reviewer:** unassigned; chưa có review độc lập
-- **Evidence / PR:** 8 unit tests passed; scoped audit 374 files / 1102 reachable Git blobs / 9 local logs, 0 untriaged pattern findings, 8 exact synthetic URI findings triaged. docs/evidence/SEC-01-static.json and docs/security/SEC-01-CHECKLIST.md; CFG-01/check-config, changed-file secret scan and git diff --check passed. Audit exit 2: .env absent, Docker daemon unavailable, live permissions/logs and EXP-01/MLD-05/MLI-03 actual artifacts still pending. Reviewer unassigned.
+- **Evidence / PR:** 8 unit tests passed; scoped audit 374 files / 1102 reachable Git blobs / 9 local logs, 0 untriaged pattern findings, 8 exact synthetic URI findings triaged. docs/evidence/SEC-01-static.json and docs/security/SEC-01-CHECKLIST.md; CFG-01/check-config, changed-file secret scan and git diff --check passed. Audit exit 2: .env absent, Docker daemon unavailable, live permissions/logs and EXP-01/MLD-05/MLI-03 actual artifacts still pending. Reviewer unassigned. [PR #56](https://github.com/HoaiTam/japan-earthquake-etl/pull/56).
 - **Kỹ năng phù hợp:** Security, Docker, Git
 
 ## Checklist bàn giao
