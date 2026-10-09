@@ -29,8 +29,8 @@ filter semantics and secret key policy before materialization.
 4. Test real reproduction/extension manifests against pinned time travel,
    publication revocation, changed cutoff/config and retry. Pilot coverage does
    not establish research-period completeness.
-5. [MLD-02](../task/tasks/MLD-02.md), [MLD-03](../task/tasks/MLD-03.md),
-   [MLD-04](../task/tasks/MLD-04.md), [MLD-05](../task/tasks/MLD-05.md): audit/Mc,
+5. [MLD-02 — Audit Gold và xác định magnitude of completeness](../task/tasks/MLD-02.md), [MLD-03 — Chọn mainshock và tạo candidate windows](../task/tasks/MLD-03.md),
+   [MLD-04 — Tạo và scale feature không-thời gian 4-D](../task/tasks/MLD-04.md), [MLD-05 — Validate feature snapshot và export Parquet bundle](../task/tasks/MLD-05.md): audit/Mc,
    candidates/features and export gates must finish before lifecycle advances.
 
 ## Checks
