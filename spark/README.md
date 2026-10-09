@@ -124,6 +124,11 @@ dựa trên `event_time_utc` (UTC). Áp dụng quy trình staging nguyên tử (
 ghi đè sạch sẽ không append duplicate record. Tự động xuất marker `_SUCCESS` và `manifest.json`
 ghi nhận metadata partition, danh sách file, SHA-256, số dòng và summary chất lượng dữ liệu.
 
+`GLD-01` thêm Spark DataFrame transformation trong package `gold`: current event,
+source bridge, natural/ROI view và dimensions/bands. API dùng canonical membership
+đã resolve từ Silver; không tạo canonical ID lại. Input/test/handoff nằm tại
+[Gold transformation](../docs/specs/GOLD_TRANSFORMATION.md).
+
 Không commit `target/`, JAR hoặc local metastore. Kiến trúc service, dependency,
 version matrix, marker output và cách mở rộng được mô tả trong
 [Spark standalone contract](../docs/specs/SPARK_STANDALONE.md).
