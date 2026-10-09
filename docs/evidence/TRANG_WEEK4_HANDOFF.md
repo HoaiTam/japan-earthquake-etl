@@ -132,7 +132,10 @@ Canonical JSON/SHA-256, identity gồm snapshot/filter/version/cutoff, half-open
 ## Giới hạn / Bước tiếp theo
 - GLD-04 — Tạo Trino views và verification SQL: cần Published snapshot thật.
 - MLD-01 — Pin Gold snapshot và tạo dataset manifest: còn resolver publication, schema/materialization Iceberg và integration evidence; view phải map physical snapshot rõ ràng.
-- MLD-02/03/04/05: audit/Mc, candidate, feature và export gates chưa triển khai trong PR này; không fake VALIDATED/EXPORTED.
+- MLD-02 — Audit Gold và xác định magnitude of completeness: còn audit/Mc gate.
+- MLD-03 — Chọn mainshock và tạo candidate windows: còn candidate gate.
+- MLD-04 — Tạo và scale feature không-thời gian 4-D: còn feature gate.
+- MLD-05 — Validate feature snapshot và export Parquet bundle: còn export gate; không fake VALIDATED/EXPORTED.
 ```
 
 ### MLI-01 — PR #55
