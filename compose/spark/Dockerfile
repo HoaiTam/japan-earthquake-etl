@@ -14,11 +14,17 @@ FROM apache/spark:3.5.9-scala2.12-java17-ubuntu
 
 USER root
 
-RUN mkdir -p /opt/spark/jobs \
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends python3 \
+    && mkdir -p /opt/spark/jobs \
     && chown -R spark:spark /opt/spark/jobs
 
 COPY --from=build --chown=spark:spark \
     /workspace/spark/target/japan-earthquake-etl.jar \
     /opt/spark/jobs/japan-earthquake-etl.jar
+
+COPY --from=build --chown=spark:spark \
+    /workspace/spark/target/japan-earthquake-etl-runner.jar \
+    /opt/spark/jobs/japan-earthquake-etl-runner.jar
 
 USER spark

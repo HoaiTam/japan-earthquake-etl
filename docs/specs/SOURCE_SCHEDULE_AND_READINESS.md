@@ -40,7 +40,8 @@ flowchart LR
   Start date `2023-01-01` cho phép test interval thuộc seed USGS; không bật
   historical catchup. Không dùng start date 2025 rồi nhận manual 2023 success
   mà thực tế Airflow không tạo task instance.
-  Source tasks retry 1 lần sau 2 phút; scope/lease/gate không automatic retry.
+  ORC-05 đặt source tasks retries=0; retry HTTP do Java policy quản lý.
+  Scope/lease/gate không automatic retry. Xem [recovery/resource profile](./RECOVERY_AND_RESOURCES.md).
 - **Chọn ngày từ `data_interval_end`**, đổi UTC rồi floor midnight. Target
   `[D-1,D)`; USGS query `[max(seed,D-3),D)` ở default overlap=3.
 - Ví dụ interval end `2023-01-04 07:15 +07:00`: processing date `2023-01-03`,

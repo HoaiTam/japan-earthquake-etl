@@ -88,6 +88,38 @@
                             <shadedArtifactAttached>true</shadedArtifactAttached>
                             <shadedClassifierName>runner</shadedClassifierName>
                             <outputFile>${project.build.directory}/japan-earthquake-etl-runner.jar</outputFile>
+                            <!-- Spark provides older HTTP/JSON/utility jars. Isolate SDK deps;
+                                 do not change Spark's parent-first classloader or its Jackson. -->
+                            <relocations>
+                                <relocation>
+                                    <pattern>okhttp3</pattern>
+                                    <shadedPattern>ie212.earthquake.internal.okhttp3</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>okio</pattern>
+                                    <shadedPattern>ie212.earthquake.internal.okio</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>kotlin</pattern>
+                                    <shadedPattern>ie212.earthquake.internal.kotlin</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.fasterxml.jackson</pattern>
+                                    <shadedPattern>ie212.earthquake.internal.jackson</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.google.common</pattern>
+                                    <shadedPattern>ie212.earthquake.internal.guava</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.google.thirdparty</pattern>
+                                    <shadedPattern>ie212.earthquake.internal.thirdparty</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.apache.commons</pattern>
+                                    <shadedPattern>ie212.earthquake.internal.commons</shadedPattern>
+                                </relocation>
+                            </relocations>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
                             <filters>
                                 <filter>

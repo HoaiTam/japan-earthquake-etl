@@ -120,7 +120,7 @@ fixture/inventory; assignee `HoaiTam`, reviewer `unassigned`. Xem
 | [ORC-02](./ORC-02.md) - Cấu hình lịch và readiness cho hai nguồn | 4 | Scheduling | Core | P1 | 4h | Done |
 | [ORC-03](./ORC-03.md) - Implement backfill và reprocessing | 4 | Backfill | Core | P0 | 5h | Done |
 | [ORC-04](./ORC-04.md) - Chuẩn hóa logging và run summary | 4 | Observability | Core | P1 | 4h | Done |
-| [ORC-05](./ORC-05.md) - Chốt recovery, concurrency và tài nguyên | 4 | Recovery and resources | Core | P1 | 4h | Backlog |
+| [ORC-05](./ORC-05.md) - Chốt recovery, concurrency và tài nguyên | 4 | Recovery and resources | Core | P1 | 4h | Done |
 
 ## G - ML Dataset
 

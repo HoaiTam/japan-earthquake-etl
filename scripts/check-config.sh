@@ -278,8 +278,22 @@ validate_spark_memory() {
 
     case "$unit" in
         m|M|g|G) ;;
-        *) report_error "$key must be a positive integer followed by m or g" ;;
+        *) report_error "$key must be a positive integer followed by m or g"; return ;;
     esac
+    # Keep heap below client/worker ceilings with non-heap headroom.
+    case "$number" in
+        0*) report_error "$key must use a positive decimal without leading zeroes"; return ;;
+    esac
+    if [ "${#number}" -gt 5 ]; then
+        report_error "$key exceeds the ORC-05 local profile"; return
+    fi
+    memory_mib=$number
+    case "$unit" in g|G) memory_mib=$((number * 1024)) ;; esac
+    max_mib=2048
+    [ "$key" != SPARK_DRIVER_MEMORY ] || max_mib=1024
+    if [ "$memory_mib" -lt 512 ] || [ "$memory_mib" -gt "$max_mib" ]; then
+        report_error "$key must be 512..$max_mib MiB for the ORC-05 local profile"
+    fi
 }
 
 validate_sql_identifier() {
@@ -319,11 +333,16 @@ validate_semantics() {
     validate_integer "$file" AIRFLOW_UID 1 2147483647
     validate_integer "$file" AIRFLOW_WEB_HOST_PORT 1 65535
     validate_integer "$file" SPARK_MASTER_UI_HOST_PORT 1 65535
-    validate_integer "$file" SPARK_WORKER_CORES 1 64
+    validate_integer "$file" SPARK_WORKER_CORES 1 1
     validate_integer "$file" TRINO_INTERNAL_PORT 1 65535
     validate_integer "$file" TRINO_HOST_PORT 1 65535
     validate_spark_memory "$file" SPARK_DRIVER_MEMORY
     validate_spark_memory "$file" SPARK_EXECUTOR_MEMORY
+    source_heap=$(read_value "$file" SOURCE_RUNNER_HEAP)
+    case "$source_heap" in
+        ""|128m|192m|256m|384m|512m) ;;
+        *) report_error "SOURCE_RUNNER_HEAP must be within the ORC-05 local heap allowlist" ;;
+    esac
     validate_sql_identifier "$file" ICEBERG_CATALOG_NAME
     validate_sql_identifier "$file" TRINO_CATALOG
     validate_sql_identifier "$file" TRINO_SCHEMA

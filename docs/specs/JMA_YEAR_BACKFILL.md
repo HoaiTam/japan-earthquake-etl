@@ -85,8 +85,10 @@ Release/SHA chưa biết ở preview và chỉ được resolve sau download, kh
 - `force_download=true` yêu cầu GET đầy đủ để so SHA ngay cả khi HEAD không đổi;
   không resume prefix cũ trong chế độ này. Header-only changes với SHA giống
   không tạo raw copy; SHA khác tạo release mới và giữ bytes/manifest cũ.
-- Airflow mapped task retry 2 lần, cách 2 phút. Mỗi attempt gửi `ti.try_number`
-  vào Java và writer; raw/manifest đã ghi không bị overwrite.
+- ORC-05 đặt Airflow mapped task retries=0, concurrency cap=1. Operator
+  kiểm tra failed phase/receipt rồi rerun đúng archive; mỗi attempt vẫn gửi
+  `ti.try_number` vào Java/writer, raw/manifest không bị overwrite. Xem
+  [retry/recovery profile](./RECOVERY_AND_RESOURCES.md).
 - File lock theo year/segment bảo vệ state trên shared LocalExecutor volume.
   Publication run ID có suffix year/segment, tránh đụng key quarantine của
   hai segment 1997. Đây không phải distributed lock cho executor đa máy.
@@ -145,7 +147,7 @@ cho JMA-05 và SLV-01; SLV-01 cần stage exact manifest về local path trướ
 |---|---|---|
 | `JMA_INGEST_RUNNER_COMMAND` | `/opt/pipeline/bin/jma-ingest-runner` | Gọi Java, không shell interpolation |
 | `JMA_INGEST_RUNNER_TIMEOUT_SECONDS` | 900; 1–3600 | Giới hạn một archive attempt |
-| `JMA_BACKFILL_MAX_CONCURRENCY` | 2; 1–4 | `max_active_tis_per_dag` cho mapped archive task |
+| `JMA_BACKFILL_MAX_CONCURRENCY` | 1; requested1–4, effective1 | ORC-05 cap `max_active_tis_per_dag` ở một archive |
 | `JMA_HTTP_TIMEOUT_MS` | 60000; 1000–300000 | HEAD/GET timeout |
 | `JMA_MAX_ARCHIVE_BYTES` | 134217728; 1024–134217728 | Guard trước/during download |
 | `JMA_INVENTORY_PATH` | `/opt/pipeline/config/jma/hypocenter_archives_v1.csv` | Inventory đóng gói trong image |

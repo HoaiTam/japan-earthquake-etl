@@ -49,6 +49,11 @@ reuse exact Bronze release và bàn giao affected-scope reprocessing. Chạy
 `make backfill-preview`, `make test-backfill`; real Silver/Gold vẫn fail closed
 khi chưa có scoped adapter. Xem [backfill/reprocessing runbook](./docs/specs/BACKFILL_AND_REPROCESSING.md).
 
+ORC-05 giới hạn local concurrency/heap, chốt retry boundary và recovery từng
+tầng. `make test-recovery`, `make smoke-recovery`, `make smoke-resource-pilot`
+kiểm tra policy/failure/readback/actual Spark probe mà không ghi lake hoặc
+download lại nguồn. Xem [profile và operator notes](./docs/specs/RECOVERY_AND_RESOURCES.md).
+
 USG-05 dùng fixture và mock HTTP để kiểm thử success/empty/invalid, timeout,
 `429/5xx`, checksum mismatch và đối soát manifest/count trước khi mở gate cho
 Silver. Ma trận nằm tại [USGS Bronze QA contract](./docs/specs/USGS_BRONZE_QA_CONTRACT.md).

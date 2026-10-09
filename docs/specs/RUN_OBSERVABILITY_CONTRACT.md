@@ -253,8 +253,9 @@ saved real Bronze metadata, không coi chúng là E2E Published.
   PR #46; scoped adapter thật vẫn cần SLV-09/GLD-03/GLD-04, không có mock mode
   runtime trong DAG backfill.
 - **ORC-05 - Chốt recovery, concurrency và tài nguyên**: abandoned RUNNING,
-  stale lease/retry admission/resource policy; callback không chạy cho mọi
-  manual state change/kill. Không tự force-unlock hoặc suy failure recovery.
+  stale lease/retry admission/resource policy theo [local operator profile](./RECOVERY_AND_RESOURCES.md);
+  callback không chạy cho mọi manual state change/kill. Không tự force-unlock,
+  TTL-delete journal hoặc suy failure recovery; controlled QA chỉ inject trước store call.
 - **QA-01 - Chạy E2E daily đa nguồn**: scheduler daily toàn ETL, không được
   thay bằng metadata smoke/replay. **SEC-01 - Review secret và bề mặt truy cập**:
   security review tổng thể; tests ở đây chỉ là regression trong scope telemetry.

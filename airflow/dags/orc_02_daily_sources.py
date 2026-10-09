@@ -1,5 +1,6 @@
 """ORC-02 real source readiness. Silver/Gold adapters remain a separate ETL gate."""
 from datetime import timedelta
+from runtime_profile import MUTATING_RETRIES
 
 import pendulum
 from airflow.sdk import dag, get_current_context, task
@@ -19,7 +20,7 @@ PROFILE = profile()
     if PROFILE["mode"] == "multi-source" else None,
     start_date=pendulum.datetime(2023, 1, 1, tz=PROFILE["timezone"]),
     catchup=False, is_paused_upon_creation=True, max_active_runs=1, max_active_tasks=1,
-    default_args={"retries": 1, "retry_delay": timedelta(minutes=2)},
+    default_args={"retries": MUTATING_RETRIES, "retry_delay": timedelta(minutes=2)},
     on_failure_callback=dag_failure_summary,
     tags=["orc-02", "daily", "readiness", "bronze"],
 )

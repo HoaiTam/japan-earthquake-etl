@@ -38,6 +38,25 @@ COMPONENT_SMOKES := smoke-minio smoke-airflow smoke-spark smoke-query smoke-usgs
 	verify-samples verify-real-samples
 
 .PHONY: test-source-schedule smoke-source-readiness
+.PHONY: test-recovery smoke-recovery smoke-resource-pilot maintenance-preview
+
+test-recovery: ## ORC-05 retry/profile/lease/recovery/maintenance tests offline
+	@python3 -m unittest discover -s airflow/tests -p 'test_recovery*.py'
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am \
+		-Dtest=ResourcePilotJobTest -Dsurefire.failIfNoSpecifiedTests=false test
+
+smoke-recovery: check-config-local check-java-build-inputs ## ORC-05 failure -> real exact Bronze readback; không tải nguồn/ghi lake/restart
+	@$(COMPOSE) build airflow-api-server
+	@$(COMPOSE) run --rm --no-deps -e PYTHONPATH=/opt/airflow/dags \
+		airflow-api-server python /opt/airflow/dags/recovery_qa.py
+
+smoke-resource-pilot: check-config-local check-java-build-inputs ## ORC-05 real parsers + bounded standalone Spark shuffle; cần master/worker/MinIO đang healthy
+	@$(COMPOSE) build spark-master
+	@$(COMPOSE) --profile smoke run --rm --no-deps spark-resource-pilot
+
+maintenance-preview: ## ORC-05 read-only QA staging diagnosis; không xóa/di chuyển/release lease
+	@PYTHONPATH=airflow/dags python3 -m staging_maintenance --root "$(RUN_SUMMARY_ROOT)" \
+		--dag-id "$(RUN_SUMMARY_DAG)" --run-id "$(RUN_SUMMARY_RUN_ID)"
 .PHONY: test-observability observability-smoke smoke-observability observability-read observability-read-runtime
 
 test-observability: ## ORC-04 counts/reasons/secret/failure/empty/rerun tests offline
