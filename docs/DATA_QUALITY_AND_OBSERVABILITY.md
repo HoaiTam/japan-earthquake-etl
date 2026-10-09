@@ -2,7 +2,7 @@
 
 | Thuộc tính | Giá trị |
 |---|---|
-| Trạng thái | Draft |
+| Trạng thái | ORC-04 telemetry đã triển khai; business gates theo task owner |
 | Phạm vi | Bronze, Silver, Gold và pipeline run |
 
 ## 1. Mục tiêu
@@ -115,20 +115,35 @@ flowchart LR
 
 ## 7. Đối soát số lượng
 
-Mỗi run cần tạo một bản tóm tắt logic:
+Runtime summary có contract version `orc-04-v1` tại
+[Run observability contract](./specs/RUN_OBSERVABILITY_CONTRACT.md). Mỗi nguồn
+được đối soát riêng trong cùng exact input/replacement scope:
 
 ```text
-source_feature_count
-= parsed_count + parse_error_count
+input = parsed + parse_error + ignored
 
-parsed_count
-= valid_before_dedup_count + rejected_count
+parsed = valid + rejected
 
-valid_before_dedup_count
-= silver_output_count + duplicate_or_superseded_count
+valid = duplicate + superseded + current
+current = linked + unlinked
+Gold bridge = sum(source current)
 ```
 
-Ký hiệu trên thể hiện quan hệ cần đối soát, không phải cú pháp code. Nếu Silver còn hợp nhất với dữ liệu đã tồn tại, cần tách metric `new`, `updated`, `unchanged` để giải thích output current-state.
+`ignored` giải thích structural record không thuộc observation; `linked` là
+current memberships, không phải candidate/link pairs. Gold canonical current
+là event grain, không bằng tổng observation hai nguồn. Reject reasons trong
+telemetry là primary quality reason/record; reason occurrences trong report
+SLV-05 có thể nhiều hơn số rejected records.
+
+Không copy thẳng `slv-05-v1` combined `parsed_count/rejected_count`: khi dùng
+overload parser result, nó đã gồm parser rejects. Adapter ORC-04 phải tách
+`reject_stage=PARSE` khỏi quality rejects và tính observation parse thành công
+trước quality. Không đổi nghĩa report SLV-05 hoặc bỏ parser blocker.
+
+`null/not_reported` là chưa có metric, khác với `0/passed`. Nếu Silver hợp
+nhất với existing state, cần tách baseline/new/updated/unchanged và khóa
+extension mới trước khi emit count; không trộn incremental input với global
+current-state trong equations v1 này.
 
 ## 8. Metric cho từng run
 
@@ -161,7 +176,11 @@ Ký hiệu trên thể hiện quan hệ cần đối soát, không phải cú ph
 
 ## 9. Logging chuẩn
 
-Log nên có dạng key-value/JSON để tìm kiếm được, ví dụ:
+ORC-04 đã nối log JSON `pipeline_phase` và `pipeline_run_summary` vào DAG
+ORC-01/02. Mỗi run có journal, summary persisted, UTC timestamps, monotonic
+durations, attempt, exact lineage references và safe fixed reasons.
+
+Ví dụ minh họa quality log (không phải schema receipt `orc-04-v1`):
 
 ```json
 {
@@ -193,7 +212,9 @@ Không log toàn bộ event payload theo mặc định. Khi cần debug, dùng I
 
 ## 11. Run summary đề xuất
 
-Kết thúc DAG, Airflow log một bảng tóm tắt:
+Summary đã triển khai theo [contract ORC-04](./specs/RUN_OBSERVABILITY_CONTRACT.md),
+ghi JSON cuối gate và khi phase fail, không thêm success leaf che lỗi upstream.
+Những nhóm dưới là logical contents; metric adapter chưa cung cấp giữ null:
 
 | Nhóm | Giá trị |
 |---|---|
@@ -209,3 +230,9 @@ Kết thúc DAG, Airflow log một bảng tóm tắt:
 - Threshold volume/freshness sau khi có baseline.
 - Công cụ metrics ngoài Airflow log (Prometheus/Grafana chỉ là mở rộng).
 - Retention của Bronze, log và snapshot Iceberg.
+
+Business counts/freshness và E2E thật còn chờ **SLV-09 - Tích hợp và kiểm thử
+Silver đa nguồn**, **GLD-03 - Ghi Gold Iceberg và commit snapshot**, **GLD-04 -
+Tạo Trino views và verification SQL**, **QA-01 - Chạy E2E daily đa nguồn**.
+Abandoned run/stale lease recovery thuộc **ORC-05 - Chốt recovery, concurrency
+và tài nguyên**. Retention/metrics backend mở rộng chưa có task chốt riêng.

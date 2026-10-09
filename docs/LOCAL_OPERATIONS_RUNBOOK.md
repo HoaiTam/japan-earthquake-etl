@@ -72,6 +72,26 @@ Phạm vi từng target, startup từng khối, USGS live/JMA HEAD, khác biệt
 [Makefile command guide](./MAKEFILE_COMMANDS.md). Các lệnh script/Compose bên
 dưới vẫn là entrypoint gốc để debug chi tiết.
 
+### 2.2. Theo dõi run theo flow (ORC-04)
+
+Đã có structured logs, run summary success/failure và count reconciliation
+cho observer ORC-01/02. Dùng các lệnh sau để kiểm thử metadata mà không tải
+USGS/JMA hoặc unpause DAG:
+
+```bash
+make test-observability
+make observability-smoke
+# Sau khi foundation chạy:
+make smoke-observability
+```
+
+Summary thực của DAG đọc bằng
+`make observability-read-runtime RUN_SUMMARY_DAG=orc_02_daily_sources RUN_SUMMARY_RUN_ID=<run_id>`.
+Copy ID từ Airflow/log, không chọn `latest`. Phạm vi/readback/metric semantics
+và cách đọc report QA trong root riêng xem
+[run summary runbook](./specs/RUN_OBSERVABILITY_CONTRACT.md#6-kiểm-thử-và-vận-hành).
+Bronze-only counts không chứng minh Silver/Gold; các metric chưa có giữ null.
+
 ## 3. Cấu trúc repository hiện tại
 
 ```text

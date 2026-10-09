@@ -1,0 +1,41 @@
+{
+  "evidence_version": "orc-04-v1",
+  "date_local": "2026-10-09",
+  "timezone": "Asia/Ho_Chi_Minh",
+  "base_commit": "ff4f460",
+  "branch": "feat/orc-04-structured-run-summary",
+  "airflow_version": "3.3.2",
+  "runtime_smoke": {
+    "method": "runtime_api_not_scheduler",
+    "run_id": "orc04-smoke-f375c4243add4529bf34ef1aa34aa6b6",
+    "summary_path": "/opt/pipeline/staging/run-summary/qa/967ce9062266c30d5c45582159db6b2a74f1e21f0f59e0d25409a9fa2f035f2a/run_summary.json",
+    "mock_success": true,
+    "failed_run_persisted": true,
+    "stale_publication_invalidated": true,
+    "rerun_counts_unchanged": true,
+    "evidence_kind": "synthetic",
+    "published": false
+  },
+  "dag_import": {
+    "import_errors": 0,
+    "orc_01_etl_pipeline": {"tasks": 8, "strict_leaf": "publication.contract_gate", "callback": "dag_failure_summary"},
+    "orc_02_daily_sources": {"tasks": 7, "strict_leaf": "completion_gate", "callback": "dag_failure_summary"}
+  },
+  "saved_source_metadata": {
+    "method": "exact_saved_source_metadata_not_fresh_readback",
+    "original_run_id": "orc02-20261008T022836Z-5936f782e3d9-first",
+    "qa_run_id": "orc04-source-evidence-6c13b43def064275a20708bcae50008e",
+    "summary_path": "/opt/pipeline/staging/run-summary/qa/daf18f57d07e02b8ff67fc53369371df0b93bdd0a0b2d98abc29d94e04101deb/run_summary.json",
+    "source_counts": [
+      {"source_system": "JMA_BULLETIN", "input": 423222, "parsed": null, "manifests": 4},
+      {"source_system": "USGS", "input": 16, "parsed": null, "manifests": 1}
+    ],
+    "published": false
+  },
+  "source_downloads_triggered": false,
+  "scheduler_runs_triggered": false,
+  "services_restarted": false,
+  "dag_pause_states_changed": false,
+  "real_silver_gold_counts_verified": false,
+  "real_gold_published": false
+}

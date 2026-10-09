@@ -39,6 +39,29 @@
       ]
     }
   },
+  "observability": {
+    "silver": {
+      "version": "orc-04-v1",
+      "sources": [
+        {
+          "source_system": "USGS",
+          "counts": {"input": 2, "fetched": null, "parsed": 2, "parse_error": 0, "ignored": 0, "valid": 2, "rejected": 0, "duplicate": 0, "superseded": 0, "current": 2, "linked": 0, "unlinked": 2},
+          "reject_reasons": {},
+          "catalog_releases": []
+        },
+        {
+          "source_system": "JMA_BULLETIN",
+          "counts": {"input": 2, "fetched": null, "parsed": 2, "parse_error": 0, "ignored": 0, "valid": 2, "rejected": 0, "duplicate": 0, "superseded": 0, "current": 2, "linked": 0, "unlinked": 2},
+          "reject_reasons": {},
+          "catalog_releases": ["mock-release-v1"]
+        }
+      ],
+      "gold": null
+    },
+    "gold": {"version": "orc-04-v1", "sources": [], "gold": {"current": 4, "bridge": 4}},
+    "verify": {"version": "orc-04-v1", "sources": [], "gold": {"current": 4, "bridge": 4}},
+    "publish": {"version": "orc-04-v1", "sources": [], "gold": {"current": 4, "bridge": 4}}
+  },
   "artifacts": {
     "readiness": {
       "sources_ready": [

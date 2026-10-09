@@ -13,6 +13,9 @@ TAIL ?= 100
 DAT01_AIRFLOW_CONTAINER ?=
 JMA_YEARS ?=
 BACKFILL_CONF ?= airflow/dags/fixtures/orc_03_ingest_preview.json
+RUN_SUMMARY_ROOT ?= staging/run-summary
+RUN_SUMMARY_DAG ?= orc_01_etl_pipeline
+RUN_SUMMARY_RUN_ID ?=
 
 COMPOSE = docker compose --env-file "$(ENV_FILE)" -f "$(COMPOSE_FILE)"
 RUNTIME_ENV = ENV_FILE="$(ENV_FILE)" COMPOSE_FILE="$(COMPOSE_FILE)"
@@ -35,6 +38,27 @@ COMPONENT_SMOKES := smoke-minio smoke-airflow smoke-spark smoke-query smoke-usgs
 	verify-samples verify-real-samples
 
 .PHONY: test-source-schedule smoke-source-readiness
+.PHONY: test-observability observability-smoke smoke-observability observability-read observability-read-runtime
+
+test-observability: ## ORC-04 counts/reasons/secret/failure/empty/rerun tests offline
+	@python3 -m unittest discover -s airflow/tests -p 'test_run_observability.py'
+	@$(MAKE) test-orchestration
+
+observability-smoke: ## ORC-04 metadata-only mock success/failure/rerun; ghi staging local, không gọi nguồn
+	@PYTHONPATH=airflow/dags python3 -m run_summary_cli --smoke --root "$(RUN_SUMMARY_ROOT)"
+
+smoke-observability: require-env ## ORC-04 metadata smoke trong Airflow đang chạy; không restart/unpause/ingest
+	@$(COMPOSE) exec -T -e PYTHONPATH=/opt/airflow/dags airflow-dag-processor \
+		python -m run_summary_cli --smoke --root /opt/pipeline/staging/run-summary/qa
+
+observability-read: ## Đọc summary local bằng DAG/run ID; đối chiếu journal state, không đọc payload
+	@PYTHONPATH=airflow/dags python3 -m run_summary_cli --inspect --root "$(RUN_SUMMARY_ROOT)" \
+		--dag-id "$(RUN_SUMMARY_DAG)" --run-id "$(RUN_SUMMARY_RUN_ID)"
+
+observability-read-runtime: require-env ## Đọc summary của một DAG run trong staging volume Airflow
+	@$(COMPOSE) exec -T -e PYTHONPATH=/opt/airflow/dags airflow-dag-processor \
+		python -m run_summary_cli --inspect --root /opt/pipeline/staging/run-summary \
+		--dag-id "$(RUN_SUMMARY_DAG)" --run-id "$(RUN_SUMMARY_RUN_ID)"
 
 .PHONY: backfill-preview test-backfill smoke-backfill-readback smoke-backfill-pilot
 

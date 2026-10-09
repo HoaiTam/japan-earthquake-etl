@@ -19,6 +19,9 @@ import tempfile
 from typing import Any, Mapping
 from urllib.parse import urlsplit
 
+from run_observability import (ObservabilityError, observe, phase_details, read_summary,
+                               unresolved_context, validate_counts)
+
 
 CONTRACT_VERSION = "1.0"
 DAG_ID = "orc_01_etl_pipeline"
@@ -283,12 +286,18 @@ def _validate_artifacts(phase: str, context: dict[str, Any], artifacts: dict[str
 
 
 def _validate_envelope(phase: str, context: dict[str, Any], result: Any) -> None:
-    _keys(result, {"contract_version", "run_id", "context_sha256", "mode", "phase", "status",
-                   "upstream_sha256", "artifacts"})
+    fields = {"contract_version", "run_id", "context_sha256", "mode", "phase", "status",
+              "upstream_sha256", "artifacts"}
+    _keys(result, fields | ({"observability"} if isinstance(result, dict) and "observability" in result else set()))
     _require(all(result[field] == context[field] for field in
                  ("contract_version", "run_id", "context_sha256", "mode")), "RESULT_CONTEXT_MISMATCH")
     _require(result["phase"] == phase and result["status"] == "ok", "PHASE_FAILED")
     _json_bytes(result)
+    if "observability" in result:
+        try:
+            validate_counts(result["observability"], phase, context)
+        except ObservabilityError as error:
+            raise EtlContractError(str(error)) from None
 
 
 def _unique_json_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -314,16 +323,25 @@ def validate_result(phase: str, context: dict[str, Any], upstream: dict[str, Any
     _require(result["upstream_sha256"] == (_digest(upstream) if upstream is not None else None),
              "RESULT_UPSTREAM_MISMATCH")
     _validate_artifacts(phase, context, result["artifacts"], upstream)
+    if "observability" in result:
+        try:
+            validate_counts(result["observability"], phase, context, upstream)
+        except ObservabilityError as error:
+            raise EtlContractError(str(error)) from None
     return deepcopy(result)
 
 
 def mock_result(phase: str, context: dict[str, Any], upstream: dict[str, Any] | None) -> dict[str, Any]:
     """Deterministic, small fixture receipts. No source/store/catalog access."""
     _require(context["mode"] == "mock", "MOCK_IN_REAL_MODE")
-    return {"contract_version": CONTRACT_VERSION, "run_id": context["run_id"],
+    result = {"contract_version": CONTRACT_VERSION, "run_id": context["run_id"],
             "context_sha256": context["context_sha256"], "mode": "mock", "phase": phase,
             "status": "ok", "upstream_sha256": _digest(upstream) if upstream is not None else None,
             "artifacts": deepcopy(load_mock_fixture()["artifacts"][phase])}
+    report = load_mock_fixture().get("observability", {}).get(phase)
+    if report is not None:
+        result["observability"] = deepcopy(report)
+    return result
 
 
 def _write_request(phase: str, context: dict[str, Any], upstream: dict[str, Any] | None,
@@ -393,3 +411,31 @@ def publication_summary(context: dict[str, Any], result: dict[str, Any]) -> dict
     _validate_artifacts("publish", context, result["artifacts"], None)
     return {"run_id": context["run_id"], "mode": context["mode"],
             "context_sha256": context["context_sha256"], **deepcopy(result["artifacts"])}
+
+
+def resolve_observed_context(airflow_context, environment=None, attempt=1):
+    return observe(unresolved_context(airflow_context), "resolve",
+                   lambda: resolve_run_context(airflow_context, environment),
+                   lambda result: {"resolved_context_sha256": result["context_sha256"]},
+                   environment, attempt)
+
+
+def execute_observed_phase(phase, context, upstream=None, environment=None, attempt=1):
+    return observe(context, phase, lambda: execute_phase(phase, context, upstream, environment),
+                   lambda result: phase_details(phase, context, result), environment, attempt)
+
+
+def observed_publication_summary(context, result, environment=None, attempt=1):
+    def complete():
+        summary = read_summary(context, environment)
+        passed = {event["phase"] for event in summary["phases"] if event["status"] == "SUCCEEDED"}
+        _require(set(PHASES) <= passed, "MISSING_UPSTREAM_GATE")
+        publish_event = next(event for event in summary["phases"] if event["phase"] == "publish")
+        _require(publish_event["receipt_sha256"] == _digest(result), "PUBLICATION_INPUT_CHANGED")
+        final = publication_summary(context, result)
+        _require(final["snapshots"] == summary["snapshots"]
+                 and final["verification_report_uri"] == summary["verification_report_uri"]
+                 and final["publication_uri"] == summary["publication_uri"], "PUBLICATION_INPUT_CHANGED")
+        return final
+    return observe(context, "complete", complete,
+                   lambda final: {"completion_status": final["publication_status"]}, environment, attempt)
