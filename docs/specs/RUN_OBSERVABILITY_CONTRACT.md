@@ -3,8 +3,8 @@
 | Thuộc tính | Giá trị |
 |---|---|
 | Task / version | ORC-04 / `orc-04-v1` |
-| Baseline GitHub | `origin/main` `ff4f460` (PR #45), fetched trước triển khai |
-| Phạm vi | Metadata điều phối ORC-01/02; không parse hoặc transform record bằng Python |
+| Baseline GitHub | PR #46 `97f9ac58d52c2fee787b5d57d1f974f83264752b`; PR #47 được rebase và bổ sung ORC-03 integration |
+| Phạm vi | Metadata điều phối ORC-01/02/03; không parse hoặc transform record bằng Python |
 
 ## 1. Làm gì, có gì, dùng để làm gì?
 
@@ -18,13 +18,13 @@ nghiệp vụ hoặc Prometheus/Grafana để dùng tính năng này.
 | `airflow/dags/run_observability.py` | Projection allowlist, count validator, atomic persistence, flock, safe reasons, DAG failure callback | Metadata được kiểm tra trước khi log; lỗi không bị che bởi summary |
 | `etl_pipeline_runtime.py` + ORC-01 DAG | Observed resolve/6 phase/final gate | Giữ graph 8 task và strict `all_success` sole leaf |
 | ORC-02 daily DAG | Observed resolve/lease/JMA/USGS/readiness/completion | Trace hai nguồn thật; SourcesReady không phải Published |
+| `backfill_observability.py` + ORC-03 DAG | Parent Airflow run + operation/scope binding, source readback, scoped phases, cleanup/completion | Cùng operation dùng lại business child IDs nhưng mỗi Airflow run có journal riêng |
 | `run_summary_cli.py` | Smoke, inspect theo DAG/run, replay hai exact source metadata files | Test/đọc report mà không tải dữ liệu hoặc trigger scheduler |
 | `test_run_observability.py` | Empty/failure/rerun, equations, secret, stale state/attempt, CLI | Regression độc lập bằng fixture |
 
-ORC-03 chưa có trong `origin/main` tại thời điểm tạo branch này. Không đưa code
-chưa merge vào PR ORC-04. Handoff cho **ORC-03 - Implement backfill và
-reprocessing**: dùng serializer/projection/observer đã có, pin identity/scope
-và không dùng summary như bằng chứng thay cho adapter readback.
+Theo yêu cầu cập nhật, PR #47 được đặt trên nền PR #46 (ORC-03), không còn
+đứng riêng trên main. Phải merge PR #46 trước PR #47. Nền triển khai ban đầu
+`ff4f460` được giữ trong evidence lịch sử, không coi là nền hiện tại.
 
 ## 2. Vị trí và vòng đời
 
@@ -192,6 +192,8 @@ adapter phải cung cấp count từ output/query thật và exact snapshots.
 - Mock → `MockComplete`, `evidence_kind=synthetic`, `published=false`, Gold
   published count null dù synthetic current count có giá trị.
 - ORC-02 → `SourcesReady`, `published=false`; không chứa Gold snapshots.
+- ORC-03 ingest/reuse → `BronzeVerified`, `published=false`; reprocess chỉ
+  `Published` sau scoped six-phase gates, execution receipt và released lease.
 - Replay saved source metadata → `MetadataReplayComplete`, `mode=replay`,
   `evidence_kind=saved_metadata`, `published=false`. Không impersonate run cũ,
   không tuyên bố fresh readback hoặc scheduler run mới.
@@ -207,6 +209,8 @@ make observability-smoke
 make observability-read RUN_SUMMARY_RUN_ID=<run_id-vua-tra-ve>
 # Foundation đang chạy, không restart/unpause/download:
 make smoke-observability
+# Read-only Bronze sample đã tồn tại: build image mới, one-off, không restart stack:
+make smoke-backfill-observability
 # Một run thực của DAG sau khi deploy có summary:
 make observability-read-runtime RUN_SUMMARY_DAG=orc_02_daily_sources RUN_SUMMARY_RUN_ID=<run_id>
 ```
@@ -245,8 +249,9 @@ saved real Bronze metadata, không coi chúng là E2E Published.
   Iceberg và commit snapshot**, **GLD-04 - Tạo Trino views và verification SQL**:
   output/query counts, commit time/latest event time và verified snapshots thật;
   freshness vẫn not_reported, không có Gold Published thật trong evidence này.
-- **ORC-03 - Implement backfill và reprocessing**: integration observer với
-  dispatcher/reprocess sau khi code task đó merge vào main.
+- **ORC-03 - Implement backfill và reprocessing**: observer đã nối trên nền
+  PR #46; scoped adapter thật vẫn cần SLV-09/GLD-03/GLD-04, không có mock mode
+  runtime trong DAG backfill.
 - **ORC-05 - Chốt recovery, concurrency và tài nguyên**: abandoned RUNNING,
   stale lease/retry admission/resource policy; callback không chạy cho mọi
   manual state change/kill. Không tự force-unlock hoặc suy failure recovery.
@@ -258,3 +263,53 @@ saved real Bronze metadata, không coi chúng là E2E Published.
 
 Reviewer độc lập chưa có (`unassigned`); additive contract cần team review
 trước khi owner adapters bắt đầu emit real counts.
+
+## 8. ORC-03: backfill/reprocessing được quan sát bằng cách nào?
+
+- Preview vẫn pure: không telemetry directory/lock/journal, không lease,
+  không runner/storage. Resolve invalid cũng không persist vì chưa xác định
+  preview hay real; Airflow task nhận reason đã sanitize. Callback không tạo
+  telemetry cho ORC-03 nếu run chưa có state. Xem Airflow task state/log trong
+  trường hợp này, không suy rằng mọi failed resolve đều có JSON summary.
+- Real resolve tạo journal; identity gồm parent `dag_id/run_id`,
+  `operation_id/action/scope_sha256` và processing/config/UTC context. Hash
+  context bind cả parent run ID lẫn scope. Ingest/reuse UTC envelope bao quanh
+  các source đã chọn, **không chứng minh coverage liên tục**; reprocess dùng
+  business window đã khai báo. Child IDs và scope vẫn ổn định qua rerun.
+- Phase order riêng: resolve → lease → source → (readiness/bronze/silver/gold/
+  verify/publish chỉ khi reprocess) → execution → cleanup → complete. Graph
+  vẫn 5 Airflow tasks, strict sole leaf, cleanup all_done. Source phase đo cả
+  scoped pin/preflight/ingest hoặc reuse/readback; không bịa duration từng
+  child HTTP request. Source ownership được assert trước side effect.
+- Java `BronzeReuseVerifier` nhận optional `observability_version=orc-04-v1`.
+  Sau khi kiểm raw/manifest SHA + structure/count, trả optional `observability`
+  đúng `{version,bronze_inputs}`. Mỗi row là exact pin + `raw_object_uri` +
+  `record_count_estimate` đã readback. Không truyền raw record/ZIP qua Python;
+  không scan/list/download source hoặc ghi object. Legacy request vẫn response
+  5 fields cũ. Runner cũ thiếu extension vẫn nhận `BronzeVerified` nhưng count
+  telemetry là null/not_reported; `bronze_pins` giữ lineage/release đã biết.
+- Runtime kiểm version, số row, thứ tự/exact pin fields, URI và integer count.
+  Report lỗi/null/extra field fail closed; không bỏ qua để tiếp tục. Reuse
+  `fetched=null`, không giả định mỗi manifest là một record hoặc một fetch.
+- Scoped adapter giữ `orc-03-v1` wrapper; hash request upstream bind wrapper,
+  ORC-01 hash bind **inner etl_receipt**, gồm optional `orc-04-v1` counts.
+  Cả scoped baseline/idempotency/outside-scope gates và inner receipt gates
+  phải pass trước success event. Không biến scoped adapter thành unscoped.
+- Source readback và ETL bronze nói về cùng URI chỉ tính input một lần;
+  khác raw SHA/count fail `BRONZE_INPUT_CHANGED`. Silver/Gold counts dùng
+  equations ở trên. Không trộn input mới với existing/global replacement
+  population; adapter không thể đáp ứng thì không emit counts hoặc chốt version
+  mới trước, không đổi nghĩa ngầm (owner: SLV-09/GLD-03).
+- `execution` ghi hash toàn bộ summary đã được executor xác nhận. Complete
+  đối chiếu hash, exact persisted result/pins và snapshot/report/publication
+  refs, cần source/lease/execution/cleanup (+ six ETL phases khi reprocess)
+  thành công. Không nhận XCom/file sửa sau execution hoặc completion cũ.
+  `BACKFILL_STAGING_ROOT/.../run_summary.json` vẫn là executor receipt cũ;
+  **summary cuối DAG** là `RUN_SUMMARY_ROOT/.../run_summary.json` sau cleanup.
+  Failed cleanup giữ failed telemetry; không rollback snapshot/object đã commit.
+- `make smoke-backfill-observability` dùng hai exact manifests fixture đã có,
+  fresh readback hai lần cùng parent run/operation dưới lease, assert counts
+  không cộng dồn và released lease. Chỉ ghi QA metadata, không tải nguồn,
+  không ghi lake, không scheduler trigger/unpause/restart. Object thiếu thì
+  fail, không fallback download. QA root là run-summary/qa; inspect dùng
+  `--dag-id orc_03_backfill --run-id <ID>` với root QA này.

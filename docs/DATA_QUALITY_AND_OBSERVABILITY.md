@@ -214,6 +214,11 @@ Không log toàn bộ event payload theo mặc định. Khi cần debug, dùng I
 
 Summary đã triển khai theo [contract ORC-04](./specs/RUN_OBSERVABILITY_CONTRACT.md),
 ghi JSON cuối gate và khi phase fail, không thêm success leaf che lỗi upstream.
+ORC-03 backfill/reprocess đã nối observer theo parent run/operation/scope:
+Java exact readback cung cấp Bronze structural counts, preview không persist,
+ingest/reuse không Published. Summary executor và final DAG sau cleanup khác
+nhau; không dùng count estimate Bronze như canonical event count hoặc suy
+fetched/parsed khi adapter chưa báo cáo.
 Những nhóm dưới là logical contents; metric adapter chưa cung cấp giữ null:
 
 | Nhóm | Giá trị |

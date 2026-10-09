@@ -199,8 +199,10 @@ bucket/volume để retry. Java readback luôn chạy lại, không tin receipt 
 Metadata ở cùng root: `bronze-verify-input.json`, `bronze-result.json`, từng
 `<phase>-input.json` và `run_summary.json`; raw không đi qua XCom. Summary gồm
 operation/scope hash, exact Bronze pins, published boolean và optional verified
-publication. Counts/durations/per-phase persistent failure summary đầy đủ
-thuộc ORC-04, chưa được bịa từ wrapper này.
+publication. ORC-04 đã nối telemetry riêng tại `RUN_SUMMARY_ROOT`, bind parent
+Airflow run + operation/scope, count từ Java exact readback, scoped phase
+durations và safe failures. Executor summary không thay final DAG gate sau
+cleanup; xem [contract ORC-04](./RUN_OBSERVABILITY_CONTRACT.md).
 
 ## 6. Lệnh test và chạy
 
@@ -210,6 +212,7 @@ make backfill-preview BACKFILL_CONF=airflow/dags/fixtures/orc_03_reuse_sample.js
 make backfill-preview BACKFILL_CONF=airflow/dags/fixtures/orc_03_reprocess_preview.json
 make test-backfill
 make smoke-backfill-readback
+make smoke-backfill-observability
 make test-airflow
 make check
 git diff --check
@@ -256,7 +259,8 @@ phạm vi nhỏ, JMA force flag nếu cần; không đổi existing successful p
 - [GLD-04 - Tạo Trino views và verification SQL](../task/tasks/GLD-04.md):
   còn SQL evidence outside-scope, counts/lineage và publication thật.
 - [ORC-04 - Chuẩn hóa logging và run summary](../task/tasks/ORC-04.md):
-  dùng operation/scope/input refs để thêm counts/durations/reconciliation.
+  đã nối observer/summary/source counts và scoped adapter handoff trên PR #46;
+  Bronze count legacy không emit thì giữ null, không suy từ số manifests.
 - [ORC-05 - Chốt recovery, concurrency và tài nguyên](../task/tasks/ORC-05.md):
   còn resource benchmark, stale-lease recovery, cache-loss/partial Iceberg
   commit và distributed/all-writer locks (ORC-01 real writer chưa dùng lease này).

@@ -48,6 +48,9 @@ public final class BronzeReuseVerifier {
         JsonNode inputs = request.path("bronze_inputs");
         require(inputs.isArray() && !inputs.isEmpty() && inputs.size() <= 64);
         var seen = new HashSet<String>();
+        boolean telemetry = request.has("observability_version");
+        require(!telemetry || "orc-04-v1".equals(text(request, "observability_version")));
+        var metadata = JSON.createArrayNode();
         for (JsonNode pin : inputs) {
             String uri = text(pin, "manifest_uri"), source = text(pin, "source_system");
             require(seen.add(uri) && uri.endsWith("/manifest.json"));
@@ -96,12 +99,22 @@ public final class BronzeReuseVerifier {
                 require(validation.valid()); count = validation.recordCount();
             }
             require(count == number(manifest, "record_count_estimate"));
+            if (telemetry) {
+                ObjectNode row = ((ObjectNode) pin).deepCopy();
+                row.put("raw_object_uri", text(manifest, "raw_object_uri"));
+                row.put("record_count_estimate", count);
+                metadata.add(row);
+            }
         }
         ObjectNode result = JSON.createObjectNode();
         result.put("contract_version", "orc-03-v1");
         result.put("scope_sha256", text(request, "scope_sha256"));
         result.put("status", "BronzeVerified"); result.put("verified", true);
         result.set("bronze_inputs", inputs.deepCopy());
+        if (telemetry) {
+            var report = result.putObject("observability");
+            report.put("version", "orc-04-v1"); report.set("bronze_inputs", metadata);
+        }
         return result;
     }
 

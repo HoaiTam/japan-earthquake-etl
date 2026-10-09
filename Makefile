@@ -42,7 +42,14 @@ COMPONENT_SMOKES := smoke-minio smoke-airflow smoke-spark smoke-query smoke-usgs
 
 test-observability: ## ORC-04 counts/reasons/secret/failure/empty/rerun tests offline
 	@python3 -m unittest discover -s airflow/tests -p 'test_run_observability.py'
+	@python3 -m unittest discover -s airflow/tests -p 'test_backfill_observability.py'
 	@$(MAKE) test-orchestration
+
+.PHONY: smoke-backfill-observability
+smoke-backfill-observability: check-config-local check-java-build-inputs ## ORC-04/03 live read-only Bronze reuse/rerun + summary; không tải nguồn/ghi lake
+	@$(COMPOSE) build airflow-api-server
+	@$(COMPOSE) run --rm --no-deps -e PYTHONPATH=/opt/airflow/dags \
+		airflow-api-server python /opt/airflow/dags/backfill_readback_qa.py --observability
 
 observability-smoke: ## ORC-04 metadata-only mock success/failure/rerun; ghi staging local, không gọi nguồn
 	@PYTHONPATH=airflow/dags python3 -m run_summary_cli --smoke --root "$(RUN_SUMMARY_ROOT)"

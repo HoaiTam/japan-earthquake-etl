@@ -20,6 +20,7 @@ from urllib.parse import urlsplit
 
 VERSION = "orc-04-v1"
 PHASES = ("resolve", "readiness", "bronze", "silver", "gold", "verify", "publish", "complete")
+BACKFILL_PHASES = ("resolve", "lease", "source", *PHASES[1:-1], "execution", "cleanup", "complete")
 SOURCES = ("JMA_BULLETIN", "USGS")
 COUNT_FIELDS = ("input", "fetched", "parsed", "parse_error", "ignored", "valid", "rejected",
                 "duplicate", "superseded", "current", "linked", "unlinked")
@@ -167,11 +168,23 @@ def identity(context):
         except (ValueError, TypeError, KeyError):
             raise ObservabilityError("INVALID_TELEMETRY_CONTEXT") from None
         require(type(context.get("is_backfill")) is bool, "INVALID_TELEMETRY_CONTEXT")
-    return {"dag_id": label(context["dag_id"]), "run_id": label(context["run_id"]),
+    result = {"dag_id": label(context["dag_id"]), "run_id": label(context["run_id"]),
             "mode": context["mode"], "context_sha256": context["context_sha256"],
             "config_version": label(context["config_version"]),
             "window_start_utc": context["window_start_utc"], "window_end_utc": context["window_end_utc"],
             "processing_date": context["processing_date"], "is_backfill": context["is_backfill"]}
+    if result["dag_id"] == "orc_03_backfill" and result["mode"] != "unresolved":
+        require(result["mode"] == "real" and result["is_backfill"] is True
+                and context.get("action") in {"ingest", "reuse", "reprocess"}
+                and isinstance(context.get("scope_sha256"), str)
+                and re.fullmatch(r"[0-9a-f]{64}", context["scope_sha256"]), "INVALID_TELEMETRY_CONTEXT")
+        result.update(operation_id=label(context["operation_id"]), scope_sha256=context["scope_sha256"],
+                      action=context["action"])
+    return result
+
+
+def phases_for(run):
+    return BACKFILL_PHASES if run["dag_id"] == "orc_03_backfill" else PHASES
 
 
 def utc_time(value):
@@ -187,7 +200,8 @@ def utc_time(value):
 def validate_details(details, phase, run):
     """Second allowlist at the persistence boundary, including nested metadata."""
     allowed = {"bronze_inputs", "silver_manifests", "snapshots", "verification_report_uri",
-               "publication_uri", "counts", "completion_status", "resolved_context_sha256", "receipt_sha256"}
+               "publication_uri", "counts", "completion_status", "resolved_context_sha256", "receipt_sha256",
+               "bronze_pins"}
     require(isinstance(details, dict) and set(details) <= allowed, "INVALID_COUNT_REPORT")
     if "resolved_context_sha256" in details:
         value = details["resolved_context_sha256"]
@@ -204,7 +218,13 @@ def validate_details(details, phase, run):
         status = details["completion_status"]
         allowed_statuses = {"real": {"SourcesReady", "Published"}, "mock": {"MockComplete"},
                             "replay": {"MetadataReplayComplete"}, "unresolved": set()}
+        if run["dag_id"] == "orc_03_backfill":
+            allowed_statuses["real"] = {"Published"} if run.get("action") == "reprocess" else {"BronzeVerified"}
         require(phase == "complete" and status in allowed_statuses[run["mode"]], "PUBLICATION_MODE_MISMATCH")
+    if "bronze_pins" in details:
+        require(run["dag_id"] == "orc_03_backfill" and phase == "source", "INVALID_COUNT_REPORT")
+        from backfill_runtime import pins
+        pins(details["bronze_pins"])
     for key in ("bronze_inputs", "silver_manifests", "snapshots"):
         if key not in details:
             continue
@@ -265,7 +285,8 @@ def _locked(root):
 
 def _summary(state):
     phases = state["phases"]
-    events = [phases[phase] for phase in PHASES if phase in phases]
+    order = phases_for(state["run"])
+    events = [phases[phase] for phase in order if phase in phases]
     failed = next((event for event in events if event["status"] == "FAILED"), None)
     complete = phases.get("complete", {})
     status = "FAILED" if failed else complete.get("details", {}).get("completion_status", "RUNNING")
@@ -279,10 +300,20 @@ def _summary(state):
         if event["status"] != "SUCCEEDED":
             continue
         details = event["details"]
+        for item in details.get("bronze_pins", []):
+            row = sources[item["source_system"]]
+            row.setdefault("bronze_pins", []).append(item)
+            if "catalog_release" in item and item["catalog_release"] not in row["catalog_releases"]:
+                row["catalog_releases"].append(item["catalog_release"])
         for item in details.get("bronze_inputs", []):
             row = sources[item["source_system"]]
-            row["bronze_inputs"].append(item)
-            row["counts"]["input"] = (row["counts"]["input"] or 0) + item["record_count_estimate"]
+            existing = next((old for old in row["bronze_inputs"] if old["manifest_uri"] == item["manifest_uri"]), None)
+            if existing is not None:
+                require(existing["record_count_estimate"] == item["record_count_estimate"]
+                        and existing.get("sha256") == item.get("sha256"), "BRONZE_INPUT_CHANGED")
+            else:
+                row["bronze_inputs"].append(item)
+                row["counts"]["input"] = (row["counts"]["input"] or 0) + item["record_count_estimate"]
             if "catalog_release" in item and item["catalog_release"] not in row["catalog_releases"]:
                 row["catalog_releases"].append(item["catalog_release"])
         report = details.get("counts")
@@ -317,13 +348,14 @@ def _summary(state):
             "verification_report_uri": verification, "publication_uri": publication,
             "phases": [{**{key: value for key, value in event.items() if key != "details"},
                         "receipt_sha256": event["details"].get("receipt_sha256")} for event in events],
-            "not_executed_phases": [phase for phase in PHASES if phase not in phases] if stopped else [],
+            "not_executed_phases": [phase for phase in order if phase not in phases] if stopped else [],
             "metrics_kind": "per_run_scoped_gauges_not_cumulative_counters",
             "sequence": state["sequence"]}
 
 
 def _record(run, phase, attempt, status, reason, duration, details, env, token=None):
-    require(phase in PHASES and type(attempt) is int and 1 <= attempt <= 10000, "INVALID_TELEMETRY_ATTEMPT")
+    order = phases_for(run)
+    require(phase in order and type(attempt) is int and 1 <= attempt <= 10000, "INVALID_TELEMETRY_ATTEMPT")
     require(math.isfinite(duration) and duration >= 0, "INVALID_TELEMETRY_DURATION")
     validate_details(details, phase, run)
     root = _root(run, env)
@@ -348,7 +380,7 @@ def _record(run, phase, attempt, status, reason, duration, details, env, token=N
             state = {"run": run, "started_at_utc": _utc_now(), "sequence": 0, "phases": {}}
         if status == "RUNNING":
             # Retain append-only history, but never carry stale downstream success into reruns.
-            for later in PHASES[PHASES.index(phase):]:
+            for later in order[order.index(phase):]:
                 state["phases"].pop(later, None)
         else:
             require(state["phases"].get(phase, {}).get("token") == token, "STALE_TELEMETRY_ATTEMPT")
@@ -402,6 +434,17 @@ def observe(context, phase, operation, project, environment=None, attempt=1):
 
 # Fixed registry, never echo an arbitrary exception, adapter stderr or connection URL.
 SAFE_REASONS = {
+    "SCOPED_ETL_ADAPTER_NOT_CONFIGURED", "SCOPED_WRITE_GATE_FAILED", "REPROCESS_INPUT_CHANGED",
+    "INVALID_BACKFILL_FIELDS", "INVALID_OPERATION_ID", "BOUNDED_INPUTS_REQUIRED", "INVALID_PIN_CHECKSUM",
+    "INVALID_BACKFILL_CONFIGURATION", "UNSUPPORTED_BACKFILL_CONFIGURATION", "EXPLICIT_ACTION_REQUIRED",
+    "JSON_BOOLEAN_REQUIRED", "INGEST_SCOPE_REQUIRED", "INVALID_CHUNK_SIZE", "INVALID_USGS_CONFIGURATION",
+    "TOO_MANY_USGS_CHUNKS_SPLIT_OPERATION", "INVALID_JMA_SCOPE", "INVALID_JMA_SEGMENTS", "INVALID_JMA_SEGMENT",
+    "TOO_MANY_TOTAL_INPUTS_SPLIT_OPERATION", "REUSE_CANNOT_DOWNLOAD", "EXPLICIT_REPROCESS_SCOPE_REQUIRED",
+    "USGS_VALIDATION_FAILED", "USGS_IDENTITY_CHANGED", "JMA_ARCHIVE_NOT_READY", "ADAPTER_NOT_CONFIGURED",
+    "BRONZE_PIN_NOT_VERIFIED", "BACKFILL_ADAPTER_FAILED", "BACKFILL_ADAPTER_DID_NOT_COMPLETE",
+    "OPERATION_SCOPE_CHANGED_USE_NEW_ID", "EXECUTION_ENVIRONMENT_CHANGED_OR_UNRESOLVED",
+    "PREVIEW_CANNOT_EXECUTE", "PLAN_CHANGED", "DRY_RUN_FORBIDDEN", "USGS_EXECUTION_SETTINGS_CHANGED",
+    "BACKFILL_COMPLETION_FAILED", "SOURCE_LEASE_NOT_RELEASED", "INVALID_READBACK_REPORT",
     "ADAPTER_DID_NOT_COMPLETE", "ADAPTER_PROCESS_FAILED", "INVALID_ADAPTER_JSON", "METADATA_TOO_LARGE",
     "QUALITY_GATE_FAILED", "PHASE_FAILED", "BRONZE_NOT_READY", "SILVER_NOT_READY", "SOURCE_NOT_READY",
     "CONTEXT_CHANGED", "RESULT_CONTEXT_MISMATCH", "RESULT_UPSTREAM_MISMATCH", "MISSING_UPSTREAM_GATE",
@@ -423,8 +466,8 @@ SAFE_REASONS = {
 
 
 def safe_reason(error):
-    # Only our two reason-code exception types can supply an allowlisted reason.
-    value = str(error) if type(error).__name__ in {"EtlContractError", "ObservabilityError"} else None
+    # Only contract/telemetry/backfill reason-code types can supply allowlisted reasons.
+    value = str(error) if type(error).__name__ in {"EtlContractError", "ObservabilityError", "BackfillError"} else None
     if value in SAFE_REASONS:
         return value
     return {"ReadinessError": "SOURCE_READINESS_FAILED", "SourceRunBusy": "SOURCE_LEASE_BUSY",
@@ -468,7 +511,7 @@ def read_summary(context, environment=None):
         require(value["context_sha256"] == context["context_sha256"], "RUN_SUMMARY_CONTEXT_CHANGED")
         require(state["run"] == identity(context), "RUN_SUMMARY_CONTEXT_CHANGED")
         for phase, event in state["phases"].items():
-            require(phase in PHASES and event["phase"] == phase, "STALE_RUN_SUMMARY")
+            require(phase in phases_for(state["run"]) and event["phase"] == phase, "STALE_RUN_SUMMARY")
             validate_details(event["details"], phase, state["run"])
         require(value == _summary(state), "STALE_RUN_SUMMARY")
         return value
@@ -532,10 +575,13 @@ invoke callbacks; recovery of abandoned RUNNING runs is an ORC-05 concern.
     env = os.environ if environment is None else environment
     dag = airflow_context.get("dag")
     dag_id = getattr(dag, "dag_id", airflow_context.get("dag_id"))
-    if dag_id not in {"orc_01_etl_pipeline", "orc_02_daily_sources"}:
+    if dag_id not in {"orc_01_etl_pipeline", "orc_02_daily_sources", "orc_03_backfill"}:
         return
     fallback = unresolved_context(airflow_context, dag_id)
     root = _root(fallback, env)
+    # Successful preview never creates telemetry, including from a later DAG callback.
+    if dag_id == "orc_03_backfill" and not (root / "state.json").is_file():
+        return
     try:
         with _locked(root):
             path = root / "state.json"

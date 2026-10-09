@@ -34,6 +34,7 @@ class BackfillDagTest(unittest.TestCase):
             spec.loader.exec_module(importlib.util.module_from_spec(spec))
         self.assertIsNone(options["schedule"]); self.assertFalse(options["catchup"])
         self.assertTrue(options["is_paused_upon_creation"])
+        self.assertEqual("dag_failure_summary", options["on_failure_callback"].__name__)
         self.assertEqual(1, options["max_active_runs"]); self.assertEqual(1, options["max_active_tasks"])
         self.assertEqual({("resolve_plan", "acquire_source_lease"), ("resolve_plan", "execute_scope"),
             ("resolve_plan", "release_source_lease"),

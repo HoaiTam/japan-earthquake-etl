@@ -75,7 +75,7 @@ dưới vẫn là entrypoint gốc để debug chi tiết.
 ### 2.2. Theo dõi run theo flow (ORC-04)
 
 Đã có structured logs, run summary success/failure và count reconciliation
-cho observer ORC-01/02. Dùng các lệnh sau để kiểm thử metadata mà không tải
+cho observer ORC-01/02/03. Dùng các lệnh sau để kiểm thử metadata mà không tải
 USGS/JMA hoặc unpause DAG:
 
 ```bash
@@ -83,6 +83,8 @@ make test-observability
 make observability-smoke
 # Sau khi foundation chạy:
 make smoke-observability
+# Readback sample Bronze đã có, chỉ build/one-off; không restart stack:
+make smoke-backfill-observability
 ```
 
 Summary thực của DAG đọc bằng

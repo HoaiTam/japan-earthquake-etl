@@ -80,7 +80,8 @@ Internet khi dependency chưa được cache.
 | `test-orchestration` | ORC-01 context/phase/gates và dựng graph bằng SDK double, không cần Airflow trên host |
 | `etl-preview` | In run context/exact scope fixture ORC-01 offline, không ghi hoặc gọi service |
 | `etl-mock` | Chạy sáu phase fixture, chỉ `MockComplete`, `published=false`, không tạo Gold snapshot thật |
-| `test-observability` | ORC-04 equations, empty/failure/retry/rerun, secret/projection/persistence + ORC-01 contract tests |
+| `test-observability` | ORC-04 equations, empty/failure/retry/rerun, secret/projection/persistence + ORC-01 và ORC-03 scoped integration tests |
+| `smoke-backfill-observability` | Build image và one-off ORC-03 exact Bronze readback/rerun dưới lease + ORC-04 summary; chỉ QA metadata, không nguồn/lake write/restart stack |
 | `observability-smoke` | Metadata-only success/failure/rerun; persist vào `staging/run-summary`, không tải nguồn |
 | `observability-read RUN_SUMMARY_RUN_ID=<id>` | Đọc local summary theo exact DAG/run ID, đối chiếu state; `RUN_SUMMARY_DAG` mặc định ORC-01 |
 | `test-jma-backfill` | JMA-04 downloader/Java runner/planner/DAG, fixture/storage/HTTP mock; không gọi nguồn |

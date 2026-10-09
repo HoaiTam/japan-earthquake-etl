@@ -49,7 +49,7 @@ def smoke(root):
 
 
 def inspect_summary(dag_id, run_id, root):
-    obs.require(dag_id in {"orc_01_etl_pipeline", "orc_02_daily_sources"}, "UNKNOWN_DAG")
+    obs.require(dag_id in {"orc_01_etl_pipeline", "orc_02_daily_sources", "orc_03_backfill"}, "UNKNOWN_DAG")
     seed = {"dag_id": dag_id, "run_id": obs.label(run_id)}
     env = {"RUN_SUMMARY_ROOT": root}
     folder = obs._root(seed, env)
