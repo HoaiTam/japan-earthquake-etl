@@ -1,6 +1,6 @@
 ---
 task_id: "SEC-01"
-status: "Backlog"
+status: "In Progress"
 week: 4
 block: "K - QA & Release"
 workstream: "Security"
@@ -48,7 +48,7 @@ Kiểm tra env, Git history, logs, default credentials, exposed ports, DSN, Driv
 
 ### Phân công tuần 4 mở rộng
 
-- **Owner / effort:** Trang, 4h Core; đưa từ tuần 6 lên [kế hoạch tuần 4](../WEEK_4_PARALLEL_PLAN.md), hiện Backlog vì ORC-05 chưa Done.
+- **Owner / effort:** Trang, 4h Core; đưa từ tuần 6 lên [kế hoạch tuần 4](../WEEK_4_PARALLEL_PLAN.md), ORC-05 đã Done; task đang In Progress với static evidence, live audit còn thiếu.
 - **Làm trước:** Checklist/static tests và leak-pattern fixtures, không in credential thật hoặc đọc account/resource ngoài project scope.
 - **Làm gì / có gì:** Audit config/Git/logs/ports/prefix permissions, default credential/DSN và ML bundle path/token boundary; issue/fix report có scope.
 - **Dùng để làm gì:** ETL/runtime evidence và result fixtures chia sẻ được mà không lộ secret hoặc local account path.
@@ -71,10 +71,10 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
+- **Trạng thái:** In Progress
 - **Assignee:** Trang
-- **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Reviewer:** unassigned; chưa có review độc lập
+- **Evidence / PR:** 8 unit tests passed; scoped audit 374 files / 1102 reachable Git blobs / 9 local logs, 0 untriaged pattern findings, 8 exact synthetic URI findings triaged. docs/evidence/SEC-01-static.json and docs/security/SEC-01-CHECKLIST.md; CFG-01/check-config, changed-file secret scan and git diff --check passed. Audit exit 2: .env absent, Docker daemon unavailable, live permissions/logs and EXP-01/MLD-05/MLI-03 actual artifacts still pending. Reviewer unassigned.
 - **Kỹ năng phù hợp:** Security, Docker, Git
 
 ## Checklist bàn giao

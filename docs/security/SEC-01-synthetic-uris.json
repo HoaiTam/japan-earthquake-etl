@@ -1,0 +1,26 @@
+[
+  {
+    "path": "airflow/tests/test_backfill_observability.py",
+    "category": "credential_uri",
+    "normalized_sha256": "73b0f03c23e9b9cd83c9b435e9917a808a1de04e0104ecd8a40766b70daceea9",
+    "reason": "Reviewed synthetic URI rejection/redaction tests; no external credential"
+  },
+  {
+    "path": "airflow/tests/test_run_observability.py",
+    "category": "credential_uri",
+    "normalized_sha256": "70f1d50acc378c131360ae89868fc90ded8f721d4f7074facdbe8b138c48f6de",
+    "reason": "Reviewed synthetic URI rejection/redaction tests; no external credential"
+  },
+  {
+    "path": "spark/src/test/java/ie212/earthquake/spark/jma/JmaBronzeWriterTest.java",
+    "category": "credential_uri",
+    "normalized_sha256": "d8edb1f15659380db468ad09aa27dbfda1580a8b438f56af784f7ca635ba79cc",
+    "reason": "Reviewed synthetic URI rejection/redaction tests; no external credential"
+  },
+  {
+    "path": "spark/src/test/java/ie212/earthquake/spark/usgs/MinioBronzeObjectStoreTest.java",
+    "category": "credential_uri",
+    "normalized_sha256": "8f23608429203ec28e3ea7aabf0abc844d8023d31d136294a73f9356479a4caa",
+    "reason": "Reviewed synthetic URI rejection/redaction tests; no external credential"
+  }
+]
