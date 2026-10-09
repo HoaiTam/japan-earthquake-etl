@@ -11,8 +11,11 @@ from jma_backfill_runtime import _atomic_json
 from source_run_guard import lease
 
 
-def run(environment=None, source_pilot=False):
+def run(environment=None, source_pilot=False, observability=False):
     env = os.environ if environment is None else environment
+    if observability:
+        require(not source_pilot, "QA_READ_ONLY_REQUIRED")
+        return telemetry_run(env)
     conf = json.loads((Path(__file__).parent / "fixtures/orc_03_reuse_sample.json").read_text())
     qa_id = "orc03-reuse-qa-" + uuid.uuid4().hex
     outside_pins = deepcopy(conf["bronze_inputs"])
@@ -55,9 +58,44 @@ def run(environment=None, source_pilot=False):
     return {**report, "report_path": str(target)}
 
 
+def telemetry_run(environment):
+    import backfill_observability as telemetry
+    import run_observability as obs
+    env = {**environment, "RUN_SUMMARY_ROOT": str(Path(environment.get(
+        "RUN_SUMMARY_ROOT", "/opt/pipeline/staging/run-summary")) / "qa")}
+    conf = json.loads((Path(__file__).parent / "fixtures/orc_03_reuse_sample.json").read_text())
+    conf["preview"] = False
+    run_id = "orc04-backfill-qa-" + uuid.uuid4().hex
+    airflow = {"run_id": run_id, "dag_run": {"conf": conf}}
+    summaries = []
+    for attempt in (1, 2):
+        plan = telemetry.resolve_observed(airflow, env, attempt)
+        telemetry.source_lease(plan, run_id, "acquire", env, attempt)
+        resolved = telemetry.context(plan, run_id)
+        try:
+            result = execute(plan, env, attempt, resolved)
+        finally:
+            released = telemetry.source_lease(plan, run_id, "release", env, attempt)
+        telemetry.complete(plan, run_id, result, released, env, attempt)
+        summaries.append(obs.read_summary(resolved, env))
+    require(summaries[0]["sources"] == summaries[1]["sources"]
+            and summaries[1]["status"] == "BronzeVerified" and summaries[1]["published"] is False,
+            "QA_RERUN_CHANGED")
+    return {"task": "ORC-04", "method": "runtime_api_fresh_exact_bronze_readback_not_scheduler",
+            "dag_id": resolved["dag_id"], "run_id": run_id, "operation_id": plan["operation_id"],
+            "scope_sha256": plan["scope_sha256"], "status": summaries[1]["status"], "published": False,
+            "source_counts": [{"source_system": row["source_system"], "input": row["counts"]["input"],
+                               "parsed": row["counts"]["parsed"], "fetched": row["counts"]["fetched"]}
+                              for row in summaries[1]["sources"]],
+            "same_run_rerun_counts_unchanged": True, "lease_released": released["status"] == "RELEASED",
+            "sources_downloaded": False, "lake_writes": False,
+            "summary_path": str(obs._root(resolved, env) / "run_summary.json")}
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-pilot", action="store_true",
                         help="Explicit opt-in: ingest two USGS day chunks + one JMA segment, then rerun")
+    parser.add_argument("--observability", action="store_true", help="Read-only ORC-04 observed reuse/rerun QA")
     args = parser.parse_args()
-    print(json.dumps(run(source_pilot=args.source_pilot), sort_keys=True))
+    print(json.dumps(run(source_pilot=args.source_pilot, observability=args.observability), sort_keys=True))

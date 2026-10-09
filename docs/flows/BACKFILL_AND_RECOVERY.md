@@ -5,6 +5,11 @@
 | Trạng thái | Draft |
 | Áp dụng | Daily run, manual rerun, backfill |
 
+Phần triển khai local hiện hành: [ORC-03 exact-scope backfill](../specs/BACKFILL_AND_REPROCESSING.md)
+và [ORC-05 recovery/resource profile](../specs/RECOVERY_AND_RESOURCES.md).
+Các kịch bản Silver/Gold/BI bên dưới là thiết kế/handoff, không evidence writer
+thật; ưu tiên retry boundary/snapshot pin/whole-run lease trong ORC-05.
+
 ## 1. Mục tiêu
 
 - Chạy bù dữ liệu quá khứ theo phạm vi rõ ràng.
@@ -167,11 +172,11 @@ Pipeline nên hỗ trợ in ra, nhưng chưa thực thi:
 |---|---:|---|---|
 | Network timeout/HTTP `429/5xx` | Có | Extract | Backoff và giới hạn số lần |
 | HTTP `4xx` do tham số | Không | Sau khi sửa cấu hình | Không spam nguồn |
-| Bronze upload tạm thời lỗi | Có | Ghi Bronze | Xác nhận checksum sau retry |
+| Bronze upload tạm thời lỗi | Không ở Airflow task | Đúng attempt sau kiểm receipt | Xác nhận raw/manifest và checksum, không overwrite |
 | Parse/schema mismatch | Không mặc định | Silver | Cần đánh giá thay đổi nguồn |
-| Spark worker mất kết nối | Có giới hạn | Job hiện tại | Output tạm gắn attempt/run ID |
+| Spark worker mất kết nối | Không replay write mù | Job/scope đã đối chiếu | Xác nhận app/writer cũ dừng và side effects trước rerun |
 | Quality gate thất bại | Không | Sau khi sửa dữ liệu/logic | Không publish downstream |
-| Iceberg commit conflict | Có giới hạn | Commit/build Gold | Ngăn writer đồng thời trước |
+| Iceberg commit conflict | Không ở orchestration | Reconcile committed bundle | Adapter GLD-03 cần idempotency/partial-commit recovery |
 | Trino tạm không sẵn sàng | Có | Verify | Không rerun Gold nếu snapshot đúng |
 | Power BI/ODBC lỗi | Có thủ công | Refresh BI | ETL không cần chạy lại |
 
@@ -184,7 +189,7 @@ Trước khi coi pipeline là hỗ trợ rerun:
 - [ ] Silver publish không append lặp vào cùng tập logic.
 - [ ] Gold write dùng merge/partition replacement có phạm vi rõ.
 - [ ] Retry không tạo nhiều snapshot “thành công giả” cho cùng attempt.
-- [ ] Verify đọc đúng current snapshot.
+- [ ] Verify đọc đúng snapshot bundle đã pin, không suy ra current/latest.
 - [ ] Chạy cùng input hai lần cho cùng tập khóa và số liệu KPI.
 
 ## 8. Bằng chứng cần lưu

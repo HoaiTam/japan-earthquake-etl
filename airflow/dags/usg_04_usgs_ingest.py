@@ -10,6 +10,7 @@ from airflow.exceptions import AirflowException
 from airflow.sdk import dag, get_current_context, task, task_group
 from source_run_guard import lease, owner
 from source_schedule_runtime import profile
+from runtime_profile import MUTATING_RETRIES, VERIFY_RETRIES
 
 from usgs_ingest_runtime import (
     UsgsRunnerError,
@@ -23,7 +24,7 @@ from usgs_ingest_runtime import (
 DAG_ID = "usg_04_usgs_ingest"
 PIPELINE_TIMEZONE = os.environ.get("PIPELINE_TIMEZONE", "Asia/Ho_Chi_Minh")
 PIPELINE_SCHEDULE_CRON = profile()["cron"] if profile()["mode"] == "usgs-only" else None
-TASK_RETRIES = int(os.environ.get("USGS_AIRFLOW_TASK_RETRIES", "2"))
+TASK_RETRIES = MUTATING_RETRIES
 TASK_RETRY_DELAY = int(os.environ.get("USGS_AIRFLOW_RETRY_DELAY_MINUTES", "5"))
 
 
@@ -35,6 +36,7 @@ TASK_RETRY_DELAY = int(os.environ.get("USGS_AIRFLOW_RETRY_DELAY_MINUTES", "5"))
     catchup=False,
     is_paused_upon_creation=True,
     max_active_runs=1,
+    max_active_tasks=1,
     default_args={
         "retries": TASK_RETRIES,
         "retry_delay": timedelta(minutes=TASK_RETRY_DELAY),
@@ -76,7 +78,7 @@ def usgs_ingest() -> None:
             raise AirflowException("Rejected payload cannot reach the Bronze upload task")
         return execute_phase("upload", run_context, validation_result)
 
-    @task(task_id="verify")
+    @task(task_id="verify", retries=VERIFY_RETRIES)
     def verify(
         run_context: dict[str, object], upload_result: dict[str, object]
     ) -> dict[str, object]:

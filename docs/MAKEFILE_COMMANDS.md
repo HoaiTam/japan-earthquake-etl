@@ -80,6 +80,10 @@ Internet khi dependency chưa được cache.
 | `test-orchestration` | ORC-01 context/phase/gates và dựng graph bằng SDK double, không cần Airflow trên host |
 | `etl-preview` | In run context/exact scope fixture ORC-01 offline, không ghi hoặc gọi service |
 | `etl-mock` | Chạy sáu phase fixture, chỉ `MockComplete`, `published=false`, không tạo Gold snapshot thật |
+| `test-observability` | ORC-04 equations, empty/failure/retry/rerun, secret/projection/persistence + ORC-01 và ORC-03 scoped integration tests |
+| `smoke-backfill-observability` | Build image và one-off ORC-03 exact Bronze readback/rerun dưới lease + ORC-04 summary; chỉ QA metadata, không nguồn/lake write/restart stack |
+| `observability-smoke` | Metadata-only success/failure/rerun; persist vào `staging/run-summary`, không tải nguồn |
+| `observability-read RUN_SUMMARY_RUN_ID=<id>` | Đọc local summary theo exact DAG/run ID, đối chiếu state; `RUN_SUMMARY_DAG` mặc định ORC-01 |
 | `test-jma-backfill` | JMA-04 downloader/Java runner/planner/DAG, fixture/storage/HTTP mock; không gọi nguồn |
 | `test-jma-qa` | JMA-05 offline success/error/revision/resume và independent readback verifier; không gọi nguồn/MinIO thật |
 | `jma-preview JMA_YEARS=1997,2023` | Preview offline ba exact archive entries; chỉ ghi plan metadata ở staging |
@@ -97,6 +101,13 @@ make check-real-sample-catalog
 make check-foundation
 make check-usgs-live
 ```
+
+Khi Airflow đang chạy: `make smoke-observability` chạy serializer/observer
+trong container, không build/restart/unpause hoặc gọi nguồn. Runtime QA root
+riêng `/opt/pipeline/staging/run-summary/qa`. Đọc một run DAG thật bằng
+`make observability-read-runtime RUN_SUMMARY_DAG=orc_02_daily_sources RUN_SUMMARY_RUN_ID=<id>`.
+Xem [ORC-04 contract/runbook](./specs/RUN_OBSERVABILITY_CONTRACT.md) để phân
+biệt mock, saved metadata replay, SourcesReady và Published.
 
 Lưu ý: `check-usgs-live` **không** gọi USGS thật; đây là static/unit check cho
 code của USG-06. `check-airflow` và `check-spark` cũng chạy unit/build test,

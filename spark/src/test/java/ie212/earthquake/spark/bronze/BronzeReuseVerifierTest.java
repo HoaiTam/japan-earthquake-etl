@@ -29,6 +29,36 @@ class BronzeReuseVerifierTest {
         assertTrue(BronzeReuseVerifier.verify(request("empty", "empty"), store).path("verified").asBoolean());
     }
 
+    @Test void optionalTelemetryProjectsOnlyFreshVerifiedPinsAndCounts() throws Exception {
+        var request = request("success", "success");
+        assertEquals(5, BronzeReuseVerifier.verify(request, store).size());
+        request.put("observability_version", "orc-04-v1");
+        var result = BronzeReuseVerifier.verify(request, store);
+        var rows = result.path("observability").path("bronze_inputs");
+        assertEquals("orc-04-v1", result.path("observability").path("version").asText());
+        assertEquals(2, rows.size());
+        for (int i = 0; i < rows.size(); i++) {
+            var row = (ObjectNode) rows.get(i);
+            assertTrue(row.path("record_count_estimate").isIntegralNumber());
+            assertTrue(row.path("raw_object_uri").asText().startsWith("s3://lake/bronze/"));
+            row.remove("record_count_estimate"); row.remove("raw_object_uri");
+            assertEquals(request.path("bronze_inputs").get(i), row);
+        }
+        assertEquals(0, store.writes);
+    }
+
+    @Test void optionalTelemetryRetainsVerifiedEmptyCounts() throws Exception {
+        var request = request("empty", "empty"); request.put("observability_version", "orc-04-v1");
+        for (var row : BronzeReuseVerifier.verify(request, store).path("observability").path("bronze_inputs")) {
+            assertEquals(0, row.path("record_count_estimate").asLong());
+        }
+    }
+
+    @Test void unsupportedTelemetryVersionFailsClosed() throws Exception {
+        var request = request("success", "success"); request.put("observability_version", "v99");
+        assertThrows(IOException.class, () -> BronzeReuseVerifier.verify(request, store));
+    }
+
     @Test void duplicateRowsArePreservedForSilverNotDroppedByReadback() throws Exception {
         assertEquals(2, BronzeReuseVerifier.verify(request("duplicate", "duplicate"), store)
                 .path("bronze_inputs").size());

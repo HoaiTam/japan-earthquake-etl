@@ -29,6 +29,7 @@ Thư mục này là nguồn tài liệu chính thức cho dự án **Nền tản
 | Hiểu validate và ghi raw USGS vào Bronze | [USGS Bronze writer contract](./specs/USGS_BRONZE_WRITER_CONTRACT.md) |
 | Hiểu DAG, runner protocol và publish gate USGS | [USGS Airflow ingest contract](./specs/USGS_AIRFLOW_INGEST_CONTRACT.md) |
 | Ghép ETL task groups, phase I/O, mock/real boundary và test offline | [ETL orchestration contract](./specs/ETL_ORCHESTRATION_CONTRACT.md) |
+| Chốt retry, RAM/concurrency local, recovery từng tầng và staging maintenance | [ORC-05 recovery/resource profile](./specs/RECOVERY_AND_RESOURCES.md) |
 | Lịch hai nguồn, JMA changed-year, UTC interval và daily/backfill guard | [Source schedule/readiness](./specs/SOURCE_SCHEDULE_AND_READINESS.md) |
 | Hiểu ma trận QA từ USGS đến Bronze | [USGS Bronze QA contract](./specs/USGS_BRONZE_QA_CONTRACT.md) |
 | Dùng hai sample thật USGS/JMA đã khóa cho integration | [Shared real-sample catalog](./specs/SHARED_REAL_SAMPLE_DATA.md) |

@@ -159,12 +159,19 @@ builder và chỉ copy JAR sang image Spark chính thức.
 | `SPARK_MASTER_URL` | `spark://spark-master:7077` | Endpoint cluster nội bộ, không đổi ở baseline |
 | `SPARK_MASTER_UI_HOST_PORT` | `8082` | UI master trên `127.0.0.1` |
 | `SPARK_WORKER_CORES` | `1` | Số core worker quảng bá cho master |
-| `SPARK_DRIVER_MEMORY` | `1g` | Memory driver của client smoke |
-| `SPARK_EXECUTOR_MEMORY` | `2g` | Memory executor yêu cầu từ worker |
+| `SPARK_DRIVER_MEMORY` | `512m` | Memory driver của client smoke; mẫu ORC-05 |
+| `SPARK_EXECUTOR_MEMORY` | `1g` | Memory executor yêu cầu từ worker; mẫu ORC-05 |
 
 Worker được giới hạn `2 CPU / 3 GiB`, client `1.5 CPU / 2 GiB`; master dùng
 resource baseline `1 CPU / 1 GiB`. Đây là guardrail local, không phải sizing
 production. Nếu tăng executor memory phải tăng worker limit tương ứng.
+
+ORC-05 đặt Spark daemon heap256m, thêm read-only sizing probe512m/512m với
+Java parsers/actual observation shuffle; [.env cũ, heap/RSS, recovery và
+benchmark boundary](./RECOVERY_AND_RESOURCES.md). Runtime image thêm shaded
+runner JAR (MinIO/JSON deps, Spark vẫn provided), không copy raw fixtures.
+Image cài Python3 từ Ubuntu để điều phối metadata/resource pilot; không xử lý
+record earthquake bằng Python. Spark/Java version không thay đổi.
 
 `pipeline_staging` được mount read-write vào worker/client tại
 `/opt/pipeline/staging`. Source tree không được bind vào Spark container.

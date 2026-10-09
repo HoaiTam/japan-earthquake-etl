@@ -36,6 +36,10 @@ set +e
     --conf spark.cores.max="$SPARK_WORKER_CORES" \
     --conf spark.executor.cores="$SPARK_WORKER_CORES" \
     --conf spark.executor.instances=1 \
+    --conf spark.dynamicAllocation.enabled=false \
+    --conf spark.driver.maxResultSize=64m \
+    --conf spark.sql.shuffle.partitions=4 \
+    --conf spark.default.parallelism=1 \
     --conf spark.ui.enabled=false \
     "$job_jar" 2>&1 | tee "$output_file"
 submit_status=${PIPESTATUS[0]}

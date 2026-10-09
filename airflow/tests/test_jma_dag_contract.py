@@ -14,7 +14,8 @@ class JmaDagContractTest(unittest.TestCase):
     def test_manual_paused_no_catchup_and_bounded_concurrency(self):
         for expression in ('dag_id="jma_04_year_backfill"', "schedule=None", "catchup=False",
                            "is_paused_upon_creation=True", "max_active_runs=1",
-                           "max_active_tis_per_dag=MAX_CONCURRENCY", "1 <= MAX_CONCURRENCY <= 4"):
+                           "max_active_tis_per_dag=MAX_CONCURRENCY", "MAX_CONCURRENCY = archive_concurrency()",
+                           "max_active_tasks=1"):
             self.assertIn(expression, self.source)
 
     def test_dynamic_mapping_and_all_done_summary_before_strict_gate(self):
@@ -27,7 +28,7 @@ class JmaDagContractTest(unittest.TestCase):
         self.assertIn("ready >> released", self.source)
         self.assertIn('return [] if plan["preview"] else plan["archives"]', self.source)
         self.assertIn('get_current_context()["ti"].try_number', self.source)
-        self.assertIn("retries=2", self.source)
+        self.assertIn("retries=MUTATING_RETRIES", self.source)
 
     def test_import_has_no_source_storage_or_full_inventory_calls(self):
         top_calls = [node for node in self.tree.body if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call)]

@@ -6,5 +6,10 @@ if [ ! -r "$runner_jar" ]; then
     printf 'JMA runner JAR is missing or unreadable\n' >&2
     exit 2
 fi
-exec "${JAVA_HOME:?JAVA_HOME is required}/bin/java" -cp "$runner_jar" \
+heap=${SOURCE_RUNNER_HEAP:-384m}
+case "$heap" in
+    128m|192m|256m|384m|512m) ;;
+    *) printf 'INVALID_SOURCE_RUNNER_HEAP\n' >&2; exit 2 ;;
+esac
+exec "${JAVA_HOME:?JAVA_HOME is required}/bin/java" "-Xmx$heap" -cp "$runner_jar" \
     ie212.earthquake.spark.jma.JmaYearIngestRunner "$@"

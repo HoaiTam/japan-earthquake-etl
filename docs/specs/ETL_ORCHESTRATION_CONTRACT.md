@@ -175,10 +175,18 @@ thật của cùng bundle. Validator không rollback external side effect nếu
 adapter nói sai. Không bật real mode trước khi owner có commit/readback,
 idempotency và publication behavior đủ bằng chứng.
 
-Mock adapter không spawn subprocess hoặc ghi data/staging; URI mock và
+Core mock adapter không spawn subprocess hoặc ghi data/staging; URI mock và
 snapshot `mock-101`/`mock-102` chỉ là fixture. Mock publish luôn
 `publication_status=MockComplete`, `published=false`; không ghi Gold
 `publication_status`, không cấp một real-mode Published receipt.
+
+ORC-04 bổ sung observer cho DAG: mock **ghi telemetry metadata** ở staging,
+không ghi business data. `execute_phase`/`etl-mock` core cũ vẫn không persist.
+Receipt có optional field `observability` version `orc-04-v1`; hash upstream
+bao gồm field này khi có. Shape, count semantics/primary reasons và null khi
+chưa có metric xem [Run observability contract](./RUN_OBSERVABILITY_CONTRACT.md).
+Gate cuối DAG còn yêu cầu persisted phase evidence và same snapshot/report
+references; DAG failure callback chỉ ghi failure metadata, không che failure.
 
 ## 6. Cách test hiện tại
 
@@ -214,8 +222,8 @@ Evidence thực tế ở [ORC-01 evidence](../evidence/ORC-01.md).
 |---|---|
 | [ORC-02 - Cấu hình lịch và readiness cho hai nguồn](../task/tasks/ORC-02.md) | Nối readiness/source adapters, resolve exact source manifests/SHA, daily UTC/overlap USGS, JMA change/no-change và contention; hiện chưa có automatic planner/sensors |
 | [ORC-03 - Implement backfill và reprocessing](../task/tasks/ORC-03.md) | Đã có manual planner/chunk/JMA-04 reuse, exact Bronze readback và versioned scoped-adapter handoff; [runbook](./BACKFILL_AND_REPROCESSING.md). Không thay ORC-01 `1.0`; scoped Silver/Gold adapter thật vẫn cần downstream owners |
-| [ORC-04 - Chuẩn hóa logging và run summary](../task/tasks/ORC-04.md) | Persistent success/failure summary, counts/reasons/duration từng source/layer và reconciliation; final XCom hiện chỉ receipt metadata |
-| [ORC-05 - Chốt recovery, concurrency và tài nguyên](../task/tasks/ORC-05.md) | Retry/resource/cross-DAG concurrency và recovery/idempotency thật; một-run/một-task/no-retry hiện là guard bảo thủ, chưa là resource benchmark |
+| [ORC-04 - Chuẩn hóa logging và run summary](../task/tasks/ORC-04.md) | Đã có persisted observer/summary, safe logs và versioned count reconciliation; real business counts còn do SLV-09/GLD-03/04 adapters cung cấp, legacy receipt ghi not_reported |
+| [ORC-05 - Chốt recovery, concurrency và tài nguyên](../task/tasks/ORC-05.md) | [Local profile/matrix](./RECOVERY_AND_RESOURCES.md): cross-DAG task admission, bounded heaps, controlled Bronze recovery và actual Spark probe; full Silver/Gold writer recovery vẫn cần SLV-09/GLD-03/04/QA-01 |
 | [SLV-09 - Tích hợp và kiểm thử Silver đa nguồn](../task/tasks/SLV-09.md) | Real adapter/build/readback đủ observations/reject/link/membership; mock SilverReady không chứng minh integration thật |
 | [GLD-01 - Xây canonical event, dimensions và bands](../task/tasks/GLD-01.md) | Canonical Gold business output và provenance thật, không triển khai lại trong Python |
 | [GLD-03 - Ghi Gold Iceberg và commit snapshot](../task/tasks/GLD-03.md) | Writer/adapter commit toàn bộ required tables, snapshot bundle và idempotency; chưa có real command được đóng gói |

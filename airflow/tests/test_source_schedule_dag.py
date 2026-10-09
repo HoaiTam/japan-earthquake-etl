@@ -54,7 +54,8 @@ class ScheduleDagTest(unittest.TestCase):
                           ("jma_readiness", "usgs_bronze"), ("resolve_daily", "sources_ready"),
                           ("jma_readiness", "sources_ready"), ("usgs_bronze", "sources_ready"),
                           ("sources_ready", "release_source_lease"), ("sources_ready", "completion_gate"),
-                          ("release_source_lease", "completion_gate")}, self.edges)
+                          ("release_source_lease", "completion_gate"),
+                          ("resolve_daily", "completion_gate")}, self.edges)
         self.assertEqual({"completion_gate"}, set(self.tasks) - {parent for parent, child in self.edges})
         self.assertEqual("all_done", self.tasks["release_source_lease"]["trigger_rule"])
         self.assertNotIn("trigger_rule", self.tasks["completion_gate"])  # Airflow default all_success.

@@ -1,0 +1,53 @@
+{
+  "task": "ORC-05",
+  "profile_version": "orc-05-local-v1",
+  "date": "2026-10-09",
+  "base_commit": "752cce27fc37969725551fe202e31efe774026e9",
+  "scope_sha256": "6d07b418c4d7e0ec66e549eedb21536a3c453949ce7f1a04a55a20130035968d",
+  "hardware": {"host_ram_bytes": 8589934592, "docker_ram_bytes": 5685809152, "cpus": 8, "host": "Apple M1"},
+  "tests": {"java": 182, "airflow": 174, "docker_build_inputs": 12, "make_check_exit": 0},
+  "recovery": {
+    "run_id": "orc05-recovery-qa-3eb111b50d6f418d9696c8373490bb21",
+    "method": "controlled_failure_then_fresh_readback_not_scheduler",
+    "duration_seconds": 3.493966376001481,
+    "java_heap": "384m",
+    "status": "BronzeVerified",
+    "contention_blocked": true,
+    "rerun_unchanged": true,
+    "lease_released": true,
+    "failed_phase": "source",
+    "recovered_phase": "source",
+    "failure_before_store_call": true,
+    "full_bronze_counts": {"USGS": 16, "JMA_BULLETIN": 257020}
+  },
+  "resource_pilot": {
+    "run_id": "orc05-resource-qa-61c8a5deecf44fe78a36980799836769",
+    "application_id": "app-20261009082813-0001",
+    "master": "spark://spark-master:7077",
+    "driver_memory": "512m",
+    "executor_memory": "512m",
+    "executor_cores": 1,
+    "shuffle_partitions": 4,
+    "duration_seconds": 17.995116092,
+    "shuffled_observations": 10015,
+    "driver_heap_max_bytes": 518979584,
+    "heap_pool_peak_sum_bytes": 140161136,
+    "driver_cgroup_peak_bytes": 491380736,
+    "worker_lifetime_peak_before_bytes": 261799936,
+    "worker_lifetime_peak_after_bytes": 596291584,
+    "driver_oom_kill": 0,
+    "worker_oom_kill_before": 0,
+    "worker_oom_kill_after": 0,
+    "sources": [
+      {"source_system": "USGS", "full_bronze_input": 16, "selected_records": 16, "observations": 16, "parser_rejects": 0, "parser_ignored": 0},
+      {"source_system": "JMA_BULLETIN", "full_bronze_input": 257020, "selected_records": 10000, "observations": 9999, "parser_rejects": 1, "parser_ignored": 0}
+    ]
+  },
+  "scheduler_profile_recreated": false,
+  "foundation_services_healthy_after": 9,
+  "sources_downloaded": false,
+  "lake_writes": false,
+  "business_data_deleted": false,
+  "published": false,
+  "full_40_year_benchmark": false
+}

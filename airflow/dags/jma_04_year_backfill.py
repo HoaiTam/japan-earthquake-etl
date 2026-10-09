@@ -9,10 +9,9 @@ from airflow.sdk import dag, get_current_context, task, task_group
 
 from jma_backfill_runtime import JmaRunnerError, execute_archive, require_complete, resolve_plan, write_run_summary
 from source_run_guard import lease, owner
+from runtime_profile import MUTATING_RETRIES, archive_concurrency
 
-MAX_CONCURRENCY = int(os.environ.get("JMA_BACKFILL_MAX_CONCURRENCY", "2"))
-if not 1 <= MAX_CONCURRENCY <= 4:
-    raise ValueError("JMA_BACKFILL_MAX_CONCURRENCY must be within 1..4")
+MAX_CONCURRENCY = archive_concurrency()
 
 
 @dag(
@@ -22,7 +21,7 @@ if not 1 <= MAX_CONCURRENCY <= 4:
     catchup=False,
     is_paused_upon_creation=True,
     max_active_runs=1,
-    max_active_tasks=MAX_CONCURRENCY + 3,
+    max_active_tasks=1,
     tags=["jma", "bronze", "backfill"],
 )
 def jma_backfill():
@@ -50,7 +49,7 @@ def jma_backfill():
             raise AirflowException("source lease release failed")
         return ready
 
-    @task(task_id="ingest_archive", retries=2, retry_delay=timedelta(minutes=2),
+    @task(task_id="ingest_archive", retries=MUTATING_RETRIES, retry_delay=timedelta(minutes=2),
           max_active_tis_per_dag=MAX_CONCURRENCY)
     def ingest_archive(plan, archive):
         lease("assert", owner(get_current_context()))

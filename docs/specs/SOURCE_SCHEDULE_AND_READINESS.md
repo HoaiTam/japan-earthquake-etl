@@ -40,7 +40,8 @@ flowchart LR
   Start date `2023-01-01` cho phép test interval thuộc seed USGS; không bật
   historical catchup. Không dùng start date 2025 rồi nhận manual 2023 success
   mà thực tế Airflow không tạo task instance.
-  Source tasks retry 1 lần sau 2 phút; scope/lease/gate không automatic retry.
+  ORC-05 đặt source tasks retries=0; retry HTTP do Java policy quản lý.
+  Scope/lease/gate không automatic retry. Xem [recovery/resource profile](./RECOVERY_AND_RESOURCES.md).
 - **Chọn ngày từ `data_interval_end`**, đổi UTC rồi floor midnight. Target
   `[D-1,D)`; USGS query `[max(seed,D-3),D)` ở default overlap=3.
 - Ví dụ interval end `2023-01-04 07:15 +07:00`: processing date `2023-01-03`,
@@ -182,7 +183,10 @@ mock mỗi ngày. Bắt đầu watchlist nhỏ; thêm years cần sizing/coverag
   chia historical scope/request, resolve affected Silver/Gold partitions và
   reprocess exact pinned inputs. ORC-02 chưa cung cấp historical dispatcher.
 - [ORC-04 - Chuẩn hóa logging và run summary](../task/tasks/ORC-04.md):
-  thống nhất counts/duration/reasons/summary toàn ETL; report hiện chỉ source gate.
+  đã nối structured telemetry vào daily DAG, dùng root `RUN_SUMMARY_ROOT`
+  tách khỏi legacy readiness reports; SourcesReady/verified Bronze counts
+  không được hiểu là parsed/current/canonical/Published. Xem
+  [count/log/summary contract](./RUN_OBSERVABILITY_CONTRACT.md).
 - [ORC-05 - Chốt recovery, concurrency và tài nguyên](../task/tasks/ORC-05.md):
   stale lease recovery, resource/admission cho Spark/Iceberg/ML và sizing.
 - [SLV-09 - Tích hợp và kiểm thử Silver đa nguồn](../task/tasks/SLV-09.md),
