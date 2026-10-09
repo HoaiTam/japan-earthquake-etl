@@ -97,6 +97,19 @@ public final class SourceKeyGenerator {
         return "evt_" + sha256("CANONICAL|" + sourceSystem + "|" + sourceRecordKey).substring(0, 32);
     }
 
+    /**
+     * Generates a deterministic source_link_id for a candidate pair and model version (CON-03 8.1):
+     * lnk_ + sha256(matchModelVersion | min(leftId, rightId) | max(leftId, rightId)).
+     */
+    public static String sourceLinkId(String matchModelVersion, String leftObservationId, String rightObservationId) {
+        Objects.requireNonNull(matchModelVersion, "matchModelVersion");
+        Objects.requireNonNull(leftObservationId, "leftObservationId");
+        Objects.requireNonNull(rightObservationId, "rightObservationId");
+        String first = leftObservationId.compareTo(rightObservationId) <= 0 ? leftObservationId : rightObservationId;
+        String second = leftObservationId.compareTo(rightObservationId) <= 0 ? rightObservationId : leftObservationId;
+        return "lnk_" + sha256(matchModelVersion.trim() + "|" + first.trim() + "|" + second.trim()).substring(0, 32);
+    }
+
     public static String sha256(byte[] data) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
