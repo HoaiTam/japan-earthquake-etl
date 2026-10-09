@@ -1,13 +1,13 @@
 ---
 task_id: "SLV-07"
-status: "Ready"
+status: "In Progress"
 week: 4
 block: "D - Silver đa nguồn"
 workstream: "Entity resolution"
 scope: "Core"
 priority: "P0"
 effort_hours: 6
-assignee: "ThanhTris"
+assignee: "rosy179"
 reviewer: "unassigned"
 dependencies: ["CON-01", "CON-03", "CON-04"]
 ---
@@ -50,7 +50,7 @@ Tạo candidate theo ngưỡng thời gian/khoảng cách/depth/magnitude; lưu 
 
 ### Phân công tuần 4
 
-- **Owner / effort:** ThanhTris, 6h Core; xem [kế hoạch tuần 4](../WEEK_4_PARALLEL_PLAN.md).
+- **Owner / effort:** rosy179, 6h Core; xem [kế hoạch tuần 4](../WEEK_4_PARALLEL_PLAN.md).
 - **Bắt đầu ngay:** CON-01/03/04 đã Done; fixture current observations cho accepted/unmatched/ambiguous và test biên, không chờ SLV-06 chạy thật mới viết unit.
 - **Làm gì / có gì:** Candidate matching có threshold/model version, score/reasons, source-link và canonical membership; identity ổn định, source priority, supersession mapping theo [CON-03](../../specs/SILVER_GOLD_DATA_MODEL.md).
 - **Dùng để làm gì:** Một canonical event cho overlap accepted, giữ cả hai observations gốc và unmatched events; AMBIGUOUS không auto-merge.
@@ -74,10 +74,10 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Theo dõi
 
-- **Trạng thái:** Ready
-- **Assignee:** ThanhTris
-- **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Trạng thái:** In Progress
+- **Assignee:** rosy179
+- **Reviewer:** unassigned
+- **Evidence / PR:** Đang triển khai trên branch `feat/slv-07-lien-ket-observation-va-chon`
 - **Kỹ năng phù hợp:** Entity resolution, geospatial, Spark
 
 ## Checklist bàn giao
