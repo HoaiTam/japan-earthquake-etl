@@ -6,3 +6,6 @@ tests/fixtures/**/*.json text eol=lf
 tests/fixtures/**/*.sha256 text eol=lf
 tests/fixtures/SHA256SUMS text eol=lf
 tests/fixtures/**/*.zip binary
+spark/src/test/resources/ml/results/**/*.json text eol=lf
+spark/src/test/resources/ml/results/**/*.txt text eol=lf
+spark/src/test/resources/ml/results/**/*.parquet binary
