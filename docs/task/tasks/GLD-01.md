@@ -76,8 +76,8 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 - **Trạng thái:** Done
 - **Assignee:** Trang
-- **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Spark Java fixture transformation trên branch feat/gld-01-gold-transformation; GoldEventTransformerTest 6/6 và toàn bộ Maven tests 188/188 đạt ngày 2026-10-09 với JDK17/Maven3.9.16. Contract data-model/repository và task-status 73/73 đạt; git diff --check đạt. Xem [runbook](../../specs/GOLD_TRANSFORMATION.md). Reviewer unassigned. Input SilverReady thật còn chờ SLV-09 - Tích hợp và kiểm thử Silver đa nguồn; commit Iceberg thuộc GLD-03 - Ghi Gold Iceberg và commit snapshot; Trino/Published thuộc GLD-04 - Tạo Trino views và verification SQL.
+- **Reviewer:** unassigned; chưa có review độc lập
+- **Evidence / PR:** Spark Java fixture transformation trên branch feat/gld-01-gold-transformation; GoldEventTransformerTest 6/6 và toàn bộ Maven tests 188/188 đạt ngày 2026-10-09 với JDK17/Maven3.9.16. Contract data-model/repository và task-status 73/73 đạt; git diff --check đạt. Xem [runbook](../../specs/GOLD_TRANSFORMATION.md). Reviewer unassigned. Input SilverReady thật còn chờ SLV-09 - Tích hợp và kiểm thử Silver đa nguồn; commit Iceberg thuộc GLD-03 - Ghi Gold Iceberg và commit snapshot; Trino/Published thuộc GLD-04 - Tạo Trino views và verification SQL. [PR #50](https://github.com/HoaiTam/japan-earthquake-etl/pull/50).
 - **Kỹ năng phù hợp:** Spark SQL, analytics modeling
 
 ## Checklist bàn giao
