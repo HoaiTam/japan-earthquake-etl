@@ -342,7 +342,13 @@ Trong Airflow UI:
 4. Trigger và theo dõi Graph/Grid view.
 5. Không trigger run thứ hai cho cùng interval khi run đầu còn đang sửa dữ liệu.
 
-Khi DAG ID và CLI contract được tạo, bổ sung lệnh cụ thể vào runbook thay vì dùng placeholder.
+Backfill/reuse có phạm vi dùng DAG `orc_03_backfill`, không dùng daily DAG để
+truyền historical conf. Preview trước bằng `make backfill-preview`; exact
+sample reuse preview: `make backfill-preview BACKFILL_CONF=airflow/dags/fixtures/orc_03_reuse_sample.json`.
+`make test-backfill` offline; `make smoke-backfill-readback` build và chạy
+one-off readback hai manifests đã có, không restart stack hoặc tải nguồn.
+Schema, retry identity và giới hạn real reprocessing ở
+[ORC-03 runbook](./specs/BACKFILL_AND_REPROCESSING.md).
 
 ## 8. Kiểm tra sau lần chạy
 

@@ -1,0 +1,90 @@
+{
+  "base_commit": "ff4f460",
+  "branch": "feat/orc-03-backfill-reprocessing",
+  "verified_date_utc": "2026-10-08",
+  "fresh_docker_image_build_verified": true,
+  "scheduler_e2e_verified": false,
+  "real_silver_gold_reprocess_verified": false,
+  "reuse": {
+    "bronze_inputs": [
+      {
+        "manifest_sha256": "cadd506c509491d89703c86aabd9d9ebe1b5558a0444647ec68a3dda11c1a363",
+        "manifest_uri": "s3://japan-earthquake/bronze/usgs/ingest_date=2023-01-03/run_id=usgs-f108a8a8cb056eb13898927b72639a74/attempt=01/manifest.json",
+        "sha256": "8fbb61c402c90c1f609d3b6dd30e2dadb7a02265988df924da316dc452f91363",
+        "source_system": "USGS",
+        "window_end_utc": "2023-01-04T00:00:00Z",
+        "window_start_utc": "2023-01-01T00:00:00Z"
+      },
+      {
+        "catalog_release": "jma-lm-20251210T014153Z-sha256-e5ced2bf7275",
+        "manifest_sha256": "977defa4f2a1d4a2ba41a211ac0419419ca812d010522da4ef4d95c95f3582db",
+        "manifest_uri": "s3://japan-earthquake/bronze/jma/year=2023/catalog_release=jma-lm-20251210T014153Z-sha256-e5ced2bf7275/ingest_date=2026-10-07/run_id=jma-922316b2ad88fa07587948c310215600-2023-full-year/attempt=01/manifest.json",
+        "segment": "full-year",
+        "sha256": "e5ced2bf7275825ba75405b071bb54e9d4c2a5eb55aa6bc9b8d670de1f58b98f",
+        "source_system": "JMA_BULLETIN",
+        "year": 2023
+      }
+    ],
+    "evidence_version": "orc-03-v1",
+    "lake_writes": false,
+    "lease_acquired": "ACQUIRED",
+    "lease_released": true,
+    "method": "runtime_api_not_scheduler",
+    "normal_runner_replaced": false,
+    "operation_id": "orc03-reuse-pilot-v1",
+    "preview_verified": false,
+    "published": false,
+    "reuse_readback_verified": true,
+    "run_id": "orc03-reuse-qa-1eb62ce8cedf43a5a51871b658a03733",
+    "same_operation_rerun_verified": true,
+    "scope_sha256": "6d07b418c4d7e0ec66e549eedb21536a3c453949ce7f1a04a55a20130035968d",
+    "sources_downloaded": false,
+    "status": "VERIFIED"
+  },
+  "source_pilot": {
+    "bronze_inputs": [
+      {
+        "manifest_sha256": "8e1c9fc9b9278573fb48406e4d55527468e36835f8938c33b70b5a5c8c00b08a",
+        "manifest_uri": "s3://japan-earthquake/bronze/usgs/ingest_date=2026-10-08/run_id=bf-usgs-3a6b5e9a97d3cfc5640223a4ddd7e704639232713b11d8a453e02ed6f9ad77f6/attempt=01/manifest.json",
+        "sha256": "a95138f0cc1272ace00d02c42bf2fb3d32b2e3b1dd1dae607de6c59421228024",
+        "source_system": "USGS",
+        "window_end_utc": "2023-01-02T00:00:00Z",
+        "window_start_utc": "2023-01-01T00:00:00Z"
+      },
+      {
+        "manifest_sha256": "ef612944676c8b284cf648a4776e0e97f6b01730a093a5d7ce0823b97dd814af",
+        "manifest_uri": "s3://japan-earthquake/bronze/usgs/ingest_date=2026-10-08/run_id=bf-usgs-5d7c15fd4c741fe801e9747a5a054ae75212b073112cee8d70f2337184decf35/attempt=01/manifest.json",
+        "sha256": "b2f14bafffbd7ba0fba58c9fc1e3304f28b4133d4a2b73868416bc3662324e17",
+        "source_system": "USGS",
+        "window_end_utc": "2023-01-03T00:00:00Z",
+        "window_start_utc": "2023-01-02T00:00:00Z"
+      },
+      {
+        "catalog_release": "jma-lm-20160819T034925Z-sha256-25349273dfc4",
+        "manifest_sha256": "eddc63154542870adf9596014c778c589dc64ed3d2802f9d28025f689a2dab0e",
+        "manifest_uri": "s3://japan-earthquake/bronze/jma/year=1997/catalog_release=jma-lm-20160819T034925Z-sha256-25349273dfc4/ingest_date=2026-10-07/run_id=jma-922316b2ad88fa07587948c310215600-1997-oct-dec/attempt=01/manifest.json",
+        "segment": "oct-dec",
+        "sha256": "25349273dfc4ce50ed24ee555c881bd64af5662d400be2d7fbd0d6044d4caead",
+        "source_system": "JMA_BULLETIN",
+        "year": 1997
+      }
+    ],
+    "evidence_version": "orc-03-v1",
+    "lake_writes": true,
+    "lease_acquired": "ACQUIRED",
+    "lease_released": true,
+    "method": "runtime_api_not_scheduler",
+    "normal_runner_replaced": false,
+    "operation_id": "orc03-source-qa-017ec08e65cf4a3caf5a7271c4bbe6be",
+    "outside_pinned_inputs_unchanged": true,
+    "preview_verified": false,
+    "published": false,
+    "reuse_readback_verified": true,
+    "run_id": "orc03-source-qa-017ec08e65cf4a3caf5a7271c4bbe6be",
+    "same_operation_rerun_verified": true,
+    "scope_sha256": "e2e7cede42f13980765cbb7c8c4fc62ee61d576e0ef964c8cce109567a73b110",
+    "source_pilot": true,
+    "sources_downloaded": true,
+    "status": "VERIFIED"
+  }
+}

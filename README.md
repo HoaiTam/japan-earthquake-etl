@@ -44,6 +44,11 @@ test offline bằng `make test-orchestration`, `make etl-preview`, `make etl-moc
 mock chỉ trả `MockComplete`, không publish Gold. Thành phần và handoff adapter ở
 [ETL orchestration contract](./docs/specs/ETL_ORCHESTRATION_CONTRACT.md).
 
+ORC-03 thêm DAG `orc_03_backfill` để preview USGS UTC chunks/JMA year-segment,
+reuse exact Bronze release và bàn giao affected-scope reprocessing. Chạy
+`make backfill-preview`, `make test-backfill`; real Silver/Gold vẫn fail closed
+khi chưa có scoped adapter. Xem [backfill/reprocessing runbook](./docs/specs/BACKFILL_AND_REPROCESSING.md).
+
 USG-05 dùng fixture và mock HTTP để kiểm thử success/empty/invalid, timeout,
 `429/5xx`, checksum mismatch và đối soát manifest/count trước khi mở gate cho
 Silver. Ma trận nằm tại [USGS Bronze QA contract](./docs/specs/USGS_BRONZE_QA_CONTRACT.md).

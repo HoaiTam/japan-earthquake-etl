@@ -87,6 +87,10 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Tài liệu liên quan
 
+- [ORC-03 backfill/reprocessing handoff](../../specs/BACKFILL_AND_REPROCESSING.md):
+  summary hiện có operation/scope hash, exact Bronze pins, published boolean;
+  ORC-04 bổ sung count/reason/duration và reconciliation, không suy count từ số manifest.
+
 - [Kế hoạch tuần 4 mở rộng](../WEEK_4_PARALLEL_PLAN.md)
 - [Quality và observability](../../DATA_QUALITY_AND_OBSERVABILITY.md)
 - [Kế hoạch 8 tuần](../README.md)

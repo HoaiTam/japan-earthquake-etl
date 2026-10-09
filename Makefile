@@ -12,6 +12,7 @@ SERVICE ?=
 TAIL ?= 100
 DAT01_AIRFLOW_CONTAINER ?=
 JMA_YEARS ?=
+BACKFILL_CONF ?= airflow/dags/fixtures/orc_03_ingest_preview.json
 
 COMPOSE = docker compose --env-file "$(ENV_FILE)" -f "$(COMPOSE_FILE)"
 RUNTIME_ENV = ENV_FILE="$(ENV_FILE)" COMPOSE_FILE="$(COMPOSE_FILE)"
@@ -34,6 +35,27 @@ COMPONENT_SMOKES := smoke-minio smoke-airflow smoke-spark smoke-query smoke-usgs
 	verify-samples verify-real-samples
 
 .PHONY: test-source-schedule smoke-source-readiness
+
+.PHONY: backfill-preview test-backfill smoke-backfill-readback smoke-backfill-pilot
+
+backfill-preview: ## ORC-03 preview offline, không gọi nguồn/storage; BACKFILL_CONF=<json>
+	@python3 scripts/preview-backfill.py --conf "$(BACKFILL_CONF)"
+
+test-backfill: ## ORC-03 planner/retry/scope/lease + Java exact Bronze readback offline
+	@python3 -m unittest discover -s airflow/tests -p 'test_backfill*.py'
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am \
+		-Dtest=BronzeReuseVerifierTest,JmaYearIngestRunnerTest,UsgsIngestRunnerTest \
+		-Dsurefire.failIfNoSpecifiedTests=false test
+
+smoke-backfill-readback: check-config-local check-java-build-inputs ## ORC-03 exact reuse/rerun; chỉ đọc Bronze đã có, không tải nguồn
+	@$(COMPOSE) build airflow-api-server
+	@$(COMPOSE) run --rm --no-deps -e PYTHONPATH=/opt/airflow/dags \
+		airflow-api-server python /opt/airflow/dags/backfill_readback_qa.py
+
+smoke-backfill-pilot: check-config-local check-java-build-inputs ## ORC-03 LIVE: nạp 2 USGS ngày + 1 segment JMA, rerun và readback outside pins
+	@$(COMPOSE) build airflow-api-server
+	@$(COMPOSE) run --rm --no-deps -e PYTHONPATH=/opt/airflow/dags \
+		airflow-api-server python /opt/airflow/dags/backfill_readback_qa.py --source-pilot
 
 test-source-schedule: ## ORC-02 profile/UTC/JMA change/lease/DAG tests offline
 	@python3 -m unittest discover -s airflow/tests -p 'test_source*.py'
