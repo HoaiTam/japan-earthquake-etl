@@ -1,13 +1,13 @@
 ---
 task_id: "SLV-09"
-status: "Backlog"
+status: "Done"
 week: 4
 block: "D - Silver đa nguồn"
 workstream: "Integration QA"
 scope: "Core"
 priority: "P0"
 effort_hours: 4
-assignee: "ThanhTris"
+assignee: "rosy179"
 reviewer: "unassigned"
 dependencies: ["USG-05", "JMA-05", "SLV-02", "SLV-03", "SLV-04", "SLV-05", "SLV-06", "SLV-07", "SLV-08"]
 ---
@@ -35,8 +35,8 @@ Chạy manifest USGS/JMA qua parser, lineage, validation, dedup/link và publish
 
 ## Tiêu chí hoàn thành
 
-- [ ] Kết quả logic không đổi khi rerun fixture.
-- [ ] parsed/valid/rejected/duplicate/canonical đối soát được.
+- [x] Kết quả logic không đổi khi rerun fixture.
+- [x] parsed/valid/rejected/duplicate/canonical đối soát được.
 
 ## Hard dependency
 
@@ -79,19 +79,27 @@ Chạy manifest USGS/JMA qua parser, lineage, validation, dedup/link và publish
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
-- **Assignee:** ThanhTris
-- **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Trạng thái:** Done
+- **Assignee:** rosy179
+- **Reviewer:** unassigned (chờ review độc lập trước khi merge)
+- **Evidence / PR:**
+  - Triển khai `SilverMultiSourceIntegrationRunner`, `SilverIntegrationRequest`, `SilverIntegrationResult`, và `SilverRunReconciliationReport` (`spark/src/main/java/ie212/earthquake/spark/silver/`).
+  - Kiểm tra 4 phương trình đối soát cấp run ($totalParsed = totalValid + totalReject$; $totalValid = totalCurrent + totalDuplicate + totalSuperseded$; $canonicalEvents = matchedEvents + usgsOnly + jmaOnly$; $(2 \times matchedEvents) + usgsOnly + jmaOnly = totalCurrent$).
+  - Bộ kiểm thử `SilverMultiSourceIntegrationTest` (4/4 tests pass):
+    - `testFxLink02AcceptedMatchEndToEndIntegration`: Đối soát toàn vẹn luồng accepted match đa nguồn (FX-LINK-02), chọn canonical JMA `PRIMARY` và USGS `SECONDARY`.
+    - `testFxLink01AmbiguousEndToEndIntegration`: Kiểm tra an toàn `auto_merge = false` cho ambiguous candidates (FX-LINK-01), tách thành 3 canonical events đơn nguồn.
+    - `testRerunIdempotencyProducesIdenticalLogicAndOverwritesCleanly`: Xác nhận 100% tính tất định và idempotent khi rerun, không duplicate rows.
+    - `testReconciliationAccountingWithRejectsAndRevisions`: Đối soát chính xác số lượng trong kịch bản chứa reject, revision superseded và duplicate records.
+  - Toàn bộ Spark suite: 217/217 tests pass (0 failures, 0 errors, 0 skipped).
 - **Kỹ năng phù hợp:** Spark integration, reconciliation
 
 ## Checklist bàn giao
 
-- [ ] Deliverable đã có trong repository hoặc môi trường demo.
-- [ ] Acceptance criteria đã được kiểm tra.
-- [ ] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
-- [ ] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
-- [ ] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
+- [x] Deliverable đã có trong repository hoặc môi trường demo.
+- [x] Acceptance criteria đã được kiểm tra.
+- [x] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
+- [x] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
+- [x] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
 - [ ] P0/P1 có reviewer khác assignee xác nhận.
 
 ## Tài liệu liên quan
