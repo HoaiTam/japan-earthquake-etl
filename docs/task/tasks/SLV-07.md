@@ -1,6 +1,6 @@
 ---
 task_id: "SLV-07"
-status: "In Progress"
+status: "Done"
 week: 4
 block: "D - Silver đa nguồn"
 workstream: "Entity resolution"
@@ -35,10 +35,10 @@ Tạo candidate theo ngưỡng thời gian/khoảng cách/depth/magnitude; lưu 
 
 ## Tiêu chí hoàn thành
 
-- [ ] Không double count overlap.
-- [ ] giữ được hai observation gốc.
-- [ ] unmatched event vẫn tồn tại.
-- [ ] threshold có test biên.
+- [x] Không double count overlap.
+- [x] giữ được hai observation gốc.
+- [x] unmatched event vẫn tồn tại.
+- [x] threshold có test biên.
 
 ## Hard dependency
 
@@ -74,19 +74,20 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Theo dõi
 
-- **Trạng thái:** In Progress
+- **Trạng thái:** Done
 - **Assignee:** rosy179
 - **Reviewer:** unassigned
-- **Evidence / PR:** Đang triển khai trên branch `feat/slv-07-lien-ket-observation-va-chon`
+- **Evidence / PR:** Hoàn tất trên branch `feat/slv-07-lien-ket-observation-va-chon`. Triển khai đầy đủ `SilverSourceLink`, `SilverCanonicalMembership`, `SilverLinkConfig`, `SilverMatchReport`, `SilverResolutionResult` và `SilverEntityResolver`. Thêm schema `SOURCE_LINK_SCHEMA` và `CANONICAL_MEMBERSHIP_SCHEMA` trong `SilverSchemas`, cùng phương thức xác định `sourceLinkId` trong `SourceKeyGenerator`.
+- **Evidence kiểm thử:** `mvn test` (194 tests pass, bao gồm 12 tests trong `SilverEntityResolverTest` kiểm thử biên thời gian 16.0s/16.001s, cự ly 100km/100.005km, độ sâu 50km/50.001km, độ lớn 1.0/1.001, ngăn ngừa double count, bảo toàn hai observation gốc, giữ unmatched single source, tuân thủ source priority JMA/USGS và đối soát chuẩn xác 2 fixture `FX-LINK-01` ambiguous và `FX-LINK-02` accepted).
 - **Kỹ năng phù hợp:** Entity resolution, geospatial, Spark
 
 ## Checklist bàn giao
 
-- [ ] Deliverable đã có trong repository hoặc môi trường demo.
-- [ ] Acceptance criteria đã được kiểm tra.
-- [ ] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
-- [ ] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
-- [ ] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
+- [x] Deliverable đã có trong repository hoặc môi trường demo.
+- [x] Acceptance criteria đã được kiểm tra.
+- [x] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
+- [x] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
+- [x] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
 - [ ] P0/P1 có reviewer khác assignee xác nhận.
 
 ## Tài liệu liên quan
