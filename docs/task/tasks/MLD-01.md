@@ -68,8 +68,8 @@ chặn trạng thái `Done`.
 
 - **Trạng thái:** In Progress
 - **Assignee:** Trang
-- **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** 5 DatasetIdentityPlanTest tests passed; metadata-only schema/identity fixtures, no live resolver/materialization. GLD-04 Published snapshot evidence still required. Reviewer unassigned.
+- **Reviewer:** unassigned; chưa có review độc lập
+- **Evidence / PR:** 5 DatasetIdentityPlanTest tests passed; metadata-only schema/identity fixtures, no live resolver/materialization. GLD-04 Published snapshot evidence still required. Reviewer unassigned. [PR #53](https://github.com/HoaiTam/japan-earthquake-etl/pull/53).
 - **Kỹ năng phù hợp:** Iceberg snapshots, Spark SQL, data lineage
 
 ## Checklist bàn giao

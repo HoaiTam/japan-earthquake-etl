@@ -18,7 +18,7 @@ filter semantics and secret key policy before materialization.
 
 ## Integration plan / hard dependency
 
-1. [GLD-04 — Xác minh Gold qua Trino](../task/tasks/GLD-04.md): obtain verified
+1. [GLD-04 — Tạo Trino views và verification SQL](../task/tasks/GLD-04.md): obtain verified
    Published publication record and exact positive physical snapshot ID.
 2. Resolve the logical `gold.earthquake_event_current` view to physical
    `gold.event_current` plus natural/study-area predicate. Views have no independent
