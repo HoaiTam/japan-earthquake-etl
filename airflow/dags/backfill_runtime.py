@@ -274,18 +274,26 @@ def invoke(command, request, target, env):
         raise BackfillError("BACKFILL_ADAPTER_DID_NOT_COMPLETE") from None
 
 
-def verify_pinned(plan, selected, env):
+def verify_pinned(plan, selected, env, metadata=None):
     pins(selected)
-    result = invoke(env.get("BRONZE_REUSE_RUNNER_COMMAND", "/opt/pipeline/bin/bronze-reuse-verifier"),
-        {"contract_version": "orc-03-v1", "scope_sha256": plan["scope_sha256"], "bronze_inputs": selected},
+    request = {"contract_version": "orc-03-v1", "scope_sha256": plan["scope_sha256"], "bronze_inputs": selected}
+    if metadata is not None:
+        request["observability_version"] = "orc-04-v1"
+    result = invoke(env.get("BRONZE_REUSE_RUNNER_COMMAND", "/opt/pipeline/bin/bronze-reuse-verifier"), request,
         root(plan, env) / "bronze-verify-input.json", env)
+    has_report = "observability" in result
+    report = result.pop("observability", None)
     keys(result, {"contract_version", "scope_sha256", "status", "verified", "bronze_inputs"})
     require(result["verified"] is True and result == {"contract_version": "orc-03-v1", "scope_sha256": plan["scope_sha256"],
         "status": "BronzeVerified", "verified": True, "bronze_inputs": selected}, "BRONZE_PIN_NOT_VERIFIED")
+    if has_report:
+        require(metadata is not None, "INVALID_READBACK_REPORT")
+        from backfill_observability import readback_details
+        metadata.extend(readback_details(selected, report))
     return selected
 
 
-def execute_sources(plan, environment=None, attempt=1):
+def execute_sources(plan, environment=None, attempt=1, metadata=None):
     env = os.environ if environment is None else environment
     validate_plan(plan); require(plan["preview"] is False, "PREVIEW_CANNOT_EXECUTE")
     selected = deepcopy(plan["bronze_inputs"])
@@ -309,13 +317,13 @@ def execute_sources(plan, environment=None, attempt=1):
                 "manifest_sha256": result["manifest_sha256"], "sha256": result["sha256"],
                 "year": archive["year"], "segment": archive["segment"], "catalog_release": result["catalog_release"]})
         jma.require_complete(jma.write_run_summary(plan["jma"], env))
-    verified = verify_pinned(plan, selected, env)
+    verified = verify_pinned(plan, selected, env, metadata) if metadata is not None else verify_pinned(plan, selected, env)
     result = {"status": "BronzeVerified", "scope_sha256": plan["scope_sha256"], "bronze_inputs": verified}
     jma._atomic_json(root(plan, env) / "bronze-result.json", result)
     return result
 
 
-def execute_reprocess(plan, bronze, environment=None):
+def execute_reprocess(plan, bronze, environment=None, telemetry_context=None, attempt=1):
     env = os.environ if environment is None else environment
     validate_plan(plan); require(plan["preview"] is False, "PREVIEW_CANNOT_EXECUTE")
     require(bronze == {"status": "BronzeVerified", "scope_sha256": plan["scope_sha256"],
@@ -323,40 +331,71 @@ def execute_reprocess(plan, bronze, environment=None):
     request = plan["reprocess"]; require(request is not None, "REPROCESS_SCOPE_REQUIRED")
     upstream = None
     for phase in etl.PHASES:
-        result = invoke(env.get("BACKFILL_ETL_RUNNER_COMMAND", ""),
-            {"contract_version": "orc-03-v1", "phase": phase, "plan": plan, "bronze": bronze,
-             "upstream": upstream, "upstream_sha256": digest(upstream) if upstream else None},
-            root(plan, env) / f"{phase}-input.json", env)
-        keys(result, {"etl_receipt", "scope_receipt"})
-        expected = {"contract_version": "orc-03-v1", "scope_sha256": plan["scope_sha256"],
-                    "operation_id": plan["operation_id"], "phase": phase,
-                    "baseline_verified": True, "idempotency_verified": True, "outside_scope_unchanged": True}
-        require(isinstance(result["scope_receipt"], dict) and result["scope_receipt"] == expected
-                and all(result["scope_receipt"].get(field) is True for field in (
-                    "baseline_verified", "idempotency_verified", "outside_scope_unchanged")), "SCOPED_WRITE_GATE_FAILED")
-        etl.validate_result(phase, request["etl_context"], upstream["etl_receipt"] if upstream else None,
-                            result["etl_receipt"])
+        def operation():
+            result = invoke(env.get("BACKFILL_ETL_RUNNER_COMMAND", ""),
+                {"contract_version": "orc-03-v1", "phase": phase, "plan": plan, "bronze": bronze,
+                 "upstream": upstream, "upstream_sha256": digest(upstream) if upstream else None},
+                root(plan, env) / f"{phase}-input.json", env)
+            keys(result, {"etl_receipt", "scope_receipt"})
+            expected = {"contract_version": "orc-03-v1", "scope_sha256": plan["scope_sha256"],
+                        "operation_id": plan["operation_id"], "phase": phase,
+                        "baseline_verified": True, "idempotency_verified": True, "outside_scope_unchanged": True}
+            require(isinstance(result["scope_receipt"], dict) and result["scope_receipt"] == expected
+                    and all(result["scope_receipt"].get(field) is True for field in (
+                        "baseline_verified", "idempotency_verified", "outside_scope_unchanged")), "SCOPED_WRITE_GATE_FAILED")
+            etl.validate_result(phase, request["etl_context"], upstream["etl_receipt"] if upstream else None,
+                                result["etl_receipt"])
+            return result
+        if telemetry_context is not None:
+            import run_observability as obs
+            result = obs.observe(telemetry_context, phase, operation,
+                lambda value: obs.phase_details(phase, request["etl_context"], value["etl_receipt"]), env, attempt)
+        else:
+            result = operation()
         upstream = result
     return etl.publication_summary(request["etl_context"], upstream["etl_receipt"])
 
 
-def execute(plan, environment=None, attempt=1):
+def execute(plan, environment=None, attempt=1, telemetry_context=None):
     """Caller holds the whole-run shared source lease. No runtime mock mode."""
     env = os.environ if environment is None else environment
-    pin_operation(plan, env)
+    validate_plan(plan); require(plan["preview"] is False, "PREVIEW_CANNOT_EXECUTE")
     try:
-        bronze = execute_sources(plan, env, attempt)
-        publication = execute_reprocess(plan, bronze, env) if plan["action"] == "reprocess" else None
+        if telemetry_context is not None:
+            from backfill_observability import context
+            require(telemetry_context == context(plan, telemetry_context["run_id"]), "PLAN_CHANGED")
+        if telemetry_context is None:
+            pin_operation(plan, env)
+            bronze = execute_sources(plan, env, attempt)
+        else:
+            import run_observability as obs
+            metadata = []
+            def source():
+                from source_run_guard import lease
+                lease("assert", {"dag_id": telemetry_context["dag_id"], "run_id": telemetry_context["run_id"]}, env)
+                pin_operation(plan, env)
+                return execute_sources(plan, env, attempt, metadata)
+            bronze = obs.observe(telemetry_context, "source", source,
+                lambda value: {"bronze_pins": value["bronze_inputs"],
+                               **({"bronze_inputs": metadata} if metadata else {})}, env, attempt)
+        publication = (execute_reprocess(plan, bronze, env, telemetry_context, attempt)
+                       if plan["action"] == "reprocess" else None)
         summary = {"operation_id": plan["operation_id"], "scope_sha256": plan["scope_sha256"],
                    "status": "Published" if publication else "BronzeVerified", "verified": True,
                    "published": publication is not None, "bronze_inputs": bronze["bronze_inputs"],
                    "publication": publication}
-        jma._atomic_json(root(plan, env) / "run_summary.json", summary)
-        return summary
+        def save():
+            jma._atomic_json(root(plan, env) / "run_summary.json", summary)
+            return summary
+        if telemetry_context is not None:
+            return obs.observe(telemetry_context, "execution", save,
+                               lambda value: {"receipt_sha256": digest(value)}, env, attempt)
+        return save()
     except Exception:
-        jma._atomic_json(root(plan, env) / "run_summary.json", {"operation_id": plan["operation_id"],
-            "scope_sha256": plan["scope_sha256"], "status": "FAILED", "published": False,
-            "reason": "BACKFILL_INCOMPLETE"})
+        if (root(plan, env) / "plan.json").exists():
+            jma._atomic_json(root(plan, env) / "run_summary.json", {"operation_id": plan["operation_id"],
+                "scope_sha256": plan["scope_sha256"], "status": "FAILED", "published": False,
+                "reason": "BACKFILL_INCOMPLETE"})
         raise
 
 

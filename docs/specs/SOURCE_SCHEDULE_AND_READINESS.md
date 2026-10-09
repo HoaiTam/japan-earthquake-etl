@@ -182,7 +182,10 @@ mock mỗi ngày. Bắt đầu watchlist nhỏ; thêm years cần sizing/coverag
   chia historical scope/request, resolve affected Silver/Gold partitions và
   reprocess exact pinned inputs. ORC-02 chưa cung cấp historical dispatcher.
 - [ORC-04 - Chuẩn hóa logging và run summary](../task/tasks/ORC-04.md):
-  thống nhất counts/duration/reasons/summary toàn ETL; report hiện chỉ source gate.
+  đã nối structured telemetry vào daily DAG, dùng root `RUN_SUMMARY_ROOT`
+  tách khỏi legacy readiness reports; SourcesReady/verified Bronze counts
+  không được hiểu là parsed/current/canonical/Published. Xem
+  [count/log/summary contract](./RUN_OBSERVABILITY_CONTRACT.md).
 - [ORC-05 - Chốt recovery, concurrency và tài nguyên](../task/tasks/ORC-05.md):
   stale lease recovery, resource/admission cho Spark/Iceberg/ML và sizing.
 - [SLV-09 - Tích hợp và kiểm thử Silver đa nguồn](../task/tasks/SLV-09.md),

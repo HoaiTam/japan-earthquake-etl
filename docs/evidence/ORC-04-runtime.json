@@ -1,0 +1,66 @@
+{
+  "evidence_version": "orc-04-v1",
+  "date_local": "2026-10-09",
+  "timezone": "Asia/Ho_Chi_Minh",
+  "base_commit": "97f9ac58d52c2fee787b5d57d1f974f83264752b",
+  "base_pr": 46,
+  "pull_request": 47,
+  "initial_implementation_base_commit": "ff4f460",
+  "initial_source_replay_note": "saved_source_metadata below is historical replay, not the new fresh readback",
+  "branch": "feat/orc-04-structured-run-summary",
+  "airflow_version": "3.3.2",
+  "runtime_smoke": {
+    "method": "runtime_api_not_scheduler",
+    "run_id": "orc04-smoke-ff65800fbb804d49bb43923339f084d7",
+    "summary_path": "/opt/pipeline/staging/run-summary/qa/e6a2bc5eb782106d89cac990e4ddc8448de4986f4055fdfb5fac8d2be297e524/run_summary.json",
+    "mock_success": true,
+    "failed_run_persisted": true,
+    "stale_publication_invalidated": true,
+    "rerun_counts_unchanged": true,
+    "evidence_kind": "synthetic",
+    "published": false
+  },
+  "dag_import": {
+    "import_errors": 0,
+    "orc_01_etl_pipeline": {"tasks": 8, "strict_leaf": "publication.contract_gate", "callback": "dag_failure_summary"},
+    "orc_02_daily_sources": {"tasks": 7, "strict_leaf": "completion_gate", "callback": "dag_failure_summary"},
+    "orc_03_backfill": {"tasks": 5, "strict_leaf": "completion_gate", "callback": "dag_failure_summary"}
+  },
+  "fresh_backfill_readback": {
+    "method": "runtime_api_fresh_exact_bronze_readback_not_scheduler",
+    "dag_id": "orc_03_backfill",
+    "run_id": "orc04-backfill-qa-0ca071e38e2348bdac4d0f7acc48d2b5",
+    "operation_id": "orc03-reuse-pilot-v1",
+    "scope_sha256": "6d07b418c4d7e0ec66e549eedb21536a3c453949ce7f1a04a55a20130035968d",
+    "status": "BronzeVerified",
+    "source_counts": [
+      {"source_system": "JMA_BULLETIN", "input": 257020, "parsed": null, "fetched": null},
+      {"source_system": "USGS", "input": 16, "parsed": null, "fetched": null}
+    ],
+    "same_run_rerun_counts_unchanged": true,
+    "lease_released": true,
+    "sources_downloaded": false,
+    "lake_writes": false,
+    "published": false,
+    "summary_path": "/opt/pipeline/staging/run-summary/qa/f2e6cd709e2d2ef2ba36c3ebac62b63e858907ddcb34804c3c6d5a8bce68a5ac/run_summary.json"
+  },
+  "regression_tests": {"java": 179, "airflow": 163, "build_inputs": 12},
+  "image_rebuilt_for_one_off_qa": true,
+  "saved_source_metadata": {
+    "method": "exact_saved_source_metadata_not_fresh_readback",
+    "original_run_id": "orc02-20261008T022836Z-5936f782e3d9-first",
+    "qa_run_id": "orc04-source-evidence-6c13b43def064275a20708bcae50008e",
+    "summary_path": "/opt/pipeline/staging/run-summary/qa/daf18f57d07e02b8ff67fc53369371df0b93bdd0a0b2d98abc29d94e04101deb/run_summary.json",
+    "source_counts": [
+      {"source_system": "JMA_BULLETIN", "input": 423222, "parsed": null, "manifests": 4},
+      {"source_system": "USGS", "input": 16, "parsed": null, "manifests": 1}
+    ],
+    "published": false
+  },
+  "source_downloads_triggered": false,
+  "scheduler_runs_triggered": false,
+  "services_restarted": false,
+  "dag_pause_states_changed": false,
+  "real_silver_gold_counts_verified": false,
+  "real_gold_published": false
+}

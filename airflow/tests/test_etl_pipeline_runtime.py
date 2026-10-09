@@ -169,7 +169,11 @@ class EtlPipelineRuntimeTest(unittest.TestCase):
         result = deepcopy(self.receipts["bronze"])
         result["artifacts"]["bronze_inputs"][0]["record_count_estimate"] = 0
         result = runtime.validate_result("bronze", self.context, self.receipts["readiness"], result)
-        runtime.execute_phase("silver", self.context, result, {})
+        fixture = deepcopy(self.fixture)
+        row = fixture["observability"]["silver"]["sources"][0]
+        row["counts"] = {key: (None if key == "fetched" else 0) for key in row["counts"]}
+        with patch.object(runtime, "load_mock_fixture", return_value=fixture):
+            runtime.execute_phase("silver", self.context, result, {})
         self.invalid("bronze", lambda receipt: receipt["artifacts"]["bronze_inputs"][0].update(record_count_estimate=-1), "BRONZE_NOT_READY")
 
     def test_revision_changes_must_resolve_a_new_pinned_context_not_overwrite_bronze(self):

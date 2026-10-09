@@ -1,6 +1,6 @@
 ---
 task_id: "ORC-04"
-status: "Backlog"
+status: "Done"
 week: 4
 block: "F - Điều phối"
 workstream: "Observability"
@@ -35,9 +35,9 @@ Ghi input, fetched, parsed, valid, rejected, duplicate, linked, published, snaps
 
 ## Tiêu chí hoàn thành
 
-- [ ] Count các tầng đối soát được từ run_id.
-- [ ] không log secret/payload lớn.
-- [ ] lỗi có reason rõ.
+- [x] Count các tầng đối soát được từ run_id.
+- [x] Không log secret/payload lớn.
+- [x] Lỗi có reason rõ.
 
 ## Hard dependency
 
@@ -56,7 +56,8 @@ Ghi input, fetched, parsed, valid, rejected, duplicate, linked, published, snaps
 Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trước khi toàn bộ upstream chạy thật. Chỉ được chuyển sang `Done` khi hard dependency đã đạt và acceptance criteria được kiểm tra trên output phù hợp.
 
 1. Xác nhận hard dependency và đọc contract/tài liệu liên quan.
-2. Tạo branch mới từ `main`: `feat/orc-04-chuan-hoa-logging-va-run`.
+2. Branch `feat/orc-04-structured-run-summary`; lần cập nhật theo yêu cầu user
+   rebase lên PR #46 head `97f9ac5`, không tiếp tục dùng nền main `ff4f460`.
 3. Triển khai đúng phạm vi; dùng fixture nhỏ, xác định được và không phụ thuộc mạng cho unit test.
 4. Chạy test/check phù hợp, đối chiếu acceptance criteria và cập nhật tài liệu nếu contract hoặc hành vi thay đổi.
 5. Cập nhật `status`, `assignee`, `reviewer` và Evidence ngay trong file này khi mở PR hoặc hoàn tất review.
@@ -70,20 +71,51 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
+- **Trạng thái:** Done
 - **Assignee:** HoaiTam
-- **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Reviewer:** unassigned — chưa có reviewer độc lập; khuyến nghị review P1, không tự ghi approval.
+- **Evidence / PR:** [ORC-04 evidence](../../evidence/ORC-04.md), [runtime metadata](../../evidence/ORC-04-runtime.json); [PR #47](https://github.com/HoaiTam/japan-earthquake-etl/pull/47) trên nền [PR #46](https://github.com/HoaiTam/japan-earthquake-etl/pull/46).
 - **Kỹ năng phù hợp:** Logging, metrics, Airflow
 
 ## Checklist bàn giao
 
-- [ ] Deliverable đã có trong repository hoặc môi trường demo.
-- [ ] Acceptance criteria đã được kiểm tra.
-- [ ] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
-- [ ] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
-- [ ] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
+- [x] Deliverable đã có trong repository hoặc môi trường demo.
+- [x] Acceptance criteria đã được kiểm tra.
+- [x] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
+- [x] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
+- [x] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
 - [ ] P0/P1 có reviewer khác assignee xác nhận.
+
+## Đã triển khai và cách dùng
+
+- `run_observability.py`: structured phase/final/failure logs, journal và atomic
+  summary theo DAG/run ID; context hash, source/release/SHA/snapshot, duration,
+  safe reasons, count gauges không cộng dồn khi retry/rerun.
+- ORC-01/02/03 nối observer vào task bodies/final gates; DAG callback ghi failure
+  fallback, không thêm success leaf che lỗi. Source-only giữ SourcesReady,
+  mock giữ MockComplete, cả hai published=false.
+- ORC-03 real run bind parent run/operation/scope, source lease/readback,
+  optional scoped six-phase ETL, execution receipt hash và cleanup/final gate.
+  Preview không tạo telemetry; ingest/reuse giữ BronzeVerified/published=false.
+- Optional receipt extension `orc-04-v1` khóa input/parsed/quality/dedup/current/
+  linked-membership/Gold-event equations, primary reject reasons, exact scope;
+  legacy adapter không có count vẫn giữ null/not_reported, không tự điền zero.
+- `make test-observability`, `make observability-smoke`, `make smoke-observability`
+  và các target đọc summary theo exact DAG/run ID. Chi tiết what/how/why tại
+  [Run observability contract](../../specs/RUN_OBSERVABILITY_CONTRACT.md).
+
+Done cho deliverable **telemetry runtime và handoff contract**: equations
+full-layer bằng fixture, runtime Airflow API/graph, saved real Bronze metadata
+và fresh Java readback/rerun Bronze ORC-03. Không phải Done cho E2E business
+reconciliation/Gold Published.
+**SLV-06 - Deduplicate và xử lý revision trong từng nguồn**, **SLV-07 - Liên
+kết observation và chọn canonical event**, **SLV-09 - Tích hợp và kiểm thử
+Silver đa nguồn**, **GLD-03 - Ghi Gold Iceberg và commit snapshot**, **GLD-04 -
+Tạo Trino views và verification SQL** phải emit real business counts/freshness.
+**QA-01 - Chạy E2E daily đa nguồn** nghiệm thu scheduler ETL thật;
+ORC-03 dispatcher đã được nối trên nền PR #46;
+**ORC-05 - Chốt recovery, concurrency và tài nguyên** xử lý abandoned run/
+recovery policy. Không chuyển các task đó thành Done từ evidence ORC-04.
 
 ## Tài liệu liên quan
 
@@ -91,6 +123,7 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
   summary hiện có operation/scope hash, exact Bronze pins, published boolean;
   ORC-04 bổ sung count/reason/duration và reconciliation, không suy count từ số manifest.
 
+- [Run observability contract và runbook](../../specs/RUN_OBSERVABILITY_CONTRACT.md)
 - [Kế hoạch tuần 4 mở rộng](../WEEK_4_PARALLEL_PLAN.md)
 - [Quality và observability](../../DATA_QUALITY_AND_OBSERVABILITY.md)
 - [Kế hoạch 8 tuần](../README.md)
