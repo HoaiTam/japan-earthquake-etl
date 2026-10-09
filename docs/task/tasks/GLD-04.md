@@ -1,6 +1,6 @@
 ---
 task_id: "GLD-04"
-status: "Backlog"
+status: "In Progress"
 week: 4
 block: "E - Gold & Serving"
 workstream: "Trino verification"
@@ -71,10 +71,10 @@ Khai báo schema/views Gold; kiểm tra uniqueness, completeness, source/catalog
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
+- **Trạng thái:** In Progress
 - **Assignee:** Trang
 - **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Evidence / PR:** 5 fixture tests passed (staging/gld-04-tests.log); changed-file secret scan and git diff --check passed. SQL/mock harness only; GLD-03 needs live Iceberg commit/readback and SLV-09 needs ready-for-Gold input before live Trino verification. Reviewer unassigned.
 - **Kỹ năng phù hợp:** Trino, SQL, data quality
 
 ## Checklist bàn giao
