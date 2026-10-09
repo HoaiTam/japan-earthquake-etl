@@ -73,8 +73,8 @@ Khai báo schema/views Gold; kiểm tra uniqueness, completeness, source/catalog
 
 - **Trạng thái:** In Progress
 - **Assignee:** Trang
-- **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** 5 fixture tests passed (staging/gld-04-tests.log); changed-file secret scan and git diff --check passed. SQL/mock harness only; GLD-03 needs live Iceberg commit/readback and SLV-09 needs ready-for-Gold input before live Trino verification. Reviewer unassigned.
+- **Reviewer:** unassigned; chưa có review độc lập
+- **Evidence / PR:** 5 fixture tests passed (staging/gld-04-tests.log); changed-file secret scan and git diff --check passed. SQL/mock harness only; GLD-03 needs live Iceberg commit/readback and SLV-09 needs ready-for-Gold input before live Trino verification. Reviewer unassigned. [PR #52](https://github.com/HoaiTam/japan-earthquake-etl/pull/52).
 - **Kỹ năng phù hợp:** Trino, SQL, data quality
 
 ## Checklist bàn giao
