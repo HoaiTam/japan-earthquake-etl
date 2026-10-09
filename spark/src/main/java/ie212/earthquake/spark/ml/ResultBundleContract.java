@@ -123,6 +123,7 @@ public final class ResultBundleContract implements ResultBundleValidator {
         String fingerprint=sha256((context.datasetId()+"\n"+context.runId()+"\n"+context.algorithm()+"\n"+context.modelVersion()+"\n"+hashes).getBytes(StandardCharsets.UTF_8));
         require(context.previousBundleSha256()==null || fingerprint.equals(context.previousBundleSha256()), "IMP_EXPERIMENT_RUN_REUSED");
         require(success.get("membership_row_count").isIntegralNumber() && success.get("summary_row_count").isIntegralNumber()
+            && success.get("membership_row_count").canConvertToLong() && success.get("summary_row_count").canConvertToLong()
             && success.get("membership_row_count").asLong()==bundle.memberships().size()
             && success.get("summary_row_count").asLong()==bundle.summaries().size(), "IMP_SUMMARY_COUNT_MISMATCH");
         Map<String,Candidate> candidates=new HashMap<>();

@@ -22,6 +22,7 @@ class ResultBundleContractTest {
     static final ObjectMapper JSON=new ObjectMapper();
     static final Path FIXTURES=Path.of("src/test/resources/ml/results");
     static final ResultBundleContract VALIDATOR=new ResultBundleContract();
+    static String fixtureJson(JsonNode node) { return node.toPrettyString().replace("\r\n","\n")+"\n"; }
     static final List<ResultBundleValidator.Candidate> CANDIDATES=List.of(
         new ResultBundleValidator.Candidate("main","main","MAINSHOCK"),
         new ResultBundleValidator.Candidate("main","post","POST"));
@@ -181,8 +182,8 @@ class ResultBundleContractTest {
         ObjectNode metadata=JSON.createObjectNode().put("dataset_id","ds_fixture").put("experiment_run_id","exp_fixture")
             .put("algorithm_name",hdb?"HDBSCAN_GLOBAL":"WINDOW").put("model_config_version","1")
             .put("algorithm_version","fixture-1").put("package_version","fixture-1").put("code_version","fixture-1");
-        Files.writeString(dir.resolve("experiment_config.json"),metadata.toPrettyString()+"\n");
-        Files.writeString(dir.resolve("experiment_metrics.json"),metadata.deepCopy().put("membership_row_count",members.size()).put("summary_row_count",1L).toPrettyString()+"\n");
+        Files.writeString(dir.resolve("experiment_config.json"),fixtureJson(metadata));
+        Files.writeString(dir.resolve("experiment_metrics.json"),fixtureJson(metadata.deepCopy().put("membership_row_count",members.size()).put("summary_row_count",1L)));
         Files.writeString(dir.resolve("requirements-lock.txt"),"# synthetic fixture; no experiment executed\n");
         ObjectNode success=metadata.deepCopy().put("schema_version","1.0").put("algorithm_version","fixture-1").put("package_version","fixture-1")
             .put("membership_row_count",members.size()).put("summary_row_count",1L).put("status","COMPLETED")
@@ -190,7 +191,7 @@ class ResultBundleContractTest {
         ObjectNode checks=success.putObject("checksums");
         for(JsonNode file:ResultBundleContract.contract().get("required_artifacts"))checks.put(file.asText(),ResultBundleContract.sha256(Files.readAllBytes(dir.resolve(file.asText()))));
         if(invalid.equals("checksum"))checks.put("memberships.parquet","0".repeat(64));
-        Files.writeString(dir.resolve("_SUCCESS.json"),success.toPrettyString()+"\n");
+        Files.writeString(dir.resolve("_SUCCESS.json"),fixtureJson(success));
     }
     @BeforeAll static void generateWhenRequested()throws Exception {
         if(Boolean.getBoolean("generateMlFixtures"))for(String name:List.of("success","checksum","schema","duplicate","unknown","hdb-success","hdb-noise"))fixture(name,name);
