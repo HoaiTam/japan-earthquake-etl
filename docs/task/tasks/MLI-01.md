@@ -66,8 +66,8 @@ ngay sau khi schema được review.
 
 - **Trạng thái:** Done
 - **Assignee:** Trang
-- **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** CON-03 aligned schema/layout, validator interface, seven synthetic Parquet fixture bundles. Full Spark suite 189 tests passed; final contract retest 7 passed; changed-file secret scan and git diff --check passed. No real model/import/approval claimed; reviewer unassigned. See docs/specs/ML_RESULT_BUNDLE_CONTRACT.md.
+- **Reviewer:** unassigned; chưa có review độc lập
+- **Evidence / PR:** CON-03 aligned schema/layout, validator interface, seven synthetic Parquet fixture bundles. Full Spark suite 189 tests passed; final contract retest 7 passed; changed-file secret scan and git diff --check passed. No real model/import/approval claimed; reviewer unassigned. See docs/specs/ML_RESULT_BUNDLE_CONTRACT.md. [PR #55](https://github.com/HoaiTam/japan-earthquake-etl/pull/55).
 - **Kỹ năng phù hợp:** Data contracts, Parquet schema, validation
 
 ## Checklist bàn giao
