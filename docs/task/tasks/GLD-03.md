@@ -74,8 +74,8 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 - **Trạng thái:** In Progress
 - **Assignee:** Trang
-- **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chuẩn bị interface/mock trên branch feat/gld-03-commit-interface; GoldCommitInterfaceTest 5/5 đạt với JDK17/Maven3.9.16, changed-file secret check và git diff --check đạt. Dependency GLD-01 - Xây canonical event, dimensions và bands có PR #50 còn chờ merge/handoff. GLD-03 chưa có Iceberg writer/fault injection/readback thật; SLV-09 - Tích hợp và kiểm thử Silver đa nguồn còn thiếu SilverReady bundle. Giữ In Progress, reviewer unassigned; [test plan](../../specs/GOLD_COMMIT_PREPARATION.md).
+- **Reviewer:** unassigned; chưa có review độc lập
+- **Evidence / PR:** Chuẩn bị interface/mock trên branch feat/gld-03-commit-interface; GoldCommitInterfaceTest 5/5 đạt với JDK17/Maven3.9.16, changed-file secret check và git diff --check đạt. Dependency GLD-01 - Xây canonical event, dimensions và bands có PR #50 còn chờ merge/handoff. GLD-03 chưa có Iceberg writer/fault injection/readback thật; SLV-09 - Tích hợp và kiểm thử Silver đa nguồn còn thiếu SilverReady bundle. Giữ In Progress, reviewer unassigned; [test plan](../../specs/GOLD_COMMIT_PREPARATION.md). [PR #51](https://github.com/HoaiTam/japan-earthquake-etl/pull/51).
 - **Kỹ năng phù hợp:** Iceberg, Spark, MinIO
 
 ## Checklist bàn giao
