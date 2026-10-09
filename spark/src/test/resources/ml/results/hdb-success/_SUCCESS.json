@@ -1,0 +1,22 @@
+{
+  "dataset_id" : "ds_fixture",
+  "experiment_run_id" : "exp_fixture",
+  "algorithm_name" : "HDBSCAN_GLOBAL",
+  "model_config_version" : "1",
+  "algorithm_version" : "fixture-1",
+  "package_version" : "fixture-1",
+  "code_version" : "fixture-1",
+  "schema_version" : "1.0",
+  "membership_row_count" : 2,
+  "summary_row_count" : 1,
+  "status" : "COMPLETED",
+  "completed_at_utc" : "2024-01-01T00:00:00Z",
+  "artifact_uri" : "s3://fixture/results/exp_fixture/",
+  "checksums" : {
+    "memberships.parquet" : "a3dca5acefd5589c63d12989aba845e03189d30ecabd5477af55756aceb9d004",
+    "sequence_summary.parquet" : "0782cbe496ebe55e75e8fe626920dc6af79dc6dcc66a508e289da2e49f720a43",
+    "experiment_metrics.json" : "fb8e0b4140930de5e6a25cbb52a2fec7fc258a299468aa7c3471982328dc73a7",
+    "experiment_config.json" : "de0aa35374102f8629095253876bc4e05898e58f32e587d4da2aa0bde89fc9c8",
+    "requirements-lock.txt" : "79101f8f748f954bbfd12fd610c97cf68fa71b11f2534dc59de86f7096ef5590"
+  }
+}

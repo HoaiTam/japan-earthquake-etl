@@ -1,0 +1,401 @@
+{
+  "schema_version": "1.0",
+  "required_artifacts": [
+    "memberships.parquet",
+    "sequence_summary.parquet",
+    "experiment_metrics.json",
+    "experiment_config.json",
+    "requirements-lock.txt"
+  ],
+  "success_required": [
+    "schema_version",
+    "experiment_run_id",
+    "dataset_id",
+    "algorithm_name",
+    "algorithm_version",
+    "model_config_version",
+    "package_version",
+    "membership_row_count",
+    "summary_row_count",
+    "status",
+    "completed_at_utc",
+    "artifact_uri",
+    "checksums",
+    "code_version"
+  ],
+  "algorithms": [
+    "WINDOW",
+    "DBSCAN",
+    "HDBSCAN_GLOBAL",
+    "HDBSCAN_ADAPTIVE"
+  ],
+  "roles": [
+    "PRE",
+    "MAINSHOCK",
+    "POST"
+  ],
+  "multi_sequence_status": [
+    "NOT_MEMBER",
+    "UNIQUE",
+    "MULTIPLE",
+    "AMBIGUOUS"
+  ],
+  "lifecycle": {
+    "TRAINING_EXTERNAL": [
+      "RESULT_READY",
+      "REJECTED"
+    ],
+    "RESULT_READY": [
+      "IMPORT_VALIDATING",
+      "REJECTED"
+    ],
+    "IMPORT_VALIDATING": [
+      "CANDIDATE",
+      "REJECTED"
+    ],
+    "CANDIDATE": [
+      "APPROVED",
+      "REJECTED"
+    ],
+    "APPROVED": [],
+    "REJECTED": []
+  },
+  "success_transition": "RESULT_READY",
+  "schemas": {
+    "memberships.parquet": {
+      "grain": [
+        "experiment_run_id",
+        "mainshock_event_id",
+        "candidate_event_id"
+      ],
+      "fields": [
+        {
+          "name": "schema_version",
+          "type": "string",
+          "nullable": false,
+          "rule": "1.0"
+        },
+        {
+          "name": "experiment_run_id",
+          "type": "string",
+          "nullable": false,
+          "rule": "FK experiment run"
+        },
+        {
+          "name": "dataset_id",
+          "type": "string",
+          "nullable": false,
+          "rule": "Phải khớp run và candidate snapshot"
+        },
+        {
+          "name": "mainshock_event_id",
+          "type": "string",
+          "nullable": false,
+          "rule": "FK candidate grain"
+        },
+        {
+          "name": "candidate_event_id",
+          "type": "string",
+          "nullable": false,
+          "rule": "FK candidate grain; Gold canonical ID"
+        },
+        {
+          "name": "algorithm_name",
+          "type": "string",
+          "nullable": false,
+          "rule": "Phải khớp experiment run"
+        },
+        {
+          "name": "model_config_version",
+          "type": "string",
+          "nullable": false,
+          "rule": "Phải khớp experiment run"
+        },
+        {
+          "name": "cluster_id",
+          "type": "long",
+          "nullable": true,
+          "rule": "Null cho `WINDOW`; `-1` là noise cho density algorithms"
+        },
+        {
+          "name": "is_noise",
+          "type": "boolean",
+          "nullable": true,
+          "rule": "Null cho `WINDOW`; bắt buộc cho DBSCAN/HDBSCAN"
+        },
+        {
+          "name": "is_mainshock_cluster_member",
+          "type": "boolean",
+          "nullable": true,
+          "rule": "Null cho `WINDOW`; false cho toàn window nếu mainshock là noise"
+        },
+        {
+          "name": "is_sequence_member",
+          "type": "boolean",
+          "nullable": false,
+          "rule": "Kết quả rule của algorithm/run"
+        },
+        {
+          "name": "membership_probability",
+          "type": "double",
+          "nullable": true,
+          "rule": "Bắt buộc `[0,1]` cho HDBSCAN; null cho WINDOW/DBSCAN"
+        },
+        {
+          "name": "event_role_candidate",
+          "type": "string",
+          "nullable": false,
+          "rule": "PRE`, `MAINSHOCK`, `POST`; phải khớp candidate time"
+        },
+        {
+          "name": "normalized_distance",
+          "type": "double",
+          "nullable": false,
+          "rule": ">= 0`, dùng tie-break multi-sequence"
+        },
+        {
+          "name": "multi_sequence_status",
+          "type": "string",
+          "nullable": false,
+          "rule": "Enum ở mục 10.1"
+        },
+        {
+          "name": "resolution_rank",
+          "type": "integer",
+          "nullable": true,
+          "rule": "1` là winner nếu resolve được; null khi không áp dụng/ambiguous"
+        },
+        {
+          "name": "created_at_utc",
+          "type": "timestamp_utc",
+          "nullable": false,
+          "rule": "Thời điểm result bundle tạo row"
+        }
+      ]
+    },
+    "sequence_summary.parquet": {
+      "grain": [
+        "experiment_run_id",
+        "mainshock_event_id"
+      ],
+      "fields": [
+        {
+          "name": "schema_version",
+          "type": "string",
+          "nullable": false,
+          "rule": "1.0"
+        },
+        {
+          "name": "experiment_run_id",
+          "type": "string",
+          "nullable": false,
+          "rule": "FK experiment run"
+        },
+        {
+          "name": "dataset_id",
+          "type": "string",
+          "nullable": false,
+          "rule": "Khớp run"
+        },
+        {
+          "name": "mainshock_event_id",
+          "type": "string",
+          "nullable": false,
+          "rule": "FK mainshock snapshot"
+        },
+        {
+          "name": "algorithm_name",
+          "type": "string",
+          "nullable": false,
+          "rule": "Khớp run"
+        },
+        {
+          "name": "model_config_version",
+          "type": "string",
+          "nullable": false,
+          "rule": "Khớp run"
+        },
+        {
+          "name": "window_result_status",
+          "type": "string",
+          "nullable": false,
+          "rule": "SUCCESS`, `FAILED` hoặc `SKIPPED"
+        },
+        {
+          "name": "productive_sequence_detected",
+          "type": "boolean",
+          "nullable": true,
+          "rule": "Null khi failed/skipped"
+        },
+        {
+          "name": "productive_definition_version",
+          "type": "string",
+          "nullable": false,
+          "rule": "Version định nghĩa POST trên `Mc"
+        },
+        {
+          "name": "candidate_count",
+          "type": "long",
+          "nullable": false,
+          "rule": "Khớp candidate snapshot"
+        },
+        {
+          "name": "cluster_count",
+          "type": "integer",
+          "nullable": true,
+          "rule": "Null khi không áp dụng/không fit"
+        },
+        {
+          "name": "noise_count",
+          "type": "long",
+          "nullable": true,
+          "rule": "Null cho WINDOW hoặc failed"
+        },
+        {
+          "name": "noise_ratio",
+          "type": "double",
+          "nullable": true,
+          "rule": "[0,1]`, null cùng reason nếu không áp dụng"
+        },
+        {
+          "name": "sequence_member_count",
+          "type": "long",
+          "nullable": true,
+          "rule": "Null khi failed/skipped"
+        },
+        {
+          "name": "aftershock_count",
+          "type": "long",
+          "nullable": true,
+          "rule": "POST member count, null khi failed/skipped"
+        },
+        {
+          "name": "foreshock_candidate_count",
+          "type": "long",
+          "nullable": true,
+          "rule": "PRE member count, null khi failed/skipped"
+        },
+        {
+          "name": "sequence_duration_hours",
+          "type": "double",
+          "nullable": true,
+          "rule": ">= 0`, null nếu không có POST"
+        },
+        {
+          "name": "largest_aftershock_magnitude",
+          "type": "double",
+          "nullable": true,
+          "rule": "Null nếu không có POST"
+        },
+        {
+          "name": "magnitude_difference",
+          "type": "double",
+          "nullable": true,
+          "rule": "Mainshock − largest POST magnitude"
+        },
+        {
+          "name": "spatial_extent_km",
+          "type": "double",
+          "nullable": true,
+          "rule": ">= 0`, định nghĩa theo config version"
+        },
+        {
+          "name": "mean_membership_probability",
+          "type": "double",
+          "nullable": true,
+          "rule": "Chỉ HDBSCAN và khi có member"
+        },
+        {
+          "name": "dbcv_score",
+          "type": "double",
+          "nullable": true,
+          "rule": "Null nếu không áp dụng/fit được, cần metric reason"
+        },
+        {
+          "name": "omori_k",
+          "type": "double",
+          "nullable": true,
+          "rule": "Null nếu không fit được"
+        },
+        {
+          "name": "omori_c",
+          "type": "double",
+          "nullable": true,
+          "rule": "Null nếu không fit được"
+        },
+        {
+          "name": "omori_p",
+          "type": "double",
+          "nullable": true,
+          "rule": "Null nếu không fit được"
+        },
+        {
+          "name": "omori_fit_metric",
+          "type": "double",
+          "nullable": true,
+          "rule": "Null nếu không fit được"
+        },
+        {
+          "name": "stability_components_json",
+          "type": "json_string",
+          "nullable": true,
+          "rule": "Jaccard/ARI/CV thành phần, không chỉ score tổng hợp"
+        },
+        {
+          "name": "runtime_seconds",
+          "type": "double",
+          "nullable": false,
+          "rule": ">= 0"
+        },
+        {
+          "name": "peak_memory_mb",
+          "type": "double",
+          "nullable": true,
+          "rule": "Null nếu runtime không đo được; cần metric reason"
+        },
+        {
+          "name": "is_nested_mainshock_candidate",
+          "type": "boolean",
+          "nullable": false,
+          "rule": "Evidence theo run, không sửa mainshock snapshot"
+        },
+        {
+          "name": "parent_mainshock_event_id",
+          "type": "string",
+          "nullable": true,
+          "rule": "Có khi nested được resolve"
+        },
+        {
+          "name": "nested_membership_probability",
+          "type": "double",
+          "nullable": true,
+          "rule": "Chỉ khi algorithm có probability"
+        },
+        {
+          "name": "metric_reason_codes",
+          "type": "array<string>",
+          "nullable": true,
+          "rule": "Bắt buộc cho metric null không hiển nhiên"
+        },
+        {
+          "name": "failure_reason_code",
+          "type": "string",
+          "nullable": true,
+          "rule": "Bắt buộc khi failed/skipped"
+        },
+        {
+          "name": "created_at_utc",
+          "type": "timestamp_utc",
+          "nullable": false,
+          "rule": "Thời điểm bundle tạo summary"
+        }
+      ]
+    }
+  },
+  "failure_reason_codes": [
+    "EXP_MAINSHOCK_CLASSIFIED_AS_NOISE",
+    "EXP_EMPTY_POST_SEQUENCE",
+    "EXP_WINDOW_FAILED"
+  ],
+  "reason_code_policy": "Preserve unknown nonempty reason codes for forward compatibility"
+}

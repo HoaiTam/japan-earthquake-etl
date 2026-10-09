@@ -146,7 +146,7 @@ fixture/inventory; assignee `HoaiTam`, reviewer `unassigned`. Xem
 
 | Task | Tuần | Workstream | Scope | Priority | Effort | Trạng thái |
 |---|---:|---|---|---|---:|---|
-| [MLI-01](./MLI-01.md) - Khóa result bundle và experiment lifecycle | 4 | Result bundle contract | Core | P0 | 5h | Ready |
+| [MLI-01](./MLI-01.md) - Khóa result bundle và experiment lifecycle | 4 | Result bundle contract | Core | P0 | 5h | Done |
 | [MLI-02](./MLI-02.md) - Tạo Airflow DAG build ML dataset | 6 | Dataset build orchestration | Core | P0 | 5h | Backlog |
 | [MLI-03](./MLI-03.md) - Validate/import kết quả và commit bảng ML Iceberg | 7 | Result import and Iceberg publish | Core | P0 | 7h | Backlog |
 | [MLI-04](./MLI-04.md) - Tạo Trino views và static report cho experiment | 8 | ML serving and report | Core | P0 | 4h | Backlog |
