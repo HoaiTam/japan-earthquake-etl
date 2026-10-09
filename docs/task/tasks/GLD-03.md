@@ -1,6 +1,6 @@
 ---
 task_id: "GLD-03"
-status: "Backlog"
+status: "In Progress"
 week: 4
 block: "E - Gold & Serving"
 workstream: "Iceberg publish"
@@ -72,10 +72,10 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
+- **Trạng thái:** In Progress
 - **Assignee:** Trang
 - **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Evidence / PR:** Chuẩn bị interface/mock trên branch feat/gld-03-commit-interface; GoldCommitInterfaceTest 5/5 đạt với JDK17/Maven3.9.16, changed-file secret check và git diff --check đạt. Dependency GLD-01 - Xây canonical event, dimensions và bands có PR #50 còn chờ merge/handoff. GLD-03 chưa có Iceberg writer/fault injection/readback thật; SLV-09 - Tích hợp và kiểm thử Silver đa nguồn còn thiếu SilverReady bundle. Giữ In Progress, reviewer unassigned; [test plan](../../specs/GOLD_COMMIT_PREPARATION.md).
 - **Kỹ năng phù hợp:** Iceberg, Spark, MinIO
 
 ## Checklist bàn giao
