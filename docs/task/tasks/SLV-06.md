@@ -1,6 +1,6 @@
 ---
 task_id: "SLV-06"
-status: "Ready"
+status: "In Progress"
 week: 4
 block: "D - Silver đa nguồn"
 workstream: "Source dedup"
@@ -72,10 +72,10 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Theo dõi
 
-- **Trạng thái:** Ready
+- **Trạng thái:** In Progress
 - **Assignee:** ThanhTris
-- **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Reviewer:** unassigned
+- **Evidence / PR:** Đang triển khai trên branch `feat/slv-06-deduplicate-va-xu-ly-revision`
 - **Kỹ năng phù hợp:** Spark window, idempotency
 
 ## Checklist bàn giao
