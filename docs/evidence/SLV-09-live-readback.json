@@ -1,106 +1,328 @@
 {
-  "qa_version": "slv-09-v1",
-  "qa_status": "VERIFIED",
-  "run_id": "run-slv09-real-gold",
-  "verified_at_utc": "2026-10-10T10:39:10Z",
-  "environment": {
-    "java_version": "23.0.2",
-    "spark_version": "3.5.9",
-    "timezone": "UTC",
-    "storage_backend": "MinIO / S3 Object Store",
-    "silver_prefix": "silver"
-  },
-  "contracts": {
-    "source_coverage": "CON-01/1.0",
-    "bronze_storage": "CON-02/1.0",
-    "silver_gold_model": "CON-03/1.0"
-  },
-  "reconciliation_metrics": {
-    "total_parsed": 18,
-    "usgs_parsed": 16,
-    "jma_parsed": 2,
-    "total_valid": 18,
-    "total_reject": 0,
-    "total_current": 18,
-    "total_duplicate": 0,
-    "total_superseded": 0,
-    "candidate_pairs_evaluated": 16,
-    "accepted_links": 1,
-    "ambiguous_links": 0,
-    "rejected_pairs": 15,
-    "canonical_events": 17,
-    "matched_events": 1,
-    "usgs_only_events": 15,
-    "jma_only_events": 1,
-    "balancing_equations": {
-      "is_parsed_balanced": true,
-      "is_dedup_balanced": true,
-      "is_canonical_balanced": true,
-      "is_bridge_count_balanced": true,
-      "is_reconciliation_balanced": true
-    }
-  },
-  "storage_readback": {
-    "bucket": "earthquake-lake",
-    "silver_prefix": "silver",
-    "published_datasets": [
-      {
-        "dataset_name": "source_observation",
-        "partitions": [
+  "status": "VERIFIED_BOUNDED_SAMPLE",
+  "verification_command": "make smoke-silver-integration SILVER_RUNNER_JAR=\"$(pwd)/spark/target/japan-earthquake-etl-runner.jar\"",
+  "runner_jar_sha256": "4c5e958e2114cbacd783d6e99efbbc2683339d324150450d90e60989328723a0",
+  "serialization_version": "slv-09-parquet-stable-footer-v1",
+  "base_pr": 58,
+  "base_head": "775afe87f54864934d7ae8388845a3c5743a16cc",
+  "attempts": [
+    {
+      "application_id": "app-20261010082720-0006",
+      "bundle_manifest_sha256": "2fdf83893ede773c811d5b83117c42b05920e680d4a078ecaf036a3f00340b21",
+      "bundle_manifest_uri": "s3://japan-earthquake/silver/bundles/slv09-live-59a5e3725b14453e89a127eb2c8a70d2/manifest.json",
+      "datasets": {
+        "canonical_membership": {
+          "manifest_uri": "s3://japan-earthquake/silver/bundles/slv09-live-59a5e3725b14453e89a127eb2c8a70d2/canonical_membership/manifest.json",
+          "readback_verified": true,
+          "record_count": 528,
+          "sha256": "1adbb37c35e5cfdffe4bb468700c03e8e01f290cb6e2f41893d9b9485d3ec970"
+        },
+        "reject_record": {
+          "manifest_uri": "s3://japan-earthquake/silver/bundles/slv09-live-59a5e3725b14453e89a127eb2c8a70d2/reject_record/manifest.json",
+          "readback_verified": true,
+          "record_count": 0,
+          "sha256": "d5056ae8a1278aa2ff2914f233871ef80f6dccccc192440871af2f1088cab569"
+        },
+        "source_link": {
+          "manifest_uri": "s3://japan-earthquake/silver/bundles/slv09-live-59a5e3725b14453e89a127eb2c8a70d2/source_link/manifest.json",
+          "readback_verified": true,
+          "record_count": 0,
+          "sha256": "a44cab3bf4f325cfbbe83d93d1b66dcb9c91e40733fd56bb9944b668195491cc"
+        },
+        "source_observation": {
+          "manifest_uri": "s3://japan-earthquake/silver/bundles/slv09-live-59a5e3725b14453e89a127eb2c8a70d2/source_observation/manifest.json",
+          "readback_verified": true,
+          "record_count": 528,
+          "sha256": "5de182a34fa70571b9d29273cc179e4c15665f036d8a4786125531f489a11807"
+        }
+      },
+      "gold_bridge_rows": 528,
+      "gold_canonical_rows": 528,
+      "gold_handoff_verified": true,
+      "gold_published": false,
+      "idempotent_reuse": false,
+      "identity_sha256": "198f0881ca9a3c2405be76945da68ad1888b9ae66eb27f5c699a795899f586f9",
+      "java_version": "17.0.19",
+      "master": "spark://spark-master:7077",
+      "reconciliation": {
+        "accepted_links": 0,
+        "ambiguous_links": 0,
+        "balanced": true,
+        "candidate_pairs": 0,
+        "canonical": 528,
+        "current": 528,
+        "duplicate": 0,
+        "jma_only": 512,
+        "jma_parsed": 512,
+        "matched": 0,
+        "memberships": 528,
+        "parsed": 528,
+        "rejected": 0,
+        "rejected_links": 0,
+        "superseded": 0,
+        "usgs_only": 16,
+        "usgs_parsed": 16,
+        "valid": 528
+      },
+      "run_context": {
+        "bronze_inputs": [
           {
-            "partition_key": "event_year_utc=2023/event_month_utc=01/source_system=USGS",
-            "file_name": "part-00000-run-slv09-real-gold.parquet",
-            "s3_uri": "s3://earthquake-lake/silver/source_observation/event_year_utc=2023/event_month_utc=01/source_system=USGS/part-00000-run-slv09-real-gold.parquet",
-            "record_count": 16,
-            "readback_verified": true,
-            "success_marker_present": true,
-            "manifest_present": true
+            "manifest_sha256": "f98438b1d24145052b490f074454c0479e80c7b2b1fa5722516c458f78c936ea",
+            "manifest_uri": "s3://japan-earthquake/bronze/usgs/ingest_date=2023-01-01/run_id=usg06-live-20261004T121205Z-db580aece6dc/attempt=01/manifest.json",
+            "sha256": "8667f9b7ac02ce0e88c78767bd51dee1fdf1292ac987a7cdc00c3aaec6b0545e",
+            "source_system": "USGS",
+            "window_end_utc": "2023-01-04T00:00:00Z",
+            "window_start_utc": "2023-01-01T00:00:00Z"
           },
           {
-            "partition_key": "event_year_utc=2023/event_month_utc=01/source_system=JMA_BULLETIN",
-            "file_name": "part-00000-run-slv09-real-gold.parquet",
-            "s3_uri": "s3://earthquake-lake/silver/source_observation/event_year_utc=2023/event_month_utc=01/source_system=JMA_BULLETIN/part-00000-run-slv09-real-gold.parquet",
-            "record_count": 2,
-            "readback_verified": true,
-            "success_marker_present": true,
-            "manifest_present": true
+            "catalog_release": "jma-lm-20160819T034819Z-sha256-268441420d9c",
+            "manifest_sha256": "0c54b3c664833819099926b1a773647c71e6819abecdb8a321d82211b95fb615",
+            "manifest_uri": "s3://japan-earthquake/bronze/jma/year=2000/catalog_release=jma-lm-20160819T034819Z-sha256-268441420d9c/ingest_date=2026-10-07/run_id=jma-922316b2ad88fa07587948c310215600-2000-full-year/attempt=01/manifest.json",
+            "segment": "full-year",
+            "sha256": "268441420d9c90b1cb96f42934aefdb107a4d12c5947adafbfeb24af597d15c2",
+            "source_system": "JMA_BULLETIN",
+            "year": 2000
+          },
+          {
+            "catalog_release": "jma-lm-20251210T014153Z-sha256-e5ced2bf7275",
+            "manifest_sha256": "977defa4f2a1d4a2ba41a211ac0419419ca812d010522da4ef4d95c95f3582db",
+            "manifest_uri": "s3://japan-earthquake/bronze/jma/year=2023/catalog_release=jma-lm-20251210T014153Z-sha256-e5ced2bf7275/ingest_date=2026-10-07/run_id=jma-922316b2ad88fa07587948c310215600-2023-full-year/attempt=01/manifest.json",
+            "segment": "full-year",
+            "sha256": "e5ced2bf7275825ba75405b071bb54e9d4c2a5eb55aa6bc9b8d670de1f58b98f",
+            "source_system": "JMA_BULLETIN",
+            "year": 2023
           }
-        ]
+        ],
+        "config_version": "1",
+        "contract_version": "orc-03-v1",
+        "integration_version": "slv09-live-v1",
+        "is_backfill": true,
+        "jma_records_per_archive": 256,
+        "observability_version": "orc-04-v1",
+        "processed_at_utc": "2026-10-10T08:27:12.758007Z",
+        "processing_date": "2026-10-10",
+        "run_id": "slv09-live-59a5e3725b14453e89a127eb2c8a70d2",
+        "scope_sha256": "e2b6c4578c63031f9b015b1e9544df7113212229533cecbe77be08bdd5212442",
+        "window_end_utc": "2024-01-01T00:00:00Z",
+        "window_start_utc": "1999-12-31T15:00:00Z"
       },
-      {
-        "dataset_name": "source_link",
-        "partition_key": "run_id=run-slv09-real-gold",
-        "file_name": "part-00000-run-slv09-real-gold.parquet",
-        "s3_uri": "s3://earthquake-lake/silver/source_link/run_id=run-slv09-real-gold/part-00000-run-slv09-real-gold.parquet",
-        "record_count": 1,
-        "readback_verified": true,
-        "success_marker_present": true
+      "run_id": "slv09-live-59a5e3725b14453e89a127eb2c8a70d2",
+      "scope_sha256": "e2b6c4578c63031f9b015b1e9544df7113212229533cecbe77be08bdd5212442",
+      "silver_status": "SilverReady",
+      "sources": [
+        {
+          "bronze_manifest_id": "m-usg06-live-20261004T121205Z-db580aece6dc-8667f9b7ac02ce0e",
+          "full_bronze_records": 16,
+          "ignored": 0,
+          "ingest_run_id": "usg06-live-20261004T121205Z-db580aece6dc",
+          "manifest_uri": "s3://japan-earthquake/bronze/usgs/ingest_date=2023-01-01/run_id=usg06-live-20261004T121205Z-db580aece6dc/attempt=01/manifest.json",
+          "parsed": 16,
+          "parser_rejects": 0,
+          "selected_records": 16,
+          "selection": "all-records",
+          "source_system": "USGS"
+        },
+        {
+          "bronze_manifest_id": "m-b742a21015954a42cbd520fb",
+          "full_bronze_records": 109967,
+          "ignored": 0,
+          "ingest_run_id": "jma-922316b2ad88fa07587948c310215600-2000-full-year",
+          "manifest_uri": "s3://japan-earthquake/bronze/jma/year=2000/catalog_release=jma-lm-20160819T034819Z-sha256-268441420d9c/ingest_date=2026-10-07/run_id=jma-922316b2ad88fa07587948c310215600-2000-full-year/attempt=01/manifest.json",
+          "parsed": 256,
+          "parser_rejects": 0,
+          "selected_records": 256,
+          "selection": "first-n-physical-lines-v1",
+          "source_system": "JMA_BULLETIN"
+        },
+        {
+          "bronze_manifest_id": "m-d4b0df209321d39a84c7fe20",
+          "full_bronze_records": 257020,
+          "ignored": 0,
+          "ingest_run_id": "jma-922316b2ad88fa07587948c310215600-2023-full-year",
+          "manifest_uri": "s3://japan-earthquake/bronze/jma/year=2023/catalog_release=jma-lm-20251210T014153Z-sha256-e5ced2bf7275/ingest_date=2026-10-07/run_id=jma-922316b2ad88fa07587948c310215600-2023-full-year/attempt=01/manifest.json",
+          "parsed": 256,
+          "parser_rejects": 0,
+          "selected_records": 256,
+          "selection": "first-n-physical-lines-v1",
+          "source_system": "JMA_BULLETIN"
+        }
+      ],
+      "spark_version": "3.5.9",
+      "task": "SLV-09"
+    },
+    {
+      "application_id": "app-20261010082832-0007",
+      "bundle_manifest_sha256": "2fdf83893ede773c811d5b83117c42b05920e680d4a078ecaf036a3f00340b21",
+      "bundle_manifest_uri": "s3://japan-earthquake/silver/bundles/slv09-live-59a5e3725b14453e89a127eb2c8a70d2/manifest.json",
+      "datasets": {
+        "canonical_membership": {
+          "manifest_uri": "s3://japan-earthquake/silver/bundles/slv09-live-59a5e3725b14453e89a127eb2c8a70d2/canonical_membership/manifest.json",
+          "readback_verified": true,
+          "record_count": 528,
+          "sha256": "1adbb37c35e5cfdffe4bb468700c03e8e01f290cb6e2f41893d9b9485d3ec970"
+        },
+        "reject_record": {
+          "manifest_uri": "s3://japan-earthquake/silver/bundles/slv09-live-59a5e3725b14453e89a127eb2c8a70d2/reject_record/manifest.json",
+          "readback_verified": true,
+          "record_count": 0,
+          "sha256": "d5056ae8a1278aa2ff2914f233871ef80f6dccccc192440871af2f1088cab569"
+        },
+        "source_link": {
+          "manifest_uri": "s3://japan-earthquake/silver/bundles/slv09-live-59a5e3725b14453e89a127eb2c8a70d2/source_link/manifest.json",
+          "readback_verified": true,
+          "record_count": 0,
+          "sha256": "a44cab3bf4f325cfbbe83d93d1b66dcb9c91e40733fd56bb9944b668195491cc"
+        },
+        "source_observation": {
+          "manifest_uri": "s3://japan-earthquake/silver/bundles/slv09-live-59a5e3725b14453e89a127eb2c8a70d2/source_observation/manifest.json",
+          "readback_verified": true,
+          "record_count": 528,
+          "sha256": "5de182a34fa70571b9d29273cc179e4c15665f036d8a4786125531f489a11807"
+        }
       },
-      {
-        "dataset_name": "canonical_membership",
-        "partition_key": "run_id=run-slv09-real-gold",
-        "file_name": "part-00000-run-slv09-real-gold.parquet",
-        "s3_uri": "s3://earthquake-lake/silver/canonical_membership/run_id=run-slv09-real-gold/part-00000-run-slv09-real-gold.parquet",
-        "record_count": 18,
-        "readback_verified": true,
-        "success_marker_present": true
-      }
-    ]
-  },
-  "gold_handoff_verification": {
-    "transformer_class": "ie212.earthquake.spark.gold.GoldEventTransformer",
-    "status": "SUCCESS",
-    "current_observation_count": 18,
-    "canonical_event_count": 17,
-    "bridge_row_count": 18,
-    "event_current_count": 17,
-    "study_area_count": 17,
-    "matched_event_validation": {
-      "canonical_event_id": "can-7000j1n9",
-      "canonical_source_system": "JMA_BULLETIN",
-      "source_coverage_code": "USGS_JMA",
-      "link_status": "MATCHED",
-      "primary_observation_role": "JMA preferred over USGS"
+      "gold_bridge_rows": 528,
+      "gold_canonical_rows": 528,
+      "gold_handoff_verified": true,
+      "gold_published": false,
+      "idempotent_reuse": true,
+      "identity_sha256": "198f0881ca9a3c2405be76945da68ad1888b9ae66eb27f5c699a795899f586f9",
+      "java_version": "17.0.19",
+      "master": "spark://spark-master:7077",
+      "reconciliation": {
+        "accepted_links": 0,
+        "ambiguous_links": 0,
+        "balanced": true,
+        "candidate_pairs": 0,
+        "canonical": 528,
+        "current": 528,
+        "duplicate": 0,
+        "jma_only": 512,
+        "jma_parsed": 512,
+        "matched": 0,
+        "memberships": 528,
+        "parsed": 528,
+        "rejected": 0,
+        "rejected_links": 0,
+        "superseded": 0,
+        "usgs_only": 16,
+        "usgs_parsed": 16,
+        "valid": 528
+      },
+      "run_context": {
+        "bronze_inputs": [
+          {
+            "manifest_sha256": "f98438b1d24145052b490f074454c0479e80c7b2b1fa5722516c458f78c936ea",
+            "manifest_uri": "s3://japan-earthquake/bronze/usgs/ingest_date=2023-01-01/run_id=usg06-live-20261004T121205Z-db580aece6dc/attempt=01/manifest.json",
+            "sha256": "8667f9b7ac02ce0e88c78767bd51dee1fdf1292ac987a7cdc00c3aaec6b0545e",
+            "source_system": "USGS",
+            "window_end_utc": "2023-01-04T00:00:00Z",
+            "window_start_utc": "2023-01-01T00:00:00Z"
+          },
+          {
+            "catalog_release": "jma-lm-20160819T034819Z-sha256-268441420d9c",
+            "manifest_sha256": "0c54b3c664833819099926b1a773647c71e6819abecdb8a321d82211b95fb615",
+            "manifest_uri": "s3://japan-earthquake/bronze/jma/year=2000/catalog_release=jma-lm-20160819T034819Z-sha256-268441420d9c/ingest_date=2026-10-07/run_id=jma-922316b2ad88fa07587948c310215600-2000-full-year/attempt=01/manifest.json",
+            "segment": "full-year",
+            "sha256": "268441420d9c90b1cb96f42934aefdb107a4d12c5947adafbfeb24af597d15c2",
+            "source_system": "JMA_BULLETIN",
+            "year": 2000
+          },
+          {
+            "catalog_release": "jma-lm-20251210T014153Z-sha256-e5ced2bf7275",
+            "manifest_sha256": "977defa4f2a1d4a2ba41a211ac0419419ca812d010522da4ef4d95c95f3582db",
+            "manifest_uri": "s3://japan-earthquake/bronze/jma/year=2023/catalog_release=jma-lm-20251210T014153Z-sha256-e5ced2bf7275/ingest_date=2026-10-07/run_id=jma-922316b2ad88fa07587948c310215600-2023-full-year/attempt=01/manifest.json",
+            "segment": "full-year",
+            "sha256": "e5ced2bf7275825ba75405b071bb54e9d4c2a5eb55aa6bc9b8d670de1f58b98f",
+            "source_system": "JMA_BULLETIN",
+            "year": 2023
+          }
+        ],
+        "config_version": "1",
+        "contract_version": "orc-03-v1",
+        "integration_version": "slv09-live-v1",
+        "is_backfill": true,
+        "jma_records_per_archive": 256,
+        "observability_version": "orc-04-v1",
+        "processed_at_utc": "2026-10-10T08:27:12.758007Z",
+        "processing_date": "2026-10-10",
+        "run_id": "slv09-live-59a5e3725b14453e89a127eb2c8a70d2",
+        "scope_sha256": "e2b6c4578c63031f9b015b1e9544df7113212229533cecbe77be08bdd5212442",
+        "window_end_utc": "2024-01-01T00:00:00Z",
+        "window_start_utc": "1999-12-31T15:00:00Z"
+      },
+      "run_id": "slv09-live-59a5e3725b14453e89a127eb2c8a70d2",
+      "scope_sha256": "e2b6c4578c63031f9b015b1e9544df7113212229533cecbe77be08bdd5212442",
+      "silver_status": "SilverReady",
+      "sources": [
+        {
+          "bronze_manifest_id": "m-usg06-live-20261004T121205Z-db580aece6dc-8667f9b7ac02ce0e",
+          "full_bronze_records": 16,
+          "ignored": 0,
+          "ingest_run_id": "usg06-live-20261004T121205Z-db580aece6dc",
+          "manifest_uri": "s3://japan-earthquake/bronze/usgs/ingest_date=2023-01-01/run_id=usg06-live-20261004T121205Z-db580aece6dc/attempt=01/manifest.json",
+          "parsed": 16,
+          "parser_rejects": 0,
+          "selected_records": 16,
+          "selection": "all-records",
+          "source_system": "USGS"
+        },
+        {
+          "bronze_manifest_id": "m-b742a21015954a42cbd520fb",
+          "full_bronze_records": 109967,
+          "ignored": 0,
+          "ingest_run_id": "jma-922316b2ad88fa07587948c310215600-2000-full-year",
+          "manifest_uri": "s3://japan-earthquake/bronze/jma/year=2000/catalog_release=jma-lm-20160819T034819Z-sha256-268441420d9c/ingest_date=2026-10-07/run_id=jma-922316b2ad88fa07587948c310215600-2000-full-year/attempt=01/manifest.json",
+          "parsed": 256,
+          "parser_rejects": 0,
+          "selected_records": 256,
+          "selection": "first-n-physical-lines-v1",
+          "source_system": "JMA_BULLETIN"
+        },
+        {
+          "bronze_manifest_id": "m-d4b0df209321d39a84c7fe20",
+          "full_bronze_records": 257020,
+          "ignored": 0,
+          "ingest_run_id": "jma-922316b2ad88fa07587948c310215600-2023-full-year",
+          "manifest_uri": "s3://japan-earthquake/bronze/jma/year=2023/catalog_release=jma-lm-20251210T014153Z-sha256-e5ced2bf7275/ingest_date=2026-10-07/run_id=jma-922316b2ad88fa07587948c310215600-2023-full-year/attempt=01/manifest.json",
+          "parsed": 256,
+          "parser_rejects": 0,
+          "selected_records": 256,
+          "selection": "first-n-physical-lines-v1",
+          "source_system": "JMA_BULLETIN"
+        }
+      ],
+      "spark_version": "3.5.9",
+      "task": "SLV-09"
     }
-  }
+  ],
+  "driver_cgroup_after": {
+    "current_bytes": 39161856,
+    "events": {
+      "high": 0,
+      "low": 0,
+      "max": 0,
+      "oom": 0,
+      "oom_group_kill": 0,
+      "oom_kill": 0
+    },
+    "peak_bytes": 484462592
+  },
+  "driver_cgroup_before": {
+    "current_bytes": 14045184,
+    "events": {
+      "high": 0,
+      "low": 0,
+      "max": 0,
+      "oom": 0,
+      "oom_group_kill": 0,
+      "oom_kill": 0
+    },
+    "peak_bytes": 14295040
+  },
+  "lease_released": true,
+  "report_path": "/opt/pipeline/staging/backfill/qa/slv09-live-59a5e3725b14453e89a127eb2c8a70d2/integration_report.json",
+  "rerun_unchanged": true,
+  "run_id": "slv09-live-59a5e3725b14453e89a127eb2c8a70d2",
+  "scope_sha256": "e2b6c4578c63031f9b015b1e9544df7113212229533cecbe77be08bdd5212442",
+  "task": "SLV-09"
 }

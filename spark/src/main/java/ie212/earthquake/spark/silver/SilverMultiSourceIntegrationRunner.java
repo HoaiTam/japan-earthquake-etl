@@ -117,6 +117,15 @@ public final class SilverMultiSourceIntegrationRunner implements Serializable {
             boolean persistOutput,
             Instant executionTime) throws IOException {
 
+        return run(runId, observations, parserRejects, linkConfig, objectStore, persistOutput, executionTime, null);
+    }
+
+    /** Verified manifest -> Bronze ingest run pins; processing run ID must not replace Bronze lineage. */
+    public SilverIntegrationResult run(
+            String runId, List<SilverObservation> observations, List<SilverRejectRecord> parserRejects,
+            SilverLinkConfig linkConfig, SilverObjectStore objectStore, boolean persistOutput,
+            Instant executionTime, Map<String, String> verifiedIngestRuns) throws IOException {
+
         Objects.requireNonNull(runId, "runId");
         Objects.requireNonNull(observations, "observations");
         parserRejects = parserRejects != null ? parserRejects : List.of();
@@ -126,7 +135,31 @@ public final class SilverMultiSourceIntegrationRunner implements Serializable {
         // Validate observations with validator
         Clock fixedClock = Clock.fixed(executionTime, ZoneOffset.UTC);
         SilverQualityValidator runValidator = new SilverQualityValidator(fixedClock);
-        SilverQualityResult quality = runValidator.validate(observations, runId);
+        SilverQualityResult quality;
+        if (verifiedIngestRuns == null) {
+            quality = runValidator.validate(observations, runId);
+        } else {
+            var pins = Map.copyOf(verifiedIngestRuns);
+            var valid = new ArrayList<SilverObservation>();
+            var rejected = new ArrayList<SilverRejectRecord>();
+            var reasons = new HashMap<String, Long>();
+            // Never derive the whitelist from incoming observations: only verified Bronze manifests.
+            for (var group : observations.stream().collect(Collectors.groupingBy(
+                    SilverObservation::bronzeManifestId, java.util.LinkedHashMap::new, Collectors.toList())).entrySet()) {
+                String ingestRun = pins.get(group.getKey());
+                if (ingestRun == null || ingestRun.isBlank()) { throw new IOException("UNRESOLVED_BRONZE_LINEAGE"); }
+                var checked = runValidator.validate(group.getValue(), ingestRun);
+                valid.addAll(checked.validObservations()); rejected.addAll(checked.rejectedRecords());
+                checked.reasonCounts().forEach((code, count) -> reasons.merge(code, count, Long::sum));
+            }
+            for (var reject : parserRejects) {
+                if (!reject.ingestRunId().equals(pins.get(reject.bronzeManifestId()))) {
+                    throw new IOException("UNRESOLVED_BRONZE_LINEAGE");
+                }
+            }
+            quality = new SilverQualityResult(runId, observations.size(), valid.size(), rejected.size(),
+                    !rejected.isEmpty(), valid, rejected, reasons);
+        }
 
         List<SilverRejectRecord> allRejects = new ArrayList<>(parserRejects);
         allRejects.addAll(quality.rejectedRecords());
@@ -221,26 +254,17 @@ public final class SilverMultiSourceIntegrationRunner implements Serializable {
 
         SilverMatchReport matchReport = resolutionResult.report();
 
-        // 5. Storage Persistence (SLV-08)
+        // Quality/reconciliation gates run BEFORE storage. Publish a whole immutable
+        // bundle, not four independent mutable dataset markers.
         SilverWriteResult writeResult = null;
         int obsWritten = 0;
         int rejWritten = 0;
         int partitionsWritten = 0;
 
-        if (persistOutput && objectStore != null) {
-            SilverParquetWriter writer = new SilverParquetWriter(objectStore);
-            SilverWriteRequest writeRequest = new SilverWriteRequest(
-                    runId,
-                    dedupResult.allObservations(),
-                    allRejects,
-                    resolutionResult.sourceLinks(),
-                    resolutionResult.canonicalMemberships(),
-                    executionTime,
-                    true);
-            writeResult = writer.write(writeRequest);
-            obsWritten = writeResult.totalObservations();
-            rejWritten = writeResult.totalRejects();
-            partitionsWritten = writeResult.publishedPartitions().size();
+        boolean publish = persistOutput && objectStore != null && !combinedQuality.publishBlocked();
+        if (publish) {
+            obsWritten = dedupResult.allObservations().size();
+            partitionsWritten = (int) dedupResult.allObservations().stream().map(SilverPartitionKey::from).distinct().count();
         }
 
         // 6. Run-level Reconciliation Report
@@ -279,6 +303,18 @@ public final class SilverMultiSourceIntegrationRunner implements Serializable {
                 obsWritten,
                 rejWritten,
                 partitionsWritten);
+
+        if (publish) {
+            if (!report.isReconciliationBalanced()) { throw new IOException("SILVER_RECONCILIATION_BLOCKED"); }
+            var json = new com.fasterxml.jackson.databind.ObjectMapper();
+            var context = json.createObjectNode();
+            context.put("quality_passed", true); context.put("reconciliation_balanced", true);
+            context.set("link_config", json.valueToTree(linkConfig));
+            context.put("reconciliation", report.toSummaryString());
+            writeResult = new SilverBundlePublisher(objectStore).publish(new SilverWriteRequest(runId,
+                    dedupResult.allObservations(), allRejects, resolutionResult.sourceLinks(),
+                    resolutionResult.canonicalMemberships(), executionTime, false), context);
+        }
 
         return new SilverIntegrationResult(
                 runId,

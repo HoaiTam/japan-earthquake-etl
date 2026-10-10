@@ -35,6 +35,7 @@ Thư mục này là nguồn tài liệu chính thức cho dự án **Nền tản
 | Dùng hai sample thật USGS/JMA đã khóa cho integration | [Shared real-sample catalog](./specs/SHARED_REAL_SAMPLE_DATA.md) |
 | Hiểu Bronze object, manifest, checksum và retry | [Bronze storage contract](./specs/BRONZE_STORAGE_CONTRACT.md) |
 | Hiểu schema Silver/Gold, null policy, bands và KPI | [Silver/Gold logical data model](./specs/SILVER_GOLD_DATA_MODEL.md) |
+| Verify Bronze thật, bundle Silver, rerun và Gold handoff | [SLV-09 Silver integration](./specs/SILVER_INTEGRATION.md) |
 | Hiểu grain, lineage và lifecycle dataset/experiment ML | [ML logical data model](./specs/ML_DATA_MODEL.md) |
 | Dùng fixture USGS/JMA và expected test matrix | [Shared source fixtures](../tests/fixtures/README.md) |
 | Hiểu cấu trúc module và mount path | [Repository layout](./specs/REPOSITORY_LAYOUT.md) |

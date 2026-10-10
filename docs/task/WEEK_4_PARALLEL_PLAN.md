@@ -42,6 +42,11 @@ HoaiTam làm hết Silver/Gold trước khi hai người còn lại bắt đầu
 
 ## 3. Ba khối sau khi bàn giao
 
+**Cập nhật thực thi SLV-09 (bản vá PR #58):** bảng dưới giữ phân công và tải
+kế hoạch ban đầu của ThanhTris; người thực hiện bản vá/tích hợp hiện tại là
+**HoaiTam**, theo [metadata task SLV-09](./tasks/SLV-09.md). Không tự điền
+reviewer hoặc approval; trạng thái/evidence thực tế xem file task.
+
 | Thành viên | Task còn lại sau nhóm mở đường | Giờ còn lại | Nhóm mở đường | Tổng task tuần | Buffer | Tổng dự kiến |
 |---|---|---:|---:|---:|---:|---:|
 | HoaiTam | ORC-02, ORC-03, ORC-04, ORC-05 | 17h | 13h | 30h | 2h | 32h |

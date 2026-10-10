@@ -130,9 +130,11 @@ suite và fixtures late revision tại `src/test/resources/fixtures/late_revisio
 `SilverObjectStore`, `FileSilverObjectStore`, `MinioSilverObjectStore`, `SilverParquetSerializer`,
 `SilverParquetWriter`, `SilverWriteRequest` và `SilverWriteResult`. Module tổ chức partition theo
 đúng thứ bậc `source_observation/event_year_utc=YYYY/event_month_utc=MM/source_system=<source_system>`
-dựa trên `event_time_utc` (UTC). Áp dụng quy trình staging nguyên tử (`_staging/<run_id>/...`),
-đối soát checksum SHA-256 và row count trước khi promote vào partition chính thức; đảm bảo retry/rerun
-ghi đè sạch sẽ không append duplicate record. Tự động xuất marker `_SUCCESS` và `manifest.json`
+dựa trên `event_time_utc` (UTC). API legacy dùng staging scoped (`_staging/<run_id>/...`),
+đối soát SHA-256/row count, invalidate marker cũ trước mutation và readback final
+trước marker mới. Promote copy/delete trên S3 **không phải atomic rename**;
+consumer không được dựa riêng vào việc prefix tồn tại. SLV-09 dùng immutable
+bundle thay vì month-partition overwrite. API legacy xuất `_SUCCESS` và `manifest.json`
 ghi nhận metadata partition, danh sách file, SHA-256, số dòng và summary chất lượng dữ liệu.
 
 `SLV-07` triển khai entity resolution và canonical event selection cho tầng Silver qua
@@ -152,12 +154,19 @@ qua `SilverMultiSourceIntegrationRunner`, `SilverIntegrationRequest`, `SilverInt
 và `SilverRunReconciliationReport`. Runner điều phối toàn bộ chuỗi xử lý tầng Silver:
 parse raw payloads (USGS GeoJSON & JMA fixed-width), kiểm định chất lượng (`SilverQualityValidator`),
 deduplicate và giải quyết revision theo nguồn (`SourceDedupTransformer`), đối chiếu liên kết thực thể
-và lựa chọn canonical event (`SilverEntityResolver`), và lưu trữ Parquet phân vùng có nguyên tử tính (`SilverParquetWriter`).
+và lựa chọn canonical event (`SilverEntityResolver`), rồi publish bundle immutable
+bốn dataset bằng `SilverBundlePublisher`. S3 không có atomic rename đa object;
+marker bundle chỉ được ghi sau final readback với whole-run lease.
 Báo cáo `SilverRunReconciliationReport` đối soát chặt chẽ toàn bộ các chiều kế toán:
 $totalParsed = totalValid + totalReject$, $totalValid = totalCurrent + totalDuplicate + totalSuperseded$,
 $canonicalEvents = matchedEvents + usgsOnly + jmaOnly$, và $(matchedEvents \times 2) + usgsOnly + jmaOnly = totalCurrent$.
 Bộ kiểm thử tích hợp `SilverMultiSourceIntegrationTest` xác nhận tính tất định 100% khi rerun fixture,
-không duplicate dữ liệu khi ghi đè, và bảo đảm tính cân bằng đối soát trong mọi kịch bản.
+không duplicate khi reuse bundle đã verify, và bảo đảm tính cân bằng đối soát.
+`make test-silver-integration` là offline suite;
+`make smoke-silver-integration` chạy Spark Java 17/MinIO thật với exact Bronze
+DAT-01 USGS và JMA 2000/2023, gồm rerun và verified Gold transformation.
+Xem [Silver integration](../docs/specs/SILVER_INTEGRATION.md) cho input pins,
+four-dataset receipt, recovery và giới hạn (không commit Gold).
 `GLD-01` thêm Spark DataFrame transformation trong package `gold`: current event,
 source bridge, natural/ROI view và dimensions/bands. API dùng canonical membership
 đã resolve từ Silver; không tạo canonical ID lại. Input/test/handoff nằm tại

@@ -26,8 +26,8 @@ import ie212.earthquake.spark.gold.GoldTransformationResult;
  * Verifies that:
  *   1. Logic and counts remain completely deterministic across reruns (AC 1).
  *   2. Parsed, valid, rejected, duplicate, superseded, and canonical events reconcile perfectly (AC 2).
- *   3. Live MinIO readback and schema validation for observations, links, and memberships (AC 3).
- *   4. Verified handoff of Silver persisted datasets into GoldEventTransformer (AC 4).
+ *   3. Offline in-memory/local Parquet readback (NOT live MinIO evidence).
+ *   4. Offline handoff into GoldEventTransformer; real runtime uses the smoke target.
  */
 class SilverMultiSourceIntegrationTest {
 
@@ -207,8 +207,8 @@ class SilverMultiSourceIntegrationTest {
         String membershipFile = result.writeResult().membershipFiles().get(0);
         assertTrue(store.exists(linkFile));
         assertTrue(store.exists(membershipFile));
-        assertTrue(store.exists(SilverStorageLayout.linkSuccessMarkerPath("run-slv09-02")));
-        assertTrue(store.exists(SilverStorageLayout.membershipSuccessMarkerPath("run-slv09-02")));
+        assertTrue(store.exists(SilverBundlePublisher.root("run-slv09-02") + "/_SUCCESS"));
+        assertEquals(4, new SilverBundlePublisher(store).verify("run-slv09-02").path("datasets").size());
 
         // Readback Parquet validation
         byte[] linkBytes = store.read(linkFile);
@@ -259,7 +259,7 @@ class SilverMultiSourceIntegrationTest {
     }
 
     @Test
-    void testRerunIdempotencyProducesIdenticalLogicAndOverwritesCleanly() throws Exception {
+    void testRerunIdempotencyReusesVerifiedImmutableBundle() throws Exception {
         byte[] usgsBytes = loadFixture("usgs/success.geojson");
         byte[] jmaBytes = loadFixture("jma/fixed-width/success.hyp");
 
@@ -298,8 +298,9 @@ class SilverMultiSourceIntegrationTest {
                 run1.resolutionResult().canonicalEventIds(),
                 run2.resolutionResult().canonicalEventIds());
 
-        // Verify storage row counts: partition overwrite ensures no duplicate rows appended
+        // Immutable reuse: no partition overwrite and no duplicate append.
         assertEquals(3, run2.writeResult().totalObservations());
+        assertTrue(run2.writeResult().idempotentReuse());
     }
 
     @Test
@@ -341,6 +342,8 @@ class SilverMultiSourceIntegrationTest {
         SilverRunReconciliationReport report = result.reconciliationReport();
 
         // AC 2: parsed/valid/rejected/duplicate/canonical đối soát được
+        assertNull(result.writeResult(), "blocked quality must not publish even if reconciliation balances");
+        assertTrue(store.list("").isEmpty(), "quality gate must precede every storage write");
         assertTrue(report.isParsedBalanced(), "Parsed balance failed");
         assertTrue(report.isDedupBalanced(), "Dedup balance failed");
         assertTrue(report.isCanonicalBalanced(), "Canonical balance failed");
@@ -366,7 +369,7 @@ class SilverMultiSourceIntegrationTest {
     }
 
     @Test
-    void testLiveMinioStorageReadbackForObservationsLinksAndMemberships() throws Exception {
+    void testInMemoryS3UriReadbackForObservationsLinksAndMemberships() throws Exception {
         byte[] usgsBytes = loadFixture("usgs/success.geojson");
         byte[] jmaBytes = loadFixture("jma/fixed-width/success.hyp");
 
@@ -404,7 +407,7 @@ class SilverMultiSourceIntegrationTest {
         assertEquals("s3://earthquake-lake/silver/" + linkFileKey, minioStore.uriForKey(linkFileKey));
         assertEquals("s3://earthquake-lake/silver/" + memFileKey, minioStore.uriForKey(memFileKey));
 
-        // Readback bytes from MinIO and verify Parquet schemas and row counts
+        // Readback from the in-memory mock; verify Parquet schemas and row counts.
         byte[] readbackLinkBytes = minioStore.read(linkFileKey);
         assertNotNull(readbackLinkBytes);
         SilverParquetSerializer.verifyParquet(readbackLinkBytes, 1, SilverParquetSerializer.SOURCE_LINK_PARQUET_SCHEMA);
@@ -418,20 +421,69 @@ class SilverMultiSourceIntegrationTest {
                 byte[] readbackObsBytes = minioStore.read(file.relativePath());
                 SilverParquetSerializer.verifyParquet(readbackObsBytes, file.recordCount(), SilverParquetSerializer.OBSERVATION_PARQUET_SCHEMA);
             }
-            assertTrue(minioStore.exists(manifest.partitionPath() + "/" + SilverStorageLayout.SUCCESS_MARKER_FILE));
         }
 
-        assertTrue(minioStore.exists(SilverStorageLayout.linkSuccessMarkerPath(runId)));
-        assertTrue(minioStore.exists(SilverStorageLayout.membershipSuccessMarkerPath(runId)));
+        assertTrue(minioStore.exists(SilverBundlePublisher.root(runId) + "/_SUCCESS"));
+        assertEquals(4, new SilverBundlePublisher(minioStore).verify(runId).path("datasets").size());
     }
 
     @Test
-    void testRealSampleDataMultiSourceEndToEndWithGoldHandoffVerification() throws Exception {
-        // Load real USGS 16-event sample
+    void testVerifiedBronzeRunsDifferFromProcessingRunWithoutLosingLineage() throws Exception {
+        var time = Instant.parse("2023-09-01T12:00:00Z");
+        var usgs = createObservation("USGS", "u", "r1", time, 35, 139, 10.0, 5.0, "VALID", null, "bronze-usgs");
+        var jma = createObservation("JMA_BULLETIN", "j", "r1", time, 35, 139, 10.0, 5.0, "VALID", "J", "bronze-jma");
+        var pins = java.util.Map.of("manifest-bronze-usgs", "bronze-usgs", "manifest-bronze-jma", "bronze-jma");
+        var result = runner.run("silver-processing", List.of(usgs, jma), List.of(),
+                SilverLinkConfig.defaultConfig(), null, false, EXEC_TIME, pins);
+        assertTrue(result.isPublishable()); assertEquals(2, result.reconciliationReport().totalValidCount());
+        assertEquals("silver-processing", result.reconciliationReport().runId());
+        assertEquals(java.util.Set.of("bronze-usgs", "bronze-jma"), result.allObservations().stream()
+                .map(SilverObservation::ingestRunId).collect(java.util.stream.Collectors.toSet()));
+        assertThrows(IOException.class, () -> runner.run("silver-processing", List.of(usgs, jma), List.of(),
+                SilverLinkConfig.defaultConfig(), null, false, EXEC_TIME, java.util.Map.of()));
+        var tampered = runner.run("silver-processing", List.of(usgs, jma), List.of(),
+                SilverLinkConfig.defaultConfig(), null, false, EXEC_TIME,
+                java.util.Map.of("manifest-bronze-usgs", "wrong-ingest", "manifest-bronze-jma", "bronze-jma"));
+        assertFalse(tampered.isPublishable()); assertEquals(1, tampered.reconciliationReport().totalRejectCount());
+        assertTrue(tampered.qualityResult().reasonCounts().containsKey("CONTRACT_MISMATCH"));
+    }
+
+    @Test
+    void testHistoryStoredButOnlyCurrentMembershipsReachGold() throws Exception {
+        String runId = "history-handoff";
+        Instant time = Instant.parse("2023-09-01T12:00:00Z");
+        var newer = createObservation("USGS", "u", "rev-2", time, 35, 139, 10.0, 5.0, "VALID", null, runId);
+        var older = createObservation("USGS", "u", "rev-1", time, 35, 139, 10.0, 4.8, "VALID", null, runId);
+        var jma = createObservation("JMA_BULLETIN", "j", "rel-1", time, 35, 139, 10.0, 5.0, "VALID", "J", runId);
+        Path root = tempDir.resolve("history-store"); var store = new FileSilverObjectStore(root);
+        var result = runner.run(runId, List.of(newer, older, newer, jma), List.of(),
+                SilverLinkConfig.defaultConfig(), store, true, EXEC_TIME);
+        assertEquals(4, result.writeResult().totalObservations());
+        assertEquals(2, result.reconciliationReport().totalCurrentCount());
+        assertEquals(1, result.reconciliationReport().totalDuplicateCount());
+        assertEquals(1, result.reconciliationReport().totalSupersededCount());
+        var observations = spark.read().parquet(result.writeResult().publishedPartitions().stream()
+                .flatMap(p -> p.files().stream()).map(f -> root.resolve(f.relativePath()).toString()).toArray(String[]::new));
+        var memberships = spark.read().parquet(root.resolve(result.writeResult().membershipFiles().get(0)).toString());
+        var links = spark.read().parquet(root.resolve(result.writeResult().linkFiles().get(0)).toString());
+        assertEquals(4, observations.count()); assertEquals(2, memberships.count());
+        var gold = new GoldEventTransformer().transform(observations, memberships, links,
+                spark.createDataFrame(List.<org.apache.spark.sql.Row>of(), GoldEventTransformer.REGION_SCHEMA),
+                new GoldRunContext(runId, time.minusSeconds(1), time.plusSeconds(1),
+                        LocalDate.of(2026, 10, 9), true, "test-v1", List.of("s3://fixture/manifest.json")), EXEC_TIME);
+        assertEquals(2, gold.currentObservationCount()); assertEquals(1, gold.eventCurrent().count());
+        assertEquals(2, gold.eventSourceBridge().count());
+        assertTrue(runner.run(runId, List.of(newer, older, newer, jma), List.of(),
+                SilverLinkConfig.defaultConfig(), store, true, EXEC_TIME).writeResult().idempotentReuse());
+    }
+
+    @Test
+    void testOfflineReformattedUsgsAndSyntheticJmaGoldHandoff() throws Exception {
+        // Offline fixture only: reformatted USGS + hand-built JMA, NOT verified Bronze/live evidence.
         Path realSamplePath = repositoryRoot().resolve("spark/src/test/resources/fixtures/real_samples/usgs_2023_window.geojson");
         byte[] realUsgsBytes = Files.readAllBytes(realSamplePath);
 
-        // JMA sample records for January 2023:
+        // Synthetic JMA records for deterministic accepted-match coverage:
         // Record 1 matching USGS event us7000j1n9 (2023-01-02T18:47:26.446Z -> JST 2023-01-03 03:47:26.45, 36.009N, 139.9001E, depth 98.49km, M4.4)
         // Record 2 solo JMA event in Tokyo Bay
         String jmaData = "J2023010303472645    0360054    01395400    09849   44J   711   3123IWAI REGION             042K\n"

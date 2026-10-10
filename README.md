@@ -13,7 +13,10 @@ Phạm vi, KPI và Definition of Done hiện hành nằm tại
 > MinIO bucket bootstrap, Airflow local runtime, Spark Java build/runtime,
 > Iceberg REST Catalog và Trino đã được triển khai và kiểm tra cùng nhau.
 > ORC-01 đã có khung DAG ETL/phase gates và tests mock; chưa có daily ETL thật
-> đến Gold Published (SLV-09, GLD-03/04 và QA-01 chưa hoàn tất).
+> đến Gold Published (GLD-03/04 và QA-01 chưa hoàn tất).
+> SLV-09 đã nghiệm thu Bronze thật USGS/JMA → immutable Silver → Gold
+> transformation/handoff và rerun trên mẫu bounded, chưa commit Gold.
+> Cách chạy và phạm vi ở [Silver integration](./docs/specs/SILVER_INTEGRATION.md).
 
 Source coverage USGS/JMA, vùng nghiên cứu, timezone và overlap được chốt tại
 [CON-01 source coverage contract](./docs/specs/SOURCE_COVERAGE.md). Kiểm tra
