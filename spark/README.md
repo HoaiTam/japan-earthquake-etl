@@ -135,6 +135,17 @@ dựa trên `event_time_utc` (UTC). Áp dụng quy trình staging nguyên tử (
 ghi đè sạch sẽ không append duplicate record. Tự động xuất marker `_SUCCESS` và `manifest.json`
 ghi nhận metadata partition, danh sách file, SHA-256, số dòng và summary chất lượng dữ liệu.
 
+`SLV-07` triển khai entity resolution và canonical event selection cho tầng Silver qua
+`SilverEntityResolver`, `SilverSourceLink`, `SilverCanonicalMembership`, `SilverLinkConfig`,
+`SilverMatchReport` và `SilverResolutionResult`. Resolver tính toán khoảng cách cầu lớn bằng công thức
+Haversine ($R = 6371.0\text{ km}$), sai khác thời gian UTC, chênh lệch depth và magnitude, đồng thời
+chuẩn hóa điểm tin cậy `match_score` $\in [0.0, 1.0]$. Hệ thống áp dụng ma trận ưu tiên nguồn chính thức
+theo CON-01/CON-03 (JMA hợp lệ từ mạng lưới Nhật Bản được ưu tiên làm `PRIMARY`, USGS làm fallback),
+ngăn chặn double-counting overlap (1 canonical event cho mỗi accepted pair), bảo toàn đầy đủ hai
+observation gốc trong `silver.canonical_membership`, duy trì các sự kiện đơn nguồn (unmatched/single-source)
+với trạng thái `PRIMARY` và `source_link_id = null`. Với các candidate matches bị xung đột hoặc chênh
+lệch điểm số không đáng kể (`AMBIGUOUS`), engine kích hoạt nguyên tắc an toàn `auto_merge = false` để
+giữ nguyên từng observation thành một canonical event độc lập và gắn nhãn lý do `AMBIGUOUS_SOURCE_MATCH`.
 `GLD-01` thêm Spark DataFrame transformation trong package `gold`: current event,
 source bridge, natural/ROI view và dimensions/bands. API dùng canonical membership
 đã resolve từ Silver; không tạo canonical ID lại. Input/test/handoff nằm tại

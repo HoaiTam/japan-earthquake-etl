@@ -72,6 +72,28 @@ public final class SilverSchemas {
             .add("parser_version", DataTypes.StringType, false)
             .add("rejected_at_utc", DataTypes.TimestampType, false);
 
+    public static final StructType SOURCE_LINK_SCHEMA = new StructType()
+            .add("source_link_id", DataTypes.StringType, false)
+            .add("left_observation_id", DataTypes.StringType, false)
+            .add("right_observation_id", DataTypes.StringType, false)
+            .add("time_delta_seconds", DataTypes.DoubleType, false)
+            .add("distance_km", DataTypes.DoubleType, false)
+            .add("depth_delta_km", DataTypes.DoubleType, true)
+            .add("magnitude_delta", DataTypes.DoubleType, true)
+            .add("match_score", DataTypes.DoubleType, false)
+            .add("link_decision", DataTypes.StringType, false)
+            .add("decision_reason_codes", DataTypes.createArrayType(DataTypes.StringType), false)
+            .add("match_model_version", DataTypes.StringType, false)
+            .add("decided_at_utc", DataTypes.TimestampType, false);
+
+    public static final StructType CANONICAL_MEMBERSHIP_SCHEMA = new StructType()
+            .add("canonical_event_id", DataTypes.StringType, false)
+            .add("source_observation_id", DataTypes.StringType, false)
+            .add("membership_status", DataTypes.StringType, false)
+            .add("source_link_id", DataTypes.StringType, true)
+            .add("canonical_model_version", DataTypes.StringType, false)
+            .add("assigned_at_utc", DataTypes.TimestampType, false);
+
     private SilverSchemas() {
     }
 
@@ -89,5 +111,21 @@ public final class SilverSchemas {
     public static Dataset<Row> toRejectDataset(SparkSession spark, List<SilverRejectRecord> rejects) {
         List<Row> rows = rejects.stream().map(SilverRejectRecord::toRow).collect(Collectors.toList());
         return spark.createDataFrame(rows, REJECT_SCHEMA);
+    }
+
+    /**
+     * Creates a Spark Dataset of Rows from a list of SilverSourceLink records.
+     */
+    public static Dataset<Row> toSourceLinkDataset(SparkSession spark, List<SilverSourceLink> links) {
+        List<Row> rows = links.stream().map(SilverSourceLink::toRow).collect(Collectors.toList());
+        return spark.createDataFrame(rows, SOURCE_LINK_SCHEMA);
+    }
+
+    /**
+     * Creates a Spark Dataset of Rows from a list of SilverCanonicalMembership records.
+     */
+    public static Dataset<Row> toCanonicalMembershipDataset(SparkSession spark, List<SilverCanonicalMembership> memberships) {
+        List<Row> rows = memberships.stream().map(SilverCanonicalMembership::toRow).collect(Collectors.toList());
+        return spark.createDataFrame(rows, CANONICAL_MEMBERSHIP_SCHEMA);
     }
 }
