@@ -7,7 +7,7 @@ workstream: "Silver storage"
 scope: "Core"
 priority: "P0"
 effort_hours: 5
-assignee: "Trang"
+assignee: "rosy179"
 reviewer: "unassigned"
 dependencies: ["CON-03"]
 ---
@@ -63,7 +63,7 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 ## Theo dõi
 
 - **Trạng thái:** Done
-- **Assignee:** Trang
+- **Assignee:** rosy179 
 - **Reviewer:** unassigned
 - **Evidence / PR:** Hoàn tất trên branch `feat/slv-08-ghi-silver-parquet-theo-source`. Đã triển khai đầy đủ `SilverPartitionKey`, `SilverStorageLayout`, `SilverPartitionManifest`, `SilverObjectStore` (với `FileSilverObjectStore` và `MinioSilverObjectStore`), `SilverParquetSerializer`, `SilverParquetWriter`, `SilverWriteRequest` và `SilverWriteResult`. Module tổ chức partition theo đúng thứ bậc `source_observation/event_year_utc=YYYY/event_month_utc=MM/source_system=<source_system>` và `reject_record/event_year_utc=YYYY/event_month_utc=MM/source_system=<source_system>` dựa trên `event_time_utc` (UTC). Áp dụng quy trình atomic staging (`_staging/<run_id>/...`), đối soát checksum SHA-256, schema và row count trước khi promote vào partition chính thức; đảm bảo retry/rerun ghi đè sạch sẽ không append duplicate record. Tự động xuất marker `_SUCCESS` và `manifest.json` ghi nhận metadata partition, danh sách file, SHA-256, số dòng và summary chất lượng dữ liệu. Bộ test suite Spark đạt 71/71 tests (bao gồm 10 tests mới trong `SilverParquetWriterTest` và 2 tests trong `MinioSilverObjectStoreTest`). Các kịch bản `check-spark.sh`, `check-week-3-plan.sh`, `check-repository-layout.sh`, `check-mvp-baseline.sh` và `git diff --check` đều đạt. Reviewer giữ `unassigned`.
 - **Kỹ năng phù hợp:** Parquet, Spark, MinIO

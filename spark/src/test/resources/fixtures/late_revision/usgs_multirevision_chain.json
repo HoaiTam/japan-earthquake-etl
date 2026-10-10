@@ -1,0 +1,51 @@
+{
+  "description": "Synthetic multi-revision USGS chain with out-of-order updates and duplicates",
+  "events": [
+    {
+      "revision_order": 1,
+      "feature_id": "fx-usgs-rev-chain-01",
+      "mag": 4.0,
+      "time_millis": 1696442521250,
+      "updated_millis": 1696443000000,
+      "status": "automatic",
+      "coordinates": [140.25, 36.5, 25.0]
+    },
+    {
+      "revision_order": 2,
+      "feature_id": "fx-usgs-rev-chain-01",
+      "mag": 4.2,
+      "time_millis": 1696442521250,
+      "updated_millis": 1696446600000,
+      "status": "reviewed",
+      "coordinates": [140.25, 36.5, 24.0]
+    },
+    {
+      "revision_order": 3,
+      "feature_id": "fx-usgs-rev-chain-01",
+      "mag": 4.3,
+      "time_millis": 1696442521250,
+      "updated_millis": 1696450000000,
+      "status": "reviewed",
+      "coordinates": [140.24, 36.51, 23.5]
+    },
+    {
+      "revision_order": 4,
+      "feature_id": "fx-usgs-rev-chain-01",
+      "mag": 4.3,
+      "time_millis": 1696442521250,
+      "updated_millis": 1696450000000,
+      "status": "reviewed",
+      "coordinates": [140.24, 36.51, 23.5],
+      "is_duplicate_of_revision_3": true
+    },
+    {
+      "revision_order": 1,
+      "feature_id": "fx-usgs-single-02",
+      "mag": 5.0,
+      "time_millis": 1696448000000,
+      "updated_millis": 1696449000000,
+      "status": "reviewed",
+      "coordinates": [141.0, 37.0, 30.0]
+    }
+  ]
+}
