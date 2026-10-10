@@ -110,7 +110,7 @@ fixture/inventory; assignee `HoaiTam`, reviewer `unassigned`. Xem
 | [GLD-01](./GLD-01.md) - Xây canonical event, dimensions và bands | 4 | Analytics model | Core | P0 | 6h | Done |
 | [GLD-02](./GLD-02.md) - Tạo aggregate phục vụ dashboard | 4 | Aggregates | Stretch | P2 | 4h | Backlog |
 | [GLD-03](./GLD-03.md) - Ghi Gold Iceberg và commit snapshot | 4 | Iceberg publish | Core | P0 | 6h | Done |
-| [GLD-04](./GLD-04.md) - Tạo Trino views và verification SQL | 4 | Trino verification | Core | P0 | 4h | Backlog |
+| [GLD-04](./GLD-04.md) - Tạo Trino views và verification SQL | 4 | Trino verification | Core | P0 | 4h | Done |
 
 ## F - Điều phối
 

@@ -1,6 +1,6 @@
 ---
 task_id: "GLD-04"
-status: "Backlog"
+status: "Done"
 week: 4
 block: "E - Gold & Serving"
 workstream: "Trino verification"
@@ -35,9 +35,9 @@ Khai báo schema/views Gold; kiểm tra uniqueness, completeness, source/catalog
 
 ## Tiêu chí hoàn thành
 
-- [ ] Trino đọc current snapshot.
-- [ ] mọi blocker đạt trước Published.
-- [ ] schema Gold/ML input khớp contract và snapshot ID truy vết được.
+- [x] Trino đọc current snapshot.
+- [x] mọi blocker đạt trước Published.
+- [x] schema Gold/ML input khớp contract và snapshot ID truy vết được.
 
 ## Hard dependency
 
@@ -48,7 +48,7 @@ Khai báo schema/views Gold; kiểm tra uniqueness, completeness, source/catalog
 ### Phân công tuần 4
 
 - **Owner / effort:** Trang, 4h Core; thuộc khối Gold + ML identity/contract/security trong [kế hoạch tuần 4](../WEEK_4_PARALLEL_PLAN.md). Chuyển từ ThanhTris để giữ chuỗi Gold → snapshot pin cùng owner; review SQL vẫn đề xuất ThanhTris, chưa ghi approval.
-- **Làm trước:** Trino SQL, expected output và query harness theo CON-03 khi làm GLD-01/03; hiện Backlog vì chưa bắt đầu. Khi làm phần chuẩn bị được phép, ghi In Progress và dependency GLD-03 còn chờ.
+- **Tiến độ:** GLD-03 có six-table snapshot thật trên branch dependency và PR #62. GLD-04 đã verify bằng Trino 483: sáu schemas, 37 numeric checks, PASSED publication và rerun không đổi. Coverage chỉ là pilot USGS, không phải full-month/research period.
 - **Làm gì / có gì:** Natural/ROI serving views, uniqueness/completeness/provenance/source-era/schema queries, snapshot consistency và verification report gắn Gold run/snapshot.
 - **Dùng để làm gì:** Kiểm chứng Gold độc lập với Spark; chỉ passed snapshot được Published và được MLD-01 pin. Aggregate dashboard GLD-02 không phải gate của task này.
 - **Handoff:** Nhận table identity/snapshot/commit metadata từ GLD-03; trả verify status/reasons và publication evidence. Verify đúng snapshot vừa commit, không query latest mơ hồ rồi gắn một ID khác.
@@ -71,19 +71,19 @@ Khai báo schema/views Gold; kiểm tra uniqueness, completeness, source/catalog
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
+- **Trạng thái:** Done
 - **Assignee:** Trang
-- **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Reviewer:** unassigned; chưa có review độc lập, không ghi approval.
+- **Evidence / PR:** [Runtime và test evidence](../../evidence/GLD-04.md), [receipt thật](../../evidence/GLD-04-runtime.json), [verification và MLD-01 resolve SQL](../../evidence/GLD-04-verification.sql), [contract publication](../../specs/GOLD_TRINO_PUBLICATION.md). Maven verify 7 tests pass; Python control 4 tests pass; Compose config, config/secret hygiene, task status (73 tasks), Java build inputs, CON-03 và diff check pass. Changed-file scan với 7 credential values QA không có leak. PR GLD-04 sẽ được mở sau commit; GLD-03 dependency là [PR #62](https://github.com/HoaiTam/japan-earthquake-etl/pull/62).
 - **Kỹ năng phù hợp:** Trino, SQL, data quality
 
 ## Checklist bàn giao
 
-- [ ] Deliverable đã có trong repository hoặc môi trường demo.
-- [ ] Acceptance criteria đã được kiểm tra.
-- [ ] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
-- [ ] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
-- [ ] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
+- [x] Deliverable đã có trong repository hoặc môi trường demo.
+- [x] Acceptance criteria đã được kiểm tra.
+- [x] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
+- [x] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
+- [x] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
 - [ ] P0/P1 có reviewer khác assignee xác nhận.
 
 ## Tài liệu liên quan
