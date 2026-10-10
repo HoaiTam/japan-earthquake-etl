@@ -1,13 +1,13 @@
 ---
 task_id: "MLD-03"
-status: "Backlog"
+status: "In Progress"
 week: 4
 block: "G - ML Dataset"
 workstream: "Mainshock and candidate windows"
 scope: "Core"
 priority: "P0"
 effort_hours: 7
-assignee: "ThanhTris"
+assignee: "rosy179"
 reviewer: "unassigned"
 dependencies: ["MLD-01", "MLD-02"]
 ---
@@ -66,10 +66,10 @@ lập có version; integration chỉ thay input bằng output thật của `MLD-
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
-- **Assignee:** ThanhTris
-- **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Trạng thái:** In Progress
+- **Assignee:** rosy179
+- **Reviewer:** unassigned; chưa có review độc lập
+- **Evidence / PR:** In progress; Mainshock candidate selection, versioned window resolver (Gardner-Knopoff & Uhrhammer), range join engine và test suite đang được triển khai.
 - **Kỹ năng phù hợp:** Spark range join, geospatial filtering, test design
 
 ## Checklist bàn giao
