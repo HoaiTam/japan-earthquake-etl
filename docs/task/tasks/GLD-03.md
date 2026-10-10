@@ -1,6 +1,6 @@
 ---
 task_id: "GLD-03"
-status: "Backlog"
+status: "Done"
 week: 4
 block: "E - Gold & Serving"
 workstream: "Iceberg publish"
@@ -35,10 +35,10 @@ Tạo schema/table Iceberg, write affected partitions, commit snapshot, ghi snap
 
 ## Tiêu chí hoàn thành
 
-- [ ] Consumer chỉ thấy snapshot hoàn chỉnh.
-- [ ] lỗi commit không đánh dấu Published.
-- [ ] rerun không tạo duplicate logic.
-- [ ] Snapshot ID/publication metadata đủ để `MLD-01` pin và time-travel.
+- [x] Consumer chỉ thấy snapshot hoàn chỉnh.
+- [x] lỗi commit không đánh dấu Published.
+- [x] rerun không tạo duplicate logic.
+- [x] Snapshot ID/publication metadata đủ để `MLD-01` pin và time-travel.
 
 ## Hard dependency
 
@@ -49,7 +49,7 @@ Tạo schema/table Iceberg, write affected partitions, commit snapshot, ghi snap
 ### Phân công tuần 4
 
 - **Owner / effort:** Trang, 6h Core; xem [kế hoạch tuần 4](../WEEK_4_PARALLEL_PLAN.md).
-- **Làm trước:** DDL, mock storage/catalog, commit/failure/rerun test plan theo CON-03; hiện Backlog vì chưa bắt đầu. Khi làm phần chuẩn bị được phép, ghi In Progress và dependency GLD-01 còn chờ.
+- **Làm trước:** DDL, mock storage/catalog, commit/failure/rerun test plan theo CON-03; đã có writer production, actual Iceberg tests và MinIO readback; GLD-01 đã Done.
 - **Làm gì / có gì:** Spark Iceberg writer dùng catalog/warehouse QRY-01, affected-scope write, snapshot commit và metadata run/table/snapshot đủ pin/time-travel; không append duplicate hoặc overwrite ngoài phạm vi.
 - **Dùng để làm gì:** Gold bền vững trên MinIO, không tạo business database/copy riêng; consumer đọc snapshot hoàn chỉnh.
 - **Handoff:** Nhận Gold outputs GLD-01, input thật sau SilverReady SLV-09; gửi exact snapshot/commit/scope cho GLD-04. Commit chưa có nghĩa Published, verification fail không tạo passed publication.
@@ -72,19 +72,19 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
+- **Trạng thái:** Done
 - **Assignee:** Trang
-- **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Reviewer:** unassigned — chưa review độc lập
+- **Evidence / PR:** [Runtime và checks](../../evidence/GLD-03.md), [exact receipt](../../evidence/GLD-03-runtime.json); PR chưa mở
 - **Kỹ năng phù hợp:** Iceberg, Spark, MinIO
 
 ## Checklist bàn giao
 
-- [ ] Deliverable đã có trong repository hoặc môi trường demo.
-- [ ] Acceptance criteria đã được kiểm tra.
-- [ ] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
-- [ ] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
-- [ ] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
+- [x] Deliverable đã có trong repository hoặc môi trường demo.
+- [x] Acceptance criteria đã được kiểm tra.
+- [x] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
+- [x] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
+- [x] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
 - [ ] P0/P1 có reviewer khác assignee xác nhận.
 
 ## Tài liệu liên quan

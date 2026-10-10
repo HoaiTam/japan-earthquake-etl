@@ -1,0 +1,7 @@
+FROM apache/spark:3.5.9-scala2.12-java17-ubuntu
+
+USER root
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends python3 \
+    && rm -rf /var/lib/apt/lists/*
+USER spark
