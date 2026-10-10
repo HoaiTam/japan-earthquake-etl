@@ -63,6 +63,15 @@ make up-query
 
 ## Kiểm thử không gọi nguồn dữ liệu thật
 
+CI có ba entrypoint độc lập: `make ci-docs`, `make ci-java`, `make ci-airflow`;
+`make ci` chạy cả ba tuần tự. `ci-docs` cần PyYAML tại
+`tests/ci/requirements.txt`, jq/rg và Compose CLI, cố ý bỏ qua `.env` riêng và
+chỉ validate Compose với example. Java CI dùng JDK 17 và `clean verify`.
+`make test-ci-workflow` kiểm tra YAML guardrails; actionlint là bước riêng trên
+GitHub. Những target `test` hiện có không đổi dependency. Xem
+[CI guide](./conventions_and_workflow/CONTINUOUS_INTEGRATION.md) để cài công cụ,
+đọc checks và thiết lập chặn merge. Không target CI nào start service hoặc gọi nguồn thật.
+
 ```bash
 make test
 ```
