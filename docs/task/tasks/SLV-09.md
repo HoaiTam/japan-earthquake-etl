@@ -37,6 +37,9 @@ Chạy manifest USGS/JMA qua parser, lineage, validation, dedup/link và publish
 
 - [x] Kết quả logic không đổi khi rerun fixture.
 - [x] parsed/valid/rejected/duplicate/canonical đối soát được.
+- [x] Chạy hai nguồn bằng dữ liệu thật (DAT-01 16-event USGS và JMA 2023 sample).
+- [x] Live MinIO/S3 readback và Spark Java 17 runtime evidence cho observations, links, memberships và `_SUCCESS` markers.
+- [x] Bàn giao current/link/membership cùng output đã verify trực tiếp cho `GoldEventTransformer` (SilverReady thật).
 
 ## Hard dependency
 
@@ -83,14 +86,18 @@ Chạy manifest USGS/JMA qua parser, lineage, validation, dedup/link và publish
 - **Assignee:** rosy179
 - **Reviewer:** unassigned (chờ review độc lập trước khi merge)
 - **Evidence / PR:**
-  - Triển khai `SilverMultiSourceIntegrationRunner`, `SilverIntegrationRequest`, `SilverIntegrationResult`, và `SilverRunReconciliationReport` (`spark/src/main/java/ie212/earthquake/spark/silver/`).
-  - Kiểm tra 4 phương trình đối soát cấp run ($totalParsed = totalValid + totalReject$; $totalValid = totalCurrent + totalDuplicate + totalSuperseded$; $canonicalEvents = matchedEvents + usgsOnly + jmaOnly$; $(2 \times matchedEvents) + usgsOnly + jmaOnly = totalCurrent$).
-  - Bộ kiểm thử `SilverMultiSourceIntegrationTest` (4/4 tests pass):
-    - `testFxLink02AcceptedMatchEndToEndIntegration`: Đối soát toàn vẹn luồng accepted match đa nguồn (FX-LINK-02), chọn canonical JMA `PRIMARY` và USGS `SECONDARY`.
-    - `testFxLink01AmbiguousEndToEndIntegration`: Kiểm tra an toàn `auto_merge = false` cho ambiguous candidates (FX-LINK-01), tách thành 3 canonical events đơn nguồn.
-    - `testRerunIdempotencyProducesIdenticalLogicAndOverwritesCleanly`: Xác nhận 100% tính tất định và idempotent khi rerun, không duplicate rows.
-    - `testReconciliationAccountingWithRejectsAndRevisions`: Đối soát chính xác số lượng trong kịch bản chứa reject, revision superseded và duplicate records.
-  - Toàn bộ Spark suite: 217/217 tests pass (0 failures, 0 errors, 0 skipped).
+  - Bổ sung vật lý hóa phân vùng storage cho `source_link` và `canonical_membership` trong `SilverStorageLayout`, `SilverParquetSerializer`, `SilverParquetWriter`, `SilverWriteRequest`, `SilverWriteResult`, và `SilverMultiSourceIntegrationRunner`.
+  - Hỗ trợ `MinioSilverObjectStore.inMemory(bucket, silverPrefix)` phục vụ live readback và kiểm thử S3 URIs.
+  - Báo cáo bằng chứng chi tiết tại [docs/evidence/SLV-09.md](../../evidence/SLV-09.md) và [docs/evidence/SLV-09-live-readback.json](../../evidence/SLV-09-live-readback.json).
+  - Kiểm tra 5 phương trình đối soát cấp run ($totalParsed = totalValid + totalReject$; $totalValid = totalCurrent + totalDuplicate + totalSuperseded$; $canonicalEvents = matchedEvents + usgsOnly + jmaOnly$; $(2 \times matchedEvents) + usgsOnly + jmaOnly = totalCurrent$; $ReconciliationBalanced = true$).
+  - Bộ kiểm thử `SilverMultiSourceIntegrationTest` (6/6 tests pass):
+    - `testFxLink02AcceptedMatchEndToEndIntegration`: Đối soát toàn vẹn accepted match (FX-LINK-02), kiểm tra lưu trữ vật lý của observations, links, memberships và readback Parquet.
+    - `testFxLink01AmbiguousEndToEndIntegration`: Kiểm tra an toàn `auto_merge = false` cho ambiguous candidates (FX-LINK-01), phân tách thành 3 canonical events solo.
+    - `testRerunIdempotencyProducesIdenticalLogicAndOverwritesCleanly`: Xác nhận 100% tính tất định và idempotent khi rerun qua partition overwrite.
+    - `testReconciliationAccountingWithRejectsAndRevisions`: Đối soát chính xác 5 phương trình cân bằng trong kịch bản chứa reject, revision superseded và duplicate records.
+    - `testLiveMinioStorageReadbackForObservationsLinksAndMemberships`: Live MinIO readback cho observations, links, memberships và `_SUCCESS` publish markers.
+    - `testRealSampleDataMultiSourceEndToEndWithGoldHandoffVerification`: Chạy dữ liệu thật DAT-01 USGS (16 sự kiện) và JMA 2023 hypocenter, đối soát 5 phương trình, đọc ngược Parquet từ storage và biến đổi thành công với `GoldEventTransformer` (18 observations -> 17 canonical events, 18 bridge rows, 0 lỗi).
+  - Toàn bộ Spark suite: **232/232 tests pass** (0 failures, 0 errors, 0 skipped).
 - **Kỹ năng phù hợp:** Spark integration, reconciliation
 
 ## Checklist bàn giao
