@@ -1,126 +1,123 @@
-# SLV-09 — Evidence Tích Hợp Silver Đa Nguồn, MinIO Readback và Gold Handoff
+# SLV-09 — Evidence bản vá verified Bronze / immutable Silver
 
-## 1. Baseline và Môi Trường
+## Baseline và đính chính
 
-- **Task**: `SLV-09` — Tích hợp Silver đa nguồn và kiểm thử.
-- **Task Owner**: `HoaiTam`, Reviewer: `unassigned`.
-- **Branch**: `feat/slv-09-tich-hop-va-kiem-thu`.
-- **Runtime Environment**:
-  - JDK: `23.0.2` (với `--release 17` target, Java SecurityManager allowed `-Djava.security.manager=allow`).
-  - Apache Spark: `3.5.9` (phân tán & standalone local execution, timezone `UTC`).
-  - Storage Backend: `MinioSilverObjectStore` & `FileSilverObjectStore` (mô hình hóa cấu trúc S3/MinIO `s3://<bucket>/<prefix>/...`).
-- **Contracts Tuân Thủ**:
-  - `CON-01/1.0`: Phạm vi không gian (Japan ROI: lat 20°–50°N, lon 120°–155°E), ngưỡng dung sai liên kết.
-  - `CON-02/1.0`: Chuẩn Bronze payload và manifest lineage.
-  - `CON-03/1.0`: Mô hình dữ liệu Silver & Gold, cấu trúc bảng `silver.source_observation`, `silver.reject_record`, `silver.source_link`, `silver.canonical_membership` và `gold.dim_event_current`.
+Branch `fix/slv-09-verified-bronze-handoff` bắt đầu đúng head PR #58
+`775afe87f54864934d7ae8388845a3c5743a16cc` bằng `gh pr checkout 58`.
+Assignee HoaiTam; reviewer unassigned.
 
----
+Evidence cũ bị thay thế: in-memory S3 URI không phải MinIO live; hai JMA records
+tạo bằng tay không phải archive thật; compile release 17 trên JDK 23 không chứng
+minh runtime Java 17. Counts 18/17 thuộc fixture offline, không phải live receipt.
 
-## 2. Giải Quyết Nhận Xét Của Nhóm ("SLV-09 Đang Done Quá Sớm")
+## Kiểm thử
 
-Nhận xét của nhóm chỉ ra 3 điểm thiếu sót then chốt trong bản trước:
-1. **Thiếu Persistence cho Linking và Canonical Membership**: Bản trước runner chỉ ghi `observations` và `rejects` xuống Parquet; kết quả `source_link` và `canonical_membership` chỉ được trả về trong RAM mà không lưu trữ vào storage.
-2. **Thiếu Live MinIO Readback & Verification**: Chưa có kiểm thử đọc ngược lại dữ liệu thực tế từ MinIO/S3 URI để xác nhận tính toàn vẹn của file Parquet và cấu trúc thư mục phân vùng.
-3. **Thiếu Bằng Chứng Chuyển Giao Gold Thực Tế (SilverReady)**: Cần chứng minh dữ liệu Silver lưu trữ thực sự sẵn sàng để downstream Gold (`GoldEventTransformer`) đọc và biến đổi thành công mà không có lỗi.
+- 8 Python control-plane tests pass: lease, busy/contender, same request/rerun,
+  timeout giữ lease, release sau confirmed idle, receipt/runtime sai, bounded
+  600s submit profile một core và sanitized failure metadata.
+- Toàn bộ 253 Java tests pass, Maven `verify` BUILD SUCCESS trên JDK 21.0.11
+  (compile release 17): 11 bundle, 8 integration, 11 legacy writer, 5 live-job
+  scope, 3 MinIO stat, 1 cross-process (sáu JVM độc lập) và các suites
+  parser/dedup/link/Gold/ML hiện có; bản cuối hoàn tất 2026-10-10 15:26 +07.
+  Command thực tế: `JAVA_HOME=<Azul JDK21> ./mvnw --offline --batch-mode
+  --no-transfer-progress -pl spark -am verify`.
+- Coverage: empty datasets, context conflict, partial failure/resume, final
+  corruption, manifest/marker validation, regression stale SUCCESS trên S3
+  prefix, accepted/ambiguous/revision/reject và persisted offline Gold handoff.
+- Regression mới xác nhận ingest ID Bronze khác run xử lý Silver: whitelist
+  từ verified manifest giữ lineage gốc; manifest chưa resolve hoặc ingest ID
+  bị đổi vẫn chặn. Không sửa gate, sample hay payload để làm test pass.
+- `make test-airflow`: 181 tests pass; `make test-contracts` và
+  `make check-task-status check-data-model-contract check-compose check-config`
+  pass. Python control-plane SLV-09 được chạy riêng với 8 tests ở trên.
+- Live smoke cuối **pass cả hai submit**, JSON đi kèm đã thay bằng receipt thật.
+  Không gọi host JDK21 là runtime Java17; runtime thật là Java 17.0.19/Spark3.5.9.
 
-### Các Thay Đổi Kiến Trúc Đã Hoàn Thiện:
-1. **Mở Rộng Silver Storage Layout (`SilverStorageLayout.java`)**:
-   - Thêm đường dẫn phân vùng chuẩn cho `source_link/run_id=<RUN_ID>` và `canonical_membership/run_id=<RUN_ID>`.
-   - Thêm đường dẫn staging cô lập `_staging/<RUN_ID>/source_link/...` và `_staging/<RUN_ID>/canonical_membership/...`.
-   - Thêm file đánh dấu publish atomic `_SUCCESS` cho từng phân vùng link và membership.
-2. **Parquet Schemas và Serialization (`SilverParquetSerializer.java`)**:
-   - Định nghĩa `SOURCE_LINK_PARQUET_SCHEMA` theo CON-03 Section 8.1.
-   - Định nghĩa `CANONICAL_MEMBERSHIP_PARQUET_SCHEMA` theo CON-03 Section 8.2.
-   - Thêm phương thức tuần tự hóa `serializeSourceLinks(...)` và `serializeCanonicalMemberships(...)`.
-3. **Mở Rộng Parquet Writer Atomic (`SilverParquetWriter.java`)**:
-   - Tự động ghi cả `links` và `memberships` qua 3 bước: Staging -> Readback Checksum Verification -> Partition Overwrite Promote -> Tạo `_SUCCESS` marker.
-   - Xóa sạch thư mục staging sau khi publish hoàn tất.
-4. **Cập Nhật Multi-Source Runner (`SilverMultiSourceIntegrationRunner.java`)**:
-   - Tự động đóng gói kết quả `sourceLinks()` và `canonicalMemberships()` vào `SilverWriteRequest` để lưu trữ vật lý song song với observations.
-5. **MinIO In-Memory Provider (`MinioSilverObjectStore.java`)**:
-   - Bổ sung `MinioSilverObjectStore.inMemory(bucket, silverPrefix)` cho phép kiểm thử các tương tác S3/MinIO sống động mà không phụ thuộc vào daemon mạng bên ngoài.
+## Nghiệm thu live cuối — Done
 
----
+Command thực tế dùng mode bind JAR mới read-only, không restart foundation:
+`make smoke-silver-integration SILVER_RUNNER_JAR="$(pwd)/spark/target/japan-earthquake-etl-runner.jar"`.
+Runner JAR SHA `4c5e958e2114cbacd783d6e99efbbc2683339d324150450d90e60989328723a0`.
+Run `slv09-live-59a5e3725b14453e89a127eb2c8a70d2`, standalone
+`spark://spark-master:7077`; ứng dụng `app-20261010082720-0006` và
+`app-20261010082832-0007` đều Gold handoff verified, Gold Published = false.
 
-## 3. Bằng Chứng Dữ Liệu Thật (DAT-01 Real Samples)
+- 16 USGS + 256 JMA 2000 + 256 JMA 2023 = **528** parsed/valid/current.
+- Rejected/duplicate/superseded/candidate/accepted/ambiguous = **0**.
+- Observation **528**, reject **0**, link **0**, membership **528**;
+  cả bốn dataset có exact manifest/SHA/count và final Parquet readback.
+- Gold current/canonical/bridge = **528/528/528**, gồm 16 USGS-only và 512 JMA-only.
+  Empty link không phải coverage accepted match; accepted/ambiguous có fixture riêng.
+- Attempt 1 `idempotent_reuse=false`; attempt 2 `true`; `rerun_unchanged=true`.
+  Bundle SHA `2fdf83893ede773c811d5b83117c42b05920e680d4a078ecaf036a3f00340b21`,
+  identity `198f0881ca9a3c2405be76945da68ad1888b9ae66eb27f5c699a795899f586f9`
+  và mọi dataset/count/SHA không đổi giữa hai JVM độc lập.
+- Driver cgroup peak **484462592 bytes** (~462 MiB), OOM/oom_kill **0**;
+  không dùng số này để bảo đảm sizing toàn catalog/Gold commit.
+- Whole-run lease released. Fresh read-only SDK sau smoke xác nhận bundle SHA,
+  marker, serialization policy; source owner không tồn tại và Spark app list rỗng.
+- Full final Docker image rebuild chưa chạy lại sau lần build đầu bắt source
+  snapshot trước sửa test; không dùng lần build lỗi đó làm evidence pass.
+  Bản cuối đã `mvn verify`/package và chạy thực bằng JAR trên runtime Java17.
 
-Đã tích hợp và kiểm thử end-to-end với dữ liệu thật từ DAT-01 catalog:
-- **USGS Real Sample**: File GeoJSON thật gồm **16 trận động đất** trong cửa sổ dữ liệu `[2023-01-01T00:00:00Z, 2023-01-04T00:00:00Z)` (SHA-256: `8667f9b7ac02ce0e88c78767bd51dee1fdf1292ac987a7cdc00c3aaec6b0545e`).
-- **JMA Sample 2023**: Định dạng fixed-width 96-byte hypocenter của JMA cho tháng 01/2023 (gồm 1 bản ghi khớp với USGS trận động đất Iwai và 1 bản ghi JMA độc lập tại Tokyo Bay).
+Exact metadata, hai receipts/run context/input pins/cgroup nằm trong
+[SLV-09-live-readback.json](./SLV-09-live-readback.json). Report runtime giữ tại
+`/opt/pipeline/staging/backfill/qa/slv09-live-59a5e3725b14453e89a127eb2c8a70d2/integration_report.json`.
+Chỉ metadata nhỏ được commit; raw/Parquet/JAR/private logs không nằm trong Git.
 
-### Kết Quả Đối Soát & 5 Phương Trình Cân Bằng (`SilverRunReconciliationReport`):
-- **Tổng Parsed**: 18 bản ghi (16 USGS + 2 JMA).
-- **Tổng Valid**: 18 bản ghi; **Tổng Reject**: 0.
-- **Tổng Current**: 18 bản ghi; **Duplicate**: 0; **Superseded**: 0.
-- **Liên Kết Đa Nguồn**:
-  - Cặp ứng viên đánh giá: 16 cặp.
-  - Liên kết được chấp nhận (`ACCEPTED`): 1 liên kết (USGS `us7000j1n9` khớp với JMA `0360054/01395400`).
-  - Liên kết mơ hồ (`AMBIGUOUS`): 0.
-- **Sự Kiện Chuẩn (Canonical Events)**: 17 sự kiện canonical:
-  - 1 sự kiện khớp (`MATCHED` — có cả USGS và JMA).
-  - 15 sự kiện chỉ có USGS (`USGS_ONLY`).
-  - 1 sự kiện chỉ có JMA (`JMA_ONLY`).
-- **5 Phương Trình Cân Bằng Đạt Tuyệt Đối**:
-  1. `Parsed = Valid + Rejects` (18 = 18 + 0).
-  2. `Valid = Current + Duplicate + Superseded` (18 = 18 + 0 + 0).
-  3. `Canonical = Matched + UsgsOnly + JmaOnly` (17 = 1 + 15 + 1).
-  4. `Bridge Count = Observations Current` (18 = 18).
-  5. `Reconciliation Balanced = true` (Toàn bộ dữ liệu cân bằng tuyệt đối không rò rỉ).
+## Lịch sử lỗi và regression đã sửa
 
----
+Smoke đầu bị chặn trước Silver writes: 528/528 `CONTRACT_MISMATCH` vì overload
+pre-parsed cũ buộc `ingest_run_id == processing run_id`. Parsed/raw SHA đúng,
+source lease được nhả sau khi xác nhận cluster idle. Bản vá xác minh lineage
+theo từng Bronze manifest thay vì làm mất ingest ID; selection vẫn là 256 dòng
+đầu/archive. Đây là lỗi integration context, không phải 528 raw records hỏng.
 
-## 4. Bằng Chứng Live Readback Từ MinIO/S3 Storage
+Run tiếp theo `slv09-live-68acf1dbcb37450c9b0f65cefbaece75` ghi/verify bundle
+Silver nhưng chưa hoàn tất Gold handoff trong profile 300s; stdout receipt rỗng,
+stderr cuối có các count jobs hoàn tất và không có Java exception. Không được
+dùng run đó làm evidence handoff thành công. Đã xác nhận app list rỗng, worker
+0 cores/0 memory used và lease null trước khi chạy lại. Profile cuối dùng 600s,
+tắt AQE/whole-stage codegen như offline integration (không bỏ quality/validation
+hoặc distributed actions). Scoped QA artifacts được giữ, không xóa data/volume.
 
-Kết quả chạy kiểm thử `testLiveMinioStorageReadbackForObservationsLinksAndMemberships`:
-- **MinIO Bucket**: `earthquake-lake`, **Prefix**: `silver`.
-- **Observations Parquet**:
-  - `s3://earthquake-lake/silver/source_observation/event_year_utc=2023/event_month_utc=09/source_system=USGS/part-00000-run-slv09-minio-live.parquet`: 1 dòng, đọc ngược và kiểm tra schema thành công.
-  - `s3://earthquake-lake/silver/source_observation/event_year_utc=2023/event_month_utc=09/source_system=JMA_BULLETIN/part-00000-run-slv09-minio-live.parquet`: 2 dòng, đọc ngược và kiểm tra schema thành công.
-- **Source Link Parquet**:
-  - `s3://earthquake-lake/silver/source_link/run_id=run-slv09-minio-live/part-00000-run-slv09-minio-live.parquet`: 1 bản ghi link được ghi và xác thực schema `SOURCE_LINK_PARQUET_SCHEMA`.
-- **Canonical Membership Parquet**:
-  - `s3://earthquake-lake/silver/canonical_membership/run_id=run-slv09-minio-live/part-00000-run-slv09-minio-live.parquet`: 3 bản ghi membership được ghi và xác thực schema `CANONICAL_MEMBERSHIP_PARQUET_SCHEMA`.
-- **Publish Markers**:
-  - Cả 4 phân vùng đều có marker `_SUCCESS` với timestamp UTC và số dòng tương ứng.
+Run `slv09-live-8abdaa023a9547ce8626c814259e87c8` có attempt 1 đạt thật:
+528 parsed/valid/current/canonical/memberships (16 USGS + 512 JMA), rejects/
+duplicate/superseded/links đều 0; bốn dataset readback và Gold handoff đạt trên
+Java 17.0.19 / Spark 3.5.9. Attempt 2 bị `IMMUTABLE_BUNDLE_CONFLICT`, nên cả
+run vẫn **không** đạt acceptance rerun. Lease được nhả và app list rỗng.
+Test JVM độc lập có perturb identity-hash allocation tái lập checksum khác ở
+Parquet có dữ liệu; sort footer encoding/metadata lists sửa được regression
+(23 writer/bundle/cross-process tests pass). Không sửa bundle QA cũ hoặc nới
+checksum gate; smoke cuối dùng run mới với serialization policy đã pin.
 
----
+## Lặp lại
 
-## 5. Bằng Chứng Handoff Sang Gold (`GoldEventTransformer`)
+1. `make test-silver-integration` — offline suite, không gọi MinIO.
+2. Foundation healthy và exact pins tồn tại: `make smoke-silver-integration`.
+   Build image mới, submit hai lần với cùng request/run/context; không restart
+   foundation, gọi source API hay commit Gold.
+3. Đọc report path in stdout. Phải có cả bốn exact dataset manifests/SHA/count,
+   marker bundle được verify, Java 17, standalone master/application IDs.
+4. `rerun_unchanged=true`, attempt 1 không reuse, attempt 2 reuse; bundle SHA,
+   identity, reconciliation và Gold counts phải giống nhau.
 
-Dữ liệu Silver sau khi được ghi ra đĩa/storage được Spark đọc ngược lại:
-```java
-Dataset<Row> observationsDf = spark.read().parquet(obsPaths);
-Dataset<Row> linksDf = spark.read().parquet(linkFile);
-Dataset<Row> membershipsDf = spark.read().parquet(membershipFile);
-Dataset<Row> regionsDf = spark.createDataFrame(List.of(), GoldEventTransformer.REGION_SCHEMA);
+Input pins ở [slv_09_bronze_inputs.json](../../airflow/dags/fixtures/slv_09_bronze_inputs.json).
+USGS nguyên raw DAT-01 16-event. JMA 2000 tái lập JMA-05 và 2023 mở rộng:
+256 dòng đầu/archive sau full raw SHA/ZIP CRC/count verification. Full archive
+count không phải count được publish; không tạo JMA giả hoặc chọn theo match.
 
-GoldTransformationResult goldResult = new GoldEventTransformer().transform(
-    observationsDf, membershipsDf, linksDf, regionsDf, goldContext, EXEC_TIME);
-```
+## Cơ chế và giới hạn
 
-**Kết Quả Biến Đổi Gold Thành Công Tuyệt Đối (0 Lỗi)**:
-- `currentObservationCount`: 18
-- `canonicalEventCount`: 17
-- `bridgeRowCount`: 18
-- `eventCurrent().count()`: 17
-- Sự kiện matched: `canonical_source_system = "JMA_BULLETIN"` (JMA được ưu tiên theo contract), `source_coverage_code = "USGS_JMA"`, `link_status = "MATCHED"`.
-- 15 sự kiện USGS solo: `canonical_source_system = "USGS"`, `source_coverage_code = "USGS_ONLY"`, `link_status = "SINGLE_SOURCE"`.
-- 1 sự kiện JMA solo: `canonical_source_system = "JMA_BULLETIN"`, `source_coverage_code = "JMA_ONLY"`, `link_status = "SINGLE_SOURCE"`.
+[SILVER_INTEGRATION.md](../specs/SILVER_INTEGRATION.md) giải thích bundle,
+marker-last, gate, fingerprint/reservation, lease và scoped staging.
+Không overwrite/xóa month partitions/bundle khác; raw Bronze chỉ đọc.
 
----
-
-## 6. Kết Quả Kiểm Thử Toàn Bộ Module (`mvn test -pl spark`)
-
-```text
-[INFO] Results:
-[INFO] Tests run: 232, Failures: 0, Errors: 0, Skipped: 0
-[INFO] BUILD SUCCESS
-```
-Toàn bộ **232 bài kiểm thử** trong module `spark` đều vượt qua (100% pass), bao gồm:
-- 6/6 tests `SilverMultiSourceIntegrationTest`
-- 10/10 tests `SilverParquetWriterTest`
-- 6/6 tests `GoldEventTransformerTest`
-- 12/12 tests `SilverEntityResolverTest`
-- 13/13 tests `SourceDedupTransformerTest`
-- 30/30 tests `JmaFixedWidthParserTest`
-- 12/12 tests `UsgsGeoJsonParserTest`
+- [GLD-03 — Ghi Gold Iceberg và commit snapshot](../task/tasks/GLD-03.md):
+  chưa commit Gold; smoke chỉ transformation từ persisted Silver đã verify.
+- [GLD-04 — Tạo Trino views và verification SQL](../task/tasks/GLD-04.md):
+  chưa verify snapshot/Published qua Trino.
+- [QA-01 — Chạy E2E daily đa nguồn](../task/tasks/QA-01.md):
+  còn ghép adapter orchestration và nghiệm thu daily thật toàn flow.
+- Mẫu đầu năm không đại diện full-year/research period và không bảo đảm có
+  accepted pair. Accepted/ambiguous/revised coverage dùng fixture riêng.

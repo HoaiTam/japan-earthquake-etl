@@ -112,6 +112,18 @@ class SilverParquetWriterTest {
     }
 
     @Test
+    void sameRunAndRowCountWithChangedObservationCannotReuseOldManifest(@TempDir Path directory) throws Exception {
+        var time = Instant.parse("2023-09-15T10:00:00Z");
+        var original = sampleObservation("same", "USGS", time, 10.0, 5.2, "VALID", List.of());
+        var changed = sampleObservation("same", "USGS", time, 10.0, 5.3, "VALID", List.of());
+        var store = new FileSilverObjectStore(directory);
+        var writer = new SilverParquetWriter(store);
+        writer.write(new SilverWriteRequest("same-run", List.of(original), List.of(), time, true));
+        assertThrows(IOException.class, () -> writer.write(new SilverWriteRequest("same-run", List.of(changed), List.of(), time, true)));
+        assertTrue(store.exists(SilverStorageLayout.successMarkerPath(SilverPartitionKey.from(original))));
+    }
+
+    @Test
     void testPartitionMatchesEventTimeUtc() {
         Instant time = Instant.parse("2023-09-15T10:00:00Z");
         SilverObservation obs = sampleObservation("usgs01", "USGS", time, 10.0, 5.2, "VALID", List.of());

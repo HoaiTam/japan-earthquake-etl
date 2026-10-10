@@ -24,10 +24,10 @@ public record SilverWriteRequest(
         if (runId.isBlank()) {
             throw new IllegalArgumentException("runId must not be blank");
         }
-        observations = observations != null ? Collections.unmodifiableList(observations) : List.of();
-        rejects = rejects != null ? Collections.unmodifiableList(rejects) : List.of();
-        links = links != null ? Collections.unmodifiableList(links) : List.of();
-        memberships = memberships != null ? Collections.unmodifiableList(memberships) : List.of();
+        observations = observations != null ? List.copyOf(observations) : List.of();
+        rejects = rejects != null ? List.copyOf(rejects) : List.of();
+        links = links != null ? List.copyOf(links) : List.of();
+        memberships = memberships != null ? List.copyOf(memberships) : List.of();
         publishedAtUtc = publishedAtUtc != null ? publishedAtUtc : Instant.now();
     }
 

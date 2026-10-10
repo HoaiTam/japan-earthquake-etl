@@ -13,6 +13,7 @@ TAIL ?= 100
 DAT01_AIRFLOW_CONTAINER ?=
 JMA_YEARS ?=
 BACKFILL_CONF ?= airflow/dags/fixtures/orc_03_ingest_preview.json
+SILVER_RUNNER_JAR ?=
 RUN_SUMMARY_ROOT ?= staging/run-summary
 RUN_SUMMARY_DAG ?= orc_01_etl_pipeline
 RUN_SUMMARY_RUN_ID ?=
@@ -39,6 +40,24 @@ COMPONENT_SMOKES := smoke-minio smoke-airflow smoke-spark smoke-query smoke-usgs
 
 .PHONY: test-source-schedule smoke-source-readiness
 .PHONY: test-recovery smoke-recovery smoke-resource-pilot maintenance-preview
+.PHONY: test-silver-integration smoke-silver-integration
+
+test-silver-integration: ## SLV-09 offline bundle/failure/revision/reconciliation/Gold tests (không gọi MinIO)
+	@python3 -m unittest discover -s airflow/tests -p 'test_silver_integration_qa.py'
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am \
+		-Dtest=SilverMultiSourceIntegrationTest,SilverBundlePublisherTest,SilverParquetCrossProcessTest,SilverParquetWriterTest,SilverBronzeIntegrationJobTest,MinioSilverObjectStoreTest \
+		-Dsurefire.failIfNoSpecifiedTests=false test
+
+smoke-silver-integration: check-config-local check-java-build-inputs ## SLV-09 exact real Bronze -> immutable Silver -> Gold transform + rerun; ghi bundle QA riêng
+ifeq ($(strip $(SILVER_RUNNER_JAR)),)
+	@$(COMPOSE) build spark-master
+	@$(COMPOSE) --profile smoke run --rm --no-deps spark-silver-integration
+else
+	@case "$(SILVER_RUNNER_JAR)" in /*) ;; *) echo 'SILVER_RUNNER_JAR must be an absolute path'; exit 1 ;; esac
+	@test -f "$(SILVER_RUNNER_JAR)"
+	@$(COMPOSE) --profile smoke run --rm --no-deps \
+		-v "$(SILVER_RUNNER_JAR):/opt/spark/jobs/japan-earthquake-etl-runner.jar:ro" spark-silver-integration
+endif
 
 test-recovery: ## ORC-05 retry/profile/lease/recovery/maintenance tests offline
 	@python3 -m unittest discover -s airflow/tests -p 'test_recovery*.py'

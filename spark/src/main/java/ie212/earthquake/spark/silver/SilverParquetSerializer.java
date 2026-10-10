@@ -244,7 +244,7 @@ public final class SilverParquetSerializer {
             }
         }
 
-        return buffer.toByteArray();
+        return canonicalFooter(buffer.toByteArray());
     }
 
     /**
@@ -292,7 +292,7 @@ public final class SilverParquetSerializer {
             }
         }
 
-        return buffer.toByteArray();
+        return canonicalFooter(buffer.toByteArray());
     }
 
     /**
@@ -341,7 +341,7 @@ public final class SilverParquetSerializer {
             }
         }
 
-        return buffer.toByteArray();
+        return canonicalFooter(buffer.toByteArray());
     }
 
     /**
@@ -377,12 +377,47 @@ public final class SilverParquetSerializer {
             }
         }
 
-        return buffer.toByteArray();
+        return canonicalFooter(buffer.toByteArray());
     }
 
-    /**
-     * Verifies that the given Parquet bytes contain the expected row count and schema.
+    /** Parquet encoding sets use enum identity hashes; footer list order can vary across JVMs.
+     * Sort only order-insensitive footer metadata. Pages, row groups, column order,
+     * schema, offsets, statistics and record values remain untouched.
      */
+    private static byte[] canonicalFooter(byte[] bytes) throws IOException {
+        int length = bytes.length;
+        int footerLength = ByteBuffer.wrap(bytes, length - 8, 4).order(java.nio.ByteOrder.LITTLE_ENDIAN).getInt();
+        if (footerLength <= 0 || footerLength > length - 12) { throw new IOException("INVALID_PARQUET_FOOTER"); }
+        int footerStart = length - 8 - footerLength;
+        var metadata = org.apache.parquet.format.Util.readFileMetaData(
+                new ByteArrayInputStream(bytes, footerStart, footerLength));
+        for (var group : metadata.getRow_groups()) {
+            for (var column : group.getColumns()) {
+                var value = column.getMeta_data();
+                value.getEncodings().sort(java.util.Comparator.comparingInt(org.apache.parquet.format.Encoding::getValue));
+                if (value.isSetEncoding_stats()) {
+                    value.getEncoding_stats().sort(java.util.Comparator
+                            .comparingInt((org.apache.parquet.format.PageEncodingStats row) -> row.getPage_type().getValue())
+                            .thenComparingInt(row -> row.getEncoding().getValue()));
+                }
+                if (value.isSetKey_value_metadata()) {
+                    value.getKey_value_metadata().sort(java.util.Comparator.comparing(org.apache.parquet.format.KeyValue::getKey));
+                }
+            }
+        }
+        if (metadata.isSetKey_value_metadata()) {
+            metadata.getKey_value_metadata().sort(java.util.Comparator.comparing(org.apache.parquet.format.KeyValue::getKey));
+        }
+        var footer = new ByteArrayOutputStream();
+        org.apache.parquet.format.Util.writeFileMetaData(metadata, footer);
+        var output = new ByteArrayOutputStream(length + 128);
+        output.write(bytes, 0, footerStart); footer.writeTo(output);
+        output.write(ByteBuffer.allocate(4).order(java.nio.ByteOrder.LITTLE_ENDIAN).putInt(footer.size()).array());
+        output.write(bytes, length - 4, 4);
+        return output.toByteArray();
+    }
+
+    /** Verifies footer count and exact Parquet schema (including types/annotations). */
     public static void verifyParquet(byte[] parquetBytes, int expectedRecordCount, MessageType expectedSchema)
             throws IOException {
         Objects.requireNonNull(parquetBytes, "parquetBytes");
@@ -395,10 +430,8 @@ public final class SilverParquetSerializer {
             }
             if (expectedSchema != null) {
                 MessageType actualSchema = reader.getFileMetaData().getSchema();
-                for (org.apache.parquet.schema.Type field : expectedSchema.getFields()) {
-                    if (!actualSchema.containsField(field.getName())) {
-                        throw new IOException("Parquet schema missing expected field: " + field.getName());
-                    }
+                if (!actualSchema.equals(expectedSchema)) {
+                    throw new IOException("Parquet schema type/repetition/logical annotation mismatch");
                 }
             }
         }

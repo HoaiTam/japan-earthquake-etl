@@ -106,8 +106,10 @@ public final class MinioSilverObjectStore implements SilverObjectStore, AutoClos
                 return false;
             }
             throw new IOException("MinIO Silver stat failed for key: " + fullKey, ex);
-        } catch (Exception ex) {
+        } catch (java.io.FileNotFoundException ex) {
             return false;
+        } catch (Exception ex) {
+            throw new IOException("MinIO Silver stat failed for key: " + fullKey, ex);
         }
     }
 
@@ -311,7 +313,7 @@ public final class MinioSilverObjectStore implements SilverObjectStore, AutoClos
         @Override
         public void stat(String bucket, String key) throws Exception {
             if (!objects.containsKey(key)) {
-                throw new IOException("Object not found in MinIO bucket " + bucket + ": " + key);
+                throw new java.io.FileNotFoundException("Object not found in MinIO bucket " + bucket + ": " + key);
             }
         }
 

@@ -74,6 +74,7 @@ public final class SilverParquetWriter {
         List<SilverPartitionManifest> publishedPartitions = new ArrayList<>();
         List<String> rejectFiles = new ArrayList<>();
         boolean allIdempotentReuse = !partitionMap.isEmpty();
+        var touchedMarkers = new java.util.LinkedHashSet<String>();
 
         try {
             // 3. Process each observation partition
@@ -84,6 +85,8 @@ public final class SilverParquetWriter {
                 String targetPartitionPath = SilverStorageLayout.observationPartitionPath(partitionKey);
                 String targetManifestPath = SilverStorageLayout.manifestPath(partitionKey);
                 String targetSuccessPath = SilverStorageLayout.successMarkerPath(partitionKey);
+                byte[] parquetBytes = serializer.serializeObservations(obsList);
+                String sha256 = sha256(parquetBytes);
 
                 // Check for idempotent rerun
                 if (store.exists(targetManifestPath) && store.exists(targetSuccessPath)) {
@@ -92,6 +95,11 @@ public final class SilverParquetWriter {
                     if (existingManifest.runId().equals(runId)
                             && existingManifest.recordCount() == obsList.size()
                             && existingManifest.sourceSystem().equals(partitionKey.sourceSystem())) {
+                        if (existingManifest.files().size() != 1
+                                || !existingManifest.files().get(0).sha256().equals(sha256)
+                                || !sha256(store.read(existingManifest.files().get(0).relativePath())).equals(sha256)) {
+                            throw new IOException("Silver rerun identity/checksum conflict");
+                        }
                         publishedPartitions.add(existingManifest);
                         continue; // Idempotent reuse: partition already published with matching signature
                     }
@@ -99,8 +107,6 @@ public final class SilverParquetWriter {
                 allIdempotentReuse = false;
 
                 // Serialize observations to Parquet in-memory
-                byte[] parquetBytes = serializer.serializeObservations(obsList);
-                String sha256 = sha256(parquetBytes);
 
                 // Verify Parquet structure and row count
                 SilverParquetSerializer.verifyParquet(
@@ -120,13 +126,15 @@ public final class SilverParquetWriter {
                 }
 
                 // If overwriting/retrying: remove old files in the partition to prevent appending duplicates
-                if (request.overwritePartition() && store.exists(targetPartitionPath)) {
-                    store.deletePrefix(targetPartitionPath);
+                invalidateMarker(targetSuccessPath, touchedMarkers);
+                if (request.overwritePartition() && !store.list(targetPartitionPath + "/").isEmpty()) {
+                    store.deletePrefix(targetPartitionPath + "/");
                 }
 
                 // Promote staged file to final target partition
                 String targetFileKey = targetPartitionPath + "/" + parquetFileName;
                 store.move(stagedFileKey, targetFileKey);
+                verifyFinal(targetFileKey, parquetBytes);
 
                 // Build file metadata
                 SilverFileMetadata fileMetadata = new SilverFileMetadata(
@@ -192,12 +200,14 @@ public final class SilverParquetWriter {
                     }
 
                     String targetRejectPath = SilverStorageLayout.rejectPartitionPath(source, runId);
-                    if (request.overwritePartition() && store.exists(targetRejectPath)) {
-                        store.deletePrefix(targetRejectPath);
+                    invalidateMarker(targetRejectPath + "/" + SilverStorageLayout.SUCCESS_MARKER_FILE, touchedMarkers);
+                    if (request.overwritePartition() && !store.list(targetRejectPath + "/").isEmpty()) {
+                        store.deletePrefix(targetRejectPath + "/");
                     }
 
                     String targetRejectKey = targetRejectPath + "/" + rejectFileName;
                     store.move(stagedRejectKey, targetRejectKey);
+                    verifyFinal(targetRejectKey, rejectBytes);
 
                     byte[] successBytes = formatSuccessMarker(runId, request.publishedAtUtc(), rejects.size());
                     store.put(targetRejectPath + "/" + SilverStorageLayout.SUCCESS_MARKER_FILE, successBytes, TEXT_CONTENT_TYPE);
@@ -230,11 +240,13 @@ public final class SilverParquetWriter {
                     throw new IOException("Staged Silver Link readback checksum mismatch: " + stagedLinkKey);
                 }
 
-                if (request.overwritePartition() && store.exists(targetLinkPath)) {
-                    store.deletePrefix(targetLinkPath);
+                invalidateMarker(targetSuccessPath, touchedMarkers);
+                if (request.overwritePartition() && !store.list(targetLinkPath + "/").isEmpty()) {
+                    store.deletePrefix(targetLinkPath + "/");
                 }
 
                 store.move(stagedLinkKey, targetLinkKey);
+                verifyFinal(targetLinkKey, linkBytes);
 
                 byte[] successBytes = formatSuccessMarker(runId, request.publishedAtUtc(), request.links().size());
                 store.put(targetSuccessPath, successBytes, TEXT_CONTENT_TYPE);
@@ -266,11 +278,13 @@ public final class SilverParquetWriter {
                     throw new IOException("Staged Silver Membership readback checksum mismatch: " + stagedMembershipKey);
                 }
 
-                if (request.overwritePartition() && store.exists(targetMembershipPath)) {
-                    store.deletePrefix(targetMembershipPath);
+                invalidateMarker(targetSuccessPath, touchedMarkers);
+                if (request.overwritePartition() && !store.list(targetMembershipPath + "/").isEmpty()) {
+                    store.deletePrefix(targetMembershipPath + "/");
                 }
 
                 store.move(stagedMembershipKey, targetMembershipKey);
+                verifyFinal(targetMembershipKey, membershipBytes);
 
                 byte[] successBytes = formatSuccessMarker(runId, request.publishedAtUtc(), request.memberships().size());
                 store.put(targetSuccessPath, successBytes, TEXT_CONTENT_TYPE);
@@ -279,7 +293,7 @@ public final class SilverParquetWriter {
             }
 
             // 7. Clean up staging directory on successful completion
-            store.deletePrefix(stagingRoot);
+            store.deletePrefix(stagingRoot + "/");
 
             return new SilverWriteResult(
                     "SilverReady",
@@ -295,9 +309,12 @@ public final class SilverParquetWriter {
                     membershipFiles);
 
         } catch (Exception ex) {
+            for (String marker : touchedMarkers) {
+                try { store.delete(marker); } catch (Exception markerFailure) { ex.addSuppressed(markerFailure); }
+            }
             // On failure: ensure staging area is cleaned up and target partitions are not left corrupted
             try {
-                store.deletePrefix(stagingRoot);
+                store.deletePrefix(stagingRoot + "/");
             } catch (Exception cleanEx) {
                 ex.addSuppressed(cleanEx);
             }
@@ -305,6 +322,17 @@ public final class SilverParquetWriter {
                 throw ioException;
             }
             throw new IOException("Silver Parquet write failed for run " + runId + ": " + ex.getMessage(), ex);
+        }
+    }
+
+    private void invalidateMarker(String key, java.util.Set<String> touched) throws IOException {
+        touched.add(key);
+        if (store.exists(key)) { store.delete(key); }
+    }
+
+    private void verifyFinal(String key, byte[] expected) throws IOException {
+        if (!java.util.Arrays.equals(store.read(key), expected)) {
+            throw new IOException("Final Silver Parquet readback mismatch: " + key);
         }
     }
 

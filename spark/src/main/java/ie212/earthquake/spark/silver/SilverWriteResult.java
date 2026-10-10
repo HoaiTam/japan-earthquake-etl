@@ -19,7 +19,8 @@ public record SilverWriteResult(
         boolean idempotentReuse,
         List<String> rejectFiles,
         List<String> linkFiles,
-        List<String> membershipFiles) implements Serializable {
+        List<String> membershipFiles,
+        String bundleManifestKey) implements Serializable {
 
     public SilverWriteResult {
         Objects.requireNonNull(silverStatus, "silverStatus");
@@ -36,6 +37,13 @@ public record SilverWriteResult(
         membershipFiles = membershipFiles != null
                 ? Collections.unmodifiableList(membershipFiles)
                 : List.of();
+    }
+
+    public SilverWriteResult(String silverStatus, String runId, List<SilverPartitionManifest> publishedPartitions,
+            int totalObservations, int totalRejects, int totalLinks, int totalMemberships, boolean idempotentReuse,
+            List<String> rejectFiles, List<String> linkFiles, List<String> membershipFiles) {
+        this(silverStatus, runId, publishedPartitions, totalObservations, totalRejects, totalLinks, totalMemberships,
+                idempotentReuse, rejectFiles, linkFiles, membershipFiles, null);
     }
 
     public SilverWriteResult(

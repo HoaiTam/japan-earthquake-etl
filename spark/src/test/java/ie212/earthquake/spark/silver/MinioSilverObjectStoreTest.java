@@ -61,13 +61,22 @@ class MinioSilverObjectStoreTest {
         assertFalse(store.exists("partition/moved.parquet"));
     }
 
-    private static final class MockMinioOperations implements MinioSilverObjectStore.Operations, AutoCloseable {
+    @Test
+    void statFailureMustNotBecomeMissingObject() {
+        var operations = new MockMinioOperations() {
+            @Override public void stat(String bucket, String key) throws Exception { throw new IOException("connection unavailable"); }
+        };
+        assertThrows(IOException.class, () -> MinioSilverObjectStore.forTests(operations,
+                "japan-earthquake", "silver").exists("key"));
+    }
+
+    private static class MockMinioOperations implements MinioSilverObjectStore.Operations, AutoCloseable {
         final Map<String, byte[]> objects = new HashMap<>();
 
         @Override
         public void stat(String bucket, String key) throws Exception {
             if (!objects.containsKey(key)) {
-                throw new IOException("Object not found: " + key);
+                throw new java.io.FileNotFoundException("Object not found: " + key);
             }
         }
 

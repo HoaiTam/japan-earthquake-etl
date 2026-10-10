@@ -110,7 +110,9 @@ Same owner acquire được; contender và owner không khớp assert/release b�
 Parallelism1 điều tiết task, **không thay lease** và không chống external job
 không hợp tác. Không tự chạy `spark-submit`, notebook writer hay real ORC-01
 adapter vào cùng scope; real ORC-01 command mặc định rỗng, integration writers
-phải dùng cùng whole-run ownership trước khi bật (SLV-09/GLD-03/QA-01).
+phải dùng cùng whole-run ownership trước khi bật (GLD-03/QA-01). Smoke bounded
+SLV-09 đã dùng lease này qua cả hai submit/publish/readback/rerun, xem
+[Silver integration](./SILVER_INTEGRATION.md); chưa thay cho daily adapter real.
 
 Release all_done có thể đã chạy sau failure. Vì vậy không chỉ clear fetch/
 upload/verify: khi lease đã release, clear acquire + đúng task lỗi và các gate/
@@ -193,8 +195,10 @@ deployment boundary thật.
 ## 7. Giới hạn / handoff
 
 - [SLV-09 - Tích hợp và kiểm thử Silver đa nguồn](../task/tasks/SLV-09.md):
-  real multi-source adapter/write/readback, resource/failure/recovery của
-  dedup/link toàn scope, shared ownership khi ghép real ORC-01.
+  đã nghiệm thu exact Bronze → immutable Silver → Gold transform/readback,
+  whole-run lease và rerun trên mẫu bounded (2000/2023); không nghiệm thu
+  resource/failure/recovery của dedup/link toàn historical/daily scope.
+  Ghép real ORC-01 adapter/full-flow còn thuộc QA-01 dưới đây.
 - [GLD-03 - Ghi Gold Iceberg và commit snapshot](../task/tasks/GLD-03.md):
   partial multi-table commit reconciliation/idempotency thực tế.
 - [GLD-04 - Tạo Trino views và verification SQL](../task/tasks/GLD-04.md):
