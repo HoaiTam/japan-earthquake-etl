@@ -1,13 +1,13 @@
 ---
 task_id: "MLD-02"
-status: "Backlog"
+status: "Done"
 week: 4
 block: "G - ML Dataset"
 workstream: "Input audit and completeness"
 scope: "Core"
 priority: "P0"
 effort_hours: 7
-assignee: "ThanhTris"
+assignee: "rosy179"
 reviewer: "unassigned"
 dependencies: ["MLD-01"]
 ---
@@ -34,10 +34,10 @@ version hóa `Mc` để sensitivity experiment có input giải thích được.
 
 ## Tiêu chí hoàn thành
 
-- [ ] Không xóa event khỏi Gold; chỉ exclude khỏi dataset với reason code.
-- [ ] Có reason tối thiểu cho missing depth/magnitude, ngoài period, dưới completeness và source không comparable.
-- [ ] `Mc` có method/version/evidence và được áp dụng nhất quán trong cùng dataset.
-- [ ] Audit counts đối soát được với snapshot manifest và không dùng dữ liệu extension để tune reproduction.
+- [x] Không xóa event khỏi Gold; chỉ exclude khỏi dataset với reason code.
+- [x] Có reason tối thiểu cho missing depth/magnitude, ngoài period, dưới completeness và source không comparable.
+- [x] `Mc` có method/version/evidence và được áp dụng nhất quán trong cùng dataset.
+- [x] Audit counts đối soát được với snapshot manifest và không dùng dữ liệu extension để tune reproduction.
 
 ## Hard dependency
 
@@ -47,7 +47,7 @@ version hóa `Mc` để sensitivity experiment có input giải thích được.
 
 ### Phân công tuần 4 mở rộng
 
-- **Owner / effort:** ThanhTris, 7h Core; đưa từ tuần 5 lên khối Silver + ML audit/candidate trong [kế hoạch tuần 4](../WEEK_4_PARALLEL_PLAN.md).
+- **Owner / effort:** rosy179, 7h Core; đưa từ tuần 5 lên khối Silver + ML audit/candidate trong [kế hoạch tuần 4](../WEEK_4_PARALLEL_PLAN.md).
 - **Làm trước:** Gold/histogram fixtures, exclusion rules và versioned estimator/config; không chờ snapshot thật để viết unit, không chốt Mc giả làm evidence.
 - **Làm gì / có gì:** Audit natural/ROI/primary-JMA/UNIFIED/finite fields, completeness pilot, central/sensitivity Mc values và reason/count report; không xóa event khỏi Gold.
 - **Dùng để làm gì:** Candidate filter có completeness evidence và period/source coverage rõ, không tune reproduction bằng extension data.
@@ -64,17 +64,17 @@ chỉ bước chốt `Mc` và counts cần snapshot thật từ `MLD-01`.
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
-- **Assignee:** ThanhTris
-- **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Trạng thái:** Done
+- **Assignee:** rosy179
+- **Reviewer:** unassigned; chưa có review độc lập
+- **Evidence / PR:** 12 tests pass (6 unit estimator, 5 unit audit engine, 1 integration pilot). Xem [Evidence MLD-02](../../evidence/MLD-02.md) và [Đặc tả kỹ thuật](../../specs/GOLD_INPUT_AUDIT_AND_COMPLETENESS.md).
 - **Kỹ năng phù hợp:** Spark SQL, catalog completeness, data quality
 
 ## Checklist bàn giao
 
-- [ ] Deliverable và test/evidence tồn tại trong repository.
-- [ ] Acceptance criteria đã được kiểm tra.
-- [ ] Contract/docs đã cập nhật và không chứa secret/build artifact.
+- [x] Deliverable và test/evidence tồn tại trong repository.
+- [x] Acceptance criteria đã được kiểm tra.
+- [x] Contract/docs đã cập nhật và không chứa secret/build artifact.
 - [ ] Reviewer độc lập được khuyến nghị cho P0.
 
 ## Tài liệu liên quan
@@ -82,4 +82,6 @@ chỉ bước chốt `Mc` và counts cần snapshot thật từ `MLD-01`.
 - [Kế hoạch tuần 4 mở rộng](../WEEK_4_PARALLEL_PLAN.md)
 - [ML logical model](../../specs/ML_DATA_MODEL.md)
 - [Roadmap HDBSCAN](../HDBSCAN_WORKSTREAM.md)
+- [Gold input audit và completeness](../../specs/GOLD_INPUT_AUDIT_AND_COMPLETENESS.md)
+- [Evidence MLD-02](../../evidence/MLD-02.md)
 - [MLD-01](./MLD-01.md)
