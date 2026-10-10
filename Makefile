@@ -41,6 +41,12 @@ COMPONENT_SMOKES := smoke-minio smoke-airflow smoke-spark smoke-query smoke-usgs
 .PHONY: test-source-schedule smoke-source-readiness
 .PHONY: test-recovery smoke-recovery smoke-resource-pilot maintenance-preview
 .PHONY: test-silver-integration smoke-silver-integration
+.PHONY: test-ml-audit
+
+test-ml-audit: ## MLD-02 Gold input audit, MAXC completeness estimator, sensitivity & reconciliation tests
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am \
+		-Dtest=MagnitudeCompletenessEstimatorTest,GoldInputAuditEngineTest,GoldInputAuditIntegrationTest \
+		-Dsurefire.failIfNoSpecifiedTests=false test
 
 test-silver-integration: ## SLV-09 offline bundle/failure/revision/reconciliation/Gold tests (không gọi MinIO)
 	@python3 -m unittest discover -s airflow/tests -p 'test_silver_integration_qa.py'
