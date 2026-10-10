@@ -206,7 +206,79 @@ public final class SilverParquetWriter {
                 }
             }
 
-            // 5. Clean up staging directory on successful completion
+            // 5. Process cross-source links if present
+            List<String> linkFiles = new ArrayList<>();
+            if (!request.links().isEmpty()) {
+                String targetLinkPath = SilverStorageLayout.linkPartitionPath(runId);
+                String linkFileName = SilverStorageLayout.parquetFileName(runId, 0);
+                String targetLinkKey = targetLinkPath + "/" + linkFileName;
+                String targetSuccessPath = SilverStorageLayout.linkSuccessMarkerPath(runId);
+
+                byte[] linkBytes = serializer.serializeSourceLinks(request.links());
+                String sha256 = sha256(linkBytes);
+
+                SilverParquetSerializer.verifyParquet(
+                        linkBytes, request.links().size(), SilverParquetSerializer.SOURCE_LINK_PARQUET_SCHEMA);
+
+                String stagingLinkPath = SilverStorageLayout.stagingLinkPartitionPath(runId);
+                String stagedLinkKey = stagingLinkPath + "/" + linkFileName;
+
+                store.put(stagedLinkKey, linkBytes, PARQUET_CONTENT_TYPE);
+
+                byte[] readback = store.read(stagedLinkKey);
+                if (readback.length != linkBytes.length || !sha256(readback).equals(sha256)) {
+                    throw new IOException("Staged Silver Link readback checksum mismatch: " + stagedLinkKey);
+                }
+
+                if (request.overwritePartition() && store.exists(targetLinkPath)) {
+                    store.deletePrefix(targetLinkPath);
+                }
+
+                store.move(stagedLinkKey, targetLinkKey);
+
+                byte[] successBytes = formatSuccessMarker(runId, request.publishedAtUtc(), request.links().size());
+                store.put(targetSuccessPath, successBytes, TEXT_CONTENT_TYPE);
+
+                linkFiles.add(targetLinkKey);
+            }
+
+            // 6. Process canonical memberships if present
+            List<String> membershipFiles = new ArrayList<>();
+            if (!request.memberships().isEmpty()) {
+                String targetMembershipPath = SilverStorageLayout.membershipPartitionPath(runId);
+                String membershipFileName = SilverStorageLayout.parquetFileName(runId, 0);
+                String targetMembershipKey = targetMembershipPath + "/" + membershipFileName;
+                String targetSuccessPath = SilverStorageLayout.membershipSuccessMarkerPath(runId);
+
+                byte[] membershipBytes = serializer.serializeCanonicalMemberships(request.memberships());
+                String sha256 = sha256(membershipBytes);
+
+                SilverParquetSerializer.verifyParquet(
+                        membershipBytes, request.memberships().size(), SilverParquetSerializer.CANONICAL_MEMBERSHIP_PARQUET_SCHEMA);
+
+                String stagingMembershipPath = SilverStorageLayout.stagingMembershipPartitionPath(runId);
+                String stagedMembershipKey = stagingMembershipPath + "/" + membershipFileName;
+
+                store.put(stagedMembershipKey, membershipBytes, PARQUET_CONTENT_TYPE);
+
+                byte[] readback = store.read(stagedMembershipKey);
+                if (readback.length != membershipBytes.length || !sha256(readback).equals(sha256)) {
+                    throw new IOException("Staged Silver Membership readback checksum mismatch: " + stagedMembershipKey);
+                }
+
+                if (request.overwritePartition() && store.exists(targetMembershipPath)) {
+                    store.deletePrefix(targetMembershipPath);
+                }
+
+                store.move(stagedMembershipKey, targetMembershipKey);
+
+                byte[] successBytes = formatSuccessMarker(runId, request.publishedAtUtc(), request.memberships().size());
+                store.put(targetSuccessPath, successBytes, TEXT_CONTENT_TYPE);
+
+                membershipFiles.add(targetMembershipKey);
+            }
+
+            // 7. Clean up staging directory on successful completion
             store.deletePrefix(stagingRoot);
 
             return new SilverWriteResult(
@@ -215,8 +287,12 @@ public final class SilverParquetWriter {
                     publishedPartitions,
                     request.observations().size(),
                     request.rejects().size(),
+                    request.links().size(),
+                    request.memberships().size(),
                     allIdempotentReuse,
-                    rejectFiles);
+                    rejectFiles,
+                    linkFiles,
+                    membershipFiles);
 
         } catch (Exception ex) {
             // On failure: ensure staging area is cleaned up and target partitions are not left corrupted

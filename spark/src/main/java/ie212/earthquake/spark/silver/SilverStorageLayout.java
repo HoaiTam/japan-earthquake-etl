@@ -74,6 +74,9 @@ public final class SilverStorageLayout {
         return observationPartitionPath(key) + "/" + MANIFEST_FILE;
     }
 
+    public static final String SOURCE_LINK_DATASET = "source_link";
+    public static final String CANONICAL_MEMBERSHIP_DATASET = "canonical_membership";
+
     /**
      * Resolves the partition path for reject records:
      * reject_record/source_system=SOURCE/run_id=RUN_ID
@@ -90,6 +93,56 @@ public final class SilverStorageLayout {
      */
     public static String stagingRejectPartitionPath(String sourceSystem, String runId) {
         return STAGING_PREFIX + "/" + runId + "/" + rejectPartitionPath(sourceSystem, runId);
+    }
+
+    /**
+     * Resolves the partition path for cross-source link records:
+     * source_link/run_id=RUN_ID
+     */
+    public static String linkPartitionPath(String runId) {
+        validateRunId(runId);
+        return SOURCE_LINK_DATASET + "/run_id=" + runId;
+    }
+
+    /**
+     * Resolves the staging path for source link records in a given run:
+     * _staging/<runId>/source_link/run_id=RUN_ID
+     */
+    public static String stagingLinkPartitionPath(String runId) {
+        return STAGING_PREFIX + "/" + runId + "/" + linkPartitionPath(runId);
+    }
+
+    /**
+     * Resolves the success marker path for a source link partition:
+     * source_link/run_id=RUN_ID/_SUCCESS
+     */
+    public static String linkSuccessMarkerPath(String runId) {
+        return linkPartitionPath(runId) + "/" + SUCCESS_MARKER_FILE;
+    }
+
+    /**
+     * Resolves the partition path for canonical membership records:
+     * canonical_membership/run_id=RUN_ID
+     */
+    public static String membershipPartitionPath(String runId) {
+        validateRunId(runId);
+        return CANONICAL_MEMBERSHIP_DATASET + "/run_id=" + runId;
+    }
+
+    /**
+     * Resolves the staging path for canonical membership records in a given run:
+     * _staging/<runId>/canonical_membership/run_id=RUN_ID
+     */
+    public static String stagingMembershipPartitionPath(String runId) {
+        return STAGING_PREFIX + "/" + runId + "/" + membershipPartitionPath(runId);
+    }
+
+    /**
+     * Resolves the success marker path for a canonical membership partition:
+     * canonical_membership/run_id=RUN_ID/_SUCCESS
+     */
+    public static String membershipSuccessMarkerPath(String runId) {
+        return membershipPartitionPath(runId) + "/" + SUCCESS_MARKER_FILE;
     }
 
     private static void validateRunId(String runId) {

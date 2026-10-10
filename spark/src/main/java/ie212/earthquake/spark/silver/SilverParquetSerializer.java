@@ -104,6 +104,36 @@ public final class SilverParquetSerializer {
             "  required int64 rejected_at_utc (TIMESTAMP_MILLIS);\n" +
             "}");
 
+    public static final MessageType SOURCE_LINK_PARQUET_SCHEMA = MessageTypeParser.parseMessageType(
+            "message source_link {\n" +
+            "  required binary source_link_id (UTF8);\n" +
+            "  required binary left_observation_id (UTF8);\n" +
+            "  required binary right_observation_id (UTF8);\n" +
+            "  required double time_delta_seconds;\n" +
+            "  required double distance_km;\n" +
+            "  optional double depth_delta_km;\n" +
+            "  optional double magnitude_delta;\n" +
+            "  required double match_score;\n" +
+            "  required binary link_decision (UTF8);\n" +
+            "  required group decision_reason_codes (LIST) {\n" +
+            "    repeated group list {\n" +
+            "      required binary element (UTF8);\n" +
+            "    }\n" +
+            "  }\n" +
+            "  required binary match_model_version (UTF8);\n" +
+            "  required int64 decided_at_utc (TIMESTAMP_MILLIS);\n" +
+            "}");
+
+    public static final MessageType CANONICAL_MEMBERSHIP_PARQUET_SCHEMA = MessageTypeParser.parseMessageType(
+            "message canonical_membership {\n" +
+            "  required binary canonical_event_id (UTF8);\n" +
+            "  required binary source_observation_id (UTF8);\n" +
+            "  required binary membership_status (UTF8);\n" +
+            "  optional binary source_link_id (UTF8);\n" +
+            "  required binary canonical_model_version (UTF8);\n" +
+            "  required int64 assigned_at_utc (TIMESTAMP_MILLIS);\n" +
+            "}");
+
     /**
      * Serializes a list of SilverObservation records to uncompressed Parquet byte array.
      */
@@ -257,6 +287,91 @@ public final class SilverParquetSerializer {
                 group.append("ingest_run_id", reject.ingestRunId());
                 group.append("parser_version", reject.parserVersion());
                 group.append("rejected_at_utc", reject.rejectedAtUtc().toEpochMilli());
+
+                writer.write(group);
+            }
+        }
+
+        return buffer.toByteArray();
+    }
+
+    /**
+     * Serializes a list of SilverSourceLink records to uncompressed Parquet byte array.
+     */
+    public byte[] serializeSourceLinks(List<SilverSourceLink> links) throws IOException {
+        Objects.requireNonNull(links, "links");
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        InMemoryOutputFile outputFile = new InMemoryOutputFile(buffer);
+        Configuration conf = new Configuration();
+
+        try (ParquetWriter<Group> writer = new SimpleGroupParquetWriterBuilder(outputFile, SOURCE_LINK_PARQUET_SCHEMA)
+                .withConf(conf)
+                .withCompressionCodec(CompressionCodecName.UNCOMPRESSED)
+                .build()) {
+
+            SimpleGroupFactory groupFactory = new SimpleGroupFactory(SOURCE_LINK_PARQUET_SCHEMA);
+            for (SilverSourceLink link : links) {
+                Group group = groupFactory.newGroup();
+
+                group.append("source_link_id", link.sourceLinkId());
+                group.append("left_observation_id", link.leftObservationId());
+                group.append("right_observation_id", link.rightObservationId());
+                group.append("time_delta_seconds", link.timeDeltaSeconds());
+                group.append("distance_km", link.distanceKm());
+
+                if (link.depthDeltaKm() != null) {
+                    group.append("depth_delta_km", link.depthDeltaKm());
+                }
+                if (link.magnitudeDelta() != null) {
+                    group.append("magnitude_delta", link.magnitudeDelta());
+                }
+
+                group.append("match_score", link.matchScore());
+                group.append("link_decision", link.linkDecision());
+
+                Group reasonsGroup = group.addGroup("decision_reason_codes");
+                for (String code : link.decisionReasonCodes()) {
+                    reasonsGroup.addGroup("list").append("element", code);
+                }
+
+                group.append("match_model_version", link.matchModelVersion());
+                group.append("decided_at_utc", link.decidedAtUtc().toEpochMilli());
+
+                writer.write(group);
+            }
+        }
+
+        return buffer.toByteArray();
+    }
+
+    /**
+     * Serializes a list of SilverCanonicalMembership records to uncompressed Parquet byte array.
+     */
+    public byte[] serializeCanonicalMemberships(List<SilverCanonicalMembership> memberships) throws IOException {
+        Objects.requireNonNull(memberships, "memberships");
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        InMemoryOutputFile outputFile = new InMemoryOutputFile(buffer);
+        Configuration conf = new Configuration();
+
+        try (ParquetWriter<Group> writer = new SimpleGroupParquetWriterBuilder(outputFile, CANONICAL_MEMBERSHIP_PARQUET_SCHEMA)
+                .withConf(conf)
+                .withCompressionCodec(CompressionCodecName.UNCOMPRESSED)
+                .build()) {
+
+            SimpleGroupFactory groupFactory = new SimpleGroupFactory(CANONICAL_MEMBERSHIP_PARQUET_SCHEMA);
+            for (SilverCanonicalMembership membership : memberships) {
+                Group group = groupFactory.newGroup();
+
+                group.append("canonical_event_id", membership.canonicalEventId());
+                group.append("source_observation_id", membership.sourceObservationId());
+                group.append("membership_status", membership.membershipStatus());
+
+                if (membership.sourceLinkId() != null) {
+                    group.append("source_link_id", membership.sourceLinkId());
+                }
+
+                group.append("canonical_model_version", membership.canonicalModelVersion());
+                group.append("assigned_at_utc", membership.assignedAtUtc().toEpochMilli());
 
                 writer.write(group);
             }

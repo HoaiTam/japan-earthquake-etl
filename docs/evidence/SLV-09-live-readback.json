@@ -1,0 +1,106 @@
+{
+  "qa_version": "slv-09-v1",
+  "qa_status": "VERIFIED",
+  "run_id": "run-slv09-real-gold",
+  "verified_at_utc": "2026-10-10T10:39:10Z",
+  "environment": {
+    "java_version": "23.0.2",
+    "spark_version": "3.5.9",
+    "timezone": "UTC",
+    "storage_backend": "MinIO / S3 Object Store",
+    "silver_prefix": "silver"
+  },
+  "contracts": {
+    "source_coverage": "CON-01/1.0",
+    "bronze_storage": "CON-02/1.0",
+    "silver_gold_model": "CON-03/1.0"
+  },
+  "reconciliation_metrics": {
+    "total_parsed": 18,
+    "usgs_parsed": 16,
+    "jma_parsed": 2,
+    "total_valid": 18,
+    "total_reject": 0,
+    "total_current": 18,
+    "total_duplicate": 0,
+    "total_superseded": 0,
+    "candidate_pairs_evaluated": 16,
+    "accepted_links": 1,
+    "ambiguous_links": 0,
+    "rejected_pairs": 15,
+    "canonical_events": 17,
+    "matched_events": 1,
+    "usgs_only_events": 15,
+    "jma_only_events": 1,
+    "balancing_equations": {
+      "is_parsed_balanced": true,
+      "is_dedup_balanced": true,
+      "is_canonical_balanced": true,
+      "is_bridge_count_balanced": true,
+      "is_reconciliation_balanced": true
+    }
+  },
+  "storage_readback": {
+    "bucket": "earthquake-lake",
+    "silver_prefix": "silver",
+    "published_datasets": [
+      {
+        "dataset_name": "source_observation",
+        "partitions": [
+          {
+            "partition_key": "event_year_utc=2023/event_month_utc=01/source_system=USGS",
+            "file_name": "part-00000-run-slv09-real-gold.parquet",
+            "s3_uri": "s3://earthquake-lake/silver/source_observation/event_year_utc=2023/event_month_utc=01/source_system=USGS/part-00000-run-slv09-real-gold.parquet",
+            "record_count": 16,
+            "readback_verified": true,
+            "success_marker_present": true,
+            "manifest_present": true
+          },
+          {
+            "partition_key": "event_year_utc=2023/event_month_utc=01/source_system=JMA_BULLETIN",
+            "file_name": "part-00000-run-slv09-real-gold.parquet",
+            "s3_uri": "s3://earthquake-lake/silver/source_observation/event_year_utc=2023/event_month_utc=01/source_system=JMA_BULLETIN/part-00000-run-slv09-real-gold.parquet",
+            "record_count": 2,
+            "readback_verified": true,
+            "success_marker_present": true,
+            "manifest_present": true
+          }
+        ]
+      },
+      {
+        "dataset_name": "source_link",
+        "partition_key": "run_id=run-slv09-real-gold",
+        "file_name": "part-00000-run-slv09-real-gold.parquet",
+        "s3_uri": "s3://earthquake-lake/silver/source_link/run_id=run-slv09-real-gold/part-00000-run-slv09-real-gold.parquet",
+        "record_count": 1,
+        "readback_verified": true,
+        "success_marker_present": true
+      },
+      {
+        "dataset_name": "canonical_membership",
+        "partition_key": "run_id=run-slv09-real-gold",
+        "file_name": "part-00000-run-slv09-real-gold.parquet",
+        "s3_uri": "s3://earthquake-lake/silver/canonical_membership/run_id=run-slv09-real-gold/part-00000-run-slv09-real-gold.parquet",
+        "record_count": 18,
+        "readback_verified": true,
+        "success_marker_present": true
+      }
+    ]
+  },
+  "gold_handoff_verification": {
+    "transformer_class": "ie212.earthquake.spark.gold.GoldEventTransformer",
+    "status": "SUCCESS",
+    "current_observation_count": 18,
+    "canonical_event_count": 17,
+    "bridge_row_count": 18,
+    "event_current_count": 17,
+    "study_area_count": 17,
+    "matched_event_validation": {
+      "canonical_event_id": "can-7000j1n9",
+      "canonical_source_system": "JMA_BULLETIN",
+      "source_coverage_code": "USGS_JMA",
+      "link_status": "MATCHED",
+      "primary_observation_role": "JMA preferred over USGS"
+    }
+  }
+}

@@ -26,4 +26,24 @@ public record SilverIntegrationResult(
     public boolean isPublishable() {
         return !qualityResult.publishBlocked() && reconciliationReport.isReconciliationBalanced();
     }
+
+    /** Returns the current observations produced by source deduplication. */
+    public java.util.List<SilverObservation> currentObservations() {
+        return dedupResult.currentObservations();
+    }
+
+    /** Returns all observations (both current and superseded/duplicate) for lineage and audit. */
+    public java.util.List<SilverObservation> allObservations() {
+        return dedupResult.allObservations();
+    }
+
+    /** Returns cross-source links produced by entity resolution. */
+    public java.util.List<SilverSourceLink> sourceLinks() {
+        return resolutionResult.sourceLinks();
+    }
+
+    /** Returns canonical memberships produced by entity resolution. */
+    public java.util.List<SilverCanonicalMembership> canonicalMemberships() {
+        return resolutionResult.canonicalMemberships();
+    }
 }
