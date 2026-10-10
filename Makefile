@@ -41,6 +41,30 @@ COMPONENT_SMOKES := smoke-minio smoke-airflow smoke-spark smoke-query smoke-usgs
 .PHONY: test-source-schedule smoke-source-readiness
 .PHONY: test-recovery smoke-recovery smoke-resource-pilot maintenance-preview
 .PHONY: test-silver-integration smoke-silver-integration
+.PHONY: ci ci-docs ci-java ci-airflow test-ci-workflow
+
+ci: ci-docs ci-java ci-airflow ## Cùng ba nhóm check CI; cần PyYAML, JDK17, Compose CLI, jq/rg; không start service
+
+ci-docs: ## Docs/contracts/secret hygiene/Compose tĩnh; không đọc .env riêng hoặc gọi nguồn thật
+	@$(MAKE) test-contracts
+	@$(MAKE) check-config ENV_FILE=/dev/null
+	@$(MAKE) check-compose check-minio check-query CHECK_ENV_FILE=.env.example
+	@$(MAKE) test-ci-workflow
+	@for script in scripts/*.sh; do \
+		case "$$(head -n 1 "$$script")" in \
+			*bash*) bash -n "$$script" ;; \
+			*) sh -n "$$script" ;; \
+		esac || exit; \
+	done
+	@git diff --check
+
+ci-java: ## Maven clean verify, toàn bộ Java tests và runner JAR; Spark mock chỉ bind loopback
+	@SPARK_LOCAL_IP=127.0.0.1 SPARK_LOCAL_HOSTNAME=localhost $(MAKE) package-java
+
+ci-airflow: test-airflow ## Toàn bộ Python control-plane/DAG tests; không cài Airflow runtime
+
+test-ci-workflow: ## YAML duplicate-key/safety/trigger/job regression; cần tests/ci/requirements.txt
+	@python3 -m unittest discover -s tests/ci -p 'test_*.py'
 
 test-silver-integration: ## SLV-09 offline bundle/failure/revision/reconciliation/Gold tests (không gọi MinIO)
 	@python3 -m unittest discover -s airflow/tests -p 'test_silver_integration_qa.py'

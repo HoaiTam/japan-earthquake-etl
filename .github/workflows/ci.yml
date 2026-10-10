@@ -1,0 +1,114 @@
+name: Project CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  TZ: UTC
+  PYTHONDONTWRITEBYTECODE: "1"
+  PYTHONHASHSEED: "0"
+
+jobs:
+  docs-contracts:
+    name: docs-contracts
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - name: Install validation tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y ripgrep jq
+          python3 -m pip install -r tests/ci/requirements.txt
+      - name: Lint Actions workflow
+        run: |
+          task_actionlint_dir=$(mktemp -d)
+          curl --fail --silent --show-error --location --retry 3 \
+            https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz \
+            -o "$task_actionlint_dir/actionlint.tar.gz"
+          printf '%s  %s\n' \
+            8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8 \
+            "$task_actionlint_dir/actionlint.tar.gz" | sha256sum --check -
+          tar -xzf "$task_actionlint_dir/actionlint.tar.gz" -C "$task_actionlint_dir" actionlint
+          "$task_actionlint_dir/actionlint" .github/workflows/ci.yml
+      - name: Check contracts, configuration and Compose
+        run: make ci-docs
+      - name: Check changed lines for whitespace errors
+        env:
+          CI_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          CI_HEAD_SHA: ${{ github.sha }}
+        run: |
+          case "$CI_BASE_SHA" in
+            ""|0000000000000000000000000000000000000000)
+              git show --format= --check "$CI_HEAD_SHA"
+              ;;
+            *) git diff --check "$CI_BASE_SHA" "$CI_HEAD_SHA" ;;
+          esac
+
+  java-spark:
+    name: java-spark
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      SPARK_LOCAL_IP: 127.0.0.1
+      SPARK_LOCAL_HOSTNAME: localhost
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Java 17
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+          cache-dependency-path: |
+            pom.xml
+            spark/pom.xml
+            .mvn/wrapper/maven-wrapper.properties
+      - name: Build, test and package
+        run: make ci-java
+      - name: Upload Java test reports
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: java-test-reports
+          path: spark/target/surefire-reports/*.xml
+          if-no-files-found: warn
+          retention-days: 7
+
+  airflow:
+    name: airflow
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - name: Test DAG contracts and control-plane logic
+        run: make ci-airflow
