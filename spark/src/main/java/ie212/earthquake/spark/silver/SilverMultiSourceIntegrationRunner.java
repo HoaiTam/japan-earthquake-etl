@@ -233,6 +233,8 @@ public final class SilverMultiSourceIntegrationRunner implements Serializable {
                     runId,
                     dedupResult.allObservations(),
                     allRejects,
+                    resolutionResult.sourceLinks(),
+                    resolutionResult.canonicalMemberships(),
                     executionTime,
                     true);
             writeResult = writer.write(writeRequest);

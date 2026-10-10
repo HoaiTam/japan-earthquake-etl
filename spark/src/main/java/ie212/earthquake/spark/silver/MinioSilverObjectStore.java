@@ -66,6 +66,10 @@ public final class MinioSilverObjectStore implements SilverObjectStore, AutoClos
         return new MinioSilverObjectStore(new SdkOperations(client), bucket, silverPrefix);
     }
 
+    public static MinioSilverObjectStore inMemory(String bucket, String silverPrefix) {
+        return new MinioSilverObjectStore(new InMemoryOperations(), bucket, silverPrefix);
+    }
+
     static MinioSilverObjectStore forTests(Operations operations, String bucket, String silverPrefix) {
         return new MinioSilverObjectStore(operations, bucket, silverPrefix);
     }
@@ -162,6 +166,14 @@ public final class MinioSilverObjectStore implements SilverObjectStore, AutoClos
         } catch (Exception ex) {
             throw new IOException("MinIO Silver move failed from " + fullSource + " to " + fullTarget, ex);
         }
+    }
+
+    public String bucket() {
+        return bucket;
+    }
+
+    public String silverPrefix() {
+        return silverPrefix;
     }
 
     @Override
@@ -290,6 +302,53 @@ public final class MinioSilverObjectStore implements SilverObjectStore, AutoClos
         @Override
         public void close() throws Exception {
             client.close();
+        }
+    }
+
+    public static final class InMemoryOperations implements Operations, AutoCloseable {
+        private final java.util.Map<String, byte[]> objects = new java.util.concurrent.ConcurrentHashMap<>();
+
+        @Override
+        public void stat(String bucket, String key) throws Exception {
+            if (!objects.containsKey(key)) {
+                throw new IOException("Object not found in MinIO bucket " + bucket + ": " + key);
+            }
+        }
+
+        @Override
+        public void put(String bucket, String key, byte[] payload, String contentType) {
+            objects.put(key, payload.clone());
+        }
+
+        @Override
+        public byte[] read(String bucket, String key) throws Exception {
+            byte[] data = objects.get(key);
+            if (data == null) {
+                throw new IOException("Object not found in MinIO bucket " + bucket + ": " + key);
+            }
+            return data.clone();
+        }
+
+        @Override
+        public List<String> list(String bucket, String prefix) {
+            List<String> matched = new ArrayList<>();
+            for (String key : objects.keySet()) {
+                if (key.startsWith(prefix)) {
+                    matched.add(key);
+                }
+            }
+            Collections.sort(matched);
+            return matched;
+        }
+
+        @Override
+        public void delete(String bucket, String key) {
+            objects.remove(key);
+        }
+
+        @Override
+        public void close() {
+            objects.clear();
         }
     }
 }
