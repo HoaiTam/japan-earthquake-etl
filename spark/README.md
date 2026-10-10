@@ -186,6 +186,18 @@ sinh cấu hình `mc_config_json` chuẩn tắc kèm hash SHA-256, làm giàu da
 dạng JSON và Markdown. Chạy offline test bằng `make test-ml-audit`. Xem
 [Gold input audit và completeness](../docs/specs/GOLD_INPUT_AUDIT_AND_COMPLETENESS.md).
 
+`MLD-03` triển khai engine chọn lọc động đất chính (mainshock) và sinh cửa sổ ứng viên (candidate windows)
+trong package `ie212.earthquake.spark.ml`: `MainshockWindowEngine`, `WindowModelResolver`, `WindowModelConfig`,
+`WindowModelType`, `WindowDimensions`, `MainshockSelectionConfig`, `MainshockWindowResult` và `MainshockWindowJob`.
+Engine lọc mainshock theo baseline ($M > 5.5$, độ sâu 50–200 km, trong period dataset); version hóa mô hình
+cửa sổ phụ thuộc magnitude (Uhrhammer 1986, Gardner & Knopoff 1974, và Expanded baseline); thực thi Spark range join
+hai tầng (thời gian $\rightarrow$ bounding box không gian $\rightarrow$ khoảng cách phẳng cục bộ $d_{\text{horiz}} \le R$)
+để tránh full cross join toàn catalog; bảo toàn hạt dữ liệu duy nhất `(dataset_id, mainshock_event_id, candidate_event_id)`;
+đảm bảo mỗi window chứa chính mainshock đúng 1 lần với vector độ lệch bằng 0; giữ nguyên vẹn sự kiện trong nhiều cửa sổ
+chồng lấn; và áp dụng resource guard (gắn cờ `FLAGGED`/`REJECTED` kèm mã `ML_RESOURCE_LIMIT_EXCEEDED` mà không âm thầm cắt bớt dữ liệu).
+Chạy offline test bằng `make test-ml-window`. Xem
+[Mainshock and candidate windows](../docs/specs/MAINSHOCK_AND_CANDIDATE_WINDOWS.md).
+
 Không commit `target/`, JAR hoặc local metastore. Kiến trúc service, dependency,
 version matrix, marker output và cách mở rộng được mô tả trong
 [Spark standalone contract](../docs/specs/SPARK_STANDALONE.md).
