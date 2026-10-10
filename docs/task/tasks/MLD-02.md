@@ -1,6 +1,6 @@
 ---
 task_id: "MLD-02"
-status: "Backlog"
+status: "In Progress"
 week: 4
 block: "G - ML Dataset"
 workstream: "Input audit and completeness"
@@ -64,10 +64,10 @@ chỉ bước chốt `Mc` và counts cần snapshot thật từ `MLD-01`.
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
+- **Trạng thái:** In Progress
 - **Assignee:** ThanhTris
-- **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Reviewer:** unassigned; chưa có review độc lập
+- **Evidence / PR:** In progress; Gold input audit engine, versioned Mc estimator (MAXC + sensitivity intervals), exclusion reconciliation và test suite đang được triển khai.
 - **Kỹ năng phù hợp:** Spark SQL, catalog completeness, data quality
 
 ## Checklist bàn giao
