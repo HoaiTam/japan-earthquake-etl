@@ -18,6 +18,19 @@
     <description>Spark Java jobs for the Japan earthquake ETL pipeline.</description>
 
     <dependencies>
+        <!-- Kept outside the shaded SDK runner; Spark loads the pinned runtime JAR. -->
+        <dependency>
+            <groupId>org.apache.iceberg</groupId>
+            <artifactId>iceberg-spark-runtime-3.5_2.12</artifactId>
+            <version>1.10.1</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.iceberg</groupId>
+            <artifactId>iceberg-aws-bundle</artifactId>
+            <version>1.10.1</version>
+            <scope>provided</scope>
+        </dependency>
         <!-- Test JVM uses the modern SDK Jackson; align Scala module only in tests.
              Spark standalone retains its bundled Jackson and the shaded SDK isolation. -->
         <dependency>
@@ -63,6 +76,22 @@
     <build>
         <finalName>japan-earthquake-etl</finalName>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>3.9.0</version>
+                <executions>
+                    <execution>
+                        <id>copy-iceberg-runtime</id>
+                        <phase>package</phase>
+                        <goals><goal>copy-dependencies</goal></goals>
+                        <configuration>
+                            <includeGroupIds>org.apache.iceberg</includeGroupIds>
+                            <outputDirectory>${project.build.directory}/iceberg</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>

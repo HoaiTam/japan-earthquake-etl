@@ -28,3 +28,6 @@ COPY --from=build --chown=spark:spark \
     /opt/spark/jobs/japan-earthquake-etl-runner.jar
 
 USER spark
+
+# Keep Iceberg/AWS runtime outside SDK relocation; load explicitly with --jars.
+COPY --from=build --chown=spark:spark /workspace/spark/target/iceberg/ /opt/spark/jobs/iceberg/

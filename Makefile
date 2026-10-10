@@ -41,6 +41,17 @@ COMPONENT_SMOKES := smoke-minio smoke-airflow smoke-spark smoke-query smoke-usgs
 .PHONY: test-source-schedule smoke-source-readiness
 .PHONY: test-recovery smoke-recovery smoke-resource-pilot maintenance-preview
 .PHONY: test-silver-integration smoke-silver-integration
+.PHONY: test-gold-storage smoke-gold-storage
+
+test-gold-storage: ## GLD-03 real Iceberg snapshot/recovery tests và control plane offline
+	@python3 -m unittest discover -s airflow/tests -p 'test_gold_storage_qa.py'
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am \
+		-Dtest=GoldIcebergWriterTest -Dsurefire.failIfNoSpecifiedTests=false test
+
+smoke-gold-storage: check-config-local check-java-build-inputs ## GLD-03 pinned public capture -> Bronze/Silver -> six Iceberg snapshots, không Published
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am verify
+	@$(COMPOSE) build spark-gold-qa
+	@$(COMPOSE) --profile gold run --rm --no-deps spark-gold-qa
 
 test-silver-integration: ## SLV-09 offline bundle/failure/revision/reconciliation/Gold tests (không gọi MinIO)
 	@python3 -m unittest discover -s airflow/tests -p 'test_silver_integration_qa.py'

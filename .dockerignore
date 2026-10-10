@@ -12,6 +12,7 @@
 !config/jma/hypocenter_archives_v1.csv
 !compose/spark/
 !compose/spark/Dockerfile
+!compose/spark/Dockerfile.gold-qa
 !spark/
 !spark/pom.xml
 !spark/src/
