@@ -42,6 +42,17 @@ COMPONENT_SMOKES := smoke-minio smoke-airflow smoke-spark smoke-query smoke-usgs
 .PHONY: test-recovery smoke-recovery smoke-resource-pilot maintenance-preview
 .PHONY: test-silver-integration smoke-silver-integration
 .PHONY: test-gold-storage smoke-gold-storage
+.PHONY: test-gold-publication smoke-gold-publication
+
+test-gold-publication: ## GLD-04 offline publication blockers, Trino HTTP protocol và control plane
+	@python3 -m unittest discover -s airflow/tests -p 'test_gold_publication_qa.py'
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am \
+		-Dtest=GoldPublicationTest,TrinoSqlClientTest -Dsurefire.failIfNoSpecifiedTests=false test
+
+smoke-gold-publication: check-config-local check-java-build-inputs ## GLD-04 verify exact GLD-03 snapshot bundle qua Trino trước Published
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am verify
+	@$(COMPOSE) build spark-gold-qa
+	@$(COMPOSE) --profile gold run --rm --no-deps gold-verification-qa
 
 test-gold-storage: ## GLD-03 real Iceberg snapshot/recovery tests và control plane offline
 	@python3 -m unittest discover -s airflow/tests -p 'test_gold_storage_qa.py'
