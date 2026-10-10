@@ -115,6 +115,17 @@ hoặc request không khớp run/datasets đã validate. Cách dùng, JMA flag m
 giới hạn của API persistence thấp tầng và regression tests nằm trong
 [Silver quality validation](../docs/specs/SILVER_QUALITY_VALIDATION.md).
 
+`SLV-06` triển khai `SourceDedupTransformer`, `SourceDedupMetrics`, `SourceDedupResult`
+và `JmaReleaseComparator` dưới package `ie212.earthquake.spark.silver`. Module phân hoạch
+theo khóa `(source_system, source_record_key)` độc lập cho từng nguồn, bảo đảm không có
+dedup mơ hồ giữa USGS và JMA. Với USGS, áp dụng tie-break xác định theo `source_updated_at_utc DESC`,
+`processed_at_utc DESC` và `raw_record_hash ASC`. Với JMA, áp dụng `catalog_release_at_utc DESC`,
+thứ tự release chuẩn hóa qua `JmaReleaseComparator` (hỗ trợ version/inventory/timestamp),
+`processed_at_utc DESC` và `raw_record_hash ASC`. Chọn duy nhất 1 bản ghi làm current
+(`is_current_source_revision = true`), phân loại chính xác các bản ghi còn lại thành exact duplicate
+hoặc superseded revision, và bảo toàn toàn bộ lịch sử observations cho SLV-09. Cung cấp bộ test
+suite và fixtures late revision tại `src/test/resources/fixtures/late_revision/`.
+
 `SLV-08` triển khai `SilverPartitionKey`, `SilverStorageLayout`, `SilverPartitionManifest`,
 `SilverObjectStore`, `FileSilverObjectStore`, `MinioSilverObjectStore`, `SilverParquetSerializer`,
 `SilverParquetWriter`, `SilverWriteRequest` và `SilverWriteResult`. Module tổ chức partition theo
@@ -135,6 +146,10 @@ observation gốc trong `silver.canonical_membership`, duy trì các sự kiện
 với trạng thái `PRIMARY` và `source_link_id = null`. Với các candidate matches bị xung đột hoặc chênh
 lệch điểm số không đáng kể (`AMBIGUOUS`), engine kích hoạt nguyên tắc an toàn `auto_merge = false` để
 giữ nguyên từng observation thành một canonical event độc lập và gắn nhãn lý do `AMBIGUOUS_SOURCE_MATCH`.
+`GLD-01` thêm Spark DataFrame transformation trong package `gold`: current event,
+source bridge, natural/ROI view và dimensions/bands. API dùng canonical membership
+đã resolve từ Silver; không tạo canonical ID lại. Input/test/handoff nằm tại
+[Gold transformation](../docs/specs/GOLD_TRANSFORMATION.md).
 
 Không commit `target/`, JAR hoặc local metastore. Kiến trúc service, dependency,
 version matrix, marker output và cách mở rộng được mô tả trong

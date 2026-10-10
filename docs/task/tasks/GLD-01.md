@@ -1,6 +1,6 @@
 ---
 task_id: "GLD-01"
-status: "Ready"
+status: "Done"
 week: 4
 block: "E - Gold & Serving"
 workstream: "Analytics model"
@@ -35,11 +35,11 @@ Tạo `gold.earthquake_event_current` với canonical key, time/location, magnit
 
 ## Tiêu chí hoàn thành
 
-- [ ] Canonical key duy nhất.
-- [ ] null policy đúng.
-- [ ] giá trị biên band không chồng lấn.
-- [ ] count giải thích được từ Silver.
-- [ ] Các field bắt buộc cho MLD audit/filter có giá trị và provenance đúng contract.
+- [x] Canonical key duy nhất.
+- [x] null policy đúng.
+- [x] giá trị biên band không chồng lấn.
+- [x] count giải thích được từ Silver.
+- [x] Các field bắt buộc cho MLD audit/filter có giá trị và provenance đúng contract.
 
 ## Hard dependency
 
@@ -74,19 +74,19 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Theo dõi
 
-- **Trạng thái:** Ready
+- **Trạng thái:** Done
 - **Assignee:** Trang
-- **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Reviewer:** unassigned; chưa có review độc lập
+- **Evidence / PR:** Spark Java fixture transformation trên branch feat/gld-01-gold-transformation; GoldEventTransformerTest 6/6 và toàn bộ Maven tests 188/188 đạt ngày 2026-10-09 với JDK17/Maven3.9.16. Contract data-model/repository và task-status 73/73 đạt; git diff --check đạt. Xem [runbook](../../specs/GOLD_TRANSFORMATION.md). Reviewer unassigned. Input SilverReady thật còn chờ SLV-09 - Tích hợp và kiểm thử Silver đa nguồn; commit Iceberg thuộc GLD-03 - Ghi Gold Iceberg và commit snapshot; Trino/Published thuộc GLD-04 - Tạo Trino views và verification SQL. [PR #50](https://github.com/HoaiTam/japan-earthquake-etl/pull/50).
 - **Kỹ năng phù hợp:** Spark SQL, analytics modeling
 
 ## Checklist bàn giao
 
-- [ ] Deliverable đã có trong repository hoặc môi trường demo.
-- [ ] Acceptance criteria đã được kiểm tra.
-- [ ] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
-- [ ] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
-- [ ] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
+- [x] Deliverable đã có trong repository hoặc môi trường demo.
+- [x] Acceptance criteria đã được kiểm tra.
+- [x] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
+- [x] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
+- [x] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
 - [ ] P0/P1 có reviewer khác assignee xác nhận.
 
 ## Tài liệu liên quan

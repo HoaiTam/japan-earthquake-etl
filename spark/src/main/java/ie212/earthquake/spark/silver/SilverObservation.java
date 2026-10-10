@@ -132,4 +132,56 @@ public record SilverObservation(
                 parserVersion,
                 Timestamp.from(processedAtUtc));
     }
+
+    /**
+     * Returns a copy of this observation with the updated isCurrentSourceRevision flag.
+     */
+    public SilverObservation withCurrentSourceRevision(boolean isCurrent) {
+        if (this.isCurrentSourceRevision == isCurrent) {
+            return this;
+        }
+        return new SilverObservation(
+                schemaVersion,
+                sourceObservationId,
+                sourceSystem,
+                sourceRecordKey,
+                sourceRevisionKey,
+                sourceUpdatedAtUtc,
+                catalogRelease,
+                catalogReleaseAtUtc,
+                isCurrent,
+                eventTimeUtc,
+                eventTimeJst,
+                eventDateUtc,
+                eventDateJst,
+                eventYearUtc,
+                eventMonthUtc,
+                latitude,
+                longitude,
+                depthKm,
+                magnitude,
+                magnitudeType,
+                eventTypeCode,
+                placeName,
+                tsunamiFlag,
+                alertLevel,
+                significance,
+                maxIntensityCode,
+                determiningAgencyCode,
+                catalogEra,
+                sourceStatus,
+                sourceUrl,
+                isInStudyArea,
+                qualityStatus,
+                qualityFlags,
+                bronzeManifestId,
+                rawObjectUri,
+                rawSha256,
+                rawRecordLocator,
+                rawRecordHash,
+                ingestRunId,
+                parserName,
+                parserVersion,
+                processedAtUtc);
+    }
 }
