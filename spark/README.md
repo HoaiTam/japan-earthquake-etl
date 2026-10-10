@@ -146,6 +146,18 @@ observation gốc trong `silver.canonical_membership`, duy trì các sự kiện
 với trạng thái `PRIMARY` và `source_link_id = null`. Với các candidate matches bị xung đột hoặc chênh
 lệch điểm số không đáng kể (`AMBIGUOUS`), engine kích hoạt nguyên tắc an toàn `auto_merge = false` để
 giữ nguyên từng observation thành một canonical event độc lập và gắn nhãn lý do `AMBIGUOUS_SOURCE_MATCH`.
+
+`SLV-09` triển khai pipeline coordinator tích hợp đa nguồn và báo cáo đối soát cấp run
+qua `SilverMultiSourceIntegrationRunner`, `SilverIntegrationRequest`, `SilverIntegrationResult`
+và `SilverRunReconciliationReport`. Runner điều phối toàn bộ chuỗi xử lý tầng Silver:
+parse raw payloads (USGS GeoJSON & JMA fixed-width), kiểm định chất lượng (`SilverQualityValidator`),
+deduplicate và giải quyết revision theo nguồn (`SourceDedupTransformer`), đối chiếu liên kết thực thể
+và lựa chọn canonical event (`SilverEntityResolver`), và lưu trữ Parquet phân vùng có nguyên tử tính (`SilverParquetWriter`).
+Báo cáo `SilverRunReconciliationReport` đối soát chặt chẽ toàn bộ các chiều kế toán:
+$totalParsed = totalValid + totalReject$, $totalValid = totalCurrent + totalDuplicate + totalSuperseded$,
+$canonicalEvents = matchedEvents + usgsOnly + jmaOnly$, và $(matchedEvents \times 2) + usgsOnly + jmaOnly = totalCurrent$.
+Bộ kiểm thử tích hợp `SilverMultiSourceIntegrationTest` xác nhận tính tất định 100% khi rerun fixture,
+không duplicate dữ liệu khi ghi đè, và bảo đảm tính cân bằng đối soát trong mọi kịch bản.
 `GLD-01` thêm Spark DataFrame transformation trong package `gold`: current event,
 source bridge, natural/ROI view và dimensions/bands. API dùng canonical membership
 đã resolve từ Silver; không tạo canonical ID lại. Input/test/handoff nằm tại
