@@ -158,6 +158,10 @@ $totalParsed = totalValid + totalReject$, $totalValid = totalCurrent + totalDupl
 $canonicalEvents = matchedEvents + usgsOnly + jmaOnly$, và $(matchedEvents \times 2) + usgsOnly + jmaOnly = totalCurrent$.
 Bộ kiểm thử tích hợp `SilverMultiSourceIntegrationTest` xác nhận tính tất định 100% khi rerun fixture,
 không duplicate dữ liệu khi ghi đè, và bảo đảm tính cân bằng đối soát trong mọi kịch bản.
+`GLD-01` thêm Spark DataFrame transformation trong package `gold`: current event,
+source bridge, natural/ROI view và dimensions/bands. API dùng canonical membership
+đã resolve từ Silver; không tạo canonical ID lại. Input/test/handoff nằm tại
+[Gold transformation](../docs/specs/GOLD_TRANSFORMATION.md).
 
 Không commit `target/`, JAR hoặc local metastore. Kiến trúc service, dependency,
 version matrix, marker output và cách mở rộng được mô tả trong

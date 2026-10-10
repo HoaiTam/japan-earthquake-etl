@@ -1,6 +1,6 @@
 ---
 task_id: "MLI-01"
-status: "Ready"
+status: "Done"
 week: 4
 block: "I - ML Integration"
 workstream: "Result bundle contract"
@@ -34,11 +34,11 @@ triển song song và kết quả thiếu/giả mạo không đi vào Iceberg.
 
 ## Tiêu chí hoàn thành
 
-- [ ] `_SUCCESS.json` đủ dataset/run/algorithm/version/count/status/checksum.
-- [ ] Membership grain `(run, mainshock, canonical_event)` và summary grain `(run, mainshock)` rõ.
-- [ ] Probability, noise/cluster convention, role và event IDs có validation rule.
-- [ ] `experiment_run_id` không được reuse cho artifact khác.
-- [ ] `CANDIDATE` không tự chuyển `APPROVED` chỉ vì import thành công.
+- [x] `_SUCCESS.json` đủ dataset/run/algorithm/version/count/status/checksum.
+- [x] Membership grain `(run, mainshock, canonical_event)` và summary grain `(run, mainshock)` rõ.
+- [x] Probability, noise/cluster convention, role và event IDs có validation rule.
+- [x] `experiment_run_id` không được reuse cho artifact khác.
+- [x] `CANDIDATE` không tự chuyển `APPROVED` chỉ vì import thành công.
 
 ## Hard dependency
 
@@ -64,17 +64,17 @@ ngay sau khi schema được review.
 
 ## Theo dõi
 
-- **Trạng thái:** Ready
+- **Trạng thái:** Done
 - **Assignee:** Trang
-- **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Reviewer:** unassigned; chưa có review độc lập
+- **Evidence / PR:** CON-03 aligned schema/layout, validator interface, seven synthetic Parquet fixture bundles. Full Spark suite 189 tests passed; final contract retest 7 passed; changed-file secret scan and git diff --check passed. No real model/import/approval claimed; reviewer unassigned. See docs/specs/ML_RESULT_BUNDLE_CONTRACT.md. [PR #55](https://github.com/HoaiTam/japan-earthquake-etl/pull/55).
 - **Kỹ năng phù hợp:** Data contracts, Parquet schema, validation
 
 ## Checklist bàn giao
 
-- [ ] Deliverable và fixtures/test tồn tại trong repository.
-- [ ] Acceptance criteria đã được kiểm tra.
-- [ ] Contract/docs đã cập nhật và không chứa secret/data dump.
+- [x] Deliverable và fixtures/test tồn tại trong repository.
+- [x] Acceptance criteria đã được kiểm tra.
+- [x] Contract/docs đã cập nhật và không chứa secret/data dump.
 - [ ] Reviewer độc lập được khuyến nghị cho P0.
 
 ## Tài liệu liên quan

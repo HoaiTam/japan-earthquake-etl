@@ -1,0 +1,22 @@
+{
+  "dataset_id" : "ds_fixture",
+  "experiment_run_id" : "exp_fixture",
+  "algorithm_name" : "WINDOW",
+  "model_config_version" : "1",
+  "algorithm_version" : "fixture-1",
+  "package_version" : "fixture-1",
+  "code_version" : "fixture-1",
+  "schema_version" : "1.0",
+  "membership_row_count" : 2,
+  "summary_row_count" : 1,
+  "status" : "COMPLETED",
+  "completed_at_utc" : "2024-01-01T00:00:00Z",
+  "artifact_uri" : "s3://fixture/results/exp_fixture/",
+  "checksums" : {
+    "memberships.parquet" : "a3c69802c366faeee9facadee88fda7ae6d4349ec6d2d55c41e3f1d6e32db6c8",
+    "sequence_summary.parquet" : "6a67cdd19f757ca4a984cea7578e5b6e01b97bf582f949465c5447789e825b74",
+    "experiment_metrics.json" : "a843f901ff8dd68aa25e77374ee32cf2626418e5fd911b89bde3fb0b76bf8d8b",
+    "experiment_config.json" : "081fb08a4848ad05f523eb36500b23ac9c7b3b82e46c40f13e5238498ebc190a",
+    "requirements-lock.txt" : "79101f8f748f954bbfd12fd610c97cf68fa71b11f2534dc59de86f7096ef5590"
+  }
+}

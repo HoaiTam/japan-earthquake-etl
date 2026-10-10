@@ -1,0 +1,11 @@
+{
+  "dataset_id" : "ds_fixture",
+  "experiment_run_id" : "exp_fixture",
+  "algorithm_name" : "HDBSCAN_GLOBAL",
+  "model_config_version" : "1",
+  "algorithm_version" : "fixture-1",
+  "package_version" : "fixture-1",
+  "code_version" : "fixture-1",
+  "membership_row_count" : 2,
+  "summary_row_count" : 1
+}
