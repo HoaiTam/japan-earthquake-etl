@@ -172,6 +172,32 @@ source bridge, natural/ROI view và dimensions/bands. API dùng canonical member
 đã resolve từ Silver; không tạo canonical ID lại. Input/test/handoff nằm tại
 [Gold transformation](../docs/specs/GOLD_TRANSFORMATION.md).
 
+`MLD-02` triển khai engine audit Gold input và ước lượng magnitude of completeness (`Mc`)
+trong package `ie212.earthquake.spark.ml`: `GoldInputAuditEngine`, `MagnitudeCompletenessEstimator`,
+`FrequencyMagnitudeDistribution`, `GoldAuditConfig`, `GoldAuditResult`, `CompletenessResult` và
+`GoldInputAuditJob`. Engine kiểm tra tính toàn vẹn và hợp lệ theo CON-03 (canonical ID uniqueness,
+finite coordinates/depth/magnitude, natural earthquakes, study area ROI, JMA primary comparability,
+UNIFIED catalog era, và period split interval) mà không xóa bất kỳ record nào khỏi Gold (chỉ loại trừ
+khỏi candidate ML bằng mã lý do `ML_*`). Bộ ước lượng MAXC (Maximum Curvature) tính toán phân bố tần số - độ lớn
+FMD ($\Delta M = 0.1$), xác định ngưỡng $M_c$ trung tâm cùng hai biên sensitivity ($M_c \pm 0.2$), kiểm chứng
+hệ số góc $b$ Gutenberg-Richter bằng công thức cực đại hợp lý Aki-Utsu, đồng thời phân tầng theo độ sâu
+(Shallow, Intermediate, Deep). Kết quả audit đối soát chính xác 100% $input = eligible + excluded$,
+sinh cấu hình `mc_config_json` chuẩn tắc kèm hash SHA-256, làm giàu dataset manifest, và xuất báo cáo
+dạng JSON và Markdown. Chạy offline test bằng `make test-ml-audit`. Xem
+[Gold input audit và completeness](../docs/specs/GOLD_INPUT_AUDIT_AND_COMPLETENESS.md).
+
+`MLD-03` triển khai engine chọn lọc động đất chính (mainshock) và sinh cửa sổ ứng viên (candidate windows)
+trong package `ie212.earthquake.spark.ml`: `MainshockWindowEngine`, `WindowModelResolver`, `WindowModelConfig`,
+`WindowModelType`, `WindowDimensions`, `MainshockSelectionConfig`, `MainshockWindowResult` và `MainshockWindowJob`.
+Engine lọc mainshock theo baseline ($M > 5.5$, độ sâu 50–200 km, trong period dataset); version hóa mô hình
+cửa sổ phụ thuộc magnitude (Uhrhammer 1986, Gardner & Knopoff 1974, và Expanded baseline); thực thi Spark range join
+hai tầng (thời gian $\rightarrow$ bounding box không gian $\rightarrow$ khoảng cách phẳng cục bộ $d_{\text{horiz}} \le R$)
+để tránh full cross join toàn catalog; bảo toàn hạt dữ liệu duy nhất `(dataset_id, mainshock_event_id, candidate_event_id)`;
+đảm bảo mỗi window chứa chính mainshock đúng 1 lần với vector độ lệch bằng 0; giữ nguyên vẹn sự kiện trong nhiều cửa sổ
+chồng lấn; và áp dụng resource guard (gắn cờ `FLAGGED`/`REJECTED` kèm mã `ML_RESOURCE_LIMIT_EXCEEDED` mà không âm thầm cắt bớt dữ liệu).
+Chạy offline test bằng `make test-ml-window`. Xem
+[Mainshock and candidate windows](../docs/specs/MAINSHOCK_AND_CANDIDATE_WINDOWS.md).
+
 Không commit `target/`, JAR hoặc local metastore. Kiến trúc service, dependency,
 version matrix, marker output và cách mở rộng được mô tả trong
 [Spark standalone contract](../docs/specs/SPARK_STANDALONE.md).

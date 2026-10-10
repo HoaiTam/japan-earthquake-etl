@@ -1,13 +1,13 @@
 ---
 task_id: "MLD-03"
-status: "Backlog"
+status: "Done"
 week: 4
 block: "G - ML Dataset"
 workstream: "Mainshock and candidate windows"
 scope: "Core"
 priority: "P0"
 effort_hours: 7
-assignee: "ThanhTris"
+assignee: "rosy179"
 reviewer: "unassigned"
 dependencies: ["MLD-01", "MLD-02"]
 ---
@@ -34,11 +34,11 @@ cho clustering nhưng tránh full cross join toàn Nhật Bản.
 
 ## Tiêu chí hoàn thành
 
-- [ ] Grain `(dataset_id, mainshock_event_id, candidate_event_id)` là duy nhất.
-- [ ] Mỗi window chứa chính mainshock đúng một lần và giữ candidate PRE/POST.
-- [ ] Không cross join mainshock với toàn catalog; physical plan/test chứng minh có prefilter.
-- [ ] Event có thể ở nhiều window mà không bị coi là duplicate sai.
-- [ ] Window vượt hard limit bị fail/flag có reason, không âm thầm truncate.
+- [x] Grain `(dataset_id, mainshock_event_id, candidate_event_id)` là duy nhất.
+- [x] Mỗi window chứa chính mainshock đúng một lần và giữ candidate PRE/POST.
+- [x] Không cross join mainshock với toàn catalog; physical plan/test chứng minh có prefilter.
+- [x] Event có thể ở nhiều window mà không bị coi là duplicate sai.
+- [x] Window vượt hard limit bị fail/flag có reason, không âm thầm truncate.
 
 ## Hard dependency
 
@@ -49,7 +49,7 @@ cho clustering nhưng tránh full cross join toàn Nhật Bản.
 
 ### Phân công tuần 4 mở rộng
 
-- **Owner / effort:** ThanhTris, 7h Core; đưa từ tuần 5 lên [kế hoạch tuần 4](../WEEK_4_PARALLEL_PLAN.md), sau MLD-01/02 cho integration thật.
+- **Owner / effort:** rosy179, 7h Core; đưa từ tuần 5 lên [kế hoạch tuần 4](../WEEK_4_PARALLEL_PLAN.md), sau MLD-01/02 cho integration thật.
 - **Làm trước:** Mainshock/window resolver và range-join tests bằng Gold/candidate fixture, versioned Mc mock; hiện Backlog, chỉ prepare parts được phép.
 - **Làm gì / có gì:** Mainshock depth 50–200 km inclusive/magnitude >5.5, versioned pre/post/radius rule, time/bounding-box/distance prefilter, unique window grain và hard-limit reasons/counts.
 - **Dùng để làm gì:** Cửa sổ candidate cho MLD-04/05, không full cross join catalog và không coi event ở nhiều windows là duplicate sai.
@@ -66,17 +66,17 @@ lập có version; integration chỉ thay input bằng output thật của `MLD-
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
-- **Assignee:** ThanhTris
-- **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Trạng thái:** Done
+- **Assignee:** rosy179
+- **Reviewer:** unassigned; chưa có review độc lập
+- **Evidence / PR:** 13 tests pass (6 unit resolver, 6 unit window engine, 1 integration pilot). Xem [Evidence MLD-03](../../evidence/MLD-03.md) và [Đặc tả kỹ thuật](../../specs/MAINSHOCK_AND_CANDIDATE_WINDOWS.md).
 - **Kỹ năng phù hợp:** Spark range join, geospatial filtering, test design
 
 ## Checklist bàn giao
 
-- [ ] Deliverable và test/evidence tồn tại trong repository.
-- [ ] Acceptance criteria đã được kiểm tra.
-- [ ] Contract/docs đã cập nhật và không chứa secret/build artifact.
+- [x] Deliverable và test/evidence tồn tại trong repository.
+- [x] Acceptance criteria đã được kiểm tra.
+- [x] Contract/docs đã cập nhật và không chứa secret/build artifact.
 - [ ] Reviewer độc lập được khuyến nghị cho P0.
 
 ## Tài liệu liên quan
@@ -84,4 +84,8 @@ lập có version; integration chỉ thay input bằng output thật của `MLD-
 - [Kế hoạch tuần 4 mở rộng](../WEEK_4_PARALLEL_PLAN.md)
 - [ML logical model](../../specs/ML_DATA_MODEL.md)
 - [Roadmap HDBSCAN](../HDBSCAN_WORKSTREAM.md)
+- [Đặc tả Mainshock và candidate windows](../../specs/MAINSHOCK_AND_CANDIDATE_WINDOWS.md)
+- [Evidence MLD-03](../../evidence/MLD-03.md)
 - [MLD-02](./MLD-02.md)
+- [MLD-04](./MLD-04.md)
+
