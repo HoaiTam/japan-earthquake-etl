@@ -1,0 +1,91 @@
+{
+  "task": "GLD-03",
+  "source_mode": "pinned-public-capture",
+  "coverage": "16 USGS events; no claim of JMA/full-month production coverage",
+  "java_version": "17.0.19",
+  "spark_version": "3.5.9",
+  "capture_sha256": "298f4d0c6e5ddb9af96176a2c09de6f450400e67cf9191a8e276b8c27a34f795",
+  "silver_bundle_sha256": "39bff51d48fa9f213b2c721859de75d43e49bb839d568eeed967e6bcb9b00331",
+  "rerun_unchanged": true,
+  "commit": {
+    "commit_version": "gld-03-v1",
+    "gold_run_id": "gld03-qa-e281d2fb056a4b37a66181966af76032",
+    "identity_sha256": "82af73a4e6f8ed2b48a46079185e4108ef731a52ae4b4790a82f781a93f42caa",
+    "namespace": "iceberg.gold_qa_2d155a4ff190443bb76e2e186bb39e7e",
+    "scope": {
+      "context": {
+        "run_id": "gld03-qa-e281d2fb056a4b37a66181966af76032",
+        "window_start_utc": "2023-01-01T00:00:00Z",
+        "window_end_utc": "2023-01-04T00:00:00Z",
+        "processing_date": "2026-10-10",
+        "is_backfill": true,
+        "config_version": "1",
+        "input_manifest_uris": [
+          "s3://japan-earthquake/silver/bundles/gld03-qa-e281d2fb056a4b37a66181966af76032-silver/manifest.json"
+        ]
+      },
+      "silver_bundle_sha256": "39bff51d48fa9f213b2c721859de75d43e49bb839d568eeed967e6bcb9b00331",
+      "code_version": "local-gld03-v1",
+      "affected_months": [
+        "2023-01"
+      ],
+      "baseline_snapshots": {
+        "dim_date": 0,
+        "dim_depth_band": 0,
+        "dim_magnitude_band": 0,
+        "dim_region": 0,
+        "event_current": 0,
+        "event_source_bridge": 0
+      }
+    },
+    "status": "COMMITTED",
+    "published": false,
+    "tables": {
+      "event_current": {
+        "table": "iceberg.gold_qa_2d155a4ff190443bb76e2e186bb39e7e.event_current",
+        "snapshot_id": 1901025108914282099,
+        "count": 16,
+        "committed_at_utc": "2026-10-10T15:36:23.511Z"
+      },
+      "event_source_bridge": {
+        "table": "iceberg.gold_qa_2d155a4ff190443bb76e2e186bb39e7e.event_source_bridge",
+        "snapshot_id": 5431466615262399871,
+        "count": 16,
+        "committed_at_utc": "2026-10-10T15:36:27.415Z"
+      },
+      "dim_date": {
+        "table": "iceberg.gold_qa_2d155a4ff190443bb76e2e186bb39e7e.dim_date",
+        "snapshot_id": 4773099487833932227,
+        "count": 3,
+        "committed_at_utc": "2026-10-10T15:36:33.878Z"
+      },
+      "dim_region": {
+        "table": "iceberg.gold_qa_2d155a4ff190443bb76e2e186bb39e7e.dim_region",
+        "snapshot_id": 6772357552088406235,
+        "count": 1,
+        "committed_at_utc": "2026-10-10T15:36:37.880Z"
+      },
+      "dim_magnitude_band": {
+        "table": "iceberg.gold_qa_2d155a4ff190443bb76e2e186bb39e7e.dim_magnitude_band",
+        "snapshot_id": 6354756532596391536,
+        "count": 7,
+        "committed_at_utc": "2026-10-10T15:36:39.936Z"
+      },
+      "dim_depth_band": {
+        "table": "iceberg.gold_qa_2d155a4ff190443bb76e2e186bb39e7e.dim_depth_band",
+        "snapshot_id": 6942070522731508153,
+        "count": 5,
+        "committed_at_utc": "2026-10-10T15:36:41.700Z"
+      }
+    }
+  },
+  "runner_jar_sha256": "5452d312ddaeb3b4d943d90379511349a4ba7f7fd4b413c0049c666a5ffe9fe3",
+  "base_main": "5373cb8",
+  "tests": {
+    "java_full": 257,
+    "java_iceberg_final": 4,
+    "python_control": 4,
+    "failures": 0
+  },
+  "actual_command": "docker compose --env-file .env.gold-qa run --rm --no-deps spark-gold-qa"
+}
