@@ -1,8 +1,8 @@
 name: Project CI
 
 on:
+  # Run for every PR base, including stacked feature branches.
   pull_request:
-    branches: [main]
   push:
     branches: [main]
   workflow_dispatch:

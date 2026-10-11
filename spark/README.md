@@ -186,6 +186,15 @@ sinh cấu hình `mc_config_json` chuẩn tắc kèm hash SHA-256, làm giàu da
 dạng JSON và Markdown. Chạy offline test bằng `make test-ml-audit`. Xem
 [Gold input audit và completeness](../docs/specs/GOLD_INPUT_AUDIT_AND_COMPLETENESS.md).
 
+`MLD-03` dùng `MainshockWindowEngine` để expand mainshock windows vào UTC-day/
+1-degree spatial buckets, equi-join candidates và lọc exact time/bbox/distance.
+`MainshockWindowResult` kiểm tra invariants phân tán; `MainshockWindowJob` ghi
+Parquet với readback và fail-fast, không có JSON fallback. Timestamp giữ
+microseconds; non-self đồng thời là POST/delta 0. Chạy `make test-ml-window`.
+Xem [window spec](../docs/specs/MAINSHOCK_AND_CANDIDATE_WINDOWS.md) và
+[evidence/giới hạn MLD-03](../docs/evidence/MLD-03.md); Published JMA audit/Mc
+thật vẫn thuộc MLD-02, chưa lấy fixture làm bằng chứng runtime.
+
 Không commit `target/`, JAR hoặc local metastore. Kiến trúc service, dependency,
 version matrix, marker output và cách mở rộng được mô tả trong
 [Spark standalone contract](../docs/specs/SPARK_STANDALONE.md).

@@ -42,6 +42,12 @@ COMPONENT_SMOKES := smoke-minio smoke-airflow smoke-spark smoke-query smoke-usgs
 .PHONY: test-recovery smoke-recovery smoke-resource-pilot maintenance-preview
 .PHONY: test-silver-integration smoke-silver-integration
 .PHONY: test-ml-audit
+.PHONY: test-ml-window
+
+test-ml-window: ## MLD-03 bucket physical plan, distributed invariants, microseconds và fail-fast Parquet tests
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am \
+		-Dtest=WindowModelResolverTest,MainshockWindowEngineTest,MainshockWindowIntegrationTest,MainshockWindowRegressionTest \
+		-Dsurefire.failIfNoSpecifiedTests=false test
 
 test-ml-audit: ## MLD-02 Gold input audit, MAXC completeness estimator, sensitivity & reconciliation tests
 	@./mvnw --batch-mode --no-transfer-progress -pl spark -am \
