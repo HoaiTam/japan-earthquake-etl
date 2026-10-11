@@ -1,6 +1,6 @@
 ---
 task_id: "MLD-02"
-status: "Done"
+status: "Needs Update"
 week: 4
 block: "G - ML Dataset"
 workstream: "Input audit and completeness"
@@ -36,8 +36,8 @@ version hóa `Mc` để sensitivity experiment có input giải thích được.
 
 - [x] Không xóa event khỏi Gold; chỉ exclude khỏi dataset với reason code.
 - [x] Có reason tối thiểu cho missing depth/magnitude, ngoài period, dưới completeness và source không comparable.
-- [x] `Mc` có method/version/evidence và được áp dụng nhất quán trong cùng dataset.
-- [x] Audit counts đối soát được với snapshot manifest và không dùng dữ liệu extension để tune reproduction.
+- [ ] `Mc` có method/version/evidence và được áp dụng nhất quán trong cùng dataset.
+- [ ] Audit counts đối soát được với snapshot manifest và không dùng dữ liệu extension để tune reproduction.
 
 ## Hard dependency
 
@@ -64,16 +64,16 @@ chỉ bước chốt `Mc` và counts cần snapshot thật từ `MLD-01`.
 
 ## Theo dõi
 
-- **Trạng thái:** Done
+- **Trạng thái:** Needs Update
 - **Assignee:** rosy179
 - **Reviewer:** unassigned; chưa có review độc lập
-- **Evidence / PR:** 12 tests pass (6 unit estimator, 5 unit audit engine, 1 integration pilot). Xem [Evidence MLD-02](../../evidence/MLD-02.md) và [Đặc tả kỹ thuật](../../specs/GOLD_INPUT_AUDIT_AND_COMPLETENESS.md).
+- **Evidence / PR:** [PR #60](https://github.com/HoaiTam/japan-earthquake-etl/pull/60), [evidence cập nhật](../../evidence/MLD-02.md). 15 fixture/regression tests đạt; Published JMA audit/Mc thật còn thiếu, không coi synthetic pilot là DAT-01/SLV-09 evidence.
 - **Kỹ năng phù hợp:** Spark SQL, catalog completeness, data quality
 
 ## Checklist bàn giao
 
 - [x] Deliverable và test/evidence tồn tại trong repository.
-- [x] Acceptance criteria đã được kiểm tra.
+- [ ] Acceptance criteria đã được kiểm tra trên Published JMA input thật.
 - [x] Contract/docs đã cập nhật và không chứa secret/build artifact.
 - [ ] Reviewer độc lập được khuyến nghị cho P0.
 

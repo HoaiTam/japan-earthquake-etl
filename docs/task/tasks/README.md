@@ -24,7 +24,7 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 
 - Tổng số task: **73**.
 - Foundation: **9 task `Done`**.
-- Task còn ở trạng thái `Needs Update`: **0**.
+- Task còn ở trạng thái `Needs Update`: **1**.
 - Core: **65 task**.
 - Stretch: **8 task**.
 - Tổng effort task: **364 giờ**; trong đó 12 giờ data-readiness được thực hiện
@@ -127,7 +127,7 @@ fixture/inventory; assignee `HoaiTam`, reviewer `unassigned`. Xem
 | Task | Tuần | Workstream | Scope | Priority | Effort | Trạng thái |
 |---|---:|---|---|---|---:|---|
 | [MLD-01](./MLD-01.md) - Pin Gold snapshot và tạo dataset manifest | 4 | Dataset identity | Core | P0 | 5h | Done |
-| [MLD-02](./MLD-02.md) - Audit Gold và xác định magnitude of completeness | 4 | Input audit and completeness | Core | P0 | 7h | Done |
+| [MLD-02](./MLD-02.md) - Audit Gold và xác định magnitude of completeness | 4 | Input audit and completeness | Core | P0 | 7h | Needs Update |
 | [MLD-03](./MLD-03.md) - Chọn mainshock và tạo candidate windows | 4 | Mainshock and candidate windows | Core | P0 | 7h | Backlog |
 | [MLD-04](./MLD-04.md) - Tạo và scale feature không-thời gian 4-D | 6 | Spacetime features | Core | P0 | 6h | Backlog |
 | [MLD-05](./MLD-05.md) - Validate feature snapshot và export Parquet bundle | 6 | Feature validation and export | Core | P0 | 5h | Backlog |

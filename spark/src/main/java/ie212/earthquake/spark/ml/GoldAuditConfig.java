@@ -1,5 +1,7 @@
 package ie212.earthquake.spark.ml;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.Objects;
 
@@ -38,6 +40,7 @@ public record GoldAuditConfig(
         Objects.requireNonNull(datasetSplit, "datasetSplit");
         Objects.requireNonNull(periodStartUtc, "periodStartUtc");
         Objects.requireNonNull(periodEndUtcExclusive, "periodEndUtcExclusive");
+        Objects.requireNonNull(observationCutoffUtc, "observationCutoffUtc");
         Objects.requireNonNull(requiredCanonicalSource, "requiredCanonicalSource");
         Objects.requireNonNull(requiredCatalogEra, "requiredCatalogEra");
         Objects.requireNonNull(auditRuleVersion, "auditRuleVersion");
@@ -71,6 +74,22 @@ public record GoldAuditConfig(
         if (mcBinWidth <= 0 || !Double.isFinite(mcBinWidth)) {
             throw new IllegalArgumentException("mcBinWidth must be positive and finite: " + mcBinWidth);
         }
+        if (minEventsForMc < 1 || goldSnapshotId <= 0 || goldPublicationId == null || goldPublicationId.isBlank())
+            throw new IllegalArgumentException("ML_INVALID_AUDIT_PIN_OR_SAMPLE_LIMIT");
+    }
+
+    /** Runtime uses actual MLD-01 fields. forReproduction/forExtension are offline fixture helpers. */
+    public static GoldAuditConfig fromManifest(JsonNode manifest, String run, String reportUri) throws Exception {
+        var filters = new ObjectMapper().readTree(manifest.path("filter_config_json").asText());
+        var mc = filters.path("completeness_config");
+        return new GoldAuditConfig(manifest.path("dataset_split").asText(),
+            Instant.parse(manifest.path("period_start_utc").asText()), Instant.parse(manifest.path("period_end_utc_exclusive").asText()),
+            Instant.parse(manifest.path("observation_cutoff_utc").asText()), filters.path("canonical_source_system").asText(),
+            filters.path("catalog_era").asText(), filters.path("is_natural_earthquake").asBoolean(), filters.path("is_in_study_area").asBoolean(),
+            manifest.path("audit_rule_version").asText(), manifest.path("mc_method_version").asText(),
+            mc.path("region_version").asText("overall-v1"), null, mc.path("sensitivity_step").asDouble(0.2),
+            mc.path("bin_width").asDouble(0.1), mc.path("min_events").asInt(50), manifest.path("dataset_config_version").asText(),
+            manifest.path("gold_snapshot_id").asLong(), manifest.path("gold_publication_id").asText(), run, reportUri);
     }
 
     public static GoldAuditConfig forReproduction(String buildRunId) {

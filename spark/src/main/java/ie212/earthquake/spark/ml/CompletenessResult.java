@@ -32,14 +32,14 @@ public record CompletenessResult(
         node.put("method", method);
         node.put("method_version", methodVersion);
         node.put("bin_width", binWidth);
-        node.put("central_mc", centralMc);
-        node.put("sensitivity_lower", sensitivityLower);
-        node.put("sensitivity_upper", sensitivityUpper);
+        finite(node, "central_mc", centralMc);
+        finite(node, "sensitivity_lower", sensitivityLower);
+        finite(node, "sensitivity_upper", sensitivityUpper);
         node.put("sensitivity_step", sensitivityStep);
         node.put("sample_count", sampleCount);
         node.put("events_above_mc", eventsAboveMc);
         node.put("completeness_fraction", Math.round(completenessFraction * 1000.0) / 1000.0);
-        node.put("max_curvature_bin", maxCurvatureBin);
+        finite(node, "max_curvature_bin", maxCurvatureBin);
         node.put("max_curvature_bin_count", maxCurvatureBinCount);
         if (estimatedBValue != null) {
             node.put("estimated_b_value", estimatedBValue);
@@ -61,5 +61,8 @@ public record CompletenessResult(
             node.put("group_name", groupName);
         }
         return node;
+    }
+    static void finite(ObjectNode node, String field, double value) {
+        if (Double.isFinite(value)) node.put(field, value); else node.putNull(field);
     }
 }

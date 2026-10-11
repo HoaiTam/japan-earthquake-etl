@@ -98,6 +98,13 @@ Catalog được phân chia thành 3 tầng độ sâu theo chuẩn Seismology N
 Nếu số lượng mẫu $N < 50$ sự kiện, bộ ước lượng đánh dấu `is_reliable = false` kèm lý do `INSUFFICIENT_DATA`,
 tuyệt đối không bịa đặt hoặc hard-code số giả.
 
+Engine cũng phải giữ guard này: nếu không có fixed config được chọn rõ ràng,
+không áp dụng mode của sample nhỏ hoặc Mc=0. Rows đã qua pre-completeness nhưng
+không có threshold được exclude `ML_MC_UNRELIABLE`; `mc_applied`/`mc_value`
+giữ null, candidate build bị chặn. Report JSON dùng null cho metric không hữu
+hạn. Fixed fixture config được ghi `FIXED_CONFIG` cùng applied threshold và
+sensitivity; nó chưa chứng minh threshold có evidence trên input thật.
+
 ## 4. Phân tích biến động mạng lưới quan sát (Network Shift Analysis)
 
 Hệ thống tự động theo dõi tỷ lệ sự kiện thường niên trước và sau các mốc chuyển đổi quan trọng:
@@ -118,15 +125,32 @@ Khi tích hợp vào manifest của dataset, engine ghi đầy đủ các trư�
 - `eligible_event_count`: Số sự kiện hợp lệ ($M \ge M_c$, natural, ROI, primary JMA, UNIFIED, in-period).
 - `excluded_event_count`: Tổng số sự kiện bị loại trừ.
 - `exclusion_counts_json`: Chuỗi JSON thống kê số lượng theo từng mã lý do.
-- `mc_method`: `MAXIMUM_CURVATURE`.
+- `mc_method`: `MAXIMUM_CURVATURE` hoặc `FIXED_CONFIG` nếu chọn ngưỡng cố định.
 - `mc_method_version`: `1.0`.
-- `mc_value`: Giá trị $M_c$ trung tâm (hữu hạn).
+- `mc_value`: Ngưỡng áp dụng hữu hạn; null khi estimator không đáng tin cậy và chưa có fixed config.
 - `mc_region_version`: Phiên bản phân vùng/tầng độ sâu (`overall-v1` hoặc `depth-stratified-v1`).
 - `mc_config_json`: JSON chuẩn tắc chứa toàn bộ tham số, dải sensitivity và phân tầng độ sâu.
 - `mc_config_sha256`: Mã băm SHA-256 của `mc_config_json`.
 - `audit_report_uri`: Đường dẫn lưu báo cáo audit.
 
 ## 6. Lệnh kiểm thử và đối soát
+
+Runtime CLI là `ie212.earthquake.spark.ml.GoldInputAuditJob`, nhận một request
+JSON nhỏ gồm `ml_namespace`, `dataset_id`, `dag_id`, `run_id`. Control plane phải
+giữ shared lease và cung cấp Trino/Catalog/MinIO config qua env. CLI đọc exact
+manifest BUILDING, revalidate publication/pin, rồi Spark đọc physical Iceberg
+table bằng `snapshot-id`. Không dùng snapshot 1 của fixture helper hoặc latest.
+
+Cutoff trước publication bị reject `ML_HISTORICAL_CUTOFF_UNPROVEN`; pin một
+current snapshot mới không tự chứng minh source state lịch sử. Output nằm cạnh
+request: `audit-report.json`, `audit-report.md`, `audited-manifest.json`.
+Manifest handoff giữ BUILDING; đây chưa phải lifecycle update trong Iceberg.
+Parameters `completeness_config` (bin_width, sensitivity_step, min_events,
+region_version) có thể nằm trong pinned filter JSON; baseline defaults là
+0.1, 0.2, 50, overall-v1. Đổi config phải tạo/pin dataset identity tương ứng.
+
+Factories `GoldAuditConfig.forReproduction/forExtension` chứa pin giả để dùng
+offline fixtures. Runtime dùng `fromManifest` với publication/snapshot thật.
 
 ```bash
 # Chạy bộ test MLD-02 offline

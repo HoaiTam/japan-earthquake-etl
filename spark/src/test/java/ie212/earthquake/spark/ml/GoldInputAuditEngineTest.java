@@ -267,7 +267,9 @@ class GoldInputAuditEngineTest {
         assertEquals(61, enriched.get("input_event_count").asLong());
         assertEquals(60, enriched.get("eligible_event_count").asLong());
         assertEquals(1, enriched.get("excluded_event_count").asLong());
-        assertEquals("MAXIMUM_CURVATURE", enriched.get("mc_method").asText());
+        assertEquals("FIXED_CONFIG", enriched.get("mc_method").asText());
+        var mcConfig = JSON.readTree(enriched.path("mc_config_json").asText());
+        assertEquals(2.0, mcConfig.path("applied_mc").asDouble());
         assertEquals("1.0", enriched.get("mc_method_version").asText());
         assertEquals(2.0, enriched.get("mc_value").asDouble());
         assertEquals("overall-v1", enriched.get("mc_region_version").asText());
@@ -336,5 +338,32 @@ class GoldInputAuditEngineTest {
         assertTrue(mdReport.contains("Executive Summary & Counts Reconciliation"));
         assertTrue(mdReport.contains("Exclusion Breakdown by Primary Reason"));
         assertTrue(mdReport.contains("ML_MISSING_COORDINATE"));
+    }
+
+    @Test void insufficientSampleHasNoMcAndCannotFeedCandidates() throws Exception {
+        var row = createGoldRow("one", "JMA_BULLETIN", "2005-01-01T00:00:00Z", 35.0, 139.0, 60.0, 6.0, "EARTHQUAKE", true, true, "UNIFIED");
+        var result = new GoldInputAuditEngine().audit(spark.createDataFrame(List.of(row), GOLD_SCHEMA),
+            GoldAuditConfig.forReproduction("small"), Instant.parse("2026-10-11T00:00:00Z"));
+        assertEquals(0, result.eligibleEventCount());
+        assertEquals(1L, result.exclusionCountsByReason().get("ML_MC_UNRELIABLE"));
+        assertFalse(Double.isFinite(result.mcApplied()));
+        assertTrue(result.enrichManifest(JSON.createObjectNode()).path("mc_value").isNull());
+        assertTrue(result.toJsonReport().path("completeness_overall").path("central_mc").isNull());
+        assertFalse(result.mcConfigJson().contains("NaN"));
+    }
+
+    @Test void validEmptyInputReconcilesWithoutInventedThreshold() {
+        var result = new GoldInputAuditEngine().audit(spark.createDataFrame(List.of(), GOLD_SCHEMA),
+            GoldAuditConfig.forReproduction("empty"), Instant.now());
+        result.assertReconciled(); assertEquals(0, result.inputEventCount());
+        assertFalse(Double.isFinite(result.mcApplied()));
+        assertFalse(result.mcConfigJson().contains("NaN"));
+    }
+
+    @Test void pinnedAuditRejectsFixtureConfigBeforeReadingGold() throws Exception {
+        var manifest = JSON.createObjectNode().put("physical_gold_table_name", "iceberg.gold.event_current")
+            .put("gold_snapshot_id", 99).put("gold_publication_id", "pub_" + "a".repeat(64));
+        assertThrows(IllegalArgumentException.class, () -> GoldInputAuditJob.runPinnedAudit(spark, manifest,
+            GoldAuditConfig.forReproduction("fixture"), Instant.now()));
     }
 }

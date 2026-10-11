@@ -38,6 +38,8 @@ public final class GoldInputAuditEngine {
 
         // Validate uniqueness of canonical_event_id
         long totalInputCount = goldEvents.count();
+        if (goldEvents.filter(col("canonical_event_id").isNull().or(trim(col("canonical_event_id")).equalTo(""))).limit(1).count() > 0)
+            throw new IllegalArgumentException("ML_MISSING_CANONICAL_EVENT_ID");
         long uniqueCanonicalCount = goldEvents.select("canonical_event_id").distinct().count();
         if (totalInputCount != uniqueCanonicalCount) {
             throw new IllegalArgumentException("Duplicate canonical_event_id in Gold input: total="
@@ -86,13 +88,13 @@ public final class GoldInputAuditEngine {
             mcToApply = config.fixedMcValue();
         } else if (completenessResult.isReliable()) {
             mcToApply = completenessResult.centralMc();
-        } else if (!Double.isNaN(completenessResult.maxCurvatureBin())) {
-            mcToApply = completenessResult.maxCurvatureBin();
         } else {
-            mcToApply = 0.0;
+            mcToApply = Double.NaN; // No eligible downstream rows without a supported threshold.
         }
 
-        Column isBelowMc = not(isMissingMag).and(col("magnitude").lt(lit(mcToApply)));
+        boolean mcAvailable = Double.isFinite(mcToApply);
+        Column isBelowMc = mcAvailable ? not(isMissingMag).and(col("magnitude").lt(lit(mcToApply))) : lit(false);
+        Column isMcUnavailable = passedPreCompleteness.and(lit(!mcAvailable));
 
         // Deterministic hierarchy for primary exclusion reason
         Column primaryReason = when(isMissingCoord, "ML_MISSING_COORDINATE")
@@ -103,6 +105,7 @@ public final class GoldInputAuditEngine {
                 .when(isNotComparable, "ML_SOURCE_NOT_COMPARABLE")
                 .when(isLegacyEra, "ML_LEGACY_CATALOG_ERA")
                 .when(isOutsidePeriod, "ML_OUTSIDE_TIME_RANGE")
+                .when(isMcUnavailable, "ML_MC_UNRELIABLE")
                 .when(isBelowMc, "ML_BELOW_COMPLETENESS")
                 .otherwise(lit(null).cast(DataTypes.StringType));
 
@@ -118,7 +121,8 @@ public final class GoldInputAuditEngine {
                         when(isNotComparable, "ML_SOURCE_NOT_COMPARABLE").otherwise(lit(null).cast(DataTypes.StringType)),
                         when(isLegacyEra, "ML_LEGACY_CATALOG_ERA").otherwise(lit(null).cast(DataTypes.StringType)),
                         when(isOutsidePeriod, "ML_OUTSIDE_TIME_RANGE").otherwise(lit(null).cast(DataTypes.StringType)),
-                        when(isBelowMc, "ML_BELOW_COMPLETENESS").otherwise(lit(null).cast(DataTypes.StringType))
+                        when(isBelowMc, "ML_BELOW_COMPLETENESS").otherwise(lit(null).cast(DataTypes.StringType)),
+                        when(isMcUnavailable, "ML_MC_UNRELIABLE").otherwise(lit(null).cast(DataTypes.StringType))
                 ),
                 c -> c.isNotNull()
         );
@@ -127,7 +131,7 @@ public final class GoldInputAuditEngine {
                 .withColumn("is_eligible", isEligible)
                 .withColumn("primary_exclusion_reason", primaryReason)
                 .withColumn("all_exclusion_reasons", allReasonsArray)
-                .withColumn("mc_applied", lit(mcToApply));
+                .withColumn("mc_applied", mcAvailable ? lit(mcToApply) : lit(null).cast(DataTypes.DoubleType));
 
         Dataset<Row> eligibleEvents = auditedEvents.filter(col("is_eligible"));
         Dataset<Row> excludedEvents = auditedEvents.filter(not(col("is_eligible")));
@@ -181,6 +185,13 @@ public final class GoldInputAuditEngine {
 
         // Canonical mc_config JSON and hash
         ObjectNode mcConfigNode = MagnitudeCompletenessEstimator.buildCanonicalMcConfigNode(completenessResult, depthGroups);
+        mcConfigNode.put("applied_method", config.fixedMcValue() != null ? "FIXED_CONFIG" : completenessResult.method());
+        if (mcAvailable) mcConfigNode.put("applied_mc", mcToApply); else mcConfigNode.putNull("applied_mc");
+        if (config.fixedMcValue() != null) {
+            mcConfigNode.put("central_mc", mcToApply);
+            mcConfigNode.put("sensitivity_lower", mcToApply - config.mcSensitivityStep());
+            mcConfigNode.put("sensitivity_upper", mcToApply + config.mcSensitivityStep());
+        }
         String mcConfigJson = MagnitudeCompletenessEstimator.canonicalJsonString(mcConfigNode);
         String mcConfigSha256 = MagnitudeCompletenessEstimator.sha256(mcConfigJson);
 
