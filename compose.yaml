@@ -707,6 +707,46 @@ services:
         source: iceberg_catalog_data
         target: /home/iceberg
 
+  spark-gold-qa:
+    <<: *runtime-defaults
+    profiles: [gold]
+    image: japan-earthquake-etl/spark-gold-qa:3.5.9-java17
+    build:
+      context: .
+      dockerfile: compose/spark/Dockerfile.gold-qa
+    restart: "no"
+    user: ${AIRFLOW_UID:?AIRFLOW_UID is required}:0
+    entrypoint: [/bin/bash, -ec]
+    command:
+      - |
+        mkdir -p /opt/pipeline/staging/gold-qa /opt/pipeline/staging/source-guard
+        exec python3 /opt/airflow/dags/gold_storage_qa.py
+    environment:
+      PYTHONPATH: /opt/airflow/dags
+      CONFIG_VERSION: ${CONFIG_VERSION:?CONFIG_VERSION is required}
+      GOLD_CODE_VERSION: ${GOLD_CODE_VERSION:-local-gld03-v1}
+      SOURCE_GUARD_ROOT: /opt/pipeline/staging/source-guard
+      DATA_BUCKET: ${DATA_BUCKET:?DATA_BUCKET is required}
+      BRONZE_PREFIX: ${BRONZE_PREFIX:?BRONZE_PREFIX is required}
+      SILVER_PREFIX: ${SILVER_PREFIX:?SILVER_PREFIX is required}
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT:?MINIO_ENDPOINT is required}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:?MINIO_ACCESS_KEY is required}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:?MINIO_SECRET_KEY is required}
+      ICEBERG_CATALOG_NAME: ${ICEBERG_CATALOG_NAME:?ICEBERG_CATALOG_NAME is required}
+      ICEBERG_CATALOG_URI: ${ICEBERG_CATALOG_URI:?ICEBERG_CATALOG_URI is required}
+      WAREHOUSE_PATH: ${WAREHOUSE_PATH:?WAREHOUSE_PATH is required}
+      S3_REGION: ${S3_REGION:?S3_REGION is required}
+    security_opt: [no-new-privileges:true]
+    deploy:
+      resources:
+        limits: {cpus: "1.0", memory: 2G}
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags:ro
+      - ./spark/target/japan-earthquake-etl-runner.jar:/opt/spark/jobs/japan-earthquake-etl-runner.jar:ro
+      - ./spark/target/iceberg:/opt/spark/jobs/iceberg:ro
+      - ./spark/src/test/resources/fixtures/real_samples:/opt/pipeline/fixtures:ro
+      - pipeline_staging:/opt/pipeline/staging
+
   trino:
     <<: *runtime-defaults
     image: trinodb/trino:483@sha256:db58cc93e593a2706553745f276bb119c9810e69918be56ecde088ba7ccb0534
