@@ -41,7 +41,7 @@ COMPONENT_SMOKES := smoke-minio smoke-airflow smoke-spark smoke-query smoke-usgs
 .PHONY: test-source-schedule smoke-source-readiness
 .PHONY: test-recovery smoke-recovery smoke-resource-pilot maintenance-preview
 .PHONY: test-silver-integration smoke-silver-integration
-.PHONY: test-ml-audit
+.PHONY: test-ml-audit smoke-ml-audit
 .PHONY: test-ml-window
 
 test-ml-window: ## MLD-03 bucket physical plan, distributed invariants, microseconds và fail-fast Parquet tests
@@ -50,9 +50,15 @@ test-ml-window: ## MLD-03 bucket physical plan, distributed invariants, microsec
 		-Dsurefire.failIfNoSpecifiedTests=false test
 
 test-ml-audit: ## MLD-02 Gold input audit, MAXC completeness estimator, sensitivity & reconciliation tests
+	@python3 -m unittest discover -s airflow/tests -p 'test_gold_input_audit_qa.py'
 	@./mvnw --batch-mode --no-transfer-progress -pl spark -am \
-		-Dtest=MagnitudeCompletenessEstimatorTest,GoldInputAuditEngineTest,GoldInputAuditIntegrationTest \
+		-Dtest=MagnitudeCompletenessEstimatorTest,MagnitudeHistogramSparkTest,GoldAuditAcceptanceTest,GoldInputAuditEngineTest,GoldInputAuditIntegrationTest \
 		-Dsurefire.failIfNoSpecifiedTests=false test
+
+smoke-ml-audit: check-config-local check-java-build-inputs ## MLD-02 exact Silver -> fresh QA Published JMA -> pinned audit/Mc; không ghi Gold sản phẩm
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am verify
+	@$(COMPOSE) build spark-master
+	@$(COMPOSE) --profile gold run --rm --no-deps gold-input-audit-qa
 .PHONY: test-gold-storage smoke-gold-storage
 .PHONY: test-gold-publication smoke-gold-publication test-dataset-manifest smoke-dataset-manifest
 

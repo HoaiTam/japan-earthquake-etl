@@ -8,6 +8,9 @@ import java.security.MessageDigest;
 import java.util.*;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.api.java.UDF1;
+import org.apache.spark.sql.types.DataTypes;
+import static org.apache.spark.sql.functions.*;
 
 /**
  * Versioned Magnitude of Completeness (Mc) Estimator.
@@ -20,6 +23,7 @@ public final class MagnitudeCompletenessEstimator {
     public static final double DEFAULT_BIN_WIDTH = 0.1;
     public static final double DEFAULT_SENSITIVITY_STEP = 0.2;
     public static final int DEFAULT_MIN_EVENTS = 50;
+    public static final int MAX_HISTOGRAM_BINS = 10_000;
 
     private static final ObjectMapper JSON = new ObjectMapper();
 
@@ -44,6 +48,8 @@ public final class MagnitudeCompletenessEstimator {
         }
         this.binWidth = Math.round(binWidth * 1000.0) / 1000.0;
         this.sensitivityStep = Math.round(sensitivityStep * 1000.0) / 1000.0;
+        if (this.binWidth <= 0 || this.sensitivityStep <= 0)
+            throw new IllegalArgumentException("ML_MC_CONFIG_BELOW_PRECISION");
         this.minEvents = minEvents;
         this.methodVersion = Objects.requireNonNull(methodVersion, "methodVersion");
     }
@@ -54,6 +60,25 @@ public final class MagnitudeCompletenessEstimator {
 
     public CompletenessResult estimate(List<Double> magnitudes, String groupName) {
         FrequencyMagnitudeDistribution fmd = new FrequencyMagnitudeDistribution(magnitudes, binWidth);
+        return estimate(fmd, groupName);
+    }
+
+    /** Only bounded aggregate bins cross the Spark/driver boundary, never event magnitudes. */
+    public CompletenessResult estimate(Dataset<Row> events, String groupName) {
+        final double width = binWidth; // Do not capture the non-serializable estimator in a UDF.
+        var bin = udf((UDF1<Double, Double>) value -> FrequencyMagnitudeDistribution.roundBin(value, width), DataTypes.DoubleType);
+        var magnitudes = events.select(col("magnitude").cast("double").alias("magnitude"))
+            .filter(col("magnitude").isNotNull().and(not(isnan(col("magnitude"))))
+                .and(abs(col("magnitude")).leq(Double.MAX_VALUE)));
+        var rows = magnitudes.withColumn("mc_bin", bin.apply(col("magnitude")))
+            .groupBy("mc_bin").count().limit(MAX_HISTOGRAM_BINS + 1).collectAsList();
+        if (rows.size() > MAX_HISTOGRAM_BINS) throw new IllegalArgumentException("ML_MC_HISTOGRAM_LIMIT_EXCEEDED");
+        Map<Double, Long> counts = new TreeMap<>();
+        for (Row row : rows) counts.put(row.getDouble(0), row.getLong(1));
+        return estimate(FrequencyMagnitudeDistribution.fromHistogram(counts, binWidth), groupName);
+    }
+
+    private CompletenessResult estimate(FrequencyMagnitudeDistribution fmd, String groupName) {
         long n = fmd.totalEvents();
 
         if (n < minEvents) {
@@ -109,31 +134,12 @@ public final class MagnitudeCompletenessEstimator {
     }
 
     public Map<String, CompletenessResult> estimateStratifiedByDepth(Dataset<Row> events) {
-        Map<String, List<Double>> depthMagnitudes = new HashMap<>();
-        depthMagnitudes.put("SHALLOW", new ArrayList<>());
-        depthMagnitudes.put("INTERMEDIATE", new ArrayList<>());
-        depthMagnitudes.put("DEEP", new ArrayList<>());
-
-        List<Row> rows = events.select("depth_km", "magnitude").collectAsList();
-        for (Row row : rows) {
-            if (row.isNullAt(0) || row.isNullAt(1)) continue;
-            double depth = row.getDouble(0);
-            double mag = row.getDouble(1);
-            if (!Double.isFinite(depth) || !Double.isFinite(mag)) continue;
-
-            if (depth >= 0 && depth < 70) {
-                depthMagnitudes.get("SHALLOW").add(mag);
-            } else if (depth >= 70 && depth < 300) {
-                depthMagnitudes.get("INTERMEDIATE").add(mag);
-            } else if (depth >= 300) {
-                depthMagnitudes.get("DEEP").add(mag);
-            }
-        }
-
+        var valid = events.filter(col("depth_km").isNotNull().and(not(isnan(col("depth_km"))))
+            .and(abs(col("depth_km")).leq(Double.MAX_VALUE)));
         Map<String, CompletenessResult> results = new TreeMap<>();
-        for (Map.Entry<String, List<Double>> entry : depthMagnitudes.entrySet()) {
-            results.put(entry.getKey(), estimate(entry.getValue(), entry.getKey()));
-        }
+        results.put("SHALLOW", estimate(valid.filter(col("depth_km").geq(0).and(col("depth_km").lt(70))), "SHALLOW"));
+        results.put("INTERMEDIATE", estimate(valid.filter(col("depth_km").geq(70).and(col("depth_km").lt(300))), "INTERMEDIATE"));
+        results.put("DEEP", estimate(valid.filter(col("depth_km").geq(300)), "DEEP"));
         return Collections.unmodifiableMap(results);
     }
 
