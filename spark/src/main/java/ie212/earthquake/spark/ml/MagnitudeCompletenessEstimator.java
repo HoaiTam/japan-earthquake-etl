@@ -191,7 +191,7 @@ public final class MagnitudeCompletenessEstimator {
         root.put("sample_event_count", overall.sampleCount());
         root.put("events_above_mc", overall.eventsAboveMc());
         root.put("completeness_fraction", Math.round(overall.completenessFraction() * 1000.0) / 1000.0);
-        root.put("max_curvature_bin", overall.maxCurvatureBin());
+        CompletenessResult.finite(root, "max_curvature_bin", overall.maxCurvatureBin());
         root.put("max_curvature_bin_count", overall.maxCurvatureBinCount());
         if (overall.estimatedBValue() != null) {
             root.put("estimated_b_value", overall.estimatedBValue());

@@ -16,10 +16,11 @@ import org.apache.spark.sql.types.StructType;
 /**
  * Mainshock Selection and Candidate Window Engine (MLD-03).
  * Filters baseline mainshocks (depth 50–200 km, magnitude > 5.5, within dataset period)
- * and executes range-join (time -> spatial bounding box -> fine local distance)
+ * and executes bucket equi-join with residual time/spatial bounds and fine local distance
  * without full catalog cross joins.
  */
 public final class MainshockWindowEngine {
+    private static final double MICROS_PER_HOUR = 3_600_000_000.0;
 
     public MainshockWindowResult execute(
             Dataset<Row> auditedEvents,
@@ -34,6 +35,9 @@ public final class MainshockWindowEngine {
         Objects.requireNonNull(windowConfig, "windowConfig");
         Objects.requireNonNull(datasetId, "datasetId");
         Objects.requireNonNull(createdAtUtc, "createdAtUtc");
+        if (datasetId.isBlank() || !Double.isFinite(mcValue)) {
+            throw new IllegalArgumentException("Dataset ID must be nonblank and Mc must be finite");
+        }
 
         SparkSession spark = auditedEvents.sparkSession();
         if (!"UTC".equals(spark.conf().get("spark.sql.session.timeZone"))) {
@@ -58,6 +62,7 @@ public final class MainshockWindowEngine {
                 .and(depthCol.leq(lit(selectionConfig.maxDepthKm())))
                 .and(magCol.isNotNull())
                 .and(magCol.gt(lit(selectionConfig.minMagnitudeExclusive())))
+                .and(magCol.geq(lit(mcValue)))
                 .and(timeCol.isNotNull())
                 .and(timeCol.geq(lit(Timestamp.from(selectionConfig.periodStartUtc()))))
                 .and(timeCol.lt(lit(Timestamp.from(selectionConfig.periodEndUtcExclusive()))));
@@ -67,13 +72,6 @@ public final class MainshockWindowEngine {
 
         if (mainshockCount == 0) {
             return createEmptyResult(spark, selectionConfig, windowConfig, mcValue, datasetId, createdAtUtc);
-        }
-
-        // Collect distinct mainshock event IDs
-        List<Row> mainshockIdRows = mainshocksFiltered.select("canonical_event_id").collectAsList();
-        Set<String> mainshockIdSet = new HashSet<>(mainshockIdRows.size());
-        for (Row r : mainshockIdRows) {
-            mainshockIdSet.add(r.getString(0));
         }
 
         // Register UDFs for window dimensions
@@ -97,20 +95,35 @@ public final class MainshockWindowEngine {
                 .withColumn("delta_lat_deg", deltaLatUdf.apply(col("magnitude"), col("latitude")))
                 .withColumn("delta_lon_deg", deltaLonUdf.apply(col("magnitude"), col("latitude")))
                 .withColumn("window_start_utc",
-                        from_unixtime(unix_timestamp(col("mainshock_time_utc")).minus(col("pre_window_hours").multiply(3600.0))).cast(DataTypes.TimestampType))
+                        timestamp_micros(unix_micros(col("mainshock_time_utc"))
+                                .minus(round(col("pre_window_hours").multiply(MICROS_PER_HOUR)).cast(DataTypes.LongType))))
                 .withColumn("window_end_utc",
-                        from_unixtime(unix_timestamp(col("mainshock_time_utc")).plus(col("post_window_hours").multiply(3600.0))).cast(DataTypes.TimestampType))
+                        timestamp_micros(unix_micros(col("mainshock_time_utc"))
+                                .plus(round(col("post_window_hours").multiply(MICROS_PER_HOUR)).cast(DataTypes.LongType))))
                 .withColumn("min_lat", col("mainshock_lat").minus(col("delta_lat_deg")))
                 .withColumn("max_lat", col("mainshock_lat").plus(col("delta_lat_deg")))
                 .withColumn("min_lon", col("mainshock_lon").minus(col("delta_lon_deg")))
                 .withColumn("max_lon", col("mainshock_lon").plus(col("delta_lon_deg")));
 
-        // Prepare candidate pool from eligible events:
-        // Candidates must have magnitude >= mcValue OR be one of the mainshocks themselves
-        Column isMainshockEvent = col("canonical_event_id").isin(mainshockIdSet.toArray());
+        // Clip the coarse search to the dataset period, without changing exact window bounds.
+        // Each event belongs to exactly one UTC-day / 1-degree latitude / longitude bucket.
+        // Expand ONLY windows into every bucket they touch; equi-join precedes residual filters.
+        Dataset<Row> windowBuckets = mainshocksWithWindows
+                .withColumn("_day_bucket", explode(sequence(
+                        dayBucket(greatest(col("window_start_utc"), lit(Timestamp.from(selectionConfig.periodStartUtc())))),
+                        dayBucket(least(col("window_end_utc"), lit(Timestamp.from(selectionConfig.periodEndUtcExclusive().minusNanos(1000))))))))
+                .withColumn("_lat_bucket", explode(sequence(
+                        floor(greatest(col("min_lat"), lit(-90.0))).cast(DataTypes.LongType),
+                        floor(least(col("max_lat"), lit(90.0))).cast(DataTypes.LongType))))
+                .withColumn("_lon_bucket", explode(sequence(
+                        floor(greatest(col("min_lon"), lit(-180.0))).cast(DataTypes.LongType),
+                        floor(least(col("max_lon"), lit(180.0))).cast(DataTypes.LongType))));
+
         Column candidateCondition = col("is_eligible")
                 .and(col("magnitude").isNotNull())
-                .and(col("magnitude").geq(lit(mcValue)).or(isMainshockEvent));
+                .and(col("magnitude").geq(lit(mcValue)))
+                .and(col("event_time_utc").geq(lit(Timestamp.from(selectionConfig.periodStartUtc()))))
+                .and(col("event_time_utc").lt(lit(Timestamp.from(selectionConfig.periodEndUtcExclusive()))));
 
         Dataset<Row> candidates = auditedEvents.filter(candidateCondition)
                 .select(
@@ -120,7 +133,10 @@ public final class MainshockWindowEngine {
                         col("longitude").alias("candidate_longitude"),
                         col("depth_km").alias("candidate_depth_km"),
                         col("magnitude").alias("candidate_magnitude")
-                );
+                )
+                .withColumn("_day_bucket", dayBucket(col("candidate_time_utc")))
+                .withColumn("_lat_bucket", floor(col("candidate_latitude")).cast(DataTypes.LongType))
+                .withColumn("_lon_bucket", floor(col("candidate_longitude")).cast(DataTypes.LongType));
 
         // Range Join: Time Window AND Bounding Box Prefilter
         Column rangeJoinCondition = candidates.col("candidate_time_utc").geq(mainshocksWithWindows.col("window_start_utc"))
@@ -130,7 +146,11 @@ public final class MainshockWindowEngine {
                 .and(candidates.col("candidate_longitude").geq(mainshocksWithWindows.col("min_lon")))
                 .and(candidates.col("candidate_longitude").leq(mainshocksWithWindows.col("max_lon")));
 
-        Dataset<Row> rangeJoined = mainshocksWithWindows.join(candidates, rangeJoinCondition);
+        Dataset<Row> rangeJoined = windowBuckets.join(candidates,
+                windowBuckets.col("_day_bucket").equalTo(candidates.col("_day_bucket"))
+                        .and(windowBuckets.col("_lat_bucket").equalTo(candidates.col("_lat_bucket")))
+                        .and(windowBuckets.col("_lon_bucket").equalTo(candidates.col("_lon_bucket")))
+                        .and(rangeJoinCondition));
 
         // Fine distance calculations (local planar projection relative to mainshock)
         Column cosLat = cos(radians(rangeJoined.col("mainshock_lat")));
@@ -153,13 +173,13 @@ public final class MainshockWindowEngine {
                 .when(withinDistance.col("candidate_time_utc").lt(withinDistance.col("mainshock_time_utc")), lit("PRE"))
                 .otherwise(lit("POST"));
 
-        // Delta time hours with signed conventions (PRE < 0, MAINSHOCK = 0, POST > 0)
+        // PRE < 0; MAINSHOCK = 0; POST > 0 (or 0 for simultaneous non-self events).
         Column dtHours = when(isMainshock, lit(0.0))
                 .otherwise(
-                        withinDistance.col("candidate_time_utc").cast(DataTypes.LongType)
-                                .minus(withinDistance.col("mainshock_time_utc").cast(DataTypes.LongType))
+                        unix_micros(withinDistance.col("candidate_time_utc"))
+                                .minus(unix_micros(withinDistance.col("mainshock_time_utc")))
                                 .cast(DataTypes.DoubleType)
-                                .divide(3600.0)
+                                .divide(MICROS_PER_HOUR)
                 );
 
         Column finalDx = when(isMainshock, lit(0.0)).otherwise(dx);
@@ -190,23 +210,25 @@ public final class MainshockWindowEngine {
                         lit(mcValue).alias("mc_value"),
                         lit(windowConfig.windowModelVersion()).alias("window_model_version"),
                         lit(Timestamp.from(createdAtUtc)).alias("created_at_utc")
-                )
-                .dropDuplicates("dataset_id", "mainshock_event_id", "candidate_event_id");
+                ); // One event bucket intersects a given window once: no silent deduplication.
 
         long totalCandidateRowCount = candidateSnapshot.count();
         long distinctCandidateEventCount = candidateSnapshot.select("candidate_event_id").distinct().count();
 
         // Window-level aggregations
         Map<String, Long> candidatesPerWindow = new TreeMap<>();
-        List<Row> windowCountRows = candidateSnapshot.groupBy("mainshock_event_id").count().collectAsList();
+        Dataset<Row> windowCounts = candidateSnapshot.groupBy("mainshock_event_id").count();
+        List<Row> windowCountRows = windowCounts.collectAsList(); // One metadata row per window, never candidates.
         for (Row r : windowCountRows) {
             candidatesPerWindow.put(r.getString(0), r.getLong(1));
         }
 
         // Nested mainshocks per window (candidates that are also mainshocks, excluding self)
         Map<String, Integer> nestedMainshocksPerWindow = new TreeMap<>();
+        Dataset<Row> selectedIds = mainshocksFiltered.select(col("canonical_event_id").alias("candidate_event_id"));
         List<Row> nestedRows = candidateSnapshot
-                .filter(col("candidate_event_id").isin(mainshockIdSet.toArray()).and(not(col("is_mainshock"))))
+                .filter(not(col("is_mainshock")))
+                .join(selectedIds, new String[]{"candidate_event_id"}, "left_semi")
                 .groupBy("mainshock_event_id").count().collectAsList();
         for (Row r : nestedRows) {
             nestedMainshocksPerWindow.put(r.getString(0), (int) r.getLong(1));
@@ -217,7 +239,7 @@ public final class MainshockWindowEngine {
         long flaggedCount = 0;
         long rejectedCount = 0;
 
-        for (String mid : mainshockIdSet) {
+        for (String mid : candidatesPerWindow.keySet()) {
             long count = candidatesPerWindow.getOrDefault(mid, 0L);
             if (count > selectionConfig.maxCandidatesPerWindow()) {
                 if (selectionConfig.failOnResourceExceeded()) {
@@ -233,12 +255,9 @@ public final class MainshockWindowEngine {
         }
 
         // Assemble mainshock snapshot (ml.mainshock_candidate_snapshot)
-        Dataset<Row> windowCountsDf = spark.createDataFrame(
-                candidatesPerWindow.entrySet().stream().map(e -> org.apache.spark.sql.RowFactory.create(e.getKey(), e.getValue())).toList(),
-                new StructType()
-                        .add("mid", DataTypes.StringType, false)
-                        .add("candidate_count", DataTypes.LongType, false)
-        );
+        Dataset<Row> windowCountsDf = windowCounts
+                .withColumnRenamed("mainshock_event_id", "mid")
+                .withColumnRenamed("count", "candidate_count");
 
         Dataset<Row> mainshocksWithCounts = mainshocksWithWindows.join(
                 windowCountsDf,
@@ -376,5 +395,9 @@ public final class MainshockWindowEngine {
                 throw new IllegalArgumentException("Missing required column in Dataset: " + col);
             }
         }
+    }
+
+    private static Column dayBucket(Column timestamp) {
+        return datediff(to_date(timestamp), lit("1970-01-01")).cast(DataTypes.LongType);
     }
 }

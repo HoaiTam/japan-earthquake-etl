@@ -63,12 +63,14 @@ make up-query
 
 ## Kiểm thử không gọi nguồn dữ liệu thật
 
-CI dùng ba nhóm `make ci-docs`, `make ci-java`, `make ci-airflow`; `make ci`
-chạy tuần tự cả ba. Java CI dùng JDK 17; YAML guardrails cần dependency từ
-`tests/ci/requirements.txt` (PyYAML). `make test-ci-workflow` kiểm tra riêng
-trigger cho mọi base branch của PR, push chỉ vào `main`, quyền và jobs.
-Xem [CI guide](./conventions_and_workflow/CONTINUOUS_INTEGRATION.md) để hiểu
-stacked PR, checks chưa chạy do conflict và giới hạn so với E2E thật.
+CI có ba entrypoint độc lập: `make ci-docs`, `make ci-java`, `make ci-airflow`;
+`make ci` chạy cả ba tuần tự. `ci-docs` cần PyYAML tại
+`tests/ci/requirements.txt`, jq/rg và Compose CLI, cố ý bỏ qua `.env` riêng và
+chỉ validate Compose với example. Java CI dùng JDK 17 và `clean verify`.
+`make test-ci-workflow` kiểm tra YAML guardrails; actionlint là bước riêng trên
+GitHub. Những target `test` hiện có không đổi dependency. Xem
+[CI guide](./conventions_and_workflow/CONTINUOUS_INTEGRATION.md) để cài công cụ,
+đọc checks và thiết lập chặn merge. Không target CI nào start service hoặc gọi nguồn thật.
 
 ```bash
 make test
@@ -83,6 +85,7 @@ Internet khi dependency chưa được cache.
 | `test-contracts` | Baseline/scaffold, CON-01..04, inventory JMA, catalog DAT-01, kế hoạch tuần 3 và Java Docker build inputs |
 | `check-java-build-inputs` | Preflight fixture/inventory/allowlist và COPY trước Maven verify ở Spark/Airflow; 12 regression test offline, không cần Docker/JDK/env |
 | `test-java` | Maven unit test module Spark: USGS planner/client/Bronze writer/QA/live runner |
+| `test-ml-window` | MLD-03: 21 fixture/regression tests cho bucket physical plan, distributed invariants, microseconds và fail-fast Parquet; không nghiệm thu Published JMA/Mc thật |
 | `test-airflow` | Unittest DAG, interval/retry, phase protocol và publish gate |
 | `test-orchestration` | ORC-01 context/phase/gates và dựng graph bằng SDK double, không cần Airflow trên host |
 | `etl-preview` | In run context/exact scope fixture ORC-01 offline, không ghi hoặc gọi service |

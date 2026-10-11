@@ -1,66 +1,91 @@
-# Evidence Bàn Giao Task MLD-03
+# Evidence MLD-03 - Bản vá review PR #61
 
-## Thông Tin Chung
+- Task: MLD-03 - Chọn mainshock và tạo candidate windows.
+- Assignee bản vá: **HoaiTam**; tác giả implementation ban đầu: rosy179.
+- Reviewer: **unassigned** (chưa có review độc lập).
+- Branch: `feat/mld-03-mainshock-candidate-windows`.
+- PR: [#61](https://github.com/HoaiTam/japan-earthquake-etl/pull/61), sửa trực tiếp, không tạo PR/branch mới.
+- Trạng thái: **Needs Update**; acceptance kỹ thuật có regression tests, chưa nghiệm thu Published JMA/Mc thật.
+- Main được tích hợp: `b29478bd6190338a8d60818177b12370650a5375`, giữ Gold writer/publication, dataset manifest và MLD-02 mới.
+- Ngày kiểm tra: **2026-10-11**, Asia/Ho_Chi_Minh.
 
-- **Task ID:** MLD-03
-- **Tên task:** Chọn mainshock và tạo candidate windows
-- **Assignee:** rosy179
-- **Reviewer:** unassigned (chưa có reviewer độc lập)
-- **Workstream:** Mainshock and candidate windows
-- **Block:** G - ML Dataset
-- **Scope:** Core
-- **Priority:** P0
-- **Branch:** `feat/mld-03-mainshock-candidate-windows`
-- **Thời gian thực hiện:** Tuần 4 (kế hoạch tuần 4 mở rộng)
+## 1. Đối chiếu 5 điểm review
 
----
+| Điểm review | Bản vá và bằng chứng |
+|---|---|
+| Non-equi join vẫn BroadcastNestedLoopJoin | Window expand các bucket UTC-day / floor(latitude) / floor(longitude); candidate thuộc một bucket; equi-join ba keys rồi time/bbox/distance residual. Test executed physical plan không có CartesianProduct/BroadcastNestedLoopJoin, có hash/sort-merge join; chạy cả broadcast mặc định và tắt broadcast với input repartition. WindowModelConfig Serializable để UDF hoạt động qua shuffle. |
+| Invariant collect toàn candidates và lặp M×C trên driver | GroupBy grain, aggregate self/count, full-outer đối soát window và distributed join/filter kiểm tra role/time/vector. Chỉ scalar count/boolean trả về driver; không collect candidate rows. Engine chỉ collect metadata theo window cho report. |
+| Parquet lỗi nhưng catch(Throwable) fallback JSON báo success | Bỏ fallback; propagates storage/config exceptions; readback cả hai Parquet counts rồi mới ghi success reports. Invalidate hai report cũ trước computation. Regression tạo missing output committer, xác nhận job throw và không còn success report/JSON fallback; reject hard-limit không export. |
+| Cast timestamp xuống giây làm mất precision | Dùng unix_micros/timestamp_micros cho bounds và delta; PRE -0.8s và POST +0.2s giữ đúng dấu. Test exact boundaries inclusive, ngoài biên một microsecond, qua ngày và spatial cell. Tie non-self cùng timestamp giữ POST/delta=0, không bịa epsilon/aftershock label. |
+| Done/evidence dùng synthetic input gây hiểu nhầm | Task/index đồng bộ Needs Update, assignee HoaiTam. Integration hiện là audit→window **fixture**, lấy mcApplied được chấp nhận từ MLD-02, không dùng central Mc chưa reliable. Chưa có Published JMA audit/Mc thật; không gọi đây là runtime E2E hoặc nghiệm thu dataset thực. |
 
-## 1. Kết Quả Kiểm Thử Tự Động (13/13 Tests Pass)
+## 2. Kiểm thử và cách chạy lại
 
-Toàn bộ 13 test cases đã được thực thi và vượt qua 100% trên môi trường Spark Java 17/21 thông qua lệnh:
+Target `make test-ml-window` gồm **21 tests**:
+
+- WindowModelResolverTest: 6 tests công thức/config/bounding-box theo mô hình phẳng cục bộ. Không dùng test này để tuyên bố kiểm chứng khoảng cách cầu/haversine.
+- MainshockWindowEngineTest: 6 tests grain/self/PRE/POST, overlapping windows, physical plan, resource flag không truncate, nested mainshock và selection boundaries.
+- MainshockWindowIntegrationTest: 1 **fixture** audit→accepted Mc→window→Parquet readback/report/manifest enrichment.
+- MainshockWindowRegressionTest: 8 tests precision/corrupt vector, simultaneous non-self, exact microsecond/day/spatial boundaries, shuffle join/order independence, invalid count/duplicate/missing self, Parquet/validation failure invalidation, rejected export và empty/invalid Mc.
+
+Chạy tại repo root:
+
 ```bash
-./mvnw -pl spark -am -Dtest=WindowModelResolverTest,MainshockWindowEngineTest,MainshockWindowIntegrationTest test
-# hoặc make test-ml-window
+make test-ml-window
+make ci-docs
+make ci-airflow
+make ci-java
+git diff --check
 ```
 
-### 1.1. `WindowModelResolverTest` (6/6 tests pass)
-1. `testUhrhammer1986CalculationsAndMonotonicity`: Xác minh công thức Uhrhammer (1986) cho bán kính $d(M)$ và thời lượng $t(M)$ tại $M=5.5, 6.0, 7.0$; kiểm chứng tính tăng đơn điệu chặt chẽ theo magnitude.
-2. `testGardnerKnopoff1974Calculations`: Xác minh công thức Gardner & Knopoff (1974) cho bán kính $L(M)$ và thời lượng $T(M)$.
-3. `testExpandedModelWithCaps`: Kiểm chứng các trần an toàn (caps) cho bán kính và thời lượng tại các siêu trận động đất cực lớn ($M=9.0$).
-4. `testBoundingBoxConservativeCoverage`: Xác minh hình học rằng khoảng bounding box vĩ độ/kinh độ phủ hoàn toàn bán kính mặt đất hình cầu tại mọi vĩ độ, bao gồm ca biên cực (lat $89.5^\circ$).
-5. `testConfigCanonicalJsonAndSha256Determinism`: Xác minh tính tất định của serialization canonical JSON và mã băm SHA-256 64 ký tự hex.
-6. `testInvalidInputsThrowException`: Kiểm tra bắt lỗi an toàn khi truyền NaN, Infinite hoặc vĩ độ ngoài phạm vi $[-90, 90]$.
+Môi trường kiểm chứng Java: image builder local, Linux ARM64, Java 17.0.20.1,
+Maven 3.9.16, Spark 3.5.9, Spark loopback; chạy trực tiếp recipe Maven vì image
+builder không có GNU Make. Dependency Iceberg và build plugin mới trên main
+được tải từ Maven Central vào cache tạm, không thay version/bỏ tests. Unit/fixture tests không
+gọi USGS/JMA API hoặc thay đổi bucket/warehouse.
 
-### 1.2. `MainshockWindowEngineTest` (6/6 tests pass)
-1. `testGrainUniquenessAndSelfMainshockInvariants`: Kiểm chứng hạt composite `(dataset_id, mainshock_event_id, candidate_event_id)` là duy nhất; mainshock tự xuất hiện đúng 1 lần trong cửa sổ với `is_mainshock=true`, vai trò `MAINSHOCK`, vector độ lệch bằng 0; phân định đúng vai trò `PRE` và `POST`.
-2. `testEventInMultipleWindowsNotTreatedAsDuplicate`: Kiểm chứng sự kiện nằm trong vùng chồng lấn của hai mainshock được giữ nguyên vẹn trong cả hai cửa sổ mà không bị deduplicate sai.
-3. `testNoCrossJoinPrefilterInPlan`: Phân tích Execution Plan của Spark SQL chứng minh join sử dụng tiền lọc theo thời gian và bounding box không gian trước khi tính khoảng cách phẳng cục bộ.
-4. `testHardLimitResourceGuardFlaggingNoSilentTruncation`: Kiểm chứng khi số lượng candidate vượt ngưỡng trần tài nguyên (`maxCandidatesPerWindow`), cửa sổ bị gắn cờ `FLAGGED` kèm lý do `ML_RESOURCE_LIMIT_EXCEEDED` và **toàn bộ 100% ứng viên được giữ lại**, không âm thầm cắt bớt (no silent truncation).
-5. `testNestedMainshockDetection`: Kiểm chứng phát hiện và đếm số lượng nested mainshocks trong các cửa sổ kề nhau mà không loại bỏ chúng khỏi tập dữ liệu.
-6. `testMainshockSelectionCriteriaBoundaryConditions`: Kiểm chứng chính xác các ca biên lọc mainshock: $M=5.5$ bị loại, $M=5.51$ được chọn; độ sâu $49.9\text{ km}$ bị loại, $50.0\text{ km}$ và $200.0\text{ km}$ được chọn, $200.1\text{ km}$ bị loại; sự kiện ngoài khoảng thời gian bị loại.
+Kết quả cục bộ đã kiểm chứng:
 
-### 1.3. `MainshockWindowIntegrationTest` (1/1 test pass)
-1. `testEndToEndAuditToWindowPipelineWithReportExport`: Mô phỏng quy trình E2E hoàn chỉnh từ đầu vào Gold $\rightarrow$ kiểm toán và ước lượng $M_c$ qua `GoldInputAuditEngine` (MLD-02) $\rightarrow$ sinh cửa sổ ứng viên qua `MainshockWindowJob` (MLD-03) $\rightarrow$ xuất artifact báo cáo Markdown/JSON và Parquet snapshots $\rightarrow$ làm giàu dataset manifest.
+- Targeted MLD-03: **21 tests PASS**, 0 failures/errors/skips.
+- Full Maven `clean verify`: **307 tests PASS**, 0 failures/errors/skips,
+  **BUILD SUCCESS**, đóng gói runner JAR thành công; thời gian 6m06s.
+  Full suite chạy sau thay đổi cuối cùng, bao gồm regression invalidate report
+  khi validation lỗi trước export.
+- `make ci-docs`: PASS, gồm contract/config/Compose static checks và 12 Java
+  build-input regression tests; không có local .env, chỉ kiểm tra repo/example.
+- `make ci-airflow`: **193 tests PASS**, Python 3.13.
+- `make test-ci-workflow`: **4 tests PASS**, gồm 16 mutation subcases.
+- actionlint 1.7.12, `make check-task-status`, `git diff --check` và staged
+  diff check: PASS. Không còn conflict markers/unmerged files.
 
----
+Đây là local evidence, không phải kết quả GitHub Actions. Sau push, xem
+checks trên merge ref mới nhất của PR #61; không suy ra checks PR khác đã xanh.
+Các lỗi lần đầu (cache thiếu Iceberg, config chưa Serializable ở nhánh shuffle)
+đã được xử lý và giữ regression test để tái lập; không coi lượt lỗi là PASS.
 
-## 2. Đối Soát Tiêu Chí Hoàn Thành (Acceptance Criteria)
+## 3. Giới hạn và gate còn thiếu
 
-| Tiêu chí hoàn thành trong MLD-03.md | Trạng thái | Bằng chứng thực tế |
-|---|:---:|---|
-| Grain `(dataset_id, mainshock_event_id, candidate_event_id)` là duy nhất | **ĐẠT** | Phương thức `assertInvariants()` đối soát `count() == distinct().count()`. Test `testGrainUniquenessAndSelfMainshockInvariants` và `testEventInMultipleWindowsNotTreatedAsDuplicate` đã chứng minh. |
-| Mỗi window chứa chính mainshock đúng một lần và giữ candidate PRE/POST | **ĐẠT** | Mainshock row có `is_mainshock = true`, vai trò `MAINSHOCK`, vector độ lệch `0.0`. PRE có $\Delta t < 0$, POST có $\Delta t > 0$. Kiểm chứng qua `testGrainUniquenessAndSelfMainshockInvariants`. |
-| Không cross join mainshock với toàn catalog; physical plan/test chứng minh có prefilter | **ĐẠT** | Range join condition chứa cả 6 vị từ thời gian và hộp không gian $[\min,\max]$. Test `testNoCrossJoinPrefilterInPlan` trích xuất optimized plan chứng minh không có unconditioned Cross Join. |
-| Event có thể ở nhiều window mà không bị coi là duplicate sai | **ĐẠT** | Test `testEventInMultipleWindowsNotTreatedAsDuplicate` chứng minh `SHARED_EV` xuất hiện ở cả `M1` và `M2`, cả 2 bản ghi đều được giữ trong snapshot. |
-| Window vượt hard limit bị fail/flag có reason, không âm thầm truncate | **ĐẠT** | Test `testHardLimitResourceGuardFlaggingNoSilentTruncation` chứng minh khi số lượng vượt trần (6 > 3), cả 6 bản ghi đều được giữ và window nhận trạng thái `FLAGGED` kèm lý do `ML_RESOURCE_LIMIT_EXCEEDED`. |
+- [MLD-02 - Audit Gold và xác định magnitude of completeness](../task/tasks/MLD-02.md):
+  còn Needs Update, thiếu audit/Mc có scope từ Published JMA thực. Khi có output
+  này, chạy MLD-03 với dataset_id/snapshot đã pin qua
+  [MLD-01 - Pin Gold snapshot và tạo dataset manifest](../task/tasks/MLD-01.md),
+  lưu config/hash/Mc, reconcile counts và artifact readback thật rồi nghiệm thu.
+  Không dùng Mc=2 fixture cho runtime hoặc chuyển task Done vì CI xanh.
+- [QA-05 - Profile dữ liệu lịch sử và tài nguyên local](../task/tasks/QA-05.md):
+  chưa benchmark full historical, phân bố bucket/skew và chi phí metadata report
+  theo số windows; equi-join không phải bằng chứng hiệu năng toàn bộ 40 năm.
+- [MLD-04 - Tạo và scale feature không-thời gian 4-D](../task/tasks/MLD-04.md):
+  feature scaling/vector chưa thuộc bản vá này.
+- [MLD-05 - Validate feature snapshot và export Parquet bundle](../task/tasks/MLD-05.md):
+  chưa có verified Colab bundle/checksum hoặc lifecycle dataset VALIDATED.
+- Hai local Parquet directories không có atomic multi-table commit; khi export
+  lỗi có thể còn partial directory, nhưng không được dùng nó làm readiness.
+  Completed window audit report chỉ là gate local, không phải Published Iceberg.
+- Candidate window là tiền lọc hồi cứu, không phải nhãn dư chấn hoặc dự báo động đất.
 
----
+## 4. Tài liệu liên quan
 
-## 3. Liên Kết Upstream và Downstream
-
-1. **Upstream:**
-   - [MLD-01 - Pin Gold snapshot và tạo dataset manifest](../task/tasks/MLD-01.md): Cung cấp `dataset_id` bất biến và snapshot ID đã publish.
-   - [MLD-02 - Audit Gold và xác định magnitude of completeness](../task/tasks/MLD-02.md): Cung cấp cờ `is_eligible` và ngưỡng $M_c$ có version để lọc ứng viên $\text{magnitude} \ge M_c$.
-2. **Downstream:**
-   - [MLD-04 - Tạo và scale feature không-thời gian 4-D](../task/tasks/MLD-04.md): Tiếp nhận `ml.sequence_candidate_snapshot` ở giai đoạn window để chuẩn hóa không-thời gian và tính vector đặc trưng 4 chiều $(x, y, z, t)$ tương đối quanh mainshock.
-   - [MLD-05 - Validate feature snapshot và export Parquet bundle](../task/tasks/MLD-05.md): Đóng gói và kiểm định checksum trước khi xuất bundle sang Colab cho HDBSCAN clustering.
+- [Task MLD-03](../task/tasks/MLD-03.md)
+- [Mainshock/window spec](../specs/MAINSHOCK_AND_CANDIDATE_WINDOWS.md)
+- [ML logical model](../specs/ML_DATA_MODEL.md)
+- [CI và stacked PR](../conventions_and_workflow/CONTINUOUS_INTEGRATION.md)

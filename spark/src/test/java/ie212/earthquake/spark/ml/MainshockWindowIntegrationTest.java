@@ -141,9 +141,9 @@ class MainshockWindowIntegrationTest {
 
         auditResult.assertReconciled();
         assertTrue(auditResult.completenessResult().isReliable());
-        double estimatedMc = auditResult.completenessResult().centralMc();
+        double estimatedMc = auditResult.mcApplied();
 
-        // Step 2: Run MLD-03 Window Job with real audited output and Mc
+        // Step 2: Use MLD-02's accepted Mc from the fixture audit, not Published JMA evidence.
         MainshockSelectionConfig selConfig = MainshockSelectionConfig.reproductionBaseline();
         WindowModelConfig winConfig = WindowModelConfig.uhrhammerV1();
 
@@ -176,8 +176,12 @@ class MainshockWindowIntegrationTest {
 
         assertTrue(reportJsonFile.exists() && reportJsonFile.length() > 0);
         assertTrue(reportMdFile.exists() && reportMdFile.length() > 0);
-        assertTrue((mainshockParquet.exists() && mainshockParquet.isDirectory()) || (mainshockJson.exists() && mainshockJson.length() > 0));
-        assertTrue((candidateParquet.exists() && candidateParquet.isDirectory()) || (candidateJson.exists() && candidateJson.length() > 0));
+        assertTrue(mainshockParquet.isDirectory());
+        assertTrue(candidateParquet.isDirectory());
+        assertFalse(mainshockJson.exists());
+        assertFalse(candidateJson.exists());
+        assertEquals(windowResult.mainshockCount(), spark.read().parquet(mainshockParquet.getAbsolutePath()).count());
+        assertEquals(windowResult.totalCandidateRowCount(), spark.read().parquet(candidateParquet.getAbsolutePath()).count());
 
         // Verify JSON contents
         String jsonContent = Files.readString(reportJsonFile.toPath());

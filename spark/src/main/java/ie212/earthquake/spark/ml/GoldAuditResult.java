@@ -54,7 +54,8 @@ public record GoldAuditResult(
             node.put("count_after", countAfter);
             node.put("rate_before_per_year", Math.round(rateBeforePerYear * 10.0) / 10.0);
             node.put("rate_after_per_year", Math.round(rateAfterPerYear * 10.0) / 10.0);
-            node.put("shift_ratio", Math.round(shiftRatio * 100.0) / 100.0);
+            if (Double.isFinite(shiftRatio)) node.put("shift_ratio", Math.round(shiftRatio * 100.0) / 100.0);
+            else node.putNull("shift_ratio");
             node.put("assessment", assessment);
             return node;
         }
@@ -78,10 +79,14 @@ public record GoldAuditResult(
         root.put("schema_version", "1.0");
         root.put("report_type", "GOLD_INPUT_AUDIT_AND_COMPLETENESS");
         root.put("dataset_split", config.datasetSplit());
+        root.put("gold_snapshot_id", config.goldSnapshotId());
+        root.put("gold_publication_id", config.goldPublicationId());
+        root.put("observation_cutoff_utc", config.observationCutoffUtc().toString());
         root.put("period_start_utc", config.periodStartUtc().toString());
         root.put("period_end_utc_exclusive", config.periodEndUtcExclusive().toString());
         root.put("audit_rule_version", config.auditRuleVersion());
-        root.put("mc_method", completenessResult.method());
+        root.put("mc_method", config.fixedMcValue() != null ? "FIXED_CONFIG" : completenessResult.method());
+        CompletenessResult.finite(root, "mc_applied", mcApplied);
         root.put("mc_method_version", config.mcMethodVersion());
         root.put("mc_region_version", config.mcRegionVersion());
         root.put("build_run_id", config.buildRunId());
@@ -259,7 +264,7 @@ public record GoldAuditResult(
         }
         manifest.put("exclusion_counts_json", exclusionsNode.toString());
 
-        manifest.put("mc_method", completenessResult.method());
+        manifest.put("mc_method", config.fixedMcValue() != null ? "FIXED_CONFIG" : completenessResult.method());
         manifest.put("mc_method_version", config.mcMethodVersion());
         if (config.fixedMcValue() != null) {
             manifest.put("mc_value", config.fixedMcValue());
@@ -290,6 +295,7 @@ public record GoldAuditResult(
             case "ML_LEGACY_CATALOG_ERA" -> "Legacy hypocenter catalog era (prior to UNIFIED era)";
             case "ML_OUTSIDE_TIME_RANGE" -> "Event time outside dataset split period interval";
             case "ML_BELOW_COMPLETENESS" -> "Magnitude below catalog completeness threshold (Mc)";
+            case "ML_MC_UNRELIABLE" -> "No supported completeness threshold; candidate build blocked";
             case "ML_NON_FINITE_FEATURE" -> "Non-finite spatial or temporal feature";
             case "ML_RESOURCE_LIMIT_EXCEEDED" -> "Sequence candidate window exceeded resource guard limit";
             default -> "Catalog exclusion rule";

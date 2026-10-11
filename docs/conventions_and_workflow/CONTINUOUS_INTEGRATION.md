@@ -212,12 +212,15 @@ liên quan và kích hoạt sự kiện mở/mở lại/push. Không tự chạy
 workflow được sửa trên một nhánh khác. Manual run trong Actions không thay
 bằng chứng checks trên merge ref mới nhất của PR.
 
-Bản vá CI không xử lý các điểm review ở **MLD-03 - Chọn mainshock và tạo
-candidate windows** (range-join physical plan, driver collection, Parquet
-failure, timestamp precision và acceptance/evidence). Không đổi trạng thái
-task này chỉ vì guardrails CI pass.
+Commit CI-only `f856925` không sửa logic MLD-03. Lượt sửa tiếp theo trên cùng
+PR #61 tích hợp main bằng merge commit (không force push), xử lý conflict và
+các điểm review MLD-03: bucket equi-join, invariant phân tán, Parquet fail-fast,
+microsecond precision, cập nhật trạng thái/evidence. Xem
+[evidence MLD-03](../../evidence/MLD-03.md) cho kết quả lượt chạy mới.
+Task vẫn Needs Update vì gate audit/Mc Published JMA của MLD-02 chưa đạt;
+CI pass không tự chứng minh integration dữ liệu thật.
 
-Kiểm tra cục bộ ngày **2026-10-11** (Asia/Ho_Chi_Minh):
+Kiểm tra cục bộ của **lượt CI-only f856925** ngày **2026-10-11** (Asia/Ho_Chi_Minh):
 
 - `make ci-docs`: PASS, gồm contract/config/Compose static checks, 12 Java
   build-input regression tests, shell syntax và CI guardrails.
@@ -232,5 +235,6 @@ Kiểm tra cục bộ ngày **2026-10-11** (Asia/Ho_Chi_Minh):
 
 Các kết quả trên là local, không phải evidence GitHub Actions của commit mới.
 Sau khi push trực tiếp vào nhánh PR #61, kiểm tra đủ ba jobs trên merge ref
-mới nhất khi không còn conflict. Bản vá CI chưa giải quyết conflict giữa PR #61
-và `main`, chưa sửa các lỗi review MLD-03, và chưa tự cập nhật workflow PR #65.
+mới nhất. Lượt CI-only không giải quyết conflict/logic; lượt sửa MLD-03 tiếp
+sau đã tích hợp main và có bộ regression riêng. Không tự cập nhật workflow
+PR #65 hoặc suy ra trạng thái checks của PR khác.

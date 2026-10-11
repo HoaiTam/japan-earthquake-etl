@@ -60,7 +60,7 @@ Thư mục này là nguồn tài liệu chính thức cho dự án **Nền tản
 | Pick và theo dõi task trong 8 tuần | [Kế hoạch task](./task/README.md) |
 | Chia ba luồng độc lập và kiểm tra cuối tuần 3 | [Kế hoạch tuần 3](./task/WEEK_3_PARALLEL_PLAN.md) |
 | Làm việc với Git | [Git workflow](./conventions_and_workflow/GIT_WORKFLOW.md) |
-| Hiểu checks tự động, PR nối tiếp và chạy test CI local | [CI bằng GitHub Actions](./conventions_and_workflow/CONTINUOUS_INTEGRATION.md) |
+| Hiểu CI checks trên PR, test local và required checks | [GitHub Actions CI](./conventions_and_workflow/CONTINUOUS_INTEGRATION.md) |
 | Viết commit thống nhất | [Commit convention](./conventions_and_workflow/COMMIT_CONVENTION.md) |
 
 ## 2. Cấu trúc tài liệu

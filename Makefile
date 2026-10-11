@@ -41,6 +41,50 @@ COMPONENT_SMOKES := smoke-minio smoke-airflow smoke-spark smoke-query smoke-usgs
 .PHONY: test-source-schedule smoke-source-readiness
 .PHONY: test-recovery smoke-recovery smoke-resource-pilot maintenance-preview
 .PHONY: test-silver-integration smoke-silver-integration
+.PHONY: test-ml-audit
+.PHONY: test-ml-window
+
+test-ml-window: ## MLD-03 bucket physical plan, distributed invariants, microseconds và fail-fast Parquet tests
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am \
+		-Dtest=WindowModelResolverTest,MainshockWindowEngineTest,MainshockWindowIntegrationTest,MainshockWindowRegressionTest \
+		-Dsurefire.failIfNoSpecifiedTests=false test
+
+test-ml-audit: ## MLD-02 Gold input audit, MAXC completeness estimator, sensitivity & reconciliation tests
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am \
+		-Dtest=MagnitudeCompletenessEstimatorTest,GoldInputAuditEngineTest,GoldInputAuditIntegrationTest \
+		-Dsurefire.failIfNoSpecifiedTests=false test
+.PHONY: test-gold-storage smoke-gold-storage
+.PHONY: test-gold-publication smoke-gold-publication test-dataset-manifest smoke-dataset-manifest
+
+test-dataset-manifest: ## MLD-01 exact Published snapshot, deterministic identity, rerun và reject fixtures
+	@python3 -m unittest discover -s airflow/tests -p 'test_dataset_manifest_qa.py'
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am -Dtest=DatasetManifestTest -Dsurefire.failIfNoSpecifiedTests=false test
+
+smoke-dataset-manifest: check-config-local check-java-build-inputs ## MLD-01 materialize hai manifest BUILDING từ publication QA đã verify
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am verify
+	@$(COMPOSE) build spark-gold-qa
+	@$(COMPOSE) --profile gold run --rm --no-deps dataset-manifest-qa
+
+test-gold-publication: ## GLD-04 offline publication blockers, Trino HTTP protocol và control plane
+	@python3 -m unittest discover -s airflow/tests -p 'test_gold_publication_qa.py'
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am \
+		-Dtest=GoldPublicationTest,TrinoSqlClientTest -Dsurefire.failIfNoSpecifiedTests=false test
+
+smoke-gold-publication: check-config-local check-java-build-inputs ## GLD-04 verify exact GLD-03 snapshot bundle qua Trino trước Published
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am verify
+	@$(COMPOSE) build spark-gold-qa
+	@$(COMPOSE) --profile gold run --rm --no-deps gold-verification-qa
+
+test-gold-storage: ## GLD-03 real Iceberg snapshot/recovery tests và control plane offline
+	@python3 -m unittest discover -s airflow/tests -p 'test_gold_storage_qa.py'
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am \
+		-Dtest=GoldIcebergWriterTest -Dsurefire.failIfNoSpecifiedTests=false test
+
+smoke-gold-storage: check-config-local check-java-build-inputs ## GLD-03 pinned public capture -> Bronze/Silver -> six Iceberg snapshots, không Published
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am verify
+	@$(COMPOSE) build spark-gold-qa
+	@$(COMPOSE) --profile gold run --rm --no-deps spark-gold-qa
+
 .PHONY: ci ci-docs ci-java ci-airflow test-ci-workflow
 
 ci: ci-docs ci-java ci-airflow ## Cùng ba nhóm check CI; cần PyYAML, JDK17, Compose CLI, jq/rg; không start service
@@ -65,18 +109,6 @@ ci-airflow: test-airflow ## Toàn bộ Python control-plane/DAG tests; không c�
 
 test-ci-workflow: ## YAML duplicate-key/safety/trigger/job regression; cần tests/ci/requirements.txt
 	@python3 -m unittest discover -s tests/ci -p 'test_*.py'
-
-.PHONY: test-ml-audit test-ml-window
-
-test-ml-audit: ## MLD-02 Gold input audit, MAXC completeness estimator, sensitivity & reconciliation tests
-	@./mvnw --batch-mode --no-transfer-progress -pl spark -am \
-		-Dtest=MagnitudeCompletenessEstimatorTest,GoldInputAuditEngineTest,GoldInputAuditIntegrationTest \
-		-Dsurefire.failIfNoSpecifiedTests=false test
-
-test-ml-window: ## MLD-03 Mainshock candidate selection, versioned window resolver & range join tests
-	@./mvnw --batch-mode --no-transfer-progress -pl spark -am \
-		-Dtest=WindowModelResolverTest,MainshockWindowEngineTest,MainshockWindowIntegrationTest \
-		-Dsurefire.failIfNoSpecifiedTests=false test
 
 test-silver-integration: ## SLV-09 offline bundle/failure/revision/reconciliation/Gold tests (không gọi MinIO)
 	@python3 -m unittest discover -s airflow/tests -p 'test_silver_integration_qa.py'

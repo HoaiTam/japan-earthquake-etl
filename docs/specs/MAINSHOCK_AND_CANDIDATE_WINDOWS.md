@@ -1,6 +1,6 @@
 ---
 spec_id: "MAINSHOCK_AND_CANDIDATE_WINDOWS"
-version: "1.0"
+version: "1.1"
 status: "Approved"
 contract: "CON-03-ML"
 task_id: "MLD-03"
@@ -73,8 +73,10 @@ flowchart TD
     G["Gold Audited Events (is_eligible = true)"] --> MS["Lọc Mainshocks (M > 5.5, depth 50-200 km)"]
     G --> CP["Lọc Candidates (M >= Mc)"]
     MS --> WCALC["Tính Window: pre/post hours, radius, delta_lat, delta_lon"]
-    WCALC --> RJ["Range Join (Thời gian & Bounding Box)"]
-    CP --> RJ
+    WCALC --> WB["Expand các UTC-day / latitude / longitude buckets giao window"]
+    CP --> CB["Một UTC-day / latitude / longitude bucket cho mỗi candidate"]
+    WB --> RJ["Equi-join ba bucket + time/bounding-box residuals"]
+    CB --> RJ
     RJ --> FDIST["Lọc khoảng cách phẳng chính xác (dist_horiz <= radius)"]
     FDIST --> ROLE["Gán vai trò: MAINSHOCK, PRE, POST và Zero-Vector"]
     ROLE --> RG["Đánh giá Resource Guard & Nested Mainshocks"]
@@ -83,6 +85,19 @@ flowchart TD
 ```
 
 ### 4.1. Toán tử Bounding Box
+
+Bucket ngày dùng ngày UTC; spatial cell là `floor(latitude)` và
+`floor(longitude)` (ô 1 độ). Mainshock window được expand bằng `sequence` và
+`explode` tới tất cả bucket giao bounding box và interval; candidate chỉ thuộc
+một bucket. Span ngày được clip theo period dataset trước khi expand, nhưng
+exact window bounds không bị đổi. Mỗi cặp mainshock/event gặp nhau đúng một
+lần; không cần deduplicate để che duplicate input. Sau equi-join vẫn áp dụng
+đủ time/bounding-box/distance predicates. Ô có thể chứa candidate ngoài radius;
+residual filters mới quyết định membership cuối cùng.
+
+Physical plan phải dùng hash/sort-merge join trên ba keys, không được chứa
+`CartesianProduct` hoặc `BroadcastNestedLoopJoin`. Test kiểm tra cả chế độ
+broadcast mặc định và khi `spark.sql.autoBroadcastJoinThreshold=-1`.
 Tại vĩ độ $\phi$ của mainshock:
 - $\Delta\text{lat} = \frac{R}{110.57}^\circ$
 - $\Delta\text{lon} = \min\left(180^\circ, \frac{R}{111.32 \cdot \cos(\text{radians}(\phi))}^\circ\right)$
@@ -100,6 +115,42 @@ AND c.longitude >= m.min_lon AND c.longitude <= m.max_lon
 - $d_{\text{horiz}} = \sqrt{dx^2 + dy^2} \le R$
 - $d_{\text{3D}} = \sqrt{dx^2 + dy^2 + dz^2}$
 - $\Delta t = \frac{T_c - T_m}{3600.0}$ (hours)
+
+Spark tính window bounds bằng `timestamp_micros`/`unix_micros`; duration được
+làm tròn tới microsecond. Delta lấy chênh lệch integer microseconds rồi chia
+`3_600_000_000.0`, không cast từng timestamp xuống giây. Hai bounds inclusive;
+period dataset vẫn half-open. Giây lẻ và event cách biên một microsecond được
+kiểm thử riêng.
+
+Self xác định theo ID, không theo timestamp: `MAINSHOCK` có vector bằng 0.
+Non-self trước mainshock là `PRE` (delta âm), sau mainshock là `POST` (delta
+dương). Nếu non-self đúng cùng timestamp, giữ event là `POST` với delta 0;
+không bịa một độ lệch dương hoặc loại event hợp lệ. Đây chỉ là tie rule của
+window stage, không khẳng định event đó là dư chấn. Downstream phải giữ rule
+này khi đối chiếu membership.
+
+### 4.3. Validation và artifact export
+
+`MainshockWindowResult.assertInvariants()` kiểm tra grain, window count,
+self presence, role/time/finite/zero-vector bằng Spark aggregation/join/filter;
+chỉ số lượng hoặc boolean về driver. Engine chỉ collect metadata một row mỗi
+window để tạo report, không collect toàn bộ candidates. Report metadata vẫn
+có chi phí theo số windows; chưa có benchmark full historical ([QA-05 - Profile dữ liệu lịch sử và tài nguyên local](../task/tasks/QA-05.md)).
+
+`MainshockWindowJob` ghi cả hai Parquet snapshots rồi readback counts trước
+khi viết report thành công. Không có implicit JSON fallback hoặc
+`catch(Throwable)`; storage/config error truyền ra caller. Trước rerun, hai
+report cũ trong output scope bị invalidate để không còn success report giả.
+Window `REJECTED` không được export. Không có atomic commit hai directory;
+consumer không dùng sự tồn tại của một Parquet directory làm readiness gate.
+Đây là local window artifacts, chưa phải Iceberg lifecycle/publication.
+
+**Giới hạn:** MLD-02 - Audit Gold và xác định magnitude of completeness còn
+`Needs Update` vì thiếu Published JMA audit/Mc thật. MLD-03 giữ trạng thái chưa
+nghiệm thu thật dù fixture tests pass; không hard-code Mc=2 cho runtime.
+MLD-04 - Tạo và scale feature không-thời gian 4-D và MLD-05 - Validate feature
+snapshot và export Parquet bundle phụ trách feature/export Colab; các artifacts
+ở đây chưa thay thế hai task đó.
 
 ---
 

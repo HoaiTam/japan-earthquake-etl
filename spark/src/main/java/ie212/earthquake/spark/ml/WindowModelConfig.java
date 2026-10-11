@@ -24,7 +24,7 @@ public record WindowModelConfig(
         Double customRadiusB,
         Double customTimeA,
         Double customTimeB
-) {
+) implements java.io.Serializable {
     private static final ObjectMapper CANONICAL_MAPPER = new ObjectMapper()
             .configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
 

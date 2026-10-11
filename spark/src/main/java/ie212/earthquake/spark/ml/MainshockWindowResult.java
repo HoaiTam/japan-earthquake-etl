@@ -1,10 +1,13 @@
 package ie212.earthquake.spark.ml;
 
+import static org.apache.spark.sql.functions.*;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.time.Instant;
 import java.util.*;
+import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 
@@ -36,94 +39,63 @@ public record MainshockWindowResult(
      * 1. Grain (dataset_id, mainshock_event_id, candidate_event_id) is unique.
      * 2. Every window contains exactly its mainshock once (is_mainshock = true, role = MAINSHOCK).
      * 3. Mainshock vector has dx=0, dy=0, dz=0, dist3d=0, delta_time=0.
-     * 4. Delta time preserves correct sign for PRE (< 0) and POST (>= 0).
+     * 4. Delta time preserves microseconds; simultaneous non-self events are POST with zero delta.
      * 5. No silent truncation when exceeding hard limit.
      */
     public void assertInvariants() {
-        if (mainshockCount == 0) {
-            return;
+        // All row/grain/vector checks stay distributed. Only a boolean/count reaches the driver.
+        long mainRows = mainshockSnapshot.count();
+        long candidateRows = candidateSnapshot.count();
+        if (mainRows != mainshockCount || candidateRows != totalCandidateRowCount) {
+            throw new AssertionError("Snapshot row counts do not match result metadata");
         }
+        reject(mainshockSnapshot.groupBy("dataset_id", "mainshock_event_id").count()
+                .filter(col("count").notEqual(1)), "Mainshock grain is not unique");
+        reject(candidateSnapshot.groupBy("dataset_id", "mainshock_event_id", "candidate_event_id").count()
+                .filter(col("count").notEqual(1)), "Candidate grain is not unique");
 
-        // 1. Verify uniqueness of candidate grain
-        long actualRows = candidateSnapshot.count();
-        long distinctGrain = candidateSnapshot.select("dataset_id", "mainshock_event_id", "candidate_event_id").distinct().count();
-        if (actualRows != distinctGrain) {
-            throw new AssertionError("Candidate grain (dataset_id, mainshock_event_id, candidate_event_id) is not unique: total="
-                    + actualRows + ", distinct=" + distinctGrain);
+        Column self = col("mainshock_event_id").equalTo(col("candidate_event_id"));
+        Dataset<Row> counts = candidateSnapshot.groupBy("dataset_id", "mainshock_event_id")
+                .agg(count(lit(1)).alias("_observed_count"),
+                        sum(when(self, lit(1L)).otherwise(lit(0L))).alias("_self_count"));
+        Dataset<Row> reconciled = mainshockSnapshot
+                .select("dataset_id", "mainshock_event_id", "candidate_count")
+                .join(counts, new String[]{"dataset_id", "mainshock_event_id"}, "full_outer");
+        reject(reconciled.filter(col("candidate_count").isNull()
+                .or(col("_observed_count").isNull())
+                .or(col("candidate_count").notEqual(col("_observed_count")))
+                .or(col("_self_count").notEqual(1))),
+                "Missing/orphan window, self-mainshock or candidate count mismatch");
+
+        Dataset<Row> checked = candidateSnapshot.join(mainshockSnapshot.select(
+                col("dataset_id"), col("mainshock_event_id"), col("event_time_utc").alias("_mainshock_time")),
+                new String[]{"dataset_id", "mainshock_event_id"}, "left");
+        Column expectedRole = when(self, lit("MAINSHOCK"))
+                .when(col("candidate_time_utc").lt(col("_mainshock_time")), lit("PRE"))
+                .otherwise(lit("POST"));
+        Column expectedDelta = when(self, lit(0.0)).otherwise(
+                unix_micros(col("candidate_time_utc")).minus(unix_micros(col("_mainshock_time")))
+                        .cast("double").divide(3_600_000_000.0));
+        Column invalid = col("dataset_id").isNull().or(col("dataset_id").notEqual(lit(datasetId)))
+                .or(col("mainshock_event_id").isNull()).or(col("candidate_event_id").isNull())
+                .or(col("_mainshock_time").isNull()).or(col("candidate_time_utc").isNull())
+                .or(col("is_mainshock").isNull()).or(col("is_mainshock").notEqual(self))
+                .or(col("relative_time_role").isNull()).or(col("relative_time_role").notEqual(expectedRole))
+                .or(abs(col("delta_time_hours").minus(expectedDelta)).gt(1e-12))
+                .or(self.and(col("candidate_time_utc").notEqual(col("_mainshock_time"))));
+        for (String field : List.of("dx_km", "dy_km", "dz_km", "distance_3d_km", "delta_time_hours")) {
+            Column value = col(field);
+            invalid = invalid.or(value.isNull()).or(isnan(value))
+                    .or(abs(value).equalTo(Double.POSITIVE_INFINITY))
+                    .or(self.and(value.notEqual(0.0)));
         }
+        invalid = invalid.or(col("distance_3d_km").lt(0));
+        reject(checked.filter(invalid), "Candidate role, timestamp, finite or self-zero-vector invariant failed");
+    }
 
-        // 2. Verify each window contains exactly its own mainshock once
-        List<Row> mainshockRows = mainshockSnapshot.select("mainshock_event_id", "candidate_count", "resource_guard_status").collectAsList();
-        Set<String> mainshockIds = new HashSet<>();
-        for (Row m : mainshockRows) {
-            String mid = m.getString(0);
-            mainshockIds.add(mid);
-
-            long cCount = m.getLong(1);
-            if (cCount < 1) {
-                throw new AssertionError("Window for mainshock " + mid + " has candidate_count < 1: " + cCount);
-            }
-        }
-
-        List<Row> windowMembers = candidateSnapshot.select(
-                "mainshock_event_id", "candidate_event_id", "is_mainshock", "relative_time_role",
-                "dx_km", "dy_km", "dz_km", "distance_3d_km", "delta_time_hours"
-        ).collectAsList();
-
-        Map<String, Integer> selfMainshockCountPerWindow = new HashMap<>();
-        for (Row r : windowMembers) {
-            String mid = r.getString(0);
-            String cid = r.getString(1);
-            boolean isMainshock = r.getBoolean(2);
-            String role = r.getString(3);
-            double dx = r.getDouble(4);
-            double dy = r.getDouble(5);
-            double dz = r.getDouble(6);
-            double dist3d = r.getDouble(7);
-            double dt = r.getDouble(8);
-
-            if (mid.equals(cid)) {
-                if (!isMainshock) {
-                    throw new AssertionError("Self mainshock row has is_mainshock=false for window " + mid);
-                }
-                if (!"MAINSHOCK".equals(role)) {
-                    throw new AssertionError("Self mainshock row has role=" + role + " instead of MAINSHOCK for window " + mid);
-                }
-                if (Math.abs(dx) > 1e-4 || Math.abs(dy) > 1e-4 || Math.abs(dz) > 1e-4 || Math.abs(dist3d) > 1e-4 || Math.abs(dt) > 1e-4) {
-                    throw new AssertionError("Self mainshock vector is non-zero in window " + mid + ": dx=" + dx + ", dy=" + dy + ", dt=" + dt);
-                }
-                selfMainshockCountPerWindow.merge(mid, 1, Integer::sum);
-            } else {
-                if (isMainshock) {
-                    throw new AssertionError("Non-self candidate marked as is_mainshock=true in window " + mid + ": cid=" + cid);
-                }
-                if ("MAINSHOCK".equals(role)) {
-                    throw new AssertionError("Non-self candidate marked with role=MAINSHOCK in window " + mid + ": cid=" + cid);
-                }
-                if ("PRE".equals(role) && dt > 0.0) {
-                    throw new AssertionError("PRE role candidate has positive delta_time_hours: " + dt + " in window " + mid);
-                }
-                if ("POST".equals(role) && dt < 0.0) {
-                    throw new AssertionError("POST role candidate has negative delta_time_hours: " + dt + " in window " + mid);
-                }
-            }
-        }
-
-        for (String mid : mainshockIds) {
-            int count = selfMainshockCountPerWindow.getOrDefault(mid, 0);
-            if (count != 1) {
-                throw new AssertionError("Window for mainshock " + mid + " contains " + count + " self-mainshock records (expected exactly 1)");
-            }
-        }
-
-        // 3. Verify no silent truncation: count in candidateSnapshot matches candidate_count in mainshockSnapshot
-        for (Row m : mainshockRows) {
-            String mid = m.getString(0);
-            long expectedCount = m.getLong(1);
-            long actualInCandidates = windowMembers.stream().filter(r -> r.getString(0).equals(mid)).count();
-            if (expectedCount != actualInCandidates) {
-                throw new AssertionError("Candidate count mismatch for window " + mid + ": snapshot=" + expectedCount + ", actual=" + actualInCandidates);
-            }
+    private static void reject(Dataset<Row> invalidRows, String reason) {
+        if (invalidRows.limit(1).count() != 0) {
+            throw new AssertionError(reason);
         }
     }
 

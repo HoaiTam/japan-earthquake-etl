@@ -178,14 +178,13 @@ class MainshockWindowEngineTest {
                 auditedEvents, selConfig, winConfig, 2.0, "ds_plan_test", Instant.parse("2026-10-10T00:00:00Z")
         );
 
-        // Check execution plan: must contain range join conditions
-        String optimizedPlan = result.candidateSnapshot().queryExecution().optimizedPlan().toString();
-
-        // The query plan must contain spatial and temporal join conditions, proving prefilter before fine distance
-        assertTrue(optimizedPlan.contains("candidate_time_utc") || optimizedPlan.contains("event_time_utc"),
-                "Execution plan must contain time window predicate");
-        assertTrue(optimizedPlan.contains("candidate_latitude") || optimizedPlan.contains("latitude"),
-                "Execution plan must contain latitude bounding box predicate");
+        String plan = result.candidateSnapshot().queryExecution().executedPlan().toString();
+        assertFalse(plan.contains("CartesianProduct"), plan);
+        assertFalse(plan.contains("BroadcastNestedLoopJoin"), plan);
+        assertTrue(plan.contains("SortMergeJoin") || plan.contains("BroadcastHashJoin")
+                || plan.contains("ShuffledHashJoin"), plan);
+        assertTrue(plan.contains("_day_bucket") && plan.contains("_lat_bucket")
+                && plan.contains("_lon_bucket"), plan);
     }
 
     @Test
