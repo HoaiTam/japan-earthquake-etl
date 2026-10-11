@@ -4,7 +4,10 @@
 
 Branch `feat/gld-04-trino-publication` chứa main `5373cb8` và commit GLD-03
 `35e5fb2` từ [PR #62](https://github.com/HoaiTam/japan-earthquake-etl/pull/62).
-Không merge thêm main trong lần sửa này. Assignee Trang; reviewer unassigned.
+Đây là baseline của lần runtime nghiệm thu ban đầu do Trang thực hiện, reviewer
+unassigned. PR #62 đã merge, PR #63 đã chuyển base sang main. Bản đồng bộ mới
+của HoaiTam tích hợp main `c8e0b02` sau khi #61 merge; xem mục cuối để phân biệt
+runtime evidence ban đầu với lượt kiểm tra merge/CI mới.
 
 [Receipt thật](./GLD-04-runtime.json) và [verification SQL](./GLD-04-verification.sql)
 ghi exact bundle, expected/actual và các query chỉ đọc để lặp lại kiểm chứng.
@@ -66,14 +69,46 @@ latest lại và không coi view là bảng sở hữu snapshot.
 ## Giới hạn / Rủi ro / Bước tiếp theo
 
 - [MLD-01 — Pin Gold snapshot và tạo dataset manifest](../task/tasks/MLD-01.md):
-  còn triển khai dataset identity/materialization từ PASSED publication.
+  đã Done trên main; code dataset identity/materialization đã có và được giữ
+  khi giải quyết conflict. Handoff dùng exact PASSED publication, không query latest.
 - [QA-01 — Chạy E2E daily đa nguồn](../task/tasks/QA-01.md): còn production Gold
   orchestration adapter, full-month current state và multi-source coverage.
   Pilot này chỉ 16 events từ public USGS capture, không chứng minh JMA/toàn tháng/
   toàn research period hoặc readiness của dataset nghiên cứu.
-- [MLD-02 — Audit Gold và estimate Mc](../task/tasks/MLD-02.md): cần coverage/Mc/
-  exclusion audit trước candidate/feature; publication không thay audit này.
+- [MLD-02 — Audit Gold và xác định magnitude of completeness](../task/tasks/MLD-02.md):
+  còn Needs Update vì thiếu coverage/Mc/exclusion audit trên Published JMA thật.
+  Publication pilot không thay thế audit hoặc nghiệm thu candidate MLD-03.
 - Sáu Iceberg commit không atomic cùng nhau. Consumer join dùng versioned views
   từ exact Published bundle. Stable alias đổi sau PASSED; rerun lịch sử không
   chuyển alias ngược. Trino client hiện dùng Compose network không authentication.
 - Chưa có reviewer độc lập; không ghi tên/approval chưa tồn tại.
+
+## Đồng bộ PR #63 với main — 2026-10-11
+
+- Assignee bản đồng bộ: **HoaiTam**; implementation/runtime ban đầu: **Trang**;
+  reviewer **unassigned**, không ghi approval mới.
+- Branch hiện có `feat/gld-04-trino-publication`, head trước sửa `644eab9`;
+  main tích hợp `c8e0b02` sau PR #61. Không tạo branch/PR mới, không force push
+  và không tự merge PR vào main.
+- Giải quyết bốn conflicts: Makefile, Compose, task GLD-04 và evidence này.
+  Giữ targets/profile MLD-01, MLD-02/03 mới và CI stacked-PR đã có trên main.
+- GoldVerificationJob, GoldPublisher, GoldVerificationPlan, TrinoSqlClient,
+  publication control plane/tests và runtime receipt/SQL giữ nguyên so với main;
+  không đổi blocker/SQL/snapshot/alias behavior hoặc ghi dữ liệu lakehouse.
+- GLD-03 và MLD-01 đã Done; giữ Needs Update của MLD-02/03. Không khôi phục
+  metadata cũ của nhánh #63 khiến ML bị đánh dấu Done hoặc mất implementation.
+- Kiểm tra cục bộ mới: targeted GLD-04 **7 Java tests PASS**, 0 failures/errors/
+  skips, **BUILD SUCCESS** trên Java 17.0.20.1 / Maven 3.9.16 trong image builder
+  local, Spark loopback và network none. Gọi recipe Maven của
+  `make test-gold-publication` vì image builder không có GNU Make.
+- Publication Python control-plane **4 tests PASS**; `make ci-airflow` **193
+  tests PASS**. `make ci-docs` PASS, gồm contract/config/Compose static checks,
+  12 Java build-input regression tests và 4 CI guardrail tests (16 mutation
+  subcases). actionlint 1.7.12 PASS, task-status và diff check PASS.
+- So sánh trực tiếp với main cho Makefile/Compose, Gold Java + tests, publication
+  control plane, SQL/receipt và CI workflow: không có code/config diff sau giải
+  quyết conflict. Không chạy lại full Maven verify local cho patch chỉ sửa docs;
+  GitHub `java-spark` vẫn phải chạy full clean verify trên merge ref mới nhất.
+- Không chạy lại live smoke trong lượt đồng bộ này; receipt phía trên là evidence
+  ban đầu, không phải lần nghiệm thu MinIO/Trino mới. Coverage vẫn chỉ 16 USGS
+  pilot events, chưa thay QA-01 hoặc Published JMA audit của MLD-02.

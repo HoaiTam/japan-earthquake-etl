@@ -247,7 +247,7 @@ duplicate. Snapshot này là input bất biến cho mọi thuật toán cùng da
 | `dx_km` | double | Không | Candidate trừ mainshock theo local-km formula |
 | `dy_km` | double | Không | Candidate trừ mainshock theo local-km formula |
 | `dz_km` | double | Không | Candidate depth trừ mainshock depth |
-| `delta_time_hours` | double | Không | Có dấu; PRE âm, MAINSHOCK 0, POST dương |
+| `delta_time_hours` | double | Không | Giữ microseconds; PRE âm, MAINSHOCK 0, POST dương hoặc 0 khi non-self đúng cùng timestamp |
 | `distance_3d_km` | double | Không | `>= 0` |
 | `x_scaled` | double | Không | Feature baseline |
 | `y_scaled` | double | Không | Feature baseline |
@@ -263,6 +263,10 @@ duplicate. Snapshot này là input bất biến cho mọi thuật toán cùng da
 | `created_at_utc` | timestamp_utc | Không | Thời điểm materialize |
 
 Quality invariant:
+
+- Self được xác định bằng ID. Non-self đúng cùng timestamp giữ `POST`/delta 0;
+  đây là tie rule xác định, không phải nhãn aftershock. Không thay delta thật
+  bằng epsilon. Xem [MLD-03 window rule](./MAINSHOCK_AND_CANDIDATE_WINDOWS.md#42-khoảng-cách-địa-phương-và-độ-lệch-thời-gian).
 
 - Mỗi window chứa chính mainshock đúng một lần.
 - Row mainshock có `dx_km`, `dy_km`, `dz_km`, `delta_time_hours` và bốn feature

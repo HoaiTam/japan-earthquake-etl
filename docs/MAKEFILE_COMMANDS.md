@@ -85,6 +85,7 @@ Internet khi dependency chưa được cache.
 | `test-contracts` | Baseline/scaffold, CON-01..04, inventory JMA, catalog DAT-01, kế hoạch tuần 3 và Java Docker build inputs |
 | `check-java-build-inputs` | Preflight fixture/inventory/allowlist và COPY trước Maven verify ở Spark/Airflow; 12 regression test offline, không cần Docker/JDK/env |
 | `test-java` | Maven unit test module Spark: USGS planner/client/Bronze writer/QA/live runner |
+| `test-ml-window` | MLD-03: 21 fixture/regression tests cho bucket physical plan, distributed invariants, microseconds và fail-fast Parquet; không nghiệm thu Published JMA/Mc thật |
 | `test-airflow` | Unittest DAG, interval/retry, phase protocol và publish gate |
 | `test-orchestration` | ORC-01 context/phase/gates và dựng graph bằng SDK double, không cần Airflow trên host |
 | `etl-preview` | In run context/exact scope fixture ORC-01 offline, không ghi hoặc gọi service |
