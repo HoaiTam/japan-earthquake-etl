@@ -1,6 +1,6 @@
 ---
 task_id: "MLD-01"
-status: "Backlog"
+status: "In Progress"
 week: 4
 block: "G - ML Dataset"
 workstream: "Dataset identity"
@@ -66,7 +66,7 @@ chặn trạng thái `Done`.
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
+- **Trạng thái:** In Progress
 - **Assignee:** Trang
 - **Reviewer:** Chưa ghi lại
 - **Evidence / PR:** Chưa có
