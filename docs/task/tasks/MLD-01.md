@@ -1,6 +1,6 @@
 ---
 task_id: "MLD-01"
-status: "Backlog"
+status: "Done"
 week: 4
 block: "G - ML Dataset"
 workstream: "Dataset identity"
@@ -34,10 +34,10 @@ vẫn tái lập được khi Gold có revision/snapshot mới.
 
 ## Tiêu chí hoàn thành
 
-- [ ] Cùng snapshot/config tạo cùng identity logic hoặc bị phát hiện là rerun, không tạo dataset mơ hồ.
-- [ ] Manifest giữ `gold_snapshot_id`, cutoff, filter, feature/config/code version và timestamp UTC.
-- [ ] Dataset không resolve từ bảng `current` lần nữa sau khi đã pin snapshot.
-- [ ] Snapshot chưa Published hoặc filter period sai bị reject trước khi build candidate.
+- [x] Cùng snapshot/config tạo cùng identity logic hoặc bị phát hiện là rerun, không tạo dataset mơ hồ.
+- [x] Manifest giữ `gold_snapshot_id`, cutoff, filter, feature/config/code version và timestamp UTC.
+- [x] Dataset không resolve từ bảng `current` lần nữa sau khi đã pin snapshot.
+- [x] Snapshot chưa Published hoặc filter period sai bị reject trước khi build candidate.
 
 ## Hard dependency
 
@@ -49,7 +49,7 @@ vẫn tái lập được khi Gold có revision/snapshot mới.
 ### Phân công tuần 4 mở rộng
 
 - **Owner / effort:** Trang, 5h Core; đưa từ tuần 5 lên khối Gold + ML identity trong [kế hoạch tuần 4](../WEEK_4_PARALLEL_PLAN.md).
-- **Làm trước:** Snapshot/publication metadata mock, canonical identity payload và period-boundary tests theo CON-03; hiện Backlog vì GLD-04 chưa Done.
+- **Làm trước:** Snapshot/publication metadata mock, canonical identity payload và period-boundary tests theo CON-03; implementation đã nghiệm thu trên dependency GLD-04; PR được stack tới khi dependency merge.
 - **Làm gì / có gì:** Resolve exact Published Gold snapshot, dataset ID/manifest cho reproduction và extension, lineage/filter/config/cutoff và rerun conflict detection.
 - **Dùng để làm gì:** MLD-02/03 đọc cùng snapshot/config, không bị current table trôi giữa audit và candidate build.
 - **Handoff / nghiệm thu:** Sau GLD-04 verify thật, pin snapshot và bàn giao manifest/coverage cho ThanhTris. Dữ liệu pilot 2000/2023 không phải toàn research period. Không fake VALIDATED/EXPORTED khi feature/export chưa đạt; manifest có thể BUILDING còn implementation identity task đạt acceptance riêng.
@@ -66,17 +66,17 @@ chặn trạng thái `Done`.
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
+- **Trạng thái:** Done
 - **Assignee:** Trang
-- **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Reviewer:** unassigned; chưa có review độc lập
+- **Evidence / PR:** [Runtime evidence](../../evidence/MLD-01.md), hai manifest Iceberg thật, rerun unchanged; 7 Java + 3 control tests đạt; [PR #65](https://github.com/HoaiTam/japan-earthquake-etl/pull/65).
 - **Kỹ năng phù hợp:** Iceberg snapshots, Spark SQL, data lineage
 
 ## Checklist bàn giao
 
-- [ ] Deliverable và test/evidence tồn tại trong repository.
-- [ ] Acceptance criteria đã được kiểm tra.
-- [ ] Contract/docs đã cập nhật và không chứa secret/build artifact.
+- [x] Deliverable và test/evidence tồn tại trong repository.
+- [x] Acceptance criteria đã được kiểm tra.
+- [x] Contract/docs đã cập nhật và không chứa secret/build artifact.
 - [ ] Reviewer độc lập được khuyến nghị cho P0.
 
 ## Tài liệu liên quan

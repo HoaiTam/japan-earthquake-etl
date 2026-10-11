@@ -1,0 +1,42 @@
+{
+  "datasets": [
+    {
+      "dataset_split": "REPRODUCTION",
+      "period_start_utc": "2000-01-01T00:00:00Z",
+      "period_end_utc_exclusive": "2018-10-01T00:00:00Z",
+      "observation_cutoff_utc": "2026-10-11T00:00:00Z",
+      "filter_config": {
+        "is_natural_earthquake": true,
+        "is_in_study_area": true,
+        "canonical_source_system": "JMA_BULLETIN",
+        "catalog_era": "UNIFIED"
+      },
+      "dataset_config_version": "dataset-identity-v1",
+      "audit_rule_version": "gold-audit-v1",
+      "mc_method_version": "maximum-curvature-v1",
+      "window_model_version": "window-model-v1",
+      "feature_version": "relative-4d-v1",
+      "scaling_config_version": "scaling-v1",
+      "code_version": "56b0cf464c7492f27eb1e75e0bd9b43a31b77dcd"
+    },
+    {
+      "dataset_split": "EXTENSION",
+      "period_start_utc": "2018-10-01T00:00:00Z",
+      "period_end_utc_exclusive": "2024-01-01T00:00:00Z",
+      "observation_cutoff_utc": "2026-10-11T00:00:00Z",
+      "filter_config": {
+        "is_natural_earthquake": true,
+        "is_in_study_area": true,
+        "canonical_source_system": "JMA_BULLETIN",
+        "catalog_era": "UNIFIED"
+      },
+      "dataset_config_version": "dataset-identity-v1",
+      "audit_rule_version": "gold-audit-v1",
+      "mc_method_version": "maximum-curvature-v1",
+      "window_model_version": "window-model-v1",
+      "feature_version": "relative-4d-v1",
+      "scaling_config_version": "scaling-v1",
+      "code_version": "56b0cf464c7492f27eb1e75e0bd9b43a31b77dcd"
+    }
+  ]
+}
