@@ -49,7 +49,7 @@ vẫn tái lập được khi Gold có revision/snapshot mới.
 ### Phân công tuần 4 mở rộng
 
 - **Owner / effort:** Trang, 5h Core; đưa từ tuần 5 lên khối Gold + ML identity trong [kế hoạch tuần 4](../WEEK_4_PARALLEL_PLAN.md).
-- **Làm trước:** Snapshot/publication metadata mock, canonical identity payload và period-boundary tests theo CON-03; implementation đã nghiệm thu trên dependency GLD-04; PR được stack tới khi dependency merge.
+- **Làm trước:** Snapshot/publication metadata mock, canonical identity payload và period-boundary tests theo CON-03; implementation đã nghiệm thu trên dependency GLD-04. GLD-04 (#63) đã merge; PR #65 được cập nhật từ main và đổi base về main.
 - **Làm gì / có gì:** Resolve exact Published Gold snapshot, dataset ID/manifest cho reproduction và extension, lineage/filter/config/cutoff và rerun conflict detection.
 - **Dùng để làm gì:** MLD-02/03 đọc cùng snapshot/config, không bị current table trôi giữa audit và candidate build.
 - **Handoff / nghiệm thu:** Sau GLD-04 verify thật, pin snapshot và bàn giao manifest/coverage cho ThanhTris. Dữ liệu pilot 2000/2023 không phải toàn research period. Không fake VALIDATED/EXPORTED khi feature/export chưa đạt; manifest có thể BUILDING còn implementation identity task đạt acceptance riêng.

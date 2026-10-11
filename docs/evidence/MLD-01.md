@@ -47,4 +47,27 @@ Runbook/recovery nằm tại [Dataset runtime](../specs/DATASET_MANIFEST_RUNTIME
 - **MLD-04 — Tạo feature tương đối 4-D** và **MLD-05 — Export dataset bundle**:
   cần feature gates/export checksum để nâng lifecycle VALIDATED/EXPORTED.
 - Reviewer độc lập P0: `unassigned`; không có approval được tự điền.
-- PR stack trên GLD-04; chưa merge GitHub theo yêu cầu người dùng.
+- [PR #65](https://github.com/HoaiTam/japan-earthquake-etl/pull/65) cập nhật từ
+  main sau khi GLD-04 [#63](https://github.com/HoaiTam/japan-earthquake-etl/pull/63)
+  đã merge; base được chuyển về `main`.
+
+## Đối chiếu PR #65 sau khi dependency merge
+
+- Baseline main: `4e31f01e6d512702f1b0e863a7f2ae60045e152a`.
+- Toàn bộ 15 files của implementation/evidence MLD-01 từ #65 đã nằm trên main
+  qua squash merge [#60](https://github.com/HoaiTam/japan-earthquake-etl/pull/60).
+  Không áp lại code hoặc khôi phục phiên bản MLD-02/03 cũ từ nhánh stacked.
+- Ba conflict ở evidence/task GLD-04 và task index giữ đúng bản main mới.
+  Diff so với main chỉ còn cập nhật docs MLD-01 về base/handoff/checks.
+- Java 17.0.12 trên Windows, Maven `-pl spark -am -Dtest=DatasetManifestTest
+  -Dsurefire.failIfNoSpecifiedTests=false verify`: **7 tests PASS**, 0 failures/
+  errors/skips, **BUILD SUCCESS**; log local ignored tại
+  `staging/mld01-main-update-tests.log`, kết thúc 2026-10-11 18:01:29 +07:00.
+- Task status (73 files), CON-03 model, diff và secret-pattern check: PASS.
+  Reviewer vẫn unassigned; CI cập nhật theo head PR #65, không dùng CI main cũ
+  làm bằng chứng của head mới.
+- Control-plane test local chưa chạy lại: Docker Linux daemon không sẵn sàng.
+  Lệnh Compose unit test thất bại trước khi tạo container; không coi là test PASS.
+  Bộ CI Airflow có `test_dataset_manifest_qa.py` và là gate của head mới.
+- Integration Trino/Iceberg/MinIO ở mục trên là evidence lượt nghiệm thu trước;
+  không tuyên bố đã chạy lại integration ở lượt chỉ đồng bộ branch/docs.
