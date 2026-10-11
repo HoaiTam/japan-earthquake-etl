@@ -69,7 +69,7 @@ chặn trạng thái `Done`.
 - **Trạng thái:** Done
 - **Assignee:** Trang
 - **Reviewer:** unassigned; chưa có review độc lập
-- **Evidence / PR:** [Runtime evidence](../../evidence/MLD-01.md), hai manifest Iceberg thật, rerun unchanged; 7 Java + 3 control tests đạt; PR sẽ cập nhật sau khi mở.
+- **Evidence / PR:** [Runtime evidence](../../evidence/MLD-01.md), hai manifest Iceberg thật, rerun unchanged; 7 Java + 3 control tests đạt; [PR #65](https://github.com/HoaiTam/japan-earthquake-etl/pull/65).
 - **Kỹ năng phù hợp:** Iceberg snapshots, Spark SQL, data lineage
 
 ## Checklist bàn giao
