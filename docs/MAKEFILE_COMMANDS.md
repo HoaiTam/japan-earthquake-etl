@@ -63,6 +63,13 @@ make up-query
 
 ## Kiểm thử không gọi nguồn dữ liệu thật
 
+CI dùng ba nhóm `make ci-docs`, `make ci-java`, `make ci-airflow`; `make ci`
+chạy tuần tự cả ba. Java CI dùng JDK 17; YAML guardrails cần dependency từ
+`tests/ci/requirements.txt` (PyYAML). `make test-ci-workflow` kiểm tra riêng
+trigger cho mọi base branch của PR, push chỉ vào `main`, quyền và jobs.
+Xem [CI guide](./conventions_and_workflow/CONTINUOUS_INTEGRATION.md) để hiểu
+stacked PR, checks chưa chạy do conflict và giới hạn so với E2E thật.
+
 ```bash
 make test
 ```
