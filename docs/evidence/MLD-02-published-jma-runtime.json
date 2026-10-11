@@ -1,0 +1,896 @@
+{
+  "assignee": "rosy179",
+  "base_commit": "f653a04773620faf01abfcacfbc52c457b4290a7",
+  "code_version": "artifact_65605a3bfbe9ea6f322dbefd603c6f1c3ef9dac552bcf7f014a6c27cfe8e639e",
+  "commit": {
+    "commit_version": "gld-03-v1",
+    "gold_run_id": "mld02-qa-13275d43f6514a0db6f2b4e71309be3c",
+    "identity_sha256": "93b74ccf22d65cb3ef0645067b74906b7b94c2ceed147dacc73742fd71bcd02b",
+    "namespace": "iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c",
+    "published": false,
+    "scope": {
+      "affected_months": [
+        "1999-12",
+        "2000-01",
+        "2022-12",
+        "2023-01"
+      ],
+      "baseline_snapshots": {
+        "dim_date": 0,
+        "dim_depth_band": 0,
+        "dim_magnitude_band": 0,
+        "dim_region": 0,
+        "event_current": 0,
+        "event_source_bridge": 0
+      },
+      "code_version": "artifact_65605a3bfbe9ea6f322dbefd603c6f1c3ef9dac552bcf7f014a6c27cfe8e639e",
+      "context": {
+        "config_version": "1",
+        "input_manifest_uris": [
+          "s3://japan-earthquake/silver/bundles/slv09-live-59a5e3725b14453e89a127eb2c8a70d2/manifest.json"
+        ],
+        "is_backfill": true,
+        "processing_date": "2026-10-11",
+        "run_id": "mld02-qa-13275d43f6514a0db6f2b4e71309be3c",
+        "window_end_utc": "2024-01-01T00:00:00Z",
+        "window_start_utc": "1999-12-31T15:00:00Z"
+      },
+      "silver_bundle_sha256": "2fdf83893ede773c811d5b83117c42b05920e680d4a078ecaf036a3f00340b21"
+    },
+    "status": "COMMITTED",
+    "tables": {
+      "dim_date": {
+        "committed_at_utc": "2026-10-11T15:32:33.225Z",
+        "count": 7,
+        "schema_json": "{\"type\":\"struct\",\"fields\":[{\"name\":\"date_key\",\"type\":\"integer\",\"nullable\":true,\"metadata\":{}},{\"name\":\"calendar_date\",\"type\":\"date\",\"nullable\":true,\"metadata\":{}},{\"name\":\"year\",\"type\":\"integer\",\"nullable\":true,\"metadata\":{}},{\"name\":\"quarter\",\"type\":\"integer\",\"nullable\":true,\"metadata\":{}},{\"name\":\"month\",\"type\":\"integer\",\"nullable\":true,\"metadata\":{}},{\"name\":\"month_name\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"day_of_month\",\"type\":\"integer\",\"nullable\":true,\"metadata\":{}},{\"name\":\"day_of_week\",\"type\":\"integer\",\"nullable\":true,\"metadata\":{}},{\"name\":\"is_weekend\",\"type\":\"boolean\",\"nullable\":true,\"metadata\":{}}]}",
+        "snapshot_id": 493725759784372532,
+        "table": "iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.dim_date"
+      },
+      "dim_depth_band": {
+        "committed_at_utc": "2026-10-11T15:32:39.051Z",
+        "count": 5,
+        "schema_json": "{\"type\":\"struct\",\"fields\":[{\"name\":\"band_code\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}},{\"name\":\"band_label\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}},{\"name\":\"sort_order\",\"type\":\"integer\",\"nullable\":false,\"metadata\":{}}]}",
+        "snapshot_id": 8632292725996640201,
+        "table": "iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.dim_depth_band"
+      },
+      "dim_magnitude_band": {
+        "committed_at_utc": "2026-10-11T15:32:37.627Z",
+        "count": 7,
+        "schema_json": "{\"type\":\"struct\",\"fields\":[{\"name\":\"band_code\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}},{\"name\":\"band_label\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}},{\"name\":\"sort_order\",\"type\":\"integer\",\"nullable\":false,\"metadata\":{}}]}",
+        "snapshot_id": 5665767965172369848,
+        "table": "iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.dim_magnitude_band"
+      },
+      "dim_region": {
+        "committed_at_utc": "2026-10-11T15:32:36.315Z",
+        "count": 1,
+        "schema_json": "{\"type\":\"struct\",\"fields\":[{\"name\":\"region_key\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}},{\"name\":\"region_name\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}},{\"name\":\"region_category\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}}]}",
+        "snapshot_id": 2530439006394319607,
+        "table": "iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.dim_region"
+      },
+      "event_current": {
+        "committed_at_utc": "2026-10-11T15:32:23.920Z",
+        "count": 528,
+        "schema_json": "{\"type\":\"struct\",\"fields\":[{\"name\":\"schema_version\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}},{\"name\":\"canonical_event_id\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"primary_observation_id\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"canonical_source_system\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"event_time_utc\",\"type\":\"timestamp\",\"nullable\":true,\"metadata\":{}},{\"name\":\"event_time_jst\",\"type\":\"timestamp_ntz\",\"nullable\":true,\"metadata\":{}},{\"name\":\"event_date_utc\",\"type\":\"date\",\"nullable\":true,\"metadata\":{}},{\"name\":\"event_date_jst\",\"type\":\"date\",\"nullable\":true,\"metadata\":{}},{\"name\":\"event_date_key_utc\",\"type\":\"integer\",\"nullable\":true,\"metadata\":{}},{\"name\":\"event_date_key_jst\",\"type\":\"integer\",\"nullable\":true,\"metadata\":{}},{\"name\":\"latitude\",\"type\":\"double\",\"nullable\":true,\"metadata\":{}},{\"name\":\"longitude\",\"type\":\"double\",\"nullable\":true,\"metadata\":{}},{\"name\":\"depth_km\",\"type\":\"double\",\"nullable\":true,\"metadata\":{}},{\"name\":\"magnitude\",\"type\":\"double\",\"nullable\":true,\"metadata\":{}},{\"name\":\"magnitude_type\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"event_type_code\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"is_natural_earthquake\",\"type\":\"boolean\",\"nullable\":true,\"metadata\":{}},{\"name\":\"place_name\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"is_in_study_area\",\"type\":\"boolean\",\"nullable\":true,\"metadata\":{}},{\"name\":\"region_key\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}},{\"name\":\"region_name\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}},{\"name\":\"region_category\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}},{\"name\":\"magnitude_band_code\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}},{\"name\":\"depth_band_code\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}},{\"name\":\"tsunami_flag\",\"type\":\"boolean\",\"nullable\":true,\"metadata\":{}},{\"name\":\"alert_level\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"significance\",\"type\":\"integer\",\"nullable\":true,\"metadata\":{}},{\"name\":\"max_intensity_code\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"determining_agency_code\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"catalog_era\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"source_count\",\"type\":\"integer\",\"nullable\":false,\"metadata\":{}},{\"name\":\"has_usgs\",\"type\":\"boolean\",\"nullable\":true,\"metadata\":{}},{\"name\":\"has_jma\",\"type\":\"boolean\",\"nullable\":true,\"metadata\":{}},{\"name\":\"source_coverage_code\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}},{\"name\":\"link_status\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}},{\"name\":\"quality_status\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}},{\"name\":\"canonical_model_version\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"gold_run_id\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}},{\"name\":\"record_updated_at_utc\",\"type\":\"timestamp\",\"nullable\":false,\"metadata\":{}}]}",
+        "snapshot_id": 8798380333486384901,
+        "table": "iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.event_current"
+      },
+      "event_source_bridge": {
+        "committed_at_utc": "2026-10-11T15:32:27.512Z",
+        "count": 528,
+        "schema_json": "{\"type\":\"struct\",\"fields\":[{\"name\":\"canonical_event_id\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"source_observation_id\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"source_system\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"source_record_key\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"is_primary\",\"type\":\"boolean\",\"nullable\":true,\"metadata\":{}},{\"name\":\"source_link_id\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"raw_object_uri\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"bronze_manifest_id\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"catalog_release\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"source_updated_at_utc\",\"type\":\"timestamp\",\"nullable\":true,\"metadata\":{}},{\"name\":\"event_month_utc\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}}]}",
+        "snapshot_id": 3540442925277288906,
+        "table": "iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.event_source_bridge"
+      }
+    }
+  },
+  "datasets": [
+    {
+      "audit": {
+        "annual_distribution": {
+          "1999": {
+            "eligible": 0,
+            "excluded": 78,
+            "input": 78
+          },
+          "2000": {
+            "eligible": 140,
+            "excluded": 38,
+            "input": 178
+          },
+          "2022": {
+            "eligible": 0,
+            "excluded": 256,
+            "input": 256
+          },
+          "2023": {
+            "eligible": 0,
+            "excluded": 16,
+            "input": 16
+          }
+        },
+        "audit_rule_version": "gold-audit-v1",
+        "audited_at_utc": "2026-10-11T15:33:52.513871252Z",
+        "build_run_id": "mld02-qa-13275d43f6514a0db6f2b4e71309be3c",
+        "candidate_build_allowed": true,
+        "completeness_by_depth": {
+          "DEEP": {
+            "bin_width": 0.1,
+            "central_mc": null,
+            "completeness_fraction": 0.0,
+            "estimated_b_value": null,
+            "estimated_b_value_stderr": null,
+            "events_above_mc": 0,
+            "group_name": "DEEP",
+            "is_reliable": false,
+            "max_curvature_bin": 3.3,
+            "max_curvature_bin_count": 1,
+            "method": "MAXIMUM_CURVATURE",
+            "method_version": "maximum-curvature-v1",
+            "sample_count": 1,
+            "sensitivity_lower": null,
+            "sensitivity_step": 0.2,
+            "sensitivity_upper": null,
+            "unreliable_reason": "INSUFFICIENT_DATA: 1 < 50"
+          },
+          "INTERMEDIATE": {
+            "bin_width": 0.1,
+            "central_mc": null,
+            "completeness_fraction": 0.0,
+            "estimated_b_value": null,
+            "estimated_b_value_stderr": null,
+            "events_above_mc": 0,
+            "group_name": "INTERMEDIATE",
+            "is_reliable": false,
+            "max_curvature_bin": 2.0,
+            "max_curvature_bin_count": 3,
+            "method": "MAXIMUM_CURVATURE",
+            "method_version": "maximum-curvature-v1",
+            "sample_count": 23,
+            "sensitivity_lower": null,
+            "sensitivity_step": 0.2,
+            "sensitivity_upper": null,
+            "unreliable_reason": "INSUFFICIENT_DATA: 23 < 50"
+          },
+          "SHALLOW": {
+            "bin_width": 0.1,
+            "central_mc": 0.6,
+            "completeness_fraction": 0.763,
+            "estimated_b_value": 0.455,
+            "estimated_b_value_stderr": 0.042,
+            "events_above_mc": 116,
+            "group_name": "SHALLOW",
+            "is_reliable": true,
+            "max_curvature_bin": 0.6,
+            "max_curvature_bin_count": 11,
+            "method": "MAXIMUM_CURVATURE",
+            "method_version": "maximum-curvature-v1",
+            "sample_count": 152,
+            "sensitivity_lower": 0.4,
+            "sensitivity_step": 0.2,
+            "sensitivity_upper": 0.8,
+            "unreliable_reason": null
+          }
+        },
+        "completeness_overall": {
+          "bin_width": 0.1,
+          "central_mc": 0.6,
+          "completeness_fraction": 0.795,
+          "estimated_b_value": 0.414,
+          "estimated_b_value_stderr": 0.035,
+          "events_above_mc": 140,
+          "group_name": "ALL",
+          "is_reliable": true,
+          "max_curvature_bin": 0.6,
+          "max_curvature_bin_count": 11,
+          "method": "MAXIMUM_CURVATURE",
+          "method_version": "maximum-curvature-v1",
+          "sample_count": 176,
+          "sensitivity_lower": 0.4,
+          "sensitivity_step": 0.2,
+          "sensitivity_upper": 0.8,
+          "unreliable_reason": null
+        },
+        "counts": {
+          "eligible_event_count": 140,
+          "excluded_event_count": 388,
+          "input_event_count": 528
+        },
+        "dataset_id": "ds_b0d94968d9471049fcb41895eafd0a09c26d37463c87af91b870f9fee39a4690",
+        "dataset_split": "REPRODUCTION",
+        "depth_band_distribution": {
+          "DEEP": 3,
+          "INTERMEDIATE": 48,
+          "SHALLOW": 477
+        },
+        "exclusion_counts_by_primary_reason": {
+          "ML_BELOW_COMPLETENESS": 36,
+          "ML_MISSING_MAGNITUDE": 15,
+          "ML_NON_NATURAL_EVENT": 2,
+          "ML_OUTSIDE_TIME_RANGE": 319,
+          "ML_SOURCE_NOT_COMPARABLE": 16
+        },
+        "gold_publication_id": "pub_788fb67d18673a9af6cb6ab23fa0392c94544261f69fdceaa28a89d4e812c063",
+        "gold_snapshot_id": 8798380333486384901,
+        "input_mode": "PUBLISHED_SNAPSHOT",
+        "magnitude_band_distribution": {
+          "LT_3": 477,
+          "M3_TO_LT4": 15,
+          "M4_TO_LT5": 15,
+          "M5_TO_LT6": 6,
+          "UNKNOWN": 15
+        },
+        "mc_applied": 0.6,
+        "mc_config_json": "{\"applied_mc\":0.6,\"applied_method\":\"MAXIMUM_CURVATURE\",\"bin_width\":0.1,\"central_mc\":0.6,\"completeness_fraction\":0.795,\"depth_stratified\":{\"DEEP\":{\"bin_width\":0.1,\"central_mc\":null,\"completeness_fraction\":0.0,\"estimated_b_value\":null,\"estimated_b_value_stderr\":null,\"events_above_mc\":0,\"group_name\":\"DEEP\",\"is_reliable\":false,\"max_curvature_bin\":3.3,\"max_curvature_bin_count\":1,\"method\":\"MAXIMUM_CURVATURE\",\"method_version\":\"maximum-curvature-v1\",\"sample_count\":1,\"sensitivity_lower\":null,\"sensitivity_step\":0.2,\"sensitivity_upper\":null,\"unreliable_reason\":\"INSUFFICIENT_DATA: 1 < 50\"},\"INTERMEDIATE\":{\"bin_width\":0.1,\"central_mc\":null,\"completeness_fraction\":0.0,\"estimated_b_value\":null,\"estimated_b_value_stderr\":null,\"events_above_mc\":0,\"group_name\":\"INTERMEDIATE\",\"is_reliable\":false,\"max_curvature_bin\":2.0,\"max_curvature_bin_count\":3,\"method\":\"MAXIMUM_CURVATURE\",\"method_version\":\"maximum-curvature-v1\",\"sample_count\":23,\"sensitivity_lower\":null,\"sensitivity_step\":0.2,\"sensitivity_upper\":null,\"unreliable_reason\":\"INSUFFICIENT_DATA: 23 < 50\"},\"SHALLOW\":{\"bin_width\":0.1,\"central_mc\":0.6,\"completeness_fraction\":0.763,\"estimated_b_value\":0.455,\"estimated_b_value_stderr\":0.042,\"events_above_mc\":116,\"group_name\":\"SHALLOW\",\"is_reliable\":true,\"max_curvature_bin\":0.6,\"max_curvature_bin_count\":11,\"method\":\"MAXIMUM_CURVATURE\",\"method_version\":\"maximum-curvature-v1\",\"sample_count\":152,\"sensitivity_lower\":0.4,\"sensitivity_step\":0.2,\"sensitivity_upper\":0.8,\"unreliable_reason\":null}},\"estimated_b_value\":0.414,\"estimated_b_value_stderr\":0.035,\"events_above_mc\":140,\"is_reliable\":true,\"max_curvature_bin\":0.6,\"max_curvature_bin_count\":11,\"mc_method\":\"MAXIMUM_CURVATURE\",\"mc_method_version\":\"maximum-curvature-v1\",\"sample_event_count\":176,\"sensitivity_lower\":0.4,\"sensitivity_step\":0.2,\"sensitivity_upper\":0.8,\"unreliable_reason\":null}",
+        "mc_config_sha256": "f5d0a12f8a7bc8458375f0d8876005f2548ba0bce78f380005fa95192f4168ff",
+        "mc_method": "MAXIMUM_CURVATURE",
+        "mc_method_version": "maximum-curvature-v1",
+        "mc_region_version": "overall-bounded-pilot-v1",
+        "network_change_shifts": [
+          {
+            "assessment": "Significant rate decrease (<50%): network sensitivity shift or post-crisis decay.",
+            "count_after": 0,
+            "count_before": 256,
+            "milestone_date": "2000-10-01",
+            "milestone_name": "Hi-net Seismic Network Expansion",
+            "rate_after_per_year": 0.0,
+            "rate_before_per_year": 256.0,
+            "shift_ratio": 0.0
+          }
+        ],
+        "observation_cutoff_utc": "2026-10-11T15:33:46.539Z",
+        "period_end_utc_exclusive": "2018-10-01T00:00:00Z",
+        "period_start_utc": "2000-01-01T00:00:00Z",
+        "report_type": "GOLD_INPUT_AUDIT_AND_COMPLETENESS",
+        "schema_version": "1.0",
+        "total_occurrences_by_reason": {
+          "ML_BELOW_COMPLETENESS": 138,
+          "ML_LEGACY_CATALOG_ERA": 16,
+          "ML_MISSING_MAGNITUDE": 15,
+          "ML_NON_NATURAL_EVENT": 2,
+          "ML_OUTSIDE_STUDY_AREA": 2,
+          "ML_OUTSIDE_TIME_RANGE": 350,
+          "ML_SOURCE_NOT_COMPARABLE": 16
+        }
+      },
+      "audited_manifest": {
+        "audit_report_uri": "audit-report.json",
+        "audit_rule_version": "gold-audit-v1",
+        "build_run_id": "mld02-qa-13275d43f6514a0db6f2b4e71309be3c",
+        "candidate_row_count": null,
+        "code_version": "artifact_65605a3bfbe9ea6f322dbefd603c6f1c3ef9dac552bcf7f014a6c27cfe8e639e",
+        "created_at_utc": "2026-10-11T15:33:46.620Z",
+        "dataset_config_version": "mld02-bounded-pilot-v1",
+        "dataset_id": "ds_b0d94968d9471049fcb41895eafd0a09c26d37463c87af91b870f9fee39a4690",
+        "dataset_split": "REPRODUCTION",
+        "dataset_status": "BUILDING",
+        "eligible_event_count": 140,
+        "excluded_event_count": 388,
+        "exclusion_counts_json": "{\"ML_BELOW_COMPLETENESS\":36,\"ML_MISSING_MAGNITUDE\":15,\"ML_NON_NATURAL_EVENT\":2,\"ML_OUTSIDE_TIME_RANGE\":319,\"ML_SOURCE_NOT_COMPARABLE\":16}",
+        "export_artifact_uri": null,
+        "export_manifest_sha256": null,
+        "feature_row_count": null,
+        "feature_schema_sha256": null,
+        "feature_version": "relative-4d-v1",
+        "filter_config_json": "{\"canonical_source_system\":\"JMA_BULLETIN\",\"catalog_era\":\"UNIFIED\",\"completeness_config\":{\"bin_width\":0.1,\"min_events\":50,\"region_version\":\"overall-bounded-pilot-v1\",\"sensitivity_step\":0.2},\"coverage_scope\":\"slv09-first256-jma-2000-2023-not-full-period\",\"is_in_study_area\":true,\"is_natural_earthquake\":true}",
+        "gold_publication_id": "pub_788fb67d18673a9af6cb6ab23fa0392c94544261f69fdceaa28a89d4e812c063",
+        "gold_snapshot_id": 8798380333486384901,
+        "gold_table_name": "iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.earthquake_event_current",
+        "identity_payload_sha256": "b0d94968d9471049fcb41895eafd0a09c26d37463c87af91b870f9fee39a4690",
+        "input_event_count": 528,
+        "mainshock_count": null,
+        "mc_config_json": "{\"applied_mc\":0.6,\"applied_method\":\"MAXIMUM_CURVATURE\",\"bin_width\":0.1,\"central_mc\":0.6,\"completeness_fraction\":0.795,\"depth_stratified\":{\"DEEP\":{\"bin_width\":0.1,\"central_mc\":null,\"completeness_fraction\":0.0,\"estimated_b_value\":null,\"estimated_b_value_stderr\":null,\"events_above_mc\":0,\"group_name\":\"DEEP\",\"is_reliable\":false,\"max_curvature_bin\":3.3,\"max_curvature_bin_count\":1,\"method\":\"MAXIMUM_CURVATURE\",\"method_version\":\"maximum-curvature-v1\",\"sample_count\":1,\"sensitivity_lower\":null,\"sensitivity_step\":0.2,\"sensitivity_upper\":null,\"unreliable_reason\":\"INSUFFICIENT_DATA: 1 < 50\"},\"INTERMEDIATE\":{\"bin_width\":0.1,\"central_mc\":null,\"completeness_fraction\":0.0,\"estimated_b_value\":null,\"estimated_b_value_stderr\":null,\"events_above_mc\":0,\"group_name\":\"INTERMEDIATE\",\"is_reliable\":false,\"max_curvature_bin\":2.0,\"max_curvature_bin_count\":3,\"method\":\"MAXIMUM_CURVATURE\",\"method_version\":\"maximum-curvature-v1\",\"sample_count\":23,\"sensitivity_lower\":null,\"sensitivity_step\":0.2,\"sensitivity_upper\":null,\"unreliable_reason\":\"INSUFFICIENT_DATA: 23 < 50\"},\"SHALLOW\":{\"bin_width\":0.1,\"central_mc\":0.6,\"completeness_fraction\":0.763,\"estimated_b_value\":0.455,\"estimated_b_value_stderr\":0.042,\"events_above_mc\":116,\"group_name\":\"SHALLOW\",\"is_reliable\":true,\"max_curvature_bin\":0.6,\"max_curvature_bin_count\":11,\"method\":\"MAXIMUM_CURVATURE\",\"method_version\":\"maximum-curvature-v1\",\"sample_count\":152,\"sensitivity_lower\":0.4,\"sensitivity_step\":0.2,\"sensitivity_upper\":0.8,\"unreliable_reason\":null}},\"estimated_b_value\":0.414,\"estimated_b_value_stderr\":0.035,\"events_above_mc\":140,\"is_reliable\":true,\"max_curvature_bin\":0.6,\"max_curvature_bin_count\":11,\"mc_method\":\"MAXIMUM_CURVATURE\",\"mc_method_version\":\"maximum-curvature-v1\",\"sample_event_count\":176,\"sensitivity_lower\":0.4,\"sensitivity_step\":0.2,\"sensitivity_upper\":0.8,\"unreliable_reason\":null}",
+        "mc_config_sha256": "f5d0a12f8a7bc8458375f0d8876005f2548ba0bce78f380005fa95192f4168ff",
+        "mc_method": "MAXIMUM_CURVATURE",
+        "mc_method_version": "maximum-curvature-v1",
+        "mc_region_version": "overall-bounded-pilot-v1",
+        "mc_value": 0.6,
+        "observation_cutoff_utc": "2026-10-11T15:33:46.539Z",
+        "period_end_utc_exclusive": "2018-10-01T00:00:00Z",
+        "period_start_utc": "2000-01-01T00:00:00Z",
+        "physical_gold_table_name": "iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.event_current",
+        "publication_bundle_sha256": "788fb67d18673a9af6cb6ab23fa0392c94544261f69fdceaa28a89d4e812c063",
+        "scaling_config_version": "scaling-v1",
+        "schema_version": "1.0",
+        "status_reason_code": null,
+        "updated_at_utc": "2026-10-11T15:33:46.620Z",
+        "window_model_version": "window-model-v1"
+      },
+      "manifest": {
+        "audit_report_uri": null,
+        "audit_rule_version": "gold-audit-v1",
+        "build_run_id": "mld02-qa-13275d43f6514a0db6f2b4e71309be3c",
+        "candidate_row_count": null,
+        "code_version": "artifact_65605a3bfbe9ea6f322dbefd603c6f1c3ef9dac552bcf7f014a6c27cfe8e639e",
+        "created_at_utc": "2026-10-11T15:33:46.620Z",
+        "dataset_config_version": "mld02-bounded-pilot-v1",
+        "dataset_id": "ds_b0d94968d9471049fcb41895eafd0a09c26d37463c87af91b870f9fee39a4690",
+        "dataset_split": "REPRODUCTION",
+        "dataset_status": "BUILDING",
+        "eligible_event_count": null,
+        "excluded_event_count": null,
+        "exclusion_counts_json": null,
+        "export_artifact_uri": null,
+        "export_manifest_sha256": null,
+        "feature_row_count": null,
+        "feature_schema_sha256": null,
+        "feature_version": "relative-4d-v1",
+        "filter_config_json": "{\"canonical_source_system\":\"JMA_BULLETIN\",\"catalog_era\":\"UNIFIED\",\"completeness_config\":{\"bin_width\":0.1,\"min_events\":50,\"region_version\":\"overall-bounded-pilot-v1\",\"sensitivity_step\":0.2},\"coverage_scope\":\"slv09-first256-jma-2000-2023-not-full-period\",\"is_in_study_area\":true,\"is_natural_earthquake\":true}",
+        "gold_publication_id": "pub_788fb67d18673a9af6cb6ab23fa0392c94544261f69fdceaa28a89d4e812c063",
+        "gold_snapshot_id": 8798380333486384901,
+        "gold_table_name": "iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.earthquake_event_current",
+        "identity_payload_sha256": "b0d94968d9471049fcb41895eafd0a09c26d37463c87af91b870f9fee39a4690",
+        "input_event_count": null,
+        "mainshock_count": null,
+        "mc_config_json": null,
+        "mc_config_sha256": null,
+        "mc_method": null,
+        "mc_method_version": "maximum-curvature-v1",
+        "mc_region_version": null,
+        "mc_value": null,
+        "observation_cutoff_utc": "2026-10-11T15:33:46.539Z",
+        "period_end_utc_exclusive": "2018-10-01T00:00:00Z",
+        "period_start_utc": "2000-01-01T00:00:00Z",
+        "physical_gold_table_name": "iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.event_current",
+        "publication_bundle_sha256": "788fb67d18673a9af6cb6ab23fa0392c94544261f69fdceaa28a89d4e812c063",
+        "scaling_config_version": "scaling-v1",
+        "schema_version": "1.0",
+        "status_reason_code": null,
+        "updated_at_utc": "2026-10-11T15:33:46.620Z",
+        "window_model_version": "window-model-v1"
+      },
+      "rerun_unchanged": true,
+      "trino_eligible_count": 140,
+      "trino_input_count": 528
+    },
+    {
+      "audit": {
+        "annual_distribution": {
+          "1999": {
+            "eligible": 0,
+            "excluded": 78,
+            "input": 78
+          },
+          "2000": {
+            "eligible": 0,
+            "excluded": 178,
+            "input": 178
+          },
+          "2022": {
+            "eligible": 125,
+            "excluded": 131,
+            "input": 256
+          },
+          "2023": {
+            "eligible": 0,
+            "excluded": 16,
+            "input": 16
+          }
+        },
+        "audit_rule_version": "gold-audit-v1",
+        "audited_at_utc": "2026-10-11T15:34:29.039702922Z",
+        "build_run_id": "mld02-qa-13275d43f6514a0db6f2b4e71309be3c",
+        "candidate_build_allowed": true,
+        "completeness_by_depth": {
+          "DEEP": {
+            "bin_width": 0.1,
+            "central_mc": null,
+            "completeness_fraction": 0.0,
+            "estimated_b_value": null,
+            "estimated_b_value_stderr": null,
+            "events_above_mc": 0,
+            "group_name": "DEEP",
+            "is_reliable": false,
+            "max_curvature_bin": null,
+            "max_curvature_bin_count": 0,
+            "method": "MAXIMUM_CURVATURE",
+            "method_version": "maximum-curvature-v1",
+            "sample_count": 0,
+            "sensitivity_lower": null,
+            "sensitivity_step": 0.2,
+            "sensitivity_upper": null,
+            "unreliable_reason": "INSUFFICIENT_DATA: 0 < 50"
+          },
+          "INTERMEDIATE": {
+            "bin_width": 0.1,
+            "central_mc": null,
+            "completeness_fraction": 0.0,
+            "estimated_b_value": null,
+            "estimated_b_value_stderr": null,
+            "events_above_mc": 0,
+            "group_name": "INTERMEDIATE",
+            "is_reliable": false,
+            "max_curvature_bin": 1.1,
+            "max_curvature_bin_count": 2,
+            "method": "MAXIMUM_CURVATURE",
+            "method_version": "maximum-curvature-v1",
+            "sample_count": 15,
+            "sensitivity_lower": null,
+            "sensitivity_step": 0.2,
+            "sensitivity_upper": null,
+            "unreliable_reason": "INSUFFICIENT_DATA: 15 < 50"
+          },
+          "SHALLOW": {
+            "bin_width": 0.1,
+            "central_mc": 0.9,
+            "completeness_fraction": 0.483,
+            "estimated_b_value": 0.679,
+            "estimated_b_value_stderr": 0.064,
+            "events_above_mc": 112,
+            "group_name": "SHALLOW",
+            "is_reliable": true,
+            "max_curvature_bin": 0.9,
+            "max_curvature_bin_count": 17,
+            "method": "MAXIMUM_CURVATURE",
+            "method_version": "maximum-curvature-v1",
+            "sample_count": 232,
+            "sensitivity_lower": 0.7,
+            "sensitivity_step": 0.2,
+            "sensitivity_upper": 1.1,
+            "unreliable_reason": null
+          }
+        },
+        "completeness_overall": {
+          "bin_width": 0.1,
+          "central_mc": 0.9,
+          "completeness_fraction": 0.506,
+          "estimated_b_value": 0.651,
+          "estimated_b_value_stderr": 0.058,
+          "events_above_mc": 125,
+          "group_name": "ALL",
+          "is_reliable": true,
+          "max_curvature_bin": 0.9,
+          "max_curvature_bin_count": 18,
+          "method": "MAXIMUM_CURVATURE",
+          "method_version": "maximum-curvature-v1",
+          "sample_count": 247,
+          "sensitivity_lower": 0.7,
+          "sensitivity_step": 0.2,
+          "sensitivity_upper": 1.1,
+          "unreliable_reason": null
+        },
+        "counts": {
+          "eligible_event_count": 125,
+          "excluded_event_count": 403,
+          "input_event_count": 528
+        },
+        "dataset_id": "ds_3f1b48d922dc012bbf015d12ee4e2810951bdf11459ce1fa279df3d0730791cd",
+        "dataset_split": "EXTENSION",
+        "depth_band_distribution": {
+          "DEEP": 3,
+          "INTERMEDIATE": 48,
+          "SHALLOW": 477
+        },
+        "exclusion_counts_by_primary_reason": {
+          "ML_BELOW_COMPLETENESS": 122,
+          "ML_MISSING_MAGNITUDE": 15,
+          "ML_NON_NATURAL_EVENT": 2,
+          "ML_OUTSIDE_TIME_RANGE": 248,
+          "ML_SOURCE_NOT_COMPARABLE": 16
+        },
+        "gold_publication_id": "pub_788fb67d18673a9af6cb6ab23fa0392c94544261f69fdceaa28a89d4e812c063",
+        "gold_snapshot_id": 8798380333486384901,
+        "input_mode": "PUBLISHED_SNAPSHOT",
+        "magnitude_band_distribution": {
+          "LT_3": 477,
+          "M3_TO_LT4": 15,
+          "M4_TO_LT5": 15,
+          "M5_TO_LT6": 6,
+          "UNKNOWN": 15
+        },
+        "mc_applied": 0.9,
+        "mc_config_json": "{\"applied_mc\":0.9,\"applied_method\":\"MAXIMUM_CURVATURE\",\"bin_width\":0.1,\"central_mc\":0.9,\"completeness_fraction\":0.506,\"depth_stratified\":{\"DEEP\":{\"bin_width\":0.1,\"central_mc\":null,\"completeness_fraction\":0.0,\"estimated_b_value\":null,\"estimated_b_value_stderr\":null,\"events_above_mc\":0,\"group_name\":\"DEEP\",\"is_reliable\":false,\"max_curvature_bin\":null,\"max_curvature_bin_count\":0,\"method\":\"MAXIMUM_CURVATURE\",\"method_version\":\"maximum-curvature-v1\",\"sample_count\":0,\"sensitivity_lower\":null,\"sensitivity_step\":0.2,\"sensitivity_upper\":null,\"unreliable_reason\":\"INSUFFICIENT_DATA: 0 < 50\"},\"INTERMEDIATE\":{\"bin_width\":0.1,\"central_mc\":null,\"completeness_fraction\":0.0,\"estimated_b_value\":null,\"estimated_b_value_stderr\":null,\"events_above_mc\":0,\"group_name\":\"INTERMEDIATE\",\"is_reliable\":false,\"max_curvature_bin\":1.1,\"max_curvature_bin_count\":2,\"method\":\"MAXIMUM_CURVATURE\",\"method_version\":\"maximum-curvature-v1\",\"sample_count\":15,\"sensitivity_lower\":null,\"sensitivity_step\":0.2,\"sensitivity_upper\":null,\"unreliable_reason\":\"INSUFFICIENT_DATA: 15 < 50\"},\"SHALLOW\":{\"bin_width\":0.1,\"central_mc\":0.9,\"completeness_fraction\":0.483,\"estimated_b_value\":0.679,\"estimated_b_value_stderr\":0.064,\"events_above_mc\":112,\"group_name\":\"SHALLOW\",\"is_reliable\":true,\"max_curvature_bin\":0.9,\"max_curvature_bin_count\":17,\"method\":\"MAXIMUM_CURVATURE\",\"method_version\":\"maximum-curvature-v1\",\"sample_count\":232,\"sensitivity_lower\":0.7,\"sensitivity_step\":0.2,\"sensitivity_upper\":1.1,\"unreliable_reason\":null}},\"estimated_b_value\":0.651,\"estimated_b_value_stderr\":0.058,\"events_above_mc\":125,\"is_reliable\":true,\"max_curvature_bin\":0.9,\"max_curvature_bin_count\":18,\"mc_method\":\"MAXIMUM_CURVATURE\",\"mc_method_version\":\"maximum-curvature-v1\",\"sample_event_count\":247,\"sensitivity_lower\":0.7,\"sensitivity_step\":0.2,\"sensitivity_upper\":1.1,\"unreliable_reason\":null}",
+        "mc_config_sha256": "d7dba4026ba9faa6e73bdbd33cc4f15878446776a69cd06d1f6ef6d76b448278",
+        "mc_method": "MAXIMUM_CURVATURE",
+        "mc_method_version": "maximum-curvature-v1",
+        "mc_region_version": "overall-bounded-pilot-v1",
+        "network_change_shifts": [
+          {
+            "assessment": "Significant rate decrease (<50%): network sensitivity shift or post-crisis decay.",
+            "count_after": 0,
+            "count_before": 256,
+            "milestone_date": "2000-10-01",
+            "milestone_name": "Hi-net Seismic Network Expansion",
+            "rate_after_per_year": 0.0,
+            "rate_before_per_year": 256.0,
+            "shift_ratio": 0.0
+          }
+        ],
+        "observation_cutoff_utc": "2026-10-11T15:33:46.539Z",
+        "period_end_utc_exclusive": "2024-01-01T00:00:00Z",
+        "period_start_utc": "2018-10-01T00:00:00Z",
+        "report_type": "GOLD_INPUT_AUDIT_AND_COMPLETENESS",
+        "schema_version": "1.0",
+        "total_occurrences_by_reason": {
+          "ML_BELOW_COMPLETENESS": 203,
+          "ML_LEGACY_CATALOG_ERA": 16,
+          "ML_MISSING_MAGNITUDE": 15,
+          "ML_NON_NATURAL_EVENT": 2,
+          "ML_OUTSIDE_STUDY_AREA": 2,
+          "ML_OUTSIDE_TIME_RANGE": 256,
+          "ML_SOURCE_NOT_COMPARABLE": 16
+        }
+      },
+      "audited_manifest": {
+        "audit_report_uri": "audit-report.json",
+        "audit_rule_version": "gold-audit-v1",
+        "build_run_id": "mld02-qa-13275d43f6514a0db6f2b4e71309be3c",
+        "candidate_row_count": null,
+        "code_version": "artifact_65605a3bfbe9ea6f322dbefd603c6f1c3ef9dac552bcf7f014a6c27cfe8e639e",
+        "created_at_utc": "2026-10-11T15:34:24.943Z",
+        "dataset_config_version": "mld02-bounded-pilot-v1",
+        "dataset_id": "ds_3f1b48d922dc012bbf015d12ee4e2810951bdf11459ce1fa279df3d0730791cd",
+        "dataset_split": "EXTENSION",
+        "dataset_status": "BUILDING",
+        "eligible_event_count": 125,
+        "excluded_event_count": 403,
+        "exclusion_counts_json": "{\"ML_BELOW_COMPLETENESS\":122,\"ML_MISSING_MAGNITUDE\":15,\"ML_NON_NATURAL_EVENT\":2,\"ML_OUTSIDE_TIME_RANGE\":248,\"ML_SOURCE_NOT_COMPARABLE\":16}",
+        "export_artifact_uri": null,
+        "export_manifest_sha256": null,
+        "feature_row_count": null,
+        "feature_schema_sha256": null,
+        "feature_version": "relative-4d-v1",
+        "filter_config_json": "{\"canonical_source_system\":\"JMA_BULLETIN\",\"catalog_era\":\"UNIFIED\",\"completeness_config\":{\"bin_width\":0.1,\"min_events\":50,\"region_version\":\"overall-bounded-pilot-v1\",\"sensitivity_step\":0.2},\"coverage_scope\":\"slv09-first256-jma-2000-2023-not-full-period\",\"is_in_study_area\":true,\"is_natural_earthquake\":true}",
+        "gold_publication_id": "pub_788fb67d18673a9af6cb6ab23fa0392c94544261f69fdceaa28a89d4e812c063",
+        "gold_snapshot_id": 8798380333486384901,
+        "gold_table_name": "iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.earthquake_event_current",
+        "identity_payload_sha256": "3f1b48d922dc012bbf015d12ee4e2810951bdf11459ce1fa279df3d0730791cd",
+        "input_event_count": 528,
+        "mainshock_count": null,
+        "mc_config_json": "{\"applied_mc\":0.9,\"applied_method\":\"MAXIMUM_CURVATURE\",\"bin_width\":0.1,\"central_mc\":0.9,\"completeness_fraction\":0.506,\"depth_stratified\":{\"DEEP\":{\"bin_width\":0.1,\"central_mc\":null,\"completeness_fraction\":0.0,\"estimated_b_value\":null,\"estimated_b_value_stderr\":null,\"events_above_mc\":0,\"group_name\":\"DEEP\",\"is_reliable\":false,\"max_curvature_bin\":null,\"max_curvature_bin_count\":0,\"method\":\"MAXIMUM_CURVATURE\",\"method_version\":\"maximum-curvature-v1\",\"sample_count\":0,\"sensitivity_lower\":null,\"sensitivity_step\":0.2,\"sensitivity_upper\":null,\"unreliable_reason\":\"INSUFFICIENT_DATA: 0 < 50\"},\"INTERMEDIATE\":{\"bin_width\":0.1,\"central_mc\":null,\"completeness_fraction\":0.0,\"estimated_b_value\":null,\"estimated_b_value_stderr\":null,\"events_above_mc\":0,\"group_name\":\"INTERMEDIATE\",\"is_reliable\":false,\"max_curvature_bin\":1.1,\"max_curvature_bin_count\":2,\"method\":\"MAXIMUM_CURVATURE\",\"method_version\":\"maximum-curvature-v1\",\"sample_count\":15,\"sensitivity_lower\":null,\"sensitivity_step\":0.2,\"sensitivity_upper\":null,\"unreliable_reason\":\"INSUFFICIENT_DATA: 15 < 50\"},\"SHALLOW\":{\"bin_width\":0.1,\"central_mc\":0.9,\"completeness_fraction\":0.483,\"estimated_b_value\":0.679,\"estimated_b_value_stderr\":0.064,\"events_above_mc\":112,\"group_name\":\"SHALLOW\",\"is_reliable\":true,\"max_curvature_bin\":0.9,\"max_curvature_bin_count\":17,\"method\":\"MAXIMUM_CURVATURE\",\"method_version\":\"maximum-curvature-v1\",\"sample_count\":232,\"sensitivity_lower\":0.7,\"sensitivity_step\":0.2,\"sensitivity_upper\":1.1,\"unreliable_reason\":null}},\"estimated_b_value\":0.651,\"estimated_b_value_stderr\":0.058,\"events_above_mc\":125,\"is_reliable\":true,\"max_curvature_bin\":0.9,\"max_curvature_bin_count\":18,\"mc_method\":\"MAXIMUM_CURVATURE\",\"mc_method_version\":\"maximum-curvature-v1\",\"sample_event_count\":247,\"sensitivity_lower\":0.7,\"sensitivity_step\":0.2,\"sensitivity_upper\":1.1,\"unreliable_reason\":null}",
+        "mc_config_sha256": "d7dba4026ba9faa6e73bdbd33cc4f15878446776a69cd06d1f6ef6d76b448278",
+        "mc_method": "MAXIMUM_CURVATURE",
+        "mc_method_version": "maximum-curvature-v1",
+        "mc_region_version": "overall-bounded-pilot-v1",
+        "mc_value": 0.9,
+        "observation_cutoff_utc": "2026-10-11T15:33:46.539Z",
+        "period_end_utc_exclusive": "2024-01-01T00:00:00Z",
+        "period_start_utc": "2018-10-01T00:00:00Z",
+        "physical_gold_table_name": "iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.event_current",
+        "publication_bundle_sha256": "788fb67d18673a9af6cb6ab23fa0392c94544261f69fdceaa28a89d4e812c063",
+        "scaling_config_version": "scaling-v1",
+        "schema_version": "1.0",
+        "status_reason_code": null,
+        "updated_at_utc": "2026-10-11T15:34:24.943Z",
+        "window_model_version": "window-model-v1"
+      },
+      "manifest": {
+        "audit_report_uri": null,
+        "audit_rule_version": "gold-audit-v1",
+        "build_run_id": "mld02-qa-13275d43f6514a0db6f2b4e71309be3c",
+        "candidate_row_count": null,
+        "code_version": "artifact_65605a3bfbe9ea6f322dbefd603c6f1c3ef9dac552bcf7f014a6c27cfe8e639e",
+        "created_at_utc": "2026-10-11T15:34:24.943Z",
+        "dataset_config_version": "mld02-bounded-pilot-v1",
+        "dataset_id": "ds_3f1b48d922dc012bbf015d12ee4e2810951bdf11459ce1fa279df3d0730791cd",
+        "dataset_split": "EXTENSION",
+        "dataset_status": "BUILDING",
+        "eligible_event_count": null,
+        "excluded_event_count": null,
+        "exclusion_counts_json": null,
+        "export_artifact_uri": null,
+        "export_manifest_sha256": null,
+        "feature_row_count": null,
+        "feature_schema_sha256": null,
+        "feature_version": "relative-4d-v1",
+        "filter_config_json": "{\"canonical_source_system\":\"JMA_BULLETIN\",\"catalog_era\":\"UNIFIED\",\"completeness_config\":{\"bin_width\":0.1,\"min_events\":50,\"region_version\":\"overall-bounded-pilot-v1\",\"sensitivity_step\":0.2},\"coverage_scope\":\"slv09-first256-jma-2000-2023-not-full-period\",\"is_in_study_area\":true,\"is_natural_earthquake\":true}",
+        "gold_publication_id": "pub_788fb67d18673a9af6cb6ab23fa0392c94544261f69fdceaa28a89d4e812c063",
+        "gold_snapshot_id": 8798380333486384901,
+        "gold_table_name": "iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.earthquake_event_current",
+        "identity_payload_sha256": "3f1b48d922dc012bbf015d12ee4e2810951bdf11459ce1fa279df3d0730791cd",
+        "input_event_count": null,
+        "mainshock_count": null,
+        "mc_config_json": null,
+        "mc_config_sha256": null,
+        "mc_method": null,
+        "mc_method_version": "maximum-curvature-v1",
+        "mc_region_version": null,
+        "mc_value": null,
+        "observation_cutoff_utc": "2026-10-11T15:33:46.539Z",
+        "period_end_utc_exclusive": "2024-01-01T00:00:00Z",
+        "period_start_utc": "2018-10-01T00:00:00Z",
+        "physical_gold_table_name": "iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.event_current",
+        "publication_bundle_sha256": "788fb67d18673a9af6cb6ab23fa0392c94544261f69fdceaa28a89d4e812c063",
+        "scaling_config_version": "scaling-v1",
+        "schema_version": "1.0",
+        "status_reason_code": null,
+        "updated_at_utc": "2026-10-11T15:34:24.943Z",
+        "window_model_version": "window-model-v1"
+      },
+      "rerun_unchanged": true,
+      "trino_eligible_count": 125,
+      "trino_input_count": 528
+    }
+  ],
+  "evidence_generated_at_utc": "2026-10-11T15:34:29.039702922Z",
+  "gold_namespace": "iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c",
+  "java_version": "17.0.19",
+  "ml_namespace": "iceberg.ml_qa_13275d43f6514a0db6f2b4e71309be3c",
+  "publication": {
+    "bundle_sha256": "788fb67d18673a9af6cb6ab23fa0392c94544261f69fdceaa28a89d4e812c063",
+    "checks": {
+      "aggregate_count": {
+        "actual": 0,
+        "expected": 0,
+        "sql": "SELECT abs((SELECT coalesce(sum(source_count),0) FROM iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.event_current FOR VERSION AS OF 8798380333486384901)-(SELECT count(*) FROM iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.event_source_bridge FOR VERSION AS OF 3540442925277288906))"
+      },
+      "bridge_lineage": {
+        "actual": 0,
+        "expected": 0,
+        "sql": "SELECT count(*) FROM iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.event_source_bridge FOR VERSION AS OF 3540442925277288906 b LEFT JOIN iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.event_current FOR VERSION AS OF 8798380333486384901 e ON b.canonical_event_id=e.canonical_event_id WHERE e.canonical_event_id IS NULL OR b.source_system NOT IN ('USGS','JMA_BULLETIN') OR b.source_system IS NULL OR b.source_record_key IS NULL OR b.raw_object_uri IS NULL OR NOT starts_with(b.raw_object_uri,'s3://') OR b.bronze_manifest_id IS NULL OR b.is_primary IS NULL OR (b.source_system='JMA_BULLETIN' AND b.catalog_release IS NULL) OR b.event_month_utc <> format_datetime(e.event_time_utc,'yyyy-MM')"
+      },
+      "changed_run_scope": {
+        "actual": 0,
+        "expected": 0,
+        "sql": "SELECT count(*) FROM iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.event_current FOR VERSION AS OF 8798380333486384901 WHERE gold_run_id='mld02-qa-13275d43f6514a0db6f2b4e71309be3c' AND format_datetime(event_time_utc AT TIME ZONE 'UTC','yyyy-MM') NOT IN ('1999-12','2000-01','2022-12','2023-01')"
+      },
+      "count:dim_date": {
+        "actual": 7,
+        "expected": 7,
+        "sql": "SELECT count(*) FROM iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.dim_date FOR VERSION AS OF 493725759784372532"
+      },
+      "count:dim_depth_band": {
+        "actual": 5,
+        "expected": 5,
+        "sql": "SELECT count(*) FROM iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.dim_depth_band FOR VERSION AS OF 8632292725996640201"
+      },
+      "count:dim_magnitude_band": {
+        "actual": 7,
+        "expected": 7,
+        "sql": "SELECT count(*) FROM iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.dim_magnitude_band FOR VERSION AS OF 5665767965172369848"
+      },
+      "count:dim_region": {
+        "actual": 1,
+        "expected": 1,
+        "sql": "SELECT count(*) FROM iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.dim_region FOR VERSION AS OF 2530439006394319607"
+      },
+      "count:event_current": {
+        "actual": 528,
+        "expected": 528,
+        "sql": "SELECT count(*) FROM iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.event_current FOR VERSION AS OF 8798380333486384901"
+      },
+      "count:event_source_bridge": {
+        "actual": 528,
+        "expected": 528,
+        "sql": "SELECT count(*) FROM iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.event_source_bridge FOR VERSION AS OF 3540442925277288906"
+      },
+      "current:dim_date": {
+        "actual": 493725759784372532,
+        "expected": 493725759784372532,
+        "sql": "SELECT snapshot_id FROM iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.\"dim_date$refs\" WHERE name='main'"
+      },
+      "current:dim_depth_band": {
+        "actual": 8632292725996640201,
+        "expected": 8632292725996640201,
+        "sql": "SELECT snapshot_id FROM iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.\"dim_depth_band$refs\" WHERE name='main'"
+      },
+      "current:dim_magnitude_band": {
+        "actual": 5665767965172369848,
+        "expected": 5665767965172369848,
+        "sql": "SELECT snapshot_id FROM iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.\"dim_magnitude_band$refs\" WHERE name='main'"
+      },
+      "current:dim_region": {
+        "actual": 2530439006394319607,
+        "expected": 2530439006394319607,
+        "sql": "SELECT snapshot_id FROM iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.\"dim_region$refs\" WHERE name='main'"
+      },
+      "current:event_current": {
+        "actual": 8798380333486384901,
+        "expected": 8798380333486384901,
+        "sql": "SELECT snapshot_id FROM iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.\"event_current$refs\" WHERE name='main'"
+      },
+      "current:event_source_bridge": {
+        "actual": 3540442925277288906,
+        "expected": 3540442925277288906,
+        "sql": "SELECT snapshot_id FROM iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.\"event_source_bridge$refs\" WHERE name='main'"
+      },
+      "dimensions": {
+        "actual": 0,
+        "expected": 0,
+        "sql": "SELECT count(*) FROM iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.event_current FOR VERSION AS OF 8798380333486384901 e LEFT JOIN iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.dim_date FOR VERSION AS OF 493725759784372532 d ON e.event_date_key_utc=d.date_key LEFT JOIN iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.dim_date FOR VERSION AS OF 493725759784372532 j ON e.event_date_key_jst=j.date_key LEFT JOIN iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.dim_region FOR VERSION AS OF 2530439006394319607 r ON e.region_key=r.region_key LEFT JOIN iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.dim_magnitude_band FOR VERSION AS OF 5665767965172369848 m ON e.magnitude_band_code=m.band_code LEFT JOIN iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.dim_depth_band FOR VERSION AS OF 8632292725996640201 b ON e.depth_band_code=b.band_code WHERE d.date_key IS NULL OR j.date_key IS NULL OR r.region_key IS NULL OR m.band_code IS NULL OR b.band_code IS NULL OR d.calendar_date<>e.event_date_utc OR j.calendar_date<>e.event_date_jst OR r.region_name<>e.region_name OR r.region_category<>e.region_category"
+      },
+      "identity:dim_date": {
+        "actual": 1,
+        "expected": 1,
+        "sql": "SELECT count(*) FROM iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.\"dim_date$snapshots\" WHERE snapshot_id=493725759784372532 AND summary['gold.operation_id']='mld02-qa-13275d43f6514a0db6f2b4e71309be3c' AND summary['gold.identity_sha256']='93b74ccf22d65cb3ef0645067b74906b7b94c2ceed147dacc73742fd71bcd02b'"
+      },
+      "identity:dim_depth_band": {
+        "actual": 1,
+        "expected": 1,
+        "sql": "SELECT count(*) FROM iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.\"dim_depth_band$snapshots\" WHERE snapshot_id=8632292725996640201 AND summary['gold.operation_id']='mld02-qa-13275d43f6514a0db6f2b4e71309be3c' AND summary['gold.identity_sha256']='93b74ccf22d65cb3ef0645067b74906b7b94c2ceed147dacc73742fd71bcd02b'"
+      },
+      "identity:dim_magnitude_band": {
+        "actual": 1,
+        "expected": 1,
+        "sql": "SELECT count(*) FROM iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.\"dim_magnitude_band$snapshots\" WHERE snapshot_id=5665767965172369848 AND summary['gold.operation_id']='mld02-qa-13275d43f6514a0db6f2b4e71309be3c' AND summary['gold.identity_sha256']='93b74ccf22d65cb3ef0645067b74906b7b94c2ceed147dacc73742fd71bcd02b'"
+      },
+      "identity:dim_region": {
+        "actual": 1,
+        "expected": 1,
+        "sql": "SELECT count(*) FROM iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.\"dim_region$snapshots\" WHERE snapshot_id=2530439006394319607 AND summary['gold.operation_id']='mld02-qa-13275d43f6514a0db6f2b4e71309be3c' AND summary['gold.identity_sha256']='93b74ccf22d65cb3ef0645067b74906b7b94c2ceed147dacc73742fd71bcd02b'"
+      },
+      "identity:event_current": {
+        "actual": 1,
+        "expected": 1,
+        "sql": "SELECT count(*) FROM iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.\"event_current$snapshots\" WHERE snapshot_id=8798380333486384901 AND summary['gold.operation_id']='mld02-qa-13275d43f6514a0db6f2b4e71309be3c' AND summary['gold.identity_sha256']='93b74ccf22d65cb3ef0645067b74906b7b94c2ceed147dacc73742fd71bcd02b'"
+      },
+      "identity:event_source_bridge": {
+        "actual": 1,
+        "expected": 1,
+        "sql": "SELECT count(*) FROM iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.\"event_source_bridge$snapshots\" WHERE snapshot_id=3540442925277288906 AND summary['gold.operation_id']='mld02-qa-13275d43f6514a0db6f2b4e71309be3c' AND summary['gold.identity_sha256']='93b74ccf22d65cb3ef0645067b74906b7b94c2ceed147dacc73742fd71bcd02b'"
+      },
+      "outside:event_current": {
+        "actual": 0,
+        "expected": 0,
+        "sql": "SELECT 0"
+      },
+      "outside:event_source_bridge": {
+        "actual": 0,
+        "expected": 0,
+        "sql": "SELECT 0"
+      },
+      "primary_provenance": {
+        "actual": 0,
+        "expected": 0,
+        "sql": "SELECT count(*) FROM iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.event_current FOR VERSION AS OF 8798380333486384901 e LEFT JOIN iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.event_source_bridge FOR VERSION AS OF 3540442925277288906 b ON e.canonical_event_id=b.canonical_event_id AND b.is_primary WHERE b.source_observation_id IS NULL OR b.source_observation_id<>e.primary_observation_id OR b.source_system<>e.canonical_source_system"
+      },
+      "required_fields": {
+        "actual": 0,
+        "expected": 0,
+        "sql": "SELECT count(*) FROM iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.event_current FOR VERSION AS OF 8798380333486384901 WHERE schema_version IS NULL OR canonical_event_id IS NULL OR primary_observation_id IS NULL OR canonical_source_system IS NULL OR event_time_utc IS NULL OR event_time_jst IS NULL OR event_date_utc IS NULL OR event_date_jst IS NULL OR event_date_key_utc IS NULL OR event_date_key_jst IS NULL OR latitude IS NULL OR longitude IS NULL OR event_type_code IS NULL OR is_natural_earthquake IS NULL OR is_in_study_area IS NULL OR region_key IS NULL OR region_name IS NULL OR region_category IS NULL OR magnitude_band_code IS NULL OR depth_band_code IS NULL OR source_count IS NULL OR has_usgs IS NULL OR has_jma IS NULL OR source_coverage_code IS NULL OR link_status IS NULL OR quality_status IS NULL OR canonical_model_version IS NULL OR gold_run_id IS NULL OR record_updated_at_utc IS NULL OR latitude NOT BETWEEN -90 AND 90 OR longitude NOT BETWEEN -180 AND 180 OR NOT is_finite(latitude) OR NOT is_finite(longitude) OR (magnitude IS NOT NULL AND NOT is_finite(magnitude)) OR (depth_km IS NOT NULL AND NOT is_finite(depth_km)) OR schema_version <> '1.0' OR source_count NOT IN (1,2) OR quality_status NOT IN ('VALID','WARNING') OR canonical_source_system NOT IN ('USGS','JMA_BULLETIN') OR region_category NOT IN ('PREFECTURE','OFFSHORE','UNKNOWN') OR source_coverage_code <> CASE WHEN has_usgs AND has_jma THEN 'USGS_JMA' WHEN has_usgs THEN 'USGS_ONLY' ELSE 'JMA_ONLY' END OR (has_jma AND (catalog_era IS NULL OR catalog_era NOT IN ('LEGACY','UNIFIED'))) OR (NOT has_jma AND catalog_era IS NOT NULL) OR is_natural_earthquake <> (event_type_code = 'EARTHQUAKE')"
+      },
+      "serving_count": {
+        "actual": 526,
+        "expected": 526,
+        "sql": "SELECT count(*) FROM iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.v_788fb67d18673a9af6cb6ab2_earthquake_event_current"
+      },
+      "source_counts": {
+        "actual": 0,
+        "expected": 0,
+        "sql": "SELECT count(*) FROM iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.event_current FOR VERSION AS OF 8798380333486384901 e LEFT JOIN (SELECT canonical_event_id,count(*) n,count_if(is_primary) p,count_if(source_system='USGS') u,count_if(source_system='JMA_BULLETIN') j FROM iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.event_source_bridge FOR VERSION AS OF 3540442925277288906 GROUP BY canonical_event_id) b ON e.canonical_event_id=b.canonical_event_id WHERE b.n IS NULL OR b.n<>e.source_count OR b.p<>1 OR b.u>1 OR b.j>1 OR e.has_usgs<>(b.u>0) OR e.has_jma<>(b.j>0)"
+      },
+      "stable_serving_count": {
+        "actual": 526,
+        "expected": 526,
+        "sql": "SELECT count(*) FROM iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.earthquake_event_current"
+      },
+      "unique:dim_date": {
+        "actual": 0,
+        "expected": 0,
+        "sql": "SELECT count(*)-count(DISTINCT date_key) FROM iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.dim_date FOR VERSION AS OF 493725759784372532"
+      },
+      "unique:dim_depth_band": {
+        "actual": 0,
+        "expected": 0,
+        "sql": "SELECT count(*)-count(DISTINCT band_code) FROM iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.dim_depth_band FOR VERSION AS OF 8632292725996640201"
+      },
+      "unique:dim_magnitude_band": {
+        "actual": 0,
+        "expected": 0,
+        "sql": "SELECT count(*)-count(DISTINCT band_code) FROM iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.dim_magnitude_band FOR VERSION AS OF 5665767965172369848"
+      },
+      "unique:dim_region": {
+        "actual": 0,
+        "expected": 0,
+        "sql": "SELECT count(*)-count(DISTINCT region_key) FROM iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.dim_region FOR VERSION AS OF 2530439006394319607"
+      },
+      "unique:event_current": {
+        "actual": 0,
+        "expected": 0,
+        "sql": "SELECT count(*)-count(DISTINCT canonical_event_id) FROM iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.event_current FOR VERSION AS OF 8798380333486384901"
+      },
+      "unique:event_source_bridge": {
+        "actual": 0,
+        "expected": 0,
+        "sql": "SELECT count(*)-count(DISTINCT source_observation_id) FROM iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.event_source_bridge FOR VERSION AS OF 3540442925277288906"
+      },
+      "utc_jst": {
+        "actual": 0,
+        "expected": 0,
+        "sql": "SELECT count(*) FROM iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.event_current FOR VERSION AS OF 8798380333486384901 WHERE event_time_jst<>CAST(event_time_utc AT TIME ZONE 'Asia/Tokyo' AS timestamp(6)) OR event_date_utc<>CAST(event_time_utc AT TIME ZONE 'UTC' AS date) OR event_date_jst<>CAST(event_time_jst AS date) OR event_date_key_utc<>CAST(format_datetime(event_time_utc AT TIME ZONE 'UTC','yyyyMMdd') AS integer) OR event_date_key_jst<>CAST(format_datetime(event_time_jst,'yyyyMMdd') AS integer) OR (canonical_source_system='JMA_BULLETIN' AND catalog_era<>CASE WHEN event_time_jst<TIMESTAMP '1997-10-01 00:00:00' THEN 'LEGACY' ELSE 'UNIFIED' END)"
+      }
+    },
+    "engine": "TRINO",
+    "event_count": 526,
+    "gold_run_id": "mld02-qa-13275d43f6514a0db6f2b4e71309be3c",
+    "identity_sha256": "93b74ccf22d65cb3ef0645067b74906b7b94c2ceed147dacc73742fd71bcd02b",
+    "namespace": "iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c",
+    "publication_id": "pub_788fb67d18673a9af6cb6ab23fa0392c94544261f69fdceaa28a89d4e812c063",
+    "published": true,
+    "scope": {
+      "affected_months": [
+        "1999-12",
+        "2000-01",
+        "2022-12",
+        "2023-01"
+      ],
+      "baseline_snapshots": {
+        "dim_date": 0,
+        "dim_depth_band": 0,
+        "dim_magnitude_band": 0,
+        "dim_region": 0,
+        "event_current": 0,
+        "event_source_bridge": 0
+      },
+      "code_version": "artifact_65605a3bfbe9ea6f322dbefd603c6f1c3ef9dac552bcf7f014a6c27cfe8e639e",
+      "context": {
+        "config_version": "1",
+        "input_manifest_uris": [
+          "s3://japan-earthquake/silver/bundles/slv09-live-59a5e3725b14453e89a127eb2c8a70d2/manifest.json"
+        ],
+        "is_backfill": true,
+        "processing_date": "2026-10-11",
+        "run_id": "mld02-qa-13275d43f6514a0db6f2b4e71309be3c",
+        "window_end_utc": "2024-01-01T00:00:00Z",
+        "window_start_utc": "1999-12-31T15:00:00Z"
+      },
+      "silver_bundle_sha256": "2fdf83893ede773c811d5b83117c42b05920e680d4a078ecaf036a3f00340b21"
+    },
+    "snapshot_bundle": {
+      "dim_date": {
+        "committed_at_utc": "2026-10-11T15:32:33.225Z",
+        "count": 7,
+        "schema_json": "{\"type\":\"struct\",\"fields\":[{\"name\":\"date_key\",\"type\":\"integer\",\"nullable\":true,\"metadata\":{}},{\"name\":\"calendar_date\",\"type\":\"date\",\"nullable\":true,\"metadata\":{}},{\"name\":\"year\",\"type\":\"integer\",\"nullable\":true,\"metadata\":{}},{\"name\":\"quarter\",\"type\":\"integer\",\"nullable\":true,\"metadata\":{}},{\"name\":\"month\",\"type\":\"integer\",\"nullable\":true,\"metadata\":{}},{\"name\":\"month_name\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"day_of_month\",\"type\":\"integer\",\"nullable\":true,\"metadata\":{}},{\"name\":\"day_of_week\",\"type\":\"integer\",\"nullable\":true,\"metadata\":{}},{\"name\":\"is_weekend\",\"type\":\"boolean\",\"nullable\":true,\"metadata\":{}}]}",
+        "snapshot_id": 493725759784372532,
+        "table": "iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.dim_date"
+      },
+      "dim_depth_band": {
+        "committed_at_utc": "2026-10-11T15:32:39.051Z",
+        "count": 5,
+        "schema_json": "{\"type\":\"struct\",\"fields\":[{\"name\":\"band_code\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}},{\"name\":\"band_label\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}},{\"name\":\"sort_order\",\"type\":\"integer\",\"nullable\":false,\"metadata\":{}}]}",
+        "snapshot_id": 8632292725996640201,
+        "table": "iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.dim_depth_band"
+      },
+      "dim_magnitude_band": {
+        "committed_at_utc": "2026-10-11T15:32:37.627Z",
+        "count": 7,
+        "schema_json": "{\"type\":\"struct\",\"fields\":[{\"name\":\"band_code\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}},{\"name\":\"band_label\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}},{\"name\":\"sort_order\",\"type\":\"integer\",\"nullable\":false,\"metadata\":{}}]}",
+        "snapshot_id": 5665767965172369848,
+        "table": "iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.dim_magnitude_band"
+      },
+      "dim_region": {
+        "committed_at_utc": "2026-10-11T15:32:36.315Z",
+        "count": 1,
+        "schema_json": "{\"type\":\"struct\",\"fields\":[{\"name\":\"region_key\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}},{\"name\":\"region_name\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}},{\"name\":\"region_category\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}}]}",
+        "snapshot_id": 2530439006394319607,
+        "table": "iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.dim_region"
+      },
+      "event_current": {
+        "committed_at_utc": "2026-10-11T15:32:23.920Z",
+        "count": 528,
+        "schema_json": "{\"type\":\"struct\",\"fields\":[{\"name\":\"schema_version\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}},{\"name\":\"canonical_event_id\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"primary_observation_id\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"canonical_source_system\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"event_time_utc\",\"type\":\"timestamp\",\"nullable\":true,\"metadata\":{}},{\"name\":\"event_time_jst\",\"type\":\"timestamp_ntz\",\"nullable\":true,\"metadata\":{}},{\"name\":\"event_date_utc\",\"type\":\"date\",\"nullable\":true,\"metadata\":{}},{\"name\":\"event_date_jst\",\"type\":\"date\",\"nullable\":true,\"metadata\":{}},{\"name\":\"event_date_key_utc\",\"type\":\"integer\",\"nullable\":true,\"metadata\":{}},{\"name\":\"event_date_key_jst\",\"type\":\"integer\",\"nullable\":true,\"metadata\":{}},{\"name\":\"latitude\",\"type\":\"double\",\"nullable\":true,\"metadata\":{}},{\"name\":\"longitude\",\"type\":\"double\",\"nullable\":true,\"metadata\":{}},{\"name\":\"depth_km\",\"type\":\"double\",\"nullable\":true,\"metadata\":{}},{\"name\":\"magnitude\",\"type\":\"double\",\"nullable\":true,\"metadata\":{}},{\"name\":\"magnitude_type\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"event_type_code\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"is_natural_earthquake\",\"type\":\"boolean\",\"nullable\":true,\"metadata\":{}},{\"name\":\"place_name\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"is_in_study_area\",\"type\":\"boolean\",\"nullable\":true,\"metadata\":{}},{\"name\":\"region_key\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}},{\"name\":\"region_name\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}},{\"name\":\"region_category\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}},{\"name\":\"magnitude_band_code\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}},{\"name\":\"depth_band_code\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}},{\"name\":\"tsunami_flag\",\"type\":\"boolean\",\"nullable\":true,\"metadata\":{}},{\"name\":\"alert_level\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"significance\",\"type\":\"integer\",\"nullable\":true,\"metadata\":{}},{\"name\":\"max_intensity_code\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"determining_agency_code\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"catalog_era\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"source_count\",\"type\":\"integer\",\"nullable\":false,\"metadata\":{}},{\"name\":\"has_usgs\",\"type\":\"boolean\",\"nullable\":true,\"metadata\":{}},{\"name\":\"has_jma\",\"type\":\"boolean\",\"nullable\":true,\"metadata\":{}},{\"name\":\"source_coverage_code\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}},{\"name\":\"link_status\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}},{\"name\":\"quality_status\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}},{\"name\":\"canonical_model_version\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"gold_run_id\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}},{\"name\":\"record_updated_at_utc\",\"type\":\"timestamp\",\"nullable\":false,\"metadata\":{}}]}",
+        "snapshot_id": 8798380333486384901,
+        "table": "iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.event_current"
+      },
+      "event_source_bridge": {
+        "committed_at_utc": "2026-10-11T15:32:27.512Z",
+        "count": 528,
+        "schema_json": "{\"type\":\"struct\",\"fields\":[{\"name\":\"canonical_event_id\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"source_observation_id\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"source_system\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"source_record_key\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"is_primary\",\"type\":\"boolean\",\"nullable\":true,\"metadata\":{}},{\"name\":\"source_link_id\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"raw_object_uri\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"bronze_manifest_id\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"catalog_release\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"source_updated_at_utc\",\"type\":\"timestamp\",\"nullable\":true,\"metadata\":{}},{\"name\":\"event_month_utc\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}}]}",
+        "snapshot_id": 3540442925277288906,
+        "table": "iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.event_source_bridge"
+      }
+    },
+    "task": "GLD-04",
+    "verified_at_utc": "2026-10-11T15:33:32.879Z",
+    "verify_status": "PASSED",
+    "views": {
+      "dim_date": "iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.v_788fb67d18673a9af6cb6ab2_dim_date",
+      "dim_depth_band": "iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.v_788fb67d18673a9af6cb6ab2_dim_depth_band",
+      "dim_magnitude_band": "iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.v_788fb67d18673a9af6cb6ab2_dim_magnitude_band",
+      "dim_region": "iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.v_788fb67d18673a9af6cb6ab2_dim_region",
+      "earthquake_event_current": "iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.v_788fb67d18673a9af6cb6ab2_earthquake_event_current",
+      "event_current": "iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.v_788fb67d18673a9af6cb6ab2_event_current",
+      "event_source_bridge": "iceberg.gold_qa_13275d43f6514a0db6f2b4e71309be3c.v_788fb67d18673a9af6cb6ab2_event_source_bridge"
+    }
+  },
+  "rerun_unchanged": true,
+  "research_ready": false,
+  "review_status": "ASSIGNED_NOT_REVIEWED",
+  "reviewer": "HoaiTam",
+  "scope": "BOUNDED_QA_ONLY",
+  "silver_bundle_sha256": "2fdf83893ede773c811d5b83117c42b05920e680d4a078ecaf036a3f00340b21",
+  "silver_run_id": "slv09-live-59a5e3725b14453e89a127eb2c8a70d2",
+  "source_selection": "16 USGS and first 256 physical JMA records from each archive year 2000/2023; not full-period completeness",
+  "spark_version": "3.5.9",
+  "status": "VERIFIED_BOUNDED_JMA_PILOT",
+  "task": "MLD-02"
+}

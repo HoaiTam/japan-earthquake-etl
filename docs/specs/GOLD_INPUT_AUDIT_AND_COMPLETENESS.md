@@ -159,3 +159,62 @@ make test-ml-audit
 # Hoặc chạy trực tiếp qua Maven Wrapper
 ./mvnw --batch-mode -pl spark -am -Dtest=MagnitudeCompletenessEstimatorTest,GoldInputAuditEngineTest,GoldInputAuditIntegrationTest test
 ```
+
+## 7. Nghiệm thu Published JMA pilot (MLD-02)
+
+`make smoke-ml-audit` chạy service opt-in `gold-input-audit-qa`; không bật DAG,
+không gọi lại API USGS/JMA, không recreate service nền. Điều kiện: Foundation
+healthy, `.env` hợp lệ, exact Silver bundle trong receipt
+`docs/evidence/SLV-09-live-readback.json` vẫn đọc được trên MinIO của môi trường.
+Có thể chọn receipt khác bằng `SILVER_AUDIT_REFERENCE=/absolute/path/receipt.json`,
+nhưng runner này chỉ chấp nhận pilot giới hạn cùng cửa sổ 2000/2023.
+
+Luồng thực thi:
+
+1. Giữ shared lease xuyên suốt; đọc lại marker/manifest/file checksum của Silver.
+2. Tạo **namespace QA mới** `gold_qa_<uuid>`; commit six-table bundle và verify
+   qua Trino trước `Published`. Sample-month replacement chỉ được dùng với schema
+   QA chưa tồn tại và baselines bằng 0. Không đưa sample vào Gold sản phẩm,
+   không đổi production gate `COMPLETE_MONTHS` của `GoldCommitJob`.
+3. Pin publication/snapshot vào hai persisted `ml_qa_<uuid>.dataset_manifest`
+   với split/cutoff/version/filter độc lập. Cutoff là sau publication mới, không
+   giả vờ có source state as-of 2018/2023. Phiên bản QA là `artifact_<runner SHA>`
+   để nhận diện chính xác binary chưa commit; production phải pin commit/tag thật.
+4. Gọi **CLI `GoldInputAuditJob`** cho từng exact dataset ID hai lần. So sánh
+   report ngoại trừ audit clock; counts và canonical Mc config/hash phải giữ
+   nguyên. Trino độc lập đếm input/eligible trên đúng physical snapshot.
+5. Ghi `audit-report.json`, `audit-report.md`, `audited-manifest.json` của từng
+   split và `mld-02-report.json` tại scoped staging. Chỉ release **own lease**
+   sau khi readback tất cả acceptance checks đạt.
+
+`GoldAuditAcceptanceJob` dùng 256 physical records đầu archive JMA 2000 và 2023
+từ SLV-09, cộng 16 USGS để kiểm chứng exclusion. Mc ước lượng riêng theo split;
+extension không tune reproduction. `is_reliable` ở đây chỉ có nghĩa guard
+`N >= 50` đạt; MAXC/Aki-Utsu pilot không tự chứng minh catalog đầy đủ hoặc đại
+diện toàn period. Depth group nhỏ giữ null/INSUFFICIENT_DATA, không hạ guard.
+Report network shifts trên sample thưa chỉ là diagnostic, không evidence về
+biến động mạng lưới toàn lịch sử.
+
+Histogram được Spark `groupBy(bin).count()`; driver chỉ nhận tối đa 10.000 bin
+cho mỗi group (ALL/SHALLOW/INTERMEDIATE/DEEP). Vượt giới hạn trả
+`ML_MC_HISTOGRAM_LIMIT_EXCEEDED`, không truncate hoặc collect raw magnitudes.
+Bin width/sensitivity nhỏ hơn độ chính xác 0.001 bị reject. Unit regression một
+triệu events chạy với driver result limit 1 MiB; đây không phải full-history
+performance benchmark.
+
+Nếu JVM/Trino timeout, exit khác 0 hoặc receipt sai, lease **giữ nguyên** để ngăn
+daily/backfill chạy đè. Đọc `owner.json`, request và private logs đúng run trong
+`/opt/pipeline/staging/gold-input-audit-qa/<run_id>/`; xác nhận JVM/remote SQL đã
+dừng rồi mới dùng quy trình recovery [ORC-05](../task/tasks/ORC-05.md). Không
+force unlock, không xóa bucket/schema/volume; không tự retry thành run khác.
+
+Handoff cho [MLD-03 — Chọn mainshock và tạo candidate windows](../task/tasks/MLD-03.md)
+là audited manifest BUILDING + publication/snapshot/dataset ID, `mc_value`,
+canonical config/hash và counts/exclusions. Gold không mất event; manifest Iceberg
+chưa được đổi lifecycle VALIDATED/EXPORTED. Các bước còn lại thuộc
+[MLD-04 — Tạo và scale feature không-thời gian 4-D](../task/tasks/MLD-04.md),
+[MLD-05 — Validate feature snapshot và export Parquet bundle](../task/tasks/MLD-05.md)
+và [MLI-02 — Tạo Airflow DAG build ML dataset](../task/tasks/MLI-02.md).
+Lịch sử đầy đủ và resource acceptance thuộc
+[QA-03 — Kiểm thử JMA historical backfill](../task/tasks/QA-03.md) và
+[QA-05 — Profile dữ liệu lịch sử và tài nguyên local](../task/tasks/QA-05.md).

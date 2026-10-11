@@ -350,6 +350,8 @@ class GoldInputAuditEngineTest {
         assertTrue(result.enrichManifest(JSON.createObjectNode()).path("mc_value").isNull());
         assertTrue(result.toJsonReport().path("completeness_overall").path("central_mc").isNull());
         assertFalse(result.mcConfigJson().contains("NaN"));
+        assertFalse(result.toMarkdownReport().contains("NaN"));
+        assertTrue(result.toMarkdownReport().contains("**Mc Applied:** `N/A`"));
     }
 
     @Test void validEmptyInputReconcilesWithoutInventedThreshold() {

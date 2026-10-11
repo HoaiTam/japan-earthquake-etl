@@ -63,11 +63,16 @@ lập có version; integration chỉ thay input bằng output thật của `MLD-
 ## Phần cần update để nghiệm thu
 
 [MLD-01 - Pin Gold snapshot và tạo dataset manifest](./MLD-01.md) đã Done trên main.
-[MLD-02 - Audit Gold và xác định magnitude of completeness](./MLD-02.md) còn Needs Update:
-thiếu evidence audit/Mc thật trên Published JMA. Khi upstream đạt gate, chạy lại
+[MLD-02 - Audit Gold và xác định magnitude of completeness](./MLD-02.md) đã Done
+theo pilot Published JMA có scope, xem [receipt và handoff](../../evidence/MLD-02.md).
+MLD-03 vẫn Needs Update vì chưa chạy nghiệm thu candidate thật. Tiếp theo chạy
 MLD-03 với dataset_id/snapshot đã pin và Mc được chấp nhận (không dùng central
 Mc khi estimator không reliable), đối soát count/PRE/POST/export và lưu evidence.
 Bản vá hiện tại có thể tích hợp code/fixture, nhưng chưa nghiệm thu dataset thực.
+Pilot MLD-02 có 0 mainshock (`magnitude >5.5`, depth50–200km); Trino cho max
+primary-JMA natural/ROI magnitude5.1. Input này kiểm tra được empty path, không
+nghiệm thu windows non-empty/PRE/POST. Cần sample có mainshock và pin/audit lại;
+không hạ threshold hoặc đưa USGS vào JMA pool.
 
 ## Ranh giới
 

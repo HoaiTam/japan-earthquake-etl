@@ -159,6 +159,27 @@ class MagnitudeCompletenessEstimatorTest {
         assertTrue(json1.contains("\"sensitivity_upper\":2.2"));
     }
 
+    @Test void weightedHistogramDoesNotExpandEventsAndCountsMissingThresholdBins() {
+        var histogram = FrequencyMagnitudeDistribution.fromHistogram(Map.of(2.0, 1_000_000_000_000L, 2.5, 25L), 0.1);
+        assertEquals(1_000_000_000_025L, histogram.totalEvents());
+        assertEquals(2.0, histogram.modeBin());
+        assertEquals(25, histogram.eventCountAbove(2.2));
+        assertEquals(0, histogram.eventCountAbove(2.6));
+        assertEquals(histogram.totalEvents(), histogram.eventCountAbove(1.0));
+    }
+
+    @Test void invalidHistogramAndOverflowFailClosed() {
+        assertThrows(IllegalArgumentException.class, () -> FrequencyMagnitudeDistribution.fromHistogram(Map.of(2.0, 0L), 0.1));
+        assertThrows(IllegalArgumentException.class, () -> FrequencyMagnitudeDistribution.fromHistogram(Map.of(Double.NaN, 1L), 0.1));
+        assertThrows(ArithmeticException.class, () -> FrequencyMagnitudeDistribution.fromHistogram(Map.of(2.0, Long.MAX_VALUE, 3.0, 1L), 0.1));
+    }
+
+    @Test void configurationBelowHistogramPrecisionIsRejected() {
+        assertThrows(IllegalArgumentException.class, () -> new MagnitudeCompletenessEstimator(0.0001, 0.2, 50, "v1"));
+        assertThrows(IllegalArgumentException.class, () -> new MagnitudeCompletenessEstimator(0.1, 0.0001, 50, "v1"));
+        assertThrows(IllegalArgumentException.class, () -> new FrequencyMagnitudeDistribution(List.of(2.0), 0.0001));
+    }
+
     private static void addRepeated(List<Double> list, double value, int times) {
         for (int i = 0; i < times; i++) {
             list.add(value);

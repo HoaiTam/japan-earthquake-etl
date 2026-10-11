@@ -70,11 +70,16 @@ Các lỗi lần đầu (cache thiếu Iceberg, config chưa Serializable ở nh
 ## 3. Giới hạn và gate còn thiếu
 
 - [MLD-02 - Audit Gold và xác định magnitude of completeness](../task/tasks/MLD-02.md):
-  còn Needs Update, thiếu audit/Mc có scope từ Published JMA thực. Khi có output
-  này, chạy MLD-03 với dataset_id/snapshot đã pin qua
+  đã Done theo pilot Published JMA ngày 2026-10-11, xem
+  [receipt/handoff MLD-02](./MLD-02.md). Các nhận định thiếu upstream trong
+  bảng review ở trên là lịch sử trước nghiệm thu này. MLD-03 vẫn Needs Update;
+  chưa chạy candidate live. Dùng output này với dataset_id/snapshot đã pin qua
   [MLD-01 - Pin Gold snapshot và tạo dataset manifest](../task/tasks/MLD-01.md),
   lưu config/hash/Mc, reconcile counts và artifact readback thật rồi nghiệm thu.
   Không dùng Mc=2 fixture cho runtime hoặc chuyển task Done vì CI xanh.
+  Trino readback pilot MLD-02: 0 mainshock magnitude>5.5/depth50–200km, max
+  primary-JMA natural/ROI magnitude5.1. Cần sample có mainshock, pin/audit lại
+  để test window non-empty/PRE/POST; không hạ baseline threshold.
 - [QA-05 - Profile dữ liệu lịch sử và tài nguyên local](../task/tasks/QA-05.md):
   chưa benchmark full historical, phân bố bucket/skew và chi phí metadata report
   theo số windows; equi-join không phải bằng chứng hiệu năng toàn bộ 40 năm.

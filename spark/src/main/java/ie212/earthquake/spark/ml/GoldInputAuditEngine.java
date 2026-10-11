@@ -68,19 +68,10 @@ public final class GoldInputAuditEngine {
                 .and(not(isLegacyEra)).and(not(isOutsidePeriod));
 
         Dataset<Row> preCompletenessEvents = goldEvents.filter(passedPreCompleteness);
-        List<Row> magRows = preCompletenessEvents.select("magnitude").collectAsList();
-        List<Double> magnitudes = new ArrayList<>(magRows.size());
-        for (Row r : magRows) {
-            if (!r.isNullAt(0)) {
-                double m = r.getDouble(0);
-                if (Double.isFinite(m)) magnitudes.add(m);
-            }
-        }
-
         // Estimate Mc
         MagnitudeCompletenessEstimator estimator = new MagnitudeCompletenessEstimator(
                 config.mcBinWidth(), config.mcSensitivityStep(), config.minEventsForMc(), config.mcMethodVersion());
-        CompletenessResult completenessResult = estimator.estimate(magnitudes);
+        CompletenessResult completenessResult = estimator.estimate(preCompletenessEvents, "ALL");
         Map<String, CompletenessResult> depthGroups = estimator.estimateStratifiedByDepth(preCompletenessEvents);
 
         double mcToApply;

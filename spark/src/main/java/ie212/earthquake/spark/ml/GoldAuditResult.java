@@ -159,6 +159,10 @@ public record GoldAuditResult(
         return root;
     }
 
+    private static String finiteText(double value) {
+        return Double.isFinite(value) ? Double.toString(Math.round(value * 1000.0) / 1000.0) : "N/A";
+    }
+
     public String toMarkdownReport() {
         assertReconciled();
         StringBuilder sb = new StringBuilder();
@@ -166,10 +170,11 @@ public record GoldAuditResult(
         sb.append("- **Dataset Split:** `").append(config.datasetSplit()).append("`\n");
         sb.append("- **Period:** `[").append(config.periodStartUtc()).append(" .. ").append(config.periodEndUtcExclusive()).append(")`\n");
         sb.append("- **Audit Rule Version:** `").append(config.auditRuleVersion()).append("`\n");
-        sb.append("- **Mc Method:** `").append(completenessResult.method()).append("` v").append(config.mcMethodVersion()).append("\n");
-        sb.append("- **Mc Applied:** `").append(completenessResult.isReliable() ? completenessResult.centralMc() : "UNRELIABLE / FIXED")
-                .append("` (Sensitivity: [").append(completenessResult.sensitivityLower()).append(" .. ")
-                .append(completenessResult.sensitivityUpper()).append("])\n");
+        sb.append("- **Mc Method:** `").append(config.fixedMcValue() != null ? "FIXED_CONFIG" : completenessResult.method())
+                .append("` v").append(config.mcMethodVersion()).append("\n");
+        sb.append("- **Mc Applied:** `").append(finiteText(mcApplied))
+                .append("` (Sensitivity: [").append(finiteText(mcApplied - config.mcSensitivityStep())).append(" .. ")
+                .append(finiteText(mcApplied + config.mcSensitivityStep())).append("])\n");
         sb.append("- **Build Run ID:** `").append(config.buildRunId()).append("`\n");
         sb.append("- **Audited At (UTC):** `").append(auditedAtUtc).append("`\n\n");
 
@@ -197,9 +202,9 @@ public record GoldAuditResult(
         if (completenessResult.unreliableReason() != null) {
             sb.append("- **Reason / Limitation:** ").append(completenessResult.unreliableReason()).append("\n");
         }
-        sb.append("- **Central Mc:** `").append(completenessResult.centralMc()).append("`\n");
-        sb.append("- **Sensitivity Lower Bound:** `").append(completenessResult.sensitivityLower()).append("`\n");
-        sb.append("- **Sensitivity Upper Bound:** `").append(completenessResult.sensitivityUpper()).append("`\n");
+        sb.append("- **Central Mc:** `").append(finiteText(completenessResult.centralMc())).append("`\n");
+        sb.append("- **Sensitivity Lower Bound:** `").append(finiteText(completenessResult.sensitivityLower())).append("`\n");
+        sb.append("- **Sensitivity Upper Bound:** `").append(finiteText(completenessResult.sensitivityUpper())).append("`\n");
         sb.append("- **Sample Size:** `").append(completenessResult.sampleCount()).append("`\n");
         sb.append("- **Events >= Mc:** `").append(completenessResult.eventsAboveMc()).append("` (")
                 .append(String.format(Locale.ROOT, "%.1f%%", completenessResult.completenessFraction() * 100.0)).append(")\n");

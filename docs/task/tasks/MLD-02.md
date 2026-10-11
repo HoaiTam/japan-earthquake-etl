@@ -1,6 +1,6 @@
 ---
 task_id: "MLD-02"
-status: "Needs Update"
+status: "Done"
 week: 4
 block: "G - ML Dataset"
 workstream: "Input audit and completeness"
@@ -8,7 +8,7 @@ scope: "Core"
 priority: "P0"
 effort_hours: 7
 assignee: "rosy179"
-reviewer: "unassigned"
+reviewer: "HoaiTam"
 dependencies: ["MLD-01"]
 ---
 
@@ -36,8 +36,8 @@ version hóa `Mc` để sensitivity experiment có input giải thích được.
 
 - [x] Không xóa event khỏi Gold; chỉ exclude khỏi dataset với reason code.
 - [x] Có reason tối thiểu cho missing depth/magnitude, ngoài period, dưới completeness và source không comparable.
-- [ ] `Mc` có method/version/evidence và được áp dụng nhất quán trong cùng dataset.
-- [ ] Audit counts đối soát được với snapshot manifest và không dùng dữ liệu extension để tune reproduction.
+- [x] `Mc` có method/version/evidence và được áp dụng nhất quán trong cùng dataset.
+- [x] Audit counts đối soát được với snapshot manifest và không dùng dữ liệu extension để tune reproduction.
 
 ## Hard dependency
 
@@ -64,16 +64,16 @@ chỉ bước chốt `Mc` và counts cần snapshot thật từ `MLD-01`.
 
 ## Theo dõi
 
-- **Trạng thái:** Needs Update
+- **Trạng thái:** Done
 - **Assignee:** rosy179
-- **Reviewer:** unassigned; chưa có review độc lập
-- **Evidence / PR:** [PR #60](https://github.com/HoaiTam/japan-earthquake-etl/pull/60), [evidence cập nhật](../../evidence/MLD-02.md). 15 fixture/regression tests đạt; Published JMA audit/Mc thật còn thiếu, không coi synthetic pilot là DAT-01/SLV-09 evidence.
+- **Reviewer:** HoaiTam (được phân công; chưa có review/approval)
+- **Evidence / PR:** Implementation ban đầu [PR #60](https://github.com/HoaiTam/japan-earthquake-etl/pull/60); [evidence nghiệm thu](../../evidence/MLD-02.md), [Published JMA runtime receipt](../../evidence/MLD-02-published-jma-runtime.json). 317 Java / 199 Python tests đạt; exact SilverReady → Gold QA Published → persisted manifests → CLI audit/Mc/rerun đã nghiệm thu. 528 input; reproduction Mc0.6/eligible140, extension Mc0.9/eligible125, Trino counts khớp. Done theo pilot, không claim completeness toàn lịch sử. Bản vá local chưa commit/push/mở PR.
 - **Kỹ năng phù hợp:** Spark SQL, catalog completeness, data quality
 
 ## Checklist bàn giao
 
 - [x] Deliverable và test/evidence tồn tại trong repository.
-- [ ] Acceptance criteria đã được kiểm tra trên Published JMA input thật.
+- [x] Acceptance criteria đã được kiểm tra trên Published JMA input thật.
 - [x] Contract/docs đã cập nhật và không chứa secret/build artifact.
 - [ ] Reviewer độc lập được khuyến nghị cho P0.
 

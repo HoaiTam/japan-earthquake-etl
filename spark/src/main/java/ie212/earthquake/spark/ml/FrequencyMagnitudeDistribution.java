@@ -19,12 +19,36 @@ public final class FrequencyMagnitudeDistribution {
     private final long maxBinCount;
 
     public FrequencyMagnitudeDistribution(List<Double> magnitudes, double binWidth) {
+        this(histogram(magnitudes, binWidth), binWidth);
+    }
+
+    /** Weighted bins produced by Spark, without expanding event counts on the driver. */
+    public static FrequencyMagnitudeDistribution fromHistogram(Map<Double, Long> bins, double binWidth) {
+        SortedMap<Double, Long> counts = new TreeMap<>();
+        bins.forEach((bin, count) -> {
+            if (bin == null || !Double.isFinite(bin) || count == null || count <= 0)
+                throw new IllegalArgumentException("ML_INVALID_MAGNITUDE_HISTOGRAM");
+            counts.merge(roundBin(bin, checkedWidth(binWidth)), count, Math::addExact);
+        });
+        return new FrequencyMagnitudeDistribution(new Histogram(counts,
+            counts.isEmpty() ? Double.NaN : counts.firstKey(),
+            counts.isEmpty() ? Double.NaN : counts.lastKey()), binWidth);
+    }
+
+    private record Histogram(SortedMap<Double, Long> counts, double min, double max) { }
+
+    private static double checkedWidth(double binWidth) {
         if (binWidth <= 0 || !Double.isFinite(binWidth)) {
             throw new IllegalArgumentException("binWidth must be positive and finite: " + binWidth);
         }
-        this.binWidth = Math.round(binWidth * 1000.0) / 1000.0;
+        double width = Math.round(binWidth * 1000.0) / 1000.0;
+        if (width <= 0) throw new IllegalArgumentException("ML_BIN_WIDTH_BELOW_PRECISION");
+        return width;
+    }
+
+    private static Histogram histogram(List<Double> magnitudes, double binWidth) {
+        double width = checkedWidth(binWidth);
         SortedMap<Double, Long> nonCum = new TreeMap<>();
-        long count = 0;
         double minM = Double.POSITIVE_INFINITY;
         double maxM = Double.NEGATIVE_INFINITY;
 
@@ -33,18 +57,25 @@ public final class FrequencyMagnitudeDistribution {
                 if (mag == null || !Double.isFinite(mag)) {
                     continue;
                 }
-                double bin = roundBin(mag, this.binWidth);
+                double bin = roundBin(mag, width);
                 nonCum.put(bin, nonCum.getOrDefault(bin, 0L) + 1L);
-                count++;
                 if (mag < minM) minM = mag;
                 if (mag > maxM) maxM = mag;
             }
         }
+        return new Histogram(nonCum, nonCum.isEmpty() ? Double.NaN : minM,
+            nonCum.isEmpty() ? Double.NaN : maxM);
+    }
 
+    private FrequencyMagnitudeDistribution(Histogram histogram, double binWidth) {
+        this.binWidth = checkedWidth(binWidth);
+        SortedMap<Double, Long> nonCum = new TreeMap<>(histogram.counts());
+        long count = 0;
+        for (long value : nonCum.values()) count = Math.addExact(count, value);
         this.nonCumulativeCounts = Collections.unmodifiableSortedMap(nonCum);
         this.totalEvents = count;
-        this.minMagnitude = count > 0 ? minM : Double.NaN;
-        this.maxMagnitude = count > 0 ? maxM : Double.NaN;
+        this.minMagnitude = histogram.min();
+        this.maxMagnitude = histogram.max();
 
         // Cumulative counts: N(>= M) = sum of counts for m >= M
         NavigableMap<Double, Long> cum = new TreeMap<>();
@@ -52,7 +83,7 @@ public final class FrequencyMagnitudeDistribution {
         List<Double> sortedBins = new ArrayList<>(nonCum.keySet());
         for (int i = sortedBins.size() - 1; i >= 0; i--) {
             double bin = sortedBins.get(i);
-            runningSum += nonCum.get(bin);
+            runningSum = Math.addExact(runningSum, nonCum.get(bin));
             cum.put(bin, runningSum);
         }
         this.cumulativeCounts = Collections.unmodifiableNavigableMap(cum);
@@ -110,7 +141,8 @@ public final class FrequencyMagnitudeDistribution {
 
     public long eventCountAbove(double mc) {
         double roundedMc = roundBin(mc, binWidth);
-        return cumulativeCounts.getOrDefault(roundedMc, 0L);
+        var entry = cumulativeCounts.ceilingEntry(roundedMc);
+        return entry == null ? 0L : entry.getValue();
     }
 
     /**
