@@ -109,8 +109,8 @@ fixture/inventory; assignee `HoaiTam`, reviewer `unassigned`. Xem
 |---|---:|---|---|---|---:|---|
 | [GLD-01](./GLD-01.md) - Xây canonical event, dimensions và bands | 4 | Analytics model | Core | P0 | 6h | Done |
 | [GLD-02](./GLD-02.md) - Tạo aggregate phục vụ dashboard | 4 | Aggregates | Stretch | P2 | 4h | Backlog |
-| [GLD-03](./GLD-03.md) - Ghi Gold Iceberg và commit snapshot | 4 | Iceberg publish | Core | P0 | 6h | Backlog |
-| [GLD-04](./GLD-04.md) - Tạo Trino views và verification SQL | 4 | Trino verification | Core | P0 | 4h | Backlog |
+| [GLD-03](./GLD-03.md) - Ghi Gold Iceberg và commit snapshot | 4 | Iceberg publish | Core | P0 | 6h | Done |
+| [GLD-04](./GLD-04.md) - Tạo Trino views và verification SQL | 4 | Trino verification | Core | P0 | 4h | Done |
 
 ## F - Điều phối
 
@@ -126,7 +126,7 @@ fixture/inventory; assignee `HoaiTam`, reviewer `unassigned`. Xem
 
 | Task | Tuần | Workstream | Scope | Priority | Effort | Trạng thái |
 |---|---:|---|---|---|---:|---|
-| [MLD-01](./MLD-01.md) - Pin Gold snapshot và tạo dataset manifest | 4 | Dataset identity | Core | P0 | 5h | Backlog |
+| [MLD-01](./MLD-01.md) - Pin Gold snapshot và tạo dataset manifest | 4 | Dataset identity | Core | P0 | 5h | Done |
 | [MLD-02](./MLD-02.md) - Audit Gold và xác định magnitude of completeness | 4 | Input audit and completeness | Core | P0 | 7h | Done |
 | [MLD-03](./MLD-03.md) - Chọn mainshock và tạo candidate windows | 4 | Mainshock and candidate windows | Core | P0 | 7h | Backlog |
 | [MLD-04](./MLD-04.md) - Tạo và scale feature không-thời gian 4-D | 6 | Spacetime features | Core | P0 | 6h | Backlog |

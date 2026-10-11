@@ -189,3 +189,10 @@ dạng JSON và Markdown. Chạy offline test bằng `make test-ml-audit`. Xem
 Không commit `target/`, JAR hoặc local metastore. Kiến trúc service, dependency,
 version matrix, marker output và cách mở rộng được mô tả trong
 [Spark standalone contract](../docs/specs/SPARK_STANDALONE.md).
+
+`MLD-01` có Java SQL job `DatasetManifestJob` và `DatasetManifestWriter` để
+resolve exact publication PASSED, pin physical Iceberg snapshot và ghi hai
+manifest BUILDING. `make test-dataset-manifest` chạy offline;
+`make smoke-dataset-manifest` kiểm chứng Published pilot qua Trino.
+Cấu hình và pin/rerun contract nằm tại
+[Dataset manifest runtime](../docs/specs/DATASET_MANIFEST_RUNTIME.md).

@@ -47,6 +47,62 @@ test-ml-audit: ## MLD-02 Gold input audit, MAXC completeness estimator, sensitiv
 	@./mvnw --batch-mode --no-transfer-progress -pl spark -am \
 		-Dtest=MagnitudeCompletenessEstimatorTest,GoldInputAuditEngineTest,GoldInputAuditIntegrationTest \
 		-Dsurefire.failIfNoSpecifiedTests=false test
+.PHONY: test-gold-storage smoke-gold-storage
+.PHONY: test-gold-publication smoke-gold-publication test-dataset-manifest smoke-dataset-manifest
+
+test-dataset-manifest: ## MLD-01 exact Published snapshot, deterministic identity, rerun và reject fixtures
+	@python3 -m unittest discover -s airflow/tests -p 'test_dataset_manifest_qa.py'
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am -Dtest=DatasetManifestTest -Dsurefire.failIfNoSpecifiedTests=false test
+
+smoke-dataset-manifest: check-config-local check-java-build-inputs ## MLD-01 materialize hai manifest BUILDING từ publication QA đã verify
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am verify
+	@$(COMPOSE) build spark-gold-qa
+	@$(COMPOSE) --profile gold run --rm --no-deps dataset-manifest-qa
+
+test-gold-publication: ## GLD-04 offline publication blockers, Trino HTTP protocol và control plane
+	@python3 -m unittest discover -s airflow/tests -p 'test_gold_publication_qa.py'
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am \
+		-Dtest=GoldPublicationTest,TrinoSqlClientTest -Dsurefire.failIfNoSpecifiedTests=false test
+
+smoke-gold-publication: check-config-local check-java-build-inputs ## GLD-04 verify exact GLD-03 snapshot bundle qua Trino trước Published
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am verify
+	@$(COMPOSE) build spark-gold-qa
+	@$(COMPOSE) --profile gold run --rm --no-deps gold-verification-qa
+
+test-gold-storage: ## GLD-03 real Iceberg snapshot/recovery tests và control plane offline
+	@python3 -m unittest discover -s airflow/tests -p 'test_gold_storage_qa.py'
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am \
+		-Dtest=GoldIcebergWriterTest -Dsurefire.failIfNoSpecifiedTests=false test
+
+smoke-gold-storage: check-config-local check-java-build-inputs ## GLD-03 pinned public capture -> Bronze/Silver -> six Iceberg snapshots, không Published
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am verify
+	@$(COMPOSE) build spark-gold-qa
+	@$(COMPOSE) --profile gold run --rm --no-deps spark-gold-qa
+
+.PHONY: ci ci-docs ci-java ci-airflow test-ci-workflow
+
+ci: ci-docs ci-java ci-airflow ## Cùng ba nhóm check CI; cần PyYAML, JDK17, Compose CLI, jq/rg; không start service
+
+ci-docs: ## Docs/contracts/secret hygiene/Compose tĩnh; không đọc .env riêng hoặc gọi nguồn thật
+	@$(MAKE) test-contracts
+	@$(MAKE) check-config ENV_FILE=/dev/null
+	@$(MAKE) check-compose check-minio check-query CHECK_ENV_FILE=.env.example
+	@$(MAKE) test-ci-workflow
+	@for script in scripts/*.sh; do \
+		case "$$(head -n 1 "$$script")" in \
+			*bash*) bash -n "$$script" ;; \
+			*) sh -n "$$script" ;; \
+		esac || exit; \
+	done
+	@git diff --check
+
+ci-java: ## Maven clean verify, toàn bộ Java tests và runner JAR; Spark mock chỉ bind loopback
+	@SPARK_LOCAL_IP=127.0.0.1 SPARK_LOCAL_HOSTNAME=localhost $(MAKE) package-java
+
+ci-airflow: test-airflow ## Toàn bộ Python control-plane/DAG tests; không cài Airflow runtime
+
+test-ci-workflow: ## YAML duplicate-key/safety/trigger/job regression; cần tests/ci/requirements.txt
+	@python3 -m unittest discover -s tests/ci -p 'test_*.py'
 
 test-silver-integration: ## SLV-09 offline bundle/failure/revision/reconciliation/Gold tests (không gọi MinIO)
 	@python3 -m unittest discover -s airflow/tests -p 'test_silver_integration_qa.py'
