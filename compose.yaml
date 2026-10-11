@@ -759,6 +759,16 @@ services:
     volumes:
       - ${GOLD_COMMIT_REFERENCE:-./docs/evidence/GLD-03-runtime.json}:/opt/pipeline/gold-commit-reference.json:ro
 
+  dataset-manifest-qa:
+    extends: {service: gold-verification-qa}
+    command:
+      - |
+        mkdir -p /opt/pipeline/staging/dataset-manifest-qa /opt/pipeline/staging/source-guard
+        exec python3 /opt/airflow/dags/dataset_manifest_qa.py
+    volumes:
+      - ${GOLD_PUBLICATION_REFERENCE:-./docs/evidence/GLD-04-runtime.json}:/opt/pipeline/gold-publication-reference.json:ro
+      - ${DATASET_IDENTITY_CONFIG:-./config/ml/dataset_identity_v1.json}:/opt/pipeline/dataset-config.json:ro
+
   trino:
     <<: *runtime-defaults
     image: trinodb/trino:483@sha256:db58cc93e593a2706553745f276bb119c9810e69918be56ecde088ba7ccb0534

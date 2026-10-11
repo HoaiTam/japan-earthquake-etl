@@ -17,11 +17,19 @@ thật; runner vẫn cần Internet để tải JDK, Python, Maven dependencies 
 
 ## 2. Khi nào chạy?
 
-- PR hướng đến `main`: mở, mở lại hoặc push commit mới vào PR theo các sự kiện
+- PR hướng đến **mọi nhánh**, gồm `main` và nhánh feature của stacked PR:
+  mở, mở lại hoặc push commit mới vào PR theo các sự kiện
   mặc định của `pull_request`. Kiểm tra mặc định trên merge ref để phát hiện
   vấn đề khi tích hợp với base branch, không chỉ riêng head của PR.
 - Push vào `main`, kể cả commit merge: kiểm tra baseline đã nhập vào nhánh chung.
 - Chạy thủ công ở tab Actions sau khi workflow có trên default branch.
+
+Không đặt `branches`/`branches-ignore` cho `pull_request`: bộ lọc này xét **base
+branch**, không phải head branch. Ví dụ PR MLD-01 trỏ vào nhánh GLD-04 vẫn được
+kiểm tra trên merge ref của hai nhánh. Chỉ đổi base/title PR không thuộc ba
+sự kiện mặc định; sau retarget, push commit mới hoặc mở lại PR để kích hoạt CI.
+PR còn merge conflict không có merge ref hợp lệ; giải quyết conflict rồi push
+trước khi chờ checks tự động.
 
 Push nhánh feature chưa có PR không tự chạy. Không bật đồng thời push mọi
 nhánh và PR, nên mỗi lần cập nhật PR không sinh hai bộ checks trùng nhau.
@@ -112,7 +120,7 @@ Lệnh `make ci-docs` chạy guardrails YAML; actionlint là bước riêng tron
 
 ## 6. Đọc kết quả và xử lý lỗi
 
-Sau khi push branch và mở PR hướng đến `main`, vào **Checks** hoặc **Actions →
+Sau khi push branch và mở PR (base `main` hoặc nhánh feature), vào **Checks** hoặc **Actions →
 Project CI**. Chọn check đỏ và xem step lỗi; sửa code/test/config rồi push commit
 mới vào cùng PR. Không tắt test để được merge.
 
@@ -159,7 +167,10 @@ Không đổi trạng thái hai task này chỉ vì CI xanh. Không backfill/reb
 khi thêm hoặc gỡ workflow. Rollback chỉ revert cấu hình CI; nếu đã bật required
 checks thì maintainer cần cập nhật rule tương ứng trước khi gỡ job.
 
-## 8. Evidence cục bộ
+## 8. Evidence cục bộ của cấu hình ban đầu (PR #64)
+
+Mục này giữ evidence tại thời điểm triển khai ban đầu, không phải kết quả chạy
+lại bản vá stacked PR. Evidence của bản vá nằm ở mục 9.
 
 Cấu hình chưa được push/chạy trên GitHub trong lần triển khai này; không ghi
 nhận GitHub checks xanh khi chưa có run thực tế. Kiểm tra ngày **2026-10-11**
@@ -184,3 +195,46 @@ nhận GitHub checks xanh khi chưa có run thực tế. Kiểm tra ngày **2026
 Các xác minh này không phải một lượt Ubuntu x64/GitHub-hosted runner thực tế.
 Push branch và mở PR để lấy evidence CI trên GitHub; không gọi kết quả local
 là GitHub checks đã pass.
+
+## 9. Bản vá CI cho stacked PR từ PR #61
+
+Owner: **HoaiTam**; reviewer: **unassigned**. Branch:
+`feat/mld-03-mainshock-candidate-windows`, cập nhật trực tiếp PR #61 từ head
+`a4579d7` theo yêu cầu HoaiTam; không mở branch/PR bản vá riêng.
+
+Head này chưa có CI, nên bản vá mang workflow, guardrails, requirements và
+Make targets của PR #64 (`eaee955`) vào nhánh PR #61; không sửa logic MLD-03.
+Khác biệt chính: PR được kiểm tra bất kể base branch; push vẫn chỉ dành cho
+`main`, giữ quyền token read-only và ba jobs độc lập.
+
+Để các PR đang mở dùng cấu hình mới, cần đưa bản vá workflow vào nhánh/base
+liên quan và kích hoạt sự kiện mở/mở lại/push. Không tự chạy hồi tố mọi PR khi
+workflow được sửa trên một nhánh khác. Manual run trong Actions không thay
+bằng chứng checks trên merge ref mới nhất của PR.
+
+Commit CI-only `f856925` không sửa logic MLD-03. Lượt sửa tiếp theo trên cùng
+PR #61 tích hợp main bằng merge commit (không force push), xử lý conflict và
+các điểm review MLD-03: bucket equi-join, invariant phân tán, Parquet fail-fast,
+microsecond precision, cập nhật trạng thái/evidence. Xem
+[evidence MLD-03](../../evidence/MLD-03.md) cho kết quả lượt chạy mới.
+Task vẫn Needs Update vì gate audit/Mc Published JMA của MLD-02 chưa đạt;
+CI pass không tự chứng minh integration dữ liệu thật.
+
+Kiểm tra cục bộ của **lượt CI-only f856925** ngày **2026-10-11** (Asia/Ho_Chi_Minh):
+
+- `make ci-docs`: PASS, gồm contract/config/Compose static checks, 12 Java
+  build-input regression tests, shell syntax và CI guardrails.
+- `make ci-airflow`: **182 tests PASS** trên Python 3.13.
+- `make test-ci-workflow`: **4 tests PASS**, gồm 16 mutation subcases; đã chạy
+  trên host PyYAML **6.0.2** và venv Python **3.13.3**/PyYAML **6.0.3** (đúng
+  requirements pin dành cho runner như PR #64).
+- actionlint **1.7.12**: PASS.
+- `git diff --check`: PASS.
+- Không chạy lại Maven/Java suite vì bản vá không thay code Java hoặc recipe
+  `ci-java`; kết quả Java của mục 8 không được coi là lượt chạy bản vá này.
+
+Các kết quả trên là local, không phải evidence GitHub Actions của commit mới.
+Sau khi push trực tiếp vào nhánh PR #61, kiểm tra đủ ba jobs trên merge ref
+mới nhất. Lượt CI-only không giải quyết conflict/logic; lượt sửa MLD-03 tiếp
+sau đã tích hợp main và có bộ regression riêng. Không tự cập nhật workflow
+PR #65 hoặc suy ra trạng thái checks của PR khác.

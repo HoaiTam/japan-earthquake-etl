@@ -33,8 +33,8 @@ def validate_workflow(workflow):
     require(workflow["name"] == "Project CI", "stable workflow name")
     events = workflow["on"]
     require(set(events) == {"pull_request", "push", "workflow_dispatch"}, "safe events")
-    for event in ("pull_request", "push"):
-        require(events[event] == {"branches": ["main"]}, "no skipped required checks or duplicate branch pushes")
+    require(events["pull_request"] in ("", None, {}), "unfiltered PRs, including stacked feature branches")
+    require(events["push"] == {"branches": ["main"]}, "main-only pushes avoid duplicate feature checks")
     require(workflow["permissions"] == {"contents": "read"}, "read-only token")
     require(workflow["concurrency"]["cancel-in-progress"] == "true", "cancel stale runs")
     require("github.event_name" in workflow["concurrency"]["group"], "separate PR and main runs")
@@ -80,6 +80,10 @@ class WorkflowContractTest(unittest.TestCase):
     def test_checked_in_workflow(self):
         validate_workflow(self.workflow)
 
+    def test_pull_request_has_no_base_or_path_filter(self):
+        self.assertIn(self.workflow["on"]["pull_request"], ("", None, {}))
+        self.assertEqual(self.workflow["on"]["push"], {"branches": ["main"]})
+
     def test_duplicate_yaml_key_rejected(self):
         with self.assertRaisesRegex(ValueError, "Duplicate YAML key"):
             yaml.load("name: first\nname: second\n", Loader=UniqueKeyLoader)
@@ -88,7 +92,13 @@ class WorkflowContractTest(unittest.TestCase):
         mutations = (
             lambda w: w["permissions"].update(contents="write"),
             lambda w: w["on"].update(pull_request_target={}),
-            lambda w: w["on"]["pull_request"].update(paths=["spark/**"]),
+            lambda w: w["on"].update(pull_request={"paths": ["spark/**"]}),
+            lambda w: w["on"].update(pull_request={"paths-ignore": ["docs/**"]}),
+            lambda w: w["on"].update(pull_request={"branches": ["main"]}),
+            lambda w: w["on"].update(pull_request={"branches-ignore": ["feat/**"]}),
+            lambda w: w["on"].update(pull_request={"types": ["opened"]}),
+            lambda w: w["on"].update(push={}),
+            lambda w: w["on"].update(push={"branches": ["main", "feat/**"]}),
             lambda w: w["jobs"]["airflow"].update(**{"continue-on-error": "true"}),
             lambda w: w["jobs"]["airflow"].update(**{"if": "false"}),
             lambda w: w["jobs"]["airflow"].update(needs="java-spark"),
