@@ -75,7 +75,7 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 - **Trạng thái:** Done
 - **Assignee:** Trang
 - **Reviewer:** unassigned — chưa review độc lập
-- **Evidence / PR:** [Runtime và checks](../../evidence/GLD-03.md), [exact receipt](../../evidence/GLD-03-runtime.json); PR chưa mở
+- **Evidence / PR:** [PR #62](https://github.com/HoaiTam/japan-earthquake-etl/pull/62), [runtime và checks](../../evidence/GLD-03.md), [exact receipt](../../evidence/GLD-03-runtime.json). Branch đã cập nhật main `eaee955`, giữ cả targets CI và Gold trong Makefile; CI trên commit cập nhật phải đạt trước merge. Reviewer unassigned.
 - **Kỹ năng phù hợp:** Iceberg, Spark, MinIO
 
 ## Checklist bàn giao

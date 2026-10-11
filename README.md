@@ -274,6 +274,11 @@ Hướng dẫn vận hành đầy đủ được duy trì trong
 
 ## Làm việc với repository
 
+GitHub Actions được cấu hình ở [ci.yml](./.github/workflows/ci.yml): PR vào
+`main` và push `main` chạy ba checks docs/contracts, Java17/Spark và Airflow
+control-plane. Không dùng secret hoặc dữ liệu lakehouse thật. Lệnh local,
+required-check setup và giới hạn ở [CI guide](./docs/conventions_and_workflow/CONTINUOUS_INTEGRATION.md).
+
 - Đọc [AGENTS.md](./AGENTS.md) trước khi bắt đầu task.
 - Tạo branch mới từ `main` và chỉ giải quyết một task trong mỗi branch.
 - Tuân theo [Git workflow](./docs/conventions_and_workflow/GIT_WORKFLOW.md) và

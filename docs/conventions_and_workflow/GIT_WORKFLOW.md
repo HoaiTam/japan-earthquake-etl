@@ -168,6 +168,12 @@ Template mô tả ngắn:
 
 ## 8. Merge
 
+Workflow [Project CI](../../.github/workflows/ci.yml) kiểm tra docs/contracts,
+Java17/Spark và Airflow bằng fixture/mock. Trước merge, kiểm tra đủ ba jobs
+trên commit mới nhất; CI xanh không thay reviewer hoặc E2E nghiệm thu thật.
+Cách chạy local, debug và bật required checks nằm trong
+[CI guide](./CONTINUOUS_INTEGRATION.md). Thêm workflow không tự bật branch protection.
+
 Ưu tiên squash merge cho branch nhỏ để `main` có lịch sử gọn. Tiêu đề squash phải theo commit convention.
 
 Không merge khi:
