@@ -100,4 +100,3 @@ Bản vá hiện tại có thể tích hợp code/fixture, nhưng chưa nghiệm
 - [Evidence MLD-03](../../evidence/MLD-03.md)
 - [MLD-02](./MLD-02.md)
 - [MLD-04](./MLD-04.md)
-

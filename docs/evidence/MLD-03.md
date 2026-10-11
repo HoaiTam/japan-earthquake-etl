@@ -60,6 +60,10 @@ Kết quả cục bộ đã kiểm chứng:
 
 Đây là local evidence, không phải kết quả GitHub Actions. Sau push, xem
 checks trên merge ref mới nhất của PR #61; không suy ra checks PR khác đã xanh.
+Run GitHub đầu của bản vá đã pass docs/contract/guardrails và Airflow nhưng
+fail whitespace gate do blank line cuối file task từ PR cũ. Đã bỏ blank line
+và kiểm tra thêm toàn diff `git diff --check origin/main HEAD`, không chỉ diff
+working tree/index. Không tắt hoặc nới lỏng CI gate để xử lý lỗi này.
 Các lỗi lần đầu (cache thiếu Iceberg, config chưa Serializable ở nhánh shuffle)
 đã được xử lý và giữ regression test để tái lập; không coi lượt lỗi là PASS.
 
