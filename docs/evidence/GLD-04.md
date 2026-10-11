@@ -4,7 +4,7 @@
 
 Branch `feat/gld-04-trino-publication` chứa main `5373cb8` và commit GLD-03
 `35e5fb2` từ [PR #62](https://github.com/HoaiTam/japan-earthquake-etl/pull/62).
-Không merge thêm main trong lần sửa này. Assignee Trang; reviewer unassigned.
+Đây là baseline của lần runtime nghiệm thu ban đầu. Ngày 2026-10-11, PR #62 đã merge; branch GLD-04 được cập nhật từ main `1339b85` và PR #63 đổi base sang main. Assignee Trang; reviewer unassigned.
 
 [Receipt thật](./GLD-04-runtime.json) và [verification SQL](./GLD-04-verification.sql)
 ghi exact bundle, expected/actual và các query chỉ đọc để lặp lại kiểm chứng.

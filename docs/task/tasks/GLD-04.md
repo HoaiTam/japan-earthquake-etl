@@ -74,7 +74,7 @@ Khai báo schema/views Gold; kiểm tra uniqueness, completeness, source/catalog
 - **Trạng thái:** Done
 - **Assignee:** Trang
 - **Reviewer:** unassigned; chưa có review độc lập, không ghi approval.
-- **Evidence / PR:** [PR #63](https://github.com/HoaiTam/japan-earthquake-etl/pull/63), [runtime và test evidence](../../evidence/GLD-04.md), [receipt thật](../../evidence/GLD-04-runtime.json), [verification và MLD-01 resolve SQL](../../evidence/GLD-04-verification.sql), [contract publication](../../specs/GOLD_TRINO_PUBLICATION.md). Maven verify 7 tests pass; Python control 4 tests pass; Compose config, config/secret hygiene, task status (73 tasks), Java build inputs, CON-03 và diff check pass. Changed-file scan với 7 credential values QA không có leak. Base PR là branch GLD-03 dependency [#62](https://github.com/HoaiTam/japan-earthquake-etl/pull/62); cần merge #62 rồi đổi base #63 sang main. Chưa merge PR.
+- **Evidence / PR:** [PR #63](https://github.com/HoaiTam/japan-earthquake-etl/pull/63), [runtime và test evidence](../../evidence/GLD-04.md), [receipt thật](../../evidence/GLD-04-runtime.json), [verification và MLD-01 resolve SQL](../../evidence/GLD-04-verification.sql), [contract publication](../../specs/GOLD_TRINO_PUBLICATION.md). Maven verify 7 tests pass; Python control 4 tests pass; Compose config, config/secret hygiene, task status (73 tasks), Java build inputs, CON-03 và diff check pass. Changed-file scan với 7 credential values QA không có leak. PR #62 đã merge vào main tại `1339b85`; base #63 đã chuyển sang main và branch đã cập nhật baseline này. CI trên head mới phải đạt trước merge #63.
 - **Kỹ năng phù hợp:** Trino, SQL, data quality
 
 ## Checklist bàn giao
