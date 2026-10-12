@@ -3,7 +3,7 @@
   "coverage": {
     "worktree_files": 532,
     "reachable_git_blobs": 1385,
-    "git_head": "77d8ec8078b3abf73283e68a1e11b0a624471c48",
+    "git_head": "2b659ff7d38e0e43d7dfdc047b4836a2302c66e0",
     "local_log_files": 47,
     "declared_ports": [
       {
