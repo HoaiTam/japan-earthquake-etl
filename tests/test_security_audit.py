@@ -19,9 +19,25 @@ class SecurityAuditTest(unittest.TestCase):
         self.assertIn("private_key", audit.scan_text("-----BEGIN " + "PRIVATE KEY-----"))
         self.assertIn("credential_uri", audit.scan_text("postgresql://user:" + "real-value@host/db"))
 
-    def test_placeholders_interpolation_and_fixture_uri(self):
-        for text in ("postgresql://${USER}:${PASSWORD}@db/name", "https://user:change-me-pass@host", "https://fixture:fixture@host"):
+    def test_complete_password_placeholders_are_exempt(self):
+        for text in ("postgresql://${USER}:${PASSWORD}@db/name", "https://user:change-me-pass@host"):
             self.assertEqual([], audit.scan_text(text))
+
+    def test_credential_markers_do_not_exempt_real_passwords(self):
+        for text in (
+            "https://example_service:synthetic-password@host",
+            "https://fixture_runner:synthetic-password@host",
+            "https://service:synthetic-example-password@host",
+            "https://service:synthetic-fixture-password@host",
+            "https://${USER}:synthetic-password@host",
+            "https://service:prefix-${PASSWORD}@host",
+            "https://service:<PASSWORD>@host",
+        ):
+            self.assertEqual(["credential_uri"], audit.scan_text(text))
+
+    def test_multiple_uris_keep_real_credential_finding(self):
+        text = "https://user:${PASSWORD}@host https://example_service:real-secret@host"
+        self.assertEqual(["credential_uri"], audit.scan_text(text))
 
     def test_ml_account_and_query_boundary(self):
         text = "/home/" + "person/result.parquet"
@@ -54,6 +70,16 @@ class SecurityAuditTest(unittest.TestCase):
         self.assertEqual(([], ["credential_uri"]), audit.triage(["credential_uri"], data, allow))
         self.assertEqual((["credential_uri"], []), audit.triage(["credential_uri"], data + b"changed", allow))
         self.assertEqual((["github_token"], []), audit.triage(["github_token"], data, allow))
+
+    def test_scan_then_triage_requires_exact_fixture_content(self):
+        data = b"https://fixture_runner:synthetic-password@host"
+        checksum = hashlib.sha256(data).hexdigest()
+        allow = [{"normalized_sha256": checksum, "category": "credential_uri"}]
+        categories = audit.scan_text(data.decode("ascii"))
+        self.assertEqual(["credential_uri"], categories)
+        self.assertEqual(([], ["credential_uri"]), audit.triage(categories, data, allow))
+        changed = data.replace(b"synthetic-password", b"changed-password")
+        self.assertEqual((["credential_uri"], []), audit.triage(audit.scan_text(changed.decode("ascii")), changed, allow))
 
 
 if __name__ == "__main__":

@@ -28,5 +28,23 @@
     "category": "credential_uri",
     "normalized_sha256": "e7ba302e834652ca37d2e37e6e2be5304986ce7597cd5172e75128a194173469",
     "reason": "Reviewed synthetic credential URI rejection test; no external credential"
+  },
+  {
+    "path": "spark/src/test/java/ie212/earthquake/spark/silver/JmaFixedWidthParserTest.java",
+    "category": "credential_uri",
+    "normalized_sha256": "54eea5b341324969ba769b0c1e2c54d88a5ae31fc26defcdbbcf83f3dd41f47a",
+    "reason": "Reviewed synthetic credential URI rejection fixtures; no external credential"
+  },
+  {
+    "path": "tests/test_security_audit.py",
+    "category": "credential_uri",
+    "normalized_sha256": "81f39e3611951d4fac44b75268e989fe8537ca2734099b7d7383816aaefb1956",
+    "reason": "Reviewed synthetic credential URI regression fixtures; no external credential"
+  },
+  {
+    "path": "tests/test_security_audit.py (history)",
+    "category": "credential_uri",
+    "normalized_sha256": "9b2ef790e1e46cca2890f4209b269cc3fa6d2004f485b5455a4cb531d49df586",
+    "reason": "Reviewed historical synthetic credential URI regression fixtures; no external credential"
   }
 ]

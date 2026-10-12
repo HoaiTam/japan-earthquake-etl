@@ -13,6 +13,9 @@ logs in airflow/logs and staging (excluding Maven wrapper cache). Blob/file guar
 is 2 MiB; skipped coverage is explicit. Unreachable objects, reflogs, external
 accounts/Drive, Docker volumes and logs on another host are outside this scan.
 High-confidence token/key/credential-URI patterns do not detect every secret.
+Credential URI scanning only exempts a complete password placeholder (`${NAME}`
+or `change-me-*`); username markers and words such as `example` or `fixture`
+remain findings until exact file-content triage is applied.
 
 Compose config is captured in memory using --no-interpolate --no-env-resolution;
 only port/role findings are serialized, never environment contents. This is the
@@ -20,8 +23,8 @@ declared config, not proof of deployed bindings. Four permitted host ports are
 loopback: MinIO console 9001, Airflow API 8080, Spark master UI 8080, Trino 8080.
 MinIO API 9000, Catalog, Spark RPC and metadata DB remain internal.
 
-Ten initial URI findings were manually traced to deliberate URI-rejection /
-redaction tests, not external credentials. The five exact source-content hashes
+Fourteen URI findings were manually traced to deliberate URI-rejection /
+redaction tests, not external credentials. The eight exact source-content hashes
 are recorded in SEC-01-synthetic-uris.json. Normalizing only CRLF/LF avoids host
 differences. Changed content is flagged again; token/key categories cannot be
 exempted by this triage. This records reviewer work on patterns, not independent

@@ -12,13 +12,17 @@ PATTERNS = {
     "github_token": re.compile(r"gh[pousr]_[A-Za-z0-9]{36,}"),
     "google_api_key": re.compile(r"AIza[0-9A-Za-z_-]{35}"),
     "private_key": re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----"),
-    "credential_uri": re.compile(r"(?:https?|postgres(?:ql)?|s3)://[^\s/:]+:([^\s/@]+)@"),
+    "credential_uri": re.compile(
+        r"(?:https?|postgres(?:ql)?|s3)://"
+        r"(?P<username>[^\s/:@]+):(?P<password>[^\s/@]+)@"
+    ),
 }
 ML_PATTERNS = {
     "personal_account_path": re.compile(r"(?i)(?:[a-z]:[\\/]Users[\\/]|/Users/|/home/(?!iceberg(?:/|\b)))"),
     "credential_query": re.compile(r"(?i)[?&](?:access_token|token|password|secret|signature)=[^\s&]+"),
 }
 MAX_BYTES = 2 * 1024 * 1024
+PLACEHOLDER_PASSWORD = re.compile(r"\A(?:\$\{[A-Za-z_][A-Za-z0-9_]*\}|change-me-[^\s/@]+)\Z")
 
 
 def triage(categories, data, allowlist):
@@ -40,9 +44,9 @@ def scan_text(text, ml=False):
     categories = []
     for category, pattern in {**PATTERNS, **(ML_PATTERNS if ml else {})}.items():
         for match in pattern.finditer(text):
-            # Shell interpolation, documented placeholders and fixture URI examples are not credentials.
-            if category == "credential_uri" and any(marker in match.group(0).lower()
-                    for marker in ("${", "change-me-", "<", "example", "fixture")):
+            # Only a complete password placeholder is exempt. Username markers and
+            # substrings such as example/fixture do not make a real password safe.
+            if category == "credential_uri" and PLACEHOLDER_PASSWORD.fullmatch(match.group("password")):
                 continue
             categories.append(category)
             break

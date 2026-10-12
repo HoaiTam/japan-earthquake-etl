@@ -2,8 +2,8 @@
   "schema_version": "1.0",
   "coverage": {
     "worktree_files": 532,
-    "reachable_git_blobs": 1372,
-    "git_head": "e829fee3b690a1244dfa7d100cc955ac12c4f915",
+    "reachable_git_blobs": 1385,
+    "git_head": "77d8ec8078b3abf73283e68a1e11b0a624471c48",
     "local_log_files": 47,
     "declared_ports": [
       {
@@ -57,7 +57,19 @@
     },
     {
       "scope": "worktree",
+      "location": "spark/src/test/java/ie212/earthquake/spark/silver/JmaFixedWidthParserTest.java",
+      "category": "credential_uri",
+      "reason": "exact_reviewed_test_content"
+    },
+    {
+      "scope": "worktree",
       "location": "spark/src/test/java/ie212/earthquake/spark/usgs/MinioBronzeObjectStoreTest.java",
+      "category": "credential_uri",
+      "reason": "exact_reviewed_test_content"
+    },
+    {
+      "scope": "worktree",
+      "location": "tests/test_security_audit.py",
       "category": "credential_uri",
       "reason": "exact_reviewed_test_content"
     },
@@ -88,6 +100,24 @@
     {
       "scope": "history",
       "location": "b30d8455087e1b6225cbef2eb2a9caf2579204d9",
+      "category": "credential_uri",
+      "reason": "exact_reviewed_test_content"
+    },
+    {
+      "scope": "history",
+      "location": "b55774a1c79c6585981d952abcf8d0f662538b19",
+      "category": "credential_uri",
+      "reason": "exact_reviewed_test_content"
+    },
+    {
+      "scope": "history",
+      "location": "bba8d16f0ca2cd68cfa5272bb978220d88d7f9d0",
+      "category": "credential_uri",
+      "reason": "exact_reviewed_test_content"
+    },
+    {
+      "scope": "history",
+      "location": "e6b1c8c652169fb30411e100844322c53722c53a",
       "category": "credential_uri",
       "reason": "exact_reviewed_test_content"
     }

@@ -74,7 +74,7 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 - **Trạng thái:** In Progress
 - **Assignee:** Trang
 - **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** [PR #56](https://github.com/HoaiTam/japan-earthquake-etl/pull/56), checklist và báo cáo static trong repository
+- **Evidence / PR:** [PR #67](https://github.com/HoaiTam/japan-earthquake-etl/pull/67) (bản review hiện tại), [PR #56](https://github.com/HoaiTam/japan-earthquake-etl/pull/56) (mốc lịch sử), checklist và báo cáo static trong repository
 - **Kỹ năng phù hợp:** Security, Docker, Git
 
 ## Checklist bàn giao
