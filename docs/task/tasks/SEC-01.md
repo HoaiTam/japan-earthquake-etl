@@ -1,6 +1,6 @@
 ---
 task_id: "SEC-01"
-status: "Backlog"
+status: "In Progress"
 week: 4
 block: "K - QA & Release"
 workstream: "Security"
@@ -48,7 +48,7 @@ Kiểm tra env, Git history, logs, default credentials, exposed ports, DSN, Driv
 
 ### Phân công tuần 4 mở rộng
 
-- **Owner / effort:** Trang, 4h Core; đưa từ tuần 6 lên [kế hoạch tuần 4](../WEEK_4_PARALLEL_PLAN.md), hiện Backlog vì ORC-05 chưa Done.
+- **Owner / effort:** Trang, 4h Core; đưa từ tuần 6 lên [kế hoạch tuần 4](../WEEK_4_PARALLEL_PLAN.md), đang In Progress sau khi ORC-05 đã Done.
 - **Làm trước:** Checklist/static tests và leak-pattern fixtures, không in credential thật hoặc đọc account/resource ngoài project scope.
 - **Làm gì / có gì:** Audit config/Git/logs/ports/prefix permissions, default credential/DSN và ML bundle path/token boundary; issue/fix report có scope.
 - **Dùng để làm gì:** ETL/runtime evidence và result fixtures chia sẻ được mà không lộ secret hoặc local account path.
@@ -71,10 +71,10 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
+- **Trạng thái:** In Progress
 - **Assignee:** Trang
 - **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Evidence / PR:** [PR #67](https://github.com/HoaiTam/japan-earthquake-etl/pull/67) (bản review hiện tại), [PR #56](https://github.com/HoaiTam/japan-earthquake-etl/pull/56) (mốc lịch sử), checklist và báo cáo static trong repository
 - **Kỹ năng phù hợp:** Security, Docker, Git
 
 ## Checklist bàn giao

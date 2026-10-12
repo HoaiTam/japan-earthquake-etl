@@ -1,0 +1,50 @@
+[
+  {
+    "path": "airflow/tests/test_backfill_observability.py",
+    "category": "credential_uri",
+    "normalized_sha256": "73b0f03c23e9b9cd83c9b435e9917a808a1de04e0104ecd8a40766b70daceea9",
+    "reason": "Reviewed synthetic URI rejection/redaction tests; no external credential"
+  },
+  {
+    "path": "airflow/tests/test_run_observability.py",
+    "category": "credential_uri",
+    "normalized_sha256": "70f1d50acc378c131360ae89868fc90ded8f721d4f7074facdbe8b138c48f6de",
+    "reason": "Reviewed synthetic URI rejection/redaction tests; no external credential"
+  },
+  {
+    "path": "spark/src/test/java/ie212/earthquake/spark/jma/JmaBronzeWriterTest.java",
+    "category": "credential_uri",
+    "normalized_sha256": "d8edb1f15659380db468ad09aa27dbfda1580a8b438f56af784f7ca635ba79cc",
+    "reason": "Reviewed synthetic URI rejection/redaction tests; no external credential"
+  },
+  {
+    "path": "spark/src/test/java/ie212/earthquake/spark/usgs/MinioBronzeObjectStoreTest.java",
+    "category": "credential_uri",
+    "normalized_sha256": "8f23608429203ec28e3ea7aabf0abc844d8023d31d136294a73f9356479a4caa",
+    "reason": "Reviewed synthetic URI rejection/redaction tests; no external credential"
+  },
+  {
+    "path": "spark/src/test/java/ie212/earthquake/spark/gold/TrinoSqlClientTest.java",
+    "category": "credential_uri",
+    "normalized_sha256": "e7ba302e834652ca37d2e37e6e2be5304986ce7597cd5172e75128a194173469",
+    "reason": "Reviewed synthetic credential URI rejection test; no external credential"
+  },
+  {
+    "path": "spark/src/test/java/ie212/earthquake/spark/silver/JmaFixedWidthParserTest.java",
+    "category": "credential_uri",
+    "normalized_sha256": "54eea5b341324969ba769b0c1e2c54d88a5ae31fc26defcdbbcf83f3dd41f47a",
+    "reason": "Reviewed synthetic credential URI rejection fixtures; no external credential"
+  },
+  {
+    "path": "tests/test_security_audit.py",
+    "category": "credential_uri",
+    "normalized_sha256": "81f39e3611951d4fac44b75268e989fe8537ca2734099b7d7383816aaefb1956",
+    "reason": "Reviewed synthetic credential URI regression fixtures; no external credential"
+  },
+  {
+    "path": "tests/test_security_audit.py (history)",
+    "category": "credential_uri",
+    "normalized_sha256": "9b2ef790e1e46cca2890f4209b269cc3fa6d2004f485b5455a4cb531d49df586",
+    "reason": "Reviewed historical synthetic credential URI regression fixtures; no external credential"
+  }
+]
