@@ -23,7 +23,7 @@ declared config, not proof of deployed bindings. Four permitted host ports are
 loopback: MinIO console 9001, Airflow API 8080, Spark master UI 8080, Trino 8080.
 MinIO API 9000, Catalog, Spark RPC and metadata DB remain internal.
 
-Fourteen URI findings were manually traced to deliberate URI-rejection /
+Fifteen URI findings were manually traced to deliberate URI-rejection /
 redaction tests, not external credentials. The eight exact source-content hashes
 are recorded in SEC-01-synthetic-uris.json. Normalizing only CRLF/LF avoids host
 differences. Changed content is flagged again; token/key categories cannot be
