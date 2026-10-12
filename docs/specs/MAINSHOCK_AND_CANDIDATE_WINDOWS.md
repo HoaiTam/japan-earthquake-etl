@@ -145,9 +145,12 @@ Window `REJECTED` không được export. Không có atomic commit hai directory
 consumer không dùng sự tồn tại của một Parquet directory làm readiness gate.
 Đây là local window artifacts, chưa phải Iceberg lifecycle/publication.
 
-**Giới hạn:** MLD-02 - Audit Gold và xác định magnitude of completeness còn
-`Needs Update` vì thiếu Published JMA audit/Mc thật. MLD-03 giữ trạng thái chưa
-nghiệm thu thật dù fixture tests pass; không hard-code Mc=2 cho runtime.
+**Giới hạn:** MLD-02 - Audit Gold và xác định magnitude of completeness đã
+Done theo Published JMA pilot. Pilot first256 không có mainshock; MLD-03 đã
+nghiệm thu lại trên scoped14-day mainshock-centred sample có Published pins/Mc
+thật: reproduction2 mainshocks/279 rows/Mc1.2, extension1/8/Mc0.9.
+Không hard-code Mc=2 hoặc hạ ngưỡng magnitude/depth. Đây không phải full-period
+training data; xem [evidence MLD-03](../evidence/MLD-03.md).
 MLD-04 - Tạo và scale feature không-thời gian 4-D và MLD-05 - Validate feature
 snapshot và export Parquet bundle phụ trách feature/export Colab; các artifacts
 ở đây chưa thay thế hai task đó.
@@ -203,3 +206,146 @@ Grain: `(dataset_id, mainshock_event_id, candidate_event_id)`
 | `mc_value` | double | Không | Ngưỡng completeness áp dụng |
 | `window_model_version` | string | Không | Phiên bản mô hình cửa sổ |
 | `created_at_utc` | timestamp | Không | Thời điểm tạo |
+
+## 6. Runtime exact-pin và nghiệm thu có thể chạy lại
+
+`MainshockWindowJob` có CLI nhận một request JSON <=64KiB. Các fields gồm
+`ml_namespace`, `dataset_id`, `dag_id`, `run_id`, `created_at_utc`,
+`audit_handoff_path` (relative trong scoped staging), `audit_handoff_sha256`.
+Caller giữ shared lease cho toàn run và cấp env Trino/Catalog/MinIO đã validate.
+Job không nhận arbitrary Gold rows hoặc latest alias từ CLI.
+
+`PinnedAuditResolver` dùng chung với MLD-02: đọc đúng một manifest BUILDING,
+revalidate PASSED publication + đủ six snapshot pins + snapshot chưa expire,
+đối chiếu immutable dataset identity và cutoff không trước publication.
+Spark đọc physical `event_current` bằng `snapshot-id`, chạy lại audit/Mc rồi
+đối chiếu toàn bộ identity, counts, applied Mc, canonical config/hash với handoff.
+Dataset IDs/snapshot ID 64-bit không được round-trip bằng JavaScript Number.
+
+Window version và **toàn bộ parameters** phải nằm trong pinned filter JSON:
+`window_config` và `mainshock_selection_config`. CLI hỗ trợ ba baseline đã có
+`wm_expanded_v1.0`, `wm_uhrhammer_v1.0`, `wm_gardner_knopoff_v1.0`; config không
+khớp version bị reject. Manifest cũ chỉ ghi `window-model-v1` chưa đủ: phải tạo
+identity mới có actual version/parameters, không sửa immutable identity tại chỗ.
+So sánh config bằng canonical JSON text, không dùng trực tiếp Jackson
+`JsonNode.equals`: small integer round-trip có thể thành IntNode thay LongNode
+(hard-limit10000). Gate vẫn đối chiếu **toàn bộ** parameters, reject extra keys,
+split không hỗ trợ hoặc đổi thresholds; không sửa pinned manifest để khớp code.
+Window dimension UDF trả SQL null cho magnitude/latitude null/non-finite/out-of-range:
+Catalyst có thể đánh giá UDF trước derived eligibility predicate. Rows này vẫn
+bị audit/selection loại; không thay missing bằng0 hoặc đổi Mc/quality policy.
+Regression dùng nullable schema và derived eligibility giống input Gold thật.
+
+Job ghi hai local Parquet snapshots, đọc lại và kiểm tra grain/self/roles/vector
+trên **readback rows**. Sorted row SHA-256 được stream qua driver (không collect
+toàn candidates); semantic fingerprint bỏ `created_at_utc`. Artifact files có
+checksum bytes riêng; rerun có thể đổi part filenames/physical bytes nhưng
+logical fingerprints/counts/window configs phải giữ nguyên.
+
+Chỉ `window-runtime-report.json` là completion gate của CLI, được invalidate
+trước resolve/audit. File Parquet hoặc report của helper `run()` tồn tại không
+chứng minh native run thành công. `window-manifest.json` là handoff, vẫn BUILDING,
+không tự chuyển VALIDATED/EXPORTED và không ghi feature/aftershock labels vào Gold.
+
+### 6.1. Published JMA QA có mainshock
+
+`make test-ml-window` chạy offline Java/controller tests.
+`make smoke-ml-window` build/test runner và chạy opt-in service
+`mainshock-window-qa`; không recreate service nền hoặc gọi lại USGS/JMA API.
+Điều kiện: Foundation healthy, lease trống, exact Bronze objects từ
+`airflow/dags/fixtures/slv_09_bronze_inputs.json` còn đọc được trên MinIO.
+`MAINSHOCK_BRONZE_PINS` có thể chỉ định một receipt pins khác nhưng phải giữ
+ba input USGS/JMA2000/JMA2023 đúng contract.
+
+Luồng QA:
+
+1. Fresh Bronze SHA/CRC/full structural count check. Không chỉ tin metadata Git.
+2. Trong mỗi archive JMA, chọn first qualifying mainshock theo **physical order**,
+   agency J, natural/UNIFIED/ROI, M>5.5/depth50–200, dateJan8..Dec24UTC để không
+   vượt biên năm; lấy slice `[centre-7days, centre+7days)`. Parser giữ nguyên
+   `member;line` locator và raw record hash. Scan tối đa400k lines/archive,
+   tối đa15k selected+parse rejects/archive; vượt guard fail, không truncate.
+   Temporal prefilter dùng origin-time parser của JMA; chỉ full-parse slice hoặc
+   rows chưa xác định được time, không normalize cả năm trên driver. Structural
+   CRC/full count vẫn verify cả archive. Parse rejects trong slice/không gán
+   được thời gian được giữ conservative và báo count;
+   không coi là rows hợp lệ trong slice. USGS16 là exclusion control.
+   JMA parser `slv-03-v1.1` hỗ trợ signed padding degree I3/I4 như `- 1`,
+   phát hiện từ pinned archive 2000; xem [parser mapping](./JMA_SILVER_PARSER.md).
+   Không sửa Bronze bytes/hash, không loại agency U/I hoặc outside-ROI tại parser
+   để làm quality gate xanh. Source URL chưa có trong provenance giữ null;
+   không tự đoán URL từ tên archive.
+3. Publish immutable SilverReady mới, commit/verify Gold trong **QA namespace mới**
+   và empty baselines. Explicit allowed replacement months chỉ là2000/2023
+   trong schema QA mới; không thay production gate COMPLETE_MONTHS hoặc Gold
+   sản phẩm. Chạy lại writer/publisher để đối soát receipts.
+4. Pin hai dataset manifests với actual window/config version, cutoff sau
+   publication và QA code version `artifact_<runner SHA>`. Production phải pin
+   commit/tag thật. Estimate Mc độc lập theo split từ MLD-02, không tune
+   reproduction bằng extension.
+5. Chạy CLI windows hai lần/split khi tắt broadcast, yêu cầu non-empty mainshock,
+   self đúng một lần, PRE/POST thực, Parquet/invariants/fingerprints khớp và
+   bucket join không Cartesian/BNLJ. Trino oracle độc lập dùng exact physical
+   snapshot + period/Mc/mainshock/window predicates đối soát **từng window**
+   và tổng PRE/MAINSHOCK/POST; không query current alias.
+6. Python controller chỉ quản lý subprocess/lease/checksum; kiểm tra lại
+   receipt/artifact SHA trước khi release own lease. `mld-03-report.json` chứa
+   sources, six Gold pins/publication, manifests/audit, windows/oracle/rerun
+   metadata, không raw dump. Scoped output ở
+   `/opt/pipeline/staging/mainshock-window-qa/<run_id>/`.
+
+Trino483 không hỗ trợ `date_diff('microsecond',...)`; MySQL-style `date_format`
+trên runtime này làm mất fractional microseconds. Oracle lấy whole epoch seconds
+từ `date_trunc('second',...)`, cộng fractional six-digit part của `to_iso8601`
+thành integer epoch-micros rồi so sánh delta với pre/post bounds đã round xuống
+đơn vị microsecond như Spark. Không chia hours bằng DECIMAL scale thấp hoặc
+dùng unix-time DOUBLE để quyết định membership. Oracle giữ bounding-box residual
+và horizontal distance tolerance0.00001km (1cm) giống engine, không chỉ distance.
+Gate SELECT literals xác nhận delta±1µs qua biên ngày trước bất kỳ lake write;
+`trino_microsecond_gate_passed=true` bắt buộc trong receipt. Tham chiếu
+[Trino datetime/interval documentation](https://trino.io/docs/current/functions/datetime.html#interval-functions).
+
+Nếu timeout/nonzero JVM/invalid receipt/artifact, lease giữ nguyên. Xác nhận
+JVM/Trino đã dừng, đọc owner/request/receipts theo
+[ORC-05 — Chốt recovery, concurrency và tài nguyên](../task/tasks/ORC-05.md);
+không force unlock, xóa schema/warehouse/volume hoặc tự takeover run khác.
+Nếu gate Silver fail trước bất kỳ publication, Java ghi
+`silver-blocked-report.json` với status `BLOCKED_BEFORE_PUBLICATION`, counts,
+reason histogram, bốn reconciliation checks và tối đa tám locator/hash/reason
+samples, không full raw payload. File này chỉ phục vụ chẩn đoán, không thay
+`mld-03-report.json` thành công và không cho downstream readiness.
+
+### 6.1.1. Tiếp tục riêng windows sau lỗi, không ghi lại Gold
+
+Nếu run đã có Published journal nhưng window lỗi: xác nhận JVM cũ dừng và own
+lease vẫn giữ, build/test/package runner mới trước khi chạy
+`make resume-ml-window QA_RUN_ID=<exact mld03-qa UUID run>`.
+Target không tự build, không acquire/takeover lease, không seed Silver/Gold và
+không xóa old artifacts. Namespace vẫn phải QA-only cùng suffix; Native
+`--resume-windows` yêu cầu journal Published đã tồn tại, reverify six snapshot
+pins bằng GoldPublisher existing-receipt path, Silver bundle SHA/quality/counts
+và original Bronze pins bằng fresh readback. Foreign/missing lease, changed
+code/source/pins hoặc receipt chưa PASSED đều fail closed.
+
+Request Gold/source code_version cũ giữ nguyên; `window_code_version` phải khớp
+SHA runner Java **thực đang chạy**. Dataset manifest mới pin builder code này
+và cutoff mới, không sửa identity cũ. Output nằm trong scoped child
+`<original_run>/resume-<UUID>/`, vẫn BUILDING/research_ready=false. Mỗi split
+audit/Mc và native windows rerun hai lần, đối soát Trino/checksum như fresh QA.
+Chỉ receipt hợp lệ hoàn chỉnh mới release own lease; lỗi vẫn giữ để điều tra.
+
+### 6.2. Giới hạn và handoff
+
+Slice14 ngày là **test pilot có selection bias**, không catalog toàn period
+hoặc đầy đủ pre/post-duration của window model. Mc chỉ có scope này; guard>=50
+không chứng minh completeness khoa học. Counts/windows của pilot không dùng
+để đánh giá tỷ lệ dư chấn hay hiệu năng toàn lịch sử. Window size/radius/threshold
+vẫn theo baseline; sample coverage không được diễn đạt như model clipping mới.
+
+[MLD-04 — Tạo và scale feature không-thời gian 4-D](../task/tasks/MLD-04.md) và
+[MLD-05 — Validate feature snapshot và export Parquet bundle](../task/tasks/MLD-05.md)
+nhận `window-manifest.json`, exact pins/Mc/config/hash và hai Parquet snapshots;
+chưa có feature vector hoặc Colab-ready bundle. Scheduled dataset DAG thuộc
+[MLI-02 — Tạo Airflow DAG build ML dataset](../task/tasks/MLI-02.md); historical
+coverage/resource benchmark thuộc [QA-03 — Kiểm thử JMA historical backfill](../task/tasks/QA-03.md)
+và [QA-05 — Profile dữ liệu lịch sử và tài nguyên local](../task/tasks/QA-05.md).

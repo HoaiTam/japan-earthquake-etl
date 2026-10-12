@@ -1,7 +1,7 @@
 ---
 task_id: "SLV-03"
 parser_name: "jma-hypocenter-fixed-width"
-parser_version: "slv-03-v1"
+parser_version: "slv-03-v1.1"
 code_mapping_version: "jma-codes-v1"
 silver_schema_version: "1.0"
 ---
@@ -90,6 +90,15 @@ flowchart LR
 
 Quy tắc numeric:
 
+- Parser `slv-03-v1.1` đọc đúng signed padding trong **degree I3/I4**: native
+  `- 1` → -1 độ, `- 66` → -66 độ, `- 0` vẫn giữ dấu âm cho minutes.
+  Đây là lỗi parser phát hiện trên archive 2000 đã pin SHA khi nghiệm thu
+  MLD-03; không phải nới tọa độ/minutes range hoặc bỏ rejects. Chỉ bỏ ASCII
+  padding giữa sign và digits của degree field; không sửa numeric fields khác,
+  không chấp nhận blank degree/sign-only/internal blanks giữa digits.
+  Source key vẫn dùng nguyên native slices, record/ZIP hash và Bronze không đổi.
+  Output cũ không tự bị sửa: muốn áp dụng parser mới phải reprocess scoped input
+  và pin output mới theo [ORC-03](../task/tasks/ORC-03.md).
 - Implied decimal: `5678` → 56.78 giây, `4020` → 40.20 phút,
   `01000` → 10.00 km, `52` → 5.2. Decimal point có sẵn được dùng trực tiếp.
 - Trailing blank trong phần thập phân không được trim trước scale:

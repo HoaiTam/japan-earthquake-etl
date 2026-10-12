@@ -37,26 +37,7 @@ public final class GoldInputAuditJob {
         if (host == null || !host.matches("[a-z0-9][a-z0-9.-]*") || port == null || !port.matches("[0-9]{1,5}"))
             throw new IllegalArgumentException("ML_TRINO_CONFIG_REQUIRED");
         var sql = new TrinoSqlClient(URI.create("http://" + host + ":" + port)); lease.run();
-        var rows = DatasetManifestWriter.records(sql.execute("SELECT * FROM " + namespace + ".dataset_manifest WHERE dataset_id="
-            + GoldVerificationPlan.quote(id)));
-        if (rows.size() != 1 || !"BUILDING".equals(rows.get(0).path("dataset_status").asText()))
-            throw new IllegalArgumentException("ML_EXACT_BUILDING_MANIFEST_REQUIRED");
-        JsonNode manifest = rows.get(0); var config = json.createObjectNode();
-        for (String key : java.util.List.of("dataset_split", "period_start_utc", "period_end_utc_exclusive", "observation_cutoff_utc"))
-            config.set(key, manifest.path(key));
-        DatasetIdentityPlan.VERSIONS.forEach(key -> config.set(key, manifest.path(key)));
-        config.set("filter_config", json.readTree(manifest.path("filter_config_json").asText()));
-        String physical = manifest.path("physical_gold_table_name").asText();
-        DatasetManifestWriter.pinnedGoldSql(manifest); String goldNamespace = physical.substring(0, physical.lastIndexOf('.'));
-        var pinned = new DatasetManifestWriter(sql, lease).build(goldNamespace, manifest.path("gold_publication_id").asText(), namespace,
-            config, run, Instant.now());
-        if (!manifest.path("dataset_id").equals(pinned.path("dataset_id"))) throw new IllegalArgumentException("ML_MANIFEST_IDENTITY_CONFLICT");
-        // A recent publication proves a current source state, not a historical as-of cutoff.
-        var publicationRows = DatasetManifestWriter.records(sql.execute("SELECT published_at_utc FROM " + goldNamespace
-            + ".publication_status WHERE publication_id=" + GoldVerificationPlan.quote(manifest.path("gold_publication_id").asText())));
-        if (publicationRows.size() != 1 || Instant.parse(manifest.path("observation_cutoff_utc").asText())
-                .isBefore(Instant.parse(publicationRows.get(0).path("published_at_utc").asText())))
-            throw new IllegalArgumentException("ML_HISTORICAL_CUTOFF_UNPROVEN");
+        JsonNode manifest = PinnedAuditResolver.resolve(namespace, id, run, sql, lease);
         SparkSession spark = GoldCommitJob.configured(System.getenv()).appName("mld-02-pinned-audit").getOrCreate();
         spark.sparkContext().setLogLevel("ERROR");
         try {

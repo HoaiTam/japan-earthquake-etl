@@ -75,11 +75,11 @@ public final class MainshockWindowEngine {
         }
 
         // Register UDFs for window dimensions
-        UserDefinedFunction preHoursUdf = udf((Double mag, Double lat) -> resolver.resolve(mag, lat).preWindowHours(), DataTypes.DoubleType);
-        UserDefinedFunction postHoursUdf = udf((Double mag, Double lat) -> resolver.resolve(mag, lat).postWindowHours(), DataTypes.DoubleType);
-        UserDefinedFunction radiusUdf = udf((Double mag, Double lat) -> resolver.resolve(mag, lat).searchRadiusKm(), DataTypes.DoubleType);
-        UserDefinedFunction deltaLatUdf = udf((Double mag, Double lat) -> resolver.resolve(mag, lat).deltaLatDeg(), DataTypes.DoubleType);
-        UserDefinedFunction deltaLonUdf = udf((Double mag, Double lat) -> resolver.resolve(mag, lat).deltaLonDeg(), DataTypes.DoubleType);
+        UserDefinedFunction preHoursUdf = udf((Double mag, Double lat) -> windowValue(resolver, mag, lat, Dimension.PRE), DataTypes.DoubleType);
+        UserDefinedFunction postHoursUdf = udf((Double mag, Double lat) -> windowValue(resolver, mag, lat, Dimension.POST), DataTypes.DoubleType);
+        UserDefinedFunction radiusUdf = udf((Double mag, Double lat) -> windowValue(resolver, mag, lat, Dimension.RADIUS), DataTypes.DoubleType);
+        UserDefinedFunction deltaLatUdf = udf((Double mag, Double lat) -> windowValue(resolver, mag, lat, Dimension.LAT), DataTypes.DoubleType);
+        UserDefinedFunction deltaLonUdf = udf((Double mag, Double lat) -> windowValue(resolver, mag, lat, Dimension.LON), DataTypes.DoubleType);
 
         // Enrich mainshocks with window bounds
         Dataset<Row> mainshocksWithWindows = mainshocksFiltered
@@ -395,6 +395,22 @@ public final class MainshockWindowEngine {
                 throw new IllegalArgumentException("Missing required column in Dataset: " + col);
             }
         }
+    }
+
+    private enum Dimension { PRE, POST, RADIUS, LAT, LON }
+
+    /** Catalyst can evaluate a UDF before a derived eligibility predicate; invalid inputs propagate SQL NULL. */
+    private static Double windowValue(WindowModelResolver resolver, Double magnitude, Double latitude, Dimension dimension) {
+        if (magnitude == null || latitude == null || !Double.isFinite(magnitude)
+                || !Double.isFinite(latitude) || Math.abs(latitude) > 90) return null;
+        var value = resolver.resolve(magnitude, latitude);
+        return switch (dimension) {
+            case PRE -> value.preWindowHours();
+            case POST -> value.postWindowHours();
+            case RADIUS -> value.searchRadiusKm();
+            case LAT -> value.deltaLatDeg();
+            case LON -> value.deltaLonDeg();
+        };
     }
 
     private static Column dayBucket(Column timestamp) {
