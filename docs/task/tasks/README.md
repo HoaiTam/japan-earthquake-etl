@@ -175,4 +175,4 @@ fixture/inventory; assignee `HoaiTam`, reviewer `unassigned`. Xem
 | [QA-03](./QA-03.md) - Kiểm thử JMA historical backfill | 7 | Historical backfill | Core | P0 | 5h | Backlog |
 | [QA-04](./QA-04.md) - Test failure và recovery theo tầng | 8 | Failure recovery | Core | P0 | 4h | Backlog |
 | [QA-05](./QA-05.md) - Profile dữ liệu lịch sử và tài nguyên local | 8 | Performance | Stretch | P2 | 4h | Backlog |
-| [SEC-01](./SEC-01.md) - Review secret và bề mặt truy cập | 4 | Security | Core | P1 | 4h | Backlog |
+| [SEC-01](./SEC-01.md) - Review secret và bề mặt truy cập | 4 | Security | Core | P1 | 4h | In Progress |

@@ -91,12 +91,13 @@ smoke-gold-storage: check-config-local check-java-build-inputs ## GLD-03 pinned 
 	@$(COMPOSE) build spark-gold-qa
 	@$(COMPOSE) --profile gold run --rm --no-deps spark-gold-qa
 
-.PHONY: ci ci-docs ci-java ci-airflow test-ci-workflow
+.PHONY: ci ci-docs ci-java ci-airflow test-ci-workflow test-security-audit
 
 ci: ci-docs ci-java ci-airflow ## Cùng ba nhóm check CI; cần PyYAML, JDK17, Compose CLI, jq/rg; không start service
 
 ci-docs: ## Docs/contracts/secret hygiene/Compose tĩnh; không đọc .env riêng hoặc gọi nguồn thật
 	@$(MAKE) test-contracts
+	@$(MAKE) test-security-audit
 	@$(MAKE) check-config ENV_FILE=/dev/null
 	@$(MAKE) check-compose check-minio check-query CHECK_ENV_FILE=.env.example
 	@$(MAKE) test-ci-workflow
@@ -115,6 +116,9 @@ ci-airflow: test-airflow ## Toàn bộ Python control-plane/DAG tests; không c�
 
 test-ci-workflow: ## YAML duplicate-key/safety/trigger/job regression; cần tests/ci/requirements.txt
 	@python3 -m unittest discover -s tests/ci -p 'test_*.py'
+
+test-security-audit: ## SEC-01 read-only redacted secret/port/ML boundary audit tests
+	@python3 -m unittest discover -s tests -p 'test_security_audit.py'
 
 test-silver-integration: ## SLV-09 offline bundle/failure/revision/reconciliation/Gold tests (không gọi MinIO)
 	@python3 -m unittest discover -s airflow/tests -p 'test_silver_integration_qa.py'

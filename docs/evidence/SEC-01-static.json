@@ -1,0 +1,110 @@
+{
+  "schema_version": "1.0",
+  "coverage": {
+    "worktree_files": 532,
+    "reachable_git_blobs": 1372,
+    "git_head": "e829fee3b690a1244dfa7d100cc955ac12c4f915",
+    "local_log_files": 47,
+    "declared_ports": [
+      {
+        "service": "airflow-api-server",
+        "target": 8080,
+        "host_ip": "127.0.0.1"
+      },
+      {
+        "service": "minio",
+        "target": 9001,
+        "host_ip": "127.0.0.1"
+      },
+      {
+        "service": "spark-master",
+        "target": 8080,
+        "host_ip": "127.0.0.1"
+      },
+      {
+        "service": "trino",
+        "target": 8080,
+        "host_ip": "127.0.0.1"
+      }
+    ],
+    "pattern_policy": "high_confidence_tokens_keys_and_credential_URIs_not_complete_secret_detection"
+  },
+  "findings": [],
+  "triaged_synthetic_fixtures": [
+    {
+      "scope": "worktree",
+      "location": "airflow/tests/test_backfill_observability.py",
+      "category": "credential_uri",
+      "reason": "exact_reviewed_test_content"
+    },
+    {
+      "scope": "worktree",
+      "location": "airflow/tests/test_run_observability.py",
+      "category": "credential_uri",
+      "reason": "exact_reviewed_test_content"
+    },
+    {
+      "scope": "worktree",
+      "location": "spark/src/test/java/ie212/earthquake/spark/gold/TrinoSqlClientTest.java",
+      "category": "credential_uri",
+      "reason": "exact_reviewed_test_content"
+    },
+    {
+      "scope": "worktree",
+      "location": "spark/src/test/java/ie212/earthquake/spark/jma/JmaBronzeWriterTest.java",
+      "category": "credential_uri",
+      "reason": "exact_reviewed_test_content"
+    },
+    {
+      "scope": "worktree",
+      "location": "spark/src/test/java/ie212/earthquake/spark/usgs/MinioBronzeObjectStoreTest.java",
+      "category": "credential_uri",
+      "reason": "exact_reviewed_test_content"
+    },
+    {
+      "scope": "history",
+      "location": "169380d1c6d028a1cdc1d6ea40d0dfa0ac01324b",
+      "category": "credential_uri",
+      "reason": "exact_reviewed_test_content"
+    },
+    {
+      "scope": "history",
+      "location": "2915488e45aae3d9311247a9fcdaf75b98b775f3",
+      "category": "credential_uri",
+      "reason": "exact_reviewed_test_content"
+    },
+    {
+      "scope": "history",
+      "location": "5200cd43b6ca00ab8f504c85add0e32d37f1dcc0",
+      "category": "credential_uri",
+      "reason": "exact_reviewed_test_content"
+    },
+    {
+      "scope": "history",
+      "location": "752fe0c0b6d4dd73d18de09d22ae36abdb750e06",
+      "category": "credential_uri",
+      "reason": "exact_reviewed_test_content"
+    },
+    {
+      "scope": "history",
+      "location": "b30d8455087e1b6225cbef2eb2a9caf2579204d9",
+      "category": "credential_uri",
+      "reason": "exact_reviewed_test_content"
+    }
+  ],
+  "pending": [
+    {
+      "scope": "config",
+      "reason": "run_check_config_require_local_for_strength_and_role_checks"
+    },
+    {
+      "scope": "runtime",
+      "reason": "live_deployed_ports_logs_bucket_prefix_positive_negative_permission_tests_required"
+    },
+    {
+      "scope": "ml",
+      "reason": "EXP-01_MLD-05_MLI-03_actual_notebook_export_import_artifacts_not_available"
+    }
+  ],
+  "can_mark_done": false
+}
