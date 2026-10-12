@@ -782,6 +782,15 @@ services:
     volumes:
       - ${SILVER_AUDIT_REFERENCE:-./docs/evidence/SLV-09-live-readback.json}:/opt/pipeline/silver-reference.json:ro
 
+  mainshock-window-qa:
+    extends: {service: gold-input-audit-qa}
+    command:
+      - |
+        mkdir -p /opt/pipeline/staging/mainshock-window-qa /opt/pipeline/staging/source-guard
+        exec python3 /opt/airflow/dags/mainshock_window_qa.py
+    volumes:
+      - ${MAINSHOCK_BRONZE_PINS:-./airflow/dags/fixtures/slv_09_bronze_inputs.json}:/opt/pipeline/window-bronze-pins.json:ro
+
   trino:
     <<: *runtime-defaults
     image: trinodb/trino:483@sha256:db58cc93e593a2706553745f276bb119c9810e69918be56ecde088ba7ccb0534

@@ -8,11 +8,14 @@ import java.nio.file.Path;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.StructField;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -52,6 +55,24 @@ class MainshockWindowRegressionTest {
 
     private static MainshockWindowResult execute(Dataset<Row> rows, WindowModelConfig window) {
         return new MainshockWindowEngine().execute(rows, SELECTION, window, 2, "ds_regression", NOW);
+    }
+
+    @Test
+    void derivedEligibilityWithNullableGoldFieldsDoesNotCrashWindowUdfs() {
+        var schema = DataTypes.createStructType(Arrays.stream(MainshockWindowEngineTest.AUDITED_SCHEMA.fields())
+            .map(f -> DataTypes.createStructField(f.name(), f.dataType(), true)).toArray(StructField[]::new));
+        var rows = new ArrayList<Row>(sample().collectAsList());
+        Timestamp time = Timestamp.from(Instant.parse("2005-06-01T00:00:00Z"));
+        rows.add(RowFactory.create("NO_MAG", time, 35.0, 139.0, 70.0, null, false));
+        rows.add(RowFactory.create("NO_LAT", time, null, 139.0, 70.0, 6.0, false));
+        rows.add(RowFactory.create("BAD_LAT", time, 91.0, 139.0, 70.0, 6.0, false));
+        rows.add(RowFactory.create("INF_MAG", time, 35.0, 139.0, 70.0, Double.POSITIVE_INFINITY, false));
+        var audited = spark.createDataFrame(rows, schema).withColumn("is_eligible",
+            col("magnitude").isNotNull().and(abs(col("magnitude")).leq(Double.MAX_VALUE))
+                .and(col("latitude").isNotNull()).and(abs(col("latitude")).leq(90)));
+        var result = execute(audited, WindowModelConfig.expandedV1());
+        assertEquals(1, result.mainshockCount()); assertEquals(3, result.totalCandidateRowCount());
+        result.assertInvariants();
     }
 
     @Test

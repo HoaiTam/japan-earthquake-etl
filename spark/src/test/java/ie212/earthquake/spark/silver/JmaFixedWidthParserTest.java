@@ -350,7 +350,7 @@ class JmaFixedWidthParserTest {
 
     @Test
     void invalidOrMissingCoordinatesNeverCreateFakeZeros() throws Exception {
-        for (String latitude : List.of("0910000", "0900001", "0356000", "035-100", "   0000", "035    ", "abc4020")) {
+        for (String latitude : List.of("0910000", "0900001", "0356000", "035-100", "   0000", "035    ", "abc4020", "0 10858", "-  0858", "--10858")) {
             byte[] row = put(firstRecord(), 22, 28, latitude);
             var result = parser.parse(row, context(row, "release-v1"));
             assertEquals(0, result.validCount(), latitude);
@@ -361,6 +361,22 @@ class JmaFixedWidthParserTest {
             assertTrue(parser.parse(row, context(row, "release-v1")).rejects().get(0)
                     .rejectReasonCodes().contains("INVALID_LONGITUDE"));
         }
+    }
+
+    @Test
+    void signedDegreePaddingFromPinnedJmaArchivePreservesCoordinatesAndRawIdentity() throws Exception {
+        byte[] row = put(firstRecord(), 22, 28, "- 10858");
+        row = put(row, 33, 40, "- 662862");
+        var obs = one(row);
+        assertEquals(-(1 + 8.58 / 60), obs.latitude(), 1e-10);
+        assertEquals(-(66 + 28.62 / 60), obs.longitude(), 1e-10);
+        assertEquals(SourceKeyGenerator.sha256(row), obs.rawRecordHash());
+        assertEquals(SourceKeyGenerator.jmaRecordKeyFromLine(new String(row, StandardCharsets.US_ASCII)), obs.sourceRecordKey());
+        assertEquals("slv-03-v1.1", obs.parserVersion()); assertFalse(obs.isInStudyArea());
+        row = put(row, 22, 28, "- 03000");
+        assertEquals(-0.5, one(row).latitude(), 1e-10);
+        row = put(row, 22, 28, "+ 10858");
+        assertEquals(1 + 8.58 / 60, one(row).latitude(), 1e-10);
     }
 
     @Test

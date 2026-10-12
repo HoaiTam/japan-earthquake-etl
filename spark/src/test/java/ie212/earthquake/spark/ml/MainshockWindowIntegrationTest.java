@@ -36,6 +36,7 @@ class MainshockWindowIntegrationTest {
                 .config("spark.sql.adaptive.enabled", "false")
                 .config("spark.sql.codegen.wholeStage", "false")
                 .getOrCreate();
+        spark.sparkContext().setLogLevel("ERROR");
     }
 
     @AfterAll

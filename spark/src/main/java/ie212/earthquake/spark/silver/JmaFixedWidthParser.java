@@ -24,7 +24,7 @@ import java.util.zip.ZipFile;
 /** Byte-position JMA parser producing the existing Spark/Parquet Silver 1.0 models. */
 public final class JmaFixedWidthParser {
     public static final String PARSER_NAME = "jma-hypocenter-fixed-width";
-    public static final String PARSER_VERSION = "slv-03-v1";
+    public static final String PARSER_VERSION = "slv-03-v1.1";
     public static final String SOURCE_SYSTEM = "JMA_BULLETIN";
     private static final ZoneId JST = ZoneId.of("Asia/Tokyo");
     private static final LocalDateTime UNIFIED_START = LocalDateTime.of(1997, 10, 1, 0, 0);
@@ -118,6 +118,26 @@ public final class JmaFixedWidthParser {
     public JmaParseResult parse(byte[] member, JmaParseContext context) throws IOException {
         Objects.requireNonNull(member, "member");
         return parseRecords(new ByteArrayInputStream(member), context);
+    }
+
+    /** Cheap temporal prefilter; shares the exact origin-time parser/timezone of full observations. */
+    public static Instant originTimeOfVerifiedRecord(byte[] record) throws IOException {
+        requireWidth(record.length, 1);
+        var reasons = new LinkedHashSet<String>();
+        var time = originTime(new String(record, StandardCharsets.ISO_8859_1), reasons);
+        return time == null ? null : time.atZone(JST).toInstant();
+    }
+
+    /** Bounded QA selection from a previously CRC/SHA-verified member; preserves physical lineage. */
+    public JmaParseResult parseVerifiedRecord(byte[] record, int physicalLine, JmaParseContext context) throws IOException {
+        Objects.requireNonNull(record); Objects.requireNonNull(context);
+        if (physicalLine < 1) throw new IllegalArgumentException("PHYSICAL_JMA_LINE_REQUIRED");
+        requireWidth(record.length, physicalLine);
+        var observations = new ArrayList<SilverObservation>();
+        var rejects = new ArrayList<SilverRejectRecord>();
+        var nativeFields = new ArrayList<JmaNativeFields>();
+        parseRecord(record, physicalLine, context, observations, rejects, nativeFields);
+        return new JmaParseResult(observations, rejects, nativeFields);
     }
 
     private JmaParseResult parseRecords(InputStream input, JmaParseContext context) throws IOException {
@@ -266,7 +286,11 @@ public final class JmaFixedWidthParser {
     private static Double coordinate(String degreesRaw, String minutesRaw, int maximum,
             String reason, Set<String> reasons) {
         try {
-            int degrees = integer(degreesRaw);
+            // Native I3/I4 degree fields can pad between sign and digits (e.g. "- 1", "- 66").
+            // Only this signed coordinate padding is accepted; never erase arbitrary internal blanks.
+            String degreesText = degreesRaw.trim();
+            if (degreesText.matches("[+-] +[0-9]+")) degreesText = degreesText.replace(" ", "");
+            int degrees = integer(degreesText);
             Double minutes = decimal(minutesRaw, 2);
             if (minutes == null || minutes < 0 || minutes >= 60 || Math.abs(degrees) > maximum
                     || (Math.abs(degrees) == maximum && minutes != 0)) {

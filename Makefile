@@ -42,12 +42,23 @@ COMPONENT_SMOKES := smoke-minio smoke-airflow smoke-spark smoke-query smoke-usgs
 .PHONY: test-recovery smoke-recovery smoke-resource-pilot maintenance-preview
 .PHONY: test-silver-integration smoke-silver-integration
 .PHONY: test-ml-audit smoke-ml-audit
-.PHONY: test-ml-window
+.PHONY: test-ml-window smoke-ml-window resume-ml-window
+export QA_RUN_ID
 
 test-ml-window: ## MLD-03 bucket physical plan, distributed invariants, microseconds và fail-fast Parquet tests
+	@python3 -m unittest discover -s airflow/tests -p 'test_mainshock_window_qa.py'
 	@./mvnw --batch-mode --no-transfer-progress -pl spark -am \
-		-Dtest=WindowModelResolverTest,MainshockWindowEngineTest,MainshockWindowIntegrationTest,MainshockWindowRegressionTest \
+		-Dtest=WindowModelResolverTest,MainshockWindowEngineTest,MainshockWindowIntegrationTest,MainshockWindowRegressionTest,MainshockRuntimeTest,JmaMainshockPilotSamplerTest \
 		-Dsurefire.failIfNoSpecifiedTests=false test
+
+smoke-ml-window: check-config-local check-java-build-inputs ## MLD-03 pinned Bronze -> bounded Published JMA QA -> audit/Mc -> candidate readback + Trino oracle
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am verify
+	@$(COMPOSE) build spark-master
+	@$(COMPOSE) --profile gold run --rm --no-deps mainshock-window-qa
+
+resume-ml-window: check-config-local check-java-build-inputs ## MLD-03 tiếp tục windows từ own retained QA lease + Published Gold, cần QA_RUN_ID
+	@$(COMPOSE) --profile gold run --rm --no-deps -e QA_RUN_ID mainshock-window-qa \
+		'exec python3 /opt/airflow/dags/mainshock_window_qa.py --resume-windows "$$QA_RUN_ID"'
 
 test-ml-audit: ## MLD-02 Gold input audit, MAXC completeness estimator, sensitivity & reconciliation tests
 	@python3 -m unittest discover -s airflow/tests -p 'test_gold_input_audit_qa.py'
