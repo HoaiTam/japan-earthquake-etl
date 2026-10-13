@@ -18,7 +18,16 @@ import uuid
 
 ROOT = Path(__file__).resolve().parents[1]
 BUILD_LABEL = "com.japan-earthquake-etl.build-input-sha256"
-BUILD_SERVICES = ("minio", "airflow-api-server", "spark-master", "spark-gold-qa")
+BUILD_SPECS = {
+    "minio": ("compose/minio", "compose/minio/Dockerfile", {
+        "MINIO_VERSION": "RELEASE.2025-10-15T17-29-55Z", "MINIO_COMMIT": "9e49d5e7a648f00e26f2246f4dc28e6b07f8c84a"}),
+    "minio-init": ("compose/minio-client", "compose/minio-client/Dockerfile", {
+        "MC_VERSION": "RELEASE.2025-08-13T08-35-41Z", "MC_COMMIT": "7394ce0dd2a80935aded936b09fa12cbb3cb8096"}),
+    "airflow-api-server": (".", "compose/airflow/Dockerfile", {}),
+    "spark-master": (".", "compose/spark/Dockerfile", {}),
+    "spark-gold-qa": (".", "compose/spark/Dockerfile.gold-qa", {}),
+}
+BUILD_SERVICES = tuple(BUILD_SPECS)
 FOUNDATION = ("minio", "airflow-postgres", "airflow-api-server", "airflow-scheduler",
               "airflow-dag-processor", "spark-master", "spark-worker", "iceberg-rest", "trino")
 AIRFLOW = ("minio", "airflow-postgres", "airflow-api-server", "airflow-scheduler", "airflow-dag-processor")
@@ -61,7 +70,8 @@ def source_sha(root=ROOT):
     files = [root / name for name in ("pom.xml", "spark/pom.xml", ".dockerignore", "compose.yaml",
              "mvnw", ".mvn/wrapper/maven-wrapper.properties",
              "compose/airflow/usgs-runner.sh", "compose/airflow/jma-runner.sh", "compose/airflow/bronze-reuse-runner.sh",
-             "compose/minio/Dockerfile", "compose/airflow/Dockerfile",
+             "compose/minio/Dockerfile", "compose/minio/.dockerignore",
+             "compose/minio-client/Dockerfile", "compose/minio-client/.dockerignore", "compose/airflow/Dockerfile",
              "compose/spark/Dockerfile", "compose/spark/Dockerfile.gold-qa")]
     for name in ("spark/src", "tests/fixtures", "config/jma"):
         if not (root / name).is_dir() or (root / name).is_symlink():
@@ -135,18 +145,20 @@ class Runtime:
 
     def validate_build_contexts(self):
         # A custom Compose file must not stamp another checkout's code as this source.
-        for service, dockerfile in zip(BUILD_SERVICES, ("compose/minio/Dockerfile", "compose/airflow/Dockerfile", "compose/spark/Dockerfile", "compose/spark/Dockerfile.gold-qa")):
+        if self.services["minio-smoke"]["image"] != self.services["minio-init"]["image"]:
+            raise RuntimeFailure("UNSUPPORTED_MINIO_CLIENT_IMAGE_MUST_MATCH_INIT")
+        for service in (*BUILD_SERVICES, "minio-smoke"):
+            directory, dockerfile, expected_args = BUILD_SPECS["minio-init" if service == "minio-smoke" else service]
             build = self.services[service].get("build", {})
             context = Path(build.get("context", ""))
             context = context if context.is_absolute() else self.root / context
-            expected = self.root / "compose/minio" if service == "minio" else self.root
+            expected = self.root / directory
             actual_file = Path(build.get("dockerfile", "Dockerfile"))
             if not actual_file.is_absolute():
                 actual_file = context / actual_file
             if context.resolve() != expected.resolve() or actual_file.resolve() != (self.root / dockerfile).resolve() or build.get("dockerfile_inline") or build.get("target") or build.get("additional_contexts"):
                 raise RuntimeFailure("UNSUPPORTED_BUILD_CONTEXT_CANNOT_VERIFY_SOURCE: " + service)
             args = {key: value for key, value in build.get("args", {}).items() if key != "PIPELINE_BUILD_SHA"}
-            expected_args = {"MINIO_VERSION": "RELEASE.2025-10-15T17-29-55Z", "MINIO_COMMIT": "9e49d5e7a648f00e26f2246f4dc28e6b07f8c84a"} if service == "minio" else {}
             if args != expected_args:
                 raise RuntimeFailure("UNSUPPORTED_BUILD_ARGUMENTS_CANNOT_VERIFY_SOURCE: " + service)
 
@@ -313,7 +325,7 @@ def build(environment=None):
     runtime.deadline = time.monotonic() + 60
     runtime.images(BUILD_SERVICES)
     export_artifacts(runtime)
-    if subprocess.run(runtime.compose + ["pull", "airflow-postgres", "airflow-init", "minio-init", "iceberg-rest", "trino"], cwd=runtime.root, env=runtime.env).returncode:
+    if subprocess.run(runtime.compose + ["pull", "airflow-postgres", "airflow-init", "iceberg-rest", "trino"], cwd=runtime.root, env=runtime.env).returncode:
         raise RuntimeFailure("DEPENDENCY_IMAGE_PULL_FAILED")
     print("Docker images prepared; run make docker-up. No services started.")
 

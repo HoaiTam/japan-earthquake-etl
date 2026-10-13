@@ -164,7 +164,8 @@ cp .env.example .env
 Khởi động MinIO và bootstrap:
 
 ```bash
-docker compose --env-file .env up -d minio minio-init
+make docker-build
+make up-minio WAIT_TIMEOUT=600
 docker compose --env-file .env ps -a minio minio-init
 ```
 
@@ -180,8 +181,9 @@ Chạy smoke test tự động:
 ./scripts/smoke-minio.sh
 ```
 
-Script này kiểm tra config/static contract, khởi động MinIO, chạy lại bootstrap,
-kiểm tra ba marker, ghi object tạm bằng pipeline credential, đọc lại và so sánh
+Script này kiểm tra config và preflight chỉ đọc (health, init exit 0,
+image/config freshness), không tự build/pull/start hoặc chạy lại bootstrap.
+Sau đó kiểm tra ba marker, ghi object tạm bằng pipeline credential, đọc lại và so sánh
 nội dung, rồi xóa đúng object smoke ở `silver/_smoke/`. Nó không dừng MinIO và
 không xóa bucket hoặc volume.
 
@@ -197,8 +199,12 @@ Không paste output có credential vào issue/PR. Bootstrap thành công chỉ i
 bucket/prefix. Để chạy lại init sau khi đổi cấu hình:
 
 ```bash
-docker compose --env-file .env run --rm minio-init
+make up-minio WAIT_TIMEOUT=600
 ```
+
+Startup chỉ chạy lại init khi chưa có kết quả exit 0 khớp cấu hình/image.
+Sau bản vá client, image ID/config thay đổi nên init sẽ được chạy lại một lần;
+bucket/policy bootstrap vẫn idempotent và giữ nguyên dữ liệu hiện có.
 
 ## 9. Troubleshooting
 
@@ -215,6 +221,16 @@ docker compose --env-file .env run --rm minio-init
 2. Chạy `./scripts/check-config.sh --require-local`.
 3. Kiểm tra bucket/prefix chỉ chứa ký tự được hỗ trợ và không trùng nhau.
 4. Chạy lại init; script được thiết kế idempotent.
+
+### `DEPENDENCY_IMAGE_PULL_FAILED` / Quay trả `401 UNAUTHORIZED` cho `mc`
+
+Đây là lỗi truy cập registry image, không phải mật khẩu MinIO trong `.env`.
+Compose hiện không pull `quay.io/minio/mc`; `minio-init` và `minio-smoke` dùng
+cùng image local `japan-earthquake-etl/mc:RELEASE.2025-08-13T08-35-41Z`.
+`make docker-build` build client từ GitHub chính thức, kiểm tra tag/commit và
+version binary rồi mới cho startup dùng. Không đổi sang `latest`, mirror không
+rõ nguồn, bỏ TLS hoặc xóa volume để né lỗi. Build cần Docker Hub (Go/Alpine),
+GitHub, Alpine package repositories và Go module proxy/checksum database.
 
 ### Console vào được nhưng pipeline bị `AccessDenied`
 
@@ -243,8 +259,17 @@ service. Không publish thêm S3 API port `9000` chỉ để mở Console.
 Project pin MinIO Community server `RELEASE.2025-10-15T17-29-55Z` tại commit
 `9e49d5e7a648f00e26f2246f4dc28e6b07f8c84a`. Vì upstream không phát hành
 container image cho release này, Compose build image local từ source bằng
-`compose/minio/Dockerfile`. MinIO Client pin
-`quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z`.
+`compose/minio/Dockerfile`. MinIO Client cũng build từ source chính thức qua
+`compose/minio-client/Dockerfile`, pin release `RELEASE.2025-08-13T08-35-41Z`
+và commit `7394ce0dd2a80935aded936b09fa12cbb3cb8096`. Context riêng chỉ gửi
+Dockerfile, không gửi `.env`, fixture hay data. Go 1.24.8/Alpine builder tạo
+binary static, runtime Alpine có `/bin/sh`, CA certificates, user non-root
+UID/GID 1000 và LICENSE/CREDITS; credential/config chỉ ở environment/tmpfs.
+
+Tag này có ngày release khác ngày commit; Dockerfile truyền timestamp release
+cho generator ldflags upstream và kiểm tra `mc --version` có cả release/commit.
+Không build `@latest`. BuildKit cache Go modules/compiler giúp lần sau nhanh
+hơn mà vẫn bật module checksum và không tự tải toolchain khác.
 
 MinIO Community đã chuyển sang source-only distribution và repository upstream
 hiện đã archive. Baseline này dành cho môi trường học/demo, không phải image

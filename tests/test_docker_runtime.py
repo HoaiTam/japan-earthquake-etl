@@ -39,6 +39,8 @@ class DockerDouble:
                 image = "local-spark:verified"
             elif name == "minio":
                 image = "local-minio:verified"
+            elif name in ("minio-init", "minio-smoke"):
+                image = "local-mc:verified"
             elif name in ("spark-gold-qa", "gold-verification-qa", "dataset-manifest-qa"):
                 image = "local-gold:verified"
             elif name == "trino-smoke":
@@ -53,10 +55,9 @@ class DockerDouble:
             self.images.setdefault(image, {"Id": "sha256:" + image, "RepoTags": [image],
                 "RepoDigests": [], "Config": {"Labels": {runtime.BUILD_LABEL: fingerprint}}})
         self.hashes = {name: "hash-" + name for name in names}
-        for name, file in zip(runtime.BUILD_SERVICES, ("compose/minio/Dockerfile", "compose/airflow/Dockerfile", "compose/spark/Dockerfile", "compose/spark/Dockerfile.gold-qa")):
-            context = root / "compose/minio" if name == "minio" else root
-            self.config["services"][name]["build"] = {"context": str(context), "dockerfile": str(root / file)}
-        self.config["services"]["minio"]["build"]["args"] = {"MINIO_VERSION": "RELEASE.2025-10-15T17-29-55Z", "MINIO_COMMIT": "9e49d5e7a648f00e26f2246f4dc28e6b07f8c84a"}
+        for name in (*runtime.BUILD_SERVICES, "minio-smoke"):
+            directory, file, args = runtime.BUILD_SPECS["minio-init" if name == "minio-smoke" else name]
+            self.config["services"][name]["build"] = {"context": str(root / directory), "dockerfile": str(root / file), "args": dict(args)}
         for name in (*runtime.FOUNDATION, "minio-init", "airflow-init"):
             self.ready(name)
 
@@ -119,6 +120,7 @@ class DockerRuntimeTests(unittest.TestCase):
         self.root = Path(self.temp.name)
         for name in ("pom.xml", "spark/pom.xml", ".dockerignore", "compose.yaml", "mvnw", ".mvn/wrapper/maven-wrapper.properties",
                      "compose/airflow/usgs-runner.sh", "compose/airflow/jma-runner.sh", "compose/airflow/bronze-reuse-runner.sh", "compose/minio/Dockerfile",
+                     "compose/minio/.dockerignore", "compose/minio-client/Dockerfile", "compose/minio-client/.dockerignore",
                      "compose/airflow/Dockerfile", "compose/spark/Dockerfile", "compose/spark/Dockerfile.gold-qa",
                      "spark/src/main/java/Example.java", "tests/fixtures/example.json", "config/jma/inventory.csv"):
             path = self.root / name
@@ -254,6 +256,58 @@ class DockerRuntimeTests(unittest.TestCase):
             self.context()
         self.assert_read_only()
 
+    def test_mc_source_pins_and_context_cannot_be_overridden(self):
+        for service in ("minio-init", "minio-smoke"):
+            original = copy.deepcopy(self.docker.config["services"][service]["build"])
+            for field in ("MC_COMMIT", "MC_VERSION"):
+                self.docker.config["services"][service]["build"]["args"][field] = "unreviewed"
+                with self.assertRaisesRegex(runtime.RuntimeFailure, "UNSUPPORTED_BUILD_ARGUMENTS"):
+                    self.context()
+                self.docker.config["services"][service]["build"] = copy.deepcopy(original)
+            self.docker.config["services"][service]["build"]["context"] = str(self.root / "another-client")
+            with self.assertRaisesRegex(runtime.RuntimeFailure, "UNSUPPORTED_BUILD_CONTEXT"):
+                self.context()
+            self.docker.config["services"][service]["build"] = original
+        self.assert_read_only()
+
+    def test_mc_smoke_cannot_use_a_different_image_from_init(self):
+        self.docker.config["services"]["minio-smoke"]["image"] = "quay.io/minio/mc:old"
+        with self.assertRaisesRegex(runtime.RuntimeFailure, "MINIO_CLIENT_IMAGE"):
+            self.context()
+        self.assert_read_only()
+
+    def test_mc_missing_and_stale_images_fail_preflight_without_pulling(self):
+        original = copy.deepcopy(self.docker.images["local-mc:verified"])
+        self.docker.images.pop("local-mc:verified")
+        with self.assertRaisesRegex(runtime.RuntimeFailure, "IMAGE_MISSING"):
+            self.context().check("minio")
+        for label in ({}, {runtime.BUILD_LABEL: "old-source"}):
+            self.docker.images["local-mc:verified"] = {**original, "Config": {"Labels": label}}
+            with self.assertRaisesRegex(runtime.RuntimeFailure, "IMAGE_UNPREPARED_OR_STALE"):
+                self.context().check("minio")
+        self.assert_read_only()
+
+    def test_mc_dockerfile_and_context_allowlist_invalidate_fingerprint(self):
+        before = runtime.source_sha(self.root)
+        for name in ("compose/minio-client/Dockerfile", "compose/minio-client/.dockerignore", "compose/minio/.dockerignore"):
+            path = self.root / name
+            original = path.read_bytes()
+            path.write_bytes(original + b"changed")
+            self.assertNotEqual(before, runtime.source_sha(self.root))
+            path.write_bytes(original)
+
+    def test_mc_new_image_requires_explicit_init_not_silently_reused(self):
+        self.docker.containers["minio-init"]["Image"] = "old-mc-image"
+        with self.assertRaisesRegex(runtime.RuntimeFailure, "OUTDATED"):
+            self.context().check("minio")
+        self.assert_read_only()
+        self.context().up("minio")
+        changes = [command for command in self.docker.commands if "up" in command]
+        self.assertEqual(1, len(changes))
+        self.assertEqual("minio-init", changes[0][-1])
+        self.assertIn("--no-build", changes[0])
+        self.assertIn("never", changes[0])
+
     def test_fingerprint_tracks_build_inputs_but_not_secret_or_docs(self):
         before = runtime.source_sha(self.root)
         (self.root / ".env").write_text("DO_NOT_PRINT_CREDENTIAL")
@@ -376,6 +430,9 @@ class DockerRuntimeTests(unittest.TestCase):
         self.assertIn("PIPELINE_BUILD_SHA=" + runtime.source_sha(self.root), build)
         self.assertTrue(all(service in build for service in runtime.BUILD_SERVICES))
         self.assertTrue(any("pull" in command for command in commands))
+        pull = next(command for command in commands if "pull" in command)
+        self.assertNotIn("minio-init", pull)
+        self.assertNotIn("minio-smoke", pull)
         self.assertFalse(any(word in command for command in commands for word in ("up", "start", "run", "exec", "down")))
 
     def test_failed_explicit_build_does_not_export_start_or_record_artifacts(self):
@@ -500,7 +557,7 @@ class SmokeCommandContractTests(unittest.TestCase):
         text = (REPO / "Makefile").read_text()
         self.assertRegex(text, r"test-java:[^\n]*\n\t@./mvnw")
         self.assertIn("test-docker-runtime", text.split("ci-docs:", 1)[1].split("ci-java:", 1)[0])
-        for path in ("compose/minio/Dockerfile", "compose/airflow/Dockerfile", "compose/spark/Dockerfile", "compose/spark/Dockerfile.gold-qa"):
+        for path in ("compose/minio/Dockerfile", "compose/minio-client/Dockerfile", "compose/airflow/Dockerfile", "compose/spark/Dockerfile", "compose/spark/Dockerfile.gold-qa"):
             self.assertIn("LABEL " + runtime.BUILD_LABEL + "=$PIPELINE_BUILD_SHA", (REPO / path).read_text())
 
     def test_docker_build_does_not_require_a_host_java_package(self):
@@ -509,6 +566,20 @@ class SmokeCommandContractTests(unittest.TestCase):
         self.assertNotIn("docker-runtime.py package", result.stdout)
         self.assertNotIn("./mvnw", result.stdout)
         self.assertIn("docker-runtime.py build", result.stdout)
+
+    def test_mc_source_build_has_version_commit_gate_shell_tls_and_no_mutable_source(self):
+        dockerfile = (REPO / "compose/minio-client/Dockerfile").read_text()
+        for required in ('git clone --depth 1 --branch "$MC_VERSION" https://github.com/minio/mc.git',
+                         'test "$(git rev-parse HEAD)" = "$MC_COMMIT"',
+                         'test "$(git tag --points-at HEAD)" = "$MC_VERSION"',
+                         'MC_RELEASE=RELEASE go run buildscripts/gen-ldflags.go 2025-08-13T08:35:41Z',
+                         '/out/mc --version | grep -F "mc version $MC_VERSION (commit-id=$MC_COMMIT)"',
+                         'FROM alpine:3.22.1', 'ca-certificates', 'USER mc:mc',
+                         '/src/LICENSE', '/src/CREDITS', '-mod=readonly', 'GOTOOLCHAIN=local'):
+            self.assertIn(required, dockerfile)
+        for unsafe in ('@latest', ':latest', 'FROM scratch', 'GOSUMDB=off', '--insecure'):
+            self.assertNotIn(unsafe, dockerfile)
+        self.assertEqual('*\n!Dockerfile\n', (REPO / 'compose/minio-client/.dockerignore').read_text())
 
 
 if __name__ == "__main__":
