@@ -224,7 +224,7 @@ smoke-backfill-pilot: check-config-local ## ORC-03 LIVE 2 USGS ngày + 1 segment
 test-source-schedule: ## ORC-02 profile/UTC/JMA change/lease/DAG tests offline
 	@python3 -m unittest discover -s airflow/tests -p 'test_source*.py'
 	@./mvnw --batch-mode --no-transfer-progress -pl spark -am \
-		-Dtest=JmaYearIngestRunnerTest,UsgsIngestRunnerTest -Dsurefire.failIfNoSpecifiedTests=false test
+		-Dtest=JmaHeadRetryTransportTest,JmaYearIngestRunnerTest,UsgsIngestRunnerTest -Dsurefire.failIfNoSpecifiedTests=false test
 
 smoke-source-readiness: check-config-local ## ORC-02 scheduler + USGS/JMA/MinIO; không tự build/start
 	@$(RUNTIME_CHECK) --component source
@@ -282,12 +282,12 @@ test-jma-parser: ## Kiểm thử riêng SLV-03 JMA fixed-width, code mapping và
 
 test-jma-backfill: ## Kiểm thử JMA-04 downloader/runner/planner/DAG bằng fixture/mock, không tải nguồn
 	@./mvnw --batch-mode --no-transfer-progress -pl spark -am \
-		-Dtest=JmaArchiveDownloaderTest,JmaYearIngestRunnerTest -Dsurefire.failIfNoSpecifiedTests=false test
+		-Dtest=JmaHeadRetryTransportTest,JmaArchiveDownloaderTest,JmaYearIngestRunnerTest -Dsurefire.failIfNoSpecifiedTests=false test
 	@python3 -m unittest discover -s airflow/tests -p 'test_jma_*.py'
 
 test-jma-qa: ## JMA-05 offline error/readback/revision/resume QA, không gọi nguồn hoặc MinIO thật
 	@./mvnw --batch-mode --no-transfer-progress -pl spark -am \
-		-Dtest=JmaArchiveDownloaderTest,JmaArchiveValidatorTest,JmaBronzeWriterTest,JmaYearIngestRunnerTest,JmaBronzeQaVerifierTest \
+		-Dtest=JmaHeadRetryTransportTest,JmaArchiveDownloaderTest,JmaArchiveValidatorTest,JmaBronzeWriterTest,JmaYearIngestRunnerTest,JmaBronzeQaVerifierTest \
 		-Dsurefire.failIfNoSpecifiedTests=false test
 	@python3 -m unittest discover -s airflow/tests -p 'test_jma_*.py'
 

@@ -115,6 +115,15 @@ class SourceScheduleTest(unittest.TestCase):
             with self.assertRaises(ReadinessError): refresh_jma(plan, environment=self.env)
         with self.assertRaises(ReadinessError): ready_summary(plan, {"archives": []}, {}, self.env)
 
+    def test_failed_probe_error_identifies_segment_without_private_exception(self):
+        plan = self.plan()
+        for reason, expected in (("JMA_HEAD_CONNECT_TIMEOUT", "JMA_HEAD_CONNECT_TIMEOUT"),
+                                 ("https://user:private@host", "RUNNER_FAILED")):
+            with patch("source_schedule_runtime.execute_archive", return_value={"status": "FAILED", "verified": False, "reason": reason}) as runner:
+                with self.assertRaisesRegex(ReadinessError, "^JMA_READINESS_FAILED year=1997 segment=jan-sep reason=" + expected + "$"):
+                    refresh_jma(plan, environment=self.env)
+                self.assertEqual(1, runner.call_count)
+
     def test_real_usgs_four_phases_and_dry_run_rejected(self):
         plan = self.plan()
         with self.assertRaises(ReadinessError): ingest_usgs(plan, {**self.env, "USGS_INGEST_DRY_RUN": "true"})

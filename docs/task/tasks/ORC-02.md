@@ -1,6 +1,6 @@
 ---
 task_id: "ORC-02"
-status: "Done"
+status: "Review"
 week: 4
 block: "F - Điều phối"
 workstream: "Scheduling"
@@ -35,7 +35,7 @@ Chốt daily schedule, timezone, overlap USGS, JMA catalog check, max active run
 
 ## Tiêu chí hoàn thành
 
-- [x] Daily run ổn định.
+- [ ] Daily run ổn định với bản vá 2026-10-13: cần recovery/run lại live; evidence 2026-10-08 giữ làm lịch sử.
 - [x] JMA chỉ kích hoạt năm thay đổi.
 - [x] timezone/data interval đúng.
 
@@ -70,7 +70,7 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Theo dõi
 
-- **Trạng thái:** Done
+- **Trạng thái:** Review
 - **Assignee:** HoaiTam
 - **Reviewer:** unassigned; khuyến nghị review độc lập cho P1, chưa có approval và không chặn Done theo workflow hiện hành.
 - **Evidence / PR:** [Evidence ORC-02](../../evidence/ORC-02.md), [runtime metadata](../../evidence/ORC-02-runtime.json); chưa mở PR.
@@ -118,11 +118,26 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 ## Checklist bàn giao
 
 - [x] Deliverable đã có trong repository hoặc môi trường demo.
-- [x] Acceptance criteria đã được kiểm tra.
+- [ ] Acceptance criteria đã được kiểm tra lại live sau bản vá readiness 2026-10-13.
 - [x] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
 - [x] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
 - [x] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
 - [ ] Reviewer độc lập cho P1 (khuyến nghị, chưa xác nhận; không chặn Done).
+
+## Bản vá readiness — 2026-10-13
+
+- Branch `fix/orc-02-jma-readiness-retry` từ latest `origin/main` `f832a70`.
+- Thêm bounded HEAD retry cho lỗi transient, reason/phase/attempts an toàn;
+  không retry GET/publication/task, không bypass SHA/readback hoặc TLS.
+- QA nhận diện failed scheduled interval hiện tại ngay, chỉ rõ task/archive,
+  không tự clear/trigger recovery hoặc chờ cron ngày mai; cleanup failure
+  giữ reason gốc và không ghi workflow VERIFIED.
+- [Evidence bản vá](../../evidence/ORC-02_READINESS_RETRY.md) và
+  [runbook recovery](../../specs/SOURCE_SCHEDULE_AND_READINESS.md).
+- **Review thật sự còn chờ:** ORC-02 - Cấu hình lịch và readiness cho hai nguồn:
+  build/deploy runner mới, operator recovery đúng lease chain và chạy lại
+  `make smoke-source-readiness` đạt scheduled/first/rerun/contention. Chưa
+  thực hiện live recovery trên dữ liệu của người dùng; không tự ghi Done.
 
 ## Tài liệu liên quan
 

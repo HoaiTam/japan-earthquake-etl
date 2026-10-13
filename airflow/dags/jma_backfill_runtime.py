@@ -26,7 +26,7 @@ PUBLIC_KEYS = {
     "verified", "reason", "download_status", "download_reused", "publication_reused",
     "catalog_release", "sha256", "record_count_estimate", "manifest_key", "manifest_uri",
     "raw_object_key", "raw_object_uri",
-    "manifest_sha256", "readiness_decision",
+    "manifest_sha256", "readiness_decision", "failure_phase", "http_head_attempts",
 }
 
 
@@ -184,6 +184,11 @@ def _public_result(result: Mapping[str, Any]) -> dict[str, Any]:
             public.pop(name + "_uri", None)
     if "reason" in public and not re.fullmatch(r"[A-Z][A-Z0-9_]{0,79}", str(public["reason"])):
         public["reason"] = "RUNNER_FAILED"
+    if "failure_phase" in public and (not isinstance(public["failure_phase"], str) or public["failure_phase"] not in {
+            "HTTP_HEAD", "DOWNLOAD", "SOURCE_PROBE_OR_CACHE", "PUBLICATION_STORE_OPEN", "PUBLICATION_READBACK", "PUBLICATION_WRITE"}):
+        public.pop("failure_phase")
+    if "http_head_attempts" in public and (type(public["http_head_attempts"]) is not int or not 0 <= public["http_head_attempts"] <= 5):
+        public.pop("http_head_attempts")
     return public
 
 

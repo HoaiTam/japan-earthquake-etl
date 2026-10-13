@@ -24,14 +24,16 @@ public final class JmaYearIngestRunner {
     private static final ObjectMapper JSON = new ObjectMapper();
     @FunctionalInterface interface StoreFactory { BronzeObjectStore create(); }
     private final Map<String, String> environment;
-    private final JmaArchiveTransport transport;
+    private final JmaHeadRetryTransport transport;
     private final StoreFactory storeFactory;
     private final Clock clock;
 
     JmaYearIngestRunner(Map<String, String> environment, JmaArchiveTransport transport,
             StoreFactory storeFactory, Clock clock) {
         this.environment = Map.copyOf(environment);
-        this.transport = Objects.requireNonNull(transport);
+        this.transport = new JmaHeadRetryTransport(Objects.requireNonNull(transport),
+                integer(environment, "JMA_HEAD_MAX_ATTEMPTS", 3, 1, 5),
+                integer(environment, "JMA_HEAD_INITIAL_BACKOFF_MS", 500, 0, 2000), Thread::sleep);
         this.storeFactory = Objects.requireNonNull(storeFactory);
         this.clock = Objects.requireNonNull(clock);
     }
@@ -107,6 +109,7 @@ public final class JmaYearIngestRunner {
         result.put("processing_date", processingDate.toString());
         result.put("status", "FAILED");
         result.put("verified", false);
+        String failurePhase = "SOURCE_PROBE_OR_CACHE";
         // Shared LocalExecutor volume: never mutate downloader state concurrently for the same segment.
         try (FileChannel channel = FileChannel.open(entryRoot.resolve("ingest.lock"),
                 StandardOpenOption.CREATE, StandardOpenOption.WRITE); var lock = channel.lock()) {
@@ -114,6 +117,7 @@ public final class JmaYearIngestRunner {
             var downloader = new JmaArchiveDownloader(transport, staging.resolve("downloads"), clock, maxBytes);
             JmaDownloadResult download = probe ? downloader.probe(entry)
                     : downloader.downloadOne(entry, input.path("force_download").asBoolean());
+            result.put("http_head_attempts", transport.attempts());
             if (probe && (download == null || input.path("force_download").asBoolean()
                     || !Files.isRegularFile(entryRoot.resolve("publication-" + download.sha256() + ".json")))) {
                 result.put("status", "NeedsIngest");
@@ -122,16 +126,19 @@ public final class JmaYearIngestRunner {
             }
             result.put("download_status", download.status());
             if (!download.succeeded()) {
-                result.put("reason", "DOWNLOAD_FAILED");
+                result.put("reason", headReason(download.error()) ? download.error() : "DOWNLOAD_FAILED");
+                result.put("failure_phase", headReason(download.error()) ? "HTTP_HEAD" : "DOWNLOAD");
                 return result;
             }
             result.put("sha256", download.sha256());
             result.put("catalog_release", download.catalogRelease());
             result.put("download_reused", download.idempotentReuse());
             Path pointer = entryRoot.resolve("publication-" + download.sha256() + ".json");
+            failurePhase = "PUBLICATION_STORE_OPEN";
             BronzeObjectStore store = storeFactory.create();
             try {
                 if (Files.exists(pointer)) {
+                    failurePhase = "PUBLICATION_READBACK";
                     JsonNode publication = JSON.readTree(Files.readAllBytes(pointer));
                     verify(store, entry, publication, download.sha256());
                     result.put("manifest_key", text(publication, "manifest_key"));
@@ -141,6 +148,7 @@ public final class JmaYearIngestRunner {
                     result.put("catalog_release", text(publication, "catalog_release"));
                     result.put("publication_reused", true);
                 } else {
+                    failurePhase = "PUBLICATION_WRITE";
                     Path archivePath = Path.of(download.archivePath());
                     if (Files.size(archivePath) > maxBytes) { throw new IOException("ARCHIVE_SIZE_LIMIT"); }
                     String publicationRun = runPath + "-" + year + "-" + segment;
@@ -187,9 +195,23 @@ public final class JmaYearIngestRunner {
             result.put("status", "FAILED");
             result.put("verified", false);
             result.remove("bronze_status");
-            result.put("reason", "PUBLICATION_OR_STATE_FAILED");
+            result.put("http_head_attempts", transport.attempts());
+            if (exception instanceof JmaHeadRetryTransport.Failure failure) {
+                result.put("reason", failure.getMessage());
+                result.put("failure_phase", "HTTP_HEAD");
+            } else if (Thread.currentThread().isInterrupted()) {
+                result.put("reason", "JMA_INTERRUPTED");
+                result.put("failure_phase", failurePhase);
+            } else {
+                result.put("reason", "JMA_" + failurePhase + "_FAILED");
+                result.put("failure_phase", failurePhase);
+            }
         }
         return result;
+    }
+
+    private static boolean headReason(String reason) {
+        return reason != null && reason.matches("JMA_HEAD_(CONNECT_TIMEOUT|TIMEOUT|DNS_FAILED|CONNECTION_FAILED|TLS_FAILED|IO_FAILED|HTTP_([1-5][0-9]{2}|INVALID))");
     }
 
     private static void verify(BronzeObjectStore store, JmaArchiveEntry entry, JsonNode publication,

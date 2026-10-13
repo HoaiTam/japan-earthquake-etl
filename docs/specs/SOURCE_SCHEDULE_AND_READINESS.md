@@ -81,6 +81,30 @@ probe trả NeedsIngest. Cache chưa có có thể bootstrap **chỉ watchlist �
 không tự tải 1984–2023. Cache SHA/length và Bronze readback đều đạt mới Unchanged.
 Publication corrupt fail closed, không sửa/overwrite để che lỗi.
 
+### HEAD retry có giới hạn (bản vá ORC-02, 2026-10-13)
+
+Java runner retry **chỉ HEAD** khi connect/request/socket timeout, DNS,
+connection reset/EOF hoặc HTTP `429/500/502/503/504`. Mặc định
+`JMA_HEAD_MAX_ATTEMPTS=3` (tổng số lần gọi, gồm lần đầu; range 1–5),
+`JMA_HEAD_INITIAL_BACKOFF_MS=500` (range 0–2000); backoff 500 rồi 1000 ms,
+capped 2000 ms. Đặt attempts=1 để tắt retry. Compose có defaults cho `.env` cũ.
+Với `JMA_HTTP_TIMEOUT_MS=60000`, ba request hết timeout có budget khoảng
+181.5 giây **cho mỗi HEAD**, không phải timeout chung cho bốn archives.
+Outer runner/DAG/QA deadlines vẫn áp dụng; tăng attempts/timeout không bảo đảm
+hoàn tất trước deadline và không phải cách sửa lỗi mạng kéo dài.
+
+Không retry TLS/certificate, HTTP permanent như 401/403/404, lỗi I/O chưa phân
+loại; interruption dừng ngay. Không đổi IPv4/IPv6, bỏ TLS verify hoặc fallback
+cache khi nguồn không reachable. Không retry GET/upload/publication hay cả task
+Airflow: tránh replay body có side effect. Cache SHA/length và readback Bronze
+vẫn phải đạt sau HEAD thành công; hết retry phải FAILED, không SourcesReady.
+
+Safe result thêm `http_head_attempts` (integer 0–5), `failure_phase` và reason
+như `JMA_HEAD_CONNECT_TIMEOUT`, `JMA_HEAD_HTTP_503`,
+`JMA_PUBLICATION_READBACK_FAILED`. Exception text/URL/credential không đi vào
+reason. Log task readiness ghi year/segment/reason để phân biệt lỗi nguồn và
+lỗi readback; manifest Bronze đã publish không bị sửa để thêm telemetry.
+
 Chủ nhật UTC theo **interval end**, không theo now(), force GET/checksum exact
 watchlist để bắt revision cùng ETag/Last-Modified. Đây là audit có chủ đích,
 không coi archive chắc chắn đổi. Header-only change/audit cùng SHA reuse exact
@@ -173,6 +197,44 @@ Không gọi đây là một production daily run đang bị treo. Harness khôi
 pause state của hai DAG, release **chỉ QA lease**, giữ failed run/log/evidence.
 Metadata reports ở `<SOURCE_READINESS_ROOT>/qa/<evidence-id>/`; không commit
 raw data, staging, log hoặc `.env`. Evidence task ở [ORC-02](../evidence/ORC-02.md).
+
+### Khi `smoke-source-readiness` gặp failed scheduled run
+
+Harness so **`data_interval_end` trong metadata**, không suy interval từ tên
+run. Nếu latest completed cron interval đã có scheduled run FAILED, dừng ngay
+với `SCHEDULED_RUN_FAILED_RECOVER_REQUIRED`; không unpause/trigger run mới,
+không đợi tới cron ngày mai và không tự clear task. Terminal và `failure.json`
+ghi phase, DAG/run ID, failed tasks; với default JMA watchlist, đọc tối đa
+64 KiB/segment từ đúng run để báo archive year/segment/runner reason/attempts.
+Metadata cũ vẫn có thể là `PUBLICATION_OR_STATE_FAILED`; không suy ra timeout
+chắc chắn từ reason cũ. Unknown error chỉ ghi `QA_UNEXPECTED_FAILURE`.
+Cleanup lỗi được ghi bằng mã an toàn trong `cleanup_failed`, vẫn cố khôi phục
+cả hai DAG và giữ nguyên reason gốc; không ghi workflow VERIFIED khi chưa
+khôi phục pause state/release QA lease thành công.
+SUCCESS thiếu/sai report không được coi là nghiệm thu: dừng với
+`SCHEDULED_SUCCESS_INVALID_REPORT`. Failed interval cũ không chặn interval mới.
+
+Operator recovery (thực hiện có chủ đích, **không tự động trong test**):
+
+1. Chạy `make docker-build` một lần để đóng gói Java/harness mới; khi không có
+   run active mới chạy `make docker-up`. Không cần build/up trước mỗi smoke.
+2. Trong Airflow kiểm tra cả daily/USGS/JMA backfill không queued/running và
+   không có lease của run khác. Nếu owner còn stale, dùng runbook
+   [ORC-05 — recovery/concurrency](./RECOVERY_AND_RESOURCES.md); không tự xóa
+   `owner.json`, cache, bucket hoặc volume.
+3. Giữ daily paused khi xem run failed. Chọn **đúng run ID** ở Grid/Graph;
+   clear `acquire_source_lease` với **Downstream**, gồm JMA, USGS, summary,
+   release và completion gate. Không chọn Past/Future hay Only failed.
+   `resolve_daily`/plan đã pin được giữ nguyên. Không clear riêng JMA vì lease
+   cũ đã release; acquisition phải chạy lại trước source I/O.
+4. Unpause có chủ đích để scheduler thực thi run đã clear; kiểm tra bảy tasks
+   success, `run_summary.json` SourcesReady/verified=true/published=false và
+   lease đã release. Chạy `make smoke-source-readiness` để nghiệm thu toàn bộ
+   scheduled → first → rerun → contention; harness khôi phục pause state lúc
+   bắt đầu test. Nếu nguồn vẫn timeout thì dừng, giữ evidence, không ép Ready.
+
+Bản vá/test regression và giới hạn live tại
+[ORC-02 — readiness retry evidence](../evidence/ORC-02_READINESS_RETRY.md).
 
 Vận hành normal: `make up-airflow`, kiểm tra import errors và profile, rồi
 unpause `orc_02_daily_sources` ở UI. Không unpause `orc_01_etl_pipeline` để chạy

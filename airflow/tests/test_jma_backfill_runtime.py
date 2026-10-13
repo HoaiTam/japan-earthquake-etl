@@ -11,7 +11,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "dags"))
 from jma_backfill_runtime import (
-    JmaRunnerError, execute_archive, require_complete, resolve_plan, write_run_summary,
+    JmaRunnerError, _public_result, execute_archive, require_complete, resolve_plan, write_run_summary,
 )
 
 REPOSITORY = Path(__file__).parents[2]
@@ -54,6 +54,17 @@ class JmaBackfillRuntimeTest(unittest.TestCase):
         self.assertEqual("1996-12-31T15:00:00Z", plan["run_context"]["window_start_utc"])
         self.assertEqual("2023-12-31T15:00:00Z", plan["run_context"]["window_end_utc"])
         self.assertEqual(64, len(plan["run_context"]["inventory_sha256"]))
+
+    def test_head_telemetry_is_bounded_and_invalid_values_are_removed(self):
+        result = _public_result({"failure_phase": "HTTP_HEAD", "http_head_attempts": 3,
+                                 "reason": "JMA_HEAD_CONNECT_TIMEOUT", "private": "hidden"})
+        self.assertEqual("HTTP_HEAD", result["failure_phase"])
+        self.assertEqual(3, result["http_head_attempts"])
+        self.assertNotIn("private", result)
+        for phase, count in (("private-url", 6), ({"secret": "hidden"}, True), (None, -1), ([], "3")):
+            result = _public_result({"failure_phase": phase, "http_head_attempts": count})
+            self.assertNotIn("failure_phase", result)
+            self.assertNotIn("http_head_attempts", result)
 
     def test_inclusive_range_and_preview_default(self):
         plan = resolve_plan(self.context({"start_year": 1996, "end_year": 1998}), self.env)
