@@ -23,7 +23,7 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 ## Tổng quan
 
 - Tổng số task: **73**.
-- Foundation: **9 task `Done`**.
+- Foundation: **8 task `Done`**, FND-01 `Review` chờ nghiệm thu runtime của lifecycle mới.
 - Task còn ở trạng thái `Needs Update`: **0**.
 - Core: **65 task**.
 - Stretch: **8 task**.
@@ -52,7 +52,7 @@ assignee/evidence chính thức nằm trong từng file.
 | [AFL-01](./AFL-01.md) - Cấu hình Airflow local | 1 | Orchestration | Core | P0 | 7h | Done |
 | [SPK-01](./SPK-01.md) - Cấu hình Spark standalone và Java build | 1 | Compute | Core | P0 | 6h | Done |
 | [QRY-01](./QRY-01.md) - Cấu hình Iceberg REST Catalog và Trino | 1 | Serving | Core | P1 | 7h | Done |
-| [FND-01](./FND-01.md) - Tạo smoke checklist cho môi trường | 1 | QA | Core | P0 | 4h | Done |
+| [FND-01](./FND-01.md) - Tạo smoke checklist cho môi trường | 1 | QA | Core | P0 | 4h | Review |
 
 SPK-01 được kiểm chứng lại ngày 2026-10-08 sau hotfix Docker builder thiếu
 fixture/inventory; assignee `HoaiTam`, reviewer `unassigned`. Xem

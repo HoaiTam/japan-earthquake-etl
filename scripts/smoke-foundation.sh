@@ -6,7 +6,6 @@ script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 project_root=$(CDPATH= cd -- "$script_dir/.." && pwd)
 compose_file=${COMPOSE_FILE:-"$project_root/compose.yaml"}
 env_file=${ENV_FILE:-"$project_root/.env"}
-wait_timeout=${FOUNDATION_WAIT_TIMEOUT_SECONDS:-300}
 failed=0
 
 if [ "$#" -ne 0 ]; then
@@ -19,13 +18,6 @@ if [ ! -f "$env_file" ]; then
     printf 'Create it from .env.example and replace every change-me-* value.\n' >&2
     exit 1
 fi
-
-case "$wait_timeout" in
-    ""|0|*[!0-9]*)
-        printf 'ERROR: FOUNDATION_WAIT_TIMEOUT_SECONDS must be a positive integer.\n' >&2
-        exit 1
-        ;;
-esac
 
 compose() {
     docker compose --env-file "$env_file" -f "$compose_file" "$@"
@@ -180,33 +172,18 @@ check_mount() {
     fi
 }
 
-run_step "FND-01 static checklist" \
-    env ENV_FILE="$env_file" COMPOSE_FILE="$compose_file" \
-    "$project_root/scripts/check-foundation.sh" --require-local
-
-run_step "Build pinned MinIO and Spark images" \
-    compose build minio spark-master
-
-run_step "Start all required foundation services" \
-    compose up -d --wait --wait-timeout "$wait_timeout" --no-build \
-    minio \
-    airflow-postgres \
-    airflow-api-server \
-    airflow-scheduler \
-    airflow-dag-processor \
-    spark-master \
-    spark-worker \
-    iceberg-rest \
-    trino
+ENV_FILE="$env_file" "$project_root/scripts/check-config.sh" --require-local
+ENV_FILE="$env_file" COMPOSE_FILE="$compose_file" \
+    python3 "$project_root/scripts/docker-runtime.py" check --component foundation
 
 run_step "MinIO read/write smoke" \
-    compose --profile smoke run --rm --no-deps minio-smoke
+    compose --profile smoke run --rm --no-deps --pull never minio-smoke
 run_step "Airflow DAG smoke" \
-    compose --profile smoke run --rm --no-deps airflow-smoke
+    compose --profile smoke run --rm --no-deps --pull never airflow-smoke
 run_step "Spark submit smoke" \
-    compose --profile smoke run --rm --no-deps --use-aliases spark-client
+    compose --profile smoke run --rm --no-deps --pull never --use-aliases spark-client
 run_step "Trino Iceberg query smoke" \
-    compose --profile smoke run --rm --no-deps trino-smoke
+    compose --profile smoke run --rm --no-deps --pull never trino-smoke
 
 project_name=$(compose config | awk '$1 == "name:" { print $2; exit }')
 if [ -z "$project_name" ]; then

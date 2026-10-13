@@ -6,8 +6,8 @@ compose_file=${COMPOSE_FILE:-"$project_root/compose.yaml"}
 env_file=${ENV_FILE:-"$project_root/.env"}
 ENV_FILE="$env_file" "$project_root/scripts/check-config.sh" --require-local
 "$project_root/scripts/check-real-sample-catalog.sh"
-docker compose --env-file "$env_file" -f "$compose_file" \
-    up -d --build --wait --wait-timeout 300 airflow-api-server airflow-scheduler airflow-dag-processor
+ENV_FILE="$env_file" COMPOSE_FILE="$compose_file" \
+    python3 "$project_root/scripts/docker-runtime.py" check --component jma
 docker compose --env-file "$env_file" -f "$compose_file" --profile live \
-    run --rm --no-deps jma-live-qa
+    run --rm --no-deps --pull never jma-live-qa
 printf 'JMA-05 live QA completed; scoped evidence, services and all volumes were kept.\n'

@@ -98,13 +98,15 @@ make smoke-silver-integration
 
 Offline suite dùng fixture/mock/temp filesystem. In-memory S3 URI tests không
 được gọi là live MinIO. Smoke cần `make up WAIT_TIMEOUT=600` đã healthy và ba
-Bronze pins tồn tại; target build image mới, không restart các service đang chạy.
+Bronze pins tồn tại; image được chuẩn bị bằng `make docker-build` trước startup.
+Smoke chỉ preflight, không build/restart/start/init các service.
 Smoke ghi bundle QA riêng `slv09-live-<uuid>`, không chạm Gold/Iceberg.
 
 Nếu image runtime Spark Java17 đã có và muốn tránh tải lại dependencies khi
-build Docker, package JAR mới bằng `make package-java` rồi chạy
+build Docker, package JAR trên JDK17 bằng `make package-java` rồi chạy
 `make smoke-silver-integration SILVER_RUNNER_JAR="$(pwd)/spark/target/japan-earthquake-etl-runner.jar"`.
-Option yêu cầu đường dẫn tuyệt đối/file tồn tại, mount JAR read-only vào one-off
+Option yêu cầu đường dẫn tuyệt đối/file tồn tại và SHA khớp package receipt với
+source hiện tại; custom image vẫn phải có build-input label phù hợp. Mount JAR read-only vào one-off
 client; không thay JAR trong các foundation containers đang chạy. Dùng đúng
 JAR runner shaded (không phải thin JAR). Wrapper vẫn kiểm tra Java17 thật,
 lease, exact input, dataset readback và rerun như mode build mặc định.

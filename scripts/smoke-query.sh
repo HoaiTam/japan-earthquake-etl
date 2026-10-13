@@ -20,16 +20,9 @@ fi
 
 ENV_FILE="$env_file" "$project_root/scripts/check-config.sh" --require-local
 ENV_FILE="$env_file" COMPOSE_FILE="$compose_file" \
-    "$project_root/scripts/check-query.sh"
-
+    python3 "$project_root/scripts/docker-runtime.py" check --component query
 docker compose --env-file "$env_file" -f "$compose_file" \
-    up -d --wait minio
-docker compose --env-file "$env_file" -f "$compose_file" \
-    run --rm --no-deps minio-init
-docker compose --env-file "$env_file" -f "$compose_file" \
-    up -d --wait --no-build iceberg-rest trino
-docker compose --env-file "$env_file" -f "$compose_file" \
-    --profile smoke run --rm --no-deps trino-smoke
+    --profile smoke run --rm --no-deps --pull never trino-smoke
 
 printf '%s\n' \
     'QRY-01 runtime smoke completed; MinIO, Catalog, Trino and durable volumes are preserved.'

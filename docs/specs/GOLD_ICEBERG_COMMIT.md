@@ -65,13 +65,15 @@ Run context dùng snake_case trong `run_context`; cần `dag_id`, `namespace`,
 vào request; catalog/warehouse/MinIO lấy environment theo QRY-01.
 
 Smoke opt-in qua `spark-gold-qa` profile `gold`, sau khi foundation MinIO/Catalog
-healthy và staging volume được init bởi Airflow. Build JAR trước rồi:
+healthy và staging volume được init bởi Airflow. Chuẩn bị trước rồi chạy:
 
-    docker compose --env-file .env build spark-gold-qa
-    docker compose --env-file .env run --rm --no-deps spark-gold-qa
+    make docker-build
+    make docker-up WAIT_TIMEOUT=600
+    make smoke-gold-storage
 
 `make test-gold-storage` chạy offline writer/control tests; `make smoke-gold-storage`
-build/verify JAR, build QA image và chạy service trên foundation đã khởi tạo.
+preflight image/host JAR đã verify và chạy service trên foundation đã khởi tạo;
+không build/start/init lại. Xem [Docker runtime workflow](../DOCKER_RUNTIME_WORKFLOW.md).
 Runtime evidence nằm [GLD-03](../evidence/GLD-03.md).
 
 QA chỉ tạo namespace `gold_qa_<uuid>`, capture USGS public đã có trong fixture repo,

@@ -32,8 +32,11 @@ make env-init
 make check-config-local
 make config
 
-# Build image MinIO/Airflow/Spark, start foundation và chờ healthy.
-make up
+# Chuẩn bị image/JAR riêng; chỉ cần khi lần đầu hoặc build inputs thay đổi.
+make docker-build
+# Start foundation, không build/pull; reuse init đã hoàn tất đúng config/image.
+make docker-up WAIT_TIMEOUT=600
+make docker-check
 make status
 ```
 
@@ -44,16 +47,20 @@ bị preflight chặn. Makefile không `include`/`source` file secret vào shell
 
 | Target | Làm gì / dùng khi nào |
 |---|---|
-| `build` | Validate local env và đầu vào Java builder, build đủ ba image custom; chưa start service |
-| `up` / `start` | Build trước, start 9 foundation service, chờ health; dependency init chạy qua Compose |
-| `up-minio` | Start MinIO, chờ healthy rồi chạy init bootstrap bucket bằng container tạm |
-| `up-airflow` | Build/start API, scheduler, DAG processor cùng MinIO, PostgreSQL và init dependency |
-| `up-spark` | Build image chung trước khi start master/worker, tránh worker pull image local chưa có |
-| `up-query` | Start Iceberg REST Catalog/Trino cùng MinIO và bucket init |
+| `docker-build` / `build` | Build 4 images và Java17 JAR trong Docker, export artifacts, pull dependencies; không start/init |
+| `docker-up` / `up` / `start` | Start 9 foundation service bằng image hiện có; init chỉ khi cần, không build/pull |
+| `docker-check` | Read-only health/init/config/image fingerprint, không thay đổi hệ thống |
+| `up-minio` | Start MinIO, init chỉ khi chưa hoàn tất đúng config; không build/pull |
+| `up-airflow` | Start API/scheduler/DAG processor và dependencies cần thiết; không build/pull |
+| `up-spark` | Start master/worker và chuẩn bị staging khi cần; không build/pull |
+| `up-query` | Start MinIO/Catalog/Trino với bootstrap gate; không build/pull |
 
 Khởi động service không đồng nghĩa chạy test hoặc trigger ETL. `up-airflow` bật
 scheduler; DAG nào đã unpause sẽ có thể chạy theo lịch/catchup đã cấu hình.
 Image đã build được tận dụng cache ở lần chạy sau.
+Smoke không tự gọi build/up/init. Thiếu/stale image hoặc host JAR, config drift,
+service không healthy hay init chưa exit0 đều fail trước bài test. Chi tiết
+fingerprints, migration từ images cũ và timeout ở [Docker runtime workflow](./DOCKER_RUNTIME_WORKFLOW.md).
 
 ```bash
 make up-airflow
@@ -91,13 +98,14 @@ Internet khi dependency chưa được cache.
 | `etl-preview` | In run context/exact scope fixture ORC-01 offline, không ghi hoặc gọi service |
 | `etl-mock` | Chạy sáu phase fixture, chỉ `MockComplete`, `published=false`, không tạo Gold snapshot thật |
 | `test-observability` | ORC-04 equations, empty/failure/retry/rerun, secret/projection/persistence + ORC-01 và ORC-03 scoped integration tests |
-| `smoke-backfill-observability` | Build image và one-off ORC-03 exact Bronze readback/rerun dưới lease + ORC-04 summary; chỉ QA metadata, không nguồn/lake write/restart stack |
+| `smoke-backfill-observability` | Preflight và one-off ORC-03 exact Bronze readback/rerun dưới lease + ORC-04 summary; không build/start, chỉ QA metadata |
 | `observability-smoke` | Metadata-only success/failure/rerun; persist vào `staging/run-summary`, không tải nguồn |
 | `observability-read RUN_SUMMARY_RUN_ID=<id>` | Đọc local summary theo exact DAG/run ID, đối chiếu state; `RUN_SUMMARY_DAG` mặc định ORC-01 |
 | `test-jma-backfill` | JMA-04 downloader/Java runner/planner/DAG, fixture/storage/HTTP mock; không gọi nguồn |
 | `test-jma-qa` | JMA-05 offline success/error/revision/resume và independent readback verifier; không gọi nguồn/MinIO thật |
 | `jma-preview JMA_YEARS=1997,2023` | Preview offline ba exact archive entries; chỉ ghi plan metadata ở staging |
-| `package-java` | Maven `clean verify`, gồm unit test và đóng gói JAR |
+| `package-java` | Maven `clean verify` trên host JDK17 và receipt SHA của runner/Iceberg JAR; không gọi Docker |
+| `test-docker-runtime` | Lifecycle/readiness/freshness/init/export/Make/shell regression bằng mocks; nằm trong ci-docs |
 | `check` | Contract + config hygiene + full static foundation/USG-06, gồm Compose validation và Maven verify |
 
 Các `check-*` riêng được liệt kê đầy đủ trong `make help`; tên target khớp tên
@@ -126,8 +134,8 @@ tracked, chỉ dùng khi maintainer chủ động tái tạo; không nằm trong
 
 Nếu `make up` thất bại ở Maven với `../tests/fixtures`, `../config/jma` hoặc
 `Repository fixture root not found`, chạy `make check-java-build-inputs`, rồi
-build lại sau khi cập nhật Dockerfile. `build`, `up-spark`, `up-airflow` và
-`smoke-source-readiness` có gate này trước Docker build. Không bỏ test hoặc
+build lại sau khi cập nhật Dockerfile. `build`/`docker-build` có gate này trước
+Docker build; `up-*` không còn build. Không bỏ test hoặc
 xóa volume. `WAIT_TIMEOUT=600` chỉ tăng thời gian chờ service healthy **sau**
 build, không đặt timeout cho Maven. Hướng dẫn và evidence tại
 [Spark build contract](./specs/SPARK_STANDALONE.md#41-đầu-vào-kiểm-thử-trong-docker-builder).
@@ -135,7 +143,7 @@ build, không đặt timeout cho Maven. Hướng dẫn và evidence tại
 JMA-04 có DAG manual `jma_04_year_backfill`; preview mặc định không download
 hoặc ghi Bronze. Hướng dẫn conf years/range, retry/reuse, giới hạn tài nguyên
 và cách chuyển sang real mode nằm ở [JMA year backfill](./specs/JMA_YEAR_BACKFILL.md).
-Airflow image phải rebuild bằng `make up-airflow` trước khi gọi Java runner mới.
+Airflow image cần `make docker-build`, rồi `make up-airflow` trước khi gọi Java runner mới.
 
 ORC-01 có khung DAG manual `orc_01_etl_pipeline`; commands mock không đọc `.env`
 hoặc gọi nguồn/MinIO/Spark/Trino. Real mode thiếu adapter hoặc explicit scope
@@ -155,7 +163,7 @@ make smoke-spark
 make smoke-query
 ```
 
-`smoke-foundation` build đủ image custom, kể cả Airflow Java17 trước cold start,
+`smoke-foundation` preflight stack đã chạy, không build/start/init,
 rồi gọi checklist FND-01. Script kiểm tra 9 service healthy, 2 init exit `0`,
 network, volume/mount, startup log và bốn smoke hành vi. Các smoke có tạo
 object/table/DAG run kiểm thử; chỉ cleanup đúng artifact smoke, giữ service và
@@ -186,7 +194,7 @@ manifest/raw `BronzeReady` cùng checksum/count và JMA staged ZIP
 `STAGED_SOURCE` cùng checksum/member/record length/count; không coi staged ZIP
 JMA là BronzeReady hoặc Silver đã parse.
 
-`smoke-jma-live` build/start Airflow và dependencies, chạy DAG manual thật rồi
+`smoke-jma-live` preflight Airflow/dependencies đã chạy, chạy DAG manual thật rồi
 Java verify exact keys/readback và so baseline trước–sau rerun. Giữ nguyên
 catalog DAT-01 hai entry; metadata sample 2000/report QA lưu riêng trên staging.
 Phạm vi, report paths, timeout/recovery và handoff ở
@@ -226,7 +234,8 @@ Không có target xóa volume/bucket hoặc reset data.
 | `ENV_FILE` | `.env` | Config local cho startup/smoke/Compose/readback/config validation |
 | `CHECK_ENV_FILE` | `.env.example` | Config cho static platform `check-*`; cho phép check trước khi có secret local |
 | `COMPOSE_FILE` | `compose.yaml` | Compose file dùng cho các wrapper/script có hỗ trợ |
-| `WAIT_TIMEOUT` | `300` | Số giây chờ health của `up-*`/`up` và full foundation smoke |
+| `WAIT_TIMEOUT` | `300` | Tổng budget startup/init/health của `docker-up`/`up-*` |
+| `DOCKER_CHECK_TIMEOUT` | `20` | Tổng budget Docker CLI của read-only preflight |
 | `SERVICE` | Rỗng | Bộ lọc service cho status/log/restart/stop |
 | `TAIL` | `100` | Số dòng log gần nhất |
 | `DAT01_AIRFLOW_CONTAINER` | Rỗng | Container dùng cho readback DAT-01 thay cho Compose exec |

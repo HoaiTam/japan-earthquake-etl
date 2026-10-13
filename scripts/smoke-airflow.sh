@@ -20,16 +20,10 @@ fi
 
 ENV_FILE="$env_file" "$project_root/scripts/check-config.sh" --require-local
 ENV_FILE="$env_file" COMPOSE_FILE="$compose_file" \
-    "$project_root/scripts/check-airflow.sh"
+    python3 "$project_root/scripts/docker-runtime.py" check --component airflow
 
 docker compose --env-file "$env_file" -f "$compose_file" \
-    up -d --wait \
-    airflow-api-server \
-    airflow-scheduler \
-    airflow-dag-processor
-
-docker compose --env-file "$env_file" -f "$compose_file" \
-    --profile smoke run --rm --no-deps airflow-smoke
+    --profile smoke run --rm --no-deps --pull never airflow-smoke
 
 printf '%s\n' \
     'AFL-01 runtime smoke completed; Airflow services and metadata are preserved.'

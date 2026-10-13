@@ -8,7 +8,7 @@ giao cho Silver. Nó không chạy Silver/Gold/ML và không tải toàn bộ 40
 | Thành phần | Làm gì | Dùng để làm gì |
 |---|---|---|
 | `make test-jma-qa` | Chạy downloader/validator/writer/runner/verifier và orchestration tests offline | Test nhanh bằng fixture/mock, không cần nguồn hay MinIO thật |
-| `scripts/smoke-jma-live.sh` / `make smoke-jma-live` | Validate config/catalog, build/start Airflow và chạy live profile | Một entry point chạy đúng môi trường Java17/MinIO/Airflow |
+| `scripts/smoke-jma-live.sh` / `make smoke-jma-live` | Validate config/catalog, preflight runtime đã chạy và chạy live profile | Không build/start/init lại, vẫn kiểm tra Java17/MinIO/Airflow |
 | `compose/airflow/jma-live-qa.py` | Trigger preview → first → rerun trên DAG thật, chờ trạng thái, giữ/khôi phục pause | Kiểm tra scheduler/mapped tasks thực thi và không thay lịch DAG khác |
 | `JmaBronzeQaVerifier` | Đọc exact manifest/raw, ZIP/96-byte/count/SHA/release, DAT-01 và baseline report | Đối soát độc lập với summary, phát hiện raw/manifest bị sửa giữa hai run |
 | Report metadata | Year/segment/release/run/attempt, URI, SHA, bytes/count, coverage, readback/reuse | Handoff input thật mà không commit ZIP, credential hoặc log payload |
@@ -49,12 +49,14 @@ object DAT-01 còn tồn tại trên MinIO. Không gửi nội dung `.env`/crede
 
 ```bash
 make check-config-local
+make docker-build
+make docker-up WAIT_TIMEOUT=600
 make verify-samples
 make smoke-jma-live
 ```
 
-Lệnh live build image, start đúng Airflow/MinIO/PostgreSQL dependencies và
-chạy service `jma-live-qa` trong profile `live`. Không bật full Spark/Trino,
+Lệnh live preflight Airflow/MinIO/PostgreSQL đã ready rồi chạy service `jma-live-qa`
+trong profile `live`, `--no-deps --pull never`. Không build/start/init lại hoặc bật full Spark/Trino,
 không tự chạy full 40 năm, không xóa volume/bucket và không sửa `.env`.
 DAG manual được unpause trong QA và khôi phục đúng trạng thái ban đầu cuối
 run. Với active run của operator khác, `max_active_runs=1` có thể làm QA chờ;

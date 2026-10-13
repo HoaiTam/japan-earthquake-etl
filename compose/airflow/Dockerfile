@@ -39,3 +39,6 @@ COPY --chown=airflow:0 config/jma/hypocenter_archives_v1.csv \
     /opt/pipeline/config/jma/hypocenter_archives_v1.csv
 
 USER airflow
+
+ARG PIPELINE_BUILD_SHA
+LABEL com.japan-earthquake-etl.build-input-sha256=$PIPELINE_BUILD_SHA

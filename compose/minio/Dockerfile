@@ -42,3 +42,6 @@ VOLUME ["/data"]
 
 ENTRYPOINT ["/usr/bin/minio"]
 CMD ["server", "/data"]
+
+ARG PIPELINE_BUILD_SHA
+LABEL com.japan-earthquake-etl.build-input-sha256=$PIPELINE_BUILD_SHA

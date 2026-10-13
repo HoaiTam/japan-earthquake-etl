@@ -219,11 +219,12 @@ git diff --check
 ```
 
 Maven dùng JDK 17/21 được repo chấp nhận, không Java 26. Build Java/image mới
-trước chạy reuse/verifier thật: `make up-airflow WAIT_TIMEOUT=600` (có rebuild/
-recreate service, chọn thời điểm không có DAG đang chạy). `.env` cũ không bắt
+trước chạy reuse/verifier thật: `make docker-build`, rồi
+`make up-airflow WAIT_TIMEOUT=600` (startup có thể recreate khi image/config đổi;
+chọn thời điểm không có DAG đang chạy). `.env` cũ không bắt
 buộc thêm keys; Compose có default verifier và scoped command rỗng.
 
-`smoke-backfill-readback` là live read-only QA: build image mới, chạy one-off
+`smoke-backfill-readback` là live read-only QA: preflight image đã chuẩn bị, chạy one-off
 container `--no-deps`, gọi runtime API reuse hai manifests trong sample rồi
 rerun cùng operation dưới shared lease. Không restart foundation, trigger
 scheduler, unpause DAG, tải nguồn, ghi lake hoặc thay runner container đang
