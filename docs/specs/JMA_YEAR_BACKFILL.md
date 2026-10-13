@@ -71,6 +71,11 @@ Release/SHA chưa biết ở preview và chỉ được resolve sau download, kh
 
 - HEAD kiểm tra validators/size; local ZIP chỉ reuse khi SHA/length được đọc
   lại, source URL và validators khớp, state có metadata GET thật.
+- Java runner bọc HEAD bằng bounded transient retry, mặc định 3 attempts,
+  backoff 500/1000 ms; không retry GET/publication/task hoặc bypass readback.
+  Hết retry trả safe reason + `failure_phase=HTTP_HEAD` + `http_head_attempts`.
+  Chi tiết policy/status và recovery tại
+  [ORC-02 readiness](./SOURCE_SCHEDULE_AND_READINESS.md#head-retry-có-giới-hạn-bản-vá-orc-02-2026-10-13).
 - State cũ JMA-02 thiếu GET status/type: download lại một lần để bổ sung,
   không fabricate 200. Constructor cũ của result/payload vẫn dùng được.
 - GET timeout và body size guard áp dụng cả response chunked. ZIP tối đa
@@ -149,6 +154,8 @@ cho JMA-05 và SLV-01; SLV-01 cần stage exact manifest về local path trướ
 | `JMA_INGEST_RUNNER_TIMEOUT_SECONDS` | 900; 1–3600 | Giới hạn một archive attempt |
 | `JMA_BACKFILL_MAX_CONCURRENCY` | 1; requested1–4, effective1 | ORC-05 cap `max_active_tis_per_dag` ở một archive |
 | `JMA_HTTP_TIMEOUT_MS` | 60000; 1000–300000 | HEAD/GET timeout |
+| `JMA_HEAD_MAX_ATTEMPTS` | 3; 1–5 | Tổng HEAD attempts, kể cả lần đầu; 1 tắt retry |
+| `JMA_HEAD_INITIAL_BACKOFF_MS` | 500; 0–2000 | Backoff exponential HEAD, capped 2000 ms |
 | `JMA_MAX_ARCHIVE_BYTES` | 134217728; 1024–134217728 | Guard trước/during download |
 | `JMA_INVENTORY_PATH` | `/opt/pipeline/config/jma/hypocenter_archives_v1.csv` | Inventory đóng gói trong image |
 | `JMA_STAGING_ROOT` | `/opt/pipeline/staging/jma` | Shared cache/context/summary |

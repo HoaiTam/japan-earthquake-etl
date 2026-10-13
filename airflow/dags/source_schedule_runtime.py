@@ -92,7 +92,9 @@ def refresh_jma(plan, attempt=1, environment=None):
         result = execute_archive(plan["jma"], archive, attempt, env) if invoked else probe
         if (not _ready(result) or not str(result.get("manifest_uri", "")).startswith("s3://")
                 or not re.fullmatch(r"[0-9a-f]{64}", str(result.get("manifest_sha256", "")))):
-            raise ReadinessError("JMA readiness failed; no downstream handoff")
+            reason = result.get("reason", "RUNNER_FAILED")
+            reason = reason if isinstance(reason, str) and re.fullmatch(r"[A-Z][A-Z0-9_]{0,79}", reason) else "RUNNER_FAILED"
+            raise ReadinessError(f"JMA_READINESS_FAILED year={archive['year']} segment={archive['segment']} reason={reason}")
         results.append({**result, "readiness_decision": decision, "ingest_invoked": invoked})
     _atomic_json(_root(plan, env) / "jma-readiness.json", {"archives": results})
     return {"archives": results}

@@ -185,13 +185,15 @@ class JmaYearIngestRunnerTest {
         assertThrows(IOException.class, () -> runner.run(wrongSegment));
     }
 
-    @Test void downloadFailureDoesNotWriteBronzeAndUnrelatedYearRemainsRunnable() throws Exception {
+    @Test void headFailureDoesNotWriteBronzeAndUnrelatedYearRemainsRunnable() throws Exception {
         FakeTransport transport = new FakeTransport();
         CountingStore store = new CountingStore(temporary.resolve("store"));
         JmaYearIngestRunner runner = runner(transport, store);
         transport.fail = true;
         var failed = runner.run(context(2023, "full-year", "one", 1, false));
-        assertEquals("DOWNLOAD_FAILED", failed.get("reason"));
+        assertEquals("JMA_HEAD_IO_FAILED", failed.get("reason"));
+        assertEquals("HTTP_HEAD", failed.get("failure_phase"));
+        assertEquals(1, failed.get("http_head_attempts"));
         assertEquals(0, store.writes.get());
         transport.fail = false;
         assertEquals("BronzeReady", runner.run(context(2000, "full-year", "one", 1, false)).get("status"));
@@ -243,7 +245,9 @@ class JmaYearIngestRunnerTest {
         assertEquals("FAILED", runner.run(probeContext(2023, "full-year", "offline", false)).get("status"));
         transport.fail = false;
         Files.writeString(store.root.resolve((String) first.get("manifest_key")), "{}");
-        assertEquals("FAILED", runner.run(probeContext(2023, "full-year", "corrupt", false)).get("status"));
+        var corrupt = runner.run(probeContext(2023, "full-year", "corrupt", false));
+        assertEquals("FAILED", corrupt.get("status"));
+        assertEquals("JMA_PUBLICATION_READBACK_FAILED", corrupt.get("reason"));
         assertEquals(1, transport.gets.get()); assertEquals(2, store.writes.get());
     }
 
@@ -254,6 +258,75 @@ class JmaYearIngestRunnerTest {
         assertEquals("BronzeReady", runner.run(probeContext(1997, "jan-sep", "check", false)).get("status"));
         assertEquals("NeedsIngest", runner.run(probeContext(1997, "oct-dec", "check", false)).get("status"));
         assertEquals(1, transport.gets.get());
+    }
+
+    @Test void transientHeadFailureReusesVerifiedPublicationWithoutGetOrWrite() throws Exception {
+        FakeTransport original = new FakeTransport();
+        CountingStore store = new CountingStore(temporary.resolve("store"));
+        var first = runner(original, store).run(context(2023, "full-year", "bootstrap", 1, false));
+        AtomicInteger calls = new AtomicInteger();
+        var transport = new JmaArchiveTransport() {
+            public JmaHttpMetadata head(URI uri) throws IOException {
+                if (calls.incrementAndGet() < 3) { throw new java.net.http.HttpConnectTimeoutException("private-text"); }
+                return original.head(uri);
+            }
+            public JmaHttpPayload get(URI uri, long offset) throws IOException { return original.get(uri, offset); }
+        };
+        var runner = new JmaYearIngestRunner(Map.of("JMA_INVENTORY_PATH", INVENTORY.toString(),
+                "JMA_STAGING_ROOT", temporary.resolve("staging").toString(), "JMA_HEAD_INITIAL_BACKOFF_MS", "0"),
+                transport, () -> store, CLOCK);
+        var result = runner.run(probeContext(2023, "full-year", "retry", false));
+        assertEquals("BronzeReady", result.get("status"));
+        assertEquals(3, result.get("http_head_attempts"));
+        assertEquals(first.get("manifest_uri"), result.get("manifest_uri"));
+        assertEquals(1, original.gets.get());
+        assertEquals(2, store.writes.get());
+    }
+
+    @Test void exhaustedHeadFailureNeverOpensStoreOrDownloadsAndReturnsSafeReason() throws Exception {
+        AtomicInteger calls = new AtomicInteger();
+        AtomicInteger stores = new AtomicInteger();
+        var transport = new JmaArchiveTransport() {
+            public JmaHttpMetadata head(URI uri) throws IOException {
+                calls.incrementAndGet(); throw new java.net.http.HttpConnectTimeoutException("private-credential");
+            }
+            public JmaHttpPayload get(URI uri, long offset) { fail("GET must not run"); return null; }
+        };
+        var runner = new JmaYearIngestRunner(Map.of("JMA_INVENTORY_PATH", INVENTORY.toString(),
+                "JMA_STAGING_ROOT", temporary.resolve("staging").toString(), "JMA_HEAD_INITIAL_BACKOFF_MS", "0"),
+                transport, () -> { stores.incrementAndGet(); throw new IllegalStateException(); }, CLOCK);
+        for (Path input : new Path[] {probeContext(2023, "full-year", "probe-failure", false),
+                context(2023, "full-year", "ingest-failure", 1, false)}) {
+            var result = runner.run(input);
+            assertEquals("FAILED", result.get("status"));
+            assertEquals(false, result.get("verified"));
+            assertEquals("JMA_HEAD_CONNECT_TIMEOUT", result.get("reason"));
+            assertEquals("HTTP_HEAD", result.get("failure_phase"));
+            assertEquals(3, result.get("http_head_attempts"));
+            assertFalse(JSON.writeValueAsString(result).contains("private-credential"));
+        }
+        assertEquals(6, calls.get());
+        assertEquals(0, stores.get());
+    }
+
+    @Test void getFailureDoesNotReplayBodyOrWriteBronze() throws Exception {
+        FakeTransport original = new FakeTransport();
+        CountingStore store = new CountingStore(temporary.resolve("store"));
+        AtomicInteger gets = new AtomicInteger();
+        var transport = new JmaArchiveTransport() {
+            public JmaHttpMetadata head(URI uri) throws IOException { return original.head(uri); }
+            public JmaHttpPayload get(URI uri, long offset) throws IOException {
+                gets.incrementAndGet(); throw new java.net.http.HttpTimeoutException("private-body-error");
+            }
+        };
+        var runner = new JmaYearIngestRunner(Map.of("JMA_INVENTORY_PATH", INVENTORY.toString(),
+                "JMA_STAGING_ROOT", temporary.resolve("staging").toString()), transport, () -> store, CLOCK);
+        var result = runner.run(context(2000, "full-year", "get-failure", 1, false));
+        assertEquals("DOWNLOAD_FAILED", result.get("reason"));
+        assertEquals("DOWNLOAD", result.get("failure_phase"));
+        assertEquals(1, result.get("http_head_attempts"));
+        assertEquals(1, gets.get());
+        assertEquals(0, store.writes.get());
     }
 
     private Path probeContext(int year, String segment, String run, boolean force) throws IOException {

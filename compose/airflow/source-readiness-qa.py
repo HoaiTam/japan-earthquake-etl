@@ -7,6 +7,7 @@ from datetime import datetime, timedelta, timezone
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import subprocess
 import sys
@@ -24,6 +25,72 @@ from source_schedule_runtime import profile
 
 DAG = "orc_02_daily_sources"
 BACKFILL = "jma_04_year_backfill"
+SAFE_REASONS = {
+    "AIRFLOW_CLI_FAILED", "DAILY_TRIGGER_FAILED", "DAG_RUN_FAILED", "SOURCE_TASKS_NOT_EXECUTED",
+    "DAG_TIMEOUT", "READINESS_REPORT_FAILED", "QA_REQUIRES_DEFAULT_BOUNDED_PROFILE", "DAG_IMPORT_ERRORS",
+    "UNKNOWN_PAUSE_STATE", "DAGS_NOT_SERIALIZED", "EXISTING_ACTIVE_RUN", "NO_SCHEDULED_INTERVAL_EVIDENCE",
+    "INTERVAL_OR_NO_CHANGE_FAILED", "RERUN_READBACK_CHANGED", "BACKFILL_NOT_BLOCKED_BEFORE_INGEST",
+    "FOREIGN_CLEANUP_REMOVED_LEASE", "SCHEDULED_RUN_FAILED_RECOVER_REQUIRED", "SCHEDULED_SUCCESS_INVALID_REPORT",
+}
+
+
+class QaFailure(RuntimeError):
+    def __init__(self, reason, dag_id=None, run_id=None):
+        super().__init__(reason)
+        self.dag_id, self.run_id = dag_id, run_id
+
+
+def failure_details(dag_id, run_id):
+    """Read only scoped safe metadata; never inspect exception text, XCom/env or private logs."""
+    if dag_id not in {DAG, BACKFILL} or not isinstance(run_id, str) or not re.fullmatch(
+            r"scheduled__[0-9T:.+\-Z]{10,80}|orc02-[0-9]{8}T[0-9]{6}Z-[a-f0-9]{12}-(first|rerun|contention)", run_id):
+        return {}
+    details = {"dag_id": dag_id, "run_id": run_id}
+    try:
+        states = task_states(dag_id, run_id)
+        allowed = {"resolve_daily", "acquire_source_lease", "jma_readiness", "usgs_bronze",
+                   "sources_ready", "release_source_lease", "completion_gate"}
+        if dag_id == BACKFILL:
+            allowed = {"jma_year_backfill." + name for name in ("resolve_plan", "acquire_source_lease", "select_archives",
+                "ingest_archive", "run_summary", "bronze_ready_gate", "release_source_lease", "completion_gate")}
+        details["failed_tasks"] = sorted(name for name, value in states.items() if name in allowed and value == "failed")
+        if dag_id == DAG and "jma_readiness" in details["failed_tasks"]:
+            slug = "jma-" + hashlib.sha256(run_id.encode()).hexdigest()[:32]
+            base = Path(os.environ.get("JMA_STAGING_ROOT", "/opt/pipeline/staging/jma")) / "runs" / slug
+            for year, segment in ((1997, "jan-sep"), (1997, "oct-dec"), (2000, "full-year"), (2023, "full-year")):
+                path = base / f"year={year}" / f"segment={segment}" / "result.json"
+                if path.is_symlink() or not path.is_file() or path.stat().st_size > 65536:
+                    continue
+                result = json.loads(path.read_text())
+                if result.get("status") != "FAILED":
+                    continue
+                reason = result.get("reason")
+                safe = isinstance(reason, str) and (reason in {"PUBLICATION_OR_STATE_FAILED", "RUNNER_FAILED", "DOWNLOAD_FAILED", "JMA_INTERRUPTED"}
+                    or re.fullmatch(r"JMA_HEAD_(CONNECT_TIMEOUT|TIMEOUT|DNS_FAILED|CONNECTION_FAILED|TLS_FAILED|IO_FAILED|HTTP_([1-5][0-9]{2}|INVALID))", reason)
+                    or reason in {"JMA_SOURCE_PROBE_OR_CACHE_FAILED", "JMA_PUBLICATION_STORE_OPEN_FAILED", "JMA_PUBLICATION_WRITE_FAILED", "JMA_PUBLICATION_READBACK_FAILED"})
+                details.update(archive_year=year, archive_segment=segment, runner_reason=reason if safe else "RUNNER_FAILED")
+                count = result.get("http_head_attempts")
+                if type(count) is int and 0 <= count <= 5:
+                    details["http_head_attempts"] = count
+                break
+    except Exception:
+        details["diagnostics_available"] = False  # Keep original failure; never echo a secondary exception.
+    return details
+
+
+def scheduled_for_interval(runs, expected_end):
+    for item in runs:
+        if not item["run_id"].startswith("scheduled__"):
+            continue
+        try:
+            matches = datetime.fromisoformat(item.get("data_interval_end", "")) == expected_end
+        except (TypeError, ValueError):
+            matches = False
+        if matches:
+            if item["state"] == "failed":
+                raise QaFailure("SCHEDULED_RUN_FAILED_RECOVER_REQUIRED", DAG, item["run_id"])
+            return item["run_id"]
+    return None
 
 
 def cli(*args):
@@ -41,7 +108,8 @@ def state(dag_id, run_id):
 
 def dagruns(dag_id):
     with create_session() as session:
-        return [{"run_id": row.run_id, "state": row.state} for row in session.query(DagRun)
+        return [{"run_id": row.run_id, "state": row.state,
+                 "data_interval_end": row.data_interval_end.isoformat() if row.data_interval_end else None} for row in session.query(DagRun)
                 .filter_by(dag_id=dag_id).order_by(DagRun.id.desc()).limit(100).all()]
 
 
@@ -66,7 +134,7 @@ def wait(dag_id, run_id, expected="success"):
     while time.monotonic() < deadline:
         current = state(dag_id, run_id)
         if current in {"success", "failed"}:
-            if current != expected: raise RuntimeError("UNEXPECTED_DAG_STATE")
+            if current != expected: raise QaFailure("DAG_RUN_FAILED", dag_id, run_id)
             if dag_id == DAG and expected == "success":
                 tasks = task_states(dag_id, run_id)
                 required = {"resolve_daily", "acquire_source_lease", "jma_readiness", "usgs_bronze",
@@ -75,7 +143,7 @@ def wait(dag_id, run_id, expected="success"):
                     raise RuntimeError("SOURCE_TASKS_NOT_EXECUTED")
             return current
         time.sleep(3)
-    raise RuntimeError("DAG_TIMEOUT")
+    raise QaFailure("DAG_TIMEOUT", dag_id, run_id)
 
 
 def summary(run_id):
@@ -94,6 +162,7 @@ def main():
     root.mkdir(parents=True, exist_ok=False)
     previous = {}; reports = {}; held = {"dag_id": "orc02_runtime_qa_holder", "run_id": token}
     held_acquired = False
+    phase = "profile"
     print("event=source_readiness_qa_started evidence_id=" + token, flush=True)
     try:
         settings = profile()
@@ -101,6 +170,7 @@ def main():
                 or settings["audit_weekday"] != 6 or os.environ.get("PIPELINE_OVERLAP_DAYS") != "3"):
             raise RuntimeError("QA_REQUIRES_DEFAULT_BOUNDED_PROFILE")
         deadline = time.monotonic() + 180
+        phase = "dag-discovery"
         while time.monotonic() < deadline:
             if json.loads(cli("dags", "list-import-errors", "--output", "json")):
                 raise RuntimeError("DAG_IMPORT_ERRORS")
@@ -115,10 +185,11 @@ def main():
             time.sleep(3)
         if len(previous) != 2: raise RuntimeError("DAGS_NOT_SERIALIZED")
         # Do not interfere with another operator's queued/running run.
+        phase = "active-run-check"
         for name in (DAG, BACKFILL, "usg_04_usgs_ingest"):
             active = dagruns(name)
             if any(item.get("state") in {"queued", "running"} for item in active):
-                raise RuntimeError("EXISTING_ACTIVE_RUN")
+                raise QaFailure("EXISTING_ACTIVE_RUN", name, next(item["run_id"] for item in active if item.get("state") in {"queued", "running"}))
         # Enable the real daily timetable once. Airflow creates the latest complete
         # scheduled interval (catchup=False), bounded to one USGS three-day query.
         before = {item["run_id"] for item in dagruns(DAG)}
@@ -126,19 +197,20 @@ def main():
         minute, hour = map(int, settings["cron"].split()[:2])
         expected_end = current.replace(hour=hour - 7, minute=minute, second=0, microsecond=0)
         if expected_end > current: expected_end -= timedelta(days=1)
-        scheduled = None
-        for item in dagruns(DAG):
-            if item["run_id"].startswith("scheduled__") and item.get("state") == "success":
-                try: candidate = summary(item["run_id"])
-                except (OSError, ValueError, RuntimeError): continue
-                if (candidate["profile"] == settings and datetime.fromisoformat(candidate["data_interval_end"]) == expected_end):
-                    scheduled = item["run_id"]; break
+        phase = "scheduled"
+        scheduled = scheduled_for_interval(dagruns(DAG), expected_end)
+        if scheduled:
+            try:
+                candidate = summary(scheduled)
+                if candidate["profile"] != settings or datetime.fromisoformat(candidate["data_interval_end"]) != expected_end:
+                    raise ValueError()
+            except (OSError, ValueError, KeyError, RuntimeError):
+                raise QaFailure("SCHEDULED_SUCCESS_INVALID_REPORT", DAG, scheduled) from None
         cli("dags", "unpause", DAG, "--yes")
         deadline = time.monotonic() + 180
         while scheduled is None and time.monotonic() < deadline:
             runs = dagruns(DAG)
-            scheduled = next((item["run_id"] for item in runs if item["run_id"] not in before
-                              and item["run_id"].startswith("scheduled__")), None)
+            scheduled = scheduled_for_interval([item for item in runs if item["run_id"] not in before], expected_end)
             if scheduled: break
             time.sleep(3)
         if not scheduled: raise RuntimeError("NO_SCHEDULED_INTERVAL_EVIDENCE")
@@ -171,6 +243,7 @@ def main():
                      item["sha256"], item["record_count_estimate"]) for item in report["jma"]["archives"]]
         if pins(reports["first"]) != pins(reports["rerun"]):
             raise RuntimeError("RERUN_READBACK_CHANGED")
+        phase = "contention"
         cli("dags", "pause", DAG, "--yes")
         lease("acquire", held); held_acquired = True
         blocked_id = "orc02-" + token + "-contention"
@@ -186,15 +259,36 @@ def main():
             raise RuntimeError("FOREIGN_CLEANUP_REMOVED_LEASE")
         reports["contention"] = {"run_id": blocked_id, "state": "failed", "holder_preserved": True}
         print("event=source_readiness_qa_contention expected_failure=true holder_preserved=true", flush=True)
-    except Exception:
-        (root / "failure.json").write_text(json.dumps({"status": "FAILED", "completed_phases": list(reports)}) + "\n")
-        print("event=source_readiness_qa_failed evidence_id=" + token + " reason=QA_FAILED", flush=True)
+    except Exception as error:
+        reason = str(error) if isinstance(error, RuntimeError) and str(error) in SAFE_REASONS else "QA_UNEXPECTED_FAILURE"
+        details = failure_details(getattr(error, "dag_id", None), getattr(error, "run_id", None))
+        failure = {"status": "FAILED", "reason": reason, "phase": phase, "completed_phases": list(reports), **details}
+        (root / "failure.json").write_text(json.dumps(failure, indent=2) + "\n")
+        print("event=source_readiness_qa_failed evidence_id=" + token + " phase=" + phase + " reason=" + reason, flush=True)
+        if details:
+            print(json.dumps({"event": "source_readiness_qa_failure_details", **details}, sort_keys=True), flush=True)
         raise SystemExit(1) from None
     finally:
-        if held_acquired and lease("release", held)["status"] != "RELEASED":
-            raise RuntimeError("QA_LEASE_RELEASE_FAILED")
+        cleanup_failed = []
+        if held_acquired:
+            try:
+                if lease("release", held)["status"] != "RELEASED":
+                    cleanup_failed.append("QA_LEASE_RELEASE_FAILED")
+            except Exception:
+                cleanup_failed.append("QA_LEASE_RELEASE_FAILED")
         for name, paused in previous.items():
-            cli("dags", "pause" if paused else "unpause", name, "--yes")
+            try:
+                cli("dags", "pause" if paused else "unpause", name, "--yes")
+            except Exception:
+                cleanup_failed.append("PAUSE_STATE_RESTORE_FAILED")
+        if cleanup_failed:
+            failure_path = root / "failure.json"
+            failure = json.loads(failure_path.read_text()) if failure_path.exists() else {
+                "status": "FAILED", "reason": "QA_CLEANUP_FAILED", "phase": "cleanup", "completed_phases": list(reports)}
+            failure["cleanup_failed"] = sorted(set(cleanup_failed))
+            failure_path.write_text(json.dumps(failure, indent=2) + "\n")
+            print("event=source_readiness_qa_cleanup_failed evidence_id=" + token + " reason=QA_CLEANUP_FAILED", flush=True)
+            raise SystemExit(1) from None
     evidence = {"qa_version": "orc-02-v1", "status": "VERIFIED", "evidence_id": token,
                 "daily_run_ids": {phase: reports[phase]["run_id"] for phase in ("scheduled", "first", "rerun")},
                 "contention": reports["contention"], "pause_states_restored": True, "published": False}
