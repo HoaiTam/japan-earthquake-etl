@@ -5,3 +5,6 @@ RUN apt-get update \
     && apt-get install --yes --no-install-recommends python3 \
     && rm -rf /var/lib/apt/lists/*
 USER spark
+
+ARG PIPELINE_BUILD_SHA
+LABEL com.japan-earthquake-etl.build-input-sha256=$PIPELINE_BUILD_SHA

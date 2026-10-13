@@ -13,7 +13,8 @@ Phạm vi, KPI và Definition of Done hiện hành nằm tại
 > MinIO bucket bootstrap, Airflow local runtime, Spark Java build/runtime,
 > Iceberg REST Catalog và Trino đã được triển khai và kiểm tra cùng nhau.
 > ORC-01 đã có khung DAG ETL/phase gates và tests mock; chưa có daily ETL thật
-> đến Gold Published (GLD-03/04 và QA-01 chưa hoàn tất).
+> đến Gold Published: GLD-03/04 đã có QA commit/publication, nhưng production
+> adapters/full-month state của QA-01 chưa hoàn tất.
 > SLV-09 đã nghiệm thu Bronze thật USGS/JMA → immutable Silver → Gold
 > transformation/handoff và rerun trên mẫu bounded, chưa commit Gold.
 > Cách chạy và phạm vi ở [Silver integration](./docs/specs/SILVER_INTEGRATION.md).
@@ -99,8 +100,10 @@ make test                # Contract + unit test Java/Airflow; không start Docke
 make env-init            # Chỉ tạo .env nếu chưa có, không ghi đè.
 # Thay toàn bộ change-me-* trong .env trước khi chạy các lệnh dưới.
 make check-config-local
-make up                  # Build/start toàn bộ foundation, chờ healthy.
-make smoke               # Full foundation runtime smoke.
+make docker-build        # Chuẩn bị image/JAR khi lần đầu hoặc build inputs đổi.
+make docker-up           # Start foundation; không build/pull, reuse init phù hợp.
+make docker-check        # Readiness/freshness chỉ đọc, không thay đổi service.
+make smoke               # Test foundation đã chạy; không build/start/init lại.
 make verify-samples      # Readback USGS/JMA DAT-01 đã tồn tại trên MinIO.
 make logs-follow SERVICE=airflow-scheduler
 make stop                # Giữ container và volume dữ liệu.
@@ -112,6 +115,9 @@ container/network nhưng giữ named volume. `make test` không gọi nguồn th
 Maven có thể tải dependency lần đầu. Hướng dẫn đầy đủ về phạm vi, biến
 `ENV_FILE`/`CHECK_ENV_FILE` và an toàn dữ liệu nằm tại
 [Makefile command guide](./docs/MAKEFILE_COMMANDS.md).
+Quy trình build → startup → test và xử lý init chờ lâu nằm tại
+[Docker runtime workflow](./docs/DOCKER_RUNTIME_WORKFLOW.md). Các lệnh smoke
+bên dưới yêu cầu image/JAR đã chuẩn bị và service đã ready; không tự khởi động.
 
 ### Các entrypoint script gốc
 
@@ -163,7 +169,7 @@ Smoke test giữ MinIO chạy, giữ volume dữ liệu và chỉ xóa đúng ob
 Chi tiết bucket, prefix, quyền truy cập và cơ chế init nằm tại
 [MinIO storage contract](./docs/specs/MINIO_STORAGE.md).
 
-Kiểm tra contract Airflow tĩnh, sau đó khởi động runtime và trigger DAG smoke:
+Kiểm tra contract Airflow tĩnh, sau đó trigger DAG smoke trên runtime đã chạy:
 
 ```bash
 ./scripts/check-airflow.sh

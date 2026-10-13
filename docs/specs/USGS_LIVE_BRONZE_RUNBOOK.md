@@ -110,6 +110,12 @@ Smoke harness chủ động unpause DAG, trigger run có `is_backfill=true` cùn
 window start/end tường minh, rồi pause lại khi kết thúc. Nó không chạy full
 history và không in raw payload.
 
+Trước lần smoke đầu sau bản vá lifecycle, chạy `make docker-build`, rồi
+`make docker-up WAIT_TIMEOUT=600`. Smoke hiện chỉ preflight Airflow/MinIO và
+chạy one-off `--no-deps --pull never`; **không gọi up/build/init**. Readiness/config
+hoặc image fingerprint sai thì dừng trước trigger, không tự chữa bằng restart.
+Quy trình ở [Docker runtime workflow](../DOCKER_RUNTIME_WORKFLOW.md).
+
 ## 6. Output thành công
 
 Một dòng thành công có dạng:

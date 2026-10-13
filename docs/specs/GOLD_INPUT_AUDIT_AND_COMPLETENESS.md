@@ -168,6 +168,9 @@ healthy, `.env` hợp lệ, exact Silver bundle trong receipt
 `docs/evidence/SLV-09-live-readback.json` vẫn đọc được trên MinIO của môi trường.
 Có thể chọn receipt khác bằng `SILVER_AUDIT_REFERENCE=/absolute/path/receipt.json`,
 nhưng runner này chỉ chấp nhận pilot giới hạn cùng cửa sổ 2000/2023.
+Chuẩn bị image/host artifacts bằng `make docker-build`, startup bằng
+`make docker-up`. Smoke preflight SHA/config/health, không build/start/init lại;
+xem [Docker runtime workflow](../DOCKER_RUNTIME_WORKFLOW.md).
 
 Luồng thực thi:
 

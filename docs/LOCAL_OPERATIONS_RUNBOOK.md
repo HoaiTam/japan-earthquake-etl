@@ -45,7 +45,9 @@ make test
 make env-init
 # Sửa .env, thay mọi placeholder secret trước khi startup.
 make check-config-local
-make up
+make docker-build
+make docker-up WAIT_TIMEOUT=600
+make docker-check
 make status
 make smoke
 make verify-samples
@@ -53,9 +55,12 @@ make logs-follow SERVICE=airflow-scheduler
 make stop
 ```
 
-`test` không cần Docker daemon hoặc dữ liệu nguồn thật; `up` build đủ custom
-image trước khi start và chờ healthy, nhưng không tự trigger ETL test.
-`smoke` chạy acceptance FND-01 trên runtime thật; `verify-samples` chỉ readback
+`test` không cần Docker daemon hoặc dữ liệu nguồn thật; `docker-build` chuẩn bị
+images/JAR, `up` alias `docker-up` không build/pull và không tự trigger ETL test.
+Smoke không start/init lại, chỉ kiểm tra readiness/freshness rồi chạy bài test.
+Lần đầu sau bản vá cần build một lần để thêm fingerprint label; xem
+[Docker runtime workflow](./DOCKER_RUNTIME_WORKFLOW.md).
+`smoke` chạy acceptance FND-01 trên runtime đã ready; `verify-samples` chỉ readback
 DAT-01 đã có, không tải dữ liệu. `stop` giữ container/volume; `down` chỉ gỡ
 container/network, không xóa named volume. Không có target reset dữ liệu.
 
@@ -83,7 +88,7 @@ make test-observability
 make observability-smoke
 # Sau khi foundation chạy:
 make smoke-observability
-# Readback sample Bronze đã có, chỉ build/one-off; không restart stack:
+# Readback sample Bronze đã có, chỉ preflight/one-off; không build/restart stack:
 make smoke-backfill-observability
 ```
 
@@ -367,7 +372,7 @@ Trong Airflow UI:
 Backfill/reuse có phạm vi dùng DAG `orc_03_backfill`, không dùng daily DAG để
 truyền historical conf. Preview trước bằng `make backfill-preview`; exact
 sample reuse preview: `make backfill-preview BACKFILL_CONF=airflow/dags/fixtures/orc_03_reuse_sample.json`.
-`make test-backfill` offline; `make smoke-backfill-readback` build và chạy
+`make test-backfill` offline; `make smoke-backfill-readback` preflight và chạy
 one-off readback hai manifests đã có, không restart stack hoặc tải nguồn.
 Schema, retry identity và giới hạn real reprocessing ở
 [ORC-03 runbook](./specs/BACKFILL_AND_REPROCESSING.md).

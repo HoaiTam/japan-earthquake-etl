@@ -14,18 +14,13 @@ fi
 
 ENV_FILE="$env_file" "$project_root/scripts/check-config.sh" --require-local
 
-docker compose \
-    --env-file "$env_file" \
-    -f "$compose_file" \
-    up -d --build --wait \
-    airflow-api-server \
-    airflow-scheduler \
-    airflow-dag-processor
+ENV_FILE="$env_file" COMPOSE_FILE="$compose_file" \
+    python3 "$project_root/scripts/docker-runtime.py" check --component usgs
 
 docker compose \
     --env-file "$env_file" \
     -f "$compose_file" \
     --profile live \
-    run --rm --no-deps usgs-live-smoke
+    run --rm --no-deps --pull never usgs-live-smoke
 
 printf 'USG-06 live smoke completed; services and volumes were kept for review.\n'

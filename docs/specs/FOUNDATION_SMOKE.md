@@ -46,9 +46,7 @@ secret.
 
 ```mermaid
 flowchart TD
-    CONFIG["Static checklist + local config"]
-    BUILD["Build MinIO + Spark images"]
-    START["Compose up --wait"]
+    CONFIG["Local config + read-only runtime preflight"]
     SMOKES["MinIO / Airflow / Spark / Trino smoke"]
     HEALTH["9 long-running services healthy"]
     INIT["2 init services exited 0"]
@@ -57,7 +55,7 @@ flowchart TD
     LOGS["Startup logs present, no fatal marker"]
     PASS["FND-01 PASS"]
 
-    CONFIG --> BUILD --> START --> SMOKES
+    CONFIG --> SMOKES
     SMOKES --> HEALTH
     SMOKES --> INIT
     SMOKES --> NETWORK
@@ -70,8 +68,10 @@ flowchart TD
     LOGS --> PASS
 ```
 
-`docker compose up --wait` dùng healthcheck/dependency đã được từng component
-định nghĩa. Script không thay readiness bằng `sleep` cố định.
+Build/start là bước riêng bằng `make docker-build` và `make docker-up` trước
+smoke. Preflight yêu cầu image/source phù hợp, services healthy và init exited/0;
+smoke không tự build/pull/start/init. Startup riêng dùng healthcheck với timeout,
+reuse init theo config hash/image ID. Xem [Docker runtime workflow](../DOCKER_RUNTIME_WORKFLOW.md).
 
 ## 3. Checklist service
 
@@ -140,17 +140,21 @@ Lệnh này chạy Maven verify trong `check-spark.sh`, nên máy cần JDK 17 v
 Tạo `.env`, thay toàn bộ placeholder, rồi chạy:
 
 ```bash
-cp .env.example .env
+make env-init
+# Điền credential nếu vừa tạo file.
 ./scripts/check-foundation.sh --require-local
+make docker-build
+make docker-up WAIT_TIMEOUT=600
 ./scripts/smoke-foundation.sh
 ```
 
 Cold run cần tải/build nhiều image và phù hợp nhất với máy có tối thiểu 16 GiB
-RAM. Timeout mặc định cho Compose readiness là 300 giây. Có thể tăng timeout mà
+RAM. Timeout mặc định cho startup là 300 giây. Có thể tăng timeout mà
 không sửa `.env`:
 
 ```bash
-FOUNDATION_WAIT_TIMEOUT_SECONDS=600 ./scripts/smoke-foundation.sh
+make docker-up WAIT_TIMEOUT=600
+make smoke-foundation DOCKER_CHECK_TIMEOUT=20
 ```
 
 Để lưu bằng chứng ngắn ở ngoài repository:
@@ -170,7 +174,7 @@ Mỗi checklist item được in với `[PASS]` hoặc `[FAIL]`; không in crede
 
 ## 6. Failure semantics và an toàn dữ liệu
 
-- Static/config/build/start hoặc component smoke thất bại: script dừng ngay,
+- Config/preflight hoặc component smoke thất bại: script dừng ngay,
   in `docker compose ps -a` và lệnh đọc log gợi ý.
 - Runtime audit cuối: script tiếp tục kiểm tra các item còn lại để báo đủ health,
   network, volume và log nào sai, rồi trả exit code khác `0`.
@@ -186,7 +190,7 @@ Mỗi checklist item được in với `[PASS]` hoặc `[FAIL]`; không in crede
 |---|---|---|
 | Thiếu `.env` hoặc còn placeholder | `./scripts/check-config.sh --require-local` | Copy lại `.env.example`, điền secret local khác nhau và không commit `.env` |
 | Port host đã được dùng | Config checker và process đang giữ port `8080/8081/8082/9001` | Đổi host port trong `.env`, giữ nguyên internal port/service name |
-| Cold run quá timeout | Docker pull/build progress, disk và RAM | Tăng `FOUNDATION_WAIT_TIMEOUT_SECONDS`; không thay healthcheck bằng `sleep` |
+| Cold startup quá timeout | Docker/init state, disk và RAM | Chẩn đoán rồi tăng `WAIT_TIMEOUT` của docker-up; smoke không tự startup |
 | `minio-init` thất bại | Log `minio` rồi `minio-init` | Kiểm tra root/pipeline credential và bucket config; không xóa `minio_data` |
 | Airflow init hoặc DAG smoke lỗi | PostgreSQL health, `airflow-init`, DAG processor rồi scheduler | Sửa dependency đầu tiên bị lỗi; không coi API healthy là đủ |
 | Airflow heartbeat probe timeout | `docker inspect` phần `.State.Health.Log` và `docker stats` | Xác nhận probe dùng `exec` với timeout `30s`; recreate riêng scheduler/DAG processor, không xóa metadata volume |

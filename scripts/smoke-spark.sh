@@ -20,16 +20,10 @@ fi
 
 ENV_FILE="$env_file" "$project_root/scripts/check-config.sh" --require-local
 ENV_FILE="$env_file" COMPOSE_FILE="$compose_file" \
-    "$project_root/scripts/check-spark.sh"
+    python3 "$project_root/scripts/docker-runtime.py" check --component spark
 
 docker compose --env-file "$env_file" -f "$compose_file" \
-    build spark-master
-
-docker compose --env-file "$env_file" -f "$compose_file" \
-    up -d --no-build --wait spark-master spark-worker
-
-docker compose --env-file "$env_file" -f "$compose_file" \
-    --profile smoke run --rm --no-deps --use-aliases spark-client
+    --profile smoke run --rm --no-deps --pull never --use-aliases spark-client
 
 printf '%s\n' \
     'SPK-01 runtime smoke completed; Spark services and staging volume are preserved.'

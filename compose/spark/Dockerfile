@@ -31,3 +31,6 @@ USER spark
 
 # Keep Iceberg/AWS runtime outside SDK relocation; load explicitly with --jars.
 COPY --from=build --chown=spark:spark /workspace/spark/target/iceberg/ /opt/spark/jobs/iceberg/
+
+ARG PIPELINE_BUILD_SHA
+LABEL com.japan-earthquake-etl.build-input-sha256=$PIPELINE_BUILD_SHA

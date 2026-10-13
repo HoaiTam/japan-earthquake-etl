@@ -250,12 +250,15 @@ không tự chuyển VALIDATED/EXPORTED và không ghi feature/aftershock labels
 ### 6.1. Published JMA QA có mainshock
 
 `make test-ml-window` chạy offline Java/controller tests.
-`make smoke-ml-window` build/test runner và chạy opt-in service
+`make smoke-ml-window` preflight runner/image đã chuẩn bị và chạy opt-in service
 `mainshock-window-qa`; không recreate service nền hoặc gọi lại USGS/JMA API.
 Điều kiện: Foundation healthy, lease trống, exact Bronze objects từ
 `airflow/dags/fixtures/slv_09_bronze_inputs.json` còn đọc được trên MinIO.
 `MAINSHOCK_BRONZE_PINS` có thể chỉ định một receipt pins khác nhưng phải giữ
 ba input USGS/JMA2000/JMA2023 đúng contract.
+Smoke không build/start/init lại. Chuẩn bị bằng `make docker-build`, rồi
+`make docker-up`; freshness SHA của host runner/Iceberg JAR được kiểm trước test.
+Xem [Docker runtime workflow](../DOCKER_RUNTIME_WORKFLOW.md).
 
 Luồng QA:
 

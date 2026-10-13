@@ -20,13 +20,8 @@ fi
 
 ENV_FILE="$env_file" "$project_root/scripts/check-config.sh" --require-local
 ENV_FILE="$env_file" COMPOSE_FILE="$compose_file" \
-    "$project_root/scripts/check-minio.sh"
-
+    python3 "$project_root/scripts/docker-runtime.py" check --component minio
 docker compose --env-file "$env_file" -f "$compose_file" \
-    up -d --wait minio
-docker compose --env-file "$env_file" -f "$compose_file" \
-    run --rm --no-deps minio-init
-docker compose --env-file "$env_file" -f "$compose_file" \
-    --profile smoke run --rm --no-deps minio-smoke
+    --profile smoke run --rm --no-deps --pull never minio-smoke
 
 printf 'MIO-01 runtime smoke completed; MinIO remains running and data is preserved.\n'

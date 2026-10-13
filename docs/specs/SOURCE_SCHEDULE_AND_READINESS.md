@@ -149,8 +149,9 @@ Live cần `.env` hợp lệ, default bounded profile và không có source run 
 make smoke-source-readiness
 ```
 
-Lệnh build **riêng Airflow**, start với `--no-build` (không rebuild MinIO),
-chạy profile `live` QA. Harness bật cron để scheduler tạo latest complete
+Lệnh chỉ preflight Airflow/MinIO đã ready, không build/start/init lại,
+chạy profile `live` QA bằng `--no-deps --pull never`. Chuẩn bị image trước bằng
+`make docker-build`, startup bằng `make docker-up`. Harness bật cron để scheduler tạo latest complete
 interval; lần chạy lại có thể reuse một scheduled run đã có report đúng profile
 và latest completed cron interval trong ngày
 thay vì đợi tới ngày mai. Hai manual runs dùng native trigger API của Airflow

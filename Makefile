@@ -8,6 +8,8 @@ ENV_FILE ?= .env
 CHECK_ENV_FILE ?= .env.example
 COMPOSE_FILE ?= compose.yaml
 WAIT_TIMEOUT ?= 300
+DOCKER_CHECK_TIMEOUT ?= 20
+export DOCKER_CHECK_TIMEOUT
 SERVICE ?=
 TAIL ?= 100
 DAT01_AIRFLOW_CONTAINER ?=
@@ -20,6 +22,7 @@ RUN_SUMMARY_RUN_ID ?=
 
 COMPOSE = docker compose --env-file "$(ENV_FILE)" -f "$(COMPOSE_FILE)"
 RUNTIME_ENV = ENV_FILE="$(ENV_FILE)" COMPOSE_FILE="$(COMPOSE_FILE)"
+RUNTIME_CHECK = $(RUNTIME_ENV) DOCKER_CHECK_TIMEOUT="$(DOCKER_CHECK_TIMEOUT)" python3 scripts/docker-runtime.py check
 CHECK_ENV = ENV_FILE="$(CHECK_ENV_FILE)" COMPOSE_FILE="$(COMPOSE_FILE)"
 FOUNDATION_SERVICES := minio airflow-postgres airflow-api-server \
 	airflow-scheduler airflow-dag-processor spark-master spark-worker iceberg-rest trino
@@ -39,6 +42,7 @@ COMPONENT_SMOKES := smoke-minio smoke-airflow smoke-spark smoke-query smoke-usgs
 	verify-samples verify-real-samples
 
 .PHONY: test-source-schedule smoke-source-readiness
+.PHONY: docker-build docker-up docker-check test-docker-runtime
 .PHONY: test-recovery smoke-recovery smoke-resource-pilot maintenance-preview
 .PHONY: test-silver-integration smoke-silver-integration
 .PHONY: test-ml-audit smoke-ml-audit
@@ -51,13 +55,13 @@ test-ml-window: ## MLD-03 bucket physical plan, distributed invariants, microsec
 		-Dtest=WindowModelResolverTest,MainshockWindowEngineTest,MainshockWindowIntegrationTest,MainshockWindowRegressionTest,MainshockRuntimeTest,JmaMainshockPilotSamplerTest \
 		-Dsurefire.failIfNoSpecifiedTests=false test
 
-smoke-ml-window: check-config-local check-java-build-inputs ## MLD-03 pinned Bronze -> bounded Published JMA QA -> audit/Mc -> candidate readback + Trino oracle
-	@./mvnw --batch-mode --no-transfer-progress -pl spark -am verify
-	@$(COMPOSE) build spark-master
-	@$(COMPOSE) --profile gold run --rm --no-deps mainshock-window-qa
+smoke-ml-window: check-config-local ## MLD-03 runtime QA; cần docker-build/docker-up, không tự build/start
+	@$(RUNTIME_CHECK) --component ml
+	@$(COMPOSE) --profile gold run --rm --no-deps --pull never mainshock-window-qa
 
-resume-ml-window: check-config-local check-java-build-inputs ## MLD-03 tiếp tục windows từ own retained QA lease + Published Gold, cần QA_RUN_ID
-	@$(COMPOSE) --profile gold run --rm --no-deps -e QA_RUN_ID mainshock-window-qa \
+resume-ml-window: check-config-local ## MLD-03 own retained QA lease + Published Gold, cần QA_RUN_ID và runner đã package
+	@$(RUNTIME_CHECK) --component ml
+	@$(COMPOSE) --profile gold run --rm --no-deps --pull never -e QA_RUN_ID mainshock-window-qa \
 		'exec python3 /opt/airflow/dags/mainshock_window_qa.py --resume-windows "$$QA_RUN_ID"'
 
 test-ml-audit: ## MLD-02 Gold input audit, MAXC completeness estimator, sensitivity & reconciliation tests
@@ -66,10 +70,9 @@ test-ml-audit: ## MLD-02 Gold input audit, MAXC completeness estimator, sensitiv
 		-Dtest=MagnitudeCompletenessEstimatorTest,MagnitudeHistogramSparkTest,GoldAuditAcceptanceTest,GoldInputAuditEngineTest,GoldInputAuditIntegrationTest \
 		-Dsurefire.failIfNoSpecifiedTests=false test
 
-smoke-ml-audit: check-config-local check-java-build-inputs ## MLD-02 exact Silver -> fresh QA Published JMA -> pinned audit/Mc; không ghi Gold sản phẩm
-	@./mvnw --batch-mode --no-transfer-progress -pl spark -am verify
-	@$(COMPOSE) build spark-master
-	@$(COMPOSE) --profile gold run --rm --no-deps gold-input-audit-qa
+smoke-ml-audit: check-config-local ## MLD-02 Published JMA audit/Mc QA; không tự build/start
+	@$(RUNTIME_CHECK) --component ml --client gold-input-audit-qa
+	@$(COMPOSE) --profile gold run --rm --no-deps --pull never gold-input-audit-qa
 .PHONY: test-gold-storage smoke-gold-storage
 .PHONY: test-gold-publication smoke-gold-publication test-dataset-manifest smoke-dataset-manifest
 
@@ -77,30 +80,27 @@ test-dataset-manifest: ## MLD-01 exact Published snapshot, deterministic identit
 	@python3 -m unittest discover -s airflow/tests -p 'test_dataset_manifest_qa.py'
 	@./mvnw --batch-mode --no-transfer-progress -pl spark -am -Dtest=DatasetManifestTest -Dsurefire.failIfNoSpecifiedTests=false test
 
-smoke-dataset-manifest: check-config-local check-java-build-inputs ## MLD-01 materialize hai manifest BUILDING từ publication QA đã verify
-	@./mvnw --batch-mode --no-transfer-progress -pl spark -am verify
-	@$(COMPOSE) build spark-gold-qa
-	@$(COMPOSE) --profile gold run --rm --no-deps dataset-manifest-qa
+smoke-dataset-manifest: check-config-local ## MLD-01 manifest BUILDING; cần exact publication, không tự build/start
+	@$(RUNTIME_CHECK) --component gold --client dataset-manifest-qa
+	@$(COMPOSE) --profile gold run --rm --no-deps --pull never dataset-manifest-qa
 
 test-gold-publication: ## GLD-04 offline publication blockers, Trino HTTP protocol và control plane
 	@python3 -m unittest discover -s airflow/tests -p 'test_gold_publication_qa.py'
 	@./mvnw --batch-mode --no-transfer-progress -pl spark -am \
 		-Dtest=GoldPublicationTest,TrinoSqlClientTest -Dsurefire.failIfNoSpecifiedTests=false test
 
-smoke-gold-publication: check-config-local check-java-build-inputs ## GLD-04 verify exact GLD-03 snapshot bundle qua Trino trước Published
-	@./mvnw --batch-mode --no-transfer-progress -pl spark -am verify
-	@$(COMPOSE) build spark-gold-qa
-	@$(COMPOSE) --profile gold run --rm --no-deps gold-verification-qa
+smoke-gold-publication: check-config-local ## GLD-04 exact snapshots qua Trino; không tự build/start
+	@$(RUNTIME_CHECK) --component gold --client gold-verification-qa
+	@$(COMPOSE) --profile gold run --rm --no-deps --pull never gold-verification-qa
 
 test-gold-storage: ## GLD-03 real Iceberg snapshot/recovery tests và control plane offline
 	@python3 -m unittest discover -s airflow/tests -p 'test_gold_storage_qa.py'
 	@./mvnw --batch-mode --no-transfer-progress -pl spark -am \
 		-Dtest=GoldIcebergWriterTest -Dsurefire.failIfNoSpecifiedTests=false test
 
-smoke-gold-storage: check-config-local check-java-build-inputs ## GLD-03 pinned public capture -> Bronze/Silver -> six Iceberg snapshots, không Published
-	@./mvnw --batch-mode --no-transfer-progress -pl spark -am verify
-	@$(COMPOSE) build spark-gold-qa
-	@$(COMPOSE) --profile gold run --rm --no-deps spark-gold-qa
+smoke-gold-storage: check-config-local ## GLD-03 six QA Iceberg snapshots, chưa Published; không tự build/start
+	@$(RUNTIME_CHECK) --component gold
+	@$(COMPOSE) --profile gold run --rm --no-deps --pull never spark-gold-qa
 
 .PHONY: ci ci-docs ci-java ci-airflow test-ci-workflow test-security-audit
 
@@ -109,6 +109,7 @@ ci: ci-docs ci-java ci-airflow ## Cùng ba nhóm check CI; cần PyYAML, JDK17, 
 ci-docs: ## Docs/contracts/secret hygiene/Compose tĩnh; không đọc .env riêng hoặc gọi nguồn thật
 	@$(MAKE) test-contracts
 	@$(MAKE) test-security-audit
+	@$(MAKE) test-docker-runtime
 	@$(MAKE) check-config ENV_FILE=/dev/null
 	@$(MAKE) check-compose check-minio check-query CHECK_ENV_FILE=.env.example
 	@$(MAKE) test-ci-workflow
@@ -131,20 +132,24 @@ test-ci-workflow: ## YAML duplicate-key/safety/trigger/job regression; cần tes
 test-security-audit: ## SEC-01 read-only redacted secret/port/ML boundary audit tests
 	@python3 -m unittest discover -s tests -p 'test_security_audit.py'
 
+test-docker-runtime: ## FND-01 lifecycle/preflight/freshness regression; Docker/HTTP mock, không start service
+	@python3 -m unittest discover -s tests -p 'test_docker_runtime.py' -b
+
 test-silver-integration: ## SLV-09 offline bundle/failure/revision/reconciliation/Gold tests (không gọi MinIO)
 	@python3 -m unittest discover -s airflow/tests -p 'test_silver_integration_qa.py'
 	@./mvnw --batch-mode --no-transfer-progress -pl spark -am \
 		-Dtest=SilverMultiSourceIntegrationTest,SilverBundlePublisherTest,SilverParquetCrossProcessTest,SilverParquetWriterTest,SilverBronzeIntegrationJobTest,MinioSilverObjectStoreTest \
 		-Dsurefire.failIfNoSpecifiedTests=false test
 
-smoke-silver-integration: check-config-local check-java-build-inputs ## SLV-09 exact real Bronze -> immutable Silver -> Gold transform + rerun; ghi bundle QA riêng
+smoke-silver-integration: check-config-local ## SLV-09 exact real Bronze -> Silver QA + rerun; không tự build/start
 ifeq ($(strip $(SILVER_RUNNER_JAR)),)
-	@$(COMPOSE) build spark-master
-	@$(COMPOSE) --profile smoke run --rm --no-deps spark-silver-integration
+	@$(RUNTIME_CHECK) --component silver
+	@$(COMPOSE) --profile smoke run --rm --no-deps --pull never spark-silver-integration
 else
 	@case "$(SILVER_RUNNER_JAR)" in /*) ;; *) echo 'SILVER_RUNNER_JAR must be an absolute path'; exit 1 ;; esac
 	@test -f "$(SILVER_RUNNER_JAR)"
-	@$(COMPOSE) --profile smoke run --rm --no-deps \
+	@$(RUNTIME_CHECK) --component silver --runner-jar "$(SILVER_RUNNER_JAR)"
+	@$(COMPOSE) --profile smoke run --rm --no-deps --pull never \
 		-v "$(SILVER_RUNNER_JAR):/opt/spark/jobs/japan-earthquake-etl-runner.jar:ro" spark-silver-integration
 endif
 
@@ -153,14 +158,14 @@ test-recovery: ## ORC-05 retry/profile/lease/recovery/maintenance tests offline
 	@./mvnw --batch-mode --no-transfer-progress -pl spark -am \
 		-Dtest=ResourcePilotJobTest -Dsurefire.failIfNoSpecifiedTests=false test
 
-smoke-recovery: check-config-local check-java-build-inputs ## ORC-05 failure -> real exact Bronze readback; không tải nguồn/ghi lake/restart
-	@$(COMPOSE) build airflow-api-server
-	@$(COMPOSE) run --rm --no-deps -e PYTHONPATH=/opt/airflow/dags \
+smoke-recovery: check-config-local ## ORC-05 exact Bronze recovery QA; không tự build/start
+	@$(RUNTIME_CHECK) --component backfill
+	@$(COMPOSE) run --rm --no-deps --pull never -e PYTHONPATH=/opt/airflow/dags \
 		airflow-api-server python /opt/airflow/dags/recovery_qa.py
 
-smoke-resource-pilot: check-config-local check-java-build-inputs ## ORC-05 real parsers + bounded standalone Spark shuffle; cần master/worker/MinIO đang healthy
-	@$(COMPOSE) build spark-master
-	@$(COMPOSE) --profile smoke run --rm --no-deps spark-resource-pilot
+smoke-resource-pilot: check-config-local ## ORC-05 real parsers + standalone Spark shuffle; không tự build/start
+	@$(RUNTIME_CHECK) --component resource
+	@$(COMPOSE) --profile smoke run --rm --no-deps --pull never spark-resource-pilot
 
 maintenance-preview: ## ORC-05 read-only QA staging diagnosis; không xóa/di chuyển/release lease
 	@PYTHONPATH=airflow/dags python3 -m staging_maintenance --root "$(RUN_SUMMARY_ROOT)" \
@@ -173,15 +178,16 @@ test-observability: ## ORC-04 counts/reasons/secret/failure/empty/rerun tests of
 	@$(MAKE) test-orchestration
 
 .PHONY: smoke-backfill-observability
-smoke-backfill-observability: check-config-local check-java-build-inputs ## ORC-04/03 live read-only Bronze reuse/rerun + summary; không tải nguồn/ghi lake
-	@$(COMPOSE) build airflow-api-server
-	@$(COMPOSE) run --rm --no-deps -e PYTHONPATH=/opt/airflow/dags \
+smoke-backfill-observability: check-config-local ## ORC-04/03 Bronze reuse + summary; không tự build/start
+	@$(RUNTIME_CHECK) --component backfill
+	@$(COMPOSE) run --rm --no-deps --pull never -e PYTHONPATH=/opt/airflow/dags \
 		airflow-api-server python /opt/airflow/dags/backfill_readback_qa.py --observability
 
 observability-smoke: ## ORC-04 metadata-only mock success/failure/rerun; ghi staging local, không gọi nguồn
 	@PYTHONPATH=airflow/dags python3 -m run_summary_cli --smoke --root "$(RUN_SUMMARY_ROOT)"
 
-smoke-observability: require-env ## ORC-04 metadata smoke trong Airflow đang chạy; không restart/unpause/ingest
+smoke-observability: check-config-local ## ORC-04 metadata smoke trong Airflow đang chạy; không restart/unpause/ingest
+	@$(RUNTIME_CHECK) --component observability
 	@$(COMPOSE) exec -T -e PYTHONPATH=/opt/airflow/dags airflow-dag-processor \
 		python -m run_summary_cli --smoke --root /opt/pipeline/staging/run-summary/qa
 
@@ -205,14 +211,14 @@ test-backfill: ## ORC-03 planner/retry/scope/lease + Java exact Bronze readback 
 		-Dtest=BronzeReuseVerifierTest,JmaYearIngestRunnerTest,UsgsIngestRunnerTest \
 		-Dsurefire.failIfNoSpecifiedTests=false test
 
-smoke-backfill-readback: check-config-local check-java-build-inputs ## ORC-03 exact reuse/rerun; chỉ đọc Bronze đã có, không tải nguồn
-	@$(COMPOSE) build airflow-api-server
-	@$(COMPOSE) run --rm --no-deps -e PYTHONPATH=/opt/airflow/dags \
+smoke-backfill-readback: check-config-local ## ORC-03 exact reuse/rerun; không tải nguồn hoặc tự build/start
+	@$(RUNTIME_CHECK) --component backfill
+	@$(COMPOSE) run --rm --no-deps --pull never -e PYTHONPATH=/opt/airflow/dags \
 		airflow-api-server python /opt/airflow/dags/backfill_readback_qa.py
 
-smoke-backfill-pilot: check-config-local check-java-build-inputs ## ORC-03 LIVE: nạp 2 USGS ngày + 1 segment JMA, rerun và readback outside pins
-	@$(COMPOSE) build airflow-api-server
-	@$(COMPOSE) run --rm --no-deps -e PYTHONPATH=/opt/airflow/dags \
+smoke-backfill-pilot: check-config-local ## ORC-03 LIVE 2 USGS ngày + 1 segment JMA; không tự build/start
+	@$(RUNTIME_CHECK) --component backfill
+	@$(COMPOSE) run --rm --no-deps --pull never -e PYTHONPATH=/opt/airflow/dags \
 		airflow-api-server python /opt/airflow/dags/backfill_readback_qa.py --source-pilot
 
 test-source-schedule: ## ORC-02 profile/UTC/JMA change/lease/DAG tests offline
@@ -220,10 +226,9 @@ test-source-schedule: ## ORC-02 profile/UTC/JMA change/lease/DAG tests offline
 	@./mvnw --batch-mode --no-transfer-progress -pl spark -am \
 		-Dtest=JmaYearIngestRunnerTest,UsgsIngestRunnerTest -Dsurefire.failIfNoSpecifiedTests=false test
 
-smoke-source-readiness: check-config-local check-java-build-inputs ## ORC-02 real scheduler + USGS/JMA/MinIO; giữ data/volume và pause state
-	@$(COMPOSE) build airflow-api-server
-	@$(COMPOSE) up -d --no-build --wait --wait-timeout $(WAIT_TIMEOUT) airflow-api-server airflow-scheduler airflow-dag-processor
-	@$(COMPOSE) --profile live run --rm --no-deps source-readiness-qa
+smoke-source-readiness: check-config-local ## ORC-02 scheduler + USGS/JMA/MinIO; không tự build/start
+	@$(RUNTIME_CHECK) --component source
+	@$(COMPOSE) --profile live run --rm --no-deps --pull never source-readiness-qa
 
 help: ## Hiện toàn bộ lệnh (mặc định, không khởi động service)
 	@printf 'Chạy từ thư mục gốc repository: make <target> [VARIABLE=value]\n\n'
@@ -301,8 +306,8 @@ etl-preview: ## Preview ORC-01 run context và exact scope từ fixture; không 
 etl-mock: ## Chạy sáu phase ORC-01 offline; chỉ MockComplete, không Published
 	@python3 scripts/preview-etl-pipeline.py --execute-mock
 
-package-java: ## Clean, test, verify và đóng gói Spark JAR
-	@./mvnw --batch-mode --no-transfer-progress clean verify
+package-java: ## Maven clean verify + fingerprint runner/Iceberg JAR; không gọi Docker
+	@python3 scripts/docker-runtime.py package
 
 check: test-contracts check-config check-foundation check-usgs-live ## Full static readiness, gồm Compose và Maven verify; không start service
 
@@ -340,31 +345,32 @@ check-jma-inventory-live: ## Đối soát HTTP header 41 archive JMA; cần mạ
 build-shared-fixtures: ## Chủ động tái tạo fixture synthetic/checksum (có sửa file tracked)
 	@./scripts/build-shared-fixtures.sh
 
-build: check-config-local check-java-build-inputs ## Build ba image local: MinIO, Airflow Java17 và Spark
-	@$(COMPOSE) build minio airflow-api-server spark-master
+docker-build: check-config-local check-java-build-inputs ## Build bằng Java17 trong Docker, export JAR + chuẩn bị images; không start/init service
+	@$(RUNTIME_ENV) python3 scripts/docker-runtime.py build
 
-up: build ## Build và khởi động toàn bộ 9 foundation service; chờ healthy
-	@$(COMPOSE) up -d --no-build --wait --wait-timeout "$(WAIT_TIMEOUT)" $(FOUNDATION_SERVICES)
+docker-up: check-config-local ## Start foundation, reuse init đúng config đã exit 0; không build/pull
+	@$(RUNTIME_ENV) WAIT_TIMEOUT="$(WAIT_TIMEOUT)" python3 scripts/docker-runtime.py up
+
+docker-check: check-config-local ## Read-only foundation readiness + image freshness; timeout mặc định 20s
+	@$(RUNTIME_CHECK)
+
+build: docker-build ## Alias docker-build, chỉ chuẩn bị artifact/images
+
+up: docker-up ## Alias docker-up, không còn tự build
 
 start: up ## Alias của up
 
-up-minio: check-config-local ## Build/start MinIO, chờ healthy và bootstrap bucket bằng init
-	@$(COMPOSE) build minio
-	@$(COMPOSE) up -d --no-build --wait --wait-timeout "$(WAIT_TIMEOUT)" minio
-	@$(COMPOSE) run --rm --no-deps minio-init
+up-minio: check-config-local ## Start MinIO + init khi cần; không build/pull
+	@$(RUNTIME_ENV) WAIT_TIMEOUT="$(WAIT_TIMEOUT)" python3 scripts/docker-runtime.py up --component minio
 
-up-airflow: check-config-local check-java-build-inputs ## Build/start Airflow và dependency MinIO/PostgreSQL/init
-	@$(COMPOSE) build minio airflow-api-server
-	@$(COMPOSE) up -d --no-build --wait --wait-timeout "$(WAIT_TIMEOUT)" \
-		airflow-api-server airflow-scheduler airflow-dag-processor
+up-airflow: check-config-local ## Start Airflow/MinIO/PostgreSQL + init khi cần; không build/pull
+	@$(RUNTIME_ENV) WAIT_TIMEOUT="$(WAIT_TIMEOUT)" python3 scripts/docker-runtime.py up --component airflow
 
-up-spark: check-config-local check-java-build-inputs ## Build image chung trước khi start Spark master/worker
-	@$(COMPOSE) build spark-master
-	@$(COMPOSE) up -d --no-build --wait --wait-timeout "$(WAIT_TIMEOUT)" spark-master spark-worker
+up-spark: check-config-local ## Start Spark + staging init khi cần; không build/pull
+	@$(RUNTIME_ENV) WAIT_TIMEOUT="$(WAIT_TIMEOUT)" python3 scripts/docker-runtime.py up --component spark
 
-up-query: check-config-local ## Start Iceberg REST/Trino và dependency MinIO/init
-	@$(COMPOSE) build minio
-	@$(COMPOSE) up -d --no-build --wait --wait-timeout "$(WAIT_TIMEOUT)" iceberg-rest trino
+up-query: check-config-local ## Start MinIO/Catalog/Trino + init khi cần; không build/pull
+	@$(RUNTIME_ENV) WAIT_TIMEOUT="$(WAIT_TIMEOUT)" python3 scripts/docker-runtime.py up --component query
 
 status: require-env ## Xem toàn bộ container, gồm init đã thoát; SERVICE để lọc
 	@$(COMPOSE) ps -a $(SERVICE)
@@ -388,13 +394,13 @@ down: require-env ## Gỡ container/network của stack; giữ nguyên named vol
 
 smoke: smoke-foundation ## Alias full foundation runtime smoke; không gồm gọi USGS thật
 
-smoke-foundation: build ## Build đủ image, start stack và test MinIO/Airflow/Spark/Trino thật
-	@$(RUNTIME_ENV) FOUNDATION_WAIT_TIMEOUT_SECONDS="$(WAIT_TIMEOUT)" ./scripts/smoke-foundation.sh
+smoke-foundation: check-config-local ## Test stack đã chạy; không build/start/init hoặc gọi USGS
+	@$(RUNTIME_ENV) ./scripts/smoke-foundation.sh
 
-smoke-minio: ## Bootstrap/start MinIO và test ghi/đọc object thật
-smoke-airflow: ## Start Airflow và trigger DAG afl_01_smoke thật
-smoke-spark: ## Build/start Spark và submit HelloWorldJob thật
-smoke-query: ## Start query stack và tạo/ghi/đọc/xóa đúng table smoke
+smoke-minio: ## Test ghi/đọc object trên MinIO đã sẵn sàng
+smoke-airflow: ## Trigger DAG afl_01_smoke trên Airflow đã sẵn sàng
+smoke-spark: ## Submit HelloWorldJob trên Spark đã sẵn sàng
+smoke-query: ## Tạo/ghi/đọc/xóa đúng table smoke trên Trino đã sẵn sàng
 smoke-usgs-live: ## Gọi USGS thật cho 2023-01-01..04 UTC, ghi Bronze và kiểm tra rerun
 smoke-jma-live: ## JMA-05 live DAG 1997/2000/2023, readback DAT-01 và rerun; cần Docker/.env/Internet
 

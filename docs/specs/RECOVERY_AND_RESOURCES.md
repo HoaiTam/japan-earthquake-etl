@@ -59,6 +59,7 @@ mới có default384m kể cả `.env` chưa có biến.
 Sau review, khi không có DAG task, source lease hoặc Spark app đang chạy:
 
 ```bash
+make docker-build
 make up-airflow WAIT_TIMEOUT=600
 make up-spark WAIT_TIMEOUT=600
 docker compose exec -T airflow-scheduler airflow config get-value core parallelism
@@ -168,7 +169,8 @@ make smoke-resource-pilot
 ```
 
 Foundation master/worker/MinIO phải healthy, không có active app/source lease.
-Smoke build image nhưng không restart các service đang chạy. Fixture exact
+Smoke chỉ preflight image đã chuẩn bị và không build/start/init/restart service.
+Fixture exact
 pins là `airflow/dags/fixtures/orc_03_reuse_sample.json`; thiếu object/checksum
 khác thì **fail**, không tự download/fallback scan. Cần pins riêng nếu team
 dùng MinIO khác; fixture không tự chứng minh source coverage hiện tại.

@@ -1,13 +1,13 @@
 ---
 task_id: "FND-01"
-status: "Done"
+status: "Review"
 week: 1
 block: "Foundation"
 workstream: "QA"
 scope: "Core"
 priority: "P0"
 effort_hours: 4
-assignee: "unassigned"
+assignee: "HoaiTam"
 reviewer: "unassigned"
 dependencies: ["MIO-01", "AFL-01", "SPK-01", "QRY-01"]
 ---
@@ -35,7 +35,7 @@ Viết script/checklist kiểm tra service health, network, volume và log khở
 
 ## Tiêu chí hoàn thành
 
-- [x] Tất cả service bắt buộc đạt.
+- [ ] Tất cả service bắt buộc đạt trên lifecycle mới (runtime cũ giữ làm evidence lịch sử; cần startup/smoke lại).
 - [x] lỗi phổ biến có hướng xử lý ngắn.
 
 ## Hard dependency
@@ -64,10 +64,10 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Theo dõi
 
-- **Trạng thái:** Done
-- **Assignee:** Chưa ghi lại
+- **Trạng thái:** Review
+- **Assignee:** HoaiTam
 - **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** [PR #11](https://github.com/HoaiTam/japan-earthquake-etl/pull/11)
+- **Evidence / PR:** [PR #11](https://github.com/HoaiTam/japan-earthquake-etl/pull/11) là nghiệm thu lịch sử. Bản vá hiện tại trên branch `fix/fnd-01-separate-docker-lifecycle`; xem [evidence lifecycle](../../evidence/FND-01_DOCKER_LIFECYCLE.md) và [quy trình mới](../../DOCKER_RUNTIME_WORKFLOW.md). Code/tests hoàn tất; Docker API thực timeout, chưa nghiệm thu cold/warm startup và live smoke mới nên giữ Review, không tự nâng Done.
 - **Kỹ năng phù hợp:** QA, Docker, tài liệu
 
 ## Checklist bàn giao
@@ -77,7 +77,7 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 - [x] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
 - [x] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
 - [x] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
-- [x] P0/P1 có reviewer khác assignee xác nhận.
+- [ ] Bản vá lifecycle Docker có reviewer độc lập (khuyến nghị, chưa có approval).
 
 ## Tài liệu liên quan
 
