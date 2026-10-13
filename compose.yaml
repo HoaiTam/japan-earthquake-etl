@@ -133,6 +133,16 @@ x-spark-common: &spark-common
     - no-new-privileges:true
   stop_grace_period: 30s
 
+x-minio-client: &minio-client
+  build:
+    context: ./compose/minio-client
+    dockerfile: Dockerfile
+    args:
+      MC_VERSION: RELEASE.2025-08-13T08-35-41Z
+      MC_COMMIT: 7394ce0dd2a80935aded936b09fa12cbb3cb8096
+  image: japan-earthquake-etl/mc:RELEASE.2025-08-13T08-35-41Z
+  pull_policy: build
+
 services:
   minio:
     <<:
@@ -180,7 +190,7 @@ services:
     <<:
       - *runtime-defaults
       - *resource-baseline
-    image: quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z
+      - *minio-client
     entrypoint:
       - /bin/sh
       - /opt/minio/init.sh
@@ -214,7 +224,7 @@ services:
     <<:
       - *runtime-defaults
       - *resource-baseline
-    image: quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z
+      - *minio-client
     profiles:
       - smoke
     entrypoint:

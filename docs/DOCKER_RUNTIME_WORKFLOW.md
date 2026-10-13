@@ -41,7 +41,7 @@ Thiếu image/artifact sẽ báo lỗi và yêu cầu chuẩn bị, không lén 
 
 | Lệnh | Làm gì | Không làm gì |
 |---|---|---|
-| `docker-build` | Build 4 image custom, chạy Maven verify bằng Java17 trong Docker, export JAR/Iceberg runtime, pull dependency images | Không start foundation, migrate DB, bootstrap bucket hay chạy ETL |
+| `docker-build` | Build 5 image custom (MinIO server/client, Airflow, Spark, Spark Gold QA), chạy Maven verify bằng Java17 trong Docker, export JAR/Iceberg runtime, pull dependency images | Không start foundation, migrate DB, bootstrap bucket hay chạy ETL |
 | `docker-up` | Start service chưa ready/current, init khi chưa có kết quả phù hợp, chờ health | Không build/pull, không xóa container dữ liệu/volume/warehouse |
 | `docker-check` / smoke preflight | Kiểm tra service/init/config/image/artifact phù hợp | Không build/pull/start/init/restart, không force unlock |
 
@@ -113,6 +113,26 @@ make logs SERVICE=airflow-init TAIL=100
 | `JAVA_ARTIFACTS_UNPREPARED/STALE/CHANGED` | Chuẩn bị lại artifacts bằng `docker-build` (hoặc package trên JDK17), không sửa receipt bằng tay |
 | `DOCKER_COMMAND_UNAVAILABLE_OR_TIMEOUT` | Kiểm tra Docker Desktop/daemon; test không tự restart Docker |
 | `INIT_IN_PROGRESS_WITH_OLD_CONFIGURATION` | Chẩn đoán init cũ trước; không force replace/migrate song song |
+
+### MinIO Client không còn phụ thuộc image Quay
+
+`minio-init`/`minio-smoke` cùng build image local từ official `minio/mc`, tag
+`RELEASE.2025-08-13T08-35-41Z`, commit
+`7394ce0dd2a80935aded936b09fa12cbb3cb8096`. `docker-build` build `minio-init`
+nhưng **không chạy init** và không đưa client vào danh sách pull dependency.
+Source commit/tag và binary release/commit được verify trong Dockerfile; context
+client chỉ có Dockerfile. Hai client phải cùng image/context/build args đã review.
+Fingerprint bao gồm Dockerfile và `.dockerignore` của cả server/client; image
+client stale cũng bị preflight chặn. Smoke vẫn `--no-deps --pull never`.
+
+Nếu đã gặp `401 UNAUTHORIZED` khi pull `quay.io/minio/mc`, dùng branch chứa bản
+vá rồi chạy lại `make docker-build` (không `--no-cache`), sau đó `make docker-up`
+khi không có job active. Java/server build layers không đổi được tận dụng cache;
+client mới cần tải Go modules/compile một lần. Build source vẫn cần Internet tới
+Docker Hub, GitHub, Alpine và Go proxy/checksum service, không phải chế độ offline.
+Không sửa mật khẩu MinIO để chữa registry 401 và không reset dữ liệu.
+
+Kiểm chứng bản vá: [MIO-01 pinned client evidence](./evidence/MIO-01_PINNED_CLIENT.md).
 
 Startup timeout có thể để container đã khởi động tiếp tục chạy. Không coi Ctrl+C
 là rollback; đọc state trước khi retry. Không dùng `down -v`, xóa owner lease,

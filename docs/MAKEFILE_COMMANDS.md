@@ -47,7 +47,7 @@ bị preflight chặn. Makefile không `include`/`source` file secret vào shell
 
 | Target | Làm gì / dùng khi nào |
 |---|---|
-| `docker-build` / `build` | Build 4 images và Java17 JAR trong Docker, export artifacts, pull dependencies; không start/init |
+| `docker-build` / `build` | Build 5 images (gồm MinIO server/client từ source) và Java17 JAR trong Docker, export artifacts, pull dependencies; không start/init |
 | `docker-up` / `up` / `start` | Start 9 foundation service bằng image hiện có; init chỉ khi cần, không build/pull |
 | `docker-check` | Read-only health/init/config/image fingerprint, không thay đổi hệ thống |
 | `up-minio` | Start MinIO, init chỉ khi chưa hoàn tất đúng config; không build/pull |
@@ -58,6 +58,10 @@ bị preflight chặn. Makefile không `include`/`source` file secret vào shell
 Khởi động service không đồng nghĩa chạy test hoặc trigger ETL. `up-airflow` bật
 scheduler; DAG nào đã unpause sẽ có thể chạy theo lịch/catchup đã cấu hình.
 Image đã build được tận dụng cache ở lần chạy sau.
+MinIO Client không pull từ Quay: init/smoke dùng cùng image local pin source
+tag/commit. Nếu build cũ lỗi registry 401 cho `mc`, chạy lại `docker-build` trên
+bản vá; không cần đổi `.env` hoặc xóa volume. Chi tiết tại
+[MinIO storage](./specs/MINIO_STORAGE.md).
 Smoke không tự gọi build/up/init. Thiếu/stale image hoặc host JAR, config drift,
 service không healthy hay init chưa exit0 đều fail trước bài test. Chi tiết
 fingerprints, migration từ images cũ và timeout ở [Docker runtime workflow](./DOCKER_RUNTIME_WORKFLOW.md).

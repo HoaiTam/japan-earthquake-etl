@@ -54,6 +54,12 @@ assignee/evidence chính thức nằm trong từng file.
 | [QRY-01](./QRY-01.md) - Cấu hình Iceberg REST Catalog và Trino | 1 | Serving | Core | P1 | 7h | Done |
 | [FND-01](./FND-01.md) - Tạo smoke checklist cho môi trường | 1 | QA | Core | P0 | 4h | Review |
 
+MIO-01 được kiểm chứng lại ngày 2026-10-13: client source build pin tag/commit,
+init/smoke local không pull Quay; cold init/rerun/write-read và Bronze delete-denied
+đạt trên MinIO QA tmpfs riêng. Assignee `HoaiTam`, reviewer `unassigned`; xem
+[evidence pinned client](../../evidence/MIO-01_PINNED_CLIENT.md).
+Không dùng acceptance component này để nâng FND-01 full-stack lên Done.
+
 SPK-01 được kiểm chứng lại ngày 2026-10-08 sau hotfix Docker builder thiếu
 fixture/inventory; assignee `HoaiTam`, reviewer `unassigned`. Xem
 [evidence build/Java 17/Spark runtime](../../evidence/SPK-01_DOCKER_BUILD_INPUTS.md).

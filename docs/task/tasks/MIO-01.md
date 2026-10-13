@@ -7,7 +7,7 @@ workstream: "Storage"
 scope: "Core"
 priority: "P0"
 effort_hours: 5
-assignee: "unassigned"
+assignee: "HoaiTam"
 reviewer: "unassigned"
 dependencies: ["CMP-01"]
 ---
@@ -37,6 +37,8 @@ Thêm MinIO, health check và init service tạo bucket/prefix logic.
 
 - [x] Khởi động mới tạo đúng bucket.
 - [x] ghi/đọc object smoke test thành công.
+- [x] Hotfix 2026-10-13: client build từ official source pin tag/commit, binary verify; init và smoke dùng cùng image local, không pull Quay.
+- [x] Hotfix: cold init/rerun và ghi/đọc được kiểm chứng trên MinIO tạm, giữ object sau rerun và từ chối xóa Bronze bằng pipeline credential.
 
 ## Hard dependency
 
@@ -62,9 +64,9 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 ## Theo dõi
 
 - **Trạng thái:** Done
-- **Assignee:** Chưa ghi lại
+- **Assignee:** HoaiTam
 - **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** [PR #7](https://github.com/HoaiTam/japan-earthquake-etl/pull/7)
+- **Evidence / PR:** [PR #7](https://github.com/HoaiTam/japan-earthquake-etl/pull/7) là baseline lịch sử. Hotfix trên branch `fix/mio-01-build-pinned-client`, từ main `490b0ba` (PR #69); xem [pinned client evidence](../../evidence/MIO-01_PINNED_CLIENT.md). Chưa commit/push/mở PR, reviewer chưa được chỉ định.
 - **Kỹ năng phù hợp:** MinIO, S3 API, Docker
 
 ## Checklist bàn giao
@@ -74,10 +76,12 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 - [x] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
 - [x] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
 - [x] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
-- [x] P0/P1 có reviewer khác assignee xác nhận.
+- [ ] Hotfix client có reviewer độc lập xác nhận (khuyến nghị; chưa có approval).
 
 ## Tài liệu liên quan
 
 - [Kế hoạch 8 tuần](../README.md)
 - [Các khối công việc](../WORK_BLOCKS.md)
 - [Baseline MVP, KPI và Definition of Done](../../specs/MVP_SCOPE_KPI_AND_DOD.md)
+- [MinIO storage/build/bootstrap](../../specs/MINIO_STORAGE.md)
+- [Docker runtime workflow](../../DOCKER_RUNTIME_WORKFLOW.md)

@@ -9,6 +9,11 @@ Iceberg `ml.*`. Static report là output Core; Power BI là phần Stretch tùy 
 Phạm vi, KPI và Definition of Done hiện hành nằm tại
 [baseline PLN-01](./docs/specs/MVP_SCOPE_KPI_AND_DOD.md).
 
+MinIO server và Client `mc` được build local từ source chính thức pin release/
+commit; `make docker-build` không còn pull client từ Quay. Init và smoke dùng
+cùng binary đã verify, giữ nguyên bucket/volume/credential. Xem
+[MinIO storage và xử lý registry 401](./docs/specs/MINIO_STORAGE.md).
+
 > Trạng thái hiện tại: **foundation đã có full-stack smoke checklist**.
 > MinIO bucket bootstrap, Airflow local runtime, Spark Java build/runtime,
 > Iceberg REST Catalog và Trino đã được triển khai và kiểm tra cùng nhau.

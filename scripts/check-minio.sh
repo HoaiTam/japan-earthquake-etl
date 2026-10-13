@@ -8,7 +8,7 @@ compose_file=${COMPOSE_FILE:-"$project_root/compose.yaml"}
 env_file=${ENV_FILE:-"$project_root/.env.example"}
 
 server_image=japan-earthquake-etl/minio:RELEASE.2025-10-15T17-29-55Z
-client_image=quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z
+client_image=japan-earthquake-etl/mc:RELEASE.2025-08-13T08-35-41Z
 failed=0
 
 report_error() {
@@ -63,6 +63,20 @@ fi
 if ! grep -Fq '/out/minio --version | grep -F "$MINIO_VERSION"' \
     "$project_root/compose/minio/Dockerfile"; then
     report_error "MinIO Dockerfile must verify the built binary version"
+fi
+
+client_dockerfile="$project_root/compose/minio-client/Dockerfile"
+if [ ! -f "$client_dockerfile" ]; then
+    report_error "MinIO Client source Dockerfile must exist"
+else
+    require_fixed "$(cat "$client_dockerfile")" 'test "$(git rev-parse HEAD)" = "$MC_COMMIT"' \
+        "MinIO Client Dockerfile must verify the source commit"
+    require_fixed "$(cat "$client_dockerfile")" 'test "$(git tag --points-at HEAD)" = "$MC_VERSION"' \
+        "MinIO Client Dockerfile must verify the release tag"
+    require_fixed "$(cat "$client_dockerfile")" 'MC_RELEASE=RELEASE go run buildscripts/gen-ldflags.go 2025-08-13T08:35:41Z' \
+        "MinIO Client Dockerfile must embed the reviewed release metadata"
+    require_fixed "$(cat "$client_dockerfile")" '/out/mc --version | grep -F "mc version $MC_VERSION (commit-id=$MC_COMMIT)"' \
+        "MinIO Client Dockerfile must verify binary version and commit"
 fi
 
 if ! command -v docker >/dev/null 2>&1; then
@@ -122,6 +136,18 @@ fi
 
 require_fixed "$init_block" "image: $client_image" \
     "minio-init must use the reviewed pinned client image"
+for block in "$init_block" "$smoke_block"; do
+    require_fixed "$block" "MC_VERSION: RELEASE.2025-08-13T08-35-41Z" \
+        "MinIO Client source build must pin the reviewed release"
+    require_fixed "$block" "MC_COMMIT: 7394ce0dd2a80935aded936b09fa12cbb3cb8096" \
+        "MinIO Client source build must pin the reviewed upstream commit"
+    require_fixed "$block" "dockerfile: Dockerfile" \
+        "MinIO Client must use its reviewed source Dockerfile"
+    require_fixed "$block" "context: $project_root/compose/minio-client" \
+        "MinIO Client must use the isolated source build context"
+    require_fixed "$block" "pull_policy: build" \
+        "MinIO Client must build locally instead of pulling from Quay"
+done
 require_fixed "$init_block" "condition: service_healthy" \
     "minio-init must wait for healthy MinIO"
 require_fixed "$init_block" "target: /opt/minio/init.sh" \
