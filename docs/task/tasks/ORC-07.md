@@ -110,4 +110,3 @@ chỉ định; planned cross-review không phải approval đã tồn tại.
 - [Gold commit](../../specs/GOLD_ICEBERG_COMMIT.md)
 - [Trino publication](../../specs/GOLD_TRINO_PUBLICATION.md)
 - [Kế hoạch tuần 5](../WEEK_5_PARALLEL_PLAN.md)
-

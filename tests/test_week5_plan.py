@@ -38,6 +38,23 @@ class Week5PlanTest(unittest.TestCase):
         result = self.run_check()
         self.assertEqual(0, result.returncode, result.stderr)
 
+    def test_new_plan_artifacts_have_one_final_newline(self):
+        # Check file bytes, including new/untracked files that git diff may omit.
+        paths = (
+            "docs/specs/JUPYTER_PILOT_WORKFLOW.md",
+            "docs/task/WEEK_5_PARALLEL_PLAN.md",
+            "docs/task/tasks/DAT-02.md",
+            "docs/task/tasks/ORC-06.md",
+            "docs/task/tasks/ORC-07.md",
+            "scripts/check-week-5-plan.sh",
+            "tests/test_week5_plan.py",
+        )
+        for relative in paths:
+            with self.subTest(path=relative):
+                content = (ROOT / relative).read_bytes()
+                self.assertTrue(content.endswith(b"\n"), "missing final newline")
+                self.assertFalse(content.endswith(b"\n\n"), "new blank line at EOF")
+
     def test_pilot_loader_dependency_required(self):
         self.change("EXP-01", ', "DAT-02"]', "]")
         self.rejects("EXP-01 lacks DAT-02 dependency")
@@ -82,4 +99,3 @@ class Week5PlanTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

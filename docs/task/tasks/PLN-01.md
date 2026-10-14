@@ -115,7 +115,23 @@ Có thể bắt đầu ngay. Chốt output contract hoặc fixture nhỏ trướ
   hoạch/docs, không chứng minh dataset/feature/Jupyter/Colab runtime đã chạy.
 - Planning Done; DAT-02/EXP implementation chưa Done; chưa commit/push/mở PR.
 
-## Tài liệu liên quan — Jupyter-first
+## Bản vá CI của PR #72 — 2026-10-14
+
+- [PR #72](https://github.com/HoaiTam/japan-earthquake-etl/pull/72), head
+  `beaac60987a538e953cafd56b3cb9e97ac179060`: Java/Spark và Airflow passed;
+  docs-contracts failed riêng step whitespace với 7 dòng trắng thừa ở EOF.
+- Branch local `fix/pln-01-pr-72-ci` từ đúng head PR; sửa định dạng, không
+  bỏ check hoặc đổi contract/assignment/effort. Người dùng cho phép commit/
+  push bản vá vào cùng nhánh PR, không yêu cầu merge.
+- Regression kiểm tra bytes 7 artifacts (gồm file mới/untracked); 12 tests
+  và `make ci-docs` đạt. `git diff --check origin/main` kiểm tra cả nội dung PR và bản vá đạt,
+  không chỉ kiểm tra working diff chưa commit.
+- Assignee HoaiTam, reviewer unassigned; không có approval mới. Planning
+  giữ Done; FND-01/ORC-02/SEC-01 không được nâng trạng thái từ CI này.
+- CI GitHub phải chạy lại trên commit được push; chưa nhận checks cũ hoặc
+  local tests là toàn bộ checks của bản vá trên GitHub đã xanh.
+
+## Tài liệu liên quan — bản hiện hành
 
 - [Kế hoạch 8 tuần](../README.md)
 - [Jupyter pilot workflow](../../specs/JUPYTER_PILOT_WORKFLOW.md)

@@ -118,4 +118,3 @@ Mới thêm task, chưa chạy export/notebook; chỉ đổi In Progress khi th�
 - [MLD-03 windows](../../specs/MAINSHOCK_AND_CANDIDATE_WINDOWS.md)
 - [MLD-04](./MLD-04.md), [MLD-05](./MLD-05.md)
 - [EXP-01](./EXP-01.md), [EXP-02](./EXP-02.md)
-

@@ -126,4 +126,3 @@ result hoàn tất, không được lấy pilot_result_manifest đổi tên làm
   pilot PASSED không thay các tasks này. DOC-01 cập nhật local/Colab runbook.
 - Không sửa task Done upstream chỉ vì thêm development pilot workflow.
 - Task files/index là nguồn trạng thái; spec này không tự chứng minh notebook chạy được.
-

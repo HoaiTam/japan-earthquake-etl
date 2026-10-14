@@ -70,4 +70,3 @@ for id in MLD-02 MLD-03; do
     [ "$(field reviewer "$id")" = HoaiTam ] || fail "$id reviewer exception lost"
 done
 printf 'Week 5 plan check passed: 12 Core tasks, 72h (24/25/23); DAT-02 Jupyter first, Colab gated, QA-04 week 6.\n'
-

@@ -163,7 +163,7 @@ Official Colab research vẫn chờ MLD-05 EXPORTED.
 ## 6. Checklist review cuối tuần
 
 Kiểm tra kế hoạch offline hiện có: `make check-week-5-plan`,
-`make check-task-status`, `make test-week-5-plan` (11 regression cases) và
+`make check-task-status`, `make test-week-5-plan` (12 regression cases, gồm EOF của file mới) và
 `make ci-docs`. Các checks này không build/start Docker, không lấy dữ liệu,
 không chứng minh runtime/research acceptance. Khi đổi roster/task/effort chính
 thức, cập nhật plan/metadata/index và planning checks/tests cùng PR.
@@ -182,4 +182,3 @@ thức, cập nhật plan/metadata/index và planning checks/tests cùng PR.
 - [ ] MLI-03 rejects bundle lỗi trước serving, CANDIDATE không tự APPROVED.
 - [ ] Docs/checks/CI đạt; carryover chưa có evidence giữ đúng Review/In Progress.
 - [ ] Nếu runtime/coverage trễ: báo blocker và remaining effort, replan tuần 6 thay vì bỏ test.
-

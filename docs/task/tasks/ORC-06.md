@@ -102,4 +102,3 @@ Reviewer độc lập chưa chỉ định, không ghi approval trước khi revi
 - [Gold commit và COMPLETE_MONTHS](../../specs/GOLD_ICEBERG_COMMIT.md)
 - [ETL phase contract](../../specs/ETL_ORCHESTRATION_CONTRACT.md)
 - [Kế hoạch tuần 5](../WEEK_5_PARALLEL_PLAN.md)
-
