@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""SEC-01 scoped, read-only, redacted audit. Exit 2 means coverage incomplete."""
+"""SEC-01 redacted audit; optional exact-key QA writes. Exit 2 is incomplete."""
 import argparse
 import hashlib
+import importlib.util
 import json
 import re
 import subprocess
+from datetime import datetime, timezone
 from pathlib import Path
 
 PATTERNS = {
@@ -23,6 +25,28 @@ ML_PATTERNS = {
 }
 MAX_BYTES = 2 * 1024 * 1024
 PLACEHOLDER_PASSWORD = re.compile(r"\A(?:\$\{[A-Za-z_][A-Za-z0-9_]*\}|change-me-[^\s/@]+)\Z")
+
+def configured_secrets(root):
+    path = root / ".env"
+    if not path.is_file() or path.is_symlink() or path.stat().st_size > MAX_BYTES:
+        return []
+    keys = {"MINIO_ROOT_PASSWORD", "MINIO_ACCESS_KEY", "MINIO_SECRET_KEY",
+            "AIRFLOW_ADMIN_PASSWORD", "AIRFLOW_FERNET_KEY", "AIRFLOW_API_JWT_SECRET",
+            "AIRFLOW_DB_PASSWORD"}
+    values = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        key, separator, value = line.partition("=")
+        if separator and key in keys:
+            value = value.strip()
+            if len(value) >= 2 and value[0] == value[-1] and value[0] in ("'", '"'):
+                value = value[1:-1]
+            if len(value) >= 16 and not value.startswith("change-me-"):
+                values.append(value)
+    return values
+
+def is_ml_artifact(name):
+    return name.endswith(".ipynb") or any(part in name.split("/")
+        for part in ("ml-export", "ml-pilot", "ml-artifacts", "experiments", "notebooks")) or "ml/results/" in name
 
 
 def triage(categories, data, allowlist):
@@ -79,12 +103,17 @@ def git(root, *args):
     return result.stdout
 
 
-def audit(root, include_history=True):
+def audit(root, include_history=True, runtime=False, permissions=False):
     root = root.resolve()
-    report = {"schema_version": "1.0", "coverage": {}, "findings": [], "triaged_synthetic_fixtures": [], "pending": [], "can_mark_done": False}
+    report = {"schema_version": "1.1", "started_at_utc": datetime.now(timezone.utc).isoformat(),
+              "coverage": {}, "findings": [], "triaged_synthetic_fixtures": [], "pending": [], "deferred": [], "can_mark_done": False}
+    secrets = configured_secrets(root)
     allow_path = root / "docs/security/SEC-01-synthetic-uris.json"
     allowlist = json.loads(allow_path.read_text(encoding="utf-8")) if allow_path.is_file() else []
     def record(scope, location, categories, data=None):
+        if data is not None and scope in ("worktree", "history") and location != ".env":
+            if any(value.encode() in data for value in secrets):
+                categories = [*categories, "configured_secret_in_content"]
         if data is not None and scope in ("worktree", "history"):
             categories, known = triage(categories, data, allowlist)
             for category in known:
@@ -104,7 +133,7 @@ def audit(root, include_history=True):
             report["pending"].append({"scope": "worktree", "location": name, "reason": "file_size_guard"})
             continue
         data = path.read_bytes()
-        record("worktree", name, scan_text(data.decode("utf-8", errors="ignore"), ml="ml/results/" in name or "ml-export/" in name), data)
+        record("worktree", name, scan_text(data.decode("utf-8", errors="ignore"), ml=is_ml_artifact(name)), data)
         current += 1
     report["coverage"]["worktree_files"] = current
     env = root / ".env"
@@ -116,6 +145,8 @@ def audit(root, include_history=True):
     if env.exists():
         if env.is_symlink() or env.resolve().parent != root:
             record("config", ".env", ["unsafe_audit_path"])
+        elif env.stat().st_size > MAX_BYTES:
+            report["pending"].append({"scope": "config", "location": ".env", "reason": "file_size_guard"})
         else:
             record("config", ".env", scan_text(env.read_text(encoding="utf-8", errors="ignore")))
             report["pending"].append({"scope": "config", "reason": "run_check_config_require_local_for_strength_and_role_checks"})
@@ -161,10 +192,18 @@ def audit(root, include_history=True):
                 record("logs", name, ["unsafe_audit_path"]); continue
             if path.stat().st_size > MAX_BYTES:
                 report["pending"].append({"scope": "logs", "location": name, "reason": "file_size_guard"}); continue
-            record("logs", name, scan_text(path.read_bytes().decode("utf-8", errors="ignore")))
+            text = path.read_bytes().decode("utf-8", errors="ignore")
+            categories = scan_text(text, ml=is_ml_artifact(name))
+            if any(value in text for value in secrets):
+                categories.append("configured_secret_in_log")
+            record("logs", name, categories)
             log_count += 1
     report["coverage"]["local_log_files"] = log_count
-    command = ["docker", "compose", "-f", str(root / "compose.yaml"), "config", "--no-interpolate", "--no-env-resolution", "--format", "json"]
+    # Resolve type-checked ports using public placeholders, not --no-interpolate
+    # (Compose 2.38 rejects uninterpolated published-port values).
+    command = ["docker", "compose", "--env-file", str(root / ".env.example"),
+               "-f", str(root / "compose.yaml"), "--profile", "*", "config",
+               "--no-env-resolution", "--format", "json"]
     try:
         result = subprocess.run(command, cwd=root, capture_output=True, timeout=30)
         if result.returncode:
@@ -174,32 +213,63 @@ def audit(root, include_history=True):
             report["findings"].extend(findings); report["coverage"]["declared_ports"] = ports
     except (OSError, subprocess.TimeoutExpired, ValueError):
         report["pending"].append({"scope": "compose", "reason": "compose_cli_unavailable"})
-    # No runtime operations or broad bucket enumeration. Future components cannot be certified.
-    report["pending"].extend([
-        {"scope": "runtime", "reason": "live_deployed_ports_logs_bucket_prefix_positive_negative_permission_tests_required"},
-        {"scope": "ml", "reason": "EXP-01_MLD-05_MLI-03_actual_notebook_export_import_artifacts_not_available"},
-    ])
+    if runtime and env.is_file() and not env.is_symlink() and env.stat().st_size <= MAX_BYTES:
+        checked = subprocess.run([str(root / "scripts/check-config.sh"), "--require-local"],
+                                 cwd=root, capture_output=True, timeout=30)
+        if checked.returncode:
+            report["findings"].append({"scope": "config", "category": "local_config_validation_failed"})
+        else:
+            report["pending"] = [item for item in report["pending"]
+                                 if item.get("reason") != "run_check_config_require_local_for_strength_and_role_checks"]
+            report["coverage"]["local_config_strength_and_roles"] = True
+        module_spec = importlib.util.spec_from_file_location("sec_runtime", root / "scripts/security-runtime.py")
+        module = importlib.util.module_from_spec(module_spec)
+        module_spec.loader.exec_module(module)
+        measured = module.audit_runtime(root, scan_text, permissions=(permissions and checked.returncode == 0
+                                        and not report["findings"] and not report["pending"]))
+        report["findings"].extend(measured["findings"])
+        report["pending"].extend(measured["pending"])
+        report["coverage"]["runtime"] = measured["coverage"]
+    else:
+        report["pending"].append({"scope": "runtime", "reason": "runtime_config_unavailable_or_unsafe"
+                                  if runtime else "live_runtime_audit_not_requested"})
+    # Current artifacts are scanned; absence is downstream work, not certification
+    # of notebooks/exports that do not yet exist.
+    report["deferred"] = [{"task_id": task, "reason": "re_audit_new_artifacts_when_implemented"}
+                          for task in ("DAT-02", "EXP-01", "MLD-05", "MLI-03")]
+    report["coverage"]["current_baseline_passed"] = runtime and permissions and not report["findings"] and not report["pending"]
+    # Original SEC-01 acceptance includes the actual notebook/export/import
+    # handoff. A clean current stack cannot certify absent downstream artifacts.
+    report["pending"].append({"scope": "ml_handoff", "reason": "actual_notebook_export_import_acceptance_not_verified",
+                              "task_ids": ["DAT-02", "EXP-01", "MLD-05", "MLI-03"]})
+    report["can_mark_done"] = runtime and permissions and not report["findings"] and not report["pending"]
     report["coverage"]["pattern_policy"] = "high_confidence_tokens_keys_and_credential_URIs_not_complete_secret_detection"
+    report["completed_at_utc"] = datetime.now(timezone.utc).isoformat()
     return report
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--runtime", action="store_true", help="inspect deployed ports, roles and retained container logs")
+    parser.add_argument("--permission-probes", action="store_true", help="opt-in exact-key QA writes; requires --runtime")
     args = parser.parse_args()
+    if args.permission_probes and not args.runtime:
+        parser.error("--permission-probes requires --runtime")
     root = Path(__file__).resolve().parent.parent
     target = args.output.resolve()
     if root not in target.parents or args.output.is_symlink():
         parser.error("output must stay inside project and not be a symlink")
     try:
-        report = audit(root)
+        report = audit(root, runtime=args.runtime, permissions=args.permission_probes)
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(json.dumps(report, indent=2, ensure_ascii=False)+"\n", encoding="utf-8")
     except Exception:
         print("SEC-01 audit failed; diagnostic values redacted")
         return 1
-    print("SEC-01 scoped audit:", len(report["findings"]), "findings;", len(report["pending"]), "pending coverage items; can_mark_done=false")
-    return 1 if report["findings"] else 2
+    print("SEC-01 scoped audit:", len(report["findings"]), "findings;", len(report["pending"]),
+          "pending coverage items; can_mark_done=" + str(report["can_mark_done"]).lower())
+    return 1 if report["findings"] else (0 if report["can_mark_done"] else 2)
 
 
 if __name__ == "__main__":

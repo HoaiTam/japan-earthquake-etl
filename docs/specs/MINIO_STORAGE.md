@@ -132,8 +132,22 @@ USG-03 và JMA-03 vẫn phải dùng path gắn `run_id`/`attempt`/catalog relea
 từ chối overwrite mơ hồ theo Bronze storage contract để đáp ứng tính bất biến
 nghiệp vụ.
 
-Secret chỉ đi qua environment. Script không in credential; `MC_CONFIG_DIR` đặt
-trong tmpfs `/tmp` và init/smoke container dùng root filesystem read-only.
+Secret vào container qua environment; bootstrap/smoke truyền alias JSON qua
+stdin của `mc alias import`, và bootstrap truyền hai dòng user/password qua
+stdin của `mc admin user add`. Password không còn nằm trong argv; không bật
+shell tracing. `mc admin policy attach --user` vẫn cần access-key identifier
+trong argv (không có secret key); đây là selector quản trị của client đã pin,
+không được chụp command line để chia sẻ. CLI lỗi nhạy cảm được thay bằng lý do cố định.
+`umask 077`, `MC_CONFIG_DIR` trong tmpfs `/tmp`; init/smoke root filesystem read-only.
+Docker operator vẫn đọc được environment/config trong container: local Docker
+là trust boundary, không phải cơ chế che secret khỏi admin của máy.
+
+SEC-01 kiểm tra quyền thật bằng `make audit-security-runtime`: tạo đúng ba object nhỏ
+ở `<prefix>/_security/sec-01-<UUID>/probe.txt`, read/list rồi kiểm tra deny
+anonymous/outside-prefix/Bronze delete. Chỉ xóa hai key QA Silver/warehouse vừa
+tạo; giữ Bronze QA, không tạo manifest BronzeReady hoặc sửa dữ liệu nghiệp vụ.
+Mỗi lần chạy thêm một Bronze QA nhỏ; không chạy lặp định kỳ vô hạn. Xem
+[checklist và giới hạn audit](../security/SEC-01-CHECKLIST.md).
 
 ## 6. Network, endpoint và persistence
 

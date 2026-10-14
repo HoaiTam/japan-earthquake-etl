@@ -19,6 +19,7 @@ SILVER_RUNNER_JAR ?=
 RUN_SUMMARY_ROOT ?= staging/run-summary
 RUN_SUMMARY_DAG ?= orc_01_etl_pipeline
 RUN_SUMMARY_RUN_ID ?=
+SECURITY_REPORT ?= staging/sec-01-report.json
 
 COMPOSE = docker compose --env-file "$(ENV_FILE)" -f "$(COMPOSE_FILE)"
 RUNTIME_ENV = ENV_FILE="$(ENV_FILE)" COMPOSE_FILE="$(COMPOSE_FILE)"
@@ -102,7 +103,7 @@ smoke-gold-storage: check-config-local ## GLD-03 six QA Iceberg snapshots, chưa
 	@$(RUNTIME_CHECK) --component gold
 	@$(COMPOSE) --profile gold run --rm --no-deps --pull never spark-gold-qa
 
-.PHONY: ci ci-docs ci-java ci-airflow test-ci-workflow test-security-audit
+.PHONY: ci ci-docs ci-java ci-airflow test-ci-workflow test-security-audit audit-security audit-security-runtime
 
 ci: ci-docs ci-java ci-airflow ## Cùng ba nhóm check CI; cần PyYAML, JDK17, Compose CLI, jq/rg; không start service
 
@@ -129,8 +130,16 @@ ci-airflow: test-airflow ## Toàn bộ Python control-plane/DAG tests; không c�
 test-ci-workflow: ## YAML duplicate-key/safety/trigger/job regression; cần tests/ci/requirements.txt
 	@python3 -m unittest discover -s tests/ci -p 'test_*.py'
 
-test-security-audit: ## SEC-01 read-only redacted secret/port/ML boundary audit tests
-	@python3 -m unittest discover -s tests -p 'test_security_audit.py'
+test-security-audit: ## SEC-01 offline redaction/role/port/permission/stdin regression tests
+	@python3 -m unittest discover -s tests -p 'test_security*.py'
+
+audit-security: ## SEC-01 source/history/config scan; exit 2 = còn coverage, không có nghĩa Done
+	@python3 scripts/audit-security.py --output "$(SECURITY_REPORT)"
+
+audit-security-runtime: check-config-local ## SEC-01 security inspection + exact-key permission QA; không build/start/init
+	@test "$(ENV_FILE)" = .env && test "$(COMPOSE_FILE)" = compose.yaml || \
+		{ echo 'SEC-01 runtime audit only supports the project .env and compose.yaml.' >&2; exit 1; }
+	@python3 scripts/audit-security.py --output "$(SECURITY_REPORT)" --runtime --permission-probes
 
 test-docker-runtime: ## FND-01 lifecycle/preflight/freshness regression; Docker/HTTP mock, không start service
 	@python3 -m unittest discover -s tests -p 'test_docker_runtime.py' -b
