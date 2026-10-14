@@ -228,7 +228,9 @@ Evidence thực tế ở [ORC-01 evidence](../evidence/ORC-01.md).
 | [GLD-01 - Xây canonical event, dimensions và bands](../task/tasks/GLD-01.md) | Canonical Gold business output và provenance thật, không triển khai lại trong Python |
 | [GLD-03 - Ghi Gold Iceberg và commit snapshot](../task/tasks/GLD-03.md) | Writer/adapter commit toàn bộ required tables, snapshot bundle và idempotency; chưa có real command được đóng gói |
 | [GLD-04 - Tạo Trino views và verification SQL](../task/tasks/GLD-04.md) | SQL/blocker reports pin committed snapshots và publication metadata thật |
-| [QA-01 - Chạy E2E daily đa nguồn](../task/tasks/QA-01.md) | Scheduler run, Bronze → Silver → Gold Published với input/snapshot/report trace thật |
+| [ORC-06 - Full-month Silver state](../task/tasks/ORC-06.md) | Pin baseline/inputs, resolve tháng cũ/mới và completeness proof cho Gold; không lấy overlap thay tháng |
+| [ORC-07 - Real ETL adapters](../task/tasks/ORC-07.md) | Đóng gói phase/scoped runner, giữ receipts/lease và nối daily/manual đến Gold Published thật |
+| [QA-01 - Chạy E2E daily đa nguồn](../task/tasks/QA-01.md) | Nghiệm thu scheduler run, Bronze → Silver → Gold Published với trace thật; không viết resolver/adapters trong giờ QA |
 
 Không chuyển các task trên sang Done từ evidence skeleton này. Interface có
 thể được mở rộng versioned để truyền baseline/current state khi integration

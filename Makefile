@@ -263,7 +263,7 @@ config: check-config-local ## Validate toàn bộ Compose profile; không in sec
 
 test: test-contracts test-java test-airflow ## Toàn bộ contract và unit test; không cần Docker daemon/nguồn thật
 
-test-contracts: $(CONTRACT_CHECKS) check-java-build-inputs ## Kiểm tra docs, contract, fixture và catalog mẫu; không cần mạng
+test-contracts: $(CONTRACT_CHECKS) check-week-5-plan test-week-5-plan check-java-build-inputs ## Kiểm tra docs, contract, fixture và catalog mẫu; không cần mạng
 
 check-java-build-inputs: ## Kiểm tra đầu vào Maven trong Docker và regression test; không cần Docker/JDK/env
 	@./scripts/check-java-build-inputs.sh
@@ -319,6 +319,13 @@ check-data-model-contract: ## Kiểm tra logical model Silver/Gold/ML và publis
 check-shared-fixtures: ## Kiểm tra fixture synthetic USGS/JMA, ZIP và checksum
 check-real-sample-catalog: ## Kiểm tra metadata DAT-01 offline; không đọc MinIO
 check-week-3-plan: ## Kiểm tra kế hoạch chia việc và data-readiness gate
+check-week-5-plan: ## Kiểm tra owner/tuần/effort và real-adapter gates tuần 5
+	@sh scripts/check-week-5-plan.sh
+
+.PHONY: check-week-5-plan test-week-5-plan
+
+test-week-5-plan: ## Regression kế hoạch tuần 5 bằng metadata tạm, không gọi runtime
+	@python3 -m unittest discover -s tests -p 'test_week5_plan.py'
 check-jma-inventory: ## Kiểm tra inventory 40 năm/41 archive JMA offline
 check-task-status: ## Đối chiếu trạng thái metadata, Theo dõi và danh mục của mọi task
 

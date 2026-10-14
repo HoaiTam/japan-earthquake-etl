@@ -88,8 +88,10 @@ và [queries chỉ đọc](../evidence/GLD-04-verification.sql).
 
 - [MLD-01 — Pin Gold snapshot và tạo dataset manifest](../task/tasks/MLD-01.md):
   tiêu thụ exact PASSED row; không resolve current sau pin.
-- [QA-01 — Chạy E2E daily đa nguồn](../task/tasks/QA-01.md): production DAG adapter,
-  full-month state và multi-source coverage; QA namespace không đại diện research period.
+- [ORC-06 — Full-month Silver state](../task/tasks/ORC-06.md): resolver/coverage proof.
+- [ORC-07 — Real ETL adapters](../task/tasks/ORC-07.md): production DAG adapter.
+- [QA-01 — Chạy E2E daily đa nguồn](../task/tasks/QA-01.md): nghiệm thu multi-source
+  pipeline; QA namespace không đại diện research period.
 - [MLD-02 — Audit Gold và estimate Mc](../task/tasks/MLD-02.md): coverage/Mc/exclusion
   audit trước candidate/feature. Publication của một pilot không là toàn lịch sử đã ready.
 

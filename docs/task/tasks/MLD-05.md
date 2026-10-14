@@ -1,13 +1,13 @@
 ---
 task_id: "MLD-05"
 status: "Backlog"
-week: 6
+week: 5
 block: "G - ML Dataset"
 workstream: "Feature validation and export"
 scope: "Core"
 priority: "P0"
 effort_hours: 5
-assignee: "unassigned"
+assignee: "rosy179"
 reviewer: "unassigned"
 dependencies: ["MLD-04"]
 ---
@@ -55,10 +55,25 @@ triển độc lập; integration export dùng snapshot thật khi `MLD-04` hoà
 - Không ép một file Parquet duy nhất nếu volume lớn.
 - Không commit data export lớn, Drive token hoặc credential vào repository.
 
+## Phân công tuần 5
+
+- **Owner / effort:** rosy179, 5h Core; [kế hoạch và handoff](../WEEK_5_PARALLEL_PLAN.md).
+- **Làm gì / có gì:** Validate/commit feature snapshot; export Parquet parts, dataset_manifest.json và checksums.sha256, marker/lifecycle sau readback.
+- **Dùng để làm gì / output:** Bundle độc lập để EXP-01/MLI-02 dùng, schema/key/checksum/count/version rõ, không credential hoặc copy Iceberg metadata.
+- **Bắt đầu ngay / gate:** Layout/invalid-bundle fixtures làm ngay. Done cần MLD-04, audit/coverage eligibility và export readback; pilot BUILDING/research_ready=false không được tự nâng EXPORTED.
+- **Theo dõi:** Phân công không có nghĩa đã triển khai; chỉ đổi In Progress khi bắt đầu, Done khi đủ acceptance/evidence. Reviewer hiện unassigned, chưa có approval.
+
+## Điều chỉnh Jupyter-first — 2026-10-14
+
+Task này vẫn sở hữu official VALIDATED → EXPORTED bundle/lifecycle. DAT-02 chỉ export development pilot riêng để EXP-01/02 test Jupyter trước, không yêu cầu MLD-05 Done và không bypass audit/coverage. Official bundle phải chạy local loader/checksum smoke trước handoff Colab; Colab model gate do EXP-02 sở hữu, không tạo dependency vòng cho exporter.
+
+- [DAT-02](./DAT-02.md)
+- [Workflow Jupyter → Colab](../../specs/JUPYTER_PILOT_WORKFLOW.md)
+
 ## Theo dõi
 
 - **Trạng thái:** Backlog
-- **Assignee:** Chưa ghi lại
+- **Assignee:** rosy179
 - **Reviewer:** Chưa ghi lại
 - **Evidence / PR:** Chưa có
 - **Kỹ năng phù hợp:** Parquet, checksums, data export, Spark

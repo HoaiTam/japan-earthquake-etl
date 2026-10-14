@@ -34,7 +34,8 @@ Các nguyên tắc không được phá vỡ:
 - Bronze lưu response nguồn nguyên bản và metadata theo run, không bị sửa sau khi ghi thành công.
 - Silver dùng Spark Java để parse và chuẩn hóa USGS/JMA về observation contract chung, giữ lineage, validate, deduplicate/revision trong từng nguồn rồi liên kết observation giữa hai nguồn.
 - Gold chọn canonical event để tránh double count và lưu bằng bảng Iceberg trên MinIO. Chỉ snapshot đã commit và verify qua Trino mới được coi là `Published`.
-- Core ML pin Gold snapshot, tạo candidate/feature bằng Spark, chạy Window/DBSCAN/HDBSCAN theo từng mainshock qua bundle Colab có checksum, rồi validate/import vào Iceberg `ml.*`; không ghi nhãn thử nghiệm vào Gold core.
+- Core ML pin Gold snapshot, tạo candidate/feature bằng Spark và test Window/DBSCAN/HDBSCAN trên Jupyter local trước; dùng lại code/bundle trên Colab sau local gate.
+- DAT-02 là development pilot có checksum/manifest riêng, không đổi official lifecycle. Official dataset vẫn cần MLD-05 EXPORTED trước experiment/result import vào Iceberg `ml.*`; không ghi nhãn thử nghiệm vào Gold core.
 - Static report/Trino verification là output Core. Power BI đọc qua Trino/ODBC ở chế độ Import nhưng là Stretch, không chặn MVP HDBSCAN và không đọc từng object Parquet.
 - Kết quả là sequence/aftershock candidate hồi cứu; không tuyên bố dự đoán động đất hoặc quan hệ nhân quả vật lý.
 - Retry/rerun/backfill không được tạo duplicate logic hoặc sửa partition ngoài phạm vi.

@@ -60,6 +60,13 @@ Có thể bắt đầu ngay. Chốt output contract hoặc fixture nhỏ trướ
 - Không commit secret, credential, payload nhạy cảm, data dump lớn hoặc artifact build không cần thiết.
 - Không đánh dấu `Done` nếu chưa có evidence kiểm tra được.
 
+## Điều chỉnh Jupyter-first — 2026-10-14
+
+Bổ sung runbook DAT-02 → EXP-01/02 Jupyter → local PASSED → Colab với cùng code/bundle. Ghi expected outputs/coverage, development-only vs official export/import và cách restart kernel → run all. Không ghi lệnh giả khi exporter/notebook chưa tồn tại; không nhận pilot PASSED là scientific APPROVED.
+
+- [DAT-02](./DAT-02.md)
+- [Workflow Jupyter → Colab](../../specs/JUPYTER_PILOT_WORKFLOW.md)
+
 ## Theo dõi
 
 - **Trạng thái:** Ready

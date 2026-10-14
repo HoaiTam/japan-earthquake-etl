@@ -489,6 +489,16 @@ phải được giữ nguyên khi đọc để forward-compatible, đồng thờ
 
 ## 11. Bundle-to-table contract
 
+Jupyter local là môi trường kiểm tra trước khi chuyển Colab. Ngoại lệ development
+DAT-02 được định nghĩa tại [Jupyter pilot workflow](./JUPYTER_PILOT_WORKFLOW.md):
+artifact_kind=DEVELOPMENT_PILOT, pilot_manifest/pilot_result_manifest riêng,
+research_ready=false, không official dataset export, không _SUCCESS/import.
+Exporter nội bộ có thể tạo allowlisted development copy từ pinned QA inputs;
+parent BUILDING vẫn không được xem là official notebook-ready. Không thêm enum
+hoặc sửa lifecycle CON-03. Các quy tắc EXPORTED/result/import bên dưới vẫn áp
+nguyên vẹn cho official experiments, bất kể chạy Jupyter hay Colab.
+
+
 ### 11.1. Dataset export bundle
 
 ```text

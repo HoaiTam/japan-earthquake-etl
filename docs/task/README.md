@@ -3,9 +3,10 @@
 Backlog được lưu hoàn toàn bằng Markdown. Mỗi task có một file độc lập trong
 [danh mục task](./tasks/README.md); phạm vi, thành phần và mục đích của từng
 khối được giải thích tại [Các khối công việc sau Foundation](./WORK_BLOCKS.md).
-Phân công gần nhất nằm tại [Kế hoạch tuần 4 mở rộng](./WEEK_4_PARALLEL_PLAN.md),
-gồm [nhóm mở đường để HoaiTam làm trước](./WEEK_4_PREP_GROUP.md) và ba khối
-triển khai. [Kế hoạch tuần 3](./WEEK_3_PARALLEL_PLAN.md) giữ lại để đối chiếu
+Phân công gần nhất nằm tại [Kế hoạch tuần 5](./WEEK_5_PARALLEL_PLAN.md),
+19–25/10/2026, gồm nhóm nghiệm thu tồn và ba khối song song.
+[Kế hoạch tuần 4](./WEEK_4_PARALLEL_PLAN.md) và [nhóm mở đường](./WEEK_4_PREP_GROUP.md)
+giữ lại làm mốc lịch sử. [Kế hoạch tuần 3](./WEEK_3_PARALLEL_PLAN.md) giữ lại để đối chiếu
 handoff/evidence.
 
 ## 1. Giả định lập kế hoạch
@@ -13,12 +14,16 @@ handoff/evidence.
 - Nhóm có 3 thành viên.
 - Thời gian thực hiện là 8 tuần.
 - Capacity sơ bộ là 15 giờ/người/tuần, tương đương 360 giờ toàn nhóm trong
-  8 tuần. Backlog có 364 giờ task vì 12 giờ data-readiness được người điều phối
-  làm trước tuần 3; 352 giờ còn lại là task trong 8 tuần.
+  8 tuần. Baseline cũ 364h; tuần 5 thêm ORC-06/07 16h và DAT-02 6h nên hiện **386h**.
+  12h data-readiness trước tuần 3, còn **374h** task trong 8 tuần; vượt capacity
+  sơ bộ, không coi toàn backlog vừa mức 15h/người.
 - Theo yêu cầu tăng khối lượng, riêng tuần 4 dùng phương án **89h Core + 7h
   review/tích hợp**, khoảng **32h/người**. Đây là tải đề xuất, không phải capacity
   thực tế đã xác nhận; không ép 18 task vào mức 15h cũ. Giữ nguyên effort/scope/
   hard dependency, chuyển lịch ORC-01..05, MLD-01..03, MLI-01 và SEC-01 lên tuần 4.
+- Tuần 5 dùng **72h Core + 4h nghiệm thu tồn + 20h review/tích hợp/dự phòng**,
+  tổng 96h, khoảng 32h/người. Không cộng lại effort cũ của carryover; nếu budget
+  tồn vượt 4h, replan QA-03/EXP-02 thay vì hạ gate. Đây vẫn là capacity đề xuất.
 - Assignee, reviewer, trạng thái và evidence được cập nhật trực tiếp trong file của từng task.
 - Mỗi task chỉ có một assignee chính; nếu có reviewer thì reviewer phải là người khác assignee.
 - Task `Core` cần hoàn thành để đạt tiêu chí phiên bản đầu tiên.
@@ -38,20 +43,22 @@ Nếu capacity thực tế khác 15 giờ/người/tuần, nhóm dùng trường
 | Trước tuần 3 | Data readiness do người điều phối thực hiện | Live USGS Bronze, inventory JMA và catalog hai sample thật được khóa | 12 giờ |
 | 3 | Ba luồng JMA/Silver độc lập | JMA downloader/writer, hai parser, resolver, quality, lineage và Silver writer đạt unit acceptance; integration bằng hai sample nhỏ | 41 giờ task + 4 giờ review |
 | 4 | Nhóm mở đường + ETL/Gold/ML pilot mở rộng | JMA Bronze thật, DAG/run context, SilverReady, Gold Published, pinned dataset/audit/candidate pilot và security evidence | 89 giờ Core + 7 giờ review/tích hợp; GLD-02 Stretch 4h ngoài cam kết |
-| 5 | Chốt lại sau review tuần 4 | Ưu tiên Core/gate tuần 4 còn thiếu; chuẩn bị feature/export; không lấp lịch bằng BI khi Core chưa đạt | Task còn gắn tuần 5: BI-02 Stretch 5h; không cộng lại 40h đã chuyển lên tuần 4 |
-| 6 | Feature và baseline experiment | Feature 4-D được validate/export; notebook chạy Window/DBSCAN/HDBSCAN global; MLI-01/SEC-01 đã đưa lên tuần 4 | 36 giờ task còn lại; lịch thực thi chốt lại sau tuần 4 |
-| 7 | Evaluation và ML import | Adaptive/out-of-period, stability/Omori, ETL QA và import gate được kiểm tra | 44 giờ |
-| 8 | Tích hợp, QA, tài liệu và demo | ML tables/report, E2E, recovery, demo và Power BI Stretch được xác nhận | 43 giờ |
+| 5 | Nối ETL thật, feature/export, baseline algorithms và import | Full-month proof, real adapters, QA/recovery; feature/export và experiment chỉ nghiệm thu khi audit/coverage/lifecycle hợp lệ | 72h Core + 4h nghiệm thu tồn + 20h review/tích hợp/dự phòng |
+| 6 | Chốt docs và phần tuần 5 chưa đủ gate; lên lịch evaluation/report | Không bỏ coverage/quality gate; tiếp tục adaptive/evaluation theo handoff tuần 5 | 12h task gắn tuần 6, gồm QA-04 dời từ tuần 5; lịch tiếp theo chốt sau review tuần 5 |
+| 7 | Adaptive/evaluation và extension | Stability/Omori, out-of-period và coverage đủ trước scientific review | 22h task đang gắn tuần 7; replan sau tuần 5 |
+| 8 | ML report/E2E, release và Stretch | Report/import lineage, demo và release evidence; BI không chặn Core | 44h task đang gắn tuần 8, gồm BI-02 đã dời |
 
-Tổng effort gồm cả task Stretch là **364 giờ**. Sau 12 giờ pre-week, kế hoạch
-còn **352 giờ task** trong 8 tuần. Không tăng effort để tăng số task: tuần 4
-đưa 49h task từ tuần 5/6 lên làm sớm, nên tuần 4 có 93h nếu tính cả Stretch,
-tuần 5 còn 5h và tuần 6 còn 36h gắn trong backlog. Tổng giờ không đổi; review/
-tích hợp là capacity dự phòng, không phải effort task mới. 8h dư trong capacity
-360h của lịch sơ bộ chỉ là mốc tham khảo cũ (4h dành tuần 3); không dùng nó để
-khẳng định phương án tăng tốc tuần 4 vừa mức 15h/người. Sau tuần 4 nhóm chốt
-lại lịch tuần 5/6 theo output và capacity thật. `GLD-02`, `BI-01..05`, `QA-05`
-và `OPS-01` là Stretch, có thể hoãn nếu ảnh hưởng đường găng Core.
+Tổng effort gồm Stretch là **386 giờ** = baseline **364h** + ORC-06/07 **16h** + DAT-02 **6h**.
+Baseline lịch sử còn **352 giờ task** trong 8 tuần sau pre-week; hiện tại
+còn **374 giờ task** trong 8 tuần (386 − 12). “Còn” ở đây là phân bổ lịch,
+không phải remaining effort của các task đã Done. Giữ tuần 3/4 làm mốc lịch sử.
+Tuần 5 kéo 54h task cũ từ tuần 6/7/8 lên; ORC-06/07 thêm 16h, DAT-02 thêm 6h và QA-04 4h dời sang tuần 6
+= 72h tuần 5. BI-02 5h dời sang tuần 8. Tổng giờ theo metadata (tách USG-06/JMA-01/DAT-01 ra pre-week):
+45/45/41/93/72/12/22/44h + pre-week 12h
+= 386h. Review/tích hợp là budget dự phòng, không cộng vào effort task.
+Lịch tuần 6–8 phải chốt lại theo remaining work/coverage sau tuần 5; số giờ
+metadata không đồng nghĩa capacity cam kết. GLD-02, BI-01..05, QA-05 và OPS-01
+vẫn Stretch, không chiếm budget đường găng Core.
 
 ## 3. Khối công việc sau Foundation
 
@@ -59,14 +66,14 @@ Các task được chia thành mười một khối để nhóm có thể giao n
 
 | Khối | Task | Phạm vi | Mục đích |
 |---|---|---|---|
-| A - Hợp đồng dữ liệu | `CON-01..04`, `DAT-01` | Phạm vi nguồn, Bronze contract, Silver/Gold/ML model, fixture và catalog sample thật | Tạo giao diện/input chung trước khi code để các khối khác làm song song |
+| A - Hợp đồng dữ liệu | `CON-01..04`, `DAT-01..02` | Phạm vi nguồn, Bronze contract, Silver/Gold/ML model, fixture và catalog sample thật | Tạo giao diện/input chung trước khi code để các khối khác làm song song |
 | B - USGS Bronze | `USG-01..06` | Request, HTTP client, raw writer, Airflow, tests và live MinIO runner | Cung cấp dữ liệu cập nhật hằng ngày có thể audit và một manifest thật để tích hợp |
 | C - JMA Bronze | `JMA-01..05` | Inventory 40 năm, downloader, versioning, Bronze và backfill | Cung cấp lịch sử JMA bất biến theo catalog release |
 | D - Silver đa nguồn | `SLV-01..09` | Parser, normalize, lineage, quality, dedup, source linking và Parquet | Tạo observation chuẩn và tránh double count hai nguồn |
 | E - Gold & Serving | `GLD-01..04` | Canonical event, Iceberg snapshot, Trino verification; dashboard aggregate là Stretch | Tạo lớp bảng/SQL ổn định cho ML và analytics |
-| F - Điều phối ETL | `ORC-01..05` | DAG, schedule, backfill, observability và recovery đến Gold | Ghép các tầng dữ liệu và vận hành an toàn |
+| F - Điều phối ETL | `ORC-01..07` | DAG, schedule, backfill, full-month state, real adapters, observability và recovery đến Gold | Ghép các tầng dữ liệu và vận hành an toàn |
 | G - ML Dataset | `MLD-01..05` | Pin snapshot, audit/Mc, mainshock window, feature và export | Tạo input bất biến, có lineage cho mọi thuật toán |
-| H - Experiment | `EXP-01..05` | Colab, Window/DBSCAN/HDBSCAN, adaptive, stability và extension | So sánh thuật toán có thể tái lập, không tuyên bố causal |
+| H - Experiment | `EXP-01..05` | Jupyter local trước → Colab sau, Window/DBSCAN/HDBSCAN, adaptive, stability và extension | So sánh thuật toán có thể tái lập, không tuyên bố causal |
 | I - ML Integration | `MLI-01..04`, `MLQ-01` | Bundle contract, hai DAG, Iceberg `ml.*`, Trino/static report và E2E | Đưa kết quả external về lakehouse qua quality gate |
 | J - Power BI tùy chọn | `BI-01..05` | ODBC, semantic model, dashboard, refresh và reconciliation | Phần trình bày mở rộng khi đường găng ML ổn định |
 | K - QA & Release | `QA/SEC/OPS/DOC/DEMO` | ETL E2E, revision, recovery, security, docs và release | Xác nhận tích hợp và bàn giao sản phẩm |
@@ -137,6 +144,15 @@ vận hành ETL, Silver + ML audit/candidate, Gold + ML identity/contract/securi
 Tổng task mỗi người là 30/29/30h, đã tính nhóm mở đường; chỉ gate thật chờ
 upstream, fixture/mock/test plan có thể chuẩn bị ngay. Không đổi dependency để
 nhận notebook/export chưa có là đã Done.
+
+[Phân công tuần 5](./WEEK_5_PARALLEL_PLAN.md) thay lịch hiện hành: HoaiTam
+DAT-02/ORC-07/MLI-02/QA-01; ThanhTris ORC-06/MLI-03/QA-02/03; rosy179
+MLD-04/05/EXP-01/02. Các task đều có phần handoff tuần 5 trong file riêng.
+Hard dependency chỉ chặn nghiệm thu thật; mọi luồng được bắt đầu bằng fixtures.
+DAT-02 tạo development pilot bundle riêng, không đổi parent BUILDING/research_ready=false.
+EXP-01/02 test Jupyter trước; local PASSED rồi mới migrate Colab. Official
+research vẫn cần MLD-05 EXPORTED và import gates. [Workflow](../specs/JUPYTER_PILOT_WORKFLOW.md)
+nêu coverage/type/markers/ownership; QA-04 giữ scope và dời tuần 6.
 
 ## 8. Điều chỉnh kế hoạch
 
