@@ -4,7 +4,7 @@
 |---|---|
 | Task | `PLN-01` |
 | Trạng thái tài liệu | Baseline HDBSCAN hiện hành |
-| Kế hoạch | 8 tuần, 3 thành viên, 364 giờ task; 12 giờ data-readiness trước tuần 3 và 352 giờ trong capacity tham khảo 360 giờ |
+| Kế hoạch | 8 tuần, 3 thành viên, 386 giờ task; 12 giờ data-readiness trước tuần 3 và 374 giờ task trong lịch 8 tuần; capacity sơ bộ 360 giờ không đủ toàn backlog |
 | Nguồn backlog | [`docs/task/tasks/README.md`](../task/tasks/README.md) và file riêng của từng task |
 | Roadmap kỹ thuật | [Roadmap HDBSCAN từ Gold đến ML Iceberg](../task/HDBSCAN_WORKSTREAM.md) |
 
@@ -23,6 +23,16 @@ cập nhật các tài liệu bị tác động trong cùng pull request.
 Baseline tại PR #3 là mốc lịch sử và đã bị phiên bản này thay thế. Quy trình
 Window/DBSCAN/HDBSCAN hiện thuộc Core; Power BI là Stretch và không chặn MVP.
 
+Điều chỉnh PLN-01 ngày 2026-10-14: baseline lịch sử 73 task/364h thêm
+ORC-06/07 (16h) và DAT-02 (6h) = 76 task/386h, Core 68/Stretch 8. Hai task cụ thể hóa
+full-month resolver và real ETL adapters đã cần cho MVP, không thêm sản phẩm
+ngoài phạm vi, không đổi KPI/schema/DoD. [Tuần 5](../task/WEEK_5_PARALLEL_PLAN.md)
+giao 12 Core/72h; QA-04 dời tuần 6, tổng budget đề xuất 96h gồm nghiệm thu tồn/review/tích hợp,
+không tăng effort task cũ và không tuyên bố research coverage đã sẵn sàng.
+[Jupyter-first workflow](./JUPYTER_PILOT_WORKFLOW.md): DAT-02 development pilot
+→ EXP-01/02 local smoke → Colab sau PASSED. Không đổi lifecycle/schema chính thức;
+pilot test-only không thay scientific evaluation hoặc result import acceptance.
+
 ## 2. Kết quả MVP bắt buộc
 
 Phiên bản đầu tiên hoàn thành khi nhóm chứng minh được luồng local-first sau:
@@ -36,7 +46,7 @@ flowchart LR
     SILVER --> GOLD["Gold canonical event<br/>Iceberg snapshot"]
     GOLD --> DATASET["ML dataset<br/>audit · Mc · windows · 4-D feature"]
     DATASET --> BUNDLE["Parquet bundle<br/>manifest · checksum"]
-    BUNDLE --> EXP["External/Colab experiment<br/>Window · DBSCAN · HDBSCAN"]
+    BUNDLE --> EXP["Jupyter local → Colab<br/>Window · DBSCAN · HDBSCAN"]
     EXP --> IMPORT["Airflow import gate<br/>schema · grain · lineage"]
     IMPORT --> ML["Iceberg ml.*<br/>Trino + static report"]
     ML -. "Stretch" .-> BI["Power BI"]
@@ -71,7 +81,11 @@ MVP phải đáp ứng đồng thời:
 
 Mọi dataset phải pin `gold_snapshot_id` và có `dataset_id` bất biến. Mọi kết
 quả phải có `experiment_run_id`, thuật toán/config version, code/notebook/package
-version và checksum. Colab không nhận credential MinIO/pipeline, không ghi trực
+version và checksum. Jupyter là môi trường test đầu tiên, Colab dùng lại cùng
+code/config sau local smoke gate EXP-02; official research vẫn cần MLD-05 EXPORTED.
+Development pilot DAT-02 có identity/manifest/result marker riêng, không đổi
+parent dataset lifecycle và không eligible MLI-03 official import.
+Jupyter/Colab không nhận credential MinIO/pipeline, không ghi trực
 tiếp Gold hoặc `ml.*`; dữ liệu ra/vào được trao đổi bằng bundle độc lập. Airflow
 build dataset kết thúc ở bundle sẵn sàng và chỉ import sau completion manifest;
 không giả định free Colab là một job service ổn định có thể trigger tự động.

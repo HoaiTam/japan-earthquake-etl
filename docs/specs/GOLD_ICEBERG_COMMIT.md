@@ -10,7 +10,9 @@ Request cần `scope_completeness=COMPLETE_MONTHS`: caller bàn giao **toàn b�
 state của những tháng UTC đã resolve**, kể cả tháng rỗng. Không dùng cửa sổ overlap
 hoặc sample vài dòng làm replacement một tháng sản xuất. Nếu event revision chuyển
 tháng, cần cả tháng cũ và mới. Upstream chưa cung cấp full-month state thì dừng;
-adapter whole daily/backfill thuộc QA-01, không suy full-month từ mẫu SLV-09.
+resolver thuộc [ORC-06](../task/tasks/ORC-06.md), adapter whole daily/backfill
+thuộc [ORC-07](../task/tasks/ORC-07.md), QA-01 chỉ nghiệm thu; không suy
+full-month từ mẫu SLV-09.
 
 `affected_months` explicit, `baseline_snapshots` đủ sáu bảng (0 = chưa có snapshot).
 Không infer latest khi retry. Request pin `run_context`, Silver SHA, code/config
@@ -96,8 +98,9 @@ Linux và production S3 không đổi permission behavior. Không tải winutils
 
 - GLD-04 — Tạo Trino views và verification SQL: Trino blockers/publication còn cần task này.
 - MLD-01 — Pin Gold snapshot và tạo dataset manifest: cần Published từ GLD-04.
-- QA-01 — Chạy E2E daily đa nguồn: full-month resolver và orchestration receipt/lease adapter
-  cho daily/backfill sản xuất, không coi bounded capture là toàn lịch sử.
+- [ORC-06 — Full-month Silver state](../task/tasks/ORC-06.md): resolver và coverage proof đủ tháng.
+- [ORC-07 — Real ETL adapters](../task/tasks/ORC-07.md): orchestration receipt/lease adapter daily/backfill.
+- QA-01 — Chạy E2E daily đa nguồn: nghiệm thu hai task trên, không coi bounded capture là toàn lịch sử.
 
 API write/time travel đối chiếu [Iceberg Spark writes 1.10.1](https://iceberg.apache.org/docs/1.10.1/spark-writes/)
 và [Spark queries 1.10.1](https://iceberg.apache.org/docs/1.10.1/spark-queries/).

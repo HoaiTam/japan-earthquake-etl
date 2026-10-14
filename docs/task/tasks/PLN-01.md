@@ -7,7 +7,7 @@ workstream: "Planning"
 scope: "Core"
 priority: "P0"
 effort_hours: 4
-assignee: "unassigned"
+assignee: "HoaiTam"
 reviewer: "unassigned"
 dependencies: []
 ---
@@ -64,7 +64,7 @@ Có thể bắt đầu ngay. Chốt output contract hoặc fixture nhỏ trướ
 ## Theo dõi
 
 - **Trạng thái:** Done
-- **Assignee:** Chưa ghi lại
+- **Assignee:** HoaiTam
 - **Reviewer:** Chưa ghi lại
 - **Evidence / PR:** Hoàn tất trên branch `docs/pln-01-hdbscan-scope-update`; chưa commit/push hoặc mở PR. Baseline cũ tại [PR #3](https://github.com/HoaiTam/japan-earthquake-etl/pull/3) được giữ làm mốc lịch sử nhưng đã bị baseline HDBSCAN hiện hành thay thế.
 - **Evidence kiểm thử:** `./scripts/check-mvp-baseline.sh` kiểm tra scope 8 tuần, HDBSCAN Core, Power BI Stretch, research split/grain/feature/artifact gate và trạng thái task/roadmap; `git diff --check` kiểm tra lỗi whitespace.
@@ -79,9 +79,46 @@ Có thể bắt đầu ngay. Chốt output contract hoặc fixture nhỏ trướ
 - [x] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
 - [ ] Reviewer độc lập xác nhận baseline HDBSCAN cập nhật (khuyến nghị, không chặn `Done`).
 
-## Tài liệu liên quan
+## Điều chỉnh phân công tuần 5 — 2026-10-14
+
+- Branch `docs/pln-01-week-5-parallel-plan` từ `origin/main` `4d3ac3d`
+  (PR #71). Assignee cập nhật HoaiTam; reviewer unassigned, chưa có approval.
+- [Kế hoạch tuần 5](../WEEK_5_PARALLEL_PLAN.md): 12 Core/70h, chia
+  HoaiTam 22h / ThanhTris 25h / rosy179 23h. Budget nghiệm thu tồn 4h,
+  review/tích hợp/dự phòng 22h; tổng 96h đề xuất, không cam kết capacity thực tế.
+- Thêm ORC-06/07 16h cho full-month state và real adapters; backlog
+  75 task/380h, Core 67/Stretch 8. Không đổi scientific scope/schema/DoD,
+  không triển khai runtime trong phiên lập kế hoạch.
+- Giữ FND-01/ORC-02 Review, SEC-01 In Progress; MLD-02/03 vẫn
+  rosy179, reviewer HoaiTam. Pilot chưa đủ coverage không được nâng research-ready.
+- Evidence: `make check-week-5-plan check-week-3-plan check-task-status`
+  đạt; `make test-week-5-plan` đạt 6 regressions; `make ci-docs` và
+  `git diff --check` đạt. Chỉ static/docs/metadata tests, không evidence runtime.
+  Task planning Done, các task được giao chưa tự Done. Chưa commit/push/mở PR.
+
+## Điều chỉnh Jupyter-first — 2026-10-14
+
+- Theo yêu cầu người dùng, bổ sung [DAT-02](./DAT-02.md), owner HoaiTam,
+  Core/P0/6h, Backlog do MLD-04 chưa Done. Chưa tạo dữ liệu hoặc notebook thật.
+- Branch mới `docs/pln-01-jupyter-pilot-first` từ `origin/main` `4d3ac3d`;
+  giữ nguyên các thay đổi kế hoạch tuần 5 chưa commit của phiên trước.
+- EXP-01 local harness dùng DAT-02 trước; EXP-02 test Jupyter và lưu local
+  PASSED report rồi mới chạy cùng code/bundle trên Colab. Official dataset/
+  result/import gates giữ nguyên; pilot không được EXPORTED/CANDIDATE.
+- Cập nhật MLD-04/05, MLI-03, DOC-01, roadmap/specs và AGENTS; không đổi
+  MLD-02/03 rosy179/reviewer HoaiTam hoặc nhận upstream Done cần update.
+- QA-04 giữ owner/scope/4h và dời tuần 6; tuần 5 12 Core/72h (24/25/23),
+  +4h budget tồn +20h review/tích hợp =96h. Backlog 76 task/386h,
+  Core68/Stretch8; 364+16+6h, không tăng effort task cũ.
+- Evidence: check-week-5-plan/check-task-status/check-week-3-plan đạt;
+  test-week-5-plan đạt 11 regressions, make ci-docs và git diff --check đạt. Chỉ kiểm tra kế
+  hoạch/docs, không chứng minh dataset/feature/Jupyter/Colab runtime đã chạy.
+- Planning Done; DAT-02/EXP implementation chưa Done; chưa commit/push/mở PR.
+
+## Tài liệu liên quan — Jupyter-first
 
 - [Kế hoạch 8 tuần](../README.md)
+- [Jupyter pilot workflow](../../specs/JUPYTER_PILOT_WORKFLOW.md)
 - [Roadmap HDBSCAN](../HDBSCAN_WORKSTREAM.md)
 - [Các khối công việc](../WORK_BLOCKS.md)
 - [Baseline MVP, KPI và Definition of Done](../../specs/MVP_SCOPE_KPI_AND_DOD.md)

@@ -1,13 +1,13 @@
 ---
 task_id: "MLI-02"
 status: "Backlog"
-week: 6
+week: 5
 block: "I - ML Integration"
 workstream: "Dataset build orchestration"
 scope: "Core"
 priority: "P0"
 effort_hours: 5
-assignee: "unassigned"
+assignee: "HoaiTam"
 reviewer: "unassigned"
 dependencies: ["ORC-01", "MLD-05"]
 ---
@@ -60,10 +60,18 @@ khi các Spark jobs được tích hợp thật.
 - Không lưu payload/result lớn trong XCom.
 - Không upload credential trong DAG config/log.
 
+## Phân công tuần 5
+
+- **Owner / effort:** HoaiTam, 5h Core; [kế hoạch và handoff](../WEEK_5_PARALLEL_PLAN.md).
+- **Làm gì / có gì:** DAG pin/audit/Mc/window/feature/export, validate config/lifecycle, retry identity và run summary; Colab handoff thủ công.
+- **Dùng để làm gì / output:** Một build DAG riêng với daily ETL; bundle sẵn sàng chỉ sau export verify, không giả Colab là job service.
+- **Bắt đầu ngay / gate:** Graph/runner mocks làm ngay; Done sau MLD-05, Gold Published và lifecycle gates thật. Chưa có feature/export thì không đánh dấu DATASET_EXPORTED.
+- **Theo dõi:** Phân công không có nghĩa đã triển khai; chỉ đổi In Progress khi bắt đầu, Done khi đủ acceptance/evidence. Reviewer hiện unassigned, chưa có approval.
+
 ## Theo dõi
 
 - **Trạng thái:** Backlog
-- **Assignee:** Chưa ghi lại
+- **Assignee:** HoaiTam
 - **Reviewer:** Chưa ghi lại
 - **Evidence / PR:** Chưa có
 - **Kỹ năng phù hợp:** Airflow, orchestration, idempotency

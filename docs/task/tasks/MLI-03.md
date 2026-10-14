@@ -1,13 +1,13 @@
 ---
 task_id: "MLI-03"
-status: "Backlog"
-week: 7
+status: "Ready"
+week: 5
 block: "I - ML Integration"
 workstream: "Result import and Iceberg publish"
 scope: "Core"
 priority: "P0"
 effort_hours: 7
-assignee: "unassigned"
+assignee: "ThanhTris"
 reviewer: "unassigned"
 dependencies: ["MLI-01", "GLD-03"]
 ---
@@ -57,10 +57,25 @@ trước khi Colab sinh output thật.
 - Không đặt Drive/MinIO credential trong bundle hoặc log.
 - Không xóa warehouse/bucket để recovery.
 
+## Phân công tuần 5
+
+- **Owner / effort:** ThanhTris, 7h Core; [kế hoạch và handoff](../WEEK_5_PARALLEL_PLAN.md).
+- **Làm gì / có gì:** Importer/validator/writer + physical ML mapping, same-run idempotency, partial commit/rejected states và snapshot-pinned readback.
+- **Dùng để làm gì / output:** Namespace ml.* được quality-gate trước CANDIDATE, không thêm label vào Gold và không tự APPROVED.
+- **Bắt đầu ngay / gate:** Dùng valid/invalid fixtures MLI-01 ngay; candidate IDs/dataset EXPORTED phải tồn tại ở QA namespace pin rõ. Fixture real-storage acceptance không là scientific approval, không chờ EXP-02 để code.
+- **Theo dõi:** Phân công không có nghĩa đã triển khai; chỉ đổi In Progress khi bắt đầu, Done khi đủ acceptance/evidence. Reviewer hiện unassigned, chưa có approval.
+
+## Điều chỉnh Jupyter-first — 2026-10-14
+
+Thêm acceptance case reject DAT-02 DEVELOPMENT_PILOT/pilot_result_manifest và source dataset chưa EXPORTED trước commit. Pilot local/Colab PASSED không được CANDIDATE; không nhận đổi tên pilot marker thành _SUCCESS để bypass official schema/lineage gates. Không thêm dependency DAT-02/EXP-02 cho phát triển importer bằng fixtures MLI-01.
+
+- [DAT-02](./DAT-02.md)
+- [Workflow Jupyter → Colab](../../specs/JUPYTER_PILOT_WORKFLOW.md)
+
 ## Theo dõi
 
-- **Trạng thái:** Backlog
-- **Assignee:** Chưa ghi lại
+- **Trạng thái:** Ready
+- **Assignee:** ThanhTris
 - **Reviewer:** Chưa ghi lại
 - **Evidence / PR:** Chưa có
 - **Kỹ năng phù hợp:** Airflow, Spark validation, Iceberg transactions

@@ -22,23 +22,27 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 
 ## Tổng quan
 
-- Tổng số task: **73**.
+- Tổng số task: **76**.
 - Foundation: **8 task `Done`**, FND-01 `Review` chờ nghiệm thu runtime của lifecycle mới.
 - Task còn ở trạng thái `Needs Update`: **0**.
-- Core: **65 task**.
+- Core: **68 task**.
 - Stretch: **8 task**.
-- Tổng effort task: **364 giờ**; trong đó 12 giờ data-readiness được thực hiện
-  trước tuần 3, còn 352 giờ task trong 8 tuần; lịch tuần 4 đã mở rộng từ capacity sơ bộ.
+- Tổng effort task: **386 giờ**; baseline 364h + ORC-06/07 16h + DAT-02 6h.
+  Trong đó 12h data-readiness trước tuần 3, còn 374h task trong 8 tuần.
+  Capacity tăng tốc là đề xuất, không phải khả năng thực tế đã xác nhận.
 
-Phân công hiện tại: [Kế hoạch tuần 4 mở rộng](../WEEK_4_PARALLEL_PLAN.md).
-[Nhóm mở đường](../WEEK_4_PREP_GROUP.md) gồm JMA-04/JMA-05/ORC-01, 13h HoaiTam
-làm trước, đã tính trong tổng tuần. Sau đó giao 18 task Core: HoaiTam 30h,
-ThanhTris 29h, Trang 30h; 7h review/tích hợp dự phòng, khoảng 32h/người.
-GLD-02 Stretch 4h ngoài cam kết. Đã chuyển 10 task (49h) từ tuần 5/6 lên
-`week: 4`, đồng bộ metadata/index; tổng backlog/effort không đổi. Task đủ
-dependency Done chuyển Ready; task chờ gate Backlog, được chuẩn bị fixture/mock
-và ghi In Progress khi thực sự bắt đầu. Không dùng mock làm evidence gate thật;
-assignee/evidence chính thức nằm trong từng file.
+Phân công hiện tại: [Kế hoạch tuần 5](../WEEK_5_PARALLEL_PLAN.md),
+19–25/10/2026: HoaiTam 24h, ThanhTris 25h, rosy179 23h — **12 task Core/72h**,
+4h budget nghiệm thu tồn + 20h review/tích hợp/dự phòng; khoảng 32h/người.
+ORC-06/07 bổ sung implementation full-month state/real adapters, không dồn vào
+QA-01 5h. FND-01/ORC-02 giữ Review, SEC-01 giữ In Progress tới khi có evidence.
+MLD-02/03 giữ assignee rosy179, reviewer HoaiTam; task mới reviewer unassigned.
+[Kế hoạch tuần 4](../WEEK_4_PARALLEL_PLAN.md) và [nhóm mở đường tuần 4](../WEEK_4_PREP_GROUP.md)
+là mốc lịch sử 89h Core, không cộng lại effort đã làm. BI-02 dời tuần 8.
+DAT-02 mới giao HoaiTam, 6h; Jupyter pilot trước, Colab chỉ sau local gate
+EXP-02 PASSED. QA-04 dời tuần 6 để giữ tải; không giảm scope recovery.
+Ready chỉ khi hard dependencies Done; Backlog được làm fixture/interface trước,
+không dùng mock/pilot chưa đủ coverage làm evidence nghiệm thu thật.
 
 ## Foundation
 
@@ -73,6 +77,7 @@ fixture/inventory; assignee `HoaiTam`, reviewer `unassigned`. Xem
 | [CON-04](./CON-04.md) - Chuẩn bị fixture và ma trận test dùng chung | 2 | Fixtures | Core | P1 | 3h | Done |
 | [CON-03](./CON-03.md) - Thiết kế mô hình dữ liệu Silver, Gold và ML | 2 | Data model contract | Core | P0 | 6h | Done |
 | [DAT-01](./DAT-01.md) - Chuẩn bị bộ dữ liệu mẫu thật từ USGS và JMA | 3 | Shared real samples | Core | P0 | 3h | Done |
+| [DAT-02](./DAT-02.md) - Tạo dataset pilot nhỏ để test trên Jupyter | 5 | Jupyter development pilot | Core | P0 | 6h | Backlog |
 
 ## B - USGS Bronze
 
@@ -127,6 +132,8 @@ fixture/inventory; assignee `HoaiTam`, reviewer `unassigned`. Xem
 | [ORC-03](./ORC-03.md) - Implement backfill và reprocessing | 4 | Backfill | Core | P0 | 5h | Done |
 | [ORC-04](./ORC-04.md) - Chuẩn hóa logging và run summary | 4 | Observability | Core | P1 | 4h | Done |
 | [ORC-05](./ORC-05.md) - Chốt recovery, concurrency và tài nguyên | 4 | Recovery and resources | Core | P1 | 4h | Done |
+| [ORC-06](./ORC-06.md) - Resolve affected months và dựng full-month Silver state | 5 | Full-month state resolution | Core | P0 | 8h | Ready |
+| [ORC-07](./ORC-07.md) - Kết nối real ETL adapters đến Gold Published | 5 | Real ETL adapter integration | Core | P0 | 8h | Backlog |
 
 ## G - ML Dataset
 
@@ -135,15 +142,15 @@ fixture/inventory; assignee `HoaiTam`, reviewer `unassigned`. Xem
 | [MLD-01](./MLD-01.md) - Pin Gold snapshot và tạo dataset manifest | 4 | Dataset identity | Core | P0 | 5h | Done |
 | [MLD-02](./MLD-02.md) - Audit Gold và xác định magnitude of completeness | 4 | Input audit and completeness | Core | P0 | 7h | Done |
 | [MLD-03](./MLD-03.md) - Chọn mainshock và tạo candidate windows | 4 | Mainshock and candidate windows | Core | P0 | 7h | Done |
-| [MLD-04](./MLD-04.md) - Tạo và scale feature không-thời gian 4-D | 6 | Spacetime features | Core | P0 | 6h | Backlog |
-| [MLD-05](./MLD-05.md) - Validate feature snapshot và export Parquet bundle | 6 | Feature validation and export | Core | P0 | 5h | Backlog |
+| [MLD-04](./MLD-04.md) - Tạo và scale feature không-thời gian 4-D | 5 | Spacetime features | Core | P0 | 6h | Ready |
+| [MLD-05](./MLD-05.md) - Validate feature snapshot và export Parquet bundle | 5 | Feature validation and export | Core | P0 | 5h | Backlog |
 
 ## H - Experiment
 
 | Task | Tuần | Workstream | Scope | Priority | Effort | Trạng thái |
 |---|---:|---|---|---|---:|---|
-| [EXP-01](./EXP-01.md) - Tạo Colab harness và khóa môi trường thí nghiệm | 6 | Colab harness | Core | P0 | 5h | Backlog |
-| [EXP-02](./EXP-02.md) - Chạy Window, DBSCAN và HDBSCAN global | 6 | Baseline algorithms | Core | P0 | 7h | Backlog |
+| [EXP-01](./EXP-01.md) - Tạo Jupyter harness và chuẩn bị chuyển sang Colab | 5 | Jupyter-first harness | Core | P0 | 5h | Backlog |
+| [EXP-02](./EXP-02.md) - Chạy Window, DBSCAN và HDBSCAN global | 5 | Baseline algorithms | Core | P0 | 7h | Backlog |
 | [EXP-03](./EXP-03.md) - Xây HDBSCAN adaptive và giải quyết multi-sequence | 7 | Adaptive HDBSCAN | Core | P0 | 6h | Backlog |
 | [EXP-04](./EXP-04.md) - Đánh giá quality, physical consistency và stability | 7 | Scientific evaluation | Core | P0 | 7h | Backlog |
 | [EXP-05](./EXP-05.md) - Chạy out-of-period extension 2018-2023 | 7 | Out-of-period evaluation | Core | P0 | 5h | Backlog |
@@ -153,8 +160,8 @@ fixture/inventory; assignee `HoaiTam`, reviewer `unassigned`. Xem
 | Task | Tuần | Workstream | Scope | Priority | Effort | Trạng thái |
 |---|---:|---|---|---|---:|---|
 | [MLI-01](./MLI-01.md) - Khóa result bundle và experiment lifecycle | 4 | Result bundle contract | Core | P0 | 5h | Done |
-| [MLI-02](./MLI-02.md) - Tạo Airflow DAG build ML dataset | 6 | Dataset build orchestration | Core | P0 | 5h | Backlog |
-| [MLI-03](./MLI-03.md) - Validate/import kết quả và commit bảng ML Iceberg | 7 | Result import and Iceberg publish | Core | P0 | 7h | Backlog |
+| [MLI-02](./MLI-02.md) - Tạo Airflow DAG build ML dataset | 5 | Dataset build orchestration | Core | P0 | 5h | Backlog |
+| [MLI-03](./MLI-03.md) - Validate/import kết quả và commit bảng ML Iceberg | 5 | Result import and Iceberg publish | Core | P0 | 7h | Ready |
 | [MLI-04](./MLI-04.md) - Tạo Trino views và static report cho experiment | 8 | ML serving and report | Core | P0 | 4h | Backlog |
 | [MLQ-01](./MLQ-01.md) - Chạy E2E Gold snapshot đến ML report | 8 | ML end-to-end QA | Core | P0 | 6h | Backlog |
 
@@ -163,7 +170,7 @@ fixture/inventory; assignee `HoaiTam`, reviewer `unassigned`. Xem
 | Task | Tuần | Workstream | Scope | Priority | Effort | Trạng thái |
 |---|---:|---|---|---|---:|---|
 | [BI-01](./BI-01.md) - Tạo kết nối Trino và Power Query | 7 | Connectivity | Stretch | P2 | 4h | Backlog |
-| [BI-02](./BI-02.md) - Tạo semantic model và KPI measures | 5 | Semantic model | Stretch | P2 | 5h | Backlog |
+| [BI-02](./BI-02.md) - Tạo semantic model và KPI measures | 8 | Semantic model | Stretch | P2 | 5h | Backlog |
 | [BI-03](./BI-03.md) - Xây trang Tổng quan | 8 | Overview dashboard | Stretch | P2 | 5h | Backlog |
 | [BI-04](./BI-04.md) - Xây trang Không gian và Độ sâu - Độ lớn | 8 | Detail dashboards | Stretch | P2 | 5h | Backlog |
 | [BI-05](./BI-05.md) - Thiết lập refresh và đối soát BI | 8 | Refresh and reconciliation | Stretch | P2 | 5h | Backlog |
@@ -176,9 +183,9 @@ fixture/inventory; assignee `HoaiTam`, reviewer `unassigned`. Xem
 | [DEMO-01](./DEMO-01.md) - Chuẩn bị dữ liệu và kịch bản demo | 8 | Demo | Core | P0 | 4h | Backlog |
 | [DEMO-02](./DEMO-02.md) - Rehearsal và tạo release candidate | 8 | Release | Core | P0 | 6h | Backlog |
 | [OPS-01](./OPS-01.md) - Smoke test backup và restore metadata | 6 | Backup and restore | Stretch | P2 | 4h | Backlog |
-| [QA-01](./QA-01.md) - Chạy E2E daily đa nguồn | 7 | E2E | Core | P0 | 5h | Backlog |
-| [QA-02](./QA-02.md) - Test rerun, duplicate và late revision | 7 | Idempotency | Core | P0 | 5h | Backlog |
-| [QA-03](./QA-03.md) - Kiểm thử JMA historical backfill | 7 | Historical backfill | Core | P0 | 5h | Backlog |
-| [QA-04](./QA-04.md) - Test failure và recovery theo tầng | 8 | Failure recovery | Core | P0 | 4h | Backlog |
+| [QA-01](./QA-01.md) - Chạy E2E daily đa nguồn | 5 | E2E | Core | P0 | 5h | Backlog |
+| [QA-02](./QA-02.md) - Test rerun, duplicate và late revision | 5 | Idempotency | Core | P0 | 5h | Backlog |
+| [QA-03](./QA-03.md) - Kiểm thử JMA historical backfill | 5 | Historical backfill | Core | P0 | 5h | Backlog |
+| [QA-04](./QA-04.md) - Test failure và recovery theo tầng | 6 | Failure recovery | Core | P0 | 4h | Backlog |
 | [QA-05](./QA-05.md) - Profile dữ liệu lịch sử và tài nguyên local | 8 | Performance | Stretch | P2 | 4h | Backlog |
 | [SEC-01](./SEC-01.md) - Review secret và bề mặt truy cập | 4 | Security | Core | P1 | 4h | In Progress |

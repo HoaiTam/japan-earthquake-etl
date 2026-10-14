@@ -1,6 +1,6 @@
 # Các khối công việc sau Foundation
 
-Tài liệu này giải thích các task từ tuần 2 đến tuần 6 theo ba câu hỏi: **làm phần gì**, **có những gì** và **dùng để làm gì**. Danh sách task chi tiết, effort, assignee, reviewer và status nằm trong [danh mục task Markdown](./tasks/README.md); mỗi mã task dẫn đến một file riêng.
+Tài liệu này giải thích các task từ tuần 2 đến tuần 8 theo ba câu hỏi: **làm phần gì**, **có những gì** và **dùng để làm gì**. Danh sách task chi tiết, effort, assignee, reviewer và status nằm trong [danh mục task Markdown](./tasks/README.md); mỗi mã task dẫn đến một file riêng.
 
 ## 1. Luồng dữ liệu mục tiêu
 
@@ -16,7 +16,7 @@ flowchart LR
     LINK --> GOLD["Gold Iceberg tables"]
     GOLD --> TRINO["Trino views + verification"]
     GOLD --> MLD["ML dataset<br/>snapshot · Mc · windows · 4-D feature"]
-    MLD --> EXP["Window · DBSCAN · HDBSCAN<br/>Colab experiment"]
+    MLD --> EXP["Window · DBSCAN · HDBSCAN<br/>Jupyter trước · Colab sau"]
     EXP --> MLI["Validate/import<br/>Iceberg ml.*"]
     MLI --> REPORT["Trino + static report"]
     REPORT -. "optional" .-> PBI["Power BI Import"]
@@ -36,7 +36,7 @@ PostgreSQL trong Compose chỉ lưu metadata của Airflow. Dữ liệu nghiệp
 
 ## 3. Khối A - Hợp đồng dữ liệu
 
-Task: `CON-01..04`, `DAT-01`.
+Task: `CON-01..04`, `DAT-01..02`.
 
 Làm phần gì:
 
@@ -172,11 +172,13 @@ Dùng để làm gì:
 
 ## 8. Khối F - Điều phối ETL và vận hành
 
-Task: `ORC-01..05`.
+Task: `ORC-01..07`.
 
 Làm phần gì:
 
 - Ghép source → Bronze → Silver → Gold bằng DAG và run context chung.
+- ORC-06 dựng state đủ affected UTC months; ORC-07 đóng gói real adapters,
+  receipts/lease và Trino publication. ORC-01 skeleton không thay hai implementation này.
 - Thiết lập daily schedule, JMA catalog check, backfill và reprocessing.
 - Chuẩn hóa metrics/logs, recovery boundary, concurrency và Spark resources.
 
@@ -220,7 +222,9 @@ Task: `EXP-01..05`.
 
 Làm phần gì:
 
-- Tạo notebook/harness Colab có package lock và kiểm tra manifest/checksum.
+- DAT-02 cung cấp development pilot có source pins/checksum/coverage riêng.
+- Tạo shared module/thin Jupyter notebook trước; Colab dùng lại sau local
+  gate EXP-02 PASSED. Pilot không đi qua official EXPORTED/result/import lifecycle.
 - Chạy Window, DBSCAN, HDBSCAN global/adaptive theo từng mainshock.
 - Chọn cluster chứa mainshock, gắn PRE/MAINSHOCK/POST và xử lý multi-sequence.
 - Đánh giá DBCV/noise, Omori, stability/sensitivity và out-of-period extension.
@@ -322,4 +326,24 @@ Phân công tuần 4 mở rộng nằm tại [WEEK_4_PARALLEL_PLAN.md](./WEEK_4_
 Ownership không thay hard dependency: mọi người làm fixture/mock độc lập,
 nhưng SilverReady, Gold Published và ML audit thật phải có evidence theo thứ tự
 gate. Đây là tải tăng tốc khoảng 32h/người, không phải lịch 15h ban đầu;
-EXP-01/DOC-01 không được nhận Done trước feature/export/experiment evidence.
+EXP-01 nghiệm thu local harness bằng DAT-02, còn official export/import và
+DOC-01 final reproduction vẫn cần evidence đúng scope; không suy pilot thành research-ready.
+
+## 15. Phân công hiện hành — tuần 5
+
+[Kế hoạch tuần 5](./WEEK_5_PARALLEL_PLAN.md), 19–25/10/2026, thay lịch tuần 4
+ở trên (mốc lịch sử). Ba assignee mới dùng account GitHub, không suy ánh xạ tên Trang.
+
+- HoaiTam: DAT-02/ORC-07/MLI-02/QA-01, 24h — nối ETL, build DAG và nghiệm thu.
+- ThanhTris: ORC-06/MLI-03/QA-02/QA-03, 25h — full-month state/import/revision/history.
+- rosy179: MLD-04/MLD-05/EXP-01/EXP-02, 23h — feature/export và ba baseline.
+
+72h Core + 4h budget tồn + 20h review/tích hợp = 96h đề xuất. Full-month resolver
+và real adapters được giao ORC-06/07 riêng để QA-01 chỉ nghiệm thu. Mọi nhóm viết
+fixtures/interface từ ngày đầu; real integration giữ các hard gates. Không đổi
+status carryover hoặc nâng pilot thành research-ready bằng một kế hoạch giao việc.
+
+DAT-02 6h thêm cho HoaiTam; QA-04 dời tuần 6, không giảm recovery scope.
+[Workflow Jupyter pilot](../specs/JUPYTER_PILOT_WORKFLOW.md) khóa bundle riêng:
+MLD-04 → DAT-02 → EXP-01/02 local PASSED → Colab. MLD-05 vẫn official export;
+MLI-03 không chờ pilot để viết importer và không accept pilot vào serving.

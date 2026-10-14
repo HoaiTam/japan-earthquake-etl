@@ -18,7 +18,7 @@ quan hệ nhân quả vật lý.
 flowchart LR
     G["Gold snapshot"] --> D["ML dataset<br/>audit · Mc · windows · features"]
     D --> E["Parquet export<br/>manifest · checksum"]
-    E --> C["Colab experiments<br/>Window · DBSCAN · HDBSCAN"]
+    E --> C["Jupyter local → Colab<br/>Window · DBSCAN · HDBSCAN"]
     C --> R["Result bundle<br/>membership · summary · metrics"]
     R --> I["Airflow import<br/>schema · grain · lineage gates"]
     I --> M["Iceberg ml.*<br/>Trino/static report"]
@@ -55,7 +55,7 @@ không còn là hard dependency của MVP HDBSCAN.
 
 | Khối | Task | Output độc lập | Có thể bắt đầu bằng |
 |---|---|---|---|
-| Contract | `PLN-01`, `CON-03` | Scope/DoD và logical schema ML | Tài liệu phương án, schema mẫu |
+| Contract/pilot | `PLN-01`, `CON-03`, `DAT-02` | Scope/DoD và logical schema ML | Tài liệu phương án, schema mẫu |
 | Dataset | `MLD-01..05` | Dataset manifest, Mc, windows, features, export | Gold fixture/snapshot metadata giả lập |
 | Experiment | `EXP-01..05` | Notebook, assignments, metrics, sensitivity/extension | Feature Parquet fixture nhỏ |
 | Integration | `MLI-01..04` | Bundle validator, hai DAG, Iceberg tables, report | Result bundle fixture hợp lệ/lỗi |
@@ -68,8 +68,11 @@ Trong [kế hoạch tuần 4 mở rộng](./WEEK_4_PARALLEL_PLAN.md), MLD-01..03
 MLI-01 được đưa lên tuần 4: Trang pin snapshot/result contract, ThanhTris audit/
 Mc/window pilot. JMA-05 trong [nhóm mở đường](./WEEK_4_PREP_GROUP.md) bổ sung
 sample reproduction 2000, không tune reproduction bằng sample 2023 extension.
-EXP-01 vẫn tuần 6 vì còn hard dependency MLD-05; có thể chuẩn bị fixture nhưng
-chưa nhận Done. MLD-01..03 không tự chuyển dataset thành EXPORTED khi feature/
+Kế hoạch tuần 4 ở trên là mốc lịch sử. [Tuần 5](./WEEK_5_PARALLEL_PLAN.md)
+giao MLD-04/05/EXP-01/02 cho rosy179, MLI-02 cho HoaiTam, MLI-03 cho ThanhTris.
+DAT-02 giao HoaiTam (6h), tạo development bundle nhỏ; EXP-01 local harness
+phụ thuộc DAT-02/CON-03, không đợi official export MLD-05. EXP-02 local smoke
+PASSED trước Colab; official acceptance vẫn chờ MLD-05 EXPORTED. QA-04 dời tuần 6. MLD-01..03 không tự chuyển dataset thành EXPORTED khi feature/
 export chưa đạt, và pilot theo vài năm không đại diện toàn research period.
 
 ## 5. Dependency chính
@@ -84,7 +87,11 @@ flowchart LR
     M3 --> M4["MLD-04 4-D features"]
     M4 --> M5["MLD-05 validate + export"]
 
-    E1["EXP-01 notebook harness"] --> E2["EXP-02 baselines"]
+    M4 --> P["DAT-02 development pilot"]
+    P --> E1["EXP-01 Jupyter harness"]
+    P --> E2["EXP-02 local baselines → Colab"]
+    E1 --> E2
+    M5 --> E2
     E2 --> E3["EXP-03 adaptive"]
     E2 --> E4["EXP-04 evaluation"]
     E3 --> E4
@@ -99,7 +106,10 @@ flowchart LR
     I4 --> Q
 ```
 
-`EXP-01` và `MLI-01` dùng fixture contract nên có thể bắt đầu trước `MLD-05`.
+EXP-01 và MLI-01 viết fixture/interface trước MLD-05; DAT-02 không có
+hard dependency EXP-01/02, tránh vòng. [Jupyter workflow](../specs/JUPYTER_PILOT_WORKFLOW.md)
+phân biệt development pilot và official dataset/result; local PASSED không
+thay scientific APPROVED hoặc nâng BUILDING thành EXPORTED.
 
 ## 6. Task cũ bị tác động
 
@@ -107,7 +117,7 @@ flowchart LR
 |---|---|---|
 | `PLN-01` | `Done` | Baseline đã đưa HDBSCAN vào Core, Power BI sang Stretch và chốt lại KPI/DoD |
 | `CON-03` | `Done` | Đã khóa grain/schema/lifecycle dataset, experiment và publication gate `ml.*` |
-| `GLD-01/03/04` | `Backlog`, scope cập nhật | Gold phải là input snapshot ổn định cho ML |
+| `GLD-01/03/04` | `Done` theo task index hiện hành | Gold đã có component snapshot/Trino acceptance; không thay E2E toàn chuỗi |
 | `GLD-02` | `Backlog`, chuyển Stretch | Aggregate dashboard không nằm trên đường găng HDBSCAN |
 | `BI-01..05` | `Backlog`, chuyển Stretch | Power BI là output tùy chọn sau static report |
 | `QA/SEC/DOC/DEMO` | `Backlog/Ready`, scope cập nhật | Phải bao phủ external bundle, import gate và ML reproducibility |
@@ -116,6 +126,12 @@ Các task Foundation và USGS Bronze đã hoàn tất vẫn giữ `Done` vì ph�
 không làm mất evidence đã kiểm chứng. JMA, Silver, Gold và các khối downstream
 giữ trạng thái riêng trong task index; không được suy ra `Done` từ bảng tác động
 này.
+
+ORC-06/07 mới sở hữu full-month state/real adapters; QA-01 nghiệm thu ETL thật,
+không tự triển khai các phần này trong giờ QA. Pilot MLD-02/03 vẫn
+BUILDING/research_ready=false; MLD-05 chỉ export lifecycle khi coverage/audit
+đủ điều kiện. QA-03 báo coverage còn thiếu; EXP-03/04/05 và MLI-04/MLQ-01
+còn phải làm adaptive/evaluation/extension/report/ML E2E, không suy Done từ lịch giao việc.
 
 ## 7. Definition of Done cấp workstream
 
