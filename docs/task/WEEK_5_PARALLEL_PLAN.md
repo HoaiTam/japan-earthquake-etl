@@ -8,7 +8,8 @@
 - “Tuần tiếp theo” được hiểu là **19–25/10/2026**, tuần 5 của kế hoạch dự án.
 - Dùng ba assignee GitHub **HoaiTam / ThanhTris / rosy179** cho task mới.
   Đây là phân công đề xuất; không tự suy ra rosy179 là tên Trang trong kế hoạch
-  cũ. SEC-01 giữ owner Trang; MLD-02/03 giữ rosy179, reviewer HoaiTam.
+  cũ. SEC-01 đã được HoaiTam nhận để hoàn thiện audit (mốc tuần 4 owner Trang
+  giữ làm lịch sử); MLD-02/03 giữ rosy179, reviewer HoaiTam.
 - Mục tiêu: kết nối các component ETL đã có thành một run thật có phạm vi,
   làm feature 4-D/export, build/import DAG và ba thuật toán baseline;
   **Jupyter pilot trước → local test đạt → Colab sau** theo yêu cầu mới.
@@ -44,7 +45,7 @@ Giữ mức tăng tốc tham khảo **32h/người**, tổng 96h, như tuần 4.
 
 4h là budget dự kiến cho phần còn lại, **không phải estimate hoàn thành cả
 FND-01/ORC-02/SEC-01**; owner phải báo remaining effort sau preflight. Security
-owner Trang xác nhận SEC-01; HoaiTam phối hợp, không tự nhận approval thay owner.
+owner hiện tại HoaiTam nghiệm thu SEC-01; reviewer vẫn unassigned, không tự ghi approval.
 20h gồm review chéo, tích hợp, CI/network/resource issues và cập nhật runbook,
 không phải task code mới. Quá budget thì chuyển QA-03/EXP-02 sang tuần kế tiếp;
 giữ nguyên acceptance criteria và trạng thái thực tế.
@@ -92,8 +93,9 @@ bắt đầu triển khai, Done khi đủ evidence; chưa điền reviewer/appro
    đạt và pause/lease được xác nhận lại. Không cần clear run lỗi vì current
    interval chưa có failed run trước test. [Evidence](../evidence/ORC-02_LIVE_ACCEPTANCE.md).
 3. [SEC-01 — Review secret và bề mặt truy cập](./tasks/SEC-01.md):
-   cùng owner Trang rà checklist/log/ports/artifact boundary; docs còn
-   **In Progress**. Merge #67 không tự chứng minh mọi acceptance đã đạt.
+   HoaiTam đã bổ sung audit live/prefix permission evidence, docs **Review**:
+   còn Trino retained-log finding/logging deploy và actual notebook/export/import
+   gate. Xem [evidence](../evidence/SEC-01_RUNTIME.md); merge #67 không chứng minh Done.
 4. Chốt exact source manifests/SHA, baseline Gold snapshots, namespace QA,
    fixture feature/result và resource slots trong biên bản handoff.
 5. DAT-02 chọn fixed mainshock IDs/input pins/coverage, khóa pilot manifest/layout

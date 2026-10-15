@@ -39,6 +39,7 @@ require_fixed() {
 
 for relative_path in \
     compose/trino/smoke.sh \
+    trino/log.properties \
     trino/catalog/iceberg.properties
 do
     if [ ! -f "$project_root/$relative_path" ]; then
@@ -97,6 +98,10 @@ if grep -Fq 'change-me-' "$catalog_file"; then
     report_error "Trino catalog must reference environment secrets, not placeholders"
 fi
 
+if ! grep -Fxq 'io.trino.bootstrap.catalog=WARN' "$project_root/trino/log.properties"; then
+    report_error "Trino catalog bootstrap INFO must not log S3 access-key identifiers"
+fi
+
 docker compose --env-file "$env_file" -f "$compose_file" config --quiet
 docker compose --env-file "$env_file" -f "$compose_file" \
     --profile smoke config --quiet
@@ -148,6 +153,8 @@ require_fixed "$trino_block" "/trino/catalog" \
     "Trino must mount the reviewed catalog directory"
 require_fixed "$trino_block" "target: /etc/trino/catalog" \
     "Trino catalog directory must mount at /etc/trino/catalog"
+require_fixed "$trino_block" "target: /etc/trino/log.properties" \
+    "Trino must mount the reviewed logging configuration"
 require_fixed "$trino_block" "/usr/lib/trino/bin/health-check" \
     "Trino must use its official health check"
 

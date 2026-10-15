@@ -1,6 +1,12 @@
 #!/usr/bin/env sh
 
 set -eu
+umask 077
+
+fail() {
+    printf 'MIO-01 smoke test failed: %s\n' "$1" >&2
+    exit 1
+}
 
 : "${MINIO_ENDPOINT:?MINIO_ENDPOINT is required}"
 : "${MINIO_ACCESS_KEY:?MINIO_ACCESS_KEY is required}"
@@ -19,12 +25,17 @@ case "$WAREHOUSE_PATH" in
         ;;
 esac
 
-mc alias set pipeline "$MINIO_ENDPOINT" "$MINIO_ACCESS_KEY" \
-    "$MINIO_SECRET_KEY" >/dev/null
-mc ready pipeline >/dev/null
+json_escape() {
+    printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
+}
+printf '{"url":"%s","accessKey":"%s","secretKey":"%s","api":"S3v4","path":"auto"}\n' \
+    "$(json_escape "$MINIO_ENDPOINT")" "$(json_escape "$MINIO_ACCESS_KEY")" \
+    "$(json_escape "$MINIO_SECRET_KEY")" | \
+    mc alias import pipeline >/dev/null 2>&1 || fail "pipeline alias import failed"
+mc ready pipeline >/dev/null 2>&1 || fail "cluster is not ready"
 
 for prefix in "$BRONZE_PREFIX" "$SILVER_PREFIX" "$warehouse_prefix"; do
-    mc stat "pipeline/$DATA_BUCKET/$prefix/.keep" >/dev/null
+    mc stat "pipeline/$DATA_BUCKET/$prefix/.keep" >/dev/null 2>&1 || fail "prefix marker check failed"
 done
 
 smoke_object="pipeline/$DATA_BUCKET/$SILVER_PREFIX/_smoke/mio-01-${HOSTNAME:-container}-$$.txt"
@@ -35,15 +46,15 @@ cleanup() {
 }
 trap cleanup 0 HUP INT TERM
 
-printf '%s' "$expected" | mc pipe "$smoke_object" >/dev/null
-actual=$(mc cat "$smoke_object")
+printf '%s' "$expected" | mc pipe "$smoke_object" >/dev/null 2>&1 || fail "probe write failed"
+actual=$(mc cat "$smoke_object" 2>/dev/null) || fail "probe read failed"
 
 if [ "$actual" != "$expected" ]; then
     printf 'MIO-01 smoke test failed: object content mismatch\n' >&2
     exit 1
 fi
 
-mc stat "$smoke_object" >/dev/null
+mc stat "$smoke_object" >/dev/null 2>&1 || fail "probe stat failed"
 cleanup
 trap - 0 HUP INT TERM
 

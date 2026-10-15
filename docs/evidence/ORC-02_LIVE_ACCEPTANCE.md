@@ -121,6 +121,8 @@ Runbook: [SOURCE_SCHEDULE_AND_READINESS](../specs/SOURCE_SCHEDULE_AND_READINESS.
   không nâng trạng thái hai task đó.
 - **QA-05 — Profile dữ liệu lịch sử và tài nguyên local:** sizing/full-history
   coverage chưa có trong watchlist 3 năm này; không nhận training40-year-ready.
-- Current branch không chứa commit SEC-01 `68d4a11`; giữ task/PR riêng. Khi
-  tích hợp docs, giữ ORC-02 Done theo evidence này và trạng thái SEC-01 theo
-  acceptance riêng, không ghi đè metadata để làm xanh toàn bộ task.
+- Mốc nghiệm thu ban đầu dùng main `7c2b8e8`, trước khi bản vá SEC-01 được
+  merge qua PR #73. PR #74 sau đó đồng bộ main `11ec546` để resolve conflict
+  docs: giữ ORC-02 Done và SEC-01 Review/owner HoaiTam, đầy đủ evidence cả hai.
+  Không chạy lại live, deploy logging/IAM hoặc chứng nhận SEC-01 từ việc đồng bộ
+  Git; metadata JSON ở trên vẫn phản ánh đúng code/deployment tại lúc đo.

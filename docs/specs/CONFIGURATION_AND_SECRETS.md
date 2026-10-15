@@ -188,3 +188,28 @@ Catalog port chỉ nội bộ; `TRINO_HOST_PORT` được bind loopback. Chi ti�
 Checker là guardrail, không thay thế review hoặc secret scanner của CI. Nếu
 secret từng được commit, chỉ xóa file là chưa đủ: phải revoke/rotate secret và
 xử lý Git history theo quy trình được nhóm duyệt.
+
+## 5. SEC-01 runtime audit và trust boundary
+
+`make test-security-audit` chạy unit/regression offline; `make audit-security`
+scan source/history/config khai báo. `make audit-security-runtime` đọc `.env` riêng
+trong memory, đối chiếu deployed env/role/loopback bindings, scan toàn bộ retained
+Docker logs trong guard và chạy exact-key permission QA. Không in environment,
+matched value hoặc raw log; không build/pull/start/init/rotate/IAM update.
+Hai target audit chỉ hỗ trợ `.env`/`compose.yaml` mặc định cho runtime, report
+ở `staging/sec-01-report.json` hoặc `SECURITY_REPORT=staging/<name>.json`.
+
+Exit 1 là finding/error; 2 là coverage chưa đủ (Make sẽ báo lỗi tương ứng),
+không phải chứng nhận Done. Future notebook/export/import vẫn phải nghiệm thu
+ở DAT-02/EXP-01/MLD-05/MLI-03; scanner hiện không tự chứng nhận gate chưa có.
+Chi tiết thao tác và finding hiện tại:
+[SEC-01 checklist](../security/SEC-01-CHECKLIST.md).
+
+MinIO bootstrap/smoke dùng JSON stdin cho alias và stdin cho user password,
+config tmpfs private; `--user` policy selector vẫn chứa access-key identifier.
+Trino bind `trino/log.properties` read-only, chặn catalog bootstrap INFO vốn in
+S3 access-key identifier. Phải deploy trong maintenance window và kiểm tra log
+mới; không chỉ đổi file rồi coi runtime đã sạch. Docker operator có thể đọc
+environment/private configs nên máy/Docker phải thuộc nhóm vận hành tin cậy.
+Nếu credential từng chia sẻ ra ngoài, đánh giá revoke/rotate có phối hợp; bản vá
+không tự đổi `.env`, IAM hoặc xóa log để che finding.

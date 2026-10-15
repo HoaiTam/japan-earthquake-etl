@@ -1,6 +1,7 @@
 #!/usr/bin/env sh
 
 set -eu
+umask 077
 
 : "${MINIO_ENDPOINT:?MINIO_ENDPOINT is required}"
 : "${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}"
@@ -54,16 +55,23 @@ if [ "$BRONZE_PREFIX" = "$SILVER_PREFIX" ] ||
     fail "Bronze, Silver and warehouse prefixes must be distinct"
 fi
 
-mc alias set bootstrap "$MINIO_ENDPOINT" "$MINIO_ROOT_USER" \
-    "$MINIO_ROOT_PASSWORD" >/dev/null
-mc ready bootstrap >/dev/null
-mc mb --ignore-existing "bootstrap/$DATA_BUCKET" >/dev/null
+# The pinned mc supports alias JSON and user keys on stdin. Never put passwords
+# in process arguments or echo CLI diagnostics that may include credentials.
+json_escape() {
+    printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
+}
+printf '{"url":"%s","accessKey":"%s","secretKey":"%s","api":"S3v4","path":"auto"}\n' \
+    "$(json_escape "$MINIO_ENDPOINT")" "$(json_escape "$MINIO_ROOT_USER")" \
+    "$(json_escape "$MINIO_ROOT_PASSWORD")" | \
+    mc alias import bootstrap >/dev/null 2>&1 || fail "admin alias import failed"
+mc ready bootstrap >/dev/null 2>&1 || fail "cluster is not ready"
+mc mb --ignore-existing "bootstrap/$DATA_BUCKET" >/dev/null 2>&1 || fail "bucket creation failed"
 
 marker_file=/tmp/prefix-marker
 : > "$marker_file"
 
 for prefix in "$BRONZE_PREFIX" "$SILVER_PREFIX" "$warehouse_prefix"; do
-    mc cp "$marker_file" "bootstrap/$DATA_BUCKET/$prefix/.keep" >/dev/null
+    mc cp "$marker_file" "bootstrap/$DATA_BUCKET/$prefix/.keep" >/dev/null 2>&1 || fail "prefix marker creation failed"
 done
 
 policy_file=/tmp/pipeline-policy.json
@@ -129,11 +137,11 @@ cat > "$policy_file" <<EOF
 EOF
 
 mc admin policy create bootstrap japan-earthquake-pipeline "$policy_file" \
-    >/dev/null
-mc admin user add bootstrap "$MINIO_ACCESS_KEY" "$MINIO_SECRET_KEY" \
-    >/dev/null
+    >/dev/null 2>&1 || fail "pipeline policy creation failed"
+printf '%s\n%s\n' "$MINIO_ACCESS_KEY" "$MINIO_SECRET_KEY" | \
+    mc admin user add bootstrap >/dev/null 2>&1 || fail "pipeline user creation failed"
 mc admin policy attach bootstrap japan-earthquake-pipeline \
-    --user "$MINIO_ACCESS_KEY" >/dev/null
+    --user "$MINIO_ACCESS_KEY" >/dev/null 2>&1 || fail "pipeline policy attachment failed"
 
 printf 'MinIO bootstrap complete: bucket=%s prefixes=%s,%s,%s\n' \
     "$DATA_BUCKET" "$BRONZE_PREFIX" "$SILVER_PREFIX" "$warehouse_prefix"
