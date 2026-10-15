@@ -76,7 +76,7 @@ class DockerDouble:
             raise AssertionError("Only controlled Docker commands expected")
         if command[1:3] == ["image", "inspect"]:
             if any(name not in self.images for name in command[3:]):
-                return subprocess.CompletedProcess(command, 1, "", "DO_NOT_PRINT_CREDENTIAL")
+                return subprocess.CompletedProcess(command, 1, "", "Error: No such image: DO_NOT_PRINT_CREDENTIAL")
             output = json.dumps(list({name: self.images[name] for name in command[3:]}.values()))
         elif command[1] == "inspect":
             output = json.dumps([self.containers[name] for name in command[2:]])
@@ -337,6 +337,28 @@ class DockerRuntimeTests(unittest.TestCase):
                     self.context(timeout=1)
                 self.assertNotIn("DO_NOT_PRINT_CREDENTIAL", str(result.exception))
 
+    def test_daemon_unavailable_is_not_reported_as_missing_image(self):
+        context = self.context()
+        for message in ("Cannot connect to the Docker daemon at unix:///DO_NOT_PRINT_CREDENTIAL",
+                        "error during connect: DO_NOT_PRINT_CREDENTIAL",
+                        "permission denied while trying to connect to the Docker daemon socket: DO_NOT_PRINT_CREDENTIAL"):
+            with self.subTest(message=message), patch.object(runtime.subprocess, "run", return_value=
+                    subprocess.CompletedProcess([], 1, "", message)):
+                with self.assertRaisesRegex(runtime.RuntimeFailure, "DOCKER_DAEMON_UNAVAILABLE") as result:
+                    context.images(("minio",))
+                self.assertNotIn("DO_NOT_PRINT_CREDENTIAL", str(result.exception))
+                self.assertNotIn("MAKE_DOCKER_BUILD", str(result.exception))
+        self.assert_read_only()
+
+    def test_unknown_inspect_failure_does_not_claim_image_is_missing(self):
+        context = self.context()
+        with patch.object(runtime.subprocess, "run", return_value=
+                subprocess.CompletedProcess([], 1, "", "unexpected DO_NOT_PRINT_CREDENTIAL")):
+            with self.assertRaisesRegex(runtime.RuntimeFailure, "DOCKER_COMMAND_FAILED_CHECK") as result:
+                context.images(("minio",))
+            self.assertNotIn("DO_NOT_PRINT_CREDENTIAL", str(result.exception))
+        self.assert_read_only()
+
     def test_cli_redacts_unexpected_diagnostics_and_exits_nonzero(self):
         output = io.StringIO()
         with patch.object(sys, "argv", ["docker-runtime.py", "check"]), patch.object(runtime, "Runtime", side_effect=ValueError("DO_NOT_PRINT_CREDENTIAL")), contextlib.redirect_stdout(output):
@@ -499,6 +521,54 @@ class DockerRuntimeTests(unittest.TestCase):
 
 
 class SmokeCommandContractTests(unittest.TestCase):
+    def test_airflow_api_cold_probe_retains_real_readiness(self):
+        compose = (REPO / "compose.yaml").read_text()
+        api = compose.split("\n  airflow-api-server:\n", 1)[1].split("\n  airflow-scheduler:", 1)[0]
+        self.assertIn("http://localhost:8080/api/v2/monitor/health", api)
+        self.assertIn("--fail", api)
+        self.assertIn("timeout: 15s", api)
+        self.assertIn("start_period: 240s", api)
+        self.assertNotIn("disable:", api)
+        self.assertNotIn("exit 0", api)
+
+    def test_make_shell_smokes_have_exactly_one_config_validation(self):
+        targets = ("smoke-foundation", "smoke-minio", "smoke-airflow", "smoke-spark",
+                   "smoke-query", "smoke-usgs-live", "smoke-jma-live")
+        for target in targets:
+            with self.subTest(target=target):
+                result = subprocess.run(["make", "-n", target], cwd=REPO, capture_output=True, text=True)
+                self.assertEqual(0, result.returncode, result.stderr)
+                self.assertNotIn("./scripts/check-config.sh", result.stdout)
+                self.assertIn("./scripts/" + target + ".sh", result.stdout)
+                script = (REPO / "scripts" / (target + ".sh")).read_text()
+                self.assertEqual(1, script.count('"$project_root/scripts/check-config.sh" --require-local'))
+                self.assertLess(script.index('"$project_root/scripts/check-config.sh" --require-local'),
+                                script.index('docker-runtime.py" check --component'))
+
+    def test_all_shell_smokes_stop_on_invalid_config_before_docker(self):
+        with tempfile.TemporaryDirectory(prefix="foundation config gate ") as directory:
+            root = Path(directory)
+            scripts = root / "scripts"; scripts.mkdir()
+            tools = root / "bin"; tools.mkdir()
+            (root / ".env").touch()
+            check = scripts / "check-config.sh"
+            check.write_text("#!/bin/sh\nprintf 'CONFIG_REJECTED\\n'\nexit 7\n")
+            check.chmod(0o700)
+            docker = tools / "docker"
+            docker.write_text('#!/bin/sh\nprintf "unexpected\\n" >> "$MOCK_DOCKER_LOG"\nexit 99\n')
+            docker.chmod(0o700)
+            log = root / "docker.commands"
+            env = {**os.environ, "PATH": str(tools) + os.pathsep + os.environ["PATH"],
+                   "MOCK_DOCKER_LOG": str(log)}
+            for target in ("foundation", "minio", "airflow", "spark", "query", "usgs-live", "jma-live"):
+                path = scripts / ("smoke-" + target + ".sh")
+                path.write_text((REPO / "scripts" / path.name).read_text())
+                with self.subTest(target=target):
+                    result = subprocess.run(["sh", str(path)], env=env, capture_output=True, text=True)
+                    self.assertEqual(7, result.returncode, result.stderr)
+                    self.assertIn("CONFIG_REJECTED", result.stdout)
+                    self.assertFalse(log.exists())
+
     def test_usgs_and_jma_wrappers_run_only_client_after_preflight_and_stop_on_failure(self):
         # Execute real shell wrappers; only their config/preflight/Docker boundaries are doubled.
         with tempfile.TemporaryDirectory(prefix="smoke shell with spaces ") as directory:
@@ -580,6 +650,47 @@ class SmokeCommandContractTests(unittest.TestCase):
         for unsafe in ('@latest', ':latest', 'FROM scratch', 'GOSUMDB=off', '--insecure'):
             self.assertNotIn(unsafe, dockerfile)
         self.assertEqual('*\n!Dockerfile\n', (REPO / 'compose/minio-client/.dockerignore').read_text())
+
+
+class FoundationStartupLogTests(unittest.TestCase):
+    def test_current_boot_log_must_be_readable_nonempty_and_without_fatal_markers(self):
+        source = (REPO / "scripts/smoke-foundation.sh").read_text()
+        function = re.search(r"(?ms)^check_service_health\(\) \{.*?^\}", source).group(0)
+        prelude = r'''
+set -eu
+failed=0
+network_name=foundation_pipeline
+container_id() { printf 'fixture-container\n'; }
+report_pass() { printf '[PASS] %s\n' "$1"; }
+report_fail() { printf '[FAIL] %s\n' "$1"; failed=1; }
+docker() {
+    case "$*" in
+        *State.Health*) printf 'healthy\n' ;;
+        *State.StartedAt*) printf '2026-10-15T08:08:00Z\n' ;;
+        *NetworkSettings*) printf 'foundation_pipeline\n' ;;
+        *) return 90 ;;
+    esac
+}
+compose() {
+    [ "$*" = 'logs --no-color --since 2026-10-15T08:08:00Z --tail=200 minio' ] || return 91
+    case "$MOCK_LOG_MODE" in
+        warning) printf 'WARNING: harmless startup warning\n' ;;
+        empty) : ;;
+        unreadable) printf 'DO_NOT_PRINT_CREDENTIAL\n' >&2; return 1 ;;
+        fatal) printf 'FATAL: startup failed\n' ;;
+        panic) printf 'PANIC: startup failed\n' ;;
+    esac
+}
+'''
+        for mode in ("warning", "empty", "unreadable", "fatal", "panic"):
+            with self.subTest(mode=mode):
+                result = subprocess.run(["sh", "-c", prelude + function +
+                    '\ncheck_service_health minio\nexit "$failed"\n'],
+                    env={**os.environ, "MOCK_LOG_MODE": mode}, capture_output=True, text=True)
+                self.assertEqual(0 if mode == "warning" else 1, result.returncode, result.stderr)
+                self.assertNotIn("DO_NOT_PRINT_CREDENTIAL", result.stdout + result.stderr)
+                if mode == "unreadable":
+                    self.assertIn("startup log could not be read", result.stdout)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,695 @@
+{
+  "task_id": "FND-01",
+  "evidence_id": "fnd01-20261015-live-lifecycle",
+  "status": "PASSED",
+  "base_commit": "53e520861b74385b278d2de833341207b514caab",
+  "branch": "test/fnd-01-complete-live-lifecycle",
+  "assignee": "HoaiTam",
+  "reviewer": "unassigned",
+  "collected_at_utc": "2026-10-15T08:15:19.600812+00:00",
+  "environment": {
+    "docker_server_version": "28.3.2",
+    "docker_cpus": 8,
+    "docker_memory_bytes": 5685809152,
+    "scope": "existing main-project volumes; cold-from-stopped services, not empty-volume bootstrap",
+    "other_project_containers_not_modified": true
+  },
+  "initial_failure": {
+    "phase": "cold_before_api_probe_fix",
+    "make_exit_code": 2,
+    "elapsed_seconds": 399.92,
+    "reason": "DOCKER_START_FAILED_CHECK_STATE_NO_AUTOMATIC_CLEANUP",
+    "service": "airflow-api-server",
+    "started_at_utc": "2026-10-15T02:34:36.095757041Z",
+    "application_startup_complete_at_utc": "2026-10-15T02:38:32.901922429Z",
+    "old_probe_timeout_seconds": 5,
+    "old_start_period_seconds": 30,
+    "oom_killed": false,
+    "restart_count": 0,
+    "subsequently_recovered_without_restart": true
+  },
+  "startup": {
+    "cold": {
+      "exit_code": 0,
+      "elapsed_seconds": 54.8,
+      "begin_utc": "2026-10-15 08:08:15 UTC",
+      "stopped_services": 9,
+      "minio_init_executed_for_new_image": true,
+      "airflow_init_reused": true,
+      "snapshot": {
+        "collected_at_utc": "2026-10-15T08:09:54.172012+00:00",
+        "services": {
+          "airflow-api-server": {
+            "exit_code": 0,
+            "finished_at": "0001-01-01T00:00:00Z",
+            "health": "healthy",
+            "id": "55779d725306",
+            "image_id": "sha256:3ee7cbb9d450c89564ba588381fa24dbc4902e02f7108ef9ff95400e55d03763",
+            "restart_count": 0,
+            "started_at": "2026-10-15T08:08:43.976625588Z",
+            "state": "running"
+          },
+          "airflow-dag-processor": {
+            "exit_code": 0,
+            "finished_at": "0001-01-01T00:00:00Z",
+            "health": "healthy",
+            "id": "d008a23bb7ad",
+            "image_id": "sha256:3ee7cbb9d450c89564ba588381fa24dbc4902e02f7108ef9ff95400e55d03763",
+            "restart_count": 0,
+            "started_at": "2026-10-15T08:08:43.97934688Z",
+            "state": "running"
+          },
+          "airflow-init": {
+            "exit_code": 0,
+            "finished_at": "2026-10-13T12:44:11.234046084Z",
+            "health": null,
+            "id": "f89017299fd4",
+            "image_id": "sha256:e9982ad3f49a60418622e1baf80c34b0daf3fa5091a336cb5ee61f0cdd189371",
+            "restart_count": 0,
+            "started_at": "2026-10-13T12:43:50.046724088Z",
+            "state": "exited"
+          },
+          "airflow-postgres": {
+            "exit_code": 0,
+            "finished_at": "2026-10-15T08:07:51.7385728Z",
+            "health": "healthy",
+            "id": "542a39b356ec",
+            "image_id": "sha256:31424d3261c4ba75df1fca72d44f6842b66ce4ec76c1a4685f7a7219f6ec8924",
+            "restart_count": 0,
+            "started_at": "2026-10-15T08:08:32.906400514Z",
+            "state": "running"
+          },
+          "airflow-scheduler": {
+            "exit_code": 0,
+            "finished_at": "0001-01-01T00:00:00Z",
+            "health": "healthy",
+            "id": "997629331e0c",
+            "image_id": "sha256:3ee7cbb9d450c89564ba588381fa24dbc4902e02f7108ef9ff95400e55d03763",
+            "restart_count": 0,
+            "started_at": "2026-10-15T08:08:43.981399838Z",
+            "state": "running"
+          },
+          "iceberg-rest": {
+            "exit_code": 0,
+            "finished_at": "2026-10-15T08:07:48.833980215Z",
+            "health": "healthy",
+            "id": "0effae8e92be",
+            "image_id": "sha256:f7d679d30ac9c640bdeb2c015dff533cd3c8f1c7d491ebcb5d436f9a42db1d6f",
+            "restart_count": 0,
+            "started_at": "2026-10-15T08:08:43.967300338Z",
+            "state": "running"
+          },
+          "minio": {
+            "exit_code": 0,
+            "finished_at": "0001-01-01T00:00:00Z",
+            "health": "healthy",
+            "id": "bd312b89b068",
+            "image_id": "sha256:44eb3d1fca555870fc1472cb63c9029aa81b9cccaee66adec4f1ef101162df71",
+            "restart_count": 0,
+            "started_at": "2026-10-15T08:08:32.906100847Z",
+            "state": "running"
+          },
+          "minio-init": {
+            "exit_code": 0,
+            "finished_at": "2026-10-15T08:08:41.094848087Z",
+            "health": null,
+            "id": "01d32c4dfc91",
+            "image_id": "sha256:b6afbe197882d38df69509b341b8d5539eb167b02803e2ee84d1d8a8b0b22c3b",
+            "restart_count": 0,
+            "started_at": "2026-10-15T08:08:39.264696544Z",
+            "state": "exited"
+          },
+          "spark-master": {
+            "exit_code": 0,
+            "finished_at": "0001-01-01T00:00:00Z",
+            "health": "healthy",
+            "id": "3efbc8cebaf0",
+            "image_id": "sha256:c0131c9b4f05b84f7c5736e16dfd2ff43c78b2c831d5fea3c476ab2f36d77c1d",
+            "restart_count": 0,
+            "started_at": "2026-10-15T08:08:43.966357963Z",
+            "state": "running"
+          },
+          "spark-worker": {
+            "exit_code": 0,
+            "finished_at": "0001-01-01T00:00:00Z",
+            "health": "healthy",
+            "id": "1ddd7cc94a5e",
+            "image_id": "sha256:c0131c9b4f05b84f7c5736e16dfd2ff43c78b2c831d5fea3c476ab2f36d77c1d",
+            "restart_count": 0,
+            "started_at": "2026-10-15T08:08:50.301916633Z",
+            "state": "running"
+          },
+          "trino": {
+            "exit_code": 0,
+            "finished_at": "2026-10-15T08:07:47.851212881Z",
+            "health": "healthy",
+            "id": "8cddcb289526",
+            "image_id": "sha256:db58cc93e593a2706553745f276bb119c9810e69918be56ecde088ba7ccb0534",
+            "restart_count": 0,
+            "started_at": "2026-10-15T08:08:50.260936924Z",
+            "state": "running"
+          }
+        }
+      }
+    },
+    "warm": {
+      "exit_code": 0,
+      "elapsed_seconds": 17.34,
+      "both_inits_reused": true,
+      "all_11_service_id_image_started_finished_restart_fields_unchanged": true,
+      "snapshot": {
+        "collected_at_utc": "2026-10-15T08:10:31.868760+00:00",
+        "services": {
+          "airflow-api-server": {
+            "exit_code": 0,
+            "finished_at": "0001-01-01T00:00:00Z",
+            "health": "healthy",
+            "id": "55779d725306",
+            "image_id": "sha256:3ee7cbb9d450c89564ba588381fa24dbc4902e02f7108ef9ff95400e55d03763",
+            "restart_count": 0,
+            "started_at": "2026-10-15T08:08:43.976625588Z",
+            "state": "running"
+          },
+          "airflow-dag-processor": {
+            "exit_code": 0,
+            "finished_at": "0001-01-01T00:00:00Z",
+            "health": "healthy",
+            "id": "d008a23bb7ad",
+            "image_id": "sha256:3ee7cbb9d450c89564ba588381fa24dbc4902e02f7108ef9ff95400e55d03763",
+            "restart_count": 0,
+            "started_at": "2026-10-15T08:08:43.97934688Z",
+            "state": "running"
+          },
+          "airflow-init": {
+            "exit_code": 0,
+            "finished_at": "2026-10-13T12:44:11.234046084Z",
+            "health": null,
+            "id": "f89017299fd4",
+            "image_id": "sha256:e9982ad3f49a60418622e1baf80c34b0daf3fa5091a336cb5ee61f0cdd189371",
+            "restart_count": 0,
+            "started_at": "2026-10-13T12:43:50.046724088Z",
+            "state": "exited"
+          },
+          "airflow-postgres": {
+            "exit_code": 0,
+            "finished_at": "2026-10-15T08:07:51.7385728Z",
+            "health": "healthy",
+            "id": "542a39b356ec",
+            "image_id": "sha256:31424d3261c4ba75df1fca72d44f6842b66ce4ec76c1a4685f7a7219f6ec8924",
+            "restart_count": 0,
+            "started_at": "2026-10-15T08:08:32.906400514Z",
+            "state": "running"
+          },
+          "airflow-scheduler": {
+            "exit_code": 0,
+            "finished_at": "0001-01-01T00:00:00Z",
+            "health": "healthy",
+            "id": "997629331e0c",
+            "image_id": "sha256:3ee7cbb9d450c89564ba588381fa24dbc4902e02f7108ef9ff95400e55d03763",
+            "restart_count": 0,
+            "started_at": "2026-10-15T08:08:43.981399838Z",
+            "state": "running"
+          },
+          "iceberg-rest": {
+            "exit_code": 0,
+            "finished_at": "2026-10-15T08:07:48.833980215Z",
+            "health": "healthy",
+            "id": "0effae8e92be",
+            "image_id": "sha256:f7d679d30ac9c640bdeb2c015dff533cd3c8f1c7d491ebcb5d436f9a42db1d6f",
+            "restart_count": 0,
+            "started_at": "2026-10-15T08:08:43.967300338Z",
+            "state": "running"
+          },
+          "minio": {
+            "exit_code": 0,
+            "finished_at": "0001-01-01T00:00:00Z",
+            "health": "healthy",
+            "id": "bd312b89b068",
+            "image_id": "sha256:44eb3d1fca555870fc1472cb63c9029aa81b9cccaee66adec4f1ef101162df71",
+            "restart_count": 0,
+            "started_at": "2026-10-15T08:08:32.906100847Z",
+            "state": "running"
+          },
+          "minio-init": {
+            "exit_code": 0,
+            "finished_at": "2026-10-15T08:08:41.094848087Z",
+            "health": null,
+            "id": "01d32c4dfc91",
+            "image_id": "sha256:b6afbe197882d38df69509b341b8d5539eb167b02803e2ee84d1d8a8b0b22c3b",
+            "restart_count": 0,
+            "started_at": "2026-10-15T08:08:39.264696544Z",
+            "state": "exited"
+          },
+          "spark-master": {
+            "exit_code": 0,
+            "finished_at": "0001-01-01T00:00:00Z",
+            "health": "healthy",
+            "id": "3efbc8cebaf0",
+            "image_id": "sha256:c0131c9b4f05b84f7c5736e16dfd2ff43c78b2c831d5fea3c476ab2f36d77c1d",
+            "restart_count": 0,
+            "started_at": "2026-10-15T08:08:43.966357963Z",
+            "state": "running"
+          },
+          "spark-worker": {
+            "exit_code": 0,
+            "finished_at": "0001-01-01T00:00:00Z",
+            "health": "healthy",
+            "id": "1ddd7cc94a5e",
+            "image_id": "sha256:c0131c9b4f05b84f7c5736e16dfd2ff43c78b2c831d5fea3c476ab2f36d77c1d",
+            "restart_count": 0,
+            "started_at": "2026-10-15T08:08:50.301916633Z",
+            "state": "running"
+          },
+          "trino": {
+            "exit_code": 0,
+            "finished_at": "2026-10-15T08:07:47.851212881Z",
+            "health": "healthy",
+            "id": "8cddcb289526",
+            "image_id": "sha256:db58cc93e593a2706553745f276bb119c9810e69918be56ecde088ba7ccb0534",
+            "restart_count": 0,
+            "started_at": "2026-10-15T08:08:50.260936924Z",
+            "state": "running"
+          }
+        }
+      }
+    }
+  },
+  "foundation_smokes": [
+    {
+      "pass": 1,
+      "exit_code": 0,
+      "elapsed_seconds": 71.04,
+      "airflow_run_id": "afl01-smoke-20261015T081053Z-8d79edbd42ec",
+      "spark_app_id": "app-20261015081113-0000",
+      "healthy_services": 9,
+      "init_exited_zero": 2,
+      "networks": 1,
+      "volumes": 5,
+      "mount_checks": 6,
+      "minio_read_write_cleanup": true,
+      "spark_record_count": 10,
+      "spark_id_sum": 45,
+      "trino_iceberg_row_count": 1,
+      "current_boot_log_checks_passed": 9
+    },
+    {
+      "pass": 2,
+      "exit_code": 0,
+      "elapsed_seconds": 63.34,
+      "airflow_run_id": "afl01-smoke-20261015T081224Z-e5bb7e1f4064",
+      "spark_app_id": "app-20261015081241-0001",
+      "healthy_services": 9,
+      "init_exited_zero": 2,
+      "networks": 1,
+      "volumes": 5,
+      "mount_checks": 6,
+      "minio_read_write_cleanup": true,
+      "spark_record_count": 10,
+      "spark_id_sum": 45,
+      "trino_iceberg_row_count": 1,
+      "current_boot_log_checks_passed": 9
+    }
+  ],
+  "usgs_smokes": [
+    {
+      "run_id": "usg06-live-20261015T081325Z-588ba52e3925",
+      "window": "[2023-01-01T00:00:00Z,2023-01-04T00:00:00Z)",
+      "manifest_uri": "s3://japan-earthquake/bronze/usgs/ingest_date=2023-01-01/run_id=usg06-live-20261015T081325Z-588ba52e3925/attempt=01/manifest.json",
+      "raw_sha256": "60e2830a059be593f9b720a5cfbcf8e2711255a40310975fe8874576c78d63b1",
+      "record_count": 16,
+      "rerun_reused": true,
+      "exit_code": 0,
+      "elapsed_seconds": 47.86
+    },
+    {
+      "run_id": "usg06-live-20261015T081413Z-1fe7f720948e",
+      "window": "[2023-01-01T00:00:00Z,2023-01-04T00:00:00Z)",
+      "manifest_uri": "s3://japan-earthquake/bronze/usgs/ingest_date=2023-01-01/run_id=usg06-live-20261015T081413Z-1fe7f720948e/attempt=01/manifest.json",
+      "raw_sha256": "60e2830a059be593f9b720a5cfbcf8e2711255a40310975fe8874576c78d63b1",
+      "record_count": 16,
+      "rerun_reused": true,
+      "exit_code": 0,
+      "elapsed_seconds": 48.13
+    }
+  ],
+  "independently_verified_airflow_runs": [
+    {
+      "dag_id": "afl_01_smoke",
+      "run_id": "afl01-smoke-20261015T081053Z-8d79edbd42ec",
+      "state": "success",
+      "tasks": {
+        "verify_scheduler_execution": "success"
+      }
+    },
+    {
+      "dag_id": "afl_01_smoke",
+      "run_id": "afl01-smoke-20261015T081224Z-e5bb7e1f4064",
+      "state": "success",
+      "tasks": {
+        "verify_scheduler_execution": "success"
+      }
+    },
+    {
+      "dag_id": "usg_04_usgs_ingest",
+      "run_id": "usg06-live-20261015T081325Z-588ba52e3925",
+      "state": "success",
+      "tasks": {
+        "usgs_ingest.acquire_source_lease": "success",
+        "usgs_ingest.bronze_ready_gate": "success",
+        "usgs_ingest.completion_gate": "success",
+        "usgs_ingest.fetch": "success",
+        "usgs_ingest.release_source_lease": "success",
+        "usgs_ingest.resolve_interval": "success",
+        "usgs_ingest.run_summary": "success",
+        "usgs_ingest.upload": "success",
+        "usgs_ingest.validate": "success",
+        "usgs_ingest.verify": "success"
+      }
+    },
+    {
+      "dag_id": "usg_04_usgs_ingest",
+      "run_id": "usg06-live-20261015T081413Z-1fe7f720948e",
+      "state": "success",
+      "tasks": {
+        "usgs_ingest.acquire_source_lease": "success",
+        "usgs_ingest.bronze_ready_gate": "success",
+        "usgs_ingest.completion_gate": "success",
+        "usgs_ingest.fetch": "success",
+        "usgs_ingest.release_source_lease": "success",
+        "usgs_ingest.resolve_interval": "success",
+        "usgs_ingest.run_summary": "success",
+        "usgs_ingest.upload": "success",
+        "usgs_ingest.validate": "success",
+        "usgs_ingest.verify": "success"
+      }
+    }
+  ],
+  "persistence": {
+    "before": {
+      "collected_at_utc": "2026-10-15T02:30:35.801732+00:00",
+      "project": "japan-earthquake-etl",
+      "service_ids": {
+        "airflow-api-server": "ceb90850604f",
+        "airflow-dag-processor": "fb5d9358ed3c",
+        "airflow-init": "f89017299fd4",
+        "airflow-postgres": "542a39b356ec",
+        "airflow-scheduler": "85abff5b9612",
+        "iceberg-rest": "0effae8e92be",
+        "minio": "4df0704719b1",
+        "minio-init": "a3821fc1f8bd",
+        "spark-master": "0c1298b09a2b",
+        "spark-worker": "f767a5358ec1",
+        "trino": "c5e91863786b"
+      },
+      "long_running_healthy": 9,
+      "init_exited_zero": 2,
+      "active_dag_runs": [],
+      "source_lease_present": false,
+      "spark_activeapps_count": 0,
+      "trino_active_other_queries": 0,
+      "dag_run_count": 26,
+      "orc02_prior_first_state": "success",
+      "network_ids": [
+        "0f5d70d03f24"
+      ],
+      "bronze_sentinels": [
+        {
+          "uri": "s3://japan-earthquake/bronze/usgs/ingest_date=2023-01-03/run_id=usgs-dab62a8d3a7973c2dd72710e7aa8f21e/attempt=01/manifest.json",
+          "sha256": "6bd359837516704e3e277aa26397b21839837e2b91e0e8905aad72f16b93fc9f",
+          "matches_prior_evidence": true
+        },
+        {
+          "uri": "s3://japan-earthquake/bronze/jma/year=1997/catalog_release=jma-lm-20160819T034813Z-sha256-c2ce3fd9f8fc/ingest_date=2026-10-07/run_id=jma-922316b2ad88fa07587948c310215600-1997-jan-sep/attempt=01/manifest.json",
+          "sha256": "e14b46526a37c470eef3016320169a5791700cd61010a8efb487aceacb3a5d51",
+          "matches_prior_evidence": true
+        },
+        {
+          "uri": "s3://japan-earthquake/bronze/jma/year=1997/catalog_release=jma-lm-20160819T034925Z-sha256-25349273dfc4/ingest_date=2026-10-07/run_id=jma-922316b2ad88fa07587948c310215600-1997-oct-dec/attempt=01/manifest.json",
+          "sha256": "eddc63154542870adf9596014c778c589dc64ed3d2802f9d28025f689a2dab0e",
+          "matches_prior_evidence": true
+        },
+        {
+          "uri": "s3://japan-earthquake/bronze/jma/year=2000/catalog_release=jma-lm-20160819T034819Z-sha256-268441420d9c/ingest_date=2026-10-07/run_id=jma-922316b2ad88fa07587948c310215600-2000-full-year/attempt=01/manifest.json",
+          "sha256": "0c54b3c664833819099926b1a773647c71e6819abecdb8a321d82211b95fb615",
+          "matches_prior_evidence": true
+        },
+        {
+          "uri": "s3://japan-earthquake/bronze/jma/year=2023/catalog_release=jma-lm-20251210T014153Z-sha256-e5ced2bf7275/ingest_date=2026-10-07/run_id=jma-922316b2ad88fa07587948c310215600-2023-full-year/attempt=01/manifest.json",
+          "sha256": "977defa4f2a1d4a2ba41a211ac0419419ca812d010522da4ef4d95c95f3582db",
+          "matches_prior_evidence": true
+        }
+      ],
+      "volumes": [
+        {
+          "name": "japan-earthquake-etl_airflow_db_data",
+          "created_at": "2026-10-04T08:25:00Z",
+          "lifecycle": "durable"
+        },
+        {
+          "name": "japan-earthquake-etl_airflow_logs",
+          "created_at": "2026-10-04T08:25:00Z",
+          "lifecycle": "operational"
+        },
+        {
+          "name": "japan-earthquake-etl_iceberg_catalog_data",
+          "created_at": "2026-10-08T03:21:15Z",
+          "lifecycle": "durable"
+        },
+        {
+          "name": "japan-earthquake-etl_minio_data",
+          "created_at": "2026-10-04T08:25:00Z",
+          "lifecycle": "durable"
+        },
+        {
+          "name": "japan-earthquake-etl_pipeline_staging",
+          "created_at": "2026-10-04T08:25:00Z",
+          "lifecycle": "transient"
+        }
+      ],
+      "dag_pause": {
+        "afl_01_smoke": false,
+        "jma_04_year_backfill": true,
+        "orc_01_etl_pipeline": true,
+        "orc_02_daily_sources": true,
+        "orc_03_backfill": true,
+        "usg_04_usgs_ingest": true
+      }
+    },
+    "after": {
+      "collected_at_utc": "2026-10-15T08:15:19.600812+00:00",
+      "control_plane": {
+        "active_runs": [],
+        "bronze_sentinels": [
+          {
+            "matches_prior_evidence": true,
+            "sha256": "6bd359837516704e3e277aa26397b21839837e2b91e0e8905aad72f16b93fc9f",
+            "uri": "s3://japan-earthquake/bronze/usgs/ingest_date=2023-01-03/run_id=usgs-dab62a8d3a7973c2dd72710e7aa8f21e/attempt=01/manifest.json"
+          },
+          {
+            "matches_prior_evidence": true,
+            "sha256": "e14b46526a37c470eef3016320169a5791700cd61010a8efb487aceacb3a5d51",
+            "uri": "s3://japan-earthquake/bronze/jma/year=1997/catalog_release=jma-lm-20160819T034813Z-sha256-c2ce3fd9f8fc/ingest_date=2026-10-07/run_id=jma-922316b2ad88fa07587948c310215600-1997-jan-sep/attempt=01/manifest.json"
+          },
+          {
+            "matches_prior_evidence": true,
+            "sha256": "eddc63154542870adf9596014c778c589dc64ed3d2802f9d28025f689a2dab0e",
+            "uri": "s3://japan-earthquake/bronze/jma/year=1997/catalog_release=jma-lm-20160819T034925Z-sha256-25349273dfc4/ingest_date=2026-10-07/run_id=jma-922316b2ad88fa07587948c310215600-1997-oct-dec/attempt=01/manifest.json"
+          },
+          {
+            "matches_prior_evidence": true,
+            "sha256": "0c54b3c664833819099926b1a773647c71e6819abecdb8a321d82211b95fb615",
+            "uri": "s3://japan-earthquake/bronze/jma/year=2000/catalog_release=jma-lm-20160819T034819Z-sha256-268441420d9c/ingest_date=2026-10-07/run_id=jma-922316b2ad88fa07587948c310215600-2000-full-year/attempt=01/manifest.json"
+          },
+          {
+            "matches_prior_evidence": true,
+            "sha256": "977defa4f2a1d4a2ba41a211ac0419419ca812d010522da4ef4d95c95f3582db",
+            "uri": "s3://japan-earthquake/bronze/jma/year=2023/catalog_release=jma-lm-20251210T014153Z-sha256-e5ced2bf7275/ingest_date=2026-10-07/run_id=jma-922316b2ad88fa07587948c310215600-2023-full-year/attempt=01/manifest.json"
+          }
+        ],
+        "dag_pause": {
+          "afl_01_smoke": false,
+          "jma_04_year_backfill": true,
+          "orc_01_etl_pipeline": true,
+          "orc_02_daily_sources": true,
+          "orc_03_backfill": true,
+          "usg_04_usgs_ingest": true
+        },
+        "dag_run_count": 30,
+        "orc02_prior_first_state": "success",
+        "source_lease_present": false
+      },
+      "network_ids": [
+        "0f5d70d03f24"
+      ],
+      "project": "japan-earthquake-etl",
+      "services": {
+        "airflow-api-server": {
+          "exit_code": 0,
+          "finished_at": "0001-01-01T00:00:00Z",
+          "health": "healthy",
+          "id": "55779d725306",
+          "image_id": "sha256:3ee7cbb9d450c89564ba588381fa24dbc4902e02f7108ef9ff95400e55d03763",
+          "restart_count": 0,
+          "started_at": "2026-10-15T08:08:43.976625588Z",
+          "state": "running"
+        },
+        "airflow-dag-processor": {
+          "exit_code": 0,
+          "finished_at": "0001-01-01T00:00:00Z",
+          "health": "healthy",
+          "id": "d008a23bb7ad",
+          "image_id": "sha256:3ee7cbb9d450c89564ba588381fa24dbc4902e02f7108ef9ff95400e55d03763",
+          "restart_count": 0,
+          "started_at": "2026-10-15T08:08:43.97934688Z",
+          "state": "running"
+        },
+        "airflow-init": {
+          "exit_code": 0,
+          "finished_at": "2026-10-13T12:44:11.234046084Z",
+          "health": null,
+          "id": "f89017299fd4",
+          "image_id": "sha256:e9982ad3f49a60418622e1baf80c34b0daf3fa5091a336cb5ee61f0cdd189371",
+          "restart_count": 0,
+          "started_at": "2026-10-13T12:43:50.046724088Z",
+          "state": "exited"
+        },
+        "airflow-postgres": {
+          "exit_code": 0,
+          "finished_at": "2026-10-15T08:07:51.7385728Z",
+          "health": "healthy",
+          "id": "542a39b356ec",
+          "image_id": "sha256:31424d3261c4ba75df1fca72d44f6842b66ce4ec76c1a4685f7a7219f6ec8924",
+          "restart_count": 0,
+          "started_at": "2026-10-15T08:08:32.906400514Z",
+          "state": "running"
+        },
+        "airflow-scheduler": {
+          "exit_code": 0,
+          "finished_at": "0001-01-01T00:00:00Z",
+          "health": "healthy",
+          "id": "997629331e0c",
+          "image_id": "sha256:3ee7cbb9d450c89564ba588381fa24dbc4902e02f7108ef9ff95400e55d03763",
+          "restart_count": 0,
+          "started_at": "2026-10-15T08:08:43.981399838Z",
+          "state": "running"
+        },
+        "iceberg-rest": {
+          "exit_code": 0,
+          "finished_at": "2026-10-15T08:07:48.833980215Z",
+          "health": "healthy",
+          "id": "0effae8e92be",
+          "image_id": "sha256:f7d679d30ac9c640bdeb2c015dff533cd3c8f1c7d491ebcb5d436f9a42db1d6f",
+          "restart_count": 0,
+          "started_at": "2026-10-15T08:08:43.967300338Z",
+          "state": "running"
+        },
+        "minio": {
+          "exit_code": 0,
+          "finished_at": "0001-01-01T00:00:00Z",
+          "health": "healthy",
+          "id": "bd312b89b068",
+          "image_id": "sha256:44eb3d1fca555870fc1472cb63c9029aa81b9cccaee66adec4f1ef101162df71",
+          "restart_count": 0,
+          "started_at": "2026-10-15T08:08:32.906100847Z",
+          "state": "running"
+        },
+        "minio-init": {
+          "exit_code": 0,
+          "finished_at": "2026-10-15T08:08:41.094848087Z",
+          "health": null,
+          "id": "01d32c4dfc91",
+          "image_id": "sha256:b6afbe197882d38df69509b341b8d5539eb167b02803e2ee84d1d8a8b0b22c3b",
+          "restart_count": 0,
+          "started_at": "2026-10-15T08:08:39.264696544Z",
+          "state": "exited"
+        },
+        "spark-master": {
+          "exit_code": 0,
+          "finished_at": "0001-01-01T00:00:00Z",
+          "health": "healthy",
+          "id": "3efbc8cebaf0",
+          "image_id": "sha256:c0131c9b4f05b84f7c5736e16dfd2ff43c78b2c831d5fea3c476ab2f36d77c1d",
+          "restart_count": 0,
+          "started_at": "2026-10-15T08:08:43.966357963Z",
+          "state": "running"
+        },
+        "spark-worker": {
+          "exit_code": 0,
+          "finished_at": "0001-01-01T00:00:00Z",
+          "health": "healthy",
+          "id": "1ddd7cc94a5e",
+          "image_id": "sha256:c0131c9b4f05b84f7c5736e16dfd2ff43c78b2c831d5fea3c476ab2f36d77c1d",
+          "restart_count": 0,
+          "started_at": "2026-10-15T08:08:50.301916633Z",
+          "state": "running"
+        },
+        "trino": {
+          "exit_code": 0,
+          "finished_at": "2026-10-15T08:07:47.851212881Z",
+          "health": "healthy",
+          "id": "8cddcb289526",
+          "image_id": "sha256:db58cc93e593a2706553745f276bb119c9810e69918be56ecde088ba7ccb0534",
+          "restart_count": 0,
+          "started_at": "2026-10-15T08:08:50.260936924Z",
+          "state": "running"
+        }
+      },
+      "spark": {
+        "activeapps_count": 0,
+        "workers": [
+          {
+            "coresused": 0,
+            "memoryused": 0,
+            "state": "ALIVE"
+          }
+        ]
+      },
+      "trino_active_other_queries": 0,
+      "volumes": [
+        {
+          "created_at": "2026-10-04T08:25:00Z",
+          "lifecycle": "durable",
+          "name": "japan-earthquake-etl_airflow_db_data"
+        },
+        {
+          "created_at": "2026-10-04T08:25:00Z",
+          "lifecycle": "operational",
+          "name": "japan-earthquake-etl_airflow_logs"
+        },
+        {
+          "created_at": "2026-10-08T03:21:15Z",
+          "lifecycle": "durable",
+          "name": "japan-earthquake-etl_iceberg_catalog_data"
+        },
+        {
+          "created_at": "2026-10-04T08:25:00Z",
+          "lifecycle": "durable",
+          "name": "japan-earthquake-etl_minio_data"
+        },
+        {
+          "created_at": "2026-10-04T08:25:00Z",
+          "lifecycle": "transient",
+          "name": "japan-earthquake-etl_pipeline_staging"
+        }
+      ]
+    },
+    "service_state_unchanged_after_all_smokes": true,
+    "volume_names_creation_times_lifecycles_unchanged": true,
+    "network_id_unchanged": true,
+    "all_five_old_manifest_checksums_match": true,
+    "dag_pause_states_restored": true,
+    "dag_run_count_before": 26,
+    "dag_run_count_after": 30
+  },
+  "artifact_source_sha256": "3faa875d7b8e806d6548a681c4d9212d6407cd4796ec3901aaafd72dd0eb7ff6",
+  "runner_jar_sha256": "fd8138eefa3f0c4bf4362a39a326b49a67e44fd1b5096c2a299c551e3ff4aeb9",
+  "boundaries": {
+    "empty_volume_bootstrap_not_repeated": true,
+    "full_lake_payload_rehash_not_performed": true,
+    "java_verify_layers_cached": true,
+    "sec01_retained_log_ml_handoff_not_certified": true,
+    "qa01_business_e2e_not_certified": true,
+    "timings_are_observations_not_sla_or_controlled_speedup_benchmark": true,
+    "no_commit_push_pr_or_merge_performed": true
+  }
+}

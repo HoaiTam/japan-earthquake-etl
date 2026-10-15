@@ -1,6 +1,6 @@
 ---
 task_id: "FND-01"
-status: "Review"
+status: "Done"
 week: 1
 block: "Foundation"
 workstream: "QA"
@@ -35,7 +35,7 @@ Viết script/checklist kiểm tra service health, network, volume và log khở
 
 ## Tiêu chí hoàn thành
 
-- [ ] Tất cả service bắt buộc đạt trên lifecycle mới (runtime cũ giữ làm evidence lịch sử; cần startup/smoke lại).
+- [x] Tất cả service bắt buộc đạt trên lifecycle mới: cold/warm startup và hai foundation smoke thật ngày 2026-10-15.
 - [x] lỗi phổ biến có hướng xử lý ngắn.
 
 ## Hard dependency
@@ -64,16 +64,16 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Theo dõi
 
-- **Trạng thái:** Review
+- **Trạng thái:** Done
 - **Assignee:** HoaiTam
-- **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** [PR #11](https://github.com/HoaiTam/japan-earthquake-etl/pull/11) là nghiệm thu lịch sử. Bản vá hiện tại trên branch `fix/fnd-01-separate-docker-lifecycle`; xem [evidence lifecycle](../../evidence/FND-01_DOCKER_LIFECYCLE.md) và [quy trình mới](../../DOCKER_RUNTIME_WORKFLOW.md). Code/tests hoàn tất; Docker API thực timeout, chưa nghiệm thu cold/warm startup và live smoke mới nên giữ Review, không tự nâng Done.
+- **Reviewer:** unassigned (chưa có approval độc lập)
+- **Evidence / PR:** [Live acceptance 2026-10-15](../../evidence/FND-01_LIVE_ACCEPTANCE.md), [JSON](../../evidence/FND-01_LIVE_ACCEPTANCE.json): cold 54.80s, warm 17.34s; hai foundation smoke và hai USGS live smoke PASS; 9 healthy/2 init exited0, 5 manifest cũ/volumes/network giữ nguyên, warm/smoke không restart 11 containers. Branch `test/fnd-01-complete-live-lifecycle` từ main `53e5208` (PR #74), chưa commit/push/mở PR. [PR #11](https://github.com/HoaiTam/japan-earthquake-etl/pull/11) và [lifecycle patch](../../evidence/FND-01_DOCKER_LIFECYCLE.md) giữ làm lịch sử; [quy trình hiện hành](../../DOCKER_RUNTIME_WORKFLOW.md).
 - **Kỹ năng phù hợp:** QA, Docker, tài liệu
 
 ## Checklist bàn giao
 
 - [x] Deliverable đã có trong repository hoặc môi trường demo.
-- [x] Acceptance criteria đã được kiểm tra.
+- [x] Acceptance criteria đã được kiểm tra trên lifecycle mới bằng runtime thật.
 - [x] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
 - [x] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
 - [x] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.

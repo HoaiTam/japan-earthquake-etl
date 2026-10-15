@@ -87,14 +87,17 @@ bắt đầu triển khai, Done khi đủ evidence; chưa điền reviewer/appro
 ## 3. Nhóm HoaiTam làm trước — không chặn mọi người viết code
 
 1. [FND-01 — Tạo smoke checklist cho môi trường](./tasks/FND-01.md):
-   xác nhận lifecycle mới, startup/health/smoke thật. Docs hiện **Review**.
+   **Done** sau nghiệm thu lifecycle mới ngày 2026-10-15: cold/warm startup,
+   hai foundation smoke, hai USGS live smoke và data/container readback đạt.
+   [Evidence](../evidence/FND-01_LIVE_ACCEPTANCE.md). Không cần làm lại prep này
+   nếu source/config/runtime không đổi; budget tuần không tự phân bổ lại.
 2. [ORC-02 — Cấu hình lịch và readiness cho hai nguồn](./tasks/ORC-02.md):
    **Done** sau nghiệm thu 2026-10-15: runner packaged/fresh, scheduled/first/rerun/contention
    đạt và pause/lease được xác nhận lại. Không cần clear run lỗi vì current
    interval chưa có failed run trước test. [Evidence](../evidence/ORC-02_LIVE_ACCEPTANCE.md).
 3. [SEC-01 — Review secret và bề mặt truy cập](./tasks/SEC-01.md):
    HoaiTam đã bổ sung audit live/prefix permission evidence, docs **Review**:
-   còn Trino retained-log finding/logging deploy và actual notebook/export/import
+   còn retained-log re-audit sau logging deploy và actual notebook/export/import
    gate. Xem [evidence](../evidence/SEC-01_RUNTIME.md); merge #67 không chứng minh Done.
 4. Chốt exact source manifests/SHA, baseline Gold snapshots, namespace QA,
    fixture feature/result và resource slots trong biên bản handoff.

@@ -190,6 +190,10 @@ require_fixed "$api_block" "target: 8080" \
     "Airflow API server must use container port 8080"
 require_fixed "$api_block" "/api/v2/monitor/health" \
     "Airflow API server must check the official health endpoint"
+require_fixed "$api_block" "timeout: 15s" \
+    "Airflow API healthcheck must allow the measured cold-runtime probe budget"
+require_fixed "$api_block" "start_period: 4m0s" \
+    "Airflow API must allow cold imports without bypassing endpoint readiness"
 require_fixed "$api_block" "condition: service_completed_successfully" \
     "Airflow API server must wait for successful initialization"
 

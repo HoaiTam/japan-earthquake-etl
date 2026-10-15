@@ -3,7 +3,9 @@
 - Branch: `fix/fnd-01-separate-docker-lifecycle`, từ main `03b6d00`
   (PR#67/68 đã merge). Không commit/push/mở PR trong lượt implementation.
 - Assignee: HoaiTam; reviewer unassigned, chưa có approval.
-- Status: Review: code/regression checks hoàn tất, còn runtime acceptance.
+- Status tại thời điểm bản vá: Review, còn runtime acceptance. Đã đóng phần
+  nghiệm thu này ngày 2026-10-15; xem [live acceptance](./FND-01_LIVE_ACCEPTANCE.md)
+  và [JSON](./FND-01_LIVE_ACCEPTANCE.json). Nội dung bên dưới giữ làm lịch sử.
 - Request: smoke USGS chờ build/start/init hơn10 phút; operator ngắt lệnh.
   Ảnh cho thấy init Waiting, không chứng minh một lỗi USGS hay nguyên nhân init.
 

@@ -69,6 +69,11 @@ Tương tự, scheduler và DAG processor override healthcheck thành interval/t
 CLI. Probe dùng `exec` để timeout không để lại process con; readiness vẫn yêu
 cầu heartbeat thật trong metadata database.
 
+Airflow API override timeout `15s`, start period `240s` sau phép đo cold
+startup khoảng 237s trong FND-01. Probe vẫn phải trả thành công từ monitor
+endpoint; healthy sớm không phải chờ hết grace period. Không thay healthcheck
+chung hoặc bỏ readiness để che lỗi. Xem [Airflow local contract](./AIRFLOW_LOCAL.md).
+
 Mọi dependency runtime phải dùng long syntax và condition phù hợp:
 
 - Database, MinIO, Catalog và query engine: ưu tiên `service_healthy`.
