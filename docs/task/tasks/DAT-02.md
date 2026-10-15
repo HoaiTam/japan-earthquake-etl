@@ -1,6 +1,6 @@
 ---
 task_id: "DAT-02"
-status: "Backlog"
+status: "Done"
 week: 5
 block: "A - Hợp đồng dữ liệu"
 workstream: "Jupyter development pilot"
@@ -58,35 +58,36 @@ candidate lineage. Không thay dataset export chính thức của MLD-05.
 
 ## Tiêu chí hoàn thành
 
-- [ ] Có ít nhất một mainshock thật đúng rule, candidate IDs truy về pinned Gold.
-- [ ] Feature/count/grain/checksum readback đạt; mỗi window giữ một self vector zero.
-- [ ] Missing coverage công khai; PARTIAL chỉ DEVELOPMENT_ONLY, không nhận research-ready.
-- [ ] Rerun cùng identity tái lập nội dung; changed input/config tạo pilot identity mới.
-- [ ] Jupyter inspection chạy trên máy với bundle local, không gọi MinIO/Docker/API
+- [x] Có ít nhất một mainshock thật đúng rule, candidate IDs truy về pinned Gold.
+- [x] Feature/count/grain/checksum readback đạt; mỗi window giữ một self vector zero.
+- [x] Missing coverage công khai; PARTIAL chỉ DEVELOPMENT_ONLY, không nhận research-ready.
+- [x] Rerun cùng identity tái lập nội dung; changed input/config tạo pilot identity mới.
+- [x] Jupyter inspection chạy trên máy với bundle local, không gọi MinIO/Docker/API
       ở mỗi cell; loader reject checksum/schema/NaN/duplicate/missing-self lỗi.
-- [ ] Không nâng source dataset BUILDING thành VALIDATED/EXPORTED; không tạo
+- [x] Không nâng source dataset BUILDING thành VALIDATED/EXPORTED; không tạo
       official _SUCCESS.json, RESULT_READY/CANDIDATE hoặc sửa Gold/ml.*.
-- [ ] Handoff đủ cho EXP-01/02 chạy cùng bundle mà không cần pipeline credentials.
+- [x] Handoff đủ cho EXP-01/02 chạy cùng bundle mà không cần pipeline credentials.
 
 ## Hard dependency
 
 - [MLD-03](./MLD-03.md) — candidate windows và exact lineage.
 - [MLD-04](./MLD-04.md) — shared feature/scaling implementation.
 
-MLD-04 hiện Ready, chưa Done, nên DAT-02 Backlog. Có thể chọn scope/pin metadata,
-viết manifest/layout/fixtures/inspection interface ngay; chỉ real feature
-acceptance mới cần implementation upstream. Không chờ MLD-05 full research
+MLD-04 đã có feature/readback nghiệm thu ngày 2026-10-15; DAT-02 đã dùng đúng
+implementation/config đó trên pinned MLD-03 thật. Không chờ MLD-05 full research
 export hoặc EXP-01 để hoàn thành dataset pilot, tránh dependency vòng.
 
 ## Phân công và phối hợp
 
-HoaiTam, 6h trong [tuần 5](../WEEK_5_PARALLEL_PLAN.md). Nhận feature contract
-fixture từ rosy179 sớm; giữ interface thống nhất với MLD-04. EXP-01 viết
+HoaiTam, 6h trong [tuần 5](../WEEK_5_PARALLEL_PLAN.md). Đã dùng feature contract/
+fixture MLD-04 (assignee rosy179), triển khai dependency theo yêu cầu HoaiTam;
+không đổi assignee/effort của MLD-04. EXP-01 viết
 loader/harness bằng fixture song song, EXP-02 viết thuật toán bằng synthetic
 windows trước khi có pilot thật.
 
-Branch triển khai: feat/dat-02-jupyter-pilot-dataset từ main mới nhất.
-Mới thêm task, chưa chạy export/notebook; chỉ đổi In Progress khi thực hiện.
+Branch triển khai: feat/dat-02-jupyter-pilot-dataset từ main `884c422`.
+Hoàn tất export/notebook ngày 2026-10-15; giữ dependency MLD-04 trong cùng
+bản thay đổi chưa commit theo yêu cầu không tự commit/push.
 
 ## Ranh giới
 
@@ -99,21 +100,22 @@ Mới thêm task, chưa chạy export/notebook; chỉ đổi In Progress khi th�
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
+- **Trạng thái:** Done
 - **Assignee:** HoaiTam
 - **Reviewer:** unassigned
-- **Evidence / PR:** Chưa có; mới định nghĩa task, chưa tạo dataset thật.
+- **Evidence / PR:** [Real pilot inspection](../../evidence/DAT-02-pilot-inspection.json): 2 mainshock/279 rows, 0 invalid, PARTIAL, self zero; real first/rerun và independent-root bytes giống nhau. Notebook kernel mới chạy đủ 3 code cells trên bundle gốc và ZIP giải nén đường dẫn khác. 363 Java, 216 Airflow, 16 Python pilot tests đạt; ci-docs/diff checks đạt. Chưa commit/push hoặc có GitHub CI/reviewer approval.
 
 ## Checklist bàn giao
 
-- [ ] Exporter/fixtures/notebook/runbook tồn tại và acceptance đạt.
-- [ ] Evidence real pilot inspection có versions/pins/counts/checksums/coverage.
-- [ ] Không secret/raw dump/build artifact; status/index đồng bộ.
-- [ ] Giới hạn và downstream task IDs được ghi rõ.
+- [x] Exporter/fixtures/notebook/runbook tồn tại và acceptance đạt.
+- [x] Evidence real pilot inspection có versions/pins/counts/checksums/coverage.
+- [x] Không secret/raw dump/build artifact; status/index đồng bộ.
+- [x] Giới hạn và downstream task IDs được ghi rõ.
 
 ## Tài liệu liên quan
 
 - [Jupyter pilot trước Colab](../../specs/JUPYTER_PILOT_WORKFLOW.md)
+- [Runbook thực thi / handoff](../../runbooks/DAT-02_JUPYTER_PILOT.md)
 - [ML data model/lifecycle](../../specs/ML_DATA_MODEL.md)
 - [MLD-03 windows](../../specs/MAINSHOCK_AND_CANDIDATE_WINDOWS.md)
 - [MLD-04](./MLD-04.md), [MLD-05](./MLD-05.md)

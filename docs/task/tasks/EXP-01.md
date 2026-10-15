@@ -1,6 +1,6 @@
 ---
 task_id: "EXP-01"
-status: "Backlog"
+status: "Ready"
 week: 5
 block: "H - Experiment"
 workstream: "Jupyter-first harness"
@@ -81,7 +81,7 @@ MLD-05 để hoàn tất local harness. Cloud smoke nằm trong EXP-02 giai đo�
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
+- **Trạng thái:** Ready
 - **Assignee:** rosy179
 - **Reviewer:** Chưa ghi lại
 - **Evidence / PR:** Chưa có
@@ -95,6 +95,20 @@ MLD-05 để hoàn tất local harness. Cloud smoke nằm trong EXP-02 giai đo�
 - [ ] Reviewer độc lập được khuyến nghị cho P0.
 
 ## Tài liệu liên quan
+
+### Handoff DAT-02 — 2026-10-15
+
+Inspection module `notebooks/pilot_bundle.py` có `load_bundle(exact_directory)`:
+trả manifest/coverage, PyArrow features/mainshocks và summary sau khi kiểm
+checksum/schema/grain/finite/self/coverage. Fixture nhỏ tạo trong
+`tests/test_pilot_bundle.py`, không cần Docker/API; real bundle chia sẻ riêng
+bằng `make pack-pilot` vì staging ngoài Git. Xem
+[runbook và ranh giới](../../runbooks/DAT-02_JUPYTER_PILOT.md).
+
+Reuse loader/fixture này thay vì viết lại feature math. Notebook DAT-02 chỉ
+inspection; chưa thay shared experiment harness, official loader/result writer,
+full dependency lock hoặc Colab adapter của EXP-01. Chưa fit model, chưa mở
+Colab gate EXP-02; không có approval reviewer.
 
 - [DAT-02](./DAT-02.md)
 - [Jupyter pilot workflow](../../specs/JUPYTER_PILOT_WORKFLOW.md)

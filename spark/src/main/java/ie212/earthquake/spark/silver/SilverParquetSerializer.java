@@ -384,7 +384,7 @@ public final class SilverParquetSerializer {
      * Sort only order-insensitive footer metadata. Pages, row groups, column order,
      * schema, offsets, statistics and record values remain untouched.
      */
-    private static byte[] canonicalFooter(byte[] bytes) throws IOException {
+    public static byte[] canonicalFooter(byte[] bytes) throws IOException {
         int length = bytes.length;
         int footerLength = ByteBuffer.wrap(bytes, length - 8, 4).order(java.nio.ByteOrder.LITTLE_ENDIAN).getInt();
         if (footerLength <= 0 || footerLength > length - 12) { throw new IOException("INVALID_PARQUET_FOOTER"); }

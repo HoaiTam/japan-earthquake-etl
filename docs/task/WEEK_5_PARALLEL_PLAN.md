@@ -80,9 +80,16 @@ recovery scope/effort không bị giảm, chỉ đổi lịch để ưu tiên ki
 | [EXP-02](./tasks/EXP-02.md), 7h | Ba baseline local, plots/noise/roles/count/runtime và local-smoke-report; migrate Colab sau PASSED | Kiểm tra hướng kỹ thuật trước cloud; official output sau MLD-05 theo MLI-01 | Local cần DAT-02/EXP-01; final Done cần official export + Colab parity; pilot PASSED không là scientific approval |
 
 Status trong file task là trạng thái thực thi, không phải lịch giao việc:
-ORC-06/MLD-04/MLI-03 Ready vì hard dependencies đã Done; task còn chờ gate
+Ở mốc lập kế hoạch, ORC-06/MLD-04/MLI-03 Ready vì hard dependencies đã Done; task còn chờ gate
 giữ Backlog nhưng được làm phần fixture/interface. Chỉ đổi In Progress khi
 bắt đầu triển khai, Done khi đủ evidence; chưa điền reviewer/approval giả.
+
+Cập nhật 2026-10-15: HoaiTam yêu cầu triển khai thêm dependency MLD-04 rồi
+DAT-02. MLD-04 có feature/readback, DAT-02 có pilot JMA/inspection local;
+assignee vẫn rosy179/HoaiTam theo task, reviewer unassigned. Xem task/evidence
+hiện hành và [runbook pilot](../runbooks/DAT-02_JUPYTER_PILOT.md).
+MLD-05/EXP-01 có thể nhận handoff; không suy EXP-02 hoặc Colab đã hoàn tất.
+Không thêm task/effort hoặc tự tái phân budget từ phần nghiệm thu sớm này.
 
 ## 3. Nhóm HoaiTam làm trước — không chặn mọi người viết code
 

@@ -1,6 +1,6 @@
 ---
 task_id: "MLD-04"
-status: "Ready"
+status: "Done"
 week: 5
 block: "G - ML Dataset"
 workstream: "Spacetime features"
@@ -48,11 +48,11 @@ time_scaled = delta_time_hours / T_scale
 
 ## Tiêu chí hoàn thành
 
-- [ ] Không đưa latitude/longitude degree trực tiếp vào Euclidean clustering.
-- [ ] Mainshock vector bằng zero trong tolerance và `delta_time_hours` giữ đúng dấu.
-- [ ] Mọi feature hữu hạn; invalid rows có reason/count thay vì bị drop im lặng.
-- [ ] Global/adaptive scale có version, giá trị thực tế lưu cùng dataset.
-- [ ] Magnitude không nằm trong vector baseline 4-D.
+- [x] Không đưa latitude/longitude degree trực tiếp vào Euclidean clustering.
+- [x] Mainshock vector bằng zero trong tolerance và `delta_time_hours` giữ đúng dấu.
+- [x] Mọi feature hữu hạn; invalid rows có reason/count thay vì bị drop im lặng.
+- [x] Global/adaptive scale có version, giá trị thực tế lưu cùng dataset.
+- [x] Magnitude không nằm trong vector baseline 4-D.
 
 ## Hard dependency
 
@@ -86,20 +86,21 @@ DAT-02 dùng chung Java/Spark feature implementation/config và small fixture c�
 
 ## Theo dõi
 
-- **Trạng thái:** Ready
+- **Trạng thái:** Done
 - **Assignee:** rosy179
-- **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Reviewer:** unassigned
+- **Evidence / PR:** Hoàn tất 2026-10-15, bắt đầu branch `feat/mld-04-spacetime-features` từ main `884c422` (PR #75); bản cuối mang cùng DAT-02 trên `feat/dat-02-jupyter-pilot-dataset`, chưa commit/push. [Feature readback](../../evidence/MLD-04-feature-readback.json): global/adaptive đều 279 rows, 0 invalid, Parquet readback; 12 feature tests, gồm ba JVM độc lập byte-identical writes; full Java suite 363 tests đạt. SQL chỉ SELECT, parent vẫn BUILDING. Không có approval reviewer.
 - **Kỹ năng phù hợp:** Geodesy basics, Spark transformations, numerical testing
 
 ## Checklist bàn giao
 
-- [ ] Deliverable và test/evidence tồn tại trong repository.
-- [ ] Acceptance criteria đã được kiểm tra.
-- [ ] Contract/docs đã cập nhật và không chứa secret/build artifact.
+- [x] Deliverable và test/evidence tồn tại trong repository.
+- [x] Acceptance criteria đã được kiểm tra.
+- [x] Contract/docs đã cập nhật và không chứa secret/build artifact.
 - [ ] Reviewer độc lập được khuyến nghị cho P0.
 
 ## Tài liệu liên quan
 
 - [Roadmap HDBSCAN](../HDBSCAN_WORKSTREAM.md)
 - [MLD-03](./MLD-03.md)
+- [Feature implementation/runbook](../../specs/SPACETIME_FEATURES.md)
