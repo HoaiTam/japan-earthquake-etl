@@ -1,0 +1,322 @@
+{
+  "task": "MLD-04",
+  "checked_on": "2026-10-15",
+  "input_native_sha256": "9246338b3d754ff70835a5d092efe12fbb5ce479ebe197bdb6197579e56f6353",
+  "sql_policy": "SELECT_ONLY",
+  "source_status_unchanged": "BUILDING",
+  "research_ready": false,
+  "unit_tests_passed": 12,
+  "all_java_tests_passed": 363,
+  "independent_jvm_byte_checks": 3,
+  "serialization": "snappy-micros-stable-footer-v1",
+  "runs": [
+    {
+      "code_sha256": "dbd002b7b7867534624f72b8d7e65d513cd7bcdbba8247eca124f9ae796d3e21",
+      "feature_content_sha256": "68b5b8b9565f9c20e6511bfdc0e157c70bf3eb3e1e011fbb3d3994259c8799cd",
+      "feature_id": "feature_26117400add4efaebdcaa71e5d5db52d32a9e9a261b9e50a0fa7ae2b1a00449b",
+      "input_count": 279,
+      "invalid_count": 0,
+      "java_version": "21.0.11",
+      "native_report_sha256": "9246338b3d754ff70835a5d092efe12fbb5ce479ebe197bdb6197579e56f6353",
+      "output_count": 279,
+      "parquet_readback_verified": true,
+      "parquet_sha256": "a79d64ae6eb120d8d67b23ac099dd103c298aa07cf750ba335750d9693ded04e",
+      "reason_counts": {},
+      "research_ready": false,
+      "scaling_config": {
+        "coordinate_tolerance_km": 1e-08,
+        "depth_scale_km": 30.0,
+        "feature_version": "relative-4d-v1",
+        "max_candidates_per_window": 10000,
+        "mode": "GLOBAL",
+        "scaling_config_version": "scaling-global-dev-v1",
+        "space_scale_km": 50.0,
+        "time_scale_hours": 720.0,
+        "time_tolerance_hours": 1e-12
+      },
+      "scaling_config_sha256": "a9ed36a77d2a235773fa22c4b65ac4bc6c6260f7070f03622bcec0c9d28d3e13",
+      "schema": [
+        {
+          "name": "schema_version",
+          "type": "string"
+        },
+        {
+          "name": "dataset_id",
+          "type": "string"
+        },
+        {
+          "name": "mainshock_event_id",
+          "type": "string"
+        },
+        {
+          "name": "candidate_event_id",
+          "type": "string"
+        },
+        {
+          "name": "candidate_time_utc",
+          "type": "timestamp"
+        },
+        {
+          "name": "candidate_latitude",
+          "type": "double"
+        },
+        {
+          "name": "candidate_longitude",
+          "type": "double"
+        },
+        {
+          "name": "candidate_depth_km",
+          "type": "double"
+        },
+        {
+          "name": "candidate_magnitude",
+          "type": "double"
+        },
+        {
+          "name": "mainshock_magnitude",
+          "type": "double"
+        },
+        {
+          "name": "relative_time_role",
+          "type": "string"
+        },
+        {
+          "name": "is_mainshock",
+          "type": "boolean"
+        },
+        {
+          "name": "dx_km",
+          "type": "double"
+        },
+        {
+          "name": "dy_km",
+          "type": "double"
+        },
+        {
+          "name": "dz_km",
+          "type": "double"
+        },
+        {
+          "name": "delta_time_hours",
+          "type": "double"
+        },
+        {
+          "name": "distance_3d_km",
+          "type": "double"
+        },
+        {
+          "name": "mc_value",
+          "type": "double"
+        },
+        {
+          "name": "window_model_version",
+          "type": "string"
+        },
+        {
+          "name": "created_at_utc",
+          "type": "timestamp"
+        },
+        {
+          "name": "x_scaled",
+          "type": "double"
+        },
+        {
+          "name": "y_scaled",
+          "type": "double"
+        },
+        {
+          "name": "z_scaled",
+          "type": "double"
+        },
+        {
+          "name": "time_scaled",
+          "type": "double"
+        },
+        {
+          "name": "space_scale_km",
+          "type": "double"
+        },
+        {
+          "name": "depth_scale_km",
+          "type": "double"
+        },
+        {
+          "name": "time_scale_hours",
+          "type": "double"
+        },
+        {
+          "name": "feature_version",
+          "type": "string"
+        },
+        {
+          "name": "scaling_config_version",
+          "type": "string"
+        }
+      ],
+      "source_dataset_id": "ds_98d4837dcb142bad1fb0ba2e77ad7524193056e57ca1b9a68269cc4b814022f5",
+      "source_status_unchanged": "BUILDING",
+      "spark_version": "3.5.9",
+      "status": "FEATURE_READY_LOCAL",
+      "vector_columns": [
+        "x_scaled",
+        "y_scaled",
+        "z_scaled",
+        "time_scaled"
+      ]
+    },
+    {
+      "code_sha256": "dbd002b7b7867534624f72b8d7e65d513cd7bcdbba8247eca124f9ae796d3e21",
+      "feature_content_sha256": "03c1e0f3b372426111b57b5978b48a26706f5c228a5988c5225d6fb4d7a49ea1",
+      "feature_id": "feature_fa7417099a7646e4c28e8bd9afa870a6825547b6fca1906c749f6dbae14f1d9e",
+      "input_count": 279,
+      "invalid_count": 0,
+      "java_version": "21.0.11",
+      "native_report_sha256": "9246338b3d754ff70835a5d092efe12fbb5ce479ebe197bdb6197579e56f6353",
+      "output_count": 279,
+      "parquet_readback_verified": true,
+      "parquet_sha256": "2f0ea779bb02dcdfe43432786dfacd1508af8d3a166dbc9bfa0f077d83e693b4",
+      "reason_counts": {},
+      "research_ready": false,
+      "scaling_config": {
+        "coordinate_tolerance_km": 1e-08,
+        "depth_scale_km": 30.0,
+        "feature_version": "relative-4d-v1",
+        "max_candidates_per_window": 10000,
+        "mode": "ADAPTIVE_WINDOW",
+        "scaling_config_version": "scaling-adaptive-dev-v1",
+        "space_scale_km": 50.0,
+        "time_scale_hours": 720.0,
+        "time_tolerance_hours": 1e-12
+      },
+      "scaling_config_sha256": "53088611d839380c5c9fa54d9b765857338bf82acc808a633700589eb2237054",
+      "schema": [
+        {
+          "name": "schema_version",
+          "type": "string"
+        },
+        {
+          "name": "dataset_id",
+          "type": "string"
+        },
+        {
+          "name": "mainshock_event_id",
+          "type": "string"
+        },
+        {
+          "name": "candidate_event_id",
+          "type": "string"
+        },
+        {
+          "name": "candidate_time_utc",
+          "type": "timestamp"
+        },
+        {
+          "name": "candidate_latitude",
+          "type": "double"
+        },
+        {
+          "name": "candidate_longitude",
+          "type": "double"
+        },
+        {
+          "name": "candidate_depth_km",
+          "type": "double"
+        },
+        {
+          "name": "candidate_magnitude",
+          "type": "double"
+        },
+        {
+          "name": "mainshock_magnitude",
+          "type": "double"
+        },
+        {
+          "name": "relative_time_role",
+          "type": "string"
+        },
+        {
+          "name": "is_mainshock",
+          "type": "boolean"
+        },
+        {
+          "name": "dx_km",
+          "type": "double"
+        },
+        {
+          "name": "dy_km",
+          "type": "double"
+        },
+        {
+          "name": "dz_km",
+          "type": "double"
+        },
+        {
+          "name": "delta_time_hours",
+          "type": "double"
+        },
+        {
+          "name": "distance_3d_km",
+          "type": "double"
+        },
+        {
+          "name": "mc_value",
+          "type": "double"
+        },
+        {
+          "name": "window_model_version",
+          "type": "string"
+        },
+        {
+          "name": "created_at_utc",
+          "type": "timestamp"
+        },
+        {
+          "name": "x_scaled",
+          "type": "double"
+        },
+        {
+          "name": "y_scaled",
+          "type": "double"
+        },
+        {
+          "name": "z_scaled",
+          "type": "double"
+        },
+        {
+          "name": "time_scaled",
+          "type": "double"
+        },
+        {
+          "name": "space_scale_km",
+          "type": "double"
+        },
+        {
+          "name": "depth_scale_km",
+          "type": "double"
+        },
+        {
+          "name": "time_scale_hours",
+          "type": "double"
+        },
+        {
+          "name": "feature_version",
+          "type": "string"
+        },
+        {
+          "name": "scaling_config_version",
+          "type": "string"
+        }
+      ],
+      "source_dataset_id": "ds_98d4837dcb142bad1fb0ba2e77ad7524193056e57ca1b9a68269cc4b814022f5",
+      "source_status_unchanged": "BUILDING",
+      "spark_version": "3.5.9",
+      "status": "FEATURE_READY_LOCAL",
+      "vector_columns": [
+        "x_scaled",
+        "y_scaled",
+        "z_scaled",
+        "time_scaled"
+      ]
+    }
+  ]
+}

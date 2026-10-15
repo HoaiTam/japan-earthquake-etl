@@ -1,0 +1,11 @@
+{
+  "feature_version": "relative-4d-v1",
+  "scaling_config_version": "scaling-adaptive-dev-v1",
+  "mode": "ADAPTIVE_WINDOW",
+  "space_scale_km": 50.0,
+  "depth_scale_km": 30.0,
+  "time_scale_hours": 720.0,
+  "max_candidates_per_window": 10000,
+  "coordinate_tolerance_km": 0.00000001,
+  "time_tolerance_hours": 0.000000000001
+}

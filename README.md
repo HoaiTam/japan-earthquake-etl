@@ -9,6 +9,11 @@ Iceberg `ml.*`. Static report là output Core; Power BI là phần Stretch tùy 
 Phạm vi, KPI và Definition of Done hiện hành nằm tại
 [baseline PLN-01](./docs/specs/MVP_SCOPE_KPI_AND_DOD.md).
 
+MLD-04/DAT-02 có [feature 4-D](./docs/specs/SPACETIME_FEATURES.md) và
+[pilot JMA kiểm tra trên Jupyter local](./docs/runbooks/DAT-02_JUPYTER_PILOT.md):
+279 candidate/2 mainshock trên nguồn pin, PARTIAL/development-only; không nâng
+official dataset lifecycle và chưa fit Window/DBSCAN/HDBSCAN (EXP-01/02).
+
 MinIO server và Client `mc` được build local từ source chính thức pin release/
 commit; `make docker-build` không còn pull client từ Quay. Init và smoke dùng
 cùng binary đã verify, giữ nguyên bucket/volume/credential. Xem

@@ -1,0 +1,10 @@
+{
+  "selection_version": "dat02-reproduction-two-windows-v1",
+  "native_report_sha256": "9246338b3d754ff70835a5d092efe12fbb5ce479ebe197bdb6197579e56f6353",
+  "source_dataset_id": "ds_98d4837dcb142bad1fb0ba2e77ad7524193056e57ca1b9a68269cc4b814022f5",
+  "mainshock_ids": [
+    "evt_d47fcaaf451cc2e5c3dcc8f016a999be",
+    "evt_f0300848e0b73b5ce9497a70a74a5905"
+  ],
+  "selection_reason": "Keep both REPRODUCTION mainshocks in the pinned 2000 JMA 14-day QA slice before any model fit, including the self-only window. Preserve every candidate; selection is not based on clustering output."
+}

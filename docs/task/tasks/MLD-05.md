@@ -1,6 +1,6 @@
 ---
 task_id: "MLD-05"
-status: "Backlog"
+status: "Ready"
 week: 5
 block: "G - ML Dataset"
 workstream: "Feature validation and export"
@@ -72,7 +72,7 @@ Task này vẫn sở hữu official VALIDATED → EXPORTED bundle/lifecycle. DAT
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
+- **Trạng thái:** Ready
 - **Assignee:** rosy179
 - **Reviewer:** Chưa ghi lại
 - **Evidence / PR:** Chưa có
@@ -86,6 +86,15 @@ Task này vẫn sở hữu official VALIDATED → EXPORTED bundle/lifecycle. DAT
 - [ ] Reviewer độc lập được khuyến nghị cho P0.
 
 ## Tài liệu liên quan
+
+### Handoff MLD-04/DAT-02 — 2026-10-15
+
+MLD-04 đã có `SpacetimeFeatureEngine`, typed global/adaptive config, gate
+invalid reason/count và Parquet readback. Xem [runbook feature](../../specs/SPACETIME_FEATURES.md).
+Task này sẵn sàng triển khai nhưng chưa Done: local feature snapshot và DAT-02
+development pilot không phải official VALIDATED/EXPORTED. Không lấy coverage
+PARTIAL của nguồn 14 ngày làm acceptance nghiên cứu; không sửa source BUILDING
+chỉ để mở official experiment. Assignee/reviewer giữ nguyên, chưa có approval.
 
 - [Roadmap HDBSCAN](../HDBSCAN_WORKSTREAM.md)
 - [MLD-04](./MLD-04.md)

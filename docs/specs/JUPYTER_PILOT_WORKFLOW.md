@@ -3,9 +3,11 @@
 ## 1. Quyết định và trạng thái
 
 Theo yêu cầu ngày 2026-10-14, phát triển **Jupyter local trước, Colab sau**.
-Tài liệu này là yêu cầu triển khai, chưa phải evidence đã có dataset/notebook.
-[DAT-02](../task/tasks/DAT-02.md) mới Backlog; các implementation MLD-04/05,
-EXP-01/02 vẫn chưa hoàn tất. Không có lệnh chạy mới để hướng dẫn ở mốc này.
+Cập nhật triển khai 2026-10-15: MLD-04 có shared Java/Spark feature engine,
+DAT-02 có exporter/loader/notebook inspection trên pilot JMA thật (279 rows,
+2 mainshock, PARTIAL). Xem [runbook](../runbooks/DAT-02_JUPYTER_PILOT.md) và
+evidence trong task. MLD-05 official export và EXP-01/02 harness/model/Colab
+vẫn là gate riêng, chưa được nghiệm thu từ inspection DAT-02.
 
 Mục đích pilot là kiểm tra hướng xử lý/feature/grain/thuật toán và portability,
 không chứng minh clustering tốt hoặc completeness toàn kỳ nghiên cứu.
@@ -40,7 +42,7 @@ Feature 4-D do Java/Spark MLD-04 tạo; notebook Python chỉ validate/load/fit/
 Grain/field semantics theo CON-03; không latitude/longitude degrees trực tiếp
 vào Euclidean model và không thêm magnitude vào vector.
 
-Proposed artifact layout (chưa phải file có sẵn):
+Artifact layout đã triển khai (bundle staging ngoài Git):
 
     ml-pilot/pilot_id=<pilot_id>/
       features-part-*.parquet

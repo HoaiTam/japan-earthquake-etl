@@ -20,6 +20,12 @@ make help
 
 ## Chuẩn bị và khởi động
 
+MLD-04/DAT-02 có runtime host riêng: `prepare-ml-local`, `stage-ml-windows`,
+`ml-features-local`, `ml-pilot-local`; notebook dùng `pilot-env`, `test-pilot`,
+`inspect-pilot`, `jupyter-pilot`, `pack-pilot`. Không target kiểm tra nào tự
+build/start Docker. Xem [runbook pilot](./runbooks/DAT-02_JUPYTER_PILOT.md)
+để chọn exact PILOT_BUNDLE, đọc count/checksum/coverage và gửi bundle cho team.
+
 Cần GNU Make, JDK 17 trở lên, Python 3, Git, `curl`/`wget`, `jq`, `rg`, `unzip`
 và `shasum`/`sha256sum`. Static platform checks cần Docker CLI/Compose plugin;
 khởi động, smoke và readback cần thêm Docker daemon đang chạy. Maven/Docker có

@@ -85,7 +85,7 @@ fixture/inventory; assignee `HoaiTam`, reviewer `unassigned`. Xem
 | [CON-04](./CON-04.md) - Chuẩn bị fixture và ma trận test dùng chung | 2 | Fixtures | Core | P1 | 3h | Done |
 | [CON-03](./CON-03.md) - Thiết kế mô hình dữ liệu Silver, Gold và ML | 2 | Data model contract | Core | P0 | 6h | Done |
 | [DAT-01](./DAT-01.md) - Chuẩn bị bộ dữ liệu mẫu thật từ USGS và JMA | 3 | Shared real samples | Core | P0 | 3h | Done |
-| [DAT-02](./DAT-02.md) - Tạo dataset pilot nhỏ để test trên Jupyter | 5 | Jupyter development pilot | Core | P0 | 6h | Backlog |
+| [DAT-02](./DAT-02.md) - Tạo dataset pilot nhỏ để test trên Jupyter | 5 | Jupyter development pilot | Core | P0 | 6h | Done |
 
 ## B - USGS Bronze
 
@@ -150,14 +150,14 @@ fixture/inventory; assignee `HoaiTam`, reviewer `unassigned`. Xem
 | [MLD-01](./MLD-01.md) - Pin Gold snapshot và tạo dataset manifest | 4 | Dataset identity | Core | P0 | 5h | Done |
 | [MLD-02](./MLD-02.md) - Audit Gold và xác định magnitude of completeness | 4 | Input audit and completeness | Core | P0 | 7h | Done |
 | [MLD-03](./MLD-03.md) - Chọn mainshock và tạo candidate windows | 4 | Mainshock and candidate windows | Core | P0 | 7h | Done |
-| [MLD-04](./MLD-04.md) - Tạo và scale feature không-thời gian 4-D | 5 | Spacetime features | Core | P0 | 6h | Ready |
-| [MLD-05](./MLD-05.md) - Validate feature snapshot và export Parquet bundle | 5 | Feature validation and export | Core | P0 | 5h | Backlog |
+| [MLD-04](./MLD-04.md) - Tạo và scale feature không-thời gian 4-D | 5 | Spacetime features | Core | P0 | 6h | Done |
+| [MLD-05](./MLD-05.md) - Validate feature snapshot và export Parquet bundle | 5 | Feature validation and export | Core | P0 | 5h | Ready |
 
 ## H - Experiment
 
 | Task | Tuần | Workstream | Scope | Priority | Effort | Trạng thái |
 |---|---:|---|---|---|---:|---|
-| [EXP-01](./EXP-01.md) - Tạo Jupyter harness và chuẩn bị chuyển sang Colab | 5 | Jupyter-first harness | Core | P0 | 5h | Backlog |
+| [EXP-01](./EXP-01.md) - Tạo Jupyter harness và chuẩn bị chuyển sang Colab | 5 | Jupyter-first harness | Core | P0 | 5h | Ready |
 | [EXP-02](./EXP-02.md) - Chạy Window, DBSCAN và HDBSCAN global | 5 | Baseline algorithms | Core | P0 | 7h | Backlog |
 | [EXP-03](./EXP-03.md) - Xây HDBSCAN adaptive và giải quyết multi-sequence | 7 | Adaptive HDBSCAN | Core | P0 | 6h | Backlog |
 | [EXP-04](./EXP-04.md) - Đánh giá quality, physical consistency và stability | 7 | Scientific evaluation | Core | P0 | 7h | Backlog |

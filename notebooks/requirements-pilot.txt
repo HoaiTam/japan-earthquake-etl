@@ -1,0 +1,6 @@
+# DAT-02 inspection runtime only; EXP-01/02 own model dependencies and Colab gate.
+pyarrow==21.0.0
+nbformat==5.10.4
+nbclient==0.10.2
+ipykernel==6.30.1
+jupyterlab==4.4.7

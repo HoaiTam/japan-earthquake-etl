@@ -48,6 +48,50 @@ COMPONENT_SMOKES := smoke-minio smoke-airflow smoke-spark smoke-query smoke-usgs
 .PHONY: test-silver-integration smoke-silver-integration
 .PHONY: test-ml-audit smoke-ml-audit
 .PHONY: test-ml-window smoke-ml-window resume-ml-window
+.PHONY: prepare-ml-local stage-ml-windows test-ml-feature ml-features-local ml-pilot-local pilot-env test-pilot inspect-pilot jupyter-pilot
+.PHONY: pack-pilot
+ML_WINDOW_INPUT ?= staging/ml-window-inputs/reproduction-v1
+ML_TRINO_URL ?= http://127.0.0.1:8081
+ML_SCALING ?= config/ml/feature_scaling_global_dev_v1.json
+PILOT_SELECTION ?= config/ml/dat02_reproduction_v1.json
+PILOT_OUTPUT ?= staging/ml-pilot
+PILOT_PYTHON ?= staging/venvs/dat02/bin/python
+PILOT_BUNDLE ?=
+PILOT_ZIP ?= staging/dat02-pilot-handoff.zip
+
+prepare-ml-local: ## Chuẩn bị JAR/classpath Spark local một lần; cần JAVA_HOME=JDK17/21, không Docker
+	@python3 scripts/local-ml.py prepare
+
+stage-ml-windows: ## Copy/read/hash đúng MLD-03 receipt/parts đã có; không ingest/start/build
+	@python3 scripts/stage-ml-windows.py --output "$(ML_WINDOW_INPUT)"
+
+test-ml-feature: ## Offline Spark tests feature/scaling/Parquet; không Docker hoặc API
+	@SPARK_LOCAL_IP=127.0.0.1 SPARK_LOCAL_HOSTNAME=localhost ./mvnw --batch-mode --no-transfer-progress -pl spark -am -Dtest=FeatureScalingConfigTest,SpacetimeFeatureEngineTest,FeatureParquetCrossProcessTest -Dsurefire.failIfNoSpecifiedTests=false test
+
+ml-features-local: ## Read-only Trino pinned Gold + shared MLD-04 features; không tự prepare
+	@python3 scripts/local-ml.py features --input "$(ML_WINDOW_INPUT)" --scaling "$(ML_SCALING)" --trino "$(ML_TRINO_URL)"
+
+ml-pilot-local: ## DAT-02 export fixed selection development-only; không build/start hoặc EXPORTED
+	@python3 scripts/local-ml.py pilot --input "$(ML_WINDOW_INPUT)" --scaling "$(ML_SCALING)" --selection "$(PILOT_SELECTION)" --output "$(PILOT_OUTPUT)" --trino "$(ML_TRINO_URL)"
+
+pilot-env: ## Chuẩn bị venv notebook riêng một lần; cần Internet, không cài global
+	@python3 -m venv staging/venvs/dat02
+	@staging/venvs/dat02/bin/python -m pip install -r notebooks/requirements-pilot.txt
+
+test-pilot: ## Synthetic loader/staging regression; cần pyarrow, không Docker/network/notebook kernel
+	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_pilot_*.py'
+
+inspect-pilot: ## Fresh Jupyter kernel Run All; PILOT_BUNDLE=exact local directory, không Docker/API
+	@test -n "$(PILOT_BUNDLE)" || { echo 'Set PILOT_BUNDLE=staging/ml-pilot/pilot_id=<exact-id>'; exit 2; }
+	@$(PILOT_PYTHON) scripts/inspect-pilot-notebook.py "$(PILOT_BUNDLE)"
+
+pack-pilot: ## Đóng đúng 5 file pilot đã verify để gửi team; PILOT_BUNDLE và PILOT_ZIP, không overwrite khác bytes
+	@test -n "$(PILOT_BUNDLE)" || { echo 'Set PILOT_BUNDLE=staging/ml-pilot/pilot_id=<exact-id>'; exit 2; }
+	@$(PILOT_PYTHON) scripts/pack-pilot.py "$(PILOT_BUNDLE)" "$(PILOT_ZIP)"
+
+jupyter-pilot: ## Mở Jupyter loopback với bundle local đã chọn; Ctrl+C để dừng, không tự export
+	@test -n "$(PILOT_BUNDLE)" || { echo 'Set PILOT_BUNDLE=staging/ml-pilot/pilot_id=<exact-id>'; exit 2; }
+	@PILOT_BUNDLE="$(abspath $(PILOT_BUNDLE))" $(PILOT_PYTHON) -m jupyterlab --ip=127.0.0.1 --no-browser notebooks/dat_02_inspection.ipynb
 export QA_RUN_ID
 
 test-ml-window: ## MLD-03 bucket physical plan, distributed invariants, microseconds và fail-fast Parquet tests
@@ -109,6 +153,7 @@ ci: ci-docs ci-java ci-airflow ## Cùng ba nhóm check CI; cần PyYAML, JDK17, 
 
 ci-docs: ## Docs/contracts/secret hygiene/Compose tĩnh; không đọc .env riêng hoặc gọi nguồn thật
 	@$(MAKE) test-contracts
+	@$(MAKE) test-pilot PILOT_PYTHON=python3
 	@$(MAKE) test-security-audit
 	@$(MAKE) test-docker-runtime
 	@$(MAKE) check-config ENV_FILE=/dev/null

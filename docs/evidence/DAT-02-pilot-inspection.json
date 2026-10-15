@@ -1,0 +1,246 @@
+{
+  "task": "DAT-02",
+  "checked_on": "2026-10-15",
+  "branch": "feat/dat-02-jupyter-pilot-dataset",
+  "base_main": "884c422",
+  "pilot_id": "pilot_196b6d4081d347e1c289e331022658fbbe572dd33181ad987900895c1f1b189c",
+  "bundle_relative_path": "staging/ml-pilot/pilot_id=pilot_196b6d4081d347e1c289e331022658fbbe572dd33181ad987900895c1f1b189c",
+  "artifact_kind": "DEVELOPMENT_PILOT",
+  "allowed_usage": "DEVELOPMENT_ONLY",
+  "research_ready": false,
+  "source_dataset_id": "ds_98d4837dcb142bad1fb0ba2e77ad7524193056e57ca1b9a68269cc4b814022f5",
+  "source_status_unchanged": "BUILDING",
+  "native_report_sha256": "9246338b3d754ff70835a5d092efe12fbb5ce479ebe197bdb6197579e56f6353",
+  "gold_publication_id": "pub_3152a763d0730ea83ac61ba8b4128dc138659b79060b174bb00345a9a636b552",
+  "gold_snapshot_bundle": {
+    "dim_date": {
+      "committed_at_utc": "2026-10-12T06:29:06.515Z",
+      "count": 33,
+      "schema_json": "{\"type\":\"struct\",\"fields\":[{\"name\":\"date_key\",\"type\":\"integer\",\"nullable\":true,\"metadata\":{}},{\"name\":\"calendar_date\",\"type\":\"date\",\"nullable\":true,\"metadata\":{}},{\"name\":\"year\",\"type\":\"integer\",\"nullable\":true,\"metadata\":{}},{\"name\":\"quarter\",\"type\":\"integer\",\"nullable\":true,\"metadata\":{}},{\"name\":\"month\",\"type\":\"integer\",\"nullable\":true,\"metadata\":{}},{\"name\":\"month_name\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"day_of_month\",\"type\":\"integer\",\"nullable\":true,\"metadata\":{}},{\"name\":\"day_of_week\",\"type\":\"integer\",\"nullable\":true,\"metadata\":{}},{\"name\":\"is_weekend\",\"type\":\"boolean\",\"nullable\":true,\"metadata\":{}}]}",
+      "snapshot_id": 3956947971192701564,
+      "table": "iceberg.gold_qa_3786f56677984ae7a5430efd32f5de77.dim_date"
+    },
+    "dim_depth_band": {
+      "committed_at_utc": "2026-10-12T06:29:22.257Z",
+      "count": 5,
+      "schema_json": "{\"type\":\"struct\",\"fields\":[{\"name\":\"band_code\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}},{\"name\":\"band_label\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}},{\"name\":\"sort_order\",\"type\":\"integer\",\"nullable\":false,\"metadata\":{}}]}",
+      "snapshot_id": 1442824399185227968,
+      "table": "iceberg.gold_qa_3786f56677984ae7a5430efd32f5de77.dim_depth_band"
+    },
+    "dim_magnitude_band": {
+      "committed_at_utc": "2026-10-12T06:29:15.979Z",
+      "count": 7,
+      "schema_json": "{\"type\":\"struct\",\"fields\":[{\"name\":\"band_code\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}},{\"name\":\"band_label\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}},{\"name\":\"sort_order\",\"type\":\"integer\",\"nullable\":false,\"metadata\":{}}]}",
+      "snapshot_id": 2775547053902923810,
+      "table": "iceberg.gold_qa_3786f56677984ae7a5430efd32f5de77.dim_magnitude_band"
+    },
+    "dim_region": {
+      "committed_at_utc": "2026-10-12T06:29:12.691Z",
+      "count": 1,
+      "schema_json": "{\"type\":\"struct\",\"fields\":[{\"name\":\"region_key\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}},{\"name\":\"region_name\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}},{\"name\":\"region_category\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}}]}",
+      "snapshot_id": 2298652873660581474,
+      "table": "iceberg.gold_qa_3786f56677984ae7a5430efd32f5de77.dim_region"
+    },
+    "event_current": {
+      "committed_at_utc": "2026-10-12T06:28:08.179Z",
+      "count": 11034,
+      "schema_json": "{\"type\":\"struct\",\"fields\":[{\"name\":\"schema_version\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}},{\"name\":\"canonical_event_id\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"primary_observation_id\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"canonical_source_system\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"event_time_utc\",\"type\":\"timestamp\",\"nullable\":true,\"metadata\":{}},{\"name\":\"event_time_jst\",\"type\":\"timestamp_ntz\",\"nullable\":true,\"metadata\":{}},{\"name\":\"event_date_utc\",\"type\":\"date\",\"nullable\":true,\"metadata\":{}},{\"name\":\"event_date_jst\",\"type\":\"date\",\"nullable\":true,\"metadata\":{}},{\"name\":\"event_date_key_utc\",\"type\":\"integer\",\"nullable\":true,\"metadata\":{}},{\"name\":\"event_date_key_jst\",\"type\":\"integer\",\"nullable\":true,\"metadata\":{}},{\"name\":\"latitude\",\"type\":\"double\",\"nullable\":true,\"metadata\":{}},{\"name\":\"longitude\",\"type\":\"double\",\"nullable\":true,\"metadata\":{}},{\"name\":\"depth_km\",\"type\":\"double\",\"nullable\":true,\"metadata\":{}},{\"name\":\"magnitude\",\"type\":\"double\",\"nullable\":true,\"metadata\":{}},{\"name\":\"magnitude_type\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"event_type_code\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"is_natural_earthquake\",\"type\":\"boolean\",\"nullable\":true,\"metadata\":{}},{\"name\":\"place_name\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"is_in_study_area\",\"type\":\"boolean\",\"nullable\":true,\"metadata\":{}},{\"name\":\"region_key\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}},{\"name\":\"region_name\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}},{\"name\":\"region_category\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}},{\"name\":\"magnitude_band_code\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}},{\"name\":\"depth_band_code\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}},{\"name\":\"tsunami_flag\",\"type\":\"boolean\",\"nullable\":true,\"metadata\":{}},{\"name\":\"alert_level\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"significance\",\"type\":\"integer\",\"nullable\":true,\"metadata\":{}},{\"name\":\"max_intensity_code\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"determining_agency_code\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"catalog_era\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"source_count\",\"type\":\"integer\",\"nullable\":false,\"metadata\":{}},{\"name\":\"has_usgs\",\"type\":\"boolean\",\"nullable\":true,\"metadata\":{}},{\"name\":\"has_jma\",\"type\":\"boolean\",\"nullable\":true,\"metadata\":{}},{\"name\":\"source_coverage_code\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}},{\"name\":\"link_status\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}},{\"name\":\"quality_status\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}},{\"name\":\"canonical_model_version\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"gold_run_id\",\"type\":\"string\",\"nullable\":false,\"metadata\":{}},{\"name\":\"record_updated_at_utc\",\"type\":\"timestamp\",\"nullable\":false,\"metadata\":{}}]}",
+      "snapshot_id": 1323730420318869265,
+      "table": "iceberg.gold_qa_3786f56677984ae7a5430efd32f5de77.event_current"
+    },
+    "event_source_bridge": {
+      "committed_at_utc": "2026-10-12T06:28:45.690Z",
+      "count": 11034,
+      "schema_json": "{\"type\":\"struct\",\"fields\":[{\"name\":\"canonical_event_id\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"source_observation_id\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"source_system\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"source_record_key\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"is_primary\",\"type\":\"boolean\",\"nullable\":true,\"metadata\":{}},{\"name\":\"source_link_id\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"raw_object_uri\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"bronze_manifest_id\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"catalog_release\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}},{\"name\":\"source_updated_at_utc\",\"type\":\"timestamp\",\"nullable\":true,\"metadata\":{}},{\"name\":\"event_month_utc\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}}]}",
+      "snapshot_id": 1934246758577262087,
+      "table": "iceberg.gold_qa_3786f56677984ae7a5430efd32f5de77.event_source_bridge"
+    }
+  },
+  "identity_payload": {
+    "audit_sha256": "692a0c2c9f6297de18323ab51c3fd677511c233f2bca6c602a255fe7bf2a313f",
+    "candidate_input_sha256": "883e5f8dffa7b3af88bf1312d4865bec16a87ab8c1f908d5dd1bd1199763de6e",
+    "code_sha256": "dbd002b7b7867534624f72b8d7e65d513cd7bcdbba8247eca124f9ae796d3e21",
+    "identity_version": "dat02-identity-v1",
+    "java_version": "21.0.11",
+    "mainshock_input_sha256": "0fa3254972441978d6e050fa8d2a7fbf78dfcce538226eff8d818f8751faf1d8",
+    "native_report_sha256": "9246338b3d754ff70835a5d092efe12fbb5ce479ebe197bdb6197579e56f6353",
+    "scaling_config_sha256": "a9ed36a77d2a235773fa22c4b65ac4bc6c6260f7070f03622bcec0c9d28d3e13",
+    "selection_config_sha256": "d157c8d4504d6a66c973d11571b2be4b330a3fcde509b5d23f6959fe407bac93",
+    "serialization_version": "dat02-parquet-snappy-micros-stable-footer-v1",
+    "source_dataset_id": "ds_98d4837dcb142bad1fb0ba2e77ad7524193056e57ca1b9a68269cc4b814022f5",
+    "spark_version": "3.5.9"
+  },
+  "mainshock_ids": [
+    "evt_d47fcaaf451cc2e5c3dcc8f016a999be",
+    "evt_f0300848e0b73b5ce9497a70a74a5905"
+  ],
+  "feature_count": 279,
+  "mainshock_count": 2,
+  "invalid_count": 0,
+  "coverage": {
+    "coverage_version": "dat02-temporal-scope-v1",
+    "meaning": "Temporal input-scope coverage only; not catalog completeness or research approval",
+    "research_ready": false,
+    "status": "PARTIAL",
+    "windows": [
+      {
+        "available_ranges": [
+          {
+            "end_utc_exclusive": "2000-02-04T14:21:08.760Z",
+            "start_utc": "2000-01-21T14:21:08.760Z"
+          }
+        ],
+        "candidate_count": 1,
+        "mainshock_event_id": "evt_d47fcaaf451cc2e5c3dcc8f016a999be",
+        "missing_ranges": [
+          {
+            "end_utc_exclusive": "2000-01-21T14:21:08.760Z",
+            "start_utc": "2000-01-16T06:32:59.043676Z"
+          },
+          {
+            "end_utc_exclusive": "2000-04-20T12:02:14.668827Z",
+            "start_utc": "2000-02-04T14:21:08.760Z"
+          }
+        ],
+        "required_end_utc_exclusive": "2000-04-20T12:02:14.668827Z",
+        "required_start_utc": "2000-01-16T06:32:59.043676Z",
+        "status": "PARTIAL"
+      },
+      {
+        "available_ranges": [
+          {
+            "end_utc_exclusive": "2000-02-04T14:21:08.760Z",
+            "start_utc": "2000-01-21T14:21:08.760Z"
+          }
+        ],
+        "candidate_count": 278,
+        "mainshock_event_id": "evt_f0300848e0b73b5ce9497a70a74a5905",
+        "missing_ranges": [
+          {
+            "end_utc_exclusive": "2000-01-21T14:21:08.760Z",
+            "start_utc": "1999-12-29T14:21:08.760Z"
+          },
+          {
+            "end_utc_exclusive": "2000-12-15T17:57:54.857392Z",
+            "start_utc": "2000-02-04T14:21:08.760Z"
+          }
+        ],
+        "required_end_utc_exclusive": "2000-12-15T17:57:54.857392Z",
+        "required_start_utc": "1999-12-29T14:21:08.760Z",
+        "status": "PARTIAL"
+      }
+    ]
+  },
+  "files": [
+    {
+      "path": "checksums.sha256",
+      "bytes": 352,
+      "sha256": "310b5f232ae34ca4f0a197b0181bff81efe6bee38897b6e151e9b58e8d5a6502"
+    },
+    {
+      "path": "coverage_report.json",
+      "bytes": 1233,
+      "sha256": "5bf4f428e4d8e7435a577470c67e9895f26536c3c435d2d67c1da415c8cabce6"
+    },
+    {
+      "path": "features-part-00000.parquet",
+      "bytes": 46660,
+      "sha256": "3baddf613f237d2117248ad9095230ec17e428ea47f73d499623035d3097d2e6"
+    },
+    {
+      "path": "mainshocks.parquet",
+      "bytes": 7097,
+      "sha256": "97e6bd85dd826a8dca22864002db485706e788c98f8cede2d86d1b77e84fb7a7"
+    },
+    {
+      "path": "pilot_manifest.json",
+      "bytes": 42558,
+      "sha256": "b837c3b61427dcf61e9bdb3a9a739e0949d82232898c3636841fcf8776c903ab"
+    }
+  ],
+  "rerun_reused": true,
+  "independent_root_bytes_identical": true,
+  "notebook": {
+    "allowed_usage": "DEVELOPMENT_ONLY",
+    "bundle_checksums_sha256": "310b5f232ae34ca4f0a197b0181bff81efe6bee38897b6e151e9b58e8d5a6502",
+    "coverage_status": "PARTIAL",
+    "dependencies": {
+      "ipykernel": "6.30.1",
+      "jupyterlab": "4.4.7",
+      "nbclient": "0.10.2",
+      "nbformat": "5.10.4",
+      "pyarrow": "21.0.0"
+    },
+    "executed_code_cells": 3,
+    "features": 279,
+    "mainshocks": 2,
+    "network_access_required": false,
+    "notebook_sha256": "72a7aef423f0b4b37c0b62075fb55c7b76d97817d6f036a265baf4d4dfc0293c",
+    "notebook_status": "RESTART_RUN_ALL_PASSED",
+    "pilot_id": "pilot_196b6d4081d347e1c289e331022658fbbe572dd33181ad987900895c1f1b189c",
+    "python": "3.13.3",
+    "research_ready": false,
+    "self_vectors": {
+      "evt_d47fcaaf451cc2e5c3dcc8f016a999be": 1,
+      "evt_f0300848e0b73b5ce9497a70a74a5905": 1
+    },
+    "source_notebook_outputs_cleared": true,
+    "status": "PILOT_INSPECTION_PASSED"
+  },
+  "archive_readback_notebook": {
+    "allowed_usage": "DEVELOPMENT_ONLY",
+    "bundle_checksums_sha256": "310b5f232ae34ca4f0a197b0181bff81efe6bee38897b6e151e9b58e8d5a6502",
+    "coverage_status": "PARTIAL",
+    "dependencies": {
+      "ipykernel": "6.30.1",
+      "jupyterlab": "4.4.7",
+      "nbclient": "0.10.2",
+      "nbformat": "5.10.4",
+      "pyarrow": "21.0.0"
+    },
+    "executed_code_cells": 3,
+    "features": 279,
+    "mainshocks": 2,
+    "network_access_required": false,
+    "notebook_sha256": "72a7aef423f0b4b37c0b62075fb55c7b76d97817d6f036a265baf4d4dfc0293c",
+    "notebook_status": "RESTART_RUN_ALL_PASSED",
+    "pilot_id": "pilot_196b6d4081d347e1c289e331022658fbbe572dd33181ad987900895c1f1b189c",
+    "python": "3.13.3",
+    "research_ready": false,
+    "self_vectors": {
+      "evt_d47fcaaf451cc2e5c3dcc8f016a999be": 1,
+      "evt_f0300848e0b73b5ce9497a70a74a5905": 1
+    },
+    "source_notebook_outputs_cleared": true,
+    "status": "PILOT_INSPECTION_PASSED"
+  },
+  "archive": {
+    "path": "staging/dat02-verified-pilot-handoff.zip",
+    "bytes": 45907,
+    "sha256": "b53cd7bfdc3768c3fd0ee0bcc5e037ef1c9c9b007d0df900ec223c8dc139bc3e"
+  },
+  "tests": {
+    "ci_docs": "PASS",
+    "ci_java": {
+      "passed": 363,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "ci_airflow": {
+      "passed": 216
+    },
+    "synthetic_pilot_python": {
+      "passed": 16
+    },
+    "secret_pattern_findings": 0
+  },
+  "reviewer": "unassigned",
+  "github_checks": "Not run; changes are local and uncommitted",
+  "limitations": [
+    "PARTIAL bounded QA input; not research dataset or ground truth",
+    "EXP-01 shared harness/full dependency lock/official loader and EXP-02 algorithms/Colab not completed",
+    "MLD-05 official VALIDATED/EXPORTED and MLI-03 official import remain separate gates",
+    "No Docker start/build/restart, source download or lake mutation"
+  ]
+}

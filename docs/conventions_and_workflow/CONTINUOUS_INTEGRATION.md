@@ -108,7 +108,10 @@ make ci-airflow
 make ci
 ```
 
-PyYAML chỉ phục vụ test cấu hình CI, không thêm dependency cho pipeline/Airflow.
+PyYAML phục vụ test cấu hình CI; pyarrow 21.0.0 phục vụ synthetic DAT-02
+checksum/schema/grain/coverage/pack tests trong `ci-docs`. Không cài Jupyter
+server hoặc chạy kernel thật trong CI; notebook real acceptance ở evidence DAT-02.
+Hai package này không thêm dependency cho pipeline/Airflow.
 `make test` hiện có vẫn dùng được, không yêu cầu PyYAML.
 Nếu đã cài actionlint 1.7.12, có thể lint giống workflow:
 
