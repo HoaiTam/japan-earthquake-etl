@@ -35,7 +35,9 @@ Phân công hiện tại: [Kế hoạch tuần 5](../WEEK_5_PARALLEL_PLAN.md),
 19–25/10/2026: HoaiTam 24h, ThanhTris 25h, rosy179 23h — **12 task Core/72h**,
 4h budget nghiệm thu tồn + 20h review/tích hợp/dự phòng; khoảng 32h/người.
 ORC-06/07 bổ sung implementation full-month state/real adapters, không dồn vào
-QA-01 5h. FND-01/ORC-02 giữ Review, SEC-01 giữ In Progress tới khi có evidence.
+QA-01 5h. FND-01/ORC-02 giữ Review. SEC-01 hiện Review, owner HoaiTam:
+permission runtime đã đạt nhưng còn Trino retained-log finding/deploy và actual ML handoff gate;
+xem [evidence SEC-01](../../evidence/SEC-01_RUNTIME.md), không coi merge PR cũ là Done.
 MLD-02/03 giữ assignee rosy179, reviewer HoaiTam; task mới reviewer unassigned.
 [Kế hoạch tuần 4](../WEEK_4_PARALLEL_PLAN.md) và [nhóm mở đường tuần 4](../WEEK_4_PREP_GROUP.md)
 là mốc lịch sử 89h Core, không cộng lại effort đã làm. BI-02 dời tuần 8.
@@ -188,4 +190,4 @@ fixture/inventory; assignee `HoaiTam`, reviewer `unassigned`. Xem
 | [QA-03](./QA-03.md) - Kiểm thử JMA historical backfill | 5 | Historical backfill | Core | P0 | 5h | Backlog |
 | [QA-04](./QA-04.md) - Test failure và recovery theo tầng | 6 | Failure recovery | Core | P0 | 4h | Backlog |
 | [QA-05](./QA-05.md) - Profile dữ liệu lịch sử và tài nguyên local | 8 | Performance | Stretch | P2 | 4h | Backlog |
-| [SEC-01](./SEC-01.md) - Review secret và bề mặt truy cập | 4 | Security | Core | P1 | 4h | In Progress |
+| [SEC-01](./SEC-01.md) - Review secret và bề mặt truy cập | 4 | Security | Core | P1 | 4h | Review |

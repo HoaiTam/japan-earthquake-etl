@@ -1,0 +1,252 @@
+{
+  "recorded_at_utc": "2026-10-14T17:30:57.792124+00:00",
+  "branch": "fix/sec-01-complete-security-audit",
+  "report": {
+    "schema_version": "1.1",
+    "started_at_utc": "2026-10-14T17:30:37.225480+00:00",
+    "completed_at_utc": "2026-10-14T17:30:57.792124+00:00",
+    "coverage": {
+      "worktree_files": 564,
+      "reachable_git_blobs": 1502,
+      "git_head": "7c2b8e8826ef13f4e88d61fc9b59bbc98443c816",
+      "local_log_files": 0,
+      "declared_ports": [
+        {
+          "service": "airflow-api-server",
+          "target": 8080,
+          "host_ip": "127.0.0.1"
+        },
+        {
+          "service": "minio",
+          "target": 9001,
+          "host_ip": "127.0.0.1"
+        },
+        {
+          "service": "spark-master",
+          "target": 8080,
+          "host_ip": "127.0.0.1"
+        },
+        {
+          "service": "trino",
+          "target": 8080,
+          "host_ip": "127.0.0.1"
+        }
+      ],
+      "local_config_strength_and_roles": true,
+      "runtime": {
+        "services": [
+          "airflow-api-server",
+          "airflow-dag-processor",
+          "airflow-init",
+          "airflow-postgres",
+          "airflow-scheduler",
+          "iceberg-rest",
+          "minio",
+          "minio-init",
+          "spark-master",
+          "spark-worker",
+          "trino"
+        ],
+        "deployed_ports": [
+          {
+            "service": "airflow-api-server",
+            "target": 8080,
+            "host_ip": "127.0.0.1",
+            "published": "8080"
+          },
+          {
+            "service": "minio",
+            "target": 9001,
+            "host_ip": "127.0.0.1",
+            "published": "9001"
+          },
+          {
+            "service": "spark-master",
+            "target": 8080,
+            "host_ip": "127.0.0.1",
+            "published": "8082"
+          },
+          {
+            "service": "trino",
+            "target": 8080,
+            "host_ip": "127.0.0.1",
+            "published": "8081"
+          }
+        ],
+        "container_logs": [
+          {
+            "service": "airflow-api-server",
+            "bytes": 52438
+          },
+          {
+            "service": "airflow-dag-processor",
+            "bytes": 6834349
+          },
+          {
+            "service": "airflow-init",
+            "bytes": 2981
+          },
+          {
+            "service": "airflow-postgres",
+            "bytes": 57967
+          },
+          {
+            "service": "airflow-scheduler",
+            "bytes": 31776
+          },
+          {
+            "service": "iceberg-rest",
+            "bytes": 1573106
+          },
+          {
+            "service": "minio",
+            "bytes": 321
+          },
+          {
+            "service": "minio-init",
+            "bytes": 83
+          },
+          {
+            "service": "spark-master",
+            "bytes": 2279
+          },
+          {
+            "service": "spark-worker",
+            "bytes": 2560
+          },
+          {
+            "service": "trino",
+            "bytes": 772130
+          }
+        ],
+        "log_scope": "all_retained_container_logs_64MiB_per_container_guard"
+      },
+      "current_baseline_passed": false,
+      "pattern_policy": "high_confidence_tokens_keys_and_credential_URIs_not_complete_secret_detection"
+    },
+    "findings": [
+      {
+        "scope": "runtime",
+        "location": "trino",
+        "category": "trino_logging_config_not_deployed"
+      },
+      {
+        "scope": "container_logs",
+        "location": "trino",
+        "category": "configured_secret_in_log"
+      }
+    ],
+    "pending": [
+      {
+        "scope": "runtime",
+        "reason": "permission_probe_not_run"
+      },
+      {
+        "scope": "ml_handoff",
+        "reason": "actual_notebook_export_import_acceptance_not_verified",
+        "task_ids": [
+          "DAT-02",
+          "EXP-01",
+          "MLD-05",
+          "MLI-03"
+        ]
+      }
+    ],
+    "deferred": [
+      {
+        "task_id": "DAT-02",
+        "reason": "re_audit_new_artifacts_when_implemented"
+      },
+      {
+        "task_id": "EXP-01",
+        "reason": "re_audit_new_artifacts_when_implemented"
+      },
+      {
+        "task_id": "MLD-05",
+        "reason": "re_audit_new_artifacts_when_implemented"
+      },
+      {
+        "task_id": "MLI-03",
+        "reason": "re_audit_new_artifacts_when_implemented"
+      }
+    ],
+    "can_mark_done": false
+  },
+  "permission_evidence_separate_run": {
+    "checks": [
+      {
+        "check": "pipeline_read_bronze",
+        "passed": true
+      },
+      {
+        "check": "pipeline_list_bronze",
+        "passed": true
+      },
+      {
+        "check": "pipeline_read_silver",
+        "passed": true
+      },
+      {
+        "check": "pipeline_list_silver",
+        "passed": true
+      },
+      {
+        "check": "pipeline_read_warehouse",
+        "passed": true
+      },
+      {
+        "check": "pipeline_list_warehouse",
+        "passed": true
+      },
+      {
+        "check": "bronze_delete_denied",
+        "passed": true
+      },
+      {
+        "check": "bronze_still_readable",
+        "passed": true
+      },
+      {
+        "check": "anonymous_read_denied",
+        "passed": true
+      },
+      {
+        "check": "anonymous_list_denied",
+        "passed": true
+      },
+      {
+        "check": "outside_prefix_read_denied",
+        "passed": true
+      },
+      {
+        "check": "outside_prefix_list_denied",
+        "passed": true
+      },
+      {
+        "check": "outside_prefix_write_denied",
+        "passed": true
+      },
+      {
+        "check": "mutable_probe_cleanup",
+        "passed": true
+      },
+      {
+        "check": "mutable_probe_cleanup",
+        "passed": true
+      }
+    ],
+    "created_keys": [
+      "bronze/_security/sec-01-dddb426257854d21b37a5737c6dffb00/probe.txt",
+      "silver/_security/sec-01-dddb426257854d21b37a5737c6dffb00/probe.txt",
+      "warehouse/_security/sec-01-dddb426257854d21b37a5737c6dffb00/probe.txt"
+    ],
+    "passed": true,
+    "payload_sha256": "9b7d28093029a73cb6c21fcadd84a9df3b9ca30e3ab77c23823a07c4ce6100ca",
+    "retained_keys": [
+      "bronze/_security/sec-01-dddb426257854d21b37a5737c6dffb00/probe.txt"
+    ]
+  },
+  "permission_run_note": "Measured before deployment-mount inspection was added; same running stack, no restart or IAM/config change; not a clean combined audit.",
+  "synthetic_triage_matches": 20,
+  "payload_bytes": 40
+}

@@ -1,13 +1,13 @@
 ---
 task_id: "SEC-01"
-status: "In Progress"
+status: "Review"
 week: 4
 block: "K - QA & Release"
 workstream: "Security"
 scope: "Core"
 priority: "P1"
 effort_hours: 4
-assignee: "Trang"
+assignee: "HoaiTam"
 reviewer: "unassigned"
 dependencies: ["ORC-05"]
 ---
@@ -36,8 +36,8 @@ Kiểm tra env, Git history, logs, default credentials, exposed ports, DSN, Driv
 ## Tiêu chí hoàn thành
 
 - [ ] Không có secret trong repo/log.
-- [ ] chỉ port cần thiết được expose.
-- [ ] sample config không chứa credential thật.
+- [x] chỉ port cần thiết được expose.
+- [x] sample config không chứa credential thật.
 - [ ] Colab không có MinIO/pipeline credential và result bundle không rò local account path.
 
 ## Hard dependency
@@ -53,6 +53,15 @@ Kiểm tra env, Git history, logs, default credentials, exposed ports, DSN, Driv
 - **Làm gì / có gì:** Audit config/Git/logs/ports/prefix permissions, default credential/DSN và ML bundle path/token boundary; issue/fix report có scope.
 - **Dùng để làm gì:** ETL/runtime evidence và result fixtures chia sẻ được mà không lộ secret hoặc local account path.
 - **Handoff / nghiệm thu:** Sau ORC-05 nhận profile/endpoints/permissions/log scope thật, chạy checks và ghi findings/fix evidence; không tự public port hoặc dùng root credential để vượt permission. Thành phần notebook/export chưa tồn tại ghi rõ chưa kiểm tra, không xác nhận trước các artifacts tương lai; acceptance chưa đủ thì giữ chưa Done và review lại khi downstream được thêm.
+
+### Bổ sung audit runtime sau PR #72
+
+- **Owner hiện tại:** HoaiTam theo yêu cầu nhận task; Trang là owner của mốc tuần 4 ở trên. Reviewer vẫn `unassigned`, không suy ra approval từ việc merge PR cũ.
+- **Làm gì / có gì:** Scanner source/history/log redacted; kiểm tra config local, env/role và port thật của 11 services; probe quyền MinIO với key UUID riêng; đổi bootstrap/smoke sang stdin cho password; chặn catalog bootstrap INFO của Trino.
+- **Dùng để làm gì:** Có report an toàn để chia sẻ, xác định finding thật và phân biệt code fix với cấu hình đã deploy. Không build/start/init trong các lệnh audit/test.
+- **Đã nghiệm thu:** Source/history không còn finding chưa triage trong phạm vi scanner; CFG local đạt; 4 port loopback đúng; root credential không nằm ở consumer; 15 permission checks thật đạt. Hai object QA Silver/warehouse đã được xóa đúng key, Bronze QA giữ lại vì DeleteObject bị cấm.
+- **Còn chặn Done:** Trino hiện giữ log chứa pipeline access-key identifier, cấu hình logging mới chưa deploy. Không thấy password/secret key trong các dòng khớp; không tự xóa log/rotate/restart để làm xanh audit. Chưa nghiệm thu notebook/export/import thực tế của DAT-02/EXP-01/MLD-05/MLI-03; không đổi acceptance để bỏ qua phần này.
+- **Cách chạy / đọc kết quả:** [Checklist SEC-01](../../security/SEC-01-CHECKLIST.md), [evidence runtime](../../evidence/SEC-01_RUNTIME.md). Exit 1 là findings/error; 2 là coverage chưa đủ, không được coi là Done.
 
 Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trước khi toàn bộ upstream chạy thật. Chỉ được chuyển sang `Done` khi hard dependency đã đạt và acceptance criteria được kiểm tra trên output phù hợp.
 
@@ -71,20 +80,23 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Theo dõi
 
-- **Trạng thái:** In Progress
-- **Assignee:** Trang
+- **Trạng thái:** Review
+- **Assignee:** HoaiTam
 - **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** [PR #67](https://github.com/HoaiTam/japan-earthquake-etl/pull/67) (bản review hiện tại), [PR #56](https://github.com/HoaiTam/japan-earthquake-etl/pull/56) (mốc lịch sử), checklist và báo cáo static trong repository
+- **Evidence / PR:** [runtime audit và findings hiện tại](../../evidence/SEC-01_RUNTIME.md); [checklist](../../security/SEC-01-CHECKLIST.md); [PR #67](https://github.com/HoaiTam/japan-earthquake-etl/pull/67) và [PR #56](https://github.com/HoaiTam/japan-earthquake-etl/pull/56) là mốc lịch sử, không chứng nhận runtime hiện tại. Bản vá local chưa commit/push/mở PR.
 - **Kỹ năng phù hợp:** Security, Docker, Git
 
 ## Checklist bàn giao
 
-- [ ] Deliverable đã có trong repository hoặc môi trường demo.
+- [x] Deliverable đã có trong repository hoặc môi trường demo.
 - [ ] Acceptance criteria đã được kiểm tra.
-- [ ] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
-- [ ] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
+- [x] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
+- [x] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
 - [ ] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
 - [ ] P0/P1 có reviewer khác assignee xác nhận.
+
+Reviewer độc lập được khuyến nghị, không phải blocker Done theo AGENTS.md.
+Hai acceptance còn thiếu phía trên là blocker thực tế; không ghi approval giả.
 
 ## Tài liệu liên quan
 
