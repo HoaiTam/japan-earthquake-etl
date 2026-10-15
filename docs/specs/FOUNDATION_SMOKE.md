@@ -3,7 +3,7 @@
 | Thuộc tính | Giá trị |
 |---|---|
 | Task | `FND-01` |
-| Trạng thái | Verified bằng full runtime smoke local (2026-09-21) |
+| Trạng thái | Verified lifecycle mới bằng cold/warm startup và hai full runtime smoke local (2026-10-15) |
 | Static entrypoint | `./scripts/check-foundation.sh` |
 | Runtime entrypoint | `./scripts/smoke-foundation.sh` |
 | Phạm vi | MinIO, Airflow, Spark, Iceberg REST Catalog và Trino |
@@ -18,6 +18,10 @@ startup log và smoke hành vi của từng subsystem.
 Task này không chạy DAG ETL nghiệp vụ, không kiểm thử USGS API và không thay thế
 test riêng của các task downstream. Script không dừng service, không xóa
 container và không xóa volume để thành viên có thể tiếp tục debug.
+
+[Live acceptance hiện hành](../evidence/FND-01_LIVE_ACCEPTANCE.md) nghiệm thu
+foundation riêng và chạy thêm hai USGS live smoke để kiểm chứng lifecycle;
+hai source smoke không bị đưa vào contract của `make smoke-foundation`.
 
 ## 2. Hai lớp kiểm tra
 
@@ -96,6 +100,13 @@ Startup log được quét các marker làm startup không thể hợp lệ: `FA
 uncaught `Exception in thread "main"` và `dependency failed to start`. Warning
 không tự động làm fail; smoke hành vi và healthcheck mới quyết định readiness.
 
+Log startup chỉ lấy từ `State.StartedAt` của lần chạy container hiện tại, tối
+đa 200 dòng/service. Lỗi đọc log hoặc log rỗng đều fail; không lấy thông báo lỗi
+Docker làm bằng chứng log thành công. Không in nội dung log vào summary vì có
+thể chứa credential. Log trước một lần stop có kiểm soát vẫn được giữ nguyên;
+audit **toàn bộ retained logs** thuộc **SEC-01 — Review secret và bề mặt truy cập**,
+không được suy từ phép kiểm tra startup này.
+
 ### One-shot init service
 
 | Service | Kết quả bắt buộc |
@@ -171,6 +182,11 @@ Foundation services and volumes remain available for debugging and downstream wo
 ```
 
 Mỗi checklist item được in với `[PASS]` hoặc `[FAIL]`; không in credential.
+
+Make gọi shell wrapper và wrapper tự kiểm tra config một lần trước preflight.
+Không chạy lặp lại toàn bộ secret scan ở cả Make prerequisite và shell; chạy
+script trực tiếp vẫn giữ đầy đủ config gate. API health budget cold runtime nằm
+trong [Airflow contract](./AIRFLOW_LOCAL.md); `starting` không được tính là healthy.
 
 ## 6. Failure semantics và an toàn dữ liệu
 

@@ -410,7 +410,7 @@ down: require-env ## Gỡ container/network của stack; giữ nguyên named vol
 
 smoke: smoke-foundation ## Alias full foundation runtime smoke; không gồm gọi USGS thật
 
-smoke-foundation: check-config-local ## Test stack đã chạy; không build/start/init hoặc gọi USGS
+smoke-foundation: ## Test stack đã chạy; wrapper kiểm tra config, không build/start/init hoặc gọi USGS
 	@$(RUNTIME_ENV) ./scripts/smoke-foundation.sh
 
 smoke-minio: ## Test ghi/đọc object trên MinIO đã sẵn sàng
@@ -420,7 +420,9 @@ smoke-query: ## Tạo/ghi/đọc/xóa đúng table smoke trên Trino đã sẵn 
 smoke-usgs-live: ## Gọi USGS thật cho 2023-01-01..04 UTC, ghi Bronze và kiểm tra rerun
 smoke-jma-live: ## JMA-05 live DAG 1997/2000/2023, readback DAT-01 và rerun; cần Docker/.env/Internet
 
-$(COMPONENT_SMOKES): check-config-local
+# Each shell wrapper validates local config before preflight. Do not scan the
+# entire repository twice; direct script execution must retain the same gate.
+$(COMPONENT_SMOKES):
 	@$(RUNTIME_ENV) ./scripts/$@.sh
 
 verify-samples: verify-real-samples ## Alias đọc lại hai sample DAT-01 từ MinIO

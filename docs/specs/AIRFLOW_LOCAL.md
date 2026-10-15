@@ -82,6 +82,14 @@ một lần check do timeout thì không để lại Python process mồ côi tr
 với lần check sau. Các override này chỉ thay ngân sách probe, không làm lỏng
 điều kiện heartbeat quyết định readiness.
 
+FND-01 nghiệm thu cold runtime ngày 2026-10-15 ghi nhận API hoàn tất startup
+sau khoảng 237s khi CPU có tải khác; probe 5s còn timeout dù server đã lên.
+API vì vậy dùng `start_period: 240s`, `timeout: 15s`; interval/retries và
+endpoint `/api/v2/monitor/health` với `curl --fail` giữ nguyên. Grace period
+không phải sleep: probe thành công sớm vẫn chuyển `healthy` ngay. Nó không
+biến service `starting`/`unhealthy` thành ready; `docker-check` và smoke vẫn
+fail-closed. Đây là ngân sách local đã đo, không phải SLA production.
+
 ## 3. Lý do chọn LocalExecutor
 
 `LocalExecutor` chạy task process trong container scheduler và dùng PostgreSQL
@@ -210,7 +218,7 @@ metadata database.
 Tạo `.env`, thay placeholder rồi chạy preflight:
 
 ```bash
-cp .env.example .env
+make env-init
 ./scripts/check-config.sh --require-local
 ./scripts/check-airflow.sh
 ```
@@ -218,8 +226,13 @@ cp .env.example .env
 Khởi động và chạy acceptance smoke:
 
 ```bash
+make docker-build
+make docker-up WAIT_TIMEOUT=600
 ./scripts/smoke-airflow.sh
 ```
+
+Build/up là bước riêng; smoke không tự chuẩn bị image, chạy init hoặc start
+service. Khi stack đã current/healthy chỉ cần chạy lại smoke.
 
 Kết quả đúng:
 

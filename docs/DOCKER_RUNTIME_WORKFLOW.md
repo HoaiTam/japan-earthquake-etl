@@ -33,6 +33,10 @@ ETL/QA đang chạy. Lệnh smoke vẫn có thể tạo **container QA tạm**, 
 ghi dữ liệu/bundle QA và kiểm tra rerun theo phạm vi ban đầu. Không có cam kết
 test dữ liệu chạy tức thì: thời gian ingest/Spark/Trino vẫn cần thiết.
 
+Các Make target foundation/component có shell wrapper không quét config hai
+lần: wrapper sở hữu config gate trước read-only preflight, kể cả khi gọi script
+trực tiếp. Không có cờ skip-config hoặc bỏ secret validation để tăng tốc.
+
 `build` là alias `docker-build`; `up`/`start` là alias `docker-up`, **không còn
 build tự động**. `up-minio`, `up-airflow`, `up-spark`, `up-query` cũng không build/pull.
 Thiếu image/artifact sẽ báo lỗi và yêu cầu chuẩn bị, không lén build từ smoke.
@@ -112,6 +116,7 @@ make logs SERVICE=airflow-init TAIL=100
 | `SERVICE_NOT_READY` / `INIT_FAILED` | Đọc state/log đúng service; không bỏ gate hoặc tự reset |
 | `JAVA_ARTIFACTS_UNPREPARED/STALE/CHANGED` | Chuẩn bị lại artifacts bằng `docker-build` (hoặc package trên JDK17), không sửa receipt bằng tay |
 | `DOCKER_COMMAND_UNAVAILABLE_OR_TIMEOUT` | Kiểm tra Docker Desktop/daemon; test không tự restart Docker |
+| `DOCKER_DAEMON_UNAVAILABLE_CHECK_DOCKER_DESKTOP` | Mở/kiểm tra Docker Desktop trước; không kết luận image đã mất hoặc rebuild để chữa daemon đang tắt |
 | `INIT_IN_PROGRESS_WITH_OLD_CONFIGURATION` | Chẩn đoán init cũ trước; không force replace/migrate song song |
 
 ### MinIO Client không còn phụ thuộc image Quay
@@ -147,9 +152,11 @@ trong smoke, fail-before-test, freshness/config drift, init reuse/cold ordering,
 timeout/redaction và artifact receipt. Fixture thành công **không phải** live
 USGS/JMA hay evidence startup mới.
 
-- **FND-01 — Smoke checklist cho môi trường:** cần operator chạy lại cold/warm
-  startup và smoke thật trên Docker Desktop sau bản vá; kết quả runtime cũ là
-  lịch sử, không dùng để khẳng định thời gian/health hiện tại.
+- **FND-01 — Smoke checklist cho môi trường:** đã Done sau
+  [live acceptance 2026-10-15](./evidence/FND-01_LIVE_ACCEPTANCE.md): cold/warm,
+  hai foundation smoke và hai USGS live smoke, không restart/init thừa ở warm/
+  smoke. Đây là phép đo local, không SLA; khi source/config/runtime đổi cần
+  nghiệm thu lại, không dùng runtime lịch sử để khẳng định health hiện tại.
 - **QA-01 — E2E daily đa nguồn:** production adapters/full-month state chưa
   được thêm bởi bản vá này; các QA scopes/pins hiện có không đổi.
 - **SEC-01 — Review secret và bề mặt truy cập:** hash/freshness không thay audit

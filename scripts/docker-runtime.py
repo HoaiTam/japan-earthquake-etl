@@ -171,6 +171,17 @@ class Runtime:
         except (OSError, subprocess.TimeoutExpired):
             raise RuntimeFailure("DOCKER_COMMAND_UNAVAILABLE_OR_TIMEOUT") from None
         if result.returncode:
+            # Keep diagnostics private, but do not prescribe rebuilding images
+            # when the actual failure is a stopped/unreachable Docker daemon.
+            diagnostic = (result.stderr or "").lower()
+            if any(marker in diagnostic for marker in (
+                "cannot connect to the docker daemon", "error during connect",
+                "permission denied while trying to connect to the docker daemon",
+            )):
+                raise RuntimeFailure("DOCKER_DAEMON_UNAVAILABLE_CHECK_DOCKER_DESKTOP")
+            if command[1:3] == ["image", "inspect"] and any(
+                    marker in diagnostic for marker in ("no such image", "no such object")):
+                raise RuntimeFailure("IMAGE_MISSING_RUN_MAKE_DOCKER_BUILD")
             raise RuntimeFailure("DOCKER_COMMAND_FAILED_CHECK_DOCKER_AND_CONFIG")
         return result.stdout
 
@@ -179,12 +190,7 @@ class Runtime:
 
     def images(self, services):
         names = sorted({self.services[name]["image"] for name in services})
-        try:
-            found = self.json_call(["docker", "image", "inspect", *names])
-        except RuntimeFailure as error:
-            if str(error) == "DOCKER_COMMAND_FAILED_CHECK_DOCKER_AND_CONFIG":
-                raise RuntimeFailure("IMAGE_MISSING_RUN_MAKE_DOCKER_BUILD") from None
-            raise
+        found = self.json_call(["docker", "image", "inspect", *names])
         # Docker returns one inspect result per requested reference, in argument order.
         # RepoDigests omit tags, so matching `repo:tag@sha256` against them is wrong.
         if len(found) != len(names):

@@ -23,7 +23,7 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 ## Tổng quan
 
 - Tổng số task: **76**.
-- Foundation: **8 task `Done`**, FND-01 `Review` chờ nghiệm thu runtime của lifecycle mới.
+- Foundation: **9 task `Done`**, FND-01 đã nghiệm thu runtime của lifecycle mới ngày 2026-10-15.
 - Task còn ở trạng thái `Needs Update`: **0**.
 - Core: **68 task**.
 - Stretch: **8 task**.
@@ -38,8 +38,10 @@ ORC-06/07 bổ sung implementation full-month state/real adapters, không dồn 
 QA-01 5h. ORC-02 đã Done sau nghiệm thu live 2026-10-15:
 scheduled/first/rerun/contention, 7 tasks mỗi daily run và pause/lease readback đạt;
 xem [evidence](../../evidence/ORC-02_LIVE_ACCEPTANCE.md).
-FND-01 giữ Review. SEC-01 hiện Review, owner HoaiTam:
-permission runtime đã đạt nhưng còn Trino retained-log finding/deploy và actual ML handoff gate;
+FND-01 đã Done: cold/warm startup, hai foundation smoke và hai USGS live smoke
+đạt; [evidence](../../evidence/FND-01_LIVE_ACCEPTANCE.md).
+SEC-01 hiện Review, owner HoaiTam: permission runtime đã đạt nhưng retained-log
+finding cần re-audit sau deploy và actual ML handoff gate còn thiếu;
 xem [evidence SEC-01](../../evidence/SEC-01_RUNTIME.md), không coi merge PR cũ là Done.
 MLD-02/03 giữ assignee rosy179, reviewer HoaiTam; task mới reviewer unassigned.
 [Kế hoạch tuần 4](../WEEK_4_PARALLEL_PLAN.md) và [nhóm mở đường tuần 4](../WEEK_4_PREP_GROUP.md)
@@ -61,13 +63,14 @@ không dùng mock/pilot chưa đủ coverage làm evidence nghiệm thu thật.
 | [AFL-01](./AFL-01.md) - Cấu hình Airflow local | 1 | Orchestration | Core | P0 | 7h | Done |
 | [SPK-01](./SPK-01.md) - Cấu hình Spark standalone và Java build | 1 | Compute | Core | P0 | 6h | Done |
 | [QRY-01](./QRY-01.md) - Cấu hình Iceberg REST Catalog và Trino | 1 | Serving | Core | P1 | 7h | Done |
-| [FND-01](./FND-01.md) - Tạo smoke checklist cho môi trường | 1 | QA | Core | P0 | 4h | Review |
+| [FND-01](./FND-01.md) - Tạo smoke checklist cho môi trường | 1 | QA | Core | P0 | 4h | Done |
 
 MIO-01 được kiểm chứng lại ngày 2026-10-13: client source build pin tag/commit,
 init/smoke local không pull Quay; cold init/rerun/write-read và Bronze delete-denied
 đạt trên MinIO QA tmpfs riêng. Assignee `HoaiTam`, reviewer `unassigned`; xem
 [evidence pinned client](../../evidence/MIO-01_PINNED_CLIENT.md).
-Không dùng acceptance component này để nâng FND-01 full-stack lên Done.
+Acceptance component này không thay full-stack; FND-01 đã có
+[nghiệm thu riêng](../../evidence/FND-01_LIVE_ACCEPTANCE.md) ngày 2026-10-15.
 
 SPK-01 được kiểm chứng lại ngày 2026-10-08 sau hotfix Docker builder thiếu
 fixture/inventory; assignee `HoaiTam`, reviewer `unassigned`. Xem

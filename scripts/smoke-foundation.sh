@@ -115,7 +115,13 @@ check_service_health() {
         report_fail "$service must attach to network $network_name"
     fi
 
-    startup_log=$(compose logs --no-color --tail=200 "$service" 2>&1 || true)
+    # Scope startup diagnostics to this boot, not a previous intentional stop.
+    # Retained-log security review remains a separate SEC-01 responsibility.
+    started_at=$(docker inspect --format '{{.State.StartedAt}}' "$id")
+    if ! startup_log=$(compose logs --no-color --since "$started_at" --tail=200 "$service" 2>&1); then
+        report_fail "$service startup log could not be read"
+        return
+    fi
     if [ -z "$startup_log" ]; then
         report_fail "$service startup log is non-empty"
         return
