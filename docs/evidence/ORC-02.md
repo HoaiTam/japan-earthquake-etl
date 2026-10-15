@@ -1,5 +1,9 @@
 # ORC-02 — Evidence lịch và readiness hai nguồn
 
+> Mốc lịch sử 2026-10-08. Acceptance hiện tại sau bản vá HEAD retry nằm tại
+> [nghiệm thu 2026-10-15](./ORC-02_LIVE_ACCEPTANCE.md); không dùng runtime fallback
+> hay số test cũ trong file này để chứng nhận deployment hiện tại.
+
 ## 1. Phạm vi nghiệm thu
 
 - Ngày `2026-10-08`; branch `feat/orc-02-cau-hinh-lich-va-readiness`, tạo từ

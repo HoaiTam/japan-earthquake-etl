@@ -1,0 +1,204 @@
+{
+  "active_source_runs_after": [],
+  "collected_at_utc": "2026-10-15T01:47:09.716969+00:00",
+  "contention": {
+    "expected_failure": true,
+    "holder_preserved": true,
+    "run_id": "orc02-20261015T013428Z-025972f7114c-contention",
+    "state": "failed",
+    "task_states": {
+      "jma_year_backfill.acquire_source_lease": "failed",
+      "jma_year_backfill.bronze_ready_gate": "failed",
+      "jma_year_backfill.completion_gate": "upstream_failed",
+      "jma_year_backfill.ingest_archive": "upstream_failed",
+      "jma_year_backfill.release_source_lease": "success",
+      "jma_year_backfill.resolve_plan": "success",
+      "jma_year_backfill.run_summary": "success",
+      "jma_year_backfill.select_archives": "upstream_failed"
+    }
+  },
+  "daily_runs": [
+    {
+      "data_interval_end": "2026-10-15T00:15:00+00:00",
+      "jma_changed_years": [],
+      "jma_head_attempts": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "jma_ingest_invoked": [
+        false,
+        false,
+        false,
+        false
+      ],
+      "phase": "scheduled",
+      "processing_date": "2026-10-14",
+      "run_id": "scheduled__2026-10-15T00:15:00+00:00",
+      "state": "success",
+      "successful_task_instances": 7,
+      "task_states": {
+        "acquire_source_lease": "success",
+        "completion_gate": "success",
+        "jma_readiness": "success",
+        "release_source_lease": "success",
+        "resolve_daily": "success",
+        "sources_ready": "success",
+        "usgs_bronze": "success"
+      },
+      "usgs_manifest_sha256": "5e8b795c90a4e186b11abc98f23cc23b3ed0a1ec2876c293f7b5b92d9291336d",
+      "usgs_manifest_uri": "s3://japan-earthquake/bronze/usgs/ingest_date=2026-10-14/run_id=usgs-d942cd87953f962dd8f1d532f44d84b3/attempt=01/manifest.json",
+      "usgs_raw_sha256": "135ae42286817396f41729a460a61eca316aa3d4cdf21fc845f3f09a2953ea89",
+      "usgs_record_count_estimate": 6,
+      "window_end_utc": "2026-10-15T00:00:00Z",
+      "window_start_utc": "2026-10-12T00:00:00Z"
+    },
+    {
+      "data_interval_end": "2023-01-04T00:15:00+00:00",
+      "jma_changed_years": [],
+      "jma_head_attempts": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "jma_ingest_invoked": [
+        false,
+        false,
+        false,
+        false
+      ],
+      "phase": "first",
+      "processing_date": "2023-01-03",
+      "run_id": "orc02-20261015T013428Z-025972f7114c-first",
+      "state": "success",
+      "successful_task_instances": 7,
+      "task_states": {
+        "acquire_source_lease": "success",
+        "completion_gate": "success",
+        "jma_readiness": "success",
+        "release_source_lease": "success",
+        "resolve_daily": "success",
+        "sources_ready": "success",
+        "usgs_bronze": "success"
+      },
+      "usgs_manifest_sha256": "6bd359837516704e3e277aa26397b21839837e2b91e0e8905aad72f16b93fc9f",
+      "usgs_manifest_uri": "s3://japan-earthquake/bronze/usgs/ingest_date=2023-01-03/run_id=usgs-dab62a8d3a7973c2dd72710e7aa8f21e/attempt=01/manifest.json",
+      "usgs_raw_sha256": "32ad339be9e8e1f847a919e9df541ff19124c1a3601957fdd8cd18ee6920ff13",
+      "usgs_record_count_estimate": 16,
+      "window_end_utc": "2023-01-04T00:00:00Z",
+      "window_start_utc": "2023-01-01T00:00:00Z"
+    },
+    {
+      "data_interval_end": "2023-01-04T00:15:00+00:00",
+      "jma_changed_years": [],
+      "jma_head_attempts": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "jma_ingest_invoked": [
+        false,
+        false,
+        false,
+        false
+      ],
+      "phase": "rerun",
+      "processing_date": "2023-01-03",
+      "run_id": "orc02-20261015T013428Z-025972f7114c-rerun",
+      "state": "success",
+      "successful_task_instances": 7,
+      "task_states": {
+        "acquire_source_lease": "success",
+        "completion_gate": "success",
+        "jma_readiness": "success",
+        "release_source_lease": "success",
+        "resolve_daily": "success",
+        "sources_ready": "success",
+        "usgs_bronze": "success"
+      },
+      "usgs_manifest_sha256": "35708f987d2c87eef51f962b49dc3fafc6e93af2a85644cc188aa2ee34133903",
+      "usgs_manifest_uri": "s3://japan-earthquake/bronze/usgs/ingest_date=2023-01-03/run_id=usgs-0a77421be7de308facb936a4639889c5/attempt=01/manifest.json",
+      "usgs_raw_sha256": "dfff33a85a779eafab5f664a66e90bc7b25ee9a3fa21cad21b5a026b7e1149ad",
+      "usgs_record_count_estimate": 16,
+      "window_end_utc": "2023-01-04T00:00:00Z",
+      "window_start_utc": "2023-01-01T00:00:00Z"
+    }
+  ],
+  "evidence_id": "20261015T013428Z-025972f7114c",
+  "jma_pins_equal_across_runs": true,
+  "jma_record_count_estimate": 423222,
+  "jma_shared_pins": [
+    {
+      "manifest_sha256": "e14b46526a37c470eef3016320169a5791700cd61010a8efb487aceacb3a5d51",
+      "manifest_uri": "s3://japan-earthquake/bronze/jma/year=1997/catalog_release=jma-lm-20160819T034813Z-sha256-c2ce3fd9f8fc/ingest_date=2026-10-07/run_id=jma-922316b2ad88fa07587948c310215600-1997-jan-sep/attempt=01/manifest.json",
+      "record_count_estimate": 39951,
+      "segment": "jan-sep",
+      "sha256": "c2ce3fd9f8fc023a6463086324b1ed29b53ae2c55d021998a0c3210e162172dd",
+      "year": 1997
+    },
+    {
+      "manifest_sha256": "eddc63154542870adf9596014c778c589dc64ed3d2802f9d28025f689a2dab0e",
+      "manifest_uri": "s3://japan-earthquake/bronze/jma/year=1997/catalog_release=jma-lm-20160819T034925Z-sha256-25349273dfc4/ingest_date=2026-10-07/run_id=jma-922316b2ad88fa07587948c310215600-1997-oct-dec/attempt=01/manifest.json",
+      "record_count_estimate": 16284,
+      "segment": "oct-dec",
+      "sha256": "25349273dfc4ce50ed24ee555c881bd64af5662d400be2d7fbd0d6044d4caead",
+      "year": 1997
+    },
+    {
+      "manifest_sha256": "0c54b3c664833819099926b1a773647c71e6819abecdb8a321d82211b95fb615",
+      "manifest_uri": "s3://japan-earthquake/bronze/jma/year=2000/catalog_release=jma-lm-20160819T034819Z-sha256-268441420d9c/ingest_date=2026-10-07/run_id=jma-922316b2ad88fa07587948c310215600-2000-full-year/attempt=01/manifest.json",
+      "record_count_estimate": 109967,
+      "segment": "full-year",
+      "sha256": "268441420d9c90b1cb96f42934aefdb107a4d12c5947adafbfeb24af597d15c2",
+      "year": 2000
+    },
+    {
+      "manifest_sha256": "977defa4f2a1d4a2ba41a211ac0419419ca812d010522da4ef4d95c95f3582db",
+      "manifest_uri": "s3://japan-earthquake/bronze/jma/year=2023/catalog_release=jma-lm-20251210T014153Z-sha256-e5ced2bf7275/ingest_date=2026-10-07/run_id=jma-922316b2ad88fa07587948c310215600-2023-full-year/attempt=01/manifest.json",
+      "record_count_estimate": 257020,
+      "segment": "full-year",
+      "sha256": "e5ced2bf7275825ba75405b071bb54e9d4c2a5eb55aa6bc9b8d670de1f58b98f",
+      "year": 2023
+    }
+  ],
+  "pause_states_after": {
+    "jma_04_year_backfill": true,
+    "orc_02_daily_sources": true,
+    "usg_04_usgs_ingest": true
+  },
+  "pause_states_match_before": true,
+  "profile": {
+    "audit_weekday": 6,
+    "cron": "15 7 * * *",
+    "max_active_runs": 1,
+    "mode": "multi-source",
+    "profile_version": "orc-02-v1",
+    "timezone": "Asia/Ho_Chi_Minh",
+    "years": [
+      1997,
+      2000,
+      2023
+    ]
+  },
+  "published": false,
+  "qa_version": "orc-02-v1",
+  "runner_sha256": "fd8138eefa3f0c4bf4362a39a326b49a67e44fd1b5096c2a299c551e3ff4aeb9",
+  "schema_version": "1.0",
+  "source_lease_released": true,
+  "status": "VERIFIED",
+  "task_id": "ORC-02",
+  "branch": "fix/orc-02-complete-live-readiness",
+  "base_commit": "7c2b8e8826ef13f4e88d61fc9b59bbc98443c816",
+  "runtime_deployment": "existing_fresh_images_no_build_restart_or_jar_copy",
+  "image_runner_sha256": "fd8138eefa3f0c4bf4362a39a326b49a67e44fd1b5096c2a299c551e3ff4aeb9",
+  "image_runner_matches_container": true,
+  "tests": {
+    "source_python": 32,
+    "source_java": 32,
+    "ci_airflow": 216,
+    "ci_docs": "PASS"
+  }
+}

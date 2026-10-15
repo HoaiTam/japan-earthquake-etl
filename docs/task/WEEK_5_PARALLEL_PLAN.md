@@ -89,8 +89,9 @@ bắt đầu triển khai, Done khi đủ evidence; chưa điền reviewer/appro
 1. [FND-01 — Tạo smoke checklist cho môi trường](./tasks/FND-01.md):
    xác nhận lifecycle mới, startup/health/smoke thật. Docs hiện **Review**.
 2. [ORC-02 — Cấu hình lịch và readiness cho hai nguồn](./tasks/ORC-02.md):
-   xác nhận runner bản vá #71 đã deploy, xử lý failed interval đúng lease chain,
-   scheduled/first/rerun/contention đạt. Docs hiện **Review**.
+   **Done** sau nghiệm thu 2026-10-15: runner packaged/fresh, scheduled/first/rerun/contention
+   đạt và pause/lease được xác nhận lại. Không cần clear run lỗi vì current
+   interval chưa có failed run trước test. [Evidence](../evidence/ORC-02_LIVE_ACCEPTANCE.md).
 3. [SEC-01 — Review secret và bề mặt truy cập](./tasks/SEC-01.md):
    HoaiTam đã bổ sung audit live/prefix permission evidence, docs **Review**:
    còn Trino retained-log finding/logging deploy và actual notebook/export/import
@@ -105,7 +106,9 @@ bắt đầu triển khai, Done khi đủ evidence; chưa điền reviewer/appro
 mỗi smoke. Dùng quy trình Docker hiện tại: build/start chủ động một lần nếu cần,
 test chỉ preflight và dùng services đang chạy. Không clear DAG, bỏ lease,
 đổi .env hoặc xóa lake để làm xanh test. Phiên lập kế hoạch này chưa chạy live;
-không tự đổi ba task tồn sang Done.
+không tự đổi ba task tồn sang Done. Cập nhật nghiệm thu 2026-10-15 chỉ đóng
+ORC-02 bằng live evidence riêng, không thay budget/assignee các task tuần 5
+hoặc nghiệm thu FND-01/SEC-01 từ kết quả source-only.
 
 ## 4. Làm song song và thứ tự tích hợp
 
