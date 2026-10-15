@@ -18,6 +18,9 @@ env:
   TZ: UTC
   PYTHONDONTWRITEBYTECODE: "1"
   PYTHONHASHSEED: "0"
+  CI_EVENT_NAME: ${{ github.event_name }}
+  CI_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+  CI_HEAD_SHA: ${{ github.sha }}
 
 jobs:
   docs-contracts:
@@ -34,6 +37,9 @@ jobs:
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
+      - name: Resolve impact
+        id: impact
+        run: python3 scripts/ci-impact.py plan --github-output "$GITHUB_OUTPUT" --summary "$GITHUB_STEP_SUMMARY"
       - name: Install validation tools
         run: |
           sudo apt-get update
@@ -51,7 +57,10 @@ jobs:
           tar -xzf "$task_actionlint_dir/actionlint.tar.gz" -C "$task_actionlint_dir" actionlint
           "$task_actionlint_dir/actionlint" .github/workflows/ci.yml
       - name: Check contracts, configuration and Compose
-        run: make ci-docs
+        run: make ci-docs-base
+      - name: Test affected pilot loader and handoff
+        if: ${{ steps.impact.outputs.pilot != 'none' }}
+        run: make ci-pilot-impact
       - name: Check changed lines for whitespace errors
         env:
           CI_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
@@ -76,7 +85,12 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
+      - name: Resolve impact
+        id: impact
+        run: python3 scripts/ci-impact.py plan --github-output "$GITHUB_OUTPUT" --summary "$GITHUB_STEP_SUMMARY"
       - name: Set up Java 17
+        if: ${{ steps.impact.outputs.java != 'none' }}
         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
           distribution: temurin
@@ -87,9 +101,10 @@ jobs:
             spark/pom.xml
             .mvn/wrapper/maven-wrapper.properties
       - name: Build, test and package
-        run: make ci-java
+        if: ${{ steps.impact.outputs.java != 'none' }}
+        run: make ci-java-impact
       - name: Upload Java test reports
-        if: ${{ always() }}
+        if: ${{ always() && steps.impact.outputs.java != 'none' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: java-test-reports
@@ -106,9 +121,15 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
+      - name: Resolve impact
+        id: impact
+        run: python3 scripts/ci-impact.py plan --github-output "$GITHUB_OUTPUT" --summary "$GITHUB_STEP_SUMMARY"
       - name: Set up Python
+        if: ${{ steps.impact.outputs.airflow != 'none' }}
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
       - name: Test DAG contracts and control-plane logic
-        run: make ci-airflow
+        if: ${{ steps.impact.outputs.airflow != 'none' }}
+        run: make ci-airflow-impact

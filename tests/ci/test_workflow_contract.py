@@ -38,10 +38,17 @@ def validate_workflow(workflow):
     require(workflow["permissions"] == {"contents": "read"}, "read-only token")
     require(workflow["concurrency"]["cancel-in-progress"] == "true", "cancel stale runs")
     require("github.event_name" in workflow["concurrency"]["group"], "separate PR and main runs")
+    for key, value in {"CI_EVENT_NAME": "${{ github.event_name }}",
+                       "CI_BASE_SHA": "${{ github.event.pull_request.base.sha || github.event.before }}",
+                       "CI_HEAD_SHA": "${{ github.sha }}"}.items():
+        require(workflow["env"][key] == value, "trusted comparison context")
     jobs = workflow["jobs"]
     require(set(jobs) == {"docs-contracts", "java-spark", "airflow"}, "three stable checks")
     require(jobs["java-spark"]["env"] == {"SPARK_LOCAL_IP": "127.0.0.1", "SPARK_LOCAL_HOSTNAME": "localhost"}, "loopback-only Spark tests")
-    targets = {"docs-contracts": "ci-docs", "java-spark": "ci-java", "airflow": "ci-airflow"}
+    targets = {"docs-contracts": "ci-docs-base", "java-spark": "ci-java-impact", "airflow": "ci-airflow-impact"}
+    conditions = {"make ci-pilot-impact": "${{ steps.impact.outputs.pilot != 'none' }}",
+                  "make ci-java-impact": "${{ steps.impact.outputs.java != 'none' }}",
+                  "make ci-airflow-impact": "${{ steps.impact.outputs.airflow != 'none' }}"}
     for name, job in jobs.items():
         require(job["name"] == name, "stable check name")
         require(job["runs-on"] == "ubuntu-24.04", "isolated hosted runner")
@@ -49,21 +56,30 @@ def validate_workflow(workflow):
         require(not {"if", "needs", "continue-on-error", "permissions", "environment"} & set(job), "independent mandatory jobs")
         steps = job["steps"]
         require(any(step.get("run") == f"make {targets[name]}" for step in steps), "shared local test command")
+        impact = [step for step in steps if step.get("id") == "impact"]
+        require(len(impact) == 1 and impact[0].get("run") == 'python3 scripts/ci-impact.py plan --github-output "$GITHUB_OUTPUT" --summary "$GITHUB_STEP_SUMMARY"'
+                and "if" not in impact[0], "mandatory local diff planner")
+        require(steps.index(impact[0]) < next(i for i, step in enumerate(steps) if step.get("run") == f"make {targets[name]}"), "plan before tests")
         checkout = []
         for step in steps:
             require("continue-on-error" not in step, "never hide a failing check")
             if "run" in step:
-                require("if" not in step, "mandatory test steps")
+                require(step.get("if") == conditions.get(step["run"]), "only reviewed impact-based conditions")
                 require(not re.search(r"\|\|\s*true|secrets\.|pull_request_target|make\s+(?:up|smoke)|docker\s+compose\s+(?:up|run)", step["run"]), "no suppression, secrets or live pipeline")
             if "uses" in step:
                 require(re.fullmatch(r"actions/[a-z-]+@[a-f0-9]{40}", step["uses"]) is not None, "pin official actions to full SHA")
                 if step["uses"].startswith("actions/checkout@"):
                     checkout.append(step)
+                    require(step["with"].get("fetch-depth") == "0", "complete local diff, no API pagination limit")
+                elif step["uses"].startswith("actions/setup-java@"):
+                    require(step.get("if") == conditions["make ci-java-impact"], "prepare Java only when applicable")
+                elif step["uses"].startswith("actions/setup-python@"):
+                    require(step.get("if") == (conditions["make ci-airflow-impact"] if name == "airflow" else None), "safe Python setup condition")
         require(len(checkout) == 1 and checkout[0]["with"]["persist-credentials"] == "false", "do not persist checkout token")
     java = next(step for step in jobs["java-spark"]["steps"] if step.get("uses", "").startswith("actions/setup-java@"))
     require(java["with"]["java-version"] == "17", "test on supported Java runtime")
     reports = next(step for step in jobs["java-spark"]["steps"] if step.get("uses", "").startswith("actions/upload-artifact@"))
-    require(reports.get("if") == "${{ always() }}", "reports on test failure")
+    require(reports.get("if") == "${{ always() && steps.impact.outputs.java != 'none' }}", "reports on applicable test failure")
     require(reports["with"]["path"] == "spark/target/surefire-reports/*.xml", "upload test reports only")
     require(reports["with"]["retention-days"] == "7", "bounded artifact retention")
     require(any("actionlint\" .github/workflows/ci.yml" in step.get("run", "") for step in jobs["docs-contracts"]["steps"]), "lint Actions syntax")
@@ -71,6 +87,7 @@ def validate_workflow(workflow):
     require(docs_checkout["with"]["fetch-depth"] == "0", "fetch comparison history")
     require(any('git diff --check "$CI_BASE_SHA" "$CI_HEAD_SHA"' in step.get("run", "") for step in jobs["docs-contracts"]["steps"]), "check committed changes, not just clean checkout")
     require("secrets." not in str(workflow), "no secrets in offline CI")
+    require(any(step.get("run") == "make ci-pilot-impact" for step in jobs["docs-contracts"]["steps"]), "pilot consumers remain checked")
 
 
 class WorkflowContractTest(unittest.TestCase):
@@ -106,6 +123,11 @@ class WorkflowContractTest(unittest.TestCase):
             lambda w: w["jobs"]["airflow"]["steps"][0]["with"].update(**{"persist-credentials": "true"}),
             lambda w: w["jobs"]["airflow"]["steps"][-1].update(run="make ci-airflow || true"),
             lambda w: w["jobs"]["airflow"]["steps"][-1].update(run="make smoke-usgs-live"),
+            lambda w: w["env"].update(CI_EVENT_NAME="pull_request"),
+            lambda w: w["jobs"]["java-spark"]["steps"][1].update(**{"if": "false"}),
+            lambda w: w["jobs"]["java-spark"]["steps"][0]["with"].update(**{"fetch-depth": "1"}),
+            lambda w: next(s for s in w["jobs"]["docs-contracts"]["steps"] if s.get("run") == "make ci-docs-base").update(**{"if": "false"}),
+            lambda w: w["jobs"]["java-spark"]["steps"][-2].update(**{"if": "${{ false }}"}),
         )
         for index, mutate in enumerate(mutations):
             with self.subTest(mutation=index):

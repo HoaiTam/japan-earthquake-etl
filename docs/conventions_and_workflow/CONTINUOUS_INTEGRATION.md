@@ -6,6 +6,11 @@ Owner cấu hình ban đầu: **HoaiTam**. Reviewer: **unassigned**.
 Branch triển khai: `ci/offline-pipeline-checks`, từ `main` commit `5373cb8`.
 Đây là yêu cầu bổ sung CI, không đánh dấu các task E2E/security còn thiếu là Done.
 
+Cập nhật 2026-10-15: branch `ci/impact-based-tests` từ main `3b23d0b`
+thêm [CI theo phạm vi ảnh hưởng](./CI_IMPACT_TESTING.md). PR chọn nhóm test
+theo diff/consumer đã map; main/manual và shared/unknown paths vẫn full.
+Mục 8–9 giữ evidence lịch sử, không phải kết quả hiện tại.
+
 Workflow [ci.yml](../../.github/workflows/ci.yml) tự động kiểm tra code,
 contracts, fixture và control-plane khi nhóm cập nhật PR. Ba job độc lập giúp
 biết phần nào hỏng mà không phải chờ một job khác thành công trước.
@@ -41,20 +46,21 @@ PR và push `main` không hủy lẫn nhau. Việc hủy chỉ tác động runn
 
 | Check trên PR | Lệnh | Kiểm tra gì / dùng để làm gì |
 |---|---|---|
-| `docs-contracts` | `make ci-docs` + actionlint | Các contract/baseline/task-status checks hiện có, checksum fixture/catalog, Java Docker build inputs và regression, cấu hình mẫu/secret-pattern hygiene, Compose/network/volume/MinIO/query wiring tĩnh; YAML guardrails và cú pháp workflow/shell |
-| `java-spark` | `make ci-java` | Maven Wrapper `clean verify`: toàn bộ Java tests hiện có, parser USGS/JMA, quality, revision/dedup/linking, bundle persistence, Gold transformation, ML contract; đóng gói JAR và bắt lỗi compile/dependency |
-| `airflow` | `make ci-airflow` | Toàn bộ `airflow/tests/test_*.py`: SDK doubles/DAG graph, scheduling, readiness, retry, phase gates, logging, lease/recovery và QA control-plane; không cần cài Airflow trên host |
+| `docs-contracts` | `ci-docs-base` + actionlint, `ci-pilot-impact` khi áp dụng | Always-on contract/config/security/workflow guards; pilot Python theo impact |
+| `java-spark` | `ci-java-impact` | None, selected feature/ML tests hoặc full clean verify; khi không áp dụng bỏ cả bước setup JDK/Maven |
+| `airflow` | `ci-airflow-impact` | Chạy toàn bộ control-plane tests khi có ảnh hưởng; none thì không setup/test Python |
 
 Runner: `ubuntu-24.04`; Java: Temurin **17**; Python: **3.13**.
 Timeout lần lượt 15/30/10 phút. Java job cache dependency Maven, không cache
-`spark/target` hoặc dữ liệu pipeline. Build vẫn chạy `clean verify` mỗi lần.
+`spark/target` hoặc dữ liệu pipeline. Khi Java áp dụng, build vẫn clean verify;
+selected mode chỉ thu hẹp test classes, không bỏ compile hoặc package.
 Java job đặt `SPARK_LOCAL_IP=127.0.0.1`, `SPARK_LOCAL_HOSTNAME=localhost`
 cho local Spark tests để không phụ thuộc DNS/hostname của runner/container;
 không thay cấu hình Spark standalone trong Compose.
 Docker CLI/Compose plugin cần cho docs job, nhưng chỉ chạy `config`, không build
 image, không start container và không cần kết nối daemon để kiểm tra Compose.
 
-`ci-docs` cố ý gọi `check-config ENV_FILE=/dev/null` để chỉ kiểm tra example/repo,
+`ci-docs-base` cố ý gọi `check-config ENV_FILE=/dev/null` để chỉ kiểm tra example/repo,
 không đọc `.env` riêng trên máy thành viên. Compose checks dùng `.env.example`
 với placeholder, không dùng credential thật. Không copy hoặc ghi đè `.env`.
 Shell syntax dùng đúng `sh`/`bash` theo shebang, bao gồm script readback có Bash arrays.
@@ -120,6 +126,8 @@ actionlint .github/workflows/ci.yml
 ```
 
 Lệnh `make ci-docs` chạy guardrails YAML; actionlint là bước riêng trong workflow.
+`ci`/`ci-docs`/`ci-java`/`ci-airflow` vẫn là full; các target `*-impact` dùng
+PR context hoặc fallback full. Xem [mapping/local commands](./CI_IMPACT_TESTING.md).
 
 ## 6. Đọc kết quả và xử lý lỗi
 
@@ -138,6 +146,8 @@ gh run list --workflow ci.yml --limit 10
 - Vàng: đang chạy/chờ; đỏ: check thất bại; xanh: check đã pass trong phạm vi cấu hình.
 - `cancelled`: thường do commit mới hủy run cũ; xem run của commit mới nhất.
 - Java test fail: tải `java-test-reports` để xem suite/test cụ thể.
+- Xem `Resolve impact` và Actions Summary: `none` là không áp dụng, không phải
+  full suite đã chạy. Ba check vẫn xuất hiện; chỉ bước setup/test được bỏ qua.
 - Dependency/download timeout: xác nhận đây là lỗi hạ tầng rồi rerun failed jobs;
   không đổi assertion hoặc contract để xử lý lỗi mạng.
 - Fork PR có thể chờ maintainer approve workflow trước khi runner chạy.
