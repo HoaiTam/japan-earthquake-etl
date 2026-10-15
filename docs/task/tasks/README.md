@@ -35,7 +35,10 @@ Phân công hiện tại: [Kế hoạch tuần 5](../WEEK_5_PARALLEL_PLAN.md),
 19–25/10/2026: HoaiTam 24h, ThanhTris 25h, rosy179 23h — **12 task Core/72h**,
 4h budget nghiệm thu tồn + 20h review/tích hợp/dự phòng; khoảng 32h/người.
 ORC-06/07 bổ sung implementation full-month state/real adapters, không dồn vào
-QA-01 5h. FND-01/ORC-02 giữ Review, SEC-01 giữ In Progress tới khi có evidence.
+QA-01 5h. ORC-02 đã Done sau nghiệm thu live 2026-10-15:
+scheduled/first/rerun/contention, 7 tasks mỗi daily run và pause/lease readback đạt;
+xem [evidence](../../evidence/ORC-02_LIVE_ACCEPTANCE.md).
+FND-01 giữ Review; SEC-01 theo file task/PR riêng, không được nâng trạng thái từ source-only QA.
 MLD-02/03 giữ assignee rosy179, reviewer HoaiTam; task mới reviewer unassigned.
 [Kế hoạch tuần 4](../WEEK_4_PARALLEL_PLAN.md) và [nhóm mở đường tuần 4](../WEEK_4_PREP_GROUP.md)
 là mốc lịch sử 89h Core, không cộng lại effort đã làm. BI-02 dời tuần 8.
@@ -128,7 +131,7 @@ fixture/inventory; assignee `HoaiTam`, reviewer `unassigned`. Xem
 | Task | Tuần | Workstream | Scope | Priority | Effort | Trạng thái |
 |---|---:|---|---|---|---:|---|
 | [ORC-01](./ORC-01.md) - Hoàn thiện DAG ETL đến Gold theo contract | 4 | DAG skeleton | Core | P0 | 4h | Done |
-| [ORC-02](./ORC-02.md) - Cấu hình lịch và readiness cho hai nguồn | 4 | Scheduling | Core | P1 | 4h | Review |
+| [ORC-02](./ORC-02.md) - Cấu hình lịch và readiness cho hai nguồn | 4 | Scheduling | Core | P1 | 4h | Done |
 | [ORC-03](./ORC-03.md) - Implement backfill và reprocessing | 4 | Backfill | Core | P0 | 5h | Done |
 | [ORC-04](./ORC-04.md) - Chuẩn hóa logging và run summary | 4 | Observability | Core | P1 | 4h | Done |
 | [ORC-05](./ORC-05.md) - Chốt recovery, concurrency và tài nguyên | 4 | Recovery and resources | Core | P1 | 4h | Done |

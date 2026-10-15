@@ -173,6 +173,19 @@ Live cần `.env` hợp lệ, default bounded profile và không có source run 
 make smoke-source-readiness
 ```
 
+Nghiệm thu lại 2026-10-15 dùng `make smoke-source-readiness DOCKER_CHECK_TIMEOUT=60`
+sau khi preflight 20s bị timeout trên máy đang chạy checks đồng thời. Biến này
+chỉ tăng ngân sách tổng các lệnh Docker **read-only preflight**, không thay
+JMA/USGS HTTP retry, deadline QA hoặc tự restart/build. Chạy checks nặng tuần tự
+trên local profile; giữ default 20s, không tăng timeout để bỏ qua service stale.
+[Evidence mới](../evidence/ORC-02_LIVE_ACCEPTANCE.md) xác nhận packaged runner/image
+và đủ scheduled/first/rerun/contention; không còn cần copy JAR fallback của mốc 2026-10-08.
+
+Harness khôi phục pause state lúc bắt đầu, vì vậy sau test này ba source DAG
+vẫn paused=true. Khi muốn vận hành daily liên tục, operator unpause
+`orc_02_daily_sources` có chủ đích sau khi xác nhận không có source/backfill run
+active. Task Done không có nghĩa harness để cron bật mãi hoặc đã đo uptime nhiều tháng.
+
 Lệnh chỉ preflight Airflow/MinIO đã ready, không build/start/init lại,
 chạy profile `live` QA bằng `--no-deps --pull never`. Chuẩn bị image trước bằng
 `make docker-build`, startup bằng `make docker-up`. Harness bật cron để scheduler tạo latest complete

@@ -1,6 +1,6 @@
 ---
 task_id: "ORC-02"
-status: "Review"
+status: "Done"
 week: 4
 block: "F - Điều phối"
 workstream: "Scheduling"
@@ -35,7 +35,7 @@ Chốt daily schedule, timezone, overlap USGS, JMA catalog check, max active run
 
 ## Tiêu chí hoàn thành
 
-- [ ] Daily run ổn định với bản vá 2026-10-13: cần recovery/run lại live; evidence 2026-10-08 giữ làm lịch sử.
+- [x] Daily run ổn định với bản vá 2026-10-13: nghiệm thu live 2026-10-15 đạt scheduled/first/rerun/contention; evidence 2026-10-08 giữ làm lịch sử.
 - [x] JMA chỉ kích hoạt năm thay đổi.
 - [x] timezone/data interval đúng.
 
@@ -70,10 +70,10 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Theo dõi
 
-- **Trạng thái:** Review
+- **Trạng thái:** Done
 - **Assignee:** HoaiTam
 - **Reviewer:** unassigned; khuyến nghị review độc lập cho P1, chưa có approval và không chặn Done theo workflow hiện hành.
-- **Evidence / PR:** [Evidence ORC-02](../../evidence/ORC-02.md), [runtime metadata](../../evidence/ORC-02-runtime.json); chưa mở PR.
+- **Evidence / PR:** [Nghiệm thu live 2026-10-15](../../evidence/ORC-02_LIVE_ACCEPTANCE.md), [metadata kiểm chứng độc lập](../../evidence/ORC-02_LIVE_ACCEPTANCE.json); [evidence 2026-10-08](../../evidence/ORC-02.md) và [bản vá 2026-10-13](../../evidence/ORC-02_READINESS_RETRY.md) giữ làm lịch sử. Bản nghiệm thu mới chưa commit/push/mở PR.
 - **Kỹ năng phù hợp:** Airflow scheduling, config
 
 ## Kết quả triển khai — 2026-10-08
@@ -94,7 +94,7 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
   scheduled + hai fixed-window runs (mỗi run 7 success tasks) và controlled
   backfill contention; reports SourcesReady/verified, **published=false**.
 
-### Giới hạn / handoff
+### Giới hạn / handoff tại mốc 2026-10-08 (lịch sử)
 
 - Docker build bị timeout mạng; live QA dùng clean-tested release-17 JAR copy
   vào existing Airflow containers, runtime Java17. Chưa xác nhận image build
@@ -118,7 +118,7 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 ## Checklist bàn giao
 
 - [x] Deliverable đã có trong repository hoặc môi trường demo.
-- [ ] Acceptance criteria đã được kiểm tra lại live sau bản vá readiness 2026-10-13.
+- [x] Acceptance criteria đã được kiểm tra lại live sau bản vá readiness 2026-10-13.
 - [x] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
 - [x] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
 - [x] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
@@ -134,10 +134,21 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
   giữ reason gốc và không ghi workflow VERIFIED.
 - [Evidence bản vá](../../evidence/ORC-02_READINESS_RETRY.md) và
   [runbook recovery](../../specs/SOURCE_SCHEDULE_AND_READINESS.md).
-- **Review thật sự còn chờ:** ORC-02 - Cấu hình lịch và readiness cho hai nguồn:
+- **Phần còn chờ tại mốc 2026-10-13 (đã đóng bằng nghiệm thu bên dưới):** ORC-02 - Cấu hình lịch và readiness cho hai nguồn:
   build/deploy runner mới, operator recovery đúng lease chain và chạy lại
   `make smoke-source-readiness` đạt scheduled/first/rerun/contention. Chưa
   thực hiện live recovery trên dữ liệu của người dùng; không tự ghi Done.
+
+## Nghiệm thu hoàn tất — 2026-10-15
+
+- Branch `fix/orc-02-complete-live-readiness` từ latest `origin/main` `7c2b8e8` (PR #72); giữ riêng commit/branch SEC-01, không gộp task.
+- Preflight source đạt; runner trong image gốc, API server và scheduler cùng SHA-256, có JMA HEAD retry. Không build/pull/restart/copy JAR hoặc sửa `.env` trong phiên này.
+- `make smoke-source-readiness DOCKER_CHECK_TIMEOUT=60` exit 0; workflow `20261015T013428Z-025972f7114c` VERIFIED. Scheduled ngày 2026-10-15 và hai fixed-window runs đều đủ 7 task success, SourcesReady/verified=true/published=false.
+- Scheduled USGS `[2026-10-12,2026-10-15)` có 6 records; first/rerun `[2023-01-01,2023-01-04)` đều 16. JMA watchlist 1997/2000/2023 verify 4 segments, estimate 423222, không ingest năm không đổi; pins giữ nguyên cả 3 runs.
+- Contender JMA 2023 failed tại acquire, ingest upstream_failed, foreign cleanup giữ QA holder. Lease QA đã release; không có active source run; ba source DAG đều paused=true như trước test.
+- Không có failed scheduled run của current interval trước test nên không cần clear/recovery run cũ. Tạo scheduled run mới bằng scheduler thật; giữ nguyên các run/log/payload lịch sử, không xóa lease của run khác.
+- Tests: ORC-02 32 Python + 32 Java (JDK21, release17), `make ci-airflow` 216 tests và `make ci-docs` đạt. Chi tiết lỗi môi trường ban đầu, lệnh và limits ở evidence mới; không coi các lần failed là passed.
+- `Done` chỉ cho scheduling/readiness source → Bronze; không nâng FND-01/SEC-01 hoặc nhận Gold Published/E2E. Reviewer vẫn `unassigned`, không ghi approval giả.
 
 ## Tài liệu liên quan
 
