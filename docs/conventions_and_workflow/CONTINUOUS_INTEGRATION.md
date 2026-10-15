@@ -9,11 +9,12 @@ Branch triển khai: `ci/offline-pipeline-checks`, từ `main` commit `5373cb8`.
 Cập nhật 2026-10-15: branch `ci/impact-based-tests` từ main `3b23d0b`
 thêm [CI theo phạm vi ảnh hưởng](./CI_IMPACT_TESTING.md). PR chọn nhóm test
 theo diff/consumer đã map; main/manual và shared/unknown paths vẫn full.
-Mục 8–9 giữ evidence lịch sử, không phải kết quả hiện tại.
+PR #77 tiếp tục thêm [nhóm chức năng/task](./CI_TASK_SUITES.md) (impact-v2),
+giữ ba gate tổng hợp cũ. Mục 8–9 giữ evidence lịch sử, không phải kết quả hiện tại.
 
 Workflow [ci.yml](../../.github/workflows/ci.yml) tự động kiểm tra code,
-contracts, fixture và control-plane khi nhóm cập nhật PR. Ba job độc lập giúp
-biết phần nào hỏng mà không phải chờ một job khác thành công trước.
+contracts, fixture và control-plane khi nhóm cập nhật PR. Planner chọn matrix
+nhóm độc lập; checks chỉ rõ USGS/JMA/Silver/Gold/ML/control-plane/pilot nào hỏng.
 Các lệnh dùng chung nằm trong [Makefile](../../Makefile).
 
 Không có deploy, trigger DAG, download USGS/JMA, backfill hoặc publish Gold
@@ -38,7 +39,7 @@ trước khi chờ checks tự động.
 
 Push nhánh feature chưa có PR không tự chạy. Không bật đồng thời push mọi
 nhánh và PR, nên mỗi lần cập nhật PR không sinh hai bộ checks trùng nhau.
-Không dùng path filter: PR chỉ sửa docs vẫn có đủ ba checks, tránh required
+Không dùng path filter: PR chỉ sửa docs vẫn có đủ ba gate, tránh required
 checks bị bỏ qua và chờ mãi. Run mới hủy run cũ của cùng PR/ref và loại sự kiện;
 PR và push `main` không hủy lẫn nhau. Việc hủy chỉ tác động runner CI.
 
@@ -46,15 +47,20 @@ PR và push `main` không hủy lẫn nhau. Việc hủy chỉ tác động runn
 
 | Check trên PR | Lệnh | Kiểm tra gì / dùng để làm gì |
 |---|---|---|
-| `docs-contracts` | `ci-docs-base` + actionlint, `ci-pilot-impact` khi áp dụng | Always-on contract/config/security/workflow guards; pilot Python theo impact |
-| `java-spark` | `ci-java-impact` | None, selected feature/ML tests hoặc full clean verify; khi không áp dụng bỏ cả bước setup JDK/Maven |
-| `airflow` | `ci-airflow-impact` | Chạy toàn bộ control-plane tests khi có ảnh hưởng; none thì không setup/test Python |
+| `impact-plan` | `ci-impact.py plan` | Diff base→merge ref, xuất modes/matrix, summary lý do và nhóm được chọn |
+| `Java / <suite>` | `ci-suite`, `CI_COMPONENT=java` | 8 nhóm Java: shared, USGS, JMA, Silver, Gold, ML contract/audit, window, feature; chỉ materialize nhóm áp dụng |
+| `Control / <suite>` | `ci-suite`, `CI_COMPONENT=airflow` | 4 nhóm: source, orchestration/recovery, Silver/Gold QA, ML QA |
+| `DAT-02 / pilot-handoff` | `ci-pilot-impact` | Loader và handoff Python theo impact; không chạy notebook kernel/fit model |
+| `docs-contracts` | `ci-docs-base` + actionlint + gate | Always-on contract/config/security/workflow guards và gate planner/pilot |
+| `java-spark` | `ci-impact.py gate` | Chỉ pass nếu planner và toàn bộ Java matrix áp dụng pass; none cần worker skipped |
+| `airflow` | `ci-impact.py gate` | Tương tự cho control-plane matrix; không chạy lại tests |
 
 Runner: `ubuntu-24.04`; Java: Temurin **17**; Python: **3.13**.
-Timeout lần lượt 15/30/10 phút. Java job cache dependency Maven, không cache
-`spark/target` hoặc dữ liệu pipeline. Khi Java áp dụng, build vẫn clean verify;
-selected mode chỉ thu hẹp test classes, không bỏ compile hoặc package.
-Java job đặt `SPARK_LOCAL_IP=127.0.0.1`, `SPARK_LOCAL_HOSTNAME=localhost`
+Timeout: docs 15 phút, mỗi Java suite 30 phút, Python suite/pilot 10 phút,
+planner/gate 5 phút. Java cache dependency Maven, không cache `spark/target`
+hoặc dữ liệu pipeline. Mỗi suite vẫn clean verify, chỉ thu hẹp test classes,
+không bỏ compile/package. Full chạy mọi nhóm đúng một lần, không full ở mỗi shard.
+Java workers đặt `SPARK_LOCAL_IP=127.0.0.1`, `SPARK_LOCAL_HOSTNAME=localhost`
 cho local Spark tests để không phụ thuộc DNS/hostname của runner/container;
 không thay cấu hình Spark standalone trong Compose.
 Docker CLI/Compose plugin cần cho docs job, nhưng chỉ chạy `config`, không build
@@ -84,11 +90,11 @@ Airflow runtime thật. Java HTTP mock có thể bind loopback trên runner.
   người review đối chiếu. Nâng cấp phải kiểm tra SHA ở repository nguồn và rerun checks.
 - actionlint **1.7.12** được tải từ release chính thức, xác minh SHA256 trước chạy.
 - Không dùng `continue-on-error` hay `|| true` để che lỗi test.
-- Chỉ upload `spark/target/surefire-reports/*.xml`, tên `java-test-reports`, giữ
+- Chỉ upload `spark/target/surefire-reports/*.xml`, tên `java-test-reports-<suite>`, giữ
   7 ngày, kể cả khi test fail. Không upload JAR, `.env`, staging, Bronze/Silver hoặc lakehouse dump.
 - YAML guardrails có regression cases cho duplicate key, quyền ghi, trigger
-  nguy hiểm, path-filter, skipped/dependent jobs, mutable action reference,
-  persisted credential và thay test bằng live smoke. Guardrails không thay thế
+  nguy hiểm, path-filter, sai dependency/matrix, gate skip/fail/cancel,
+  mutable action reference, persisted credential và thay test bằng live smoke. Guardrails không thay thế
   code review: người có quyền sửa workflow cũng có thể sửa tests của nó.
 
 Tham khảo chính thức:
@@ -145,9 +151,12 @@ gh run list --workflow ci.yml --limit 10
 
 - Vàng: đang chạy/chờ; đỏ: check thất bại; xanh: check đã pass trong phạm vi cấu hình.
 - `cancelled`: thường do commit mới hủy run cũ; xem run của commit mới nhất.
-- Java test fail: tải `java-test-reports` để xem suite/test cụ thể.
+- Java test fail: tải `java-test-reports-<suite>` để xem test cụ thể;
+  nhóm khác tiếp tục chạy để thấy đầy đủ lỗi.
 - Xem `Resolve impact` và Actions Summary: `none` là không áp dụng, không phải
-  full suite đã chạy. Ba check vẫn xuất hiện; chỉ bước setup/test được bỏ qua.
+  full suite đã chạy. Ba gate vẫn xuất hiện; worker không áp dụng bị skip trước setup.
+- Planner fail hoặc worker áp dụng fail/cancel/skipped làm gate tương ứng fail;
+  không chỉ nhìn một nhóm task xanh để kết luận PR đã đủ điều kiện merge.
 - Dependency/download timeout: xác nhận đây là lỗi hạ tầng rồi rerun failed jobs;
   không đổi assertion hoặc contract để xử lý lỗi mạng.
 - Fork PR có thể chờ maintainer approve workflow trước khi runner chạy.

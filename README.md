@@ -291,7 +291,8 @@ Hướng dẫn vận hành đầy đủ được duy trì trong
 ## Làm việc với repository
 
 GitHub Actions được cấu hình ở [ci.yml](./.github/workflows/ci.yml): PR vào
-mọi base branch giữ ba checks docs/contracts, Java17/Spark và Airflow;
+mọi base branch có [checks theo nhóm chức năng/task](./docs/conventions_and_workflow/CI_TASK_SUITES.md),
+giữ ba gate tổng hợp docs/contracts, Java17/Spark và Airflow;
 PR chọn test theo [phạm vi ảnh hưởng](./docs/conventions_and_workflow/CI_IMPACT_TESTING.md),
 main/manual hoặc shared/unknown paths vẫn full. Không dùng secret hoặc dữ liệu lakehouse thật. Lệnh local,
 required-check setup và giới hạn ở [CI guide](./docs/conventions_and_workflow/CONTINUOUS_INTEGRATION.md).

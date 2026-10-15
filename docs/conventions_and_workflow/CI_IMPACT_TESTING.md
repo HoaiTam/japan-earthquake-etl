@@ -1,11 +1,13 @@
-# CI theo phạm vi ảnh hưởng — impact-v1
+# CI theo phạm vi ảnh hưởng — impact-v2
 
 ## Quyết định và trạng thái
 
 Theo yêu cầu HoaiTam ngày 2026-10-15. Branch `ci/impact-based-tests` tạo từ
 main `3b23d0b` (PR #76 đã merge). Đây là cải tiến CI theo yêu cầu trực tiếp,
 **chưa có task ID riêng trong backlog**; không đổi task status/assignee/effort.
-Reviewer unassigned. Không tự commit, push, merge hoặc sửa GitHub Settings.
+Reviewer unassigned. Bản đầu impact-v1 ở commit `8fba3c2`; theo yêu cầu tiếp
+theo, impact-v2 cập nhật trực tiếp nhánh PR #77, không tạo PR mới/merge hoặc
+sửa GitHub Settings. Không thay logic dữ liệu hay metadata task.
 
 Mục đích: giảm test không liên quan trên PR nhưng không bỏ regression của
 consumer dùng chung. Không chọn theo tên task, branch, label hay tác giả PR.
@@ -14,9 +16,9 @@ trên CI/local; tests ở [tests/ci](../../tests/ci).
 
 ## Hoạt động
 
-1. Mỗi job checkout merge ref, fetch-depth=0, tự resolve plan bằng Python stdlib.
-   Ba job độc lập, không truyền artifact/đợi detector job hoặc lấy danh sách
-   file từ API có giới hạn số file.
+1. Job `impact-plan` checkout merge ref, fetch-depth=0, resolve plan bằng Python
+   stdlib và xuất matrix nhóm test cho Java/Airflow. Không lấy danh sách file
+   từ API có giới hạn số file. Worker tính lại plan trên cùng checkout trước chạy.
 2. PR so **base SHA thực tế → merge SHA đang checkout** bằng local Git diff,
    không so HEAD của branch với main một cách cố định. Stacked PR cũng dùng
    đúng base của PR. HEAD không khớp checkout hoặc base không là ancestor thì full.
@@ -24,14 +26,18 @@ trên CI/local; tests ở [tests/ci](../../tests/ci).
    khi mapping đã được review; không đoán dependency bằng tên task.
 4. Push main, workflow_dispatch, local không có PR context, diff trống/lỗi/
    quá giới hạn, rename/delete/type-change, shared/unmapped path: **full**.
-5. Log JSON và Actions Summary có mode/reason/count. `none` là không áp dụng
-   theo diff, không phải dấu hiệu test lỗi đã bị bỏ qua.
+5. Chia test được chọn thành [nhóm chức năng/task](./CI_TASK_SUITES.md), mỗi
+   nhóm có check riêng. Ba check tổng hợp giữ tên cũ và kiểm tra kết quả
+   planner + mọi worker tương ứng, kể cả khi dependency fail/skip/cancel.
+6. Log JSON và Actions Summary có mode/reason/count và bảng suite/classes/modules.
+   `none` là không áp dụng theo diff, không phải dấu hiệu test lỗi đã bị bỏ qua.
 
 Git diff dùng `--no-renames -z`: rename thành delete+add và mở full, nên
 không bỏ mất phía file cũ. Không truncate diff ở 300 file; trên 10,000 paths
 hoặc 2 MiB metadata chuyển full. Tên path bất thường cũng chuyển full.
 SHA chỉ qua environment/argv, không ghép shell hoặc in PR title/file name vào
-Actions output. Output điều kiện chỉ gồm enum full/selected/none.
+Actions output. Output chỉ gồm enum full/selected/none và JSON matrix có ID
+nhóm từ allowlist cố định; không đưa filename hoặc lệnh Maven vào matrix.
 
 ## Mapping hiện hành
 
@@ -60,16 +66,21 @@ và Airflow test không cần thiết, không cam kết docs job tức thì.
 
 ## Giữ chất lượng và required checks
 
-- Giữ đúng ba check `docs-contracts`, `java-spark`, `airflow`; không dùng job-level
-  if, needs hoặc continue-on-error. Workflow không có path/branch filter cho PR.
-- Chỉ các bước setup/test không áp dụng được bỏ qua bằng điều kiện đã kiểm thử.
-  Planner luôn chạy. Planner lỗi làm job đỏ; thiếu context chuyển full.
-- Selected Java vẫn **clean verify**: compile mọi main/test source, chạy lớp
-  đã chọn, package JAR. Surefire XML phải có từng lớp đã chọn, có test chạy,
+- Giữ ba tên check tổng hợp `docs-contracts`, `java-spark`, `airflow`, thêm
+  check theo nhóm. Workflow không có path/branch filter cho PR.
+- Worker không áp dụng được skip ở job level. Ba gate dùng `always()`:
+  planner phải success; mode none chỉ nhận worker skipped; mode full/selected
+  chỉ nhận worker success. Failure/cancel/skipped bất thường đều làm gate đỏ.
+  Không dùng continue-on-error. Thiếu context chuyển full; planner lỗi thì đỏ.
+- Mỗi nhóm Java vẫn **clean verify**: compile mọi main/test source, chạy lớp
+  của nhóm trong phạm vi đã chọn, package JAR. Surefire XML phải có từng lớp, có test chạy,
   không fail/error hoặc bị skip toàn bộ. Không nhận JAR cũ/report cũ là pass.
+- Inventory phân hoạch toàn bộ test classes/modules, không bỏ test mới chưa
+  có mapping: đưa vào nhóm shared. Main/manual/full chạy hết các nhóm, không
+  chạy full lặp lại ở mỗi nhóm. Chi tiết và giới hạn hiệu năng ở CI_TASK_SUITES.
 - Các lệnh full `ci`, `ci-java`, `ci-airflow`, `ci-docs` giữ nguyên ý nghĩa.
-  Full Java vẫn tạo fingerprint qua package-java; selected build không tự
-  chứng nhận runtime Docker bằng fingerprint của full suite.
+  Local `ci-java` vẫn tạo fingerprint qua package-java; CI matrix không ghi
+  fingerprint runtime, không chứng nhận Docker bằng một shard đã test.
 - Main/manual luôn full; PR sửa chính workflow/planner/Makefile cũng full.
   Maintainer vẫn cần review mapping và full trước merge cho thay đổi rủi ro;
   full sau merge không thay pre-merge gate đối với code dùng chung.
@@ -85,6 +96,8 @@ thực tế sau push; không gọi local PASS là GitHub checks PASS. Tài liệ
 python3 -m pip install -r tests/ci/requirements.txt
 make test-ci-workflow
 make ci-plan
+CI_COMPONENT=java CI_SUITE=mld-03-windows make ci-suite
+CI_COMPONENT=airflow CI_SUITE=orchestration-recovery make ci-suite
 ```
 
 Mặc định không có PR context là full. Xem diff đã **commit** của branch hiện
@@ -115,7 +128,8 @@ Maven/Python dependencies có thể cần Internet lần chuẩn bị đầu ti�
 
 ## Giới hạn / rollout / rollback
 
-- Chưa có GitHub-hosted run hoặc reviewer approval trước khi người dùng push PR.
+- Local PASS không phải GitHub-hosted run hoặc reviewer approval. Sau khi
+  push bản vá, xem Checks của commit mới nhất; không dùng kết quả v1 làm v2.
   Các PR đang mở không tự nhận workflow mới: cần đưa code CI vào branch/base
   tương ứng và kích hoạt PR event mới; chỉ đổi main không chạy hồi tố mọi PR.
 - Đây không phải task E2E/security acceptance: [QA-01 — Chạy E2E daily đa nguồn](../task/tasks/QA-01.md)
@@ -126,7 +140,7 @@ Maven/Python dependencies có thể cần Internet lần chuẩn bị đầu ti�
 - Rollback: revert thay đổi CI/planner/tests/Make/docs trong PR, giữ ba tên check
   và các lệnh full; không cần thay dữ liệu/runtime hoặc xóa bucket/volume.
 
-## Evidence local — 2026-10-15
+## Evidence local impact-v1 — 2026-10-15 (lịch sử, trước chia suite)
 
 - `make test-ci-workflow`: 25 tests PASS, gồm mutation guardrails, fixture Git
   merge-ref/base tiến lên độc lập, stacked PR, delete/rename, diff 306 paths,
@@ -147,4 +161,5 @@ Maven/Python dependencies có thể cần Internet lần chuẩn bị đầu ti�
 
 Java acceptance ở host JDK **21.0.11**, Spark **3.5.9**, Python **3.13.3**;
 chưa phải Ubuntu/Temurin17 GitHub-hosted run. Reviewer unassigned,
-chưa commit/push hoặc chạy Actions cho branch này trong phiên triển khai.
+chưa commit/push hoặc chạy Actions tại thời điểm nghiệm thu impact-v1.
+Evidence impact-v2 ở [CI_TASK_SUITES.md](./CI_TASK_SUITES.md).

@@ -171,7 +171,8 @@ Template mô tả ngắn:
 Workflow [Project CI](../../.github/workflows/ci.yml) kiểm tra docs/contracts,
 Java17/Spark và Airflow bằng fixture/mock. PR chạy theo
 [phạm vi ảnh hưởng](./CI_IMPACT_TESTING.md), shared/unknown/main/manual vẫn full.
-Trước merge, kiểm tra ba jobs và impact summary trên commit mới nhất;
+Trước merge, kiểm tra ba gate tổng hợp, các [nhóm test chức năng/task](./CI_TASK_SUITES.md)
+và impact summary trên commit mới nhất;
 `none` không có nghĩa full suite đã chạy. CI xanh không thay reviewer hoặc E2E.
 Cách chạy local, debug và bật required checks nằm trong
 [CI guide](./CONTINUOUS_INTEGRATION.md). Thêm workflow không tự bật branch protection.

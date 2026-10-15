@@ -7,6 +7,7 @@ from pathlib import Path, PurePosixPath
 import re
 import subprocess
 import sys
+import unittest
 import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -18,6 +19,15 @@ PILOT_CONFIGS = {"config/ml/feature_scaling_global_dev_v1.json", "config/ml/feat
 PILOT_FILES = {"notebooks/pilot_bundle.py", "notebooks/dat_02_inspection.ipynb"}
 LEAF_DAGS = {"airflow/dags/" + name + ".py" for name in
              ("afl_01_smoke", "usg_04_usgs_ingest", "jma_04_year_backfill", "orc_01_etl_pipeline", "orc_02_daily_sources", "orc_03_backfill")}
+WINDOW_TESTS = {"MainshockRuntimeTest", "MainshockWindowEngineTest", "MainshockWindowIntegrationTest",
+                "MainshockWindowRegressionTest", "WindowModelResolverTest"}
+JAVA_SUITES = ("foundation-integration", "usgs-bronze", "jma-bronze", "silver", "gold",
+               "mld-01-02-contract-audit", "mld-03-windows", "mld-04-features")
+AIRFLOW_SUITES = ("source-ingestion", "orchestration-recovery", "silver-gold-qa", "ml-qa")
+SOURCE_TESTS = {"test_smoke_dag_contract", "test_usg_04_dag_contract", "test_usgs_ingest_runtime",
+                "test_jma_backfill_runtime", "test_jma_dag_contract", "test_jma_live_qa"}
+LAKEHOUSE_TESTS = {"test_silver_integration_qa", "test_gold_storage_qa", "test_gold_publication_qa"}
+ML_QA_TESTS = {"test_dataset_manifest_qa", "test_gold_input_audit_qa", "test_mainshock_window_qa"}
 
 
 def git(root, *args):
@@ -25,7 +35,7 @@ def git(root, *args):
 
 
 def full(reason, count=0):
-    return {"policy_version": "impact-v1", "java": "full", "airflow": "full", "pilot": "full", "java_tests": [],
+    return {"policy_version": "impact-v2", "java": "full", "airflow": "full", "pilot": "full", "java_tests": [],
             "change_count": count, "reasons": [reason], "docs": "always"}
 
 
@@ -77,7 +87,7 @@ def classify(changes, root=ROOT):
             if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+", name):
                 return full("invalid-test-selector", len(changes))
             tests.append(name)
-    return {"policy_version": "impact-v1", "java": "selected" if tests else "none", "airflow": airflow, "pilot": pilot,
+    return {"policy_version": "impact-v2", "java": "selected" if tests else "none", "airflow": airflow, "pilot": pilot,
             "java_tests": tests, "change_count": len(changes), "reasons": sorted(reasons), "docs": "always"}
 
 
@@ -103,12 +113,78 @@ def plan(event, base, head, root=ROOT, force_full=False):
         return full("comparison-unavailable")
 
 
-def emit(result, output=None, summary=None):
-    print(json.dumps(result, sort_keys=True), flush=True)
+def inventory(component, root=ROOT):
+    """Partition every discovered test once; new/unmapped tests join a shared suite."""
+    if component == "java":
+        groups = {name: [] for name in JAVA_SUITES}
+        test_root = root / "spark/src/test/java"
+        for path in sorted(test_root.rglob("*.java")):
+            if not re.fullmatch(r"(?:Test.*|.*Tests?|.*TestCase)", path.stem): continue
+            relative = path.relative_to(test_root).with_suffix("")
+            name = relative.as_posix().replace("/", ".")
+            if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+", name):
+                raise ValueError("CI_INVALID_TEST_NAME")
+            package = relative.parent.as_posix()
+            group = "foundation-integration"
+            if package == "ie212/earthquake/spark/ml":
+                group = ("mld-04-features" if path.stem in FEATURE_TESTS else
+                         "mld-03-windows" if path.stem in WINDOW_TESTS else "mld-01-02-contract-audit")
+            elif package in {"ie212/earthquake/spark/" + p for p in ("usgs", "jma", "silver", "gold")}:
+                group = {"usgs": "usgs-bronze", "jma": "jma-bronze", "silver": "silver", "gold": "gold"}[relative.parent.name]
+            groups[group].append(name)
+    elif component == "airflow":
+        groups = {name: [] for name in AIRFLOW_SUITES}
+        test_root = root / "airflow/tests"
+        for path in sorted(test_root.rglob("test_*.py")):
+            # Nested unittest packages need an explicit import/discovery policy first.
+            # Fail rather than silently omit their tests from a full matrix.
+            if path.parent != test_root: raise ValueError("CI_NESTED_PYTHON_TEST_REQUIRES_MAPPING")
+            if not re.fullmatch(r"test_[a-z0-9_]+", path.stem): raise ValueError("CI_INVALID_TEST_NAME")
+            group = ("source-ingestion" if path.stem in SOURCE_TESTS else
+                     "silver-gold-qa" if path.stem in LAKEHOUSE_TESTS else
+                     "ml-qa" if path.stem in ML_QA_TESTS else "orchestration-recovery")
+            groups[group].append(path.name)
+    else:
+        raise ValueError("CI_INVALID_COMPONENT")
+    return groups
+
+
+def suite_plan(result, component, root=ROOT):
+    mode = result[component]
+    if mode == "none": return {}
+    groups = inventory(component, root)
+    if mode == "selected" and component == "java":
+        requested = set(result["java_tests"])
+        if not requested: raise ValueError("CI_EMPTY_SELECTED_TESTS")
+        discovered = {test for tests in groups.values() for test in tests}
+        if not requested.issubset(discovered): raise ValueError("CI_SELECTED_TEST_NOT_DISCOVERED")
+        groups = {group: [test for test in tests if test in requested] for group, tests in groups.items()}
+    elif mode != "full":
+        raise ValueError("CI_INVALID_PLAN")
+    groups = {group: tests for group, tests in groups.items() if tests}
+    if not groups: raise ValueError("CI_EMPTY_TEST_INVENTORY")
+    return groups
+
+
+def gate(planner_result, mode, suite_result):
+    """A skipped/failed/cancelled applicable suite must never become a green gate."""
+    if planner_result != "success" or (mode, suite_result) not in {
+            ("none", "skipped"), ("full", "success"), ("selected", "success")}:
+        raise ValueError("CI_REQUIRED_SUITE_DID_NOT_PASS")
+
+
+def emit(result, output=None, summary=None, root=ROOT):
+    matrices = {component: suite_plan(result, component, root) for component in ("java", "airflow")}
+    diagnostic = dict(result, suites={component: {group: len(tests) for group, tests in groups.items()}
+                                      for component, groups in matrices.items()})
+    print(json.dumps(diagnostic, sort_keys=True), flush=True)
     if output:
-        # Outputs contain fixed enums only, never PR file names, titles or executable strings.
+        # Only fixed modes and allowlisted group IDs; never raw changed paths/titles.
         with Path(output).open("a") as file:
             for component in ("java", "airflow", "pilot"): file.write(component + "=" + result[component] + "\n")
+            for component, groups in matrices.items():
+                # A non-empty placeholder keeps matrix parsing valid; job-level mode skips it.
+                file.write(component + "_matrix=" + json.dumps({"suite": list(groups) or ["not-applicable"]}) + "\n")
     if summary:
         with Path(summary).open("a") as file:
             file.write("### Impact-based CI\n\nDocs/contracts/security: always. "
@@ -116,6 +192,10 @@ def emit(result, output=None, summary=None):
                        f"Airflow: **{result['airflow']}**; pilot: **{result['pilot']}**.\n\n"
                        f"Changed paths: {result['change_count']}; reasons: {', '.join(result['reasons'])}.\n\n"
                        "`none` means not applicable to this comparison, not a suppressed failure.\n")
+            file.write("\n| Component | Functional/task suite | Test classes/modules |\n|---|---|---|\n")
+            for component, groups in matrices.items():
+                for group, tests in groups.items(): file.write(f"| {component} | {group} | {len(tests)} |\n")
+            if result["pilot"] != "none": file.write("| Python | DAT-02 pilot-handoff | test_pilot_*.py |\n")
 
 
 def commands(result, component):
@@ -148,21 +228,50 @@ def execute(result, component, root=ROOT, runner=subprocess.run):
     if component == "java" and result[component] == "selected": verify_selected_reports(root, result["java_tests"])
 
 
+def execute_suite(result, component, suite, root=ROOT, runner=subprocess.run):
+    groups = suite_plan(result, component, root)
+    if suite not in groups: raise ValueError("CI_SUITE_NOT_APPLICABLE")
+    tests = groups[suite]
+    print(f"event=ci_suite_started component={component} suite={suite} test_units={len(tests)}", flush=True)
+    if component == "java":
+        selected = dict(result, java="selected", java_tests=tests)
+        execute(selected, "java", root, runner)
+    else:
+        # Match full unittest discovery semantics while rejecting empty modules and import failures.
+        loader = unittest.TestLoader()
+        collection = unittest.TestSuite()
+        for test in tests:
+            found = loader.discover(str(root / "airflow/tests"), pattern=test)
+            if found.countTestCases() < 1: raise ValueError("CI_EMPTY_PYTHON_TEST_MODULE:" + test)
+            collection.addTests(found)
+        report = unittest.TextTestRunner(verbosity=2).run(collection)
+        if not report.wasSuccessful(): raise ValueError("CI_PYTHON_SUITE_FAILED")
+    print(f"event=ci_suite_passed component={component} suite={suite}", flush=True)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=["plan", "run"])
+    parser.add_argument("action", choices=["plan", "run", "run-suite", "gate"])
     parser.add_argument("--event", default=os.environ.get("CI_EVENT_NAME", "local"))
     parser.add_argument("--base", default=os.environ.get("CI_BASE_SHA", ""))
     parser.add_argument("--head", default=os.environ.get("CI_HEAD_SHA", "HEAD"))
     parser.add_argument("--force-full", action="store_true")
-    parser.add_argument("--component", choices=["java", "airflow", "pilot"])
+    parser.add_argument("--component", choices=["java", "airflow", "pilot"], default=os.environ.get("CI_COMPONENT"))
+    parser.add_argument("--suite", default=os.environ.get("CI_SUITE"))
     parser.add_argument("--github-output", type=Path)
     parser.add_argument("--summary", type=Path)
     args = parser.parse_args()
-    if args.action == "run" and not args.component: parser.error("run requires --component")
+    if args.action == "gate":
+        gate(os.environ.get("CI_PLANNER_RESULT"), os.environ.get("CI_MODE"), os.environ.get("CI_SUITE_RESULT"))
+        print("event=ci_gate_passed", flush=True)
+        return
+    if args.action in {"run", "run-suite"} and not args.component: parser.error("run requires --component")
+    if args.action == "run-suite" and (args.component not in {"java", "airflow"} or not args.suite):
+        parser.error("run-suite requires Java/Airflow and --suite")
     result = plan(args.event, args.base, args.head, force_full=args.force_full)
     emit(result, args.github_output, args.summary)
     if args.action == "run": execute(result, args.component)
+    elif args.action == "run-suite": execute_suite(result, args.component, args.suite)
 
 
 if __name__ == "__main__": main()

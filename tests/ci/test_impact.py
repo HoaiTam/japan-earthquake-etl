@@ -72,7 +72,10 @@ class ImpactPolicyTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as root:
             output, summary = Path(root) / "output", Path(root) / "summary"
             with patch("builtins.print"): impact.emit(self.choose("README.md"), output, summary)
-            self.assertEqual(output.read_text(), "java=none\nairflow=none\npilot=none\n")
+            lines = output.read_text().splitlines()
+            self.assertEqual(lines[:3], ["java=none", "airflow=none", "pilot=none"])
+            self.assertEqual(json.loads(lines[3].split("=", 1)[1]), {"suite": ["not-applicable"]})
+            self.assertEqual(json.loads(lines[4].split("=", 1)[1]), {"suite": ["not-applicable"]})
             self.assertIn("not applicable", summary.read_text())
     def test_no_commands_for_not_applicable_and_failures_propagate(self):
         run = Mock()

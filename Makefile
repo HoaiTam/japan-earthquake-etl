@@ -148,7 +148,10 @@ smoke-gold-storage: check-config-local ## GLD-03 six QA Iceberg snapshots, chưa
 	@$(COMPOSE) --profile gold run --rm --no-deps --pull never spark-gold-qa
 
 .PHONY: ci ci-docs ci-java ci-airflow test-ci-workflow test-security-audit audit-security audit-security-runtime
-.PHONY: ci-plan ci-docs-base ci-java-impact ci-airflow-impact ci-pilot-impact
+.PHONY: ci-plan ci-docs-base ci-java-impact ci-airflow-impact ci-pilot-impact ci-suite
+
+ci-suite: ## Chạy nhóm test chức năng/task; đặt CI_COMPONENT=java|airflow và CI_SUITE=<id từ ci-plan>
+	@python3 scripts/ci-impact.py run-suite
 
 ci-plan: ## In impact plan; CI_EVENT_NAME=pull_request CI_BASE_SHA=<base> CI_HEAD_SHA=HEAD để xem PR local
 	@python3 scripts/ci-impact.py plan
