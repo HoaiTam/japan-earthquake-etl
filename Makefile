@@ -148,12 +148,31 @@ smoke-gold-storage: check-config-local ## GLD-03 six QA Iceberg snapshots, chưa
 	@$(COMPOSE) --profile gold run --rm --no-deps --pull never spark-gold-qa
 
 .PHONY: ci ci-docs ci-java ci-airflow test-ci-workflow test-security-audit audit-security audit-security-runtime
+.PHONY: ci-plan ci-docs-base ci-java-impact ci-airflow-impact ci-pilot-impact ci-suite
+
+ci-suite: ## Chạy nhóm test chức năng/task; đặt CI_COMPONENT=java|airflow và CI_SUITE=<id từ ci-plan>
+	@python3 scripts/ci-impact.py run-suite
+
+ci-plan: ## In impact plan; CI_EVENT_NAME=pull_request CI_BASE_SHA=<base> CI_HEAD_SHA=HEAD để xem PR local
+	@python3 scripts/ci-impact.py plan
+
+ci-java-impact: ## Java theo impact (leaf feature/ML), default/fallback full; không Docker
+	@python3 scripts/ci-impact.py run --component java
+
+ci-airflow-impact: ## Airflow khi bị ảnh hưởng; default/fallback full, không Docker
+	@python3 scripts/ci-impact.py run --component airflow
+
+ci-pilot-impact: ## Pilot synthetic checks khi bị ảnh hưởng; cần tests/ci/requirements.txt
+	@python3 scripts/ci-impact.py run --component pilot
 
 ci: ci-docs ci-java ci-airflow ## Cùng ba nhóm check CI; cần PyYAML, JDK17, Compose CLI, jq/rg; không start service
 
 ci-docs: ## Docs/contracts/secret hygiene/Compose tĩnh; không đọc .env riêng hoặc gọi nguồn thật
-	@$(MAKE) test-contracts
+	@$(MAKE) ci-docs-base
 	@$(MAKE) test-pilot PILOT_PYTHON=python3
+
+ci-docs-base: ## Always-on CI guards; pilot tests được chọn riêng theo impact, không Docker daemon
+	@$(MAKE) test-contracts
 	@$(MAKE) test-security-audit
 	@$(MAKE) test-docker-runtime
 	@$(MAKE) check-config ENV_FILE=/dev/null

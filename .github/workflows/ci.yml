@@ -18,10 +18,35 @@ env:
   TZ: UTC
   PYTHONDONTWRITEBYTECODE: "1"
   PYTHONHASHSEED: "0"
+  CI_EVENT_NAME: ${{ github.event_name }}
+  CI_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+  CI_HEAD_SHA: ${{ github.sha }}
 
 jobs:
+  impact:
+    name: impact-plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      java: ${{ steps.impact.outputs.java }}
+      airflow: ${{ steps.impact.outputs.airflow }}
+      pilot: ${{ steps.impact.outputs.pilot }}
+      java_matrix: ${{ steps.impact.outputs.java_matrix }}
+      airflow_matrix: ${{ steps.impact.outputs.airflow_matrix }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Resolve impact
+        id: impact
+        run: python3 scripts/ci-impact.py plan --github-output "$GITHUB_OUTPUT" --summary "$GITHUB_STEP_SUMMARY"
+
   docs-contracts:
     name: docs-contracts
+    needs: [impact, pilot]
+    if: ${{ always() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -51,7 +76,7 @@ jobs:
           tar -xzf "$task_actionlint_dir/actionlint.tar.gz" -C "$task_actionlint_dir" actionlint
           "$task_actionlint_dir/actionlint" .github/workflows/ci.yml
       - name: Check contracts, configuration and Compose
-        run: make ci-docs
+        run: make ci-docs-base
       - name: Check changed lines for whitespace errors
         env:
           CI_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
@@ -63,19 +88,34 @@ jobs:
               ;;
             *) git diff --check "$CI_BASE_SHA" "$CI_HEAD_SHA" ;;
           esac
+      - name: Require planner and applicable DAT-02 suite
+        env:
+          CI_PLANNER_RESULT: ${{ needs.impact.result }}
+          CI_MODE: ${{ needs.impact.outputs.pilot }}
+          CI_SUITE_RESULT: ${{ needs.pilot.result }}
+        run: python3 scripts/ci-impact.py gate
 
-  java-spark:
-    name: java-spark
+  java-tests:
+    name: Java / ${{ matrix.suite }}
+    needs: impact
+    if: ${{ needs.impact.outputs.java != 'none' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix: ${{ fromJSON(needs.impact.outputs.java_matrix) }}
     env:
       SPARK_LOCAL_IP: 127.0.0.1
       SPARK_LOCAL_HOSTNAME: localhost
+      CI_COMPONENT: java
+      CI_SUITE: ${{ matrix.suite }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
       - name: Set up Java 17
         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
@@ -86,19 +126,47 @@ jobs:
             pom.xml
             spark/pom.xml
             .mvn/wrapper/maven-wrapper.properties
-      - name: Build, test and package
-        run: make ci-java
+      - name: Build, test and package functional suite
+        run: make ci-suite
       - name: Upload Java test reports
         if: ${{ always() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: java-test-reports
+          name: java-test-reports-${{ matrix.suite }}
           path: spark/target/surefire-reports/*.xml
           if-no-files-found: warn
           retention-days: 7
 
-  airflow:
-    name: airflow
+  airflow-tests:
+    name: Control / ${{ matrix.suite }}
+    needs: impact
+    if: ${{ needs.impact.outputs.airflow != 'none' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix: ${{ fromJSON(needs.impact.outputs.airflow_matrix) }}
+    env:
+      CI_COMPONENT: airflow
+      CI_SUITE: ${{ matrix.suite }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - name: Test DAG contracts and control-plane logic
+        run: make ci-suite
+
+  pilot:
+    name: DAT-02 / pilot-handoff
+    needs: impact
+    if: ${{ needs.impact.outputs.pilot != 'none' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -106,9 +174,52 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
-      - name: Test DAG contracts and control-plane logic
-        run: make ci-airflow
+      - name: Install pilot validation tools
+        run: python3 -m pip install -r tests/ci/requirements.txt
+      - name: Test affected pilot loader and handoff
+        run: make ci-pilot-impact
+
+  # Keep the existing required-check names. An applicable failed/skipped/cancelled
+  # matrix (or a failed planner) must fail its gate, not be reported as success.
+  java-spark:
+    name: java-spark
+    needs: [impact, java-tests]
+    if: ${{ always() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Require every applicable Java suite
+        env:
+          CI_PLANNER_RESULT: ${{ needs.impact.result }}
+          CI_MODE: ${{ needs.impact.outputs.java }}
+          CI_SUITE_RESULT: ${{ needs.java-tests.result }}
+        run: python3 scripts/ci-impact.py gate
+
+  airflow:
+    name: airflow
+    needs: [impact, airflow-tests]
+    if: ${{ always() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Require every applicable control-plane suite
+        env:
+          CI_PLANNER_RESULT: ${{ needs.impact.result }}
+          CI_MODE: ${{ needs.impact.outputs.airflow }}
+          CI_SUITE_RESULT: ${{ needs.airflow-tests.result }}
+        run: python3 scripts/ci-impact.py gate

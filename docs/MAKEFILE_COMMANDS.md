@@ -18,6 +18,14 @@ cùng sửa `spark/target` hoặc nhiều smoke cùng thao tác một stack.
 make help
 ```
 
+CI có thêm `ci-plan`, `ci-java-impact`, `ci-airflow-impact`, `ci-pilot-impact`:
+PR chọn test theo diff, shared/unknown/main/manual vẫn full. Các lệnh cũ
+`make ci`/`ci-java`/`ci-airflow`/`ci-docs` vẫn full. Cách dùng PR context và
+giải thích none/selected/full ở [CI impact](./conventions_and_workflow/CI_IMPACT_TESTING.md).
+`CI_COMPONENT=java CI_SUITE=mld-03-windows make ci-suite` chạy riêng nhóm
+chức năng/task; dùng `CI_COMPONENT=airflow` cho control-plane. ID nhóm và
+phân biệt full project/full một nhóm ở [CI suites](./conventions_and_workflow/CI_TASK_SUITES.md).
+
 ## Chuẩn bị và khởi động
 
 MLD-04/DAT-02 có runtime host riêng: `prepare-ml-local`, `stage-ml-windows`,
@@ -80,12 +88,14 @@ make up-query
 
 ## Kiểm thử không gọi nguồn dữ liệu thật
 
-CI có ba entrypoint độc lập: `make ci-docs`, `make ci-java`, `make ci-airflow`;
+Ba entrypoint full giữ nguyên: `make ci-docs`, `make ci-java`, `make ci-airflow`;
 `make ci` chạy cả ba tuần tự. `ci-docs` cần PyYAML tại
-`tests/ci/requirements.txt`, jq/rg và Compose CLI, cố ý bỏ qua `.env` riêng và
+`tests/ci/requirements.txt` (PyYAML/pyarrow), jq/rg và Compose CLI, cố ý bỏ qua `.env` riêng và
 chỉ validate Compose với example. Java CI dùng JDK 17 và `clean verify`.
 `make test-ci-workflow` kiểm tra YAML guardrails; actionlint là bước riêng trên
-GitHub. Những target `test` hiện có không đổi dependency. Xem
+GitHub. Workflow PR dùng `ci-docs-base` always-on, `ci-suite` cho matrix
+Java/Airflow và `ci-pilot-impact` cho DAT-02; main/manual vẫn full inventory.
+Ba tên required gate cũ được giữ lại. Những target `test` hiện có không đổi dependency. Xem
 [CI guide](./conventions_and_workflow/CONTINUOUS_INTEGRATION.md) để cài công cụ,
 đọc checks và thiết lập chặn merge. Không target CI nào start service hoặc gọi nguồn thật.
 
