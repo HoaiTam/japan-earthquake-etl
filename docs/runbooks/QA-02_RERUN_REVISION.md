@@ -19,7 +19,7 @@ Evidence template hiện lưu tại [QA-02 JSON](../evidence/QA-02-prepared.json
 
 Script là CLI/helper chuẩn bị và kiểm tra report; nó chưa phải Airflow DAG. Runtime request dùng `qa-02-runtime-v1` và phải có `run_id`, `namespace`, `operation_id`, đường dẫn matrix/report cùng SHA-256 của matrix. Controller kiểm tra các field này, đọc matrix trước khi gọi runner và từ chối request thiếu field, sai checksum hoặc sai namespace.
 
-Runtime report chỉ được nhận khi dùng đúng matrix checksum, đủ cả tám case với operation ID khớp, mỗi case có `PASS`, input pins, snapshot trước/sau, `evidence_ref` và reconciliation PASS cho mọi assertion bắt buộc. Summary phải khớp kết quả từng case và không còn `FAIL` hoặc `PENDING_RUNTIME`; cờ PASS tổng không được dùng làm bằng chứng duy nhất.
+Runtime report dùng contract `qa-02-report-v2`. Controller chỉ nhận report khi dùng đúng matrix checksum, đủ cả tám case với operation ID khớp, mỗi case có `PASS` và input pins đúng. `snapshots.before/after` phải là danh sách không rỗng gồm `{table, snapshot_id}` hợp lệ; `evidence_ref` phải trỏ tới file đã kiểm tra trong cùng namespace report, kèm SHA-256 và identity của run/case/operation. Reconciliation phải có `check` khớp assertion trong matrix, dữ liệu `before/after` không null/rỗng và phép đối soát tương ứng: count/key không đổi, current row duy nhất, revision/release mới, history/lineage giữ lại, partition state, scope ngoài phạm vi hoặc snapshot cũ đọc được. Summary phải khớp kết quả từng case và không còn `FAIL` hoặc `PENDING_RUNTIME`; cờ PASS tổng không được dùng làm bằng chứng duy nhất.
 
 Smoke runtime sau khi ORC-07 sẵn sàng:
 
