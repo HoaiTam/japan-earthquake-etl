@@ -6,6 +6,12 @@
     "reason": "Reviewed fixed dummy userinfo in invalid QA receipt; asserts no credential echo"
   },
   {
+    "path": "airflow/tests/test_source_readiness_qa.py (history)",
+    "category": "credential_uri",
+    "normalized_sha256": "1c96d8f5d7a81057ac158b00712efa2bf3480c763fc6cc8ac84cf98c66d45b3c",
+    "reason": "Reviewed historical dummy URI in failure redaction test; no external credential"
+  },
+  {
     "path": "airflow/tests/test_source_schedule_runtime.py",
     "category": "credential_uri",
     "normalized_sha256": "3ef1bdc7db9a58cb2c9a3f37447be8c7f301a7ad7fd464016634ed1f7623647a",

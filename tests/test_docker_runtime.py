@@ -30,7 +30,7 @@ class DockerDouble:
         for _, _, clients, _ in runtime.COMPONENTS.values():
             names.update(clients)
         names.update(runtime.BUILD_SERVICES)
-        qa_clients = ("spark-gold-qa", "gold-verification-qa", "dataset-manifest-qa", "gold-input-audit-qa", "mainshock-window-qa", "mli-03-import-results", "qa-02-rerun-revision")
+        qa_clients = ("spark-gold-qa", "gold-verification-qa", "dataset-manifest-qa", "gold-input-audit-qa", "mainshock-window-qa", "mli-03-import-results", "qa-02-rerun-revision", "qa-03-jma-historical-backfill")
         names.update(qa_clients)
         for name in sorted(names):
             if name.startswith("airflow-") and name not in ("airflow-postgres", "airflow-init") or name in ("usgs-live-smoke", "jma-live-qa", "source-readiness-qa"):
@@ -41,7 +41,7 @@ class DockerDouble:
                 image = "local-minio:verified"
             elif name in ("minio-init", "minio-smoke"):
                 image = "local-mc:verified"
-            elif name in ("spark-gold-qa", "gold-verification-qa", "dataset-manifest-qa", "mli-03-import-results"):
+            elif name in ("spark-gold-qa", "gold-verification-qa", "dataset-manifest-qa", "mli-03-import-results", "qa-03-jma-historical-backfill"):
                 image = "local-gold:verified"
             elif name == "trino-smoke":
                 image = "trino:test@sha256:" + "a" * 64
@@ -167,6 +167,11 @@ class DockerRuntimeTests(unittest.TestCase):
     def test_qa02_client_is_preflighted_with_verified_runtime_mounts(self):
         self.artifacts()
         self.context().check("ml", client="qa-02-rerun-revision")
+        self.assert_read_only()
+
+    def test_qa03_client_is_preflighted_with_gold_runtime_dependencies(self):
+        self.artifacts()
+        self.context().check("gold", client="qa-03-jma-historical-backfill")
         self.assert_read_only()
 
     def test_usgs_does_not_require_unrelated_spark_or_trino(self):

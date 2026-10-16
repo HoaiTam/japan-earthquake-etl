@@ -1,69 +1,123 @@
 {
   "capacity": {
+    "download_count": null,
     "download_reused": null,
     "duration_seconds": null,
     "peak_memory_mb": null,
-    "resource_failures": 0,
+    "resource_failures": null,
     "verified_archive_reused": null
   },
   "cases": [
     {
       "case_id": "resume_after_failure",
       "expected": {
-        "duplicate": "none",
-        "resume": "same_verified_archive"
+        "duplicate_count_delta": 0,
+        "readback": true,
+        "same_verified_archive": true
       },
+      "operation_id": "qa03-resume-001",
       "status": "PENDING_RUNTIME"
     },
     {
       "case_id": "reuse_verified_archive",
       "expected": {
-        "download": "zero_when_sha_matches",
-        "verification": "retained"
+        "archive_sha256_after": "pinned",
+        "archive_sha256_before": "pinned",
+        "download_count": 0,
+        "verification_retained": true
       },
+      "operation_id": "qa03-reuse-001",
       "status": "PENDING_RUNTIME"
     },
     {
       "case_id": "changed_release",
       "expected": {
-        "old_snapshot": "readable",
-        "release": "new_release_only"
+        "new_catalog_release": "new",
+        "new_snapshot_id": "new",
+        "old_catalog_release": "pinned",
+        "old_snapshot_id": "pinned",
+        "old_snapshot_readable": true
       },
+      "operation_id": "qa03-release-001",
       "status": "PENDING_RUNTIME"
     },
     {
       "case_id": "same_release_different_bytes",
       "expected": {
-        "action": "reject_or_new_identity",
-        "silent_overwrite": false
+        "data_unchanged": true,
+        "downstream_blocked": true,
+        "new_sha256": "different",
+        "old_sha256": "pinned",
+        "rejected": true
       },
+      "operation_id": "qa03-bytes-001",
       "status": "PENDING_RUNTIME"
     },
     {
       "case_id": "retention_outside_scope",
       "expected": {
-        "scope": "outside_year_month_unchanged"
+        "outside_scope_after": "equal",
+        "outside_scope_before": "pinned",
+        "snapshots": "readable"
       },
+      "operation_id": "qa03-retention-001",
       "status": "PENDING_RUNTIME"
     },
     {
       "case_id": "resource_guard",
       "expected": {
-        "batch": "one_closed_month",
-        "failure": "bounded_and_resumable"
+        "batch_months": "one_closed_month",
+        "guard_triggered": true,
+        "recovery_passed": true,
+        "scope_months": "pinned"
       },
+      "operation_id": "qa03-resource-001",
       "status": "PENDING_RUNTIME"
     }
   ],
-  "coverage": {
-    "remaining_period": "not covered by this representative run",
-    "selected_months": [
-      "1997-09",
-      "1997-10",
-      "2000-01",
-      "2023-09"
-    ]
-  },
+  "coverage": [
+    {
+      "halo_end_utc": "1997-10-01T00:00:16Z",
+      "halo_start_utc": "1997-08-31T23:59:44Z",
+      "month": "1997-09",
+      "required_archives": [
+        "h199701.zip",
+        "h199710.zip"
+      ],
+      "utc_end": "1997-10-01T00:00:00Z",
+      "utc_start": "1997-09-01T00:00:00Z"
+    },
+    {
+      "halo_end_utc": "1997-11-01T00:00:16Z",
+      "halo_start_utc": "1997-09-30T23:59:44Z",
+      "month": "1997-10",
+      "required_archives": [
+        "h199710.zip"
+      ],
+      "utc_end": "1997-11-01T00:00:00Z",
+      "utc_start": "1997-10-01T00:00:00Z"
+    },
+    {
+      "halo_end_utc": "2000-02-01T00:00:16Z",
+      "halo_start_utc": "1999-12-31T23:59:44Z",
+      "month": "2000-01",
+      "required_archives": [
+        "h2000.zip"
+      ],
+      "utc_end": "2000-02-01T00:00:00Z",
+      "utc_start": "2000-01-01T00:00:00Z"
+    },
+    {
+      "halo_end_utc": "2023-10-01T00:00:16Z",
+      "halo_start_utc": "2023-08-31T23:59:44Z",
+      "month": "2023-09",
+      "required_archives": [
+        "h2023.zip"
+      ],
+      "utc_end": "2023-10-01T00:00:00Z",
+      "utc_start": "2023-09-01T00:00:00Z"
+    }
+  ],
   "dependency_gate": {
     "JMA-05": "Done",
     "ORC-07": "Ready",
@@ -78,46 +132,50 @@
     "synthetic_revision_fixture": true,
     "timezone": "UTC"
   },
+  "inventory_sha256": "f599b442b2b4a3e024adf2b7baa2b27f731a7638ab121af5233ec5f4572d1963",
+  "matrix_sha256": "033d1d4ddc792787e7bf9d1a90593558570bcf6ac8ceab161ee65e33f2babfe6",
   "next_gate": "Run closed-month batches through ORC-07 real adapters and attach Bronze-to-Published counts/snapshots.",
-  "report_version": "qa-03-report-v1",
+  "report_version": "qa-03-report-v2",
   "runtime_complete": false,
   "scope": [
     {
-      "months": [
-        "1997-09"
-      ],
-      "release": "h199701",
+      "archive_identity": "h199701.zip",
+      "member_name": "h199701",
+      "month": "1997-09",
       "segment": "jan-sep",
       "year": 1997
     },
     {
-      "months": [
-        "1997-10"
-      ],
-      "release": "h199710",
+      "archive_identity": "h199710.zip",
+      "member_name": "h199710",
+      "month": "1997-10",
       "segment": "oct-dec",
       "year": 1997
     },
     {
-      "months": [
-        "2000-01"
-      ],
-      "release": "h2000",
+      "archive_identity": "h2000.zip",
+      "member_name": "h2000",
+      "month": "2000-01",
       "segment": "full-year",
       "year": 2000
     },
     {
-      "months": [
-        "2023-09"
-      ],
-      "release": "h2023",
+      "archive_identity": "h2023.zip",
+      "member_name": "h2023",
+      "month": "2023-09",
       "segment": "full-year",
       "year": 2023
     }
   ],
+  "snapshots": {
+    "bootstrap": true,
+    "refs": []
+  },
   "status": "PREPARED",
   "summary": {
     "case_count": 6,
+    "failed": 0,
+    "passed": 0,
     "pending_runtime": 6,
     "scope_count": 4
   },
