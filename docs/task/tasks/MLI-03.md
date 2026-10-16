@@ -101,6 +101,6 @@ Thêm acceptance case reject DAT-02 DEVELOPMENT_PILOT/pilot_result_manifest và 
 - Bản sửa review PR #79 thêm fixture Docker cho runner MLI-03; reserve experiment ID/fingerprint trước khi ghi result; giữ canonical journal và ghi retry failure trong `attempts/`; pin request SHA-256 theo identity DagRun thật, tách lease owner và yêu cầu receipt release trước completion.
 - Java/Spark: nhóm regression MLI-03 (`ResultBundleContractTest`, `MlResultImportJobTest`, `TrustedDatasetResolverTest`, `MlResultPublicationIcebergTest`) đạt 19/19 trên local Spark/Iceberg.
 - Airflow: `airflow/tests` đạt 223/223 trong image Airflow; DAG import đăng ký đủ 9 task. `tests/ci` đạt 37/37 trong cùng image.
-- Docker lifecycle: test preflight riêng cho `mli-03-import-results` đạt 1/1. Full suite chưa xác nhận: host Windows thiếu POSIX shell/quyền symlink; container không chạy được các `make -n` probes vì không có `make` khả dụng. `docs-contracts` CI cần xanh trên commit đã push.
+- Docker lifecycle: test preflight riêng cho `mli-03-import-results` đạt 1/1. Full suite tại workspace bị giới hạn bởi shell/symlink trên Windows và thiếu `make` trong container; GitHub Actions Project CI #54 trên commit `e46faa3` đã xanh toàn bộ, gồm `docs-contracts`.
 - `py_compile` và `git diff --check` đạt. Audit bảo mật có 0 findings, còn 3 coverage items và `can_mark_done=false`.
 - Chưa chạy import runtime trên MinIO/Catalog/Trino hoặc verify exact snapshots. Task vẫn `In Progress`; PR #79 còn mở, chưa merge.
