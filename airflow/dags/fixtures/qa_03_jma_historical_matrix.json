@@ -1,0 +1,29 @@
+{
+  "task_id": "QA-03",
+  "matrix_version": "qa-03-v1",
+  "dependency_gate": {
+    "ORC-07": "Ready",
+    "JMA-05": "Done",
+    "acceptance": "PENDING_REAL_ADAPTERS"
+  },
+  "input_pins": {
+    "timezone": "UTC",
+    "namespace": "qa-03-jma-backfill",
+    "synthetic_revision_fixture": true,
+    "resource_guard": {"max_archive_bytes": 33554432, "batch": "closed_month"}
+  },
+  "scope": [
+    {"year": 1997, "segment": "jan-sep", "months": ["1997-09"], "release": "h199701"},
+    {"year": 1997, "segment": "oct-dec", "months": ["1997-10"], "release": "h199710"},
+    {"year": 2000, "segment": "full-year", "months": ["2000-01"], "release": "h2000"},
+    {"year": 2023, "segment": "full-year", "months": ["2023-09"], "release": "h2023"}
+  ],
+  "cases": [
+    {"case_id": "resume_after_failure", "expected": {"resume": "same_verified_archive", "duplicate": "none"}},
+    {"case_id": "reuse_verified_archive", "expected": {"download": "zero_when_sha_matches", "verification": "retained"}},
+    {"case_id": "changed_release", "expected": {"release": "new_release_only", "old_snapshot": "readable"}},
+    {"case_id": "same_release_different_bytes", "expected": {"action": "reject_or_new_identity", "silent_overwrite": false}},
+    {"case_id": "retention_outside_scope", "expected": {"scope": "outside_year_month_unchanged"}},
+    {"case_id": "resource_guard", "expected": {"batch": "one_closed_month", "failure": "bounded_and_resumable"}}
+  ]
+}

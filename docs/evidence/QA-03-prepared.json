@@ -1,0 +1,126 @@
+{
+  "capacity": {
+    "download_reused": null,
+    "duration_seconds": null,
+    "peak_memory_mb": null,
+    "resource_failures": 0,
+    "verified_archive_reused": null
+  },
+  "cases": [
+    {
+      "case_id": "resume_after_failure",
+      "expected": {
+        "duplicate": "none",
+        "resume": "same_verified_archive"
+      },
+      "status": "PENDING_RUNTIME"
+    },
+    {
+      "case_id": "reuse_verified_archive",
+      "expected": {
+        "download": "zero_when_sha_matches",
+        "verification": "retained"
+      },
+      "status": "PENDING_RUNTIME"
+    },
+    {
+      "case_id": "changed_release",
+      "expected": {
+        "old_snapshot": "readable",
+        "release": "new_release_only"
+      },
+      "status": "PENDING_RUNTIME"
+    },
+    {
+      "case_id": "same_release_different_bytes",
+      "expected": {
+        "action": "reject_or_new_identity",
+        "silent_overwrite": false
+      },
+      "status": "PENDING_RUNTIME"
+    },
+    {
+      "case_id": "retention_outside_scope",
+      "expected": {
+        "scope": "outside_year_month_unchanged"
+      },
+      "status": "PENDING_RUNTIME"
+    },
+    {
+      "case_id": "resource_guard",
+      "expected": {
+        "batch": "one_closed_month",
+        "failure": "bounded_and_resumable"
+      },
+      "status": "PENDING_RUNTIME"
+    }
+  ],
+  "coverage": {
+    "remaining_period": "not covered by this representative run",
+    "selected_months": [
+      "1997-09",
+      "1997-10",
+      "2000-01",
+      "2023-09"
+    ]
+  },
+  "dependency_gate": {
+    "JMA-05": "Done",
+    "ORC-07": "Ready",
+    "acceptance": "PENDING_REAL_ADAPTERS"
+  },
+  "input_pins": {
+    "namespace": "qa-03-jma-backfill",
+    "resource_guard": {
+      "batch": "closed_month",
+      "max_archive_bytes": 33554432
+    },
+    "synthetic_revision_fixture": true,
+    "timezone": "UTC"
+  },
+  "next_gate": "Run closed-month batches through ORC-07 real adapters and attach Bronze-to-Published counts/snapshots.",
+  "report_version": "qa-03-report-v1",
+  "runtime_complete": false,
+  "scope": [
+    {
+      "months": [
+        "1997-09"
+      ],
+      "release": "h199701",
+      "segment": "jan-sep",
+      "year": 1997
+    },
+    {
+      "months": [
+        "1997-10"
+      ],
+      "release": "h199710",
+      "segment": "oct-dec",
+      "year": 1997
+    },
+    {
+      "months": [
+        "2000-01"
+      ],
+      "release": "h2000",
+      "segment": "full-year",
+      "year": 2000
+    },
+    {
+      "months": [
+        "2023-09"
+      ],
+      "release": "h2023",
+      "segment": "full-year",
+      "year": 2023
+    }
+  ],
+  "status": "PREPARED",
+  "summary": {
+    "case_count": 6,
+    "pending_runtime": 6,
+    "scope_count": 4
+  },
+  "synthetic_revision_fixture": true,
+  "task_id": "QA-03"
+}

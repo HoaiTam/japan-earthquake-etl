@@ -20,6 +20,11 @@ RUN_SUMMARY_ROOT ?= staging/run-summary
 RUN_SUMMARY_DAG ?= orc_01_etl_pipeline
 RUN_SUMMARY_RUN_ID ?=
 SECURITY_REPORT ?= staging/sec-01-report.json
+QA_03_MATRIX ?= airflow/dags/fixtures/qa_03_jma_historical_matrix.json
+QA_03_JSON ?= staging/qa-03/qa-03.json
+QA_03_MARKDOWN ?= staging/qa-03/qa-03.md
+QA_03_RUNTIME_REQUEST ?=
+QA_03_RUNTIME_COMMAND ?=
 
 COMPOSE = docker compose --env-file "$(ENV_FILE)" -f "$(COMPOSE_FILE)"
 RUNTIME_ENV = ENV_FILE="$(ENV_FILE)" COMPOSE_FILE="$(COMPOSE_FILE)"
@@ -47,6 +52,7 @@ COMPONENT_SMOKES := smoke-minio smoke-airflow smoke-spark smoke-query smoke-usgs
 .PHONY: test-recovery smoke-recovery smoke-resource-pilot maintenance-preview
 .PHONY: test-silver-integration smoke-silver-integration
 .PHONY: test-ml-audit smoke-ml-audit
+.PHONY: test-qa-03 smoke-qa-03
 .PHONY: test-ml-window smoke-ml-window resume-ml-window
 .PHONY: prepare-ml-local stage-ml-windows test-ml-feature ml-features-local ml-pilot-local pilot-env test-pilot inspect-pilot jupyter-pilot
 .PHONY: pack-pilot
@@ -134,6 +140,18 @@ test-ml-audit: ## MLD-02 Gold input audit, MAXC completeness estimator, sensitiv
 smoke-ml-audit: check-config-local ## MLD-02 Published JMA audit/Mc QA; không tự build/start
 	@$(RUNTIME_CHECK) --component ml --client gold-input-audit-qa
 	@$(COMPOSE) --profile gold run --rm --no-deps --pull never gold-input-audit-qa
+
+test-qa-03: ## QA-03 historical scope/resource/reuse matrix và report checks; không gọi nguồn
+	@python3 -m unittest discover -s airflow/tests -p 'test_qa_03_jma_historical_backfill.py'
+	@python3 airflow/dags/qa_03_jma_historical_backfill.py --matrix "$(QA_03_MATRIX)" --json "$(QA_03_JSON)" --markdown "$(QA_03_MARKDOWN)"
+
+smoke-qa-03: check-config-local ## QA-03 Bronze-to-Published backfill; cần ORC-07 và request runtime đã pin
+	@test -n "$(QA_03_RUNTIME_REQUEST)" || { echo 'Set QA_03_RUNTIME_REQUEST=/opt/pipeline/staging/.../request.json'; exit 2; }
+	@test -n "$(QA_03_RUNTIME_COMMAND)" || { echo 'Set QA_03_RUNTIME_COMMAND to the JMA backfill runner'; exit 2; }
+	@$(RUNTIME_CHECK) --component source --client qa-03-jma-historical-backfill
+	@$(COMPOSE) run --rm --no-deps --pull never -e PYTHONPATH=/opt/airflow/dags \
+		-e QA_03_RUNTIME_COMMAND="$(QA_03_RUNTIME_COMMAND)" \
+		airflow-dag-processor python3 /opt/airflow/dags/qa_03_jma_historical_backfill.py --live "$(QA_03_RUNTIME_REQUEST)"
 .PHONY: test-gold-storage smoke-gold-storage
 .PHONY: test-gold-publication smoke-gold-publication test-dataset-manifest smoke-dataset-manifest
 
