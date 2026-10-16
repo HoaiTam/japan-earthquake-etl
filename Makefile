@@ -50,6 +50,22 @@ COMPONENT_SMOKES := smoke-minio smoke-airflow smoke-spark smoke-query smoke-usgs
 .PHONY: test-ml-window smoke-ml-window resume-ml-window
 .PHONY: prepare-ml-local stage-ml-windows test-ml-feature ml-features-local ml-pilot-local pilot-env test-pilot inspect-pilot jupyter-pilot
 .PHONY: pack-pilot
+.PHONY: prepare-full-month test-full-month qa-full-month-live full-month-local
+FULL_MONTH_ROOT ?= staging/orc06-full-month
+FULL_MONTH_REQUEST ?=
+
+prepare-full-month: ## ORC-06 chuẩn bị JAR/classpath host một lần; không Docker, không lấy dữ liệu
+	@python3 scripts/local-ml.py prepare
+
+test-full-month: ## ORC-06 synthetic coverage/revision/closure/state tests; Spark local, không nguồn thật/Docker
+	@python3 -m unittest discover -s tests -p 'test_full_month_*.py'
+	@SPARK_LOCAL_IP=127.0.0.1 SPARK_LOCAL_HOSTNAME=localhost ./mvnw --batch-mode --no-transfer-progress -pl spark -am test -Dtest=FullMonthStateResolverTest -Dsurefire.failIfNoSpecifiedTests=false
+
+qa-full-month-live: ## ORC-06 public captures đủ tháng 2023-09, file-backed QA; cần prepare trước, không MinIO/Gold write
+	@python3 scripts/full-month-state.py live --root "$(FULL_MONTH_ROOT)"
+
+full-month-local: ## ORC-06 replay request exact trên file-backed stores trong FULL_MONTH_ROOT, không tải/build/start
+	@python3 scripts/full-month-state.py local --request "$(FULL_MONTH_REQUEST)" --root "$(FULL_MONTH_ROOT)"
 ML_WINDOW_INPUT ?= staging/ml-window-inputs/reproduction-v1
 ML_TRINO_URL ?= http://127.0.0.1:8081
 ML_SCALING ?= config/ml/feature_scaling_global_dev_v1.json
@@ -173,6 +189,7 @@ ci-docs: ## Docs/contracts/secret hygiene/Compose tĩnh; không đọc .env riê
 
 ci-docs-base: ## Always-on CI guards; pilot tests được chọn riêng theo impact, không Docker daemon
 	@$(MAKE) test-contracts
+	@python3 -m unittest discover -s tests -p 'test_full_month_*.py'
 	@$(MAKE) test-security-audit
 	@$(MAKE) test-docker-runtime
 	@$(MAKE) check-config ENV_FILE=/dev/null

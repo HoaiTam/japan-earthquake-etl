@@ -12,7 +12,9 @@ hoặc sample vài dòng làm replacement một tháng sản xuất. Nếu event
 tháng, cần cả tháng cũ và mới. Upstream chưa cung cấp full-month state thì dừng;
 resolver thuộc [ORC-06](../task/tasks/ORC-06.md), adapter whole daily/backfill
 thuộc [ORC-07](../task/tasks/ORC-07.md), QA-01 chỉ nghiệm thu; không suy
-full-month từ mẫu SLV-09.
+full-month từ mẫu SLV-09. Resolver/proof ORC-06 hiện có trong
+[full-month contract](./FULL_MONTH_STATE_CONTRACT.md); consume exact receipt,
+không tự gắn COMPLETE_MONTHS từ overlap hoặc file-backed QA.
 
 `affected_months` explicit, `baseline_snapshots` đủ sáu bảng (0 = chưa có snapshot).
 Không infer latest khi retry. Request pin `run_context`, Silver SHA, code/config

@@ -38,10 +38,16 @@ Giữ mức tăng tốc tham khảo **32h/người**, tổng 96h, như tuần 4.
 
 | Assignee | Task tuần 5 | Effort task mới | Tồn tuần trước | Review/tích hợp/dự phòng | Tổng budget |
 |---|---|---:|---:|---:|---:|
-| HoaiTam | DAT-02, ORC-07, MLI-02, QA-01 | 24h | tối đa 4h điều phối/nghiệm thu còn lại | 4h | 32h |
-| ThanhTris | ORC-06, MLI-03, QA-02, QA-03 | 25h | không tính lại effort cũ | 7h | 32h |
+| HoaiTam | DAT-02, ORC-06, ORC-07, MLI-02, QA-01 | 32h | tối đa 4h điều phối/nghiệm thu còn lại | 4h | 40h |
+| ThanhTris | MLI-03, QA-02, QA-03 | 17h | không tính lại effort cũ | 7h | 24h |
 | rosy179 | MLD-04, MLD-05, EXP-01, EXP-02 | 23h | không tính lại effort cũ | 9h | 32h |
 | **Tổng** | **12 task Core** | **72h** | **4h** | **20h** | **96h** |
+
+Cập nhật 2026-10-15: HoaiTam nhận triển khai ORC-06 (8h) thay ThanhTris.
+Phân bổ task 24/25/23h ban đầu chuyển thành 32/17/23h; tổng task/effort không
+đổi. Nếu giữ nguyên buffer thì budget thành 40/24/32h, **không còn cân bằng
+32h/người**; cần replan capacity trước khi cam kết cả tuần. Đây không phải
+thêm 8h mới vào backlog. Chưa đổi assignee MLD-05 trong PR ORC-06 này.
 
 4h là budget dự kiến cho phần còn lại, **không phải estimate hoàn thành cả
 FND-01/ORC-02/SEC-01**; owner phải báo remaining effort sau preflight. Security
@@ -56,6 +62,7 @@ recovery scope/effort không bị giảm, chỉ đổi lịch để ưu tiên ki
 
 | Task | Làm gì / có gì | Dùng để làm gì / bàn giao | Bắt đầu ngay / gate nghiệm thu |
 |---|---|---|---|
+| [ORC-06](./tasks/ORC-06.md), 8h | Nhận triển khai từ ThanhTris: resolver state đủ tháng và coverage registry | Bàn giao full-month Silver cho ORC-07 | Ba dependency đã Done; vẫn phải có bounded real evidence |
 | [ORC-07](./tasks/ORC-07.md), 8h | Đóng gói real phase runner; nối exact Bronze, full-month Silver, Gold commit, Trino verify, publish và receipts/lease | Một DAG thật kết thúc Published, không dùng mock hoặc nối các smoke namespace rời | Contract tests/mocks ngay; real gate cần ORC-02 và ORC-06 |
 | [MLI-02](./tasks/MLI-02.md), 5h | DAG pin → audit/Mc → candidates → features → export; retry/summaries, manual bundle handoff | Build dataset độc lập daily ETL, không trigger Colab tự động | Graph/mock ngay; Done cần MLD-05 đúng lifecycle |
 | [QA-01](./tasks/QA-01.md), 5h | Script/checklist một daily interval đến Gold Published, count/snapshot/lineage report | Nghiệm thu độc lập các adapters, chỉ ra đúng phase nếu fail | Test plan ngay; chạy thật sau ORC-07, không chỉ mock graph |
@@ -65,7 +72,6 @@ recovery scope/effort không bị giảm, chỉ đổi lịch để ưu tiên ki
 
 | Task | Làm gì / có gì | Dùng để làm gì / bàn giao | Bắt đầu ngay / gate nghiệm thu |
 |---|---|---|---|
-| [ORC-06](./tasks/ORC-06.md), 8h | Pin baseline/input coverage; resolve tháng cũ/mới; dựng current state đủ tháng, checksum/count proof | Handoff `COMPLETE_MONTHS` cho Gold; không mất event ngoài overlap | Fixtures từ SLV/GLD đã Done; real full-month readback là gate |
 | [MLI-03](./tasks/MLI-03.md), 7h | Result validator/import DAG, Iceberg tables, idempotency và Trino readback | Bundle đúng được CANDIDATE; bundle sai không serving, không sửa Gold | Dùng fixtures MLI-01 ngay, không chờ Colab; live dùng QA namespace pin dataset thật |
 | [QA-02](./tasks/QA-02.md), 5h | Rerun, duplicate, late revision USGS/JMA; scope/count/snapshot diff | Chứng minh revision chọn đúng, Bronze history còn và tháng ngoài scope không đổi | Chuẩn bị fixtures ngay; whole-pipeline acceptance sau ORC-07 |
 | [QA-03](./tasks/QA-03.md), 5h | Tập năm/release đại diện, resume/changed archive, count/resource/coverage report | Đánh giá khả năng mở rộng lịch sử và ghi chính xác phần coverage còn thiếu | Lập matrix ngay; integration sau ORC-07; không bắt buộc tải 40 năm trong task 5h |
@@ -90,6 +96,12 @@ assignee vẫn rosy179/HoaiTam theo task, reviewer unassigned. Xem task/evidence
 hiện hành và [runbook pilot](../runbooks/DAT-02_JUPYTER_PILOT.md).
 MLD-05/EXP-01 có thể nhận handoff; không suy EXP-02 hoặc Colab đã hoàn tất.
 Không thêm task/effort hoặc tự tái phân budget từ phần nghiệm thu sớm này.
+
+Cập nhật 2026-10-16: ORC-06 Done, có resolver/coverage/receipt và bounded
+file-backed full-month QA 09/2023, xem [evidence](../evidence/ORC-06.md).
+ORC-07 chuyển Ready vì hard dependencies đều Done; chưa có daily/manual
+MinIO → Gold → Trino publication acceptance, vẫn cần làm adapters và QA-01.
+Tháng đang mở không được ORC-06 v1 chứng nhận COMPLETE_MONTHS.
 
 ## 3. Nhóm HoaiTam làm trước — không chặn mọi người viết code
 
@@ -122,9 +134,9 @@ hoặc nghiệm thu FND-01/SEC-01 từ kết quả source-only.
 
 ## 4. Làm song song và thứ tự tích hợp
 
-- Ngày 1: cả ba người có thể code/test offline. ThanhTris bắt đầu ORC-06 +
+- Ngày 1: cả ba người có thể code/test offline. ThanhTris bắt đầu MLI-03 với
   MLI-01 fixtures; rosy179 bắt đầu MLD-04 + export fixture layout; HoaiTam
-  bắt đầu DAT-02 selection/schema + ORC-07 protocol/MLI-02 graph. Chốt version/checksum fixtures trước
+  nhận ORC-06, DAT-02 selection/schema + ORC-07 protocol/MLI-02 graph. Chốt version/checksum fixtures trước
   khi consumer dùng; không đổi contract ngầm.
 - Ngày 2–3: handoff full-month scope + pinned baseline; feature/schema/parts
   fixture; valid/invalid result fixture. Consumer vẫn dùng version đã chốt,
@@ -178,13 +190,14 @@ Official Colab research vẫn chờ MLD-05 EXPORTED.
 ## 6. Checklist review cuối tuần
 
 Kiểm tra kế hoạch offline hiện có: `make check-week-5-plan`,
-`make check-task-status`, `make test-week-5-plan` (12 regression cases, gồm EOF của file mới) và
+`make check-task-status`, `make test-week-5-plan` (13 regression cases, gồm EOF và owner ORC-06) và
 `make ci-docs`. Các checks này không build/start Docker, không lấy dữ liệu,
 không chứng minh runtime/research acceptance. Khi đổi roster/task/effort chính
 thức, cập nhật plan/metadata/index và planning checks/tests cùng PR.
 
 - [ ] Mỗi task có branch/PR riêng, assignee đúng, status metadata/Theo dõi/index đồng bộ.
-- [ ] ORC-06 proof đủ tháng; moved event có cả tháng cũ/mới; incomplete bị chặn.
+- [x] ORC-06 proof đủ tháng; moved event có cả tháng cũ/mới; incomplete bị chặn;
+      bounded file-backed acceptance, không thay ORC-07/QA-01 whole-pipeline gate.
 - [ ] ORC-07/QA-01 có Airflow run → exact Bronze → Silver → đủ Gold snapshots →
       Trino report → publication cùng identity; mock `published=false`.
 - [ ] QA-02/03 có rerun/revision/resume evidence, không mất dữ liệu ngoài scope;

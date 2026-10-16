@@ -334,11 +334,12 @@ DOC-01 final reproduction vẫn cần evidence đúng scope; không suy pilot th
 [Kế hoạch tuần 5](./WEEK_5_PARALLEL_PLAN.md), 19–25/10/2026, thay lịch tuần 4
 ở trên (mốc lịch sử). Ba assignee mới dùng account GitHub, không suy ánh xạ tên Trang.
 
-- HoaiTam: DAT-02/ORC-07/MLI-02/QA-01, 24h — nối ETL, build DAG và nghiệm thu.
-- ThanhTris: ORC-06/MLI-03/QA-02/QA-03, 25h — full-month state/import/revision/history.
+- HoaiTam: DAT-02/ORC-06/ORC-07/MLI-02/QA-01, 32h — full-month state, nối ETL, build DAG và nghiệm thu.
+- ThanhTris: MLI-03/QA-02/QA-03, 17h — import/revision/history; ORC-06 chuyển HoaiTam ngày 2026-10-15.
 - rosy179: MLD-04/MLD-05/EXP-01/EXP-02, 23h — feature/export và ba baseline.
 
-72h Core + 4h budget tồn + 20h review/tích hợp = 96h đề xuất. Full-month resolver
+72h Core + 4h budget tồn + 20h review/tích hợp = 96h đề xuất; sau chuyển ORC-06,
+buffer cũ cho ra 40/24/32h, cần replan capacity. Full-month resolver
 và real adapters được giao ORC-06/07 riêng để QA-01 chỉ nghiệm thu. Mọi nhóm viết
 fixtures/interface từ ngày đầu; real integration giữ các hard gates. Không đổi
 status carryover hoặc nâng pilot thành research-ready bằng một kế hoạch giao việc.
