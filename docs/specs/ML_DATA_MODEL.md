@@ -331,6 +331,13 @@ stateDiagram-v2
 thành `CANDIDATE` hoặc `APPROVED`. Run `REJECTED` là terminal; sửa artifact hoặc
 config phải tạo `experiment_run_id` mới.
 
+Import infrastructure failures are distinct from quality failures: a timeout,
+lost commit receipt, or unknown remote outcome keeps the run at
+`IMPORT_VALIDATING` with a durable operation journal so the exact snapshots can
+be reconciled and resumed. Checksum, schema, lineage, and Trino quality
+blockers transition to terminal `REJECTED`; only an independently verified
+snapshot bundle may transition to `CANDIDATE`.
+
 ## 8. `ml.sequence_membership`
 
 Grain và logical key:

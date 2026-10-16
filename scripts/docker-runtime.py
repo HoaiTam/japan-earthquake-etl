@@ -47,7 +47,7 @@ COMPONENTS = {
     "resource": (("minio", "spark-master", "spark-worker"), ("minio-init", "airflow-init"), ("spark-resource-pilot",), False),
     "backfill": (("minio",), ("minio-init", "airflow-init"), ("airflow-api-server",), False),
     "gold": (QUERY, ("minio-init", "airflow-init"), ("spark-gold-qa",), True),
-    "ml": (QUERY, ("minio-init", "airflow-init"), ("mainshock-window-qa",), True),
+    "ml": (QUERY, ("minio-init", "airflow-init"), ("mainshock-window-qa", "mli-03-import-results"), True),
 }
 ARTIFACTS = ("spark/target/japan-earthquake-etl-runner.jar",
              "spark/target/iceberg/iceberg-spark-runtime-3.5_2.12-1.10.1.jar",
@@ -69,7 +69,7 @@ def sha(path):
 def source_sha(root=ROOT):
     files = [root / name for name in ("pom.xml", "spark/pom.xml", ".dockerignore", "compose.yaml",
              "mvnw", ".mvn/wrapper/maven-wrapper.properties",
-             "compose/airflow/usgs-runner.sh", "compose/airflow/jma-runner.sh", "compose/airflow/bronze-reuse-runner.sh",
+             "compose/airflow/usgs-runner.sh", "compose/airflow/jma-runner.sh", "compose/airflow/bronze-reuse-runner.sh", "compose/airflow/mli-import-runner.sh",
              "compose/minio/Dockerfile", "compose/minio/.dockerignore",
              "compose/minio-client/Dockerfile", "compose/minio-client/.dockerignore", "compose/airflow/Dockerfile",
              "compose/spark/Dockerfile", "compose/spark/Dockerfile.gold-qa")]
@@ -230,7 +230,7 @@ class Runtime:
     def check(self, component, runner_jar=None, client=None):
         healthy, inits, clients, mounted = COMPONENTS[component]
         if client:
-            if client not in ("spark-gold-qa", "gold-verification-qa", "dataset-manifest-qa", "gold-input-audit-qa", "mainshock-window-qa") or component not in ("gold", "ml"):
+            if client not in ("spark-gold-qa", "gold-verification-qa", "dataset-manifest-qa", "gold-input-audit-qa", "mainshock-window-qa", "mli-03-import-results") or component not in ("gold", "ml"):
                 raise RuntimeFailure("UNSUPPORTED_QA_CLIENT")
             clients = (client,)
         required = tuple(dict.fromkeys((*healthy, *inits, *clients)))
