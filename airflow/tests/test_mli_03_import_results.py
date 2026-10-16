@@ -1,0 +1,78 @@
+"""Offline control-plane tests for the MLI-03 import handoff."""
+
+import json
+from pathlib import Path
+import sys
+import tempfile
+import unittest
+from unittest.mock import patch
+
+sys.path.insert(0, str(Path(__file__).parents[1] / "dags"))
+import mli_03_import_results as mli
+
+
+class Mli03ImportResultsTest(unittest.TestCase):
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        root = Path(self.temporary.name)
+        self.env = {
+            "MLI_STAGING_ROOT": str(root / "staging"),
+            "SOURCE_GUARD_ROOT": str(root / "guard"),
+            "MLI_IMPORT_RUNNER_COMMAND": "java -cp runner.jar ie212.earthquake.spark.ml.MlResultImportJob",
+        }
+        self.request_path = root / "request.json"
+        request = {
+            "dag_id": "mli_03_import_results",
+            "run_id": "mli03-qa-001",
+            "experiment_run_id": "exp_fixture",
+            "dataset_id": "ds_fixture",
+            "dataset_status": "EXPORTED",
+            "artifact_root": str(root / "bundle"),
+            "journal_root": str(root / "journal"),
+            "ml_namespace": "iceberg.ml_qa_0123456789abcdef",
+            "algorithm_name": "WINDOW",
+            "model_config_version": "1",
+            "candidates": [{"mainshock_event_id": "main", "candidate_event_id": "main", "role": "MAINSHOCK"}],
+        }
+        self.request_path.write_text(json.dumps(request), encoding="utf-8")
+
+    def report(self, request):
+        root = Path(request["journal_root"])
+        root.mkdir(parents=True, exist_ok=True)
+        (root / "import-report.json").write_text(json.dumps({
+            "experiment_run_id": request["experiment_run_id"], "dataset_id": request["dataset_id"],
+            "experiment_status": "CANDIDATE",
+            "readback": {"sequence_membership": 2, "sequence_summary": 1, "experiment_run": 1},
+        }), encoding="utf-8")
+
+    def test_success_requires_candidate_report_and_releases_lease(self):
+        def runner(command, **kwargs):
+            request = json.loads(Path(command[-1]).read_text(encoding="utf-8"))
+            self.report(request)
+            return type("Completed", (), {"returncode": 0})()
+
+        with patch.object(mli.subprocess, "run", side_effect=runner):
+            result = mli.run(self.request_path, self.env)
+        self.assertEqual("CANDIDATE", result["status"])
+        self.assertFalse((Path(self.env["SOURCE_GUARD_ROOT"]) / "owner.json").exists())
+
+    def test_runner_failure_keeps_lease_for_recovery(self):
+        completed = type("Completed", (), {"returncode": 1})()
+        with patch.object(mli.subprocess, "run", return_value=completed):
+            with self.assertRaisesRegex(mli.Mli03Error, "MLI03_IMPORT_RUNNER_FAILED"):
+                mli.run(self.request_path, self.env)
+        self.assertTrue((Path(self.env["SOURCE_GUARD_ROOT"]) / "owner.json").exists())
+
+    def test_pilot_and_non_exported_requests_fail_before_runner(self):
+        request = json.loads(self.request_path.read_text(encoding="utf-8"))
+        request["dataset_status"] = "DEVELOPMENT_PILOT"
+        self.request_path.write_text(json.dumps(request), encoding="utf-8")
+        with patch.object(mli.subprocess, "run") as runner:
+            with self.assertRaisesRegex(mli.Mli03Error, "IMP_UNKNOWN_DATASET"):
+                mli.run(self.request_path, self.env)
+        runner.assert_not_called()
+
+
+if __name__ == "__main__":
+    unittest.main()

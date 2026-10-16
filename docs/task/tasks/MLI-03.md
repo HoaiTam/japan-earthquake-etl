@@ -1,6 +1,6 @@
 ---
 task_id: "MLI-03"
-status: "Ready"
+status: "In Progress"
 week: 5
 block: "I - ML Integration"
 workstream: "Result import and Iceberg publish"
@@ -63,7 +63,7 @@ trước khi Colab sinh output thật.
 - **Làm gì / có gì:** Importer/validator/writer + physical ML mapping, same-run idempotency, partial commit/rejected states và snapshot-pinned readback.
 - **Dùng để làm gì / output:** Namespace ml.* được quality-gate trước CANDIDATE, không thêm label vào Gold và không tự APPROVED.
 - **Bắt đầu ngay / gate:** Dùng valid/invalid fixtures MLI-01 ngay; candidate IDs/dataset EXPORTED phải tồn tại ở QA namespace pin rõ. Fixture real-storage acceptance không là scientific approval, không chờ EXP-02 để code.
-- **Theo dõi:** Phân công không có nghĩa đã triển khai; chỉ đổi In Progress khi bắt đầu, Done khi đủ acceptance/evidence. Reviewer hiện unassigned, chưa có approval.
+- **Theo dõi:** Đã bắt đầu trên branch `feat/mli-03-validate-import-iceberg`; giữ reviewer `unassigned` cho đến khi có review độc lập.
 
 ## Điều chỉnh Jupyter-first — 2026-10-14
 
@@ -74,17 +74,18 @@ Thêm acceptance case reject DAT-02 DEVELOPMENT_PILOT/pilot_result_manifest và 
 
 ## Theo dõi
 
-- **Trạng thái:** Ready
+- **Trạng thái:** In Progress
 - **Assignee:** ThanhTris
 - **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Evidence / PR:** [Offline evidence](../../evidence/MLI-03-offline.md); chưa tạo PR
 - **Kỹ năng phù hợp:** Airflow, Spark validation, Iceberg transactions
 
 ## Checklist bàn giao
 
-- [ ] Deliverable và test/evidence tồn tại trong repository.
-- [ ] Acceptance criteria đã được kiểm tra.
-- [ ] Contract/docs đã cập nhật và không chứa secret/data dump.
+- [x] Importer, reader, writer, DAG và offline regression test đã có trong repository.
+- [x] Checksum/schema/grain/lineage/count và same-run reuse đã được kiểm tra bằng fixture MLI-01.
+- [x] Contract/docs/Make target đã cập nhật và không chứa secret/data dump.
+- [ ] Acceptance runtime trên MinIO/Catalog/Trino với exact snapshots chưa chạy.
 - [ ] Reviewer độc lập được khuyến nghị cho P0.
 
 ## Tài liệu liên quan
@@ -93,3 +94,11 @@ Thêm acceptance case reject DAT-02 DEVELOPMENT_PILOT/pilot_result_manifest và 
 - [ML logical data model](../../specs/ML_DATA_MODEL.md)
 - [MLI-01](./MLI-01.md)
 - [GLD-03](./GLD-03.md)
+- [MLI-03 result import runbook](../../runbooks/MLI-03_RESULT_IMPORT.md)
+
+## Evidence hiện có
+
+- Java: `ResultBundleContractTest` và `MlResultImportJobTest` đạt 9/9.
+- Python: `test_mli_03_import_results.py` đạt 3/3 trên Windows Python 3.14.
+- Compile: Maven Spark module với Java 17 đạt `BUILD SUCCESS`; `git diff --check` đạt.
+- Chưa có evidence MinIO/Catalog/Trino; vì vậy task vẫn `In Progress` và chưa tạo PR.

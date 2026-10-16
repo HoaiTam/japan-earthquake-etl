@@ -20,6 +20,8 @@ RUN_SUMMARY_ROOT ?= staging/run-summary
 RUN_SUMMARY_DAG ?= orc_01_etl_pipeline
 RUN_SUMMARY_RUN_ID ?=
 SECURITY_REPORT ?= staging/sec-01-report.json
+MLI_IMPORT_REQUEST ?=
+MLI_IMPORT_RUNNER_COMMAND ?=
 
 COMPOSE = docker compose --env-file "$(ENV_FILE)" -f "$(COMPOSE_FILE)"
 RUNTIME_ENV = ENV_FILE="$(ENV_FILE)" COMPOSE_FILE="$(COMPOSE_FILE)"
@@ -47,6 +49,7 @@ COMPONENT_SMOKES := smoke-minio smoke-airflow smoke-spark smoke-query smoke-usgs
 .PHONY: test-recovery smoke-recovery smoke-resource-pilot maintenance-preview
 .PHONY: test-silver-integration smoke-silver-integration
 .PHONY: test-ml-audit smoke-ml-audit
+.PHONY: test-mli-import smoke-mli-import
 .PHONY: test-ml-window smoke-ml-window resume-ml-window
 .PHONY: prepare-ml-local stage-ml-windows test-ml-feature ml-features-local ml-pilot-local pilot-env test-pilot inspect-pilot jupyter-pilot
 .PHONY: pack-pilot
@@ -134,6 +137,20 @@ test-ml-audit: ## MLD-02 Gold input audit, MAXC completeness estimator, sensitiv
 smoke-ml-audit: check-config-local ## MLD-02 Published JMA audit/Mc QA; không tự build/start
 	@$(RUNTIME_CHECK) --component ml --client gold-input-audit-qa
 	@$(COMPOSE) --profile gold run --rm --no-deps --pull never gold-input-audit-qa
+
+test-mli-import: ## MLI-03 offline bundle validation, journal idempotency và control-plane handoff
+	@python3 -m unittest discover -s airflow/tests -p 'test_mli_03_import_results.py'
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am \
+		-Dtest=ResultBundleContractTest,MlResultImportJobTest -Dsurefire.failIfNoSpecifiedTests=false test
+
+smoke-mli-import: check-config-local ## MLI-03 runtime import vào namespace QA; cần Docker/MinIO/Catalog/Trino và exact request
+	@test -n "$(MLI_IMPORT_REQUEST)" || { echo 'Set MLI_IMPORT_REQUEST=/opt/pipeline/staging/.../request.json'; exit 2; }
+	@test -n "$(MLI_IMPORT_RUNNER_COMMAND)" || { echo 'Set MLI_IMPORT_RUNNER_COMMAND to the container Spark runner'; exit 2; }
+	@$(RUNTIME_CHECK) --component ml --client mli-03-import-results
+	@$(COMPOSE) run --rm --no-deps --pull never \
+		-e PYTHONPATH=/opt/airflow/dags \
+		-e MLI_IMPORT_RUNNER_COMMAND="$(MLI_IMPORT_RUNNER_COMMAND)" \
+		airflow-dag-processor python3 /opt/airflow/dags/mli_03_import_results.py "$(MLI_IMPORT_REQUEST)"
 .PHONY: test-gold-storage smoke-gold-storage
 .PHONY: test-gold-publication smoke-gold-publication test-dataset-manifest smoke-dataset-manifest
 
