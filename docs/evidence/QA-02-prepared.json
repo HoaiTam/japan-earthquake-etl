@@ -1,0 +1,111 @@
+{
+  "cases": [
+    {
+      "case_id": "rerun_same_input",
+      "category": "retry",
+      "expected": {
+        "canonical_count": "unchanged",
+        "logical_keys": "unchanged",
+        "snapshots": "same_or_equivalent"
+      },
+      "operation_id": "qa02-rerun-001",
+      "status": "PENDING_RUNTIME"
+    },
+    {
+      "case_id": "duplicate_same_source",
+      "category": "duplicate",
+      "expected": {
+        "canonical_count": "unchanged",
+        "history": "retained",
+        "logical_keys": "one_current_row"
+      },
+      "operation_id": "qa02-duplicate-001",
+      "status": "PENDING_RUNTIME"
+    },
+    {
+      "case_id": "usgs_late_revision",
+      "category": "late_revision",
+      "expected": {
+        "current": "new_revision",
+        "history": "old_revision_retained",
+        "logical_keys": "same_key_new_revision"
+      },
+      "operation_id": "qa02-usgs-revision-001",
+      "status": "PENDING_RUNTIME"
+    },
+    {
+      "case_id": "jma_release_replacement",
+      "category": "late_revision",
+      "expected": {
+        "current": "replacement",
+        "old_release": "auditable",
+        "release": "new_catalog_release"
+      },
+      "operation_id": "qa02-jma-release-001",
+      "status": "PENDING_RUNTIME"
+    },
+    {
+      "case_id": "overlap_usgs_jma",
+      "category": "source_overlap",
+      "expected": {
+        "canonical_count": "no_double_count",
+        "lineage": "both_sources_retained"
+      },
+      "operation_id": "qa02-overlap-001",
+      "status": "PENDING_RUNTIME"
+    },
+    {
+      "case_id": "event_moves_month",
+      "category": "partition_move",
+      "expected": {
+        "history": "retained",
+        "new_partition": "current",
+        "old_partition": "superseded"
+      },
+      "operation_id": "qa02-month-move-001",
+      "status": "PENDING_RUNTIME"
+    },
+    {
+      "case_id": "jma_record_withdrawn",
+      "category": "withdrawal",
+      "expected": {
+        "canonical_count": "reconciled",
+        "current": "withdrawn_or_superseded",
+        "history": "retained"
+      },
+      "operation_id": "qa02-withdraw-001",
+      "status": "PENDING_RUNTIME"
+    },
+    {
+      "case_id": "retention_outside_scope",
+      "category": "retention",
+      "expected": {
+        "scope": "outside_scope_is_not_modified",
+        "snapshots": "old_snapshot_readable"
+      },
+      "operation_id": "qa02-retention-001",
+      "status": "PENDING_RUNTIME"
+    }
+  ],
+  "dependency_gate": {
+    "ORC-07": "Ready",
+    "acceptance": "PENDING_REAL_ADAPTERS"
+  },
+  "input_pins": {
+    "namespace": "qa-02-rerun-revision",
+    "synthetic_fixture": true,
+    "timezone": "UTC"
+  },
+  "next_gate": "Run through ORC-07 real adapters in a QA namespace, then attach before/after reconciliation.",
+  "report_version": "qa-02-report-v1",
+  "runtime_complete": false,
+  "status": "PREPARED",
+  "summary": {
+    "case_count": 8,
+    "failed": 0,
+    "passed": 0,
+    "pending_runtime": 8
+  },
+  "synthetic_fixture": true,
+  "task_id": "QA-02"
+}
