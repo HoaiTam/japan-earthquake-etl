@@ -88,6 +88,12 @@ make up-query
 
 ## Kiểm thử không gọi nguồn dữ liệu thật
 
+ORC-06: `make test-full-month` (fixture/Spark local), `make prepare-full-month`
+(chuẩn bị JAR/classpath host), `make full-month-local` (replay exact local
+request). Opt-in `make qa-full-month-live` tải public captures tháng 09/2023
+và JMA 2023, nghiệm thu file-backed QA, không MinIO/Gold write hoặc Docker
+build/start. Chi tiết success/failure/artifacts ở [runbook ORC-06](./runbooks/ORC-06_FULL_MONTH_STATE.md).
+
 Ba entrypoint full giữ nguyên: `make ci-docs`, `make ci-java`, `make ci-airflow`;
 `make ci` chạy cả ba tuần tự. `ci-docs` cần PyYAML tại
 `tests/ci/requirements.txt` (PyYAML/pyarrow), jq/rg và Compose CLI, cố ý bỏ qua `.env` riêng và

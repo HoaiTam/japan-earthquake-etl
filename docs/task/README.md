@@ -146,7 +146,7 @@ upstream, fixture/mock/test plan có thể chuẩn bị ngay. Không đổi depe
 nhận notebook/export chưa có là đã Done.
 
 [Phân công tuần 5](./WEEK_5_PARALLEL_PLAN.md) thay lịch hiện hành: HoaiTam
-DAT-02/ORC-07/MLI-02/QA-01; ThanhTris ORC-06/MLI-03/QA-02/03; rosy179
+DAT-02/ORC-06/ORC-07/MLI-02/QA-01; ThanhTris MLI-03/QA-02/03; rosy179
 MLD-04/05/EXP-01/02. Các task đều có phần handoff tuần 5 trong file riêng.
 Hard dependency chỉ chặn nghiệm thu thật; mọi luồng được bắt đầu bằng fixtures.
 DAT-02 tạo development pilot bundle riêng, không đổi parent BUILDING/research_ready=false.

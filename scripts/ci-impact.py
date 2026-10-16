@@ -21,7 +21,7 @@ LEAF_DAGS = {"airflow/dags/" + name + ".py" for name in
              ("afl_01_smoke", "usg_04_usgs_ingest", "jma_04_year_backfill", "orc_01_etl_pipeline", "orc_02_daily_sources", "orc_03_backfill")}
 WINDOW_TESTS = {"MainshockRuntimeTest", "MainshockWindowEngineTest", "MainshockWindowIntegrationTest",
                 "MainshockWindowRegressionTest", "WindowModelResolverTest"}
-JAVA_SUITES = ("foundation-integration", "usgs-bronze", "jma-bronze", "silver", "gold",
+JAVA_SUITES = ("foundation-integration", "usgs-bronze", "jma-bronze", "silver", "gold", "orc-06-full-month",
                "mld-01-02-contract-audit", "mld-03-windows", "mld-04-features")
 AIRFLOW_SUITES = ("source-ingestion", "orchestration-recovery", "silver-gold-qa", "ml-qa")
 SOURCE_TESTS = {"test_smoke_dag_contract", "test_usg_04_dag_contract", "test_usgs_ingest_runtime",
@@ -126,7 +126,9 @@ def inventory(component, root=ROOT):
                 raise ValueError("CI_INVALID_TEST_NAME")
             package = relative.parent.as_posix()
             group = "foundation-integration"
-            if package == "ie212/earthquake/spark/ml":
+            if package == "ie212/earthquake/spark/orchestration":
+                group = "orc-06-full-month"
+            elif package == "ie212/earthquake/spark/ml":
                 group = ("mld-04-features" if path.stem in FEATURE_TESTS else
                          "mld-03-windows" if path.stem in WINDOW_TESTS else "mld-01-02-contract-audit")
             elif package in {"ie212/earthquake/spark/" + p for p in ("usgs", "jma", "silver", "gold")}:

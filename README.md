@@ -290,6 +290,11 @@ Hướng dẫn vận hành đầy đủ được duy trì trong
 
 ## Làm việc với repository
 
+ORC-06 cung cấp [resolver full-month Silver](./docs/specs/FULL_MONTH_STATE_CONTRACT.md)
+để delta không ghi đè mất phần còn lại của tháng. [Runbook](./docs/runbooks/ORC-06_FULL_MONTH_STATE.md)
+có offline tests, public full-month QA và giao diện bàn giao ORC-07; chưa tự
+chạy daily toàn chuỗi hoặc publish Gold.
+
 GitHub Actions được cấu hình ở [ci.yml](./.github/workflows/ci.yml): PR vào
 mọi base branch có [checks theo nhóm chức năng/task](./docs/conventions_and_workflow/CI_TASK_SUITES.md),
 giữ ba gate tổng hợp docs/contracts, Java17/Spark và Airflow;

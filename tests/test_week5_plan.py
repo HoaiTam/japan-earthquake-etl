@@ -82,7 +82,11 @@ class Week5PlanTest(unittest.TestCase):
 
     def test_effort_drift_fails(self):
         self.change("ORC-06", "effort_hours: 8", "effort_hours: 9")
-        self.rejects("ThanhTris expected 25h")
+        self.rejects("HoaiTam expected 32h")
+
+    def test_orc06_owner_tracks_user_takeover(self):
+        self.change("ORC-06", 'assignee: "HoaiTam"', 'assignee: "ThanhTris"')
+        self.rejects("ORC-06 owner must be HoaiTam")
 
     def test_missing_adapter_gate_fails(self):
         self.change("QA-01", ', "ORC-07"]', "]")

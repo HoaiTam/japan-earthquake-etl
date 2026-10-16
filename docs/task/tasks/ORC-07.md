@@ -1,6 +1,6 @@
 ---
 task_id: "ORC-07"
-status: "Backlog"
+status: "Ready"
 week: 5
 block: "F - Điều phối"
 workstream: "Real ETL adapter integration"
@@ -68,8 +68,12 @@ Không coi DAG mock hoặc các smoke namespace khác nhau là một run Publish
 - [ORC-06](./ORC-06.md) — full-month state/proof.
 - [GLD-04](./GLD-04.md) — verification/publication contract.
 
-ORC-02 đang Review và ORC-06 chưa triển khai, nên task Backlog. Được viết
-wrapper/interface/fixtures ngay; không nhận integration Done trước gates.
+Cập nhật 2026-10-16: ORC-01/ORC-02/ORC-06/GLD-04 đều Done, task Ready.
+ORC-06 bàn giao request/proof/resolver và bounded file-backed real-source QA;
+MinIO/daily/manual integration và Published evidence vẫn thuộc task này.
+Version ORC-06 hiện chỉ nhận tháng đã đóng và đủ halo; adapter phải chọn
+eligible scope. Nếu cần tháng đang mở as-of-cutoff, version hóa coverage/
+request/receipt và tests trước khi bật, không đổi thiếu proof thành COMPLETE_MONTHS.
 
 ## Cách triển khai và phối hợp
 
@@ -92,7 +96,7 @@ chỉ định; planned cross-review không phải approval đã tồn tại.
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
+- **Trạng thái:** Ready
 - **Assignee:** HoaiTam
 - **Reviewer:** unassigned
 - **Evidence / PR:** Chưa có; mới giao việc, chưa đóng gói real adapters.

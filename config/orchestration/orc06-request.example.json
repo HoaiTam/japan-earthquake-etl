@@ -1,0 +1,39 @@
+{
+  "resolver_version": "orc-06-v1",
+  "run_id": "orc06-example",
+  "dag_id": "orc_01_etl_pipeline",
+  "namespace": "iceberg.gold_qa_orc06_example",
+  "config_version": "orc-06-v1",
+  "code_version": "replace-with-reviewed-code-version",
+  "processed_at_utc": "2026-10-15T00:00:00Z",
+  "source_cutoff_utc": "2026-10-15T00:00:00Z",
+  "target_months": ["2023-09"],
+  "baseline_snapshots": {
+    "event_current": 0,
+    "event_source_bridge": 0,
+    "dim_date": 0,
+    "dim_region": 0,
+    "dim_magnitude_band": 0,
+    "dim_depth_band": 0
+  },
+  "baseline": null,
+  "bronze_inputs": [
+    {
+      "source_system": "USGS",
+      "manifest_uri": "s3://japan-earthquake/bronze/usgs/ingest_date=2026-10-15/run_id=replace-usgs/attempt=01/manifest.json",
+      "manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "window_start_utc": "2023-08-31T23:59:44Z",
+      "window_end_utc": "2023-10-01T00:00:16Z"
+    },
+    {
+      "source_system": "JMA_BULLETIN",
+      "manifest_uri": "s3://japan-earthquake/bronze/jma/year=2023/catalog_release=replace-release/ingest_date=2026-10-15/run_id=replace-jma/attempt=01/manifest.json",
+      "manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "year": 2023,
+      "segment": "full-year",
+      "catalog_release": "replace-release"
+    }
+  ]
+}

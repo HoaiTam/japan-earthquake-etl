@@ -23,8 +23,8 @@ lane() {
     done
     [ "$total" -eq "$expected" ] || fail "$owner expected ${expected}h, found ${total}h"
 }
-lane HoaiTam 24 DAT-02 ORC-07 MLI-02 QA-01
-lane ThanhTris 25 ORC-06 MLI-03 QA-02 QA-03
+lane HoaiTam 32 DAT-02 ORC-06 ORC-07 MLI-02 QA-01
+lane ThanhTris 17 MLI-03 QA-02 QA-03
 lane rosy179 23 MLD-04 MLD-05 EXP-01 EXP-02
 count=0
 for file in "$tasks_dir"/*-[0-9][0-9].md; do
@@ -69,4 +69,4 @@ for id in MLD-02 MLD-03; do
     [ "$(field assignee "$id")" = rosy179 ] || fail "$id owner exception lost"
     [ "$(field reviewer "$id")" = HoaiTam ] || fail "$id reviewer exception lost"
 done
-printf 'Week 5 plan check passed: 12 Core tasks, 72h (24/25/23); DAT-02 Jupyter first, Colab gated, QA-04 week 6.\n'
+printf 'Week 5 plan check passed: 12 Core tasks, 72h (32/17/23); ORC-06 accepted by HoaiTam; DAT-02 Jupyter first, Colab gated, QA-04 week 6.\n'

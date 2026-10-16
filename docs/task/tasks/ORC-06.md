@@ -1,13 +1,13 @@
 ---
 task_id: "ORC-06"
-status: "Ready"
+status: "Done"
 week: 5
 block: "F - Điều phối"
 workstream: "Full-month state resolution"
 scope: "Core"
 priority: "P0"
 effort_hours: 8
-assignee: "ThanhTris"
+assignee: "HoaiTam"
 reviewer: "unassigned"
 dependencies: ["SLV-09", "GLD-03", "ORC-03"]
 ---
@@ -48,14 +48,14 @@ overlap/sample nhỏ thay toàn partition và làm mất event không nằm tron
 
 ## Tiêu chí hoàn thành
 
-- [ ] Event ngoài daily overlap nhưng trong affected month được giữ nguyên.
-- [ ] Revision chuyển tháng xóa logical current cũ và cập nhật tháng mới;
+- [x] Event ngoài daily overlap nhưng trong affected month được giữ nguyên.
+- [x] Revision chuyển tháng xóa logical current cũ và cập nhật tháng mới;
       không mất raw Bronze và không double count canonical.
-- [ ] Empty month được chứng minh explicit; thiếu coverage/baseline bị reject trước Gold write.
-- [ ] Rerun cùng identity/checksum deterministic; stale baseline hoặc identity conflict bị chặn.
-- [ ] Readback/checksum/count/grain của full-month bundle đạt, partitions ngoài scope không đổi.
-- [ ] Một bounded real input đủ tháng có evidence; pilot thiếu coverage chỉ test reject.
-- [ ] Receipt chứa đủ proof cho Gold COMPLETE_MONTHS, không tự Published.
+- [x] Empty month được chứng minh explicit; thiếu coverage/baseline bị reject trước Gold write.
+- [x] Rerun cùng identity/checksum deterministic; stale baseline hoặc identity conflict bị chặn.
+- [x] Readback/checksum/count/grain của full-month bundle đạt, partitions ngoài scope không đổi.
+- [x] Một bounded real input đủ tháng có evidence; pilot thiếu coverage chỉ test reject.
+- [x] Receipt chứa đủ proof cho Gold COMPLETE_MONTHS, không tự Published.
 
 ## Hard dependency
 
@@ -65,14 +65,23 @@ overlap/sample nhỏ thay toàn partition và làm mất event không nằm tron
 
 ## Cách triển khai và phối hợp
 
-ThanhTris, 8h trong [kế hoạch tuần 5](../WEEK_5_PARALLEL_PLAN.md).
-Ngày đầu khóa request/proof fixture nhỏ cho HoaiTam làm ORC-07 adapter tests.
+HoaiTam nhận triển khai trực tiếp ngày 2026-10-15; estimate 8h giữ nguyên.
+Phân công ban đầu ThanhTris giữ làm lịch sử trong [kế hoạch tuần 5](../WEEK_5_PARALLEL_PLAN.md).
+Khóa request/proof fixture nhỏ để ORC-07 có thể làm adapter tests độc lập.
 Có thể dùng existing Silver fixtures để code ngay; chỉ integration cần source
 input/baseline coverage thật. Ưu tiên phạm vi pilot **đủ tháng**, không toàn 40 năm.
 
-Branch triển khai đề xuất: `feat/orc-06-full-month-state` từ main mới nhất.
-Bắt đầu mới đổi In Progress; hiện Ready vì ba hard dependencies đã Done.
+Branch triển khai: `feat/orc-06-full-month-state`, từ main `f2d64ef`;
+ba hard dependencies đã Done. Hoàn tất ngày 2026-10-16.
 Reviewer độc lập chưa chỉ định, không ghi approval trước khi review.
+
+Implementation Java/Spark replay exact Bronze baseline + delta, JMA replacement,
+old/new link closure, registry/receipt immutable và production MinIO entrypoint.
+Request/coverage/resource bounds nằm trong [contract](../../specs/FULL_MONTH_STATE_CONTRACT.md).
+[Runbook](../../runbooks/ORC-06_FULL_MONTH_STATE.md) có lệnh test/QA/replay và
+handoff production. [Evidence](../../evidence/ORC-06.md) ghi full-month 09/2023:
+257.020 JMA physical records được verify, 22.499 current observations,
+22.390 canonical events; rerun/readback đạt, không ghi Gold.
 
 ## Ranh giới
 
@@ -82,20 +91,24 @@ Reviewer độc lập chưa chỉ định, không ghi approval trước khi revi
 - ORC-07 sở hữu adapters/receipts/lease; QA-01/02/03 sở hữu nghiệm thu toàn chuỗi.
 - Full research coverage thuộc QA-03 report/historical rollout; bounded monthly
   acceptance không chứng minh toàn reproduction/extension sẵn sàng cho ML.
+- Version này chỉ chứng nhận tháng đã đóng, đủ coverage cả halo; không gắn
+  COMPLETE_MONTHS cho tháng đang mở. ORC-07 cần chọn scope đủ điều kiện;
+  nếu muốn current-month-as-of-cutoff, cần version hóa contract và tests trước,
+  không bỏ quality gate hoặc suy coverage từ daily overlap.
 
 ## Theo dõi
 
-- **Trạng thái:** Ready
-- **Assignee:** ThanhTris
+- **Trạng thái:** Done
+- **Assignee:** HoaiTam
 - **Reviewer:** unassigned
-- **Evidence / PR:** Chưa có; mới giao việc, chưa triển khai resolver.
+- **Evidence / PR:** [Evidence ORC-06](../../evidence/ORC-06.md); branch `feat/orc-06-full-month-state`, chưa commit/push hoặc mở PR. File-backed public-capture QA, không phải whole-pipeline MinIO acceptance.
 
 ## Checklist bàn giao
 
-- [ ] Implementation/fixtures/docs có trong repository.
-- [ ] Acceptance criteria, offline tests và bounded real evidence đạt.
-- [ ] Status/Theo dõi/index đồng bộ; docs nêu task ID của giới hạn còn lại.
-- [ ] Không chứa secret/raw dump/artifact build.
+- [x] Implementation/fixtures/docs có trong repository.
+- [x] Acceptance criteria, offline tests và bounded real evidence đạt.
+- [x] Status/Theo dõi/index đồng bộ; docs nêu task ID của giới hạn còn lại.
+- [x] Không chứa secret/raw dump/artifact build.
 
 ## Tài liệu liên quan
 

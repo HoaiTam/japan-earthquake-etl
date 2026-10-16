@@ -21,6 +21,7 @@ chạy gì. Nguồn chọn test vẫn là [impact policy](./CI_IMPACT_TESTING.md
 | `Java / jma-bronze` | JMA | Inventory, archive/download/validation, retry, Bronze và year ingest |
 | `Java / silver` | SLV | Parse USGS/JMA, lineage/key, quality, dedup/entity, Parquet và publication |
 | `Java / gold` | GLD | Canonical transform, Iceberg commit, publication và Trino client |
+| `Java / orc-06-full-month` | ORC-06 | Coverage registry, baseline+delta, month/link closure, immutable state và Gold handoff |
 | `Java / mld-01-02-contract-audit` | MLD-01/02 và shared ML | Dataset/result contract, Gold audit, Mc/histogram; ML test mới chưa map cũng vào shared ML |
 | `Java / mld-03-windows` | MLD-03 | Mainshock runtime/window engine/integration/regression/model resolver |
 | `Java / mld-04-features` | MLD-04, Java boundary DAT-02 | Scaling, feature engine, pilot exporter và cross-JVM Parquet |
@@ -130,7 +131,11 @@ Tham khảo chính thức:
 [job dependencies và always](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-jobs),
 [matrix và fail-fast](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/run-job-variations).
 
-## Evidence impact-v2
+## Evidence impact-v2 (mốc trước ORC-06)
+
+ORC-06 bổ sung nhóm Java thứ 9 `orc-06-full-month`; policy path của package mới
+vẫn conservative full regression. Các số 8 suites/363 tests ở evidence dưới
+là mốc PR #77, không phải kết quả chạy sau khi thêm ORC-06.
 
 Kiểm tra local ngày 2026-10-15, Python 3.13.3, JDK 21.0.11/Spark 3.5.9:
 
