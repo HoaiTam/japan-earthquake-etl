@@ -1,5 +1,6 @@
 package ie212.earthquake.spark.ml;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.nio.file.Files;
@@ -79,6 +80,29 @@ class MlResultImportJobTest {
         Files.writeString(bundle.resolve("pilot_result_manifest.json"), "{}\n");
         assertEquals("IMP_UNSAFE_ARTIFACT_METADATA", assertThrows(IllegalArgumentException.class,
             () -> MlResultBundleReader.read(bundle)).getMessage());
+    }
+
+    @Test
+    void verificationFailureDoesNotCreateServingCandidate() throws Exception {
+        Path journal = Files.createTempDirectory("mli03-trino-blocker-");
+        FakeWriter writer = new FakeWriter();
+        assertEquals("IMP_TRINO_QUALITY_BLOCKER", assertThrows(IOException.class, () ->
+            MlResultImportJob.importBundle(FIXTURE, journal, CONTEXT, writer,
+                (commit, context, fingerprint) -> { throw new IOException("IMP_TRINO_QUALITY_BLOCKER"); }, "iceberg.ml_qa_test")).getMessage());
+        JsonNode state = JSON.readTree(Files.readString(journal.resolve("experiment-run-exp_fixture.json")));
+        assertEquals("REJECTED", state.path("experiment_status").asText());
+        assertFalse(state.path("experiment_status").asText().equals("CANDIDATE"));
+    }
+
+    @Test
+    void completedJournalMustRemainInTheSameNamespace() throws Exception {
+        Path journal = Files.createTempDirectory("mli03-namespace-");
+        ObjectNode existing = JSON.createObjectNode().put("result_bundle_sha256", "different");
+        // The mismatch is checked before any fast-path readback and cannot be silently reused.
+        Files.writeString(journal.resolve("experiment-run-exp_fixture.json"), existing.toString());
+        assertEquals("IMP_EXPERIMENT_RUN_REUSED", assertThrows(IllegalArgumentException.class, () ->
+            MlResultImportJob.importBundle(FIXTURE, journal, CONTEXT, new FakeWriter(),
+                (commit, context, fingerprint) -> Map.of("sequence_membership", 2L, "sequence_summary", 1L), "iceberg.ml_qa_other")).getMessage());
     }
 
     private static final class FakeWriter implements MlIcebergWriter {

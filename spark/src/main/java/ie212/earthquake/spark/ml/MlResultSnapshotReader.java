@@ -35,6 +35,19 @@ public final class MlResultSnapshotReader {
         return rows;
     }
 
+    /** Serving gate: publication and both result snapshots must be the pinned bundle. */
+    public Dataset<Row> serving(long experimentSnapshotId, long membershipSnapshotId, long summarySnapshotId,
+                                String experimentRunId) {
+        Dataset<Row> rows = publication(experimentSnapshotId, experimentRunId)
+            .filter(col("membership_snapshot_id").equalTo(membershipSnapshotId)
+                .and(col("summary_snapshot_id").equalTo(summarySnapshotId)));
+        if (rows.limit(2).count() != 1) throw new IllegalStateException("IMP_PUBLICATION_PIN_MISMATCH");
+        if (membership(membershipSnapshotId, experimentRunId).count() <= 0
+                || summary(summarySnapshotId, experimentRunId).count() <= 0)
+            throw new IllegalStateException("IMP_RESULT_SNAPSHOT_UNAVAILABLE");
+        return rows;
+    }
+
     private Dataset<Row> snapshot(String table, long snapshotId, String experimentRunId) {
         if (snapshotId <= 0 || experimentRunId == null || experimentRunId.isBlank())
             throw new IllegalArgumentException("IMP_EXACT_SNAPSHOT_REQUIRED");

@@ -21,7 +21,7 @@ RUN_SUMMARY_DAG ?= orc_01_etl_pipeline
 RUN_SUMMARY_RUN_ID ?=
 SECURITY_REPORT ?= staging/sec-01-report.json
 MLI_IMPORT_REQUEST ?=
-MLI_IMPORT_RUNNER_COMMAND ?=
+MLI_IMPORT_RUNNER_COMMAND ?= /opt/pipeline/bin/mli-import-runner
 
 COMPOSE = docker compose --env-file "$(ENV_FILE)" -f "$(COMPOSE_FILE)"
 RUNTIME_ENV = ENV_FILE="$(ENV_FILE)" COMPOSE_FILE="$(COMPOSE_FILE)"
@@ -141,7 +141,7 @@ smoke-ml-audit: check-config-local ## MLD-02 Published JMA audit/Mc QA; không t
 test-mli-import: ## MLI-03 offline bundle validation, journal idempotency và control-plane handoff
 	@python3 -m unittest discover -s airflow/tests -p 'test_mli_03_import_results.py'
 	@./mvnw --batch-mode --no-transfer-progress -pl spark -am \
-		-Dtest=ResultBundleContractTest,MlResultImportJobTest -Dsurefire.failIfNoSpecifiedTests=false test
+		-Dtest=ResultBundleContractTest,MlResultImportJobTest,TrustedDatasetResolverTest,MlResultPublicationIcebergTest -Dsurefire.failIfNoSpecifiedTests=false test
 
 smoke-mli-import: check-config-local ## MLI-03 runtime import vào namespace QA; cần Docker/MinIO/Catalog/Trino và exact request
 	@test -n "$(MLI_IMPORT_REQUEST)" || { echo 'Set MLI_IMPORT_REQUEST=/opt/pipeline/staging/.../request.json'; exit 2; }

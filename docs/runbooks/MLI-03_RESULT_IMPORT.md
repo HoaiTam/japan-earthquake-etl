@@ -2,12 +2,13 @@
 
 ## Phạm vi
 
-`mli_03_import_results` nhận một request có dataset đã `EXPORTED`, exact
-artifact references và candidate lineage. Python giữ lease cho toàn run và
-chuyển request vào staging; Java/Spark đọc bundle, kiểm tra checksum/schema,
-validate lineage và ghi ba bảng Iceberg. Chỉ readback trên các snapshot vừa
-commit mới được ghi registry ở trạng thái `CANDIDATE`; importer không ghi
-`APPROVED`.
+`mli_03_import_results` nhận exact artifact references và một reference tới
+manifest trong trusted registry. Java/Spark tự resolve trạng thái `EXPORTED`,
+candidate/mainshock snapshot pins và lineage từ manifest đã kiểm checksum;
+caller không được khai `dataset_status` hoặc candidate IDs. Python giữ lease
+cho toàn run và chuyển request vào staging. Result tables được commit trước,
+Trino verify trên exact snapshots, rồi mới ghi một dòng `CANDIDATE`; importer
+không ghi `APPROVED`.
 
 ## Request tối thiểu
 
@@ -17,20 +18,25 @@ commit mới được ghi registry ở trạng thái `CANDIDATE`; importer khôn
   "run_id": "mli03-qa-001",
   "experiment_run_id": "exp_fixture",
   "dataset_id": "ds_fixture",
-  "dataset_status": "EXPORTED",
+  "dataset_manifest_ref": "registry/ds_fixture.json",
+  "dataset_manifest_sha256": "<sha256 của file manifest trong registry>",
   "artifact_root": "/opt/pipeline/staging/ml-artifacts/exp_fixture",
   "journal_root": "/opt/pipeline/staging/ml-artifacts/journal/exp_fixture",
   "ml_namespace": "iceberg.ml_qa_0123456789abcdef",
   "algorithm_name": "WINDOW",
   "model_config_version": "1",
-  "candidates": [
-    {"mainshock_event_id": "main", "candidate_event_id": "main", "role": "MAINSHOCK"}
-  ]
+  "import_run_id": "mli03-qa-001"
 }
 ```
 
+Manifest phải có `dataset_status=EXPORTED`, `export_manifest_ref`,
+`export_manifest_sha256`, registry snapshot ID, candidate snapshot ID,
+mainshock snapshot ID và candidate rows. Dataset chưa có các pins hoặc bị
+đổi bytes sẽ bị reject; không fallback sang bảng current.
+
 `MLI_IMPORT_RUNNER_COMMAND` chỉ lấy từ môi trường vận hành và được chạy
-không qua shell. Runner phải nhận request path cuối cùng, tạo
+không qua shell. Image Airflow đóng gói `/opt/pipeline/bin/mli-import-runner`
+và Spark/Iceberg runtime; runner phải nhận request path cuối cùng, tạo
 `journal_root/import-report.json` và kết thúc với exit code 0. Report phải có
 `experiment_status=CANDIDATE`, ba count readback dương và đúng
 `experiment_run_id`/`dataset_id`. Request, report và journal không chứa
@@ -43,8 +49,10 @@ Writer tạo `ml.sequence_membership`, `ml.sequence_summary` và
 `experiment_run_id`; registry run giữ một dòng cho mỗi run và lưu fingerprint,
 model/config versions, artifact URI, row counts cùng snapshot IDs. Cùng run và
 cùng fingerprint là retry; fingerprint khác bị `IMP_EXPERIMENT_RUN_REUSED`.
-Lỗi giữa các bước giữ journal và lease để recovery, không được đổi thành
-`CANDIDATE`.
+Lỗi checksum/schema/lineage hoặc Trino quality blocker là `REJECTED` terminal.
+Timeout, mất receipt hoặc outcome hạ tầng chưa rõ giữ `IMPORT_VALIDATING`,
+ghi journal `mli03-journal-v2` theo từng bảng và resume bằng cùng operation /
+fingerprint. Không append lại snapshot đã readback được.
 
 ## Kiểm tra offline
 

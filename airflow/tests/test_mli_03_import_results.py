@@ -27,13 +27,13 @@ class Mli03ImportResultsTest(unittest.TestCase):
             "run_id": "mli03-qa-001",
             "experiment_run_id": "exp_fixture",
             "dataset_id": "ds_fixture",
-            "dataset_status": "EXPORTED",
+            "dataset_manifest_ref": "registry/ds_fixture.json",
+            "dataset_manifest_sha256": "a" * 64,
             "artifact_root": str(root / "bundle"),
             "journal_root": str(root / "journal"),
             "ml_namespace": "iceberg.ml_qa_0123456789abcdef",
             "algorithm_name": "WINDOW",
             "model_config_version": "1",
-            "candidates": [{"mainshock_event_id": "main", "candidate_event_id": "main", "role": "MAINSHOCK"}],
         }
         self.request_path.write_text(json.dumps(request), encoding="utf-8")
 
@@ -69,7 +69,7 @@ class Mli03ImportResultsTest(unittest.TestCase):
         request["dataset_status"] = "DEVELOPMENT_PILOT"
         self.request_path.write_text(json.dumps(request), encoding="utf-8")
         with patch.object(mli.subprocess, "run") as runner:
-            with self.assertRaisesRegex(mli.Mli03Error, "IMP_UNKNOWN_DATASET"):
+            with self.assertRaisesRegex(mli.Mli03Error, "MLI03_CALLER_LINEAGE_NOT_ALLOWED"):
                 mli.run(self.request_path, self.env)
         runner.assert_not_called()
 

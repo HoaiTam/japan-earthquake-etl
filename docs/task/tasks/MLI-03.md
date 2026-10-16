@@ -77,14 +77,14 @@ Thêm acceptance case reject DAT-02 DEVELOPMENT_PILOT/pilot_result_manifest và 
 - **Trạng thái:** In Progress
 - **Assignee:** ThanhTris
 - **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** [Offline evidence](../../evidence/MLI-03-offline.md); chưa tạo PR
+- **Evidence / PR:** [Offline evidence](../../evidence/MLI-03-offline.md); [PR #79](https://github.com/HoaiTam/japan-earthquake-etl/pull/79) — review comment đang được xử lý; reviewer `unassigned`
 - **Kỹ năng phù hợp:** Airflow, Spark validation, Iceberg transactions
 
 ## Checklist bàn giao
 
-- [x] Importer, reader, writer, DAG và offline regression test đã có trong repository.
-- [x] Checksum/schema/grain/lineage/count và same-run reuse đã được kiểm tra bằng fixture MLI-01.
-- [x] Contract/docs/Make target đã cập nhật và không chứa secret/data dump.
+- [x] Importer, trusted dataset resolver, result writer, manual DAG graph và offline regression test đã có trong repository.
+- [x] Checksum/schema/grain/lineage/count, publication gate và same-run recovery đã được kiểm tra bằng fixture MLI-01/local Iceberg.
+- [x] Contract/docs/Make/Compose preflight đã cập nhật và không chứa secret/data dump.
 - [ ] Acceptance runtime trên MinIO/Catalog/Trino với exact snapshots chưa chạy.
 - [ ] Reviewer độc lập được khuyến nghị cho P0.
 
@@ -98,7 +98,7 @@ Thêm acceptance case reject DAT-02 DEVELOPMENT_PILOT/pilot_result_manifest và 
 
 ## Evidence hiện có
 
-- Java: `ResultBundleContractTest` và `MlResultImportJobTest` đạt 9/9.
+- Java: nhóm regression MLI-03 (`ResultBundleContractTest`, `MlResultImportJobTest`, `TrustedDatasetResolverTest`, `MlResultPublicationIcebergTest`) đạt 17/17; container Maven suite đạt 390/390.
 - Python: `test_mli_03_import_results.py` đạt 3/3 trên Windows Python 3.14.
-- Compile: Maven Spark module với Java 17 đạt `BUILD SUCCESS`; `git diff --check` đạt.
-- Chưa có evidence MinIO/Catalog/Trino; vì vậy task vẫn `In Progress` và chưa tạo PR.
+- Compose/task/data-model/static checks và `git diff --check` đạt; security audit offline 0 findings, exit 2 vì còn coverage.
+- Preflight MinIO/Catalog/Trino đã đạt ở image trước thay đổi cuối; sau thay đổi catalog config cần chạy lại `docker-runtime.py up/check`. Runtime import chưa chạy vì `.env` còn placeholder/invalid Fernet key; task vẫn `In Progress`. PR #79 đang được cập nhật, chưa merge.
