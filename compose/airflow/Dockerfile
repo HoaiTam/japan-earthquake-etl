@@ -22,10 +22,13 @@ ENV PATH="/opt/java/openjdk/bin:${PATH}"
 RUN mkdir -p /opt/pipeline/bin /opt/pipeline/lib \
     && chown -R airflow:0 /opt/pipeline
 
+COPY --from=java-runtime /opt/spark /opt/spark
 COPY --from=java-runtime /opt/java/openjdk /opt/java/openjdk
 COPY --from=build --chown=airflow:0 \
     /workspace/spark/target/japan-earthquake-etl-runner.jar \
     /opt/pipeline/lib/usgs-ingest-runner.jar
+COPY --from=build --chown=airflow:0 \
+    /workspace/spark/target/iceberg /opt/pipeline/lib/iceberg
 COPY --chown=airflow:0 --chmod=0755 \
     compose/airflow/usgs-runner.sh \
     /opt/pipeline/bin/usgs-ingest-runner
@@ -35,6 +38,9 @@ COPY --chown=airflow:0 --chmod=0755 \
 COPY --chown=airflow:0 --chmod=0755 \
     compose/airflow/bronze-reuse-runner.sh \
     /opt/pipeline/bin/bronze-reuse-verifier
+COPY --chown=airflow:0 --chmod=0755 \
+    compose/airflow/mli-import-runner.sh \
+    /opt/pipeline/bin/mli-import-runner
 COPY --chown=airflow:0 config/jma/hypocenter_archives_v1.csv \
     /opt/pipeline/config/jma/hypocenter_archives_v1.csv
 

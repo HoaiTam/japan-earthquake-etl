@@ -57,6 +57,10 @@ x-airflow-environment: &airflow-environment
   CONFIG_VERSION: ${CONFIG_VERSION:?CONFIG_VERSION is required}
   ETL_PHASE_RUNNER_COMMAND: ${ETL_PHASE_RUNNER_COMMAND:-}
   ETL_PHASE_RUNNER_TIMEOUT_SECONDS: ${ETL_PHASE_RUNNER_TIMEOUT_SECONDS:-3600}
+  MLI_IMPORT_REQUEST: ${MLI_IMPORT_REQUEST:-}
+  MLI_IMPORT_RUNNER_COMMAND: ${MLI_IMPORT_RUNNER_COMMAND:-/opt/pipeline/bin/mli-import-runner}
+  MLI_IMPORT_RUNNER_TIMEOUT_SECONDS: ${MLI_IMPORT_RUNNER_TIMEOUT_SECONDS:-3600}
+  MLI_DATASET_REGISTRY_ROOT: ${MLI_DATASET_REGISTRY_ROOT:-/opt/pipeline/staging/ml-artifacts}
   ETL_STAGING_ROOT: /opt/pipeline/staging/etl
   BACKFILL_STAGING_ROOT: /opt/pipeline/staging/backfill
   BRONZE_REUSE_RUNNER_COMMAND: ${BRONZE_REUSE_RUNNER_COMMAND:-/opt/pipeline/bin/bronze-reuse-verifier}
@@ -93,6 +97,10 @@ x-airflow-environment: &airflow-environment
   MINIO_ENDPOINT: ${MINIO_ENDPOINT:?MINIO_ENDPOINT is required}
   MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:?MINIO_ACCESS_KEY is required}
   MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:?MINIO_SECRET_KEY is required}
+  ICEBERG_CATALOG_NAME: ${ICEBERG_CATALOG_NAME:?ICEBERG_CATALOG_NAME is required}
+  ICEBERG_CATALOG_URI: ${ICEBERG_CATALOG_URI:?ICEBERG_CATALOG_URI is required}
+  WAREHOUSE_PATH: ${WAREHOUSE_PATH:?WAREHOUSE_PATH is required}
+  S3_REGION: ${S3_REGION:?S3_REGION is required}
   DATA_BUCKET: ${DATA_BUCKET:?DATA_BUCKET is required}
   BRONZE_PREFIX: ${BRONZE_PREFIX:?BRONZE_PREFIX is required}
 
@@ -806,6 +814,28 @@ services:
         exec python3 /opt/airflow/dags/mainshock_window_qa.py
     volumes:
       - ${MAINSHOCK_BRONZE_PINS:-./airflow/dags/fixtures/slv_09_bronze_inputs.json}:/opt/pipeline/window-bronze-pins.json:ro
+
+  mli-03-import-results:
+    extends: {service: spark-gold-qa}
+    profiles: [ml]
+    command:
+      - |
+        exec true
+    environment:
+      TRINO_HOST: ${TRINO_HOST:?TRINO_HOST is required}
+      TRINO_INTERNAL_PORT: ${TRINO_INTERNAL_PORT:?TRINO_INTERNAL_PORT is required}
+      MLI_DATASET_REGISTRY_ROOT: ${MLI_DATASET_REGISTRY_ROOT:-/opt/pipeline/staging/ml-artifacts}
+
+  qa-02-rerun-revision:
+    extends: {service: spark-gold-qa}
+    profiles: [ml]
+    command:
+      - |
+        mkdir -p /opt/pipeline/staging/qa-02 /opt/pipeline/staging/source-guard
+        exec python3 /opt/airflow/dags/qa_02_rerun_revision.py --live "$${QA_02_RUNTIME_REQUEST}"
+    environment:
+      QA_02_RUNTIME_REQUEST: ${QA_02_RUNTIME_REQUEST:-}
+      QA_02_RUNTIME_COMMAND: ${QA_02_RUNTIME_COMMAND:-}
 
   trino:
     <<: *runtime-defaults

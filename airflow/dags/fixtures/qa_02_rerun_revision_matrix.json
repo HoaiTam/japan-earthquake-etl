@@ -1,0 +1,71 @@
+{
+  "task_id": "QA-02",
+  "matrix_version": "qa-02-v1",
+  "dependency_gate": {
+    "ORC-07": "Ready",
+    "acceptance": "PENDING_REAL_ADAPTERS"
+  },
+  "input_pins": {
+    "timezone": "UTC",
+    "namespace": "qa-02-rerun-revision",
+    "synthetic_fixture": true
+  },
+  "cases": [
+    {
+      "case_id": "rerun_same_input",
+      "category": "retry",
+      "operation_id": "qa02-rerun-001",
+      "source": "USGS",
+      "expected": {"logical_keys": "unchanged", "canonical_count": "unchanged", "snapshots": "same_or_equivalent"}
+    },
+    {
+      "case_id": "duplicate_same_source",
+      "category": "duplicate",
+      "operation_id": "qa02-duplicate-001",
+      "source": "USGS",
+      "expected": {"logical_keys": "one_current_row", "current": "one_current_row", "canonical_count": "unchanged", "history": "retained"}
+    },
+    {
+      "case_id": "usgs_late_revision",
+      "category": "late_revision",
+      "operation_id": "qa02-usgs-revision-001",
+      "source": "USGS",
+      "expected": {"logical_keys": "same_key_new_revision", "current": "new_revision", "history": "old_revision_retained"}
+    },
+    {
+      "case_id": "jma_release_replacement",
+      "category": "late_revision",
+      "operation_id": "qa02-jma-release-001",
+      "source": "JMA",
+      "expected": {"release": "new_catalog_release", "current": "replacement", "old_release": "auditable"}
+    },
+    {
+      "case_id": "overlap_usgs_jma",
+      "category": "source_overlap",
+      "operation_id": "qa02-overlap-001",
+      "source": "USGS+JMA",
+      "expected": {"canonical_count": "no_double_count", "lineage": "both_sources_retained"}
+    },
+    {
+      "case_id": "event_moves_month",
+      "category": "partition_move",
+      "operation_id": "qa02-month-move-001",
+      "source": "USGS",
+      "expected": {"old_partition": "superseded", "new_partition": "current", "history": "retained"}
+    },
+    {
+      "case_id": "jma_record_withdrawn",
+      "category": "withdrawal",
+      "operation_id": "qa02-withdraw-001",
+      "source": "JMA",
+      "expected": {"current": "withdrawn_or_superseded", "history": "retained", "canonical_count": "reconciled"}
+    },
+    {
+      "case_id": "retention_outside_scope",
+      "category": "retention",
+      "operation_id": "qa02-retention-001",
+      "source": "USGS+JMA",
+      "expected": {"scope": "outside_scope_is_not_modified", "snapshots": "old_snapshot_readable"}
+    }
+  ]
+}

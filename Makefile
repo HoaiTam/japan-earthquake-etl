@@ -25,6 +25,13 @@ QA_03_JSON ?= staging/qa-03/qa-03.json
 QA_03_MARKDOWN ?= staging/qa-03/qa-03.md
 QA_03_RUNTIME_REQUEST ?=
 QA_03_RUNTIME_COMMAND ?=
+QA_02_MATRIX ?= airflow/dags/fixtures/qa_02_rerun_revision_matrix.json
+QA_02_JSON ?= staging/qa-02/qa-02.json
+QA_02_MARKDOWN ?= staging/qa-02/qa-02.md
+QA_02_RUNTIME_REQUEST ?=
+QA_02_RUNTIME_COMMAND ?=
+MLI_IMPORT_REQUEST ?=
+MLI_IMPORT_RUNNER_COMMAND ?= /opt/pipeline/bin/mli-import-runner
 
 COMPOSE = docker compose --env-file "$(ENV_FILE)" -f "$(COMPOSE_FILE)"
 RUNTIME_ENV = ENV_FILE="$(ENV_FILE)" COMPOSE_FILE="$(COMPOSE_FILE)"
@@ -53,6 +60,8 @@ COMPONENT_SMOKES := smoke-minio smoke-airflow smoke-spark smoke-query smoke-usgs
 .PHONY: test-silver-integration smoke-silver-integration
 .PHONY: test-ml-audit smoke-ml-audit
 .PHONY: test-qa-03 smoke-qa-03
+.PHONY: test-qa-02 smoke-qa-02
+.PHONY: test-mli-import smoke-mli-import
 .PHONY: test-ml-window smoke-ml-window resume-ml-window
 .PHONY: prepare-ml-local stage-ml-windows test-ml-feature ml-features-local ml-pilot-local pilot-env test-pilot inspect-pilot jupyter-pilot
 .PHONY: pack-pilot
@@ -148,10 +157,37 @@ test-qa-03: ## QA-03 historical scope/resource/reuse matrix và report checks; k
 smoke-qa-03: check-config-local ## QA-03 Bronze-to-Published backfill; cần ORC-07 và request runtime đã pin
 	@test -n "$(QA_03_RUNTIME_REQUEST)" || { echo 'Set QA_03_RUNTIME_REQUEST=/opt/pipeline/staging/.../request.json'; exit 2; }
 	@test -n "$(QA_03_RUNTIME_COMMAND)" || { echo 'Set QA_03_RUNTIME_COMMAND to the JMA backfill runner'; exit 2; }
-	@$(RUNTIME_CHECK) --component source --client qa-03-jma-historical-backfill
-	@$(COMPOSE) run --rm --no-deps --pull never -e PYTHONPATH=/opt/airflow/dags \
+	@$(RUNTIME_CHECK) --component gold --client qa-03-jma-historical-backfill
+	@$(COMPOSE) --profile gold run --rm --no-deps --pull never \
+		-e QA_03_RUNTIME_REQUEST="$(QA_03_RUNTIME_REQUEST)" \
 		-e QA_03_RUNTIME_COMMAND="$(QA_03_RUNTIME_COMMAND)" \
-		airflow-dag-processor python3 /opt/airflow/dags/qa_03_jma_historical_backfill.py --live "$(QA_03_RUNTIME_REQUEST)"
+		qa-03-jma-historical-backfill
+test-qa-02: ## QA-02 matrix/fixture/report checks; không gọi nguồn hoặc runtime
+	@python3 -m unittest discover -s airflow/tests -p 'test_qa_02_rerun_revision.py'
+	@python3 airflow/dags/qa_02_rerun_revision.py --matrix "$(QA_02_MATRIX)" --json "$(QA_02_JSON)" --markdown "$(QA_02_MARKDOWN)"
+
+smoke-qa-02: check-config-local ## QA-02 Bronze-to-Published rerun/revision; cần ORC-07 và request runtime đã pin
+	@test -n "$(QA_02_RUNTIME_REQUEST)" || { echo 'Set QA_02_RUNTIME_REQUEST=/opt/pipeline/staging/.../request.json'; exit 2; }
+	@test -n "$(QA_02_RUNTIME_COMMAND)" || { echo 'Set QA_02_RUNTIME_COMMAND to the QA adapter runner'; exit 2; }
+	@$(RUNTIME_CHECK) --component ml --client qa-02-rerun-revision
+	@$(COMPOSE) run --rm --no-deps --pull never \
+		-e QA_02_RUNTIME_REQUEST="$(QA_02_RUNTIME_REQUEST)" \
+		-e QA_02_RUNTIME_COMMAND="$(QA_02_RUNTIME_COMMAND)" \
+		qa-02-rerun-revision
+
+test-mli-import: ## MLI-03 offline bundle validation, journal idempotency và control-plane handoff
+	@python3 -m unittest discover -s airflow/tests -p 'test_mli_03_import_results.py'
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am \
+		-Dtest=ResultBundleContractTest,MlResultImportJobTest,TrustedDatasetResolverTest,MlResultPublicationIcebergTest -Dsurefire.failIfNoSpecifiedTests=false test
+
+smoke-mli-import: check-config-local ## MLI-03 runtime import vào namespace QA; cần Docker/MinIO/Catalog/Trino và exact request
+	@test -n "$(MLI_IMPORT_REQUEST)" || { echo 'Set MLI_IMPORT_REQUEST=/opt/pipeline/staging/.../request.json'; exit 2; }
+	@test -n "$(MLI_IMPORT_RUNNER_COMMAND)" || { echo 'Set MLI_IMPORT_RUNNER_COMMAND to the container Spark runner'; exit 2; }
+	@$(RUNTIME_CHECK) --component ml --client mli-03-import-results
+	@$(COMPOSE) run --rm --no-deps --pull never \
+		-e PYTHONPATH=/opt/airflow/dags \
+		-e MLI_IMPORT_RUNNER_COMMAND="$(MLI_IMPORT_RUNNER_COMMAND)" \
+		airflow-dag-processor python3 /opt/airflow/dags/mli_03_import_results.py "$(MLI_IMPORT_REQUEST)"
 .PHONY: test-gold-storage smoke-gold-storage
 .PHONY: test-gold-publication smoke-gold-publication test-dataset-manifest smoke-dataset-manifest
 
