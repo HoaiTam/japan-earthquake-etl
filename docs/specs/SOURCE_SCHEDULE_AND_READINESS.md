@@ -1,5 +1,10 @@
 # ORC-02 — lịch nguồn và readiness đa nguồn
 
+ORC-07 thêm task `real_etl` sau SourcesReady: [real adapter contract](./REAL_ETL_ADAPTER_CONTRACT.md).
+Mặc định disabled giữ source-only; bật real cần prepared runtime và exact
+closed-month coverage request. Không release lease khi real execution lỗi/
+chưa rõ outcome. Historical evidence ORC-02 dưới đây là mốc trước ORC-07.
+
 ## 1. Làm gì, có gì, dùng để làm gì?
 
 ORC-02 cung cấp **lịch và gate source → Bronze**, không triển khai lại
@@ -9,7 +14,7 @@ toàn chuỗi. Không schedule fixture ORC-01 hoặc gọi SourcesReady là Publ
 | Thành phần | Làm gì | Dùng để làm gì |
 |---|---|---|
 | `source_schedule_runtime.py` | Validate profile, pin daily interval/USGS scope/JMA inventory, quyết định checksum audit | Các task/retry dùng cùng ngày, không dùng ngày của máy khi chạy trễ |
-| `orc_02_daily_sources.py` | DAG daily thật: resolve → lease → JMA readiness → USGS Bronze → summary → release → gate | Hai nguồn có nhịp khác nhau cùng đi qua source gate |
+| `orc_02_daily_sources.py` | resolve → lease → JMA readiness → USGS Bronze → summary → opt-in real ETL → release → gate | Một cron owner, giữ lease đến đúng completion boundary |
 | Java JMA `probe` | HEAD exact archive, so cache SHA/length, verify raw/manifest MinIO; không GET/ghi Bronze | Không ingest lại năm không đổi; không tin mỗi HEAD hoặc pointer |
 | Java JMA `ingest` | Chỉ được gọi cho segment cần bootstrap/change/audit; reuse publication khi bytes không đổi | Giữ immutable history, chỉ báo changed year khi có publication mới |
 | `source_run_guard.py` | Persistent whole-run lease với owner `(dag_id,run_id)` và atomic `flock` | Chặn daily/backfill giữa các DAG, không chỉ `max_active_runs` nội bộ |
@@ -25,7 +30,8 @@ flowchart LR
     J --> U["USGS fetch → validate → upload → verify"]
     R --> U
     U --> S["SourcesReady: exact manifest pins"]
-    S --> D["all_done release own lease"]
+    S --> E["ORC-07 opt-in real ETL / disabled source-only"]
+    E --> D["release exact owner only after confirmed completion"]
     S --> G["all_success completion gate"]
     D --> G
 ```
@@ -200,7 +206,7 @@ Airflow 3.3.2 unique `(dag_id,logical_date)`; hai runs cùng query
 USGS khác run ID fetch revision mới nên raw SHA có thể đổi hợp lệ; unit test
 riêng xác nhận retry **cùng run ID** không refetch/overwrite.
 
-QA còn kiểm tra đủ 7 task instance success, không nhận run success nhưng zero
+QA hiện kiểm tra đủ 8 task instance success (mốc evidence ORC-02 cũ là 7), không nhận run success nhưng zero
 task là runtime evidence. Contentious backfill phải fail acquisition và
 ingest task phải `upstream_failed`, chưa chạy Java.
 

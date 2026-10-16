@@ -1,5 +1,10 @@
 # GLD-04 — Trino verification và publication
 
+ORC-07 dùng `GoldPublisher.verify` làm phase Trino **read-only**, rồi mới gọi
+`publish` ở phase publication. Cả hai query exact committed snapshots; không
+coi verify receipt như bằng chứng đã INSERT PASSED hoặc update serving alias.
+Giao diện/runbook nằm trong [real adapters](./REAL_ETL_ADAPTER_CONTRACT.md).
+
 ## Exact input
 
 `GoldVerificationJob` nhận request JSON: `run_id`, `dag_id`, `gold_run_id`,

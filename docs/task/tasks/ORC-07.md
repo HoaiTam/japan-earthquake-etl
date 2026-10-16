@@ -1,6 +1,6 @@
 ---
 task_id: "ORC-07"
-status: "Ready"
+status: "Done"
 week: 5
 block: "F - Điều phối"
 workstream: "Real ETL adapter integration"
@@ -50,16 +50,16 @@ Không coi DAG mock hoặc các smoke namespace khác nhau là một run Publish
 
 ## Tiêu chí hoàn thành
 
-- [ ] Một daily interval thật đi đến Published với đủ sáu exact Gold snapshots,
+- [x] Một daily interval thật đi đến Published với đủ sáu exact Gold snapshots,
       Trino blockers passed và publication metadata readback cùng bundle.
-- [ ] Full-month proof thiếu/sai bị chặn trước Gold write.
-- [ ] Mock vẫn MockComplete/published=false, không có mock artifact trong real receipt.
-- [ ] Phase lỗi không gọi downstream/publish; persisted summary giữ đúng reason/run context.
-- [ ] Retry cùng operation reuse exact artifacts/snapshots; stale baseline/context bị reject.
-- [ ] Manual scoped reprocess đi qua cùng adapters, không sửa tháng ngoài phạm vi.
-- [ ] Timeout/interruption giữ owner khi chưa chứng minh remote/JVM đã dừng;
+- [x] Full-month proof thiếu/sai bị chặn trước Gold write.
+- [x] Mock vẫn MockComplete/published=false, không có mock artifact trong real receipt.
+- [x] Phase lỗi không gọi downstream/publish; persisted summary giữ đúng reason/run context.
+- [x] Retry cùng operation reuse exact artifacts/snapshots; stale baseline/context bị reject.
+- [x] Manual scoped reprocess đi qua cùng adapters, không sửa tháng ngoài phạm vi.
+- [x] Timeout/interruption giữ owner khi chưa chứng minh remote/JVM đã dừng;
       không foreign cleanup/delete metadata.
-- [ ] Lệnh test không build/start Docker lại, không chứa secret hoặc raw payload trong XCom.
+- [x] Lệnh test không build/start Docker lại, không chứa secret hoặc raw payload trong XCom.
 
 ## Hard dependency
 
@@ -68,12 +68,14 @@ Không coi DAG mock hoặc các smoke namespace khác nhau là một run Publish
 - [ORC-06](./ORC-06.md) — full-month state/proof.
 - [GLD-04](./GLD-04.md) — verification/publication contract.
 
-Cập nhật 2026-10-16: ORC-01/ORC-02/ORC-06/GLD-04 đều Done, task Ready.
+Cập nhật 2026-10-16: ORC-01/ORC-02/ORC-06/GLD-04 đều Done; ORC-07 đã
+hoàn tất bounded real acceptance, xem [evidence](../../evidence/ORC-07.md).
 ORC-06 bàn giao request/proof/resolver và bounded file-backed real-source QA;
-MinIO/daily/manual integration và Published evidence vẫn thuộc task này.
+MinIO/daily/manual integration và Published evidence thuộc task này đã đạt.
 Version ORC-06 hiện chỉ nhận tháng đã đóng và đủ halo; adapter phải chọn
 eligible scope. Nếu cần tháng đang mở as-of-cutoff, version hóa coverage/
 request/receipt và tests trước khi bật, không đổi thiếu proof thành COMPLETE_MONTHS.
+Đó là mở rộng ngoài scope v1, hiện chưa có task riêng cho phiên bản mới.
 
 ## Cách triển khai và phối hợp
 
@@ -96,21 +98,24 @@ chỉ định; planned cross-review không phải approval đã tồn tại.
 
 ## Theo dõi
 
-- **Trạng thái:** Ready
+- **Trạng thái:** Done
 - **Assignee:** HoaiTam
 - **Reviewer:** unassigned
-- **Evidence / PR:** Chưa có; mới giao việc, chưa đóng gói real adapters.
+- **Evidence / PR:** [ORC-07 implementation và acceptance](../../evidence/ORC-07.md), key `75b2a4a0d4ad4a49817ac8cde6b1f868`: daily 8/8 và manual 5/5 task success, Published qua actual MinIO/Iceberg/Trino; final-binary replay identical và owned partial-commit recovery đạt. Branch `feat/orc-07-real-etl-adapters`, từ main `accdb24` (ORC-06 / PR #78 đã merge). Chưa commit/push/PR; không có reviewer approval. Đây là production DAGs qua DAG.test, không scheduled deployment acceptance của QA-01.
 
 ## Checklist bàn giao
 
-- [ ] Adapter implementation, regression tests, runbook và bounded real evidence đạt.
-- [ ] Contract/fixtures/receipts đồng bộ và không làm yếu quality/publication gates.
-- [ ] Status/Theo dõi/index đồng bộ.
-- [ ] Không chứa secret, data dump hoặc build artifact.
+- [x] Adapter implementation, regression tests, runbook và bounded real evidence đạt.
+- [x] Contract/fixtures/receipts đồng bộ và không làm yếu quality/publication gates.
+- [x] Status/Theo dõi/index đồng bộ.
+- [x] Không chứa secret, data dump hoặc build artifact.
 
 ## Tài liệu liên quan
 
 - [ETL orchestration](../../specs/ETL_ORCHESTRATION_CONTRACT.md)
 - [Gold commit](../../specs/GOLD_ICEBERG_COMMIT.md)
 - [Trino publication](../../specs/GOLD_TRINO_PUBLICATION.md)
+- [Real ETL adapter contract](../../specs/REAL_ETL_ADAPTER_CONTRACT.md)
+- [Operator runbook](../../runbooks/ORC-07_REAL_ETL.md)
+- [Evidence](../../evidence/ORC-07.md)
 - [Kế hoạch tuần 5](../WEEK_5_PARALLEL_PLAN.md)
