@@ -85,6 +85,7 @@ public final class ResultBundleContract implements ResultBundleValidator {
 
     @Override public Receipt validate(DecodedBundle bundle, Context context) {
         require("EXPORTED".equals(context.datasetStatus()), "IMP_UNKNOWN_DATASET");
+        if (context.datasetPins() != null) require(!context.datasetPins().manifestSha256().isBlank(), "IMP_DATASET_PINS_REQUIRED");
         require(enumValue("algorithms",JSON.getNodeFactory().textNode(context.algorithm())), "IMP_SCHEMA_MISMATCH");
         JsonNode success = bundle.success();
         for (JsonNode field : CONTRACT.get("success_required")) require(success.hasNonNull(field.asText()), "IMP_INCOMPLETE_BUNDLE");
@@ -119,6 +120,14 @@ public final class ResultBundleContract implements ResultBundleValidator {
                 } catch (java.io.IOException error) { throw new IllegalArgumentException("IMP_SCHEMA_MISMATCH"); }
             }
             if(name.equals("requirements-lock.txt")) safe(JSON.getNodeFactory().textNode(new String(bundle.artifacts().get(name),StandardCharsets.UTF_8)));
+        }
+        if (context.experimentMetadata() != null) {
+            var metadata = context.experimentMetadata();
+            require(metadata.configSha256().equals(sha256(bundle.artifacts().get("experiment_config.json"))), "IMP_CHECKSUM_MISMATCH");
+            require(metadata.requirementsLockSha256().equals(sha256(bundle.artifacts().get("requirements-lock.txt"))), "IMP_CHECKSUM_MISMATCH");
+            require(metadata.artifactUri().equals(str(success, "artifact_uri")), "IMP_DATASET_LINEAGE_MISMATCH");
+            try { safe(JSON.readTree(metadata.runtimeEnvironmentJson())); }
+            catch (java.io.IOException error) { throw new IllegalArgumentException("IMP_SCHEMA_MISMATCH"); }
         }
         String fingerprint=sha256((context.datasetId()+"\n"+context.runId()+"\n"+context.algorithm()+"\n"+context.modelVersion()+"\n"+hashes).getBytes(StandardCharsets.UTF_8));
         require(context.previousBundleSha256()==null || fingerprint.equals(context.previousBundleSha256()), "IMP_EXPERIMENT_RUN_REUSED");
