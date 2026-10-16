@@ -64,6 +64,54 @@ class Mli03ImportResultsTest(unittest.TestCase):
                 mli.run(self.request_path, self.env)
         self.assertTrue((Path(self.env["SOURCE_GUARD_ROOT"]) / "owner.json").exists())
 
+    def test_resolved_context_rejects_request_mutation(self):
+        owner = {"dag_id": "mli_03_import_results", "run_id": "manual__airflow-run-a"}
+        descriptor = mli.resolve_request_context(self.request_path, owner, self.env)
+        pinned = mli._load_resolved_context(descriptor, self.env, owner)
+        self.assertEqual("mli03-qa-001", pinned["request"]["run_id"])
+
+        request = json.loads(self.request_path.read_text(encoding="utf-8"))
+        request["run_id"] = "mli03-qa-edited"
+        self.request_path.write_text(json.dumps(request), encoding="utf-8")
+        with self.assertRaisesRegex(mli.Mli03Error, "MLI03_REQUEST_CHANGED_AFTER_RESOLVE"):
+            mli._load_resolved_context(descriptor, self.env, owner)
+
+    def test_separate_airflow_runs_have_distinct_lease_owners(self):
+        owner_a = {"dag_id": "mli_03_import_results", "run_id": "manual__airflow-run-a"}
+        owner_b = {"dag_id": "mli_03_import_results", "run_id": "manual__airflow-run-b"}
+        descriptor_a = mli.resolve_request_context(self.request_path, owner_a, self.env)
+        descriptor_b = mli.resolve_request_context(self.request_path, owner_b, self.env)
+        pinned_a = mli._load_resolved_context(descriptor_a, self.env, owner_a)
+        pinned_b = mli._load_resolved_context(descriptor_b, self.env, owner_b)
+        self.assertEqual(pinned_a["request"]["run_id"], pinned_b["request"]["run_id"])
+        self.assertNotEqual(pinned_a["lease_owner"], pinned_b["lease_owner"])
+        self.assertNotEqual(descriptor_a["context_path"], descriptor_b["context_path"])
+
+    def test_release_requires_exact_owner_and_completion_requires_release_receipt(self):
+        owner = {"dag_id": "mli_03_import_results", "run_id": "manual__airflow-run-a"}
+        with patch.object(mli, "lease", side_effect=[{"status": "HELD", **owner}, {"status": "NOT_OWNER", **owner}]):
+            with self.assertRaisesRegex(mli.Mli03Error, "MLI03_LEASE_RELEASE_UNCONFIRMED"):
+                mli._release_owned(owner, self.env)
+
+        pinned = {
+            "request": {"run_id": "operation-1", "experiment_run_id": "exp_fixture", "dataset_id": "ds_fixture"},
+            "lease_owner": owner,
+            "request_sha256": "a" * 64,
+        }
+        result = {"run_id": "operation-1", "experiment_run_id": "exp_fixture", "dataset_id": "ds_fixture",
+                  "status": "CANDIDATE", "lease_owner": owner, "request_sha256": "a" * 64}
+        with self.assertRaisesRegex(mli.Mli03Error, "MLI03_LEASE_RELEASE_UNCONFIRMED"):
+            mli.completion_result(pinned, result, None)
+        complete = mli.completion_result(pinned, result, {"status": "RELEASED", **owner})
+        self.assertEqual("COMPLETE", complete["status"])
+
+    def test_caller_cannot_supply_internal_lease_identity(self):
+        request = json.loads(self.request_path.read_text(encoding="utf-8"))
+        request["_mli03_lease_owner"] = {"dag_id": "fake", "run_id": "fake"}
+        self.request_path.write_text(json.dumps(request), encoding="utf-8")
+        with self.assertRaisesRegex(mli.Mli03Error, "MLI03_RESERVED_CONTEXT_FIELD"):
+            mli.run(self.request_path, self.env)
+
     def test_pilot_and_non_exported_requests_fail_before_runner(self):
         request = json.loads(self.request_path.read_text(encoding="utf-8"))
         request["dataset_status"] = "DEVELOPMENT_PILOT"

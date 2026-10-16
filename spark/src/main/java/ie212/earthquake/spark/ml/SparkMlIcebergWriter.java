@@ -23,6 +23,7 @@ import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import static org.apache.spark.sql.functions.col;
+import static org.apache.spark.sql.functions.lit;
 
 /** Result-table writer with durable per-table recovery and post-verify publication. */
 public final class SparkMlIcebergWriter implements MlIcebergWriter {
@@ -61,6 +62,9 @@ public final class SparkMlIcebergWriter implements MlIcebergWriter {
         assertLease.run();
         if (context.datasetPins() == null || context.experimentMetadata() == null)
             throw new IllegalArgumentException("IMP_EXPERIMENT_METADATA_REQUIRED");
+        Reservation reservation = reserveExperiment(bundle, context, resultBundleSha256);
+        if (!"IMPORT_VALIDATING".equals(reservation.status()))
+            throw new IllegalStateException("IMP_EXPERIMENT_ALREADY_PUBLISHED");
         Journal journal = loadJournal(context, resultBundleSha256);
         long membership = snapshotFromJournalOrIceberg(journal.membershipSnapshot(), "sequence_membership", context,
             resultBundleSha256, bundle.memberships().size());
@@ -79,45 +83,97 @@ public final class SparkMlIcebergWriter implements MlIcebergWriter {
         return new ResultCommit(membership, summary);
     }
 
+    /** Reserve the experiment ID in the namespace registry before result-table writes. */
+    @Override public Reservation reserveExperiment(ResultBundleValidator.DecodedBundle bundle,
+                                                   ResultBundleValidator.Context context,
+                                                   String resultBundleSha256) throws Exception {
+        assertLease.run();
+        Journal journal = loadJournal(context, resultBundleSha256);
+        String table = namespace + ".experiment_run";
+        ensureExperimentTable(bundle, context, resultBundleSha256);
+        Dataset<Row> existing = spark.table(table).filter(col("experiment_run_id").equalTo(context.runId()));
+        long count = existing.count();
+        if (count > 1) throw new IllegalStateException("IMP_EXPERIMENT_RUN_DUPLICATE");
+        if (count == 1) {
+            Row row = existing.first();
+            if (!resultBundleSha256.equals(row.getAs("result_bundle_sha256")))
+                throw new IllegalArgumentException("IMP_EXPERIMENT_RUN_REUSED");
+            String status = row.getAs("experiment_status");
+            if ("REJECTED".equals(status)) throw new IllegalStateException("IMP_REJECTED_RUN_TERMINAL");
+            if ("CANDIDATE".equals(status)) {
+                long membership = nullableSnapshot(row, "membership_snapshot_id");
+                long summary = nullableSnapshot(row, "summary_snapshot_id");
+                long experiment = findCandidateSnapshot(context.runId(), resultBundleSha256);
+                if (membership <= 0 || summary <= 0 || experiment <= 0)
+                    throw new IllegalStateException("IMP_CANDIDATE_SNAPSHOT_MISSING");
+                return new Reservation(status, membership, summary, experiment);
+            }
+            if (!"IMPORT_VALIDATING".equals(status)) throw new IllegalStateException("IMP_INVALID_IMPORT_STATE");
+            return new Reservation(status, nullableSnapshot(row, "membership_snapshot_id"),
+                nullableSnapshot(row, "summary_snapshot_id"), 0L);
+        }
+
+        Dataset<Row> reservation = experimentFrame(bundle.success(), context, resultBundleSha256, 0L, 0L, true);
+        reservation.writeTo(table).option("snapshot-property.ml.operation_id", context.runId())
+            .option("snapshot-property.ml.result_bundle_sha256", resultBundleSha256)
+            .option("snapshot-property.ml.expected_row_count", "1").append();
+        long snapshot = currentSnapshotWithIdentity(table, context.runId(), resultBundleSha256);
+        persistJournal(context, journal.withExperiment(snapshot));
+        return new Reservation("IMPORT_VALIDATING", 0L, 0L, snapshot);
+    }
+
+    /** Persist a quality rejection in the namespace registry; infrastructure failures stay resumable. */
+    @Override public void rejectExperiment(ResultBundleValidator.Context context, String resultBundleSha256,
+                                           String reasonCode) throws Exception {
+        assertLease.run();
+        String table = namespace + ".experiment_run";
+        if (!spark.catalog().tableExists(table)) return;
+        Dataset<Row> existing = spark.table(table).filter(col("experiment_run_id").equalTo(context.runId()));
+        long count = existing.count();
+        if (count == 0) return;
+        if (count != 1) throw new IllegalStateException("IMP_EXPERIMENT_RUN_DUPLICATE");
+        Row row = existing.first();
+        if (!resultBundleSha256.equals(row.getAs("result_bundle_sha256")))
+            throw new IllegalArgumentException("IMP_EXPERIMENT_RUN_REUSED");
+        String status = row.getAs("experiment_status");
+        if ("CANDIDATE".equals(status) || "REJECTED".equals(status)) return;
+        if (!"IMPORT_VALIDATING".equals(status)) throw new IllegalStateException("IMP_INVALID_IMPORT_STATE");
+        existing.withColumn("experiment_status", lit("REJECTED"))
+            .withColumn("status_reason_code", lit(reasonCode))
+            .writeTo(table).option("snapshot-property.ml.operation_id", context.runId())
+            .option("snapshot-property.ml.result_bundle_sha256", resultBundleSha256)
+            .option("snapshot-property.ml.expected_row_count", "1").overwritePartitions();
+        Row rejected = spark.table(table).filter(col("experiment_run_id").equalTo(context.runId())).first();
+        if (!"REJECTED".equals(rejected.getAs("experiment_status")))
+            throw new IllegalStateException("IMP_REJECTION_STATE_UNCONFIRMED");
+    }
+
     @Override public long publishCandidate(ResultBundleValidator.DecodedBundle bundle,
                                             ResultBundleValidator.Context context,
                                             String resultBundleSha256, ResultCommit commit) throws Exception {
         assertLease.run();
         String table = namespace + ".experiment_run";
-        if (!spark.catalog().tableExists(table)) {
-            Dataset<Row> shape = experimentFrame(bundle.success(), context, resultBundleSha256,
-                commit.membershipSnapshot(), commit.summarySnapshot(), true);
-            String columns = Arrays.stream(shape.schema().fields()).map(field ->
-                "`" + field.name() + "` " + field.dataType().sql()).reduce((left, right) -> left + "," + right).orElseThrow();
-            spark.sql("CREATE TABLE " + table + " (" + columns + ") USING iceberg PARTITIONED BY (experiment_run_id) "
-                + "TBLPROPERTIES ('format-version'='2','write.format.default'='parquet')");
+        Reservation reservation = reserveExperiment(bundle, context, resultBundleSha256);
+        if ("CANDIDATE".equals(reservation.status())) {
+            if (reservation.membershipSnapshot() != commit.membershipSnapshot()
+                    || reservation.summarySnapshot() != commit.summarySnapshot())
+                throw new IllegalStateException("IMP_CANDIDATE_SNAPSHOT_IDENTITY_MISMATCH");
+            return reservation.experimentSnapshot();
         }
         Dataset<Row> existing = spark.table(table).filter(col("experiment_run_id").equalTo(context.runId()));
-        if (existing.count() > 0) {
-            Row row = existing.first();
-            if (!resultBundleSha256.equals(row.getAs("result_bundle_sha256"))) throw new IllegalArgumentException("IMP_EXPERIMENT_RUN_REUSED");
-            String status = row.getAs("experiment_status");
-            if (!"CANDIDATE".equals(status) && !"IMPORT_VALIDATING".equals(status)) throw new IllegalStateException("IMP_INVALID_IMPORT_STATE");
-            if ("IMPORT_VALIDATING".equals(status)) {
-                spark.sql("UPDATE " + table + " SET experiment_status='CANDIDATE', membership_snapshot_id="
-                    + commit.membershipSnapshot() + ", summary_snapshot_id=" + commit.summarySnapshot()
-                    + ", imported_at_utc='" + Instant.now().toString() + "' WHERE experiment_run_id='"
-                    + context.runId().replace("'", "''") + "'");
-            }
-            return latestSnapshot(table);
-        }
+        if (existing.count() != 1 || !"IMPORT_VALIDATING".equals(existing.first().getAs("experiment_status")))
+            throw new IllegalStateException("IMP_INVALID_IMPORT_STATE");
         Dataset<Row> row = experimentFrame(bundle.success(), context, resultBundleSha256,
             commit.membershipSnapshot(), commit.summarySnapshot(), false);
         row.writeTo(table).option("snapshot-property.ml.operation_id", context.runId())
             .option("snapshot-property.ml.result_bundle_sha256", resultBundleSha256)
-            .option("snapshot-property.ml.expected_row_count", "1").append();
-        Table iceberg = Spark3Util.loadIcebergTable(spark, table);
-        iceberg.refresh();
-        Snapshot snapshot = iceberg.currentSnapshot();
-        if (snapshot == null || !context.runId().equals(snapshot.summary().get("ml.operation_id")))
-            throw new IllegalStateException("IMP_SNAPSHOT_IDENTITY_MISMATCH");
-        persistJournal(context, loadJournal(context, resultBundleSha256).withExperiment(snapshot.snapshotId()));
-        return snapshot.snapshotId();
+            .option("snapshot-property.ml.expected_row_count", "1").overwritePartitions();
+        long snapshot = currentSnapshotWithIdentity(table, context.runId(), resultBundleSha256);
+        if (spark.table(table).filter(col("experiment_run_id").equalTo(context.runId())
+                .and(col("experiment_status").equalTo("CANDIDATE"))).count() != 1)
+            throw new IllegalStateException("IMP_CANDIDATE_READBACK_FAILED");
+        persistJournal(context, loadJournal(context, resultBundleSha256).withExperiment(snapshot));
+        return snapshot;
     }
 
     @Override public Commit commit(ResultBundleValidator.DecodedBundle bundle,
@@ -180,6 +236,49 @@ public final class SparkMlIcebergWriter implements MlIcebergWriter {
         if (!spark.catalog().tableExists(name)) throw new IllegalStateException("IMP_TABLE_MISSING");
         return spark.read().format("iceberg").option("snapshot-id", Long.toString(snapshotId)).load(name)
             .filter(col("experiment_run_id").equalTo(runId));
+    }
+
+    private void ensureExperimentTable(ResultBundleValidator.DecodedBundle bundle,
+                                       ResultBundleValidator.Context context, String fingerprint) {
+        String table = namespace + ".experiment_run";
+        if (spark.catalog().tableExists(table)) return;
+        Dataset<Row> shape = experimentFrame(bundle.success(), context, fingerprint, 0L, 0L, true);
+        String columns = Arrays.stream(shape.schema().fields()).map(field ->
+            "`" + field.name() + "` " + field.dataType().sql()).reduce((left, right) -> left + "," + right).orElseThrow();
+        spark.sql("CREATE TABLE " + table + " (" + columns + ") USING iceberg PARTITIONED BY (experiment_run_id) "
+            + "TBLPROPERTIES ('format-version'='2','write.format.default'='parquet')");
+    }
+
+    private long currentSnapshotWithIdentity(String table, String runId, String fingerprint) throws Exception {
+        Table iceberg = Spark3Util.loadIcebergTable(spark, table);
+        iceberg.refresh();
+        Snapshot snapshot = iceberg.currentSnapshot();
+        if (snapshot == null || !runId.equals(snapshot.summary().get("ml.operation_id"))
+                || !fingerprint.equals(snapshot.summary().get("ml.result_bundle_sha256")))
+            throw new IllegalStateException("IMP_SNAPSHOT_IDENTITY_MISMATCH");
+        return snapshot.snapshotId();
+    }
+
+    private long findCandidateSnapshot(String runId, String fingerprint) throws Exception {
+        String table = namespace + ".experiment_run";
+        Table iceberg = Spark3Util.loadIcebergTable(spark, table);
+        iceberg.refresh();
+        List<Snapshot> snapshots = new ArrayList<>();
+        iceberg.snapshots().forEach(snapshots::add);
+        Collections.reverse(snapshots);
+        for (Snapshot snapshot : snapshots) {
+            if (runId.equals(snapshot.summary().get("ml.operation_id"))
+                    && fingerprint.equals(snapshot.summary().get("ml.result_bundle_sha256"))
+                    && snapshot("experiment_run", snapshot.snapshotId(), runId)
+                        .filter(col("experiment_status").equalTo("CANDIDATE")).count() == 1)
+                return snapshot.snapshotId();
+        }
+        return 0L;
+    }
+
+    private static long nullableSnapshot(Row row, String field) {
+        Object value = row.getAs(field);
+        return value instanceof Number number ? number.longValue() : 0L;
     }
 
     private long write(Dataset<Row> frame, String table, ResultBundleValidator.Context context,

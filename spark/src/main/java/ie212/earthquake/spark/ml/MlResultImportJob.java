@@ -62,6 +62,7 @@ public final class MlResultImportJob {
     public static ObjectNode importBundle(Path bundleRoot, Path journalRoot, ResultBundleValidator.Context originalContext,
                                           MlIcebergWriter writer, IndependentVerifier verifier, String namespace) throws Exception {
         Files.createDirectories(journalRoot);
+        Path registry = journalRoot.resolve("experiment-run-" + originalContext.runId() + ".json");
         ResultBundleValidator.DecodedBundle bundle;
         try { bundle = MlResultBundleReader.read(bundleRoot); }
         catch (RuntimeException | IOException error) { writeRejected(journalRoot, originalContext, reason(error), true); throw error; }
@@ -73,32 +74,49 @@ public final class MlResultImportJob {
         } catch (RuntimeException error) {
             writeRejected(journalRoot, originalContext, reason(error), true); throw error;
         }
-        Path registry = journalRoot.resolve("experiment-run-" + context.runId() + ".json");
+        JsonNode existing = null;
         if (Files.exists(registry)) {
-            JsonNode existing = JSON.readTree(Files.readAllBytes(registry));
-            if (!receipt.bundleSha256().equals(existing.path("result_bundle_sha256").asText()))
+            existing = JSON.readTree(Files.readAllBytes(registry));
+            if (!receipt.bundleSha256().equals(existing.path("result_bundle_sha256").asText())) {
+                writeRejected(journalRoot, context, "IMP_EXPERIMENT_RUN_REUSED", false);
                 throw new IllegalArgumentException("IMP_EXPERIMENT_RUN_REUSED");
-            if (namespace != null && (!existing.has("namespace") || !namespace.equals(existing.path("namespace").asText())))
-                throw new IllegalStateException("IMP_NAMESPACE_DRIFT");
-            if ("REJECTED".equals(existing.path("experiment_status").asText())) throw new IllegalStateException("IMP_REJECTED_RUN_TERMINAL");
-            if ("CANDIDATE".equals(existing.path("experiment_status").asText())) {
-                long membership = existing.path("membership_snapshot_id").asLong();
-                long summary = existing.path("summary_snapshot_id").asLong();
-                long experiment = existing.path("experiment_snapshot_id").asLong();
-                Map<String, Long> readback = writer.readback(new MlIcebergWriter.ResultCommit(membership, summary), experiment, context);
-                ObjectNode result = (ObjectNode) existing.deepCopy();
-                ObjectNode counts = result.putObject("readback"); readback.forEach(counts::put);
-                return result;
             }
-            if (!"IMPORT_VALIDATING".equals(existing.path("experiment_status").asText()))
+            if (namespace != null && (!existing.has("namespace") || !namespace.equals(existing.path("namespace").asText()))) {
+                writeRejected(journalRoot, context, "IMP_NAMESPACE_DRIFT", false);
+                throw new IllegalStateException("IMP_NAMESPACE_DRIFT");
+            }
+            if ("REJECTED".equals(existing.path("experiment_status").asText())) {
+                writeRejected(journalRoot, context, "IMP_REJECTED_RUN_TERMINAL", true);
+                throw new IllegalStateException("IMP_REJECTED_RUN_TERMINAL");
+            }
+            String localStatus = existing.path("experiment_status").asText();
+            if (!"IMPORT_VALIDATING".equals(localStatus) && !"CANDIDATE".equals(localStatus)) {
+                writeRejected(journalRoot, context, "IMP_INVALID_IMPORT_STATE", false);
                 throw new IllegalStateException("IMP_INVALID_IMPORT_STATE");
+            }
         }
         ObjectNode validating = JSON.createObjectNode().put("experiment_run_id", context.runId()).put("dataset_id", context.datasetId())
             .put("experiment_status", "IMPORT_VALIDATING").put("result_bundle_sha256", receipt.bundleSha256())
             .put("created_at_utc", context.experimentMetadata().createdAtUtc());
         if (namespace != null) validating.put("namespace", namespace);
-        atomicWrite(registry, validating);
         try {
+            MlIcebergWriter.Reservation reservation = writer.reserveExperiment(bundle, context, receipt.bundleSha256());
+            if ("CANDIDATE".equals(reservation.status())) {
+                MlIcebergWriter.ResultCommit pinned = new MlIcebergWriter.ResultCommit(
+                    reservation.membershipSnapshot(), reservation.summarySnapshot());
+                Map<String, Long> readback = writer.readback(pinned, reservation.experimentSnapshot(), context);
+                String publishedAt = existing != null && "CANDIDATE".equals(existing.path("experiment_status").asText())
+                    ? existing.path("candidate_at_utc").asText(null) : null;
+                ObjectNode candidate = candidateResult(context, receipt.bundleSha256(), namespace,
+                    reservation.membershipSnapshot(), reservation.summarySnapshot(), reservation.experimentSnapshot(), readback, publishedAt);
+                atomicWrite(registry, candidate);
+                return candidate;
+            }
+            if (existing != null && "CANDIDATE".equals(existing.path("experiment_status").asText()))
+                throw new IllegalStateException("IMP_CANDIDATE_RESERVATION_MISSING");
+            if (!"IMPORT_VALIDATING".equals(reservation.status()))
+                throw new IllegalStateException("IMP_INVALID_IMPORT_STATE");
+            if (existing == null) atomicWrite(registry, validating);
             MlIcebergWriter.ResultCommit commit = writer.commitResults(bundle, context, receipt.bundleSha256());
             Map<String, Long> verified = verifier.verify(commit, context, receipt.bundleSha256());
             if (verified.getOrDefault("sequence_membership", 0L) <= 0 || verified.getOrDefault("sequence_summary", 0L) <= 0)
@@ -107,20 +125,37 @@ public final class MlResultImportJob {
             Map<String, Long> readback = writer.readback(commit, experiment, context);
             ResultBundleContract.assertTransition("IMPORT_VALIDATING", "CANDIDATE", false,
                 commit.membershipSnapshot(), commit.summarySnapshot());
-            ObjectNode candidate = JSON.createObjectNode().put("experiment_run_id", context.runId()).put("dataset_id", context.datasetId())
-                .put("algorithm_name", context.algorithm()).put("experiment_status", "CANDIDATE")
-                .put("result_bundle_sha256", receipt.bundleSha256()).put("candidate_at_utc", Instant.now().toString())
-                .put("membership_snapshot_id", commit.membershipSnapshot()).put("summary_snapshot_id", commit.summarySnapshot())
-                .put("experiment_snapshot_id", experiment);
-            if (namespace != null) candidate.put("namespace", namespace);
-            ObjectNode counts = candidate.putObject("readback"); readback.forEach(counts::put);
+            ObjectNode candidate = candidateResult(context, receipt.bundleSha256(), namespace,
+                commit.membershipSnapshot(), commit.summarySnapshot(), experiment, readback, null);
             atomicWrite(registry, candidate);
             return candidate;
         } catch (Exception error) {
             boolean quality = isQualityReason(reason(error));
+            if (quality) {
+                try {
+                    writer.rejectExperiment(context, receipt.bundleSha256(), reason(error));
+                    markCanonicalRejected(registry, context, receipt.bundleSha256(), namespace, reason(error));
+                } catch (Exception rejectionError) {
+                    error.addSuppressed(rejectionError);
+                }
+            }
             writeRejected(journalRoot, context, reason(error), quality);
             throw error;
         }
+    }
+
+    private static ObjectNode candidateResult(ResultBundleValidator.Context context, String fingerprint, String namespace,
+                                              long membership, long summary, long experiment,
+                                              Map<String, Long> readback, String publishedAt) {
+        ObjectNode candidate = JSON.createObjectNode().put("experiment_run_id", context.runId())
+            .put("dataset_id", context.datasetId()).put("algorithm_name", context.algorithm())
+            .put("experiment_status", "CANDIDATE").put("result_bundle_sha256", fingerprint)
+            .put("candidate_at_utc", publishedAt == null || publishedAt.isBlank() ? Instant.now().toString() : publishedAt)
+            .put("membership_snapshot_id", membership)
+            .put("summary_snapshot_id", summary).put("experiment_snapshot_id", experiment);
+        if (namespace != null) candidate.put("namespace", namespace);
+        ObjectNode counts = candidate.putObject("readback"); readback.forEach(counts::put);
+        return candidate;
     }
 
     /** Request claims are not accepted as lineage evidence; resolve only from the trusted registry. */
@@ -150,7 +185,9 @@ public final class MlResultImportJob {
 
     private static Runnable leaseAssertion(JsonNode request) {
         Path owner = Path.of(System.getenv().getOrDefault("SOURCE_GUARD_ROOT", "/opt/pipeline/staging/source-guard")).resolve("owner.json");
-        String dag = request.path("dag_id").asText(), run = request.path("run_id").asText();
+        JsonNode leaseOwner = request.path("_mli03_lease_owner");
+        String dag = leaseOwner.path("dag_id").asText(), run = leaseOwner.path("run_id").asText();
+        if (dag.isBlank() || run.isBlank()) throw new IllegalArgumentException("SOURCE_LEASE_OWNER_REQUIRED");
         return () -> {
             try {
                 JsonNode value = JSON.readTree(Files.readAllBytes(owner));
@@ -182,11 +219,47 @@ public final class MlResultImportJob {
     private static void writeRejected(Path root, ResultBundleValidator.Context context, String reason, boolean terminal) {
         try {
             Files.createDirectories(root);
-            ObjectNode rejected = JSON.createObjectNode().put("experiment_run_id", context.runId()).put("dataset_id", context.datasetId())
-                .put("experiment_status", "REJECTED").put("status_reason_code", reason == null ? "IMP_UNKNOWN" : reason);
-            atomicWrite(root.resolve("rejected-" + context.runId() + ".json"), rejected);
-            if (terminal) atomicWrite(root.resolve("experiment-run-" + context.runId() + ".json"), rejected);
+            String reasonCode = reason == null ? "IMP_UNKNOWN" : reason;
+            ObjectNode attempt = JSON.createObjectNode().put("attempt_id", UUID.randomUUID().toString())
+                .put("experiment_run_id", context.runId()).put("dataset_id", context.datasetId())
+                .put("attempted_at_utc", Instant.now().toString()).put("status_reason_code", reasonCode)
+                .put("terminal", terminal);
+            Path attempts = root.resolve("attempts");
+            Files.createDirectories(attempts);
+            atomicWrite(attempts.resolve("attempt-" + attempt.path("attempt_id").asText() + ".json"), attempt);
+            Path canonical = root.resolve("experiment-run-" + context.runId() + ".json");
+            if (terminal && !Files.exists(canonical)) {
+                ObjectNode rejected = JSON.createObjectNode().put("experiment_run_id", context.runId())
+                    .put("dataset_id", context.datasetId()).put("experiment_status", "REJECTED")
+                    .put("status_reason_code", reasonCode);
+                createCanonicalIfAbsent(canonical, rejected);
+            }
         } catch (Exception ignored) { /* preserve original failure and never expose bundle contents */ }
+    }
+
+    private static void markCanonicalRejected(Path registry, ResultBundleValidator.Context context,
+                                              String fingerprint, String namespace, String reason) throws Exception {
+        if (!Files.exists(registry)) return;
+        JsonNode current = JSON.readTree(Files.readAllBytes(registry));
+        if (!"IMPORT_VALIDATING".equals(current.path("experiment_status").asText())
+                || !fingerprint.equals(current.path("result_bundle_sha256").asText())) return;
+        ObjectNode rejected = JSON.createObjectNode().put("experiment_run_id", context.runId())
+            .put("dataset_id", context.datasetId()).put("experiment_status", "REJECTED")
+            .put("result_bundle_sha256", fingerprint).put("status_reason_code", reason);
+        if (namespace != null) rejected.put("namespace", namespace);
+        atomicWrite(registry, rejected);
+    }
+
+    private static void createCanonicalIfAbsent(Path path, JsonNode node) throws Exception {
+        if (Files.exists(path)) return;
+        Files.createDirectories(path.getParent());
+        Path temp = Files.createTempFile(path.getParent(), ".mli03-rejected-", ".tmp");
+        try {
+            Files.writeString(temp, JSON.writerWithDefaultPrettyPrinter().writeValueAsString(node) + "\n",
+                StandardOpenOption.TRUNCATE_EXISTING);
+            try { Files.move(temp, path, StandardCopyOption.ATOMIC_MOVE); }
+            catch (FileAlreadyExistsException ignored) { }
+        } finally { Files.deleteIfExists(temp); }
     }
 
     private static void atomicWrite(Path path, JsonNode node) throws Exception {

@@ -1,9 +1,14 @@
 package ie212.earthquake.spark.ml;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import org.apache.spark.sql.SparkSession;
 import org.junit.jupiter.api.*;
@@ -76,4 +81,67 @@ class MlResultPublicationIcebergTest {
                 "result_ready_at_utc", "imported_at_utc", "membership_snapshot_id", "summary_snapshot_id"))
             assertTrue(columns.contains(required), "missing experiment_run field: " + required);
     }
+
+    @Test void namespaceReservationRejectsChangedFingerprintBeforeAnyAppend(@TempDir Path journal,
+                                                                             @TempDir Path changedBundle,
+                                                                             @TempDir Path retryJournal) throws Exception {
+        var pins = new ResultBundleValidator.DatasetPins("registry/ds.json", "e".repeat(64), "f".repeat(64), "r3", "c3", "m3");
+        var context = new ResultBundleValidator.Context("ds_fixture", "EXPORTED", "exp_fixture", "WINDOW", "1",
+            ResultBundleContractTest.CANDIDATES, null, pins, null);
+        String namespace = "lake.ml_qa_reservation";
+        var firstWriter = new SparkMlIcebergWriter(spark, namespace, () -> { }, journal);
+        var first = MlResultImportJob.importBundle(FIXTURE, journal, context, firstWriter,
+            (commit, value, fingerprint) -> Map.of("sequence_membership", 2L, "sequence_summary", 1L), namespace);
+        assertEquals("CANDIDATE", first.path("experiment_status").asText());
+        Map<String, TableState> before = tableStates(namespace);
+
+        createChangedBundle(changedBundle, 99L);
+        var changedWriter = new SparkMlIcebergWriter(spark, namespace, () -> { }, retryJournal);
+        assertEquals("IMP_EXPERIMENT_RUN_REUSED", assertThrows(IllegalArgumentException.class, () ->
+            MlResultImportJob.importBundle(changedBundle, retryJournal, context, changedWriter,
+                (commit, value, fingerprint) -> Map.of("sequence_membership", 2L, "sequence_summary", 1L), namespace)).getMessage());
+        assertEquals(before, tableStates(namespace));
+
+        var sameBundleWriter = new SparkMlIcebergWriter(spark, namespace, () -> { }, retryJournal);
+        var reused = MlResultImportJob.importBundle(FIXTURE, retryJournal, context, sameBundleWriter,
+            (commit, value, fingerprint) -> Map.of("sequence_membership", 2L, "sequence_summary", 1L), namespace);
+        assertEquals("CANDIDATE", reused.path("experiment_status").asText());
+        assertEquals(before, tableStates(namespace));
+    }
+
+    private static void createChangedBundle(Path destination, long randomSeed) throws Exception {
+        Files.createDirectories(destination);
+        try (var paths = Files.walk(FIXTURE)) {
+            for (Path source : paths.toList()) {
+                Path target = destination.resolve(FIXTURE.relativize(source).toString());
+                if (Files.isDirectory(source)) Files.createDirectories(target);
+                else Files.copy(source, target);
+            }
+        }
+        ObjectMapper mapper = new ObjectMapper();
+        Path configPath = destination.resolve("experiment_config.json");
+        ObjectNode config = (ObjectNode) mapper.readTree(Files.readAllBytes(configPath));
+        config.put("random_seed", randomSeed);
+        byte[] configBytes = (mapper.writerWithDefaultPrettyPrinter().writeValueAsString(config) + "\n")
+            .getBytes(StandardCharsets.UTF_8);
+        Files.write(configPath, configBytes);
+        Path successPath = destination.resolve("_SUCCESS.json");
+        ObjectNode success = (ObjectNode) mapper.readTree(Files.readAllBytes(successPath));
+        ((ObjectNode) success.path("checksums")).put("experiment_config.json", ResultBundleContract.sha256(configBytes));
+        Files.writeString(successPath, mapper.writerWithDefaultPrettyPrinter().writeValueAsString(success) + "\n");
+    }
+
+    private static Map<String, TableState> tableStates(String namespace) {
+        Map<String, TableState> result = new java.util.LinkedHashMap<>();
+        for (String name : List.of("sequence_membership", "sequence_summary", "experiment_run")) {
+            String table = namespace + "." + name;
+            List<Long> snapshots = new ArrayList<>();
+            for (var row : spark.table(table + ".snapshots").select("snapshot_id").collectAsList())
+                snapshots.add(row.getLong(0));
+            result.put(name, new TableState(spark.table(table).count(), List.copyOf(snapshots)));
+        }
+        return Map.copyOf(result);
+    }
+
+    private record TableState(long rows, List<Long> snapshots) { }
 }

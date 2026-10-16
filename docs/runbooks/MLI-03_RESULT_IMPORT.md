@@ -6,9 +6,18 @@
 manifest trong trusted registry. Java/Spark tự resolve trạng thái `EXPORTED`,
 candidate/mainshock snapshot pins và lineage từ manifest đã kiểm checksum;
 caller không được khai `dataset_status` hoặc candidate IDs. Python giữ lease
-cho toàn run và chuyển request vào staging. Result tables được commit trước,
-Trino verify trên exact snapshots, rồi mới ghi một dòng `CANDIDATE`; importer
-không ghi `APPROVED`.
+cho toàn run theo identity của Airflow DagRun thật. Import `run_id` và
+`experiment_run_id` là operation/publication identity riêng, không được dùng
+làm lease owner. Task resolve pin request bytes và SHA-256 vào context bền vững;
+mọi task kiểm tra checksum context và nguồn request trước khi chạy tiếp. Java
+runner nhận lease owner nội bộ do DagRun tạo, không nhận owner từ request ngoài.
+
+Writer reserve `experiment_run_id` trong `ml.experiment_run` ở trạng thái
+`IMPORT_VALIDATING` trước khi append membership/summary. Namespace reservation
+là nguồn kiểm tra ID/fingerprint kể cả khi retry dùng journal directory khác.
+Fingerprint khác bị từ chối trước mọi result-table write. Result tables được
+commit trước, Trino verify trên exact snapshots, rồi mới cập nhật cùng dòng
+registry thành `CANDIDATE`; importer không ghi `APPROVED`.
 
 ## Request tối thiểu
 
@@ -47,12 +56,19 @@ credential.
 Writer tạo `ml.sequence_membership`, `ml.sequence_summary` và
 `ml.experiment_run` trong namespace đã pin. Hai bảng kết quả được partition theo
 `experiment_run_id`; registry run giữ một dòng cho mỗi run và lưu fingerprint,
-model/config versions, artifact URI, row counts cùng snapshot IDs. Cùng run và
-cùng fingerprint là retry; fingerprint khác bị `IMP_EXPERIMENT_RUN_REUSED`.
-Lỗi checksum/schema/lineage hoặc Trino quality blocker là `REJECTED` terminal.
+model/config versions, artifact URI, row counts cùng snapshot IDs. Cùng
+experiment ID và fingerprint là retry; namespace reservation phát hiện
+fingerprint khác trước mọi append và trả `IMP_EXPERIMENT_RUN_REUSED`. Lỗi
+checksum/schema/lineage hoặc Trino quality blocker là `REJECTED` terminal.
 Timeout, mất receipt hoặc outcome hạ tầng chưa rõ giữ `IMPORT_VALIDATING`,
 ghi journal `mli03-journal-v2` theo từng bảng và resume bằng cùng operation /
 fingerprint. Không append lại snapshot đã readback được.
+
+Canonical `experiment-run-<id>.json` chỉ đổi theo lifecycle của đúng identity.
+Lỗi một attempt được ghi riêng dưới `attempts/`; một retry bundle lỗi không
+được ghi đè journal `CANDIDATE` hoặc làm mất identity/snapshot đã pin. Lease chỉ
+được release sau khi xác nhận owner hiện tại là đúng DagRun; completion yêu cầu
+report `CANDIDATE` và receipt release `RELEASED` trùng owner.
 
 ## Kiểm tra offline
 

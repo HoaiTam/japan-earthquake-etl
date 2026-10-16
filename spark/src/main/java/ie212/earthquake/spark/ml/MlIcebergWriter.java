@@ -7,6 +7,18 @@ import java.util.Map;
 public interface MlIcebergWriter {
     record Commit(long membershipSnapshot, long summarySnapshot, long experimentSnapshot) { }
     record ResultCommit(long membershipSnapshot, long summarySnapshot) { }
+    record Reservation(String status, long membershipSnapshot, long summarySnapshot, long experimentSnapshot) { }
+
+    /** Persist/check experiment identity before any result-table append. */
+    default Reservation reserveExperiment(ResultBundleValidator.DecodedBundle bundle,
+                                          ResultBundleValidator.Context context,
+                                          String resultBundleSha256) throws Exception {
+        return new Reservation("IMPORT_VALIDATING", 0L, 0L, 0L);
+    }
+
+    /** Mark a reserved experiment terminal after a quality blocker. */
+    default void rejectExperiment(ResultBundleValidator.Context context, String resultBundleSha256,
+                                  String reasonCode) throws Exception { }
 
     /** Commit only result tables.  Publication is a separate, post-verification step. */
     default ResultCommit commitResults(ResultBundleValidator.DecodedBundle bundle,
