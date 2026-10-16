@@ -202,7 +202,8 @@ def _snapshot_refs(value: Any) -> list[dict[str, Any]]:
     result: list[dict[str, Any]] = []
     seen: set[tuple[str, str]] = set()
     for item in value:
-        if not isinstance(item, dict) or not SAFE_TABLE.fullmatch(str(item.get("table", ""))):
+        if not isinstance(item, dict) or not isinstance(item.get("table"), str) \
+                or not SAFE_TABLE.fullmatch(item["table"]):
             raise Qa02Error("QA02_RUNTIME_SNAPSHOTS_REQUIRED")
         snapshot_id = item.get("snapshot_id")
         if isinstance(snapshot_id, int) and not isinstance(snapshot_id, bool) and snapshot_id > 0:
@@ -211,11 +212,13 @@ def _snapshot_refs(value: Any) -> list[dict[str, Any]]:
             snapshot_text = snapshot_id
         else:
             raise Qa02Error("QA02_RUNTIME_SNAPSHOTS_REQUIRED")
+        if int(snapshot_text) > 9223372036854775807:
+            raise Qa02Error("QA02_RUNTIME_SNAPSHOTS_REQUIRED")
         key = (item["table"], snapshot_text)
         if key in seen:
             raise Qa02Error("QA02_RUNTIME_SNAPSHOTS_REQUIRED")
         seen.add(key)
-        result.append({"table": item["table"], "snapshot_id": snapshot_id})
+        result.append({"table": item["table"], "snapshot_id": snapshot_text})
     return result
 
 
@@ -226,7 +229,8 @@ def _canonical(value: Any) -> str:
         raise Qa02Error("QA02_RECONCILIATION_VALUE_INVALID") from error
 
 
-def _assert_runtime_assertion(value: Any, expected: str, assertion: str) -> None:
+def _assert_runtime_assertion(value: Any, expected: str, assertion: str,
+                              snapshots: Mapping[str, Any]) -> None:
     if not isinstance(value, dict) or value.get("status") != "PASS" \
             or value.get("check") != expected or "before" not in value or "after" not in value:
         raise Qa02Error("QA02_RECONCILIATION_INCOMPLETE")
@@ -290,8 +294,9 @@ def _assert_runtime_assertion(value: Any, expected: str, assertion: str) -> None
             raise Qa02Error("QA02_RECONCILIATION_EXPECTATION_FAILED")
         return
     if expected == "auditable":
-        if not isinstance(after, dict) or after.get("auditable") is not True \
-                or not isinstance(after.get("release_id"), str):
+        if not isinstance(before, dict) or not isinstance(after, dict) \
+                or not isinstance(before.get("release_id"), str) or not before["release_id"].strip() \
+                or before["release_id"] != after.get("release_id") or after.get("auditable") is not True:
             raise Qa02Error("QA02_RECONCILIATION_EXPECTATION_FAILED")
         return
     if expected == "both_sources_retained":
@@ -320,8 +325,10 @@ def _assert_runtime_assertion(value: Any, expected: str, assertion: str) -> None
             raise Qa02Error("QA02_RECONCILIATION_EXPECTATION_FAILED")
         return
     if expected == "old_snapshot_readable":
-        if not isinstance(before, dict) or not isinstance(after, dict) \
-                or before.get("snapshot_id") != after.get("snapshot_id") or after.get("readable") is not True:
+        old_ref = _snapshot_refs([before])[0]
+        readback_ref = _snapshot_refs([after])[0]
+        if old_ref != readback_ref or after.get("readable") is not True \
+                or old_ref not in snapshots["before"] or readback_ref not in snapshots["after"]:
             raise Qa02Error("QA02_RECONCILIATION_EXPECTATION_FAILED")
         return
     raise Qa02Error("QA02_RECONCILIATION_EXPECTATION_UNSUPPORTED")
@@ -390,14 +397,19 @@ def _validate_runtime_report(report: Mapping[str, Any], request: Mapping[str, An
         snapshots = case.get("snapshots")
         if not isinstance(snapshots, dict):
             raise Qa02Error("QA02_RUNTIME_SNAPSHOTS_REQUIRED")
-        _snapshot_refs(snapshots.get("before"))
-        _snapshot_refs(snapshots.get("after"))
+        snapshot_refs = {side: _snapshot_refs(snapshots.get(side)) for side in ("before", "after")}
         _validate_evidence_ref(case.get("evidence_ref"), request, case, report_path)
         reconciliation = case.get("reconciliation")
         if not isinstance(reconciliation, dict):
             raise Qa02Error("QA02_RECONCILIATION_INCOMPLETE")
         for assertion in required_assertions(source):
-            _assert_runtime_assertion(reconciliation.get(assertion), source["expected"][assertion], assertion)
+            _assert_runtime_assertion(reconciliation.get(assertion), source["expected"][assertion],
+                                      assertion, snapshot_refs)
+        if source["expected"].get("old_release") == "auditable":
+            # The audited release is the replacement baseline, never the new release.
+            old_id = reconciliation["old_release"]["before"]["release_id"]
+            if old_id != reconciliation["release"]["before"]["release_id"]:
+                raise Qa02Error("QA02_RECONCILIATION_EXPECTATION_FAILED")
     summary = report.get("summary")
     if not isinstance(summary, dict) or summary.get("case_count") != len(cases) \
             or summary.get("passed") != len(cases) or summary.get("failed") != 0 \

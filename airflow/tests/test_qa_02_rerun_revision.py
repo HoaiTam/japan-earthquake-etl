@@ -116,7 +116,7 @@ class Qa02RerunRevisionTest(unittest.TestCase):
         elif expected == "replacement":
             before, after = {"release_id": "jma-old"}, {"release_id": "jma-new", "replacement": True, "is_current": True}
         elif expected == "auditable":
-            before, after = {"release_id": "jma-old"}, {"release_id": "jma-new", "auditable": True}
+            before, after = {"release_id": "jma-old"}, {"release_id": "jma-old", "auditable": True}
         elif expected == "both_sources_retained":
             before, after = {"sources": ["USGS"]}, {"sources": ["USGS", "JMA"]}
         elif expected == "current":
@@ -130,7 +130,8 @@ class Qa02RerunRevisionTest(unittest.TestCase):
         elif expected == "reconciled":
             before, after = {"canonical_count": 10}, {"canonical_count": 10, "balanced": True}
         elif expected == "old_snapshot_readable":
-            before, after = {"snapshot_id": "1001"}, {"snapshot_id": "1001", "readable": True}
+            before = {"table": "gold.event_current", "snapshot_id": "1001"}
+            after = {**before, "readable": True}
         else:
             raise AssertionError(f"Unhandled assertion fixture: {expected}")
         return {"status": "PASS", "check": expected, "before": before, "after": after, "details": details}
@@ -325,6 +326,92 @@ class Qa02RerunRevisionTest(unittest.TestCase):
             path.write_text(json.dumps(matrix), encoding="utf-8")
             with self.assertRaisesRegex(Qa02Error, "QA02_CASE_INVALID"):
                 load_matrix(path)
+
+    def run_mutated_report(self, mutate):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            report_path, request = self.runtime_request(root)
+            request_path = root / "request.json"
+            request_path.write_text(json.dumps(request), encoding="utf-8")
+            report = self.complete_report(request)
+            mutate({case["case_id"]: case for case in report["cases"]})
+
+            def runner(command, **kwargs):
+                report_path.write_text(json.dumps(report), encoding="utf-8")
+                return type("Completed", (), {"returncode": 0})()
+
+            with patch("qa_02_rerun_revision.subprocess.run", side_effect=runner):
+                return run_live(request_path, {"QA_02_RUNTIME_COMMAND": "qa-02-runner"})
+
+    def test_retention_rejects_missing_or_invalid_snapshot_identity(self):
+        for sides in (("before",), ("after",), ("before", "after")):
+            for field, invalid in (("snapshot_id", None), ("snapshot_id", ""),
+                                   ("snapshot_id", True), ("snapshot_id", -1),
+                                   ("snapshot_id", "latest"), ("snapshot_id", "9223372036854775808"),
+                                   ("table", None), ("table", ""), ("table", [])):
+                with self.subTest(sides=sides, field=field, invalid=invalid):
+                    def mutate(cases):
+                        for side in sides:
+                            value = cases["retention_outside_scope"]["reconciliation"]["snapshots"][side]
+                            if invalid is None:
+                                value.pop(field)
+                            else:
+                                value[field] = invalid
+
+                    with self.assertRaisesRegex(Qa02Error, "QA02_"):
+                        self.run_mutated_report(mutate)
+
+    def test_retention_rejects_snapshot_drift_or_unpinned_reference(self):
+        for sides in (("after",), ("before", "after")):
+            for field, changed in (("snapshot_id", "2002"), ("table", "gold.event_source_bridge")):
+                with self.subTest(sides=sides, field=field):
+                    def mutate(cases):
+                        snapshots = cases["retention_outside_scope"]["reconciliation"]["snapshots"]
+                        for side in sides:
+                            snapshots[side][field] = changed
+
+                    with self.assertRaisesRegex(Qa02Error, "QA02_"):
+                        self.run_mutated_report(mutate)
+
+    def test_retention_requires_old_snapshot_in_both_case_reference_sets(self):
+        for side in ("before", "after"):
+            with self.subTest(side=side):
+                def mutate(cases):
+                    cases["retention_outside_scope"]["snapshots"][side][0]["snapshot_id"] = "2002"
+
+                with self.assertRaisesRegex(Qa02Error, "QA02_"):
+                    self.run_mutated_report(mutate)
+
+    def test_retention_accepts_same_snapshot_as_integer_or_decimal_string(self):
+        def mutate(cases):
+            case = cases["retention_outside_scope"]
+            case["reconciliation"]["snapshots"]["after"]["snapshot_id"] = 1001
+            case["snapshots"]["before"][0]["snapshot_id"] = 1001
+
+        self.assertEqual("PASS", self.run_mutated_report(mutate)["status"])
+
+    def test_old_release_rejects_new_release_or_invalid_identity(self):
+        for side in ("before", "after"):
+            for invalid in (None, "", "   ", False, "jma-new", "jma-other"):
+                with self.subTest(side=side, invalid=invalid):
+                    def mutate(cases):
+                        value = cases["jma_release_replacement"]["reconciliation"]["old_release"][side]
+                        if invalid is None:
+                            value.pop("release_id")
+                        else:
+                            value["release_id"] = invalid
+
+                    with self.assertRaisesRegex(Qa02Error, "QA02_"):
+                        self.run_mutated_report(mutate)
+
+    def test_old_release_must_match_replacement_baseline(self):
+        def mutate(cases):
+            old_release = cases["jma_release_replacement"]["reconciliation"]["old_release"]
+            for side in ("before", "after"):
+                old_release[side]["release_id"] = "unrelated-release"
+
+        with self.assertRaisesRegex(Qa02Error, "QA02_"):
+            self.run_mutated_report(mutate)
 
 
 if __name__ == "__main__":

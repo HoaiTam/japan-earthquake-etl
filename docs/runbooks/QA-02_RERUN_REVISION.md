@@ -21,6 +21,9 @@ Script là CLI/helper chuẩn bị và kiểm tra report; nó chưa phải Airfl
 
 Runtime report dùng contract `qa-02-report-v2`. Controller chỉ nhận report khi dùng đúng matrix checksum, đủ cả tám case với operation ID khớp, mỗi case có `PASS` và input pins đúng. `snapshots.before/after` phải là danh sách không rỗng gồm `{table, snapshot_id}` hợp lệ; `evidence_ref` phải trỏ tới file đã kiểm tra trong cùng namespace report, kèm SHA-256 và identity của run/case/operation. Reconciliation phải có `check` khớp assertion trong matrix, dữ liệu `before/after` không null/rỗng và phép đối soát tương ứng: count/key không đổi, current row duy nhất, revision/release mới, history/lineage giữ lại, partition state, scope ngoài phạm vi hoặc snapshot cũ đọc được. Summary phải khớp kết quả từng case và không còn `FAIL` hoặc `PENDING_RUNTIME`; cờ PASS tổng không được dùng làm bằng chứng duy nhất.
 
+- `old_snapshot_readable`: cả `before` và `after` phải chỉ đúng cùng `{table, snapshot_id}`. ID là số nguyên dương trong phạm vi signed 64-bit (hoặc chuỗi thập phân tương ứng); boolean, ID thiếu và `latest` bị từ chối. Reference phải xuất hiện trong `case.snapshots.before` và `case.snapshots.after` tương ứng, cùng với `after.readable=true`. Adapter ghi reference snapshot cũ đã readback vào danh sách sau recovery, kể cả khi current snapshot đã đổi.
+- `old_release.auditable`: `before.release_id` và `after.release_id` phải là cùng một release không rỗng, khớp `reconciliation.release.before.release_id`; `after.auditable=true`. Ví dụ replacement `jma-old` → `jma-new` phải chứng minh vẫn audit được `jma-old`; assertion `release` kiểm tra release mới riêng.
+
 Smoke runtime sau khi ORC-07 sẵn sàng:
 
 ```powershell
