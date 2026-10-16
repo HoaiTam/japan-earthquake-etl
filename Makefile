@@ -152,9 +152,10 @@ smoke-qa-02: check-config-local ## QA-02 Bronze-to-Published rerun/revision; c·∫
 	@test -n "$(QA_02_RUNTIME_REQUEST)" || { echo 'Set QA_02_RUNTIME_REQUEST=/opt/pipeline/staging/.../request.json'; exit 2; }
 	@test -n "$(QA_02_RUNTIME_COMMAND)" || { echo 'Set QA_02_RUNTIME_COMMAND to the QA adapter runner'; exit 2; }
 	@$(RUNTIME_CHECK) --component ml --client qa-02-rerun-revision
-	@$(COMPOSE) run --rm --no-deps --pull never -e PYTHONPATH=/opt/airflow/dags \
+	@$(COMPOSE) run --rm --no-deps --pull never \
+		-e QA_02_RUNTIME_REQUEST="$(QA_02_RUNTIME_REQUEST)" \
 		-e QA_02_RUNTIME_COMMAND="$(QA_02_RUNTIME_COMMAND)" \
-		airflow-dag-processor python3 /opt/airflow/dags/qa_02_rerun_revision.py --live "$(QA_02_RUNTIME_REQUEST)"
+		qa-02-rerun-revision
 
 test-mli-import: ## MLI-03 offline bundle validation, journal idempotency v√† control-plane handoff
 	@python3 -m unittest discover -s airflow/tests -p 'test_mli_03_import_results.py'

@@ -23,7 +23,7 @@
       "category": "duplicate",
       "operation_id": "qa02-duplicate-001",
       "source": "USGS",
-      "expected": {"logical_keys": "one_current_row", "canonical_count": "unchanged", "history": "retained"}
+      "expected": {"logical_keys": "one_current_row", "current": "one_current_row", "canonical_count": "unchanged", "history": "retained"}
     },
     {
       "case_id": "usgs_late_revision",

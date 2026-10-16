@@ -2,6 +2,8 @@
 
 Status: **PREPARED**
 
+Matrix SHA-256: `cb4e1a6d80c873d6348e5ace76f6979315db5b361a889cb9020b4d3a8960f67f`
+
 Runtime acceptance is pending ORC-07 real adapters. Synthetic cases are a test plan, not a pass.
 
 | Case | Category | Operation | Status |

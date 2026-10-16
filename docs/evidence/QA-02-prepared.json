@@ -16,6 +16,7 @@
       "category": "duplicate",
       "expected": {
         "canonical_count": "unchanged",
+        "current": "one_current_row",
         "history": "retained",
         "logical_keys": "one_current_row"
       },
@@ -96,6 +97,7 @@
     "synthetic_fixture": true,
     "timezone": "UTC"
   },
+  "matrix_sha256": "cb4e1a6d80c873d6348e5ace76f6979315db5b361a889cb9020b4d3a8960f67f",
   "next_gate": "Run through ORC-07 real adapters in a QA namespace, then attach before/after reconciliation.",
   "report_version": "qa-02-report-v1",
   "runtime_complete": false,
