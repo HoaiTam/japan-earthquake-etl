@@ -20,6 +20,11 @@ RUN_SUMMARY_ROOT ?= staging/run-summary
 RUN_SUMMARY_DAG ?= orc_01_etl_pipeline
 RUN_SUMMARY_RUN_ID ?=
 SECURITY_REPORT ?= staging/sec-01-report.json
+QA_02_MATRIX ?= airflow/dags/fixtures/qa_02_rerun_revision_matrix.json
+QA_02_JSON ?= staging/qa-02/qa-02.json
+QA_02_MARKDOWN ?= staging/qa-02/qa-02.md
+QA_02_RUNTIME_REQUEST ?=
+QA_02_RUNTIME_COMMAND ?=
 MLI_IMPORT_REQUEST ?=
 MLI_IMPORT_RUNNER_COMMAND ?= /opt/pipeline/bin/mli-import-runner
 
@@ -49,6 +54,7 @@ COMPONENT_SMOKES := smoke-minio smoke-airflow smoke-spark smoke-query smoke-usgs
 .PHONY: test-recovery smoke-recovery smoke-resource-pilot maintenance-preview
 .PHONY: test-silver-integration smoke-silver-integration
 .PHONY: test-ml-audit smoke-ml-audit
+.PHONY: test-qa-02 smoke-qa-02
 .PHONY: test-mli-import smoke-mli-import
 .PHONY: test-ml-window smoke-ml-window resume-ml-window
 .PHONY: prepare-ml-local stage-ml-windows test-ml-feature ml-features-local ml-pilot-local pilot-env test-pilot inspect-pilot jupyter-pilot
@@ -137,6 +143,19 @@ test-ml-audit: ## MLD-02 Gold input audit, MAXC completeness estimator, sensitiv
 smoke-ml-audit: check-config-local ## MLD-02 Published JMA audit/Mc QA; không tự build/start
 	@$(RUNTIME_CHECK) --component ml --client gold-input-audit-qa
 	@$(COMPOSE) --profile gold run --rm --no-deps --pull never gold-input-audit-qa
+
+test-qa-02: ## QA-02 matrix/fixture/report checks; không gọi nguồn hoặc runtime
+	@python3 -m unittest discover -s airflow/tests -p 'test_qa_02_rerun_revision.py'
+	@python3 airflow/dags/qa_02_rerun_revision.py --matrix "$(QA_02_MATRIX)" --json "$(QA_02_JSON)" --markdown "$(QA_02_MARKDOWN)"
+
+smoke-qa-02: check-config-local ## QA-02 Bronze-to-Published rerun/revision; cần ORC-07 và request runtime đã pin
+	@test -n "$(QA_02_RUNTIME_REQUEST)" || { echo 'Set QA_02_RUNTIME_REQUEST=/opt/pipeline/staging/.../request.json'; exit 2; }
+	@test -n "$(QA_02_RUNTIME_COMMAND)" || { echo 'Set QA_02_RUNTIME_COMMAND to the QA adapter runner'; exit 2; }
+	@$(RUNTIME_CHECK) --component ml --client qa-02-rerun-revision
+	@$(COMPOSE) run --rm --no-deps --pull never \
+		-e QA_02_RUNTIME_REQUEST="$(QA_02_RUNTIME_REQUEST)" \
+		-e QA_02_RUNTIME_COMMAND="$(QA_02_RUNTIME_COMMAND)" \
+		qa-02-rerun-revision
 
 test-mli-import: ## MLI-03 offline bundle validation, journal idempotency và control-plane handoff
 	@python3 -m unittest discover -s airflow/tests -p 'test_mli_03_import_results.py'

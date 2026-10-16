@@ -826,6 +826,17 @@ services:
       TRINO_INTERNAL_PORT: ${TRINO_INTERNAL_PORT:?TRINO_INTERNAL_PORT is required}
       MLI_DATASET_REGISTRY_ROOT: ${MLI_DATASET_REGISTRY_ROOT:-/opt/pipeline/staging/ml-artifacts}
 
+  qa-02-rerun-revision:
+    extends: {service: spark-gold-qa}
+    profiles: [ml]
+    command:
+      - |
+        mkdir -p /opt/pipeline/staging/qa-02 /opt/pipeline/staging/source-guard
+        exec python3 /opt/airflow/dags/qa_02_rerun_revision.py --live "$${QA_02_RUNTIME_REQUEST}"
+    environment:
+      QA_02_RUNTIME_REQUEST: ${QA_02_RUNTIME_REQUEST:-}
+      QA_02_RUNTIME_COMMAND: ${QA_02_RUNTIME_COMMAND:-}
+
   trino:
     <<: *runtime-defaults
     image: trinodb/trino:483@sha256:db58cc93e593a2706553745f276bb119c9810e69918be56ecde088ba7ccb0534
