@@ -1,0 +1,22 @@
+{
+  "task": "QA-04",
+  "status": "PREPARED",
+  "evidence_scope": "offline fixture and control-plane contract only",
+  "runtime_dependencies": {
+    "ORC-05": "Done",
+    "ORC-07": "Ready",
+    "MLI-03": "In Progress"
+  },
+  "cases": [
+    {"case_id": "fetch_timeout", "status": "PENDING_RUNTIME", "fault_stage": "FETCH"},
+    {"case_id": "archive_invalid", "status": "PENDING_RUNTIME", "fault_stage": "ARCHIVE"},
+    {"case_id": "silver_failure", "status": "PENDING_RUNTIME", "fault_stage": "SILVER"},
+    {"case_id": "gold_commit_partial", "status": "PENDING_RUNTIME", "fault_stage": "GOLD"},
+    {"case_id": "gold_commit_receipt_lost", "status": "PENDING_RUNTIME", "fault_stage": "GOLD"},
+    {"case_id": "trino_verify_failure", "status": "PENDING_RUNTIME", "fault_stage": "TRINO"},
+    {"case_id": "publication_metadata_failure", "status": "PENDING_RUNTIME", "fault_stage": "PUBLICATION"},
+    {"case_id": "ml_bundle_invalid", "status": "PENDING_RUNTIME", "fault_stage": "ML_IMPORT"},
+    {"case_id": "ml_import_partial", "status": "PENDING_RUNTIME", "fault_stage": "ML_IMPORT"},
+    {"case_id": "lease_timeout_contender", "status": "PENDING_RUNTIME", "fault_stage": "LEASE"}
+  ]
+}

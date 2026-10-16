@@ -20,6 +20,8 @@ RUN_SUMMARY_ROOT ?= staging/run-summary
 RUN_SUMMARY_DAG ?= orc_01_etl_pipeline
 RUN_SUMMARY_RUN_ID ?=
 SECURITY_REPORT ?= staging/sec-01-report.json
+QA_04_REQUEST ?=
+QA_04_RUNTIME_COMMAND ?=
 
 COMPOSE = docker compose --env-file "$(ENV_FILE)" -f "$(COMPOSE_FILE)"
 RUNTIME_ENV = ENV_FILE="$(ENV_FILE)" COMPOSE_FILE="$(COMPOSE_FILE)"
@@ -47,6 +49,7 @@ COMPONENT_SMOKES := smoke-minio smoke-airflow smoke-spark smoke-query smoke-usgs
 .PHONY: test-recovery smoke-recovery smoke-resource-pilot maintenance-preview
 .PHONY: test-silver-integration smoke-silver-integration
 .PHONY: test-ml-audit smoke-ml-audit
+.PHONY: test-qa-04 smoke-qa-04
 .PHONY: test-ml-window smoke-ml-window resume-ml-window
 .PHONY: prepare-ml-local stage-ml-windows test-ml-feature ml-features-local ml-pilot-local pilot-env test-pilot inspect-pilot jupyter-pilot
 .PHONY: pack-pilot
@@ -162,6 +165,24 @@ test-gold-storage: ## GLD-03 real Iceberg snapshot/recovery tests và control pl
 smoke-gold-storage: check-config-local ## GLD-03 six QA Iceberg snapshots, chưa Published; không tự build/start
 	@$(RUNTIME_CHECK) --component gold
 	@$(COMPOSE) --profile gold run --rm --no-deps --pull never spark-gold-qa
+
+test-qa-04: ## QA-04 bounded failure/recovery matrix và component gates offline
+	@python3 -m unittest discover -s airflow/tests -p 'test_qa_04_failure_recovery.py'
+	@python3 -m unittest discover -s airflow/tests -p 'test_recovery*.py'
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am \
+		-Dtest=GoldIcebergWriterTest,GoldPublicationTest,TrinoSqlClientTest,ResultBundleContractTest \
+		-Dsurefire.failIfNoSpecifiedTests=false test
+
+smoke-qa-04: check-config-local ## QA-04 runtime recovery trong namespace QA; không tự build/start/init
+	@test -n "$(QA_04_REQUEST)" || { echo 'Set QA_04_REQUEST=/opt/pipeline/staging/.../qa-04-request.json'; exit 2; }
+	@test -n "$(QA_04_RUNTIME_COMMAND)" || { echo 'Set QA_04_RUNTIME_COMMAND to the deployed QA-04 runner'; exit 2; }
+	@$(RUNTIME_CHECK) --component foundation --client airflow-smoke
+	@$(COMPOSE) run --rm --no-deps --pull never \
+		-e PYTHONPATH=/opt/airflow/dags \
+		-e ORC_07_STATUS="$${ORC_07_STATUS:-Ready}" \
+		-e MLI_03_STATUS="$${MLI_03_STATUS:-In Progress}" \
+		-e QA_04_RUNTIME_COMMAND="$(QA_04_RUNTIME_COMMAND)" \
+		airflow-dag-processor python3 /opt/airflow/dags/qa_04_failure_recovery.py runtime --request "$(QA_04_REQUEST)"
 
 .PHONY: ci ci-docs ci-java ci-airflow test-ci-workflow test-security-audit audit-security audit-security-runtime
 .PHONY: ci-plan ci-docs-base ci-java-impact ci-airflow-impact ci-pilot-impact ci-suite

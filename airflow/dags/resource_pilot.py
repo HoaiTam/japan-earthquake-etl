@@ -3,10 +3,14 @@ import json
 import os
 from pathlib import Path
 import subprocess
-import pwd
 import tempfile
 import uuid
 from urllib.request import urlopen
+
+try:
+    import pwd
+except ModuleNotFoundError:  # pragma: no cover - Windows development host
+    pwd = None
 
 from backfill_runtime import resolve, require, BackfillError
 from jma_backfill_runtime import _atomic_json
@@ -79,6 +83,8 @@ def java_identity(environment, root):
     Temporary files contain only UID/GID, no credential, and live through submit.
     """
     env = dict(environment)
+    if pwd is None:
+        return env
     try:
         pwd.getpwuid(os.getuid())
         return env
