@@ -6,6 +6,10 @@ status: "Implemented skeleton"
 
 # Khung DAG ETL và giao diện phase ORC-01
 
+ORC-07 bổ sung [protocol `orc-07-v1`](./REAL_ETL_ADAPTER_CONTRACT.md) cho daily/
+manual real full-month ETL. Tài liệu này vẫn mô tả skeleton ORC-01 `1.0`;
+không suy shape mock cũ đã được mở rộng hoặc bật command production mặc định.
+
 ## 1. Đang có gì và dùng để làm gì?
 
 `orc_01_etl_pipeline` là khung Airflow để ghép source readiness → Bronze →

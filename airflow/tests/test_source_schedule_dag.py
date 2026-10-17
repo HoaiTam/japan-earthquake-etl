@@ -53,7 +53,8 @@ class ScheduleDagTest(unittest.TestCase):
                           ("acquire_source_lease", "jma_readiness"), ("resolve_daily", "usgs_bronze"),
                           ("jma_readiness", "usgs_bronze"), ("resolve_daily", "sources_ready"),
                           ("jma_readiness", "sources_ready"), ("usgs_bronze", "sources_ready"),
-                          ("sources_ready", "release_source_lease"), ("sources_ready", "completion_gate"),
+                          ("sources_ready", "real_etl"), ("resolve_daily", "real_etl"),
+                          ("real_etl", "release_source_lease"), ("real_etl", "completion_gate"), ("sources_ready", "completion_gate"),
                           ("release_source_lease", "completion_gate"),
                           ("resolve_daily", "completion_gate")}, self.edges)
         self.assertEqual({"completion_gate"}, set(self.tasks) - {parent for parent, child in self.edges})

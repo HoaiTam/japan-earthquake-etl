@@ -88,6 +88,13 @@ make up-query
 
 ## Kiểm thử không gọi nguồn dữ liệu thật
 
+ORC-07: `make test-real-etl` chạy adapter guards và Spark/Iceberg local.
+`make prepare-real-etl-runtime` build QA image riêng explicit, không restart
+foundation. `make qa-real-etl ORC07_CAPTURE_ROOT=<capture-directory>` là opt-in
+real MinIO/Airflow/Trino acceptance; chỉ preflight/run, không tự build/start/init.
+Xem [runbook ORC-07](./runbooks/ORC-07_REAL_ETL.md) để đọc actual artifacts,
+six snapshot IDs, publication và giới hạn historical daily/closed-month.
+
 ORC-06: `make test-full-month` (fixture/Spark local), `make prepare-full-month`
 (chuẩn bị JAR/classpath host), `make full-month-local` (replay exact local
 request). Opt-in `make qa-full-month-live` tải public captures tháng 09/2023

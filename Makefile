@@ -68,6 +68,19 @@ COMPONENT_SMOKES := smoke-minio smoke-airflow smoke-spark smoke-query smoke-usgs
 .PHONY: prepare-full-month test-full-month qa-full-month-live full-month-local
 FULL_MONTH_ROOT ?= staging/orc06-full-month
 FULL_MONTH_REQUEST ?=
+.PHONY: prepare-real-etl-runtime test-real-etl qa-real-etl
+ORC07_CAPTURE_ROOT ?= staging/orc06-full-month/captures
+
+prepare-real-etl-runtime: check-config-local check-java-build-inputs ## ORC-07 build explicit image riêng; không start/restart foundation
+	@python3 scripts/real-etl.py prepare
+
+test-real-etl: ## ORC-07 control-plane + Spark/Iceberg local; không nguồn thật/Docker
+	@python3 -m unittest discover -s tests -p 'test_real_etl_cli.py'
+	@python3 -m unittest discover -s airflow/tests -p 'test_real_etl_*.py'
+	@SPARK_LOCAL_IP=127.0.0.1 SPARK_LOCAL_HOSTNAME=localhost ./mvnw --batch-mode --no-transfer-progress -pl spark -am test -Dtest=RealEtlAdapterTest,GoldPublicationTest -Dsurefire.failIfNoSpecifiedTests=false
+
+qa-real-etl: check-config-local ## ORC-07 bounded MinIO/Airflow/Trino QA; image/services/captures phải chuẩn bị riêng
+	@python3 scripts/real-etl.py qa --captures "$(ORC07_CAPTURE_ROOT)"
 
 prepare-full-month: ## ORC-06 chuẩn bị JAR/classpath host một lần; không Docker, không lấy dữ liệu
 	@python3 scripts/local-ml.py prepare
@@ -243,6 +256,7 @@ ci-docs: ## Docs/contracts/secret hygiene/Compose tĩnh; không đọc .env riê
 
 ci-docs-base: ## Always-on CI guards; pilot tests được chọn riêng theo impact, không Docker daemon
 	@$(MAKE) test-contracts
+	@python3 -m unittest discover -s tests -p 'test_real_etl_cli.py'
 	@python3 -m unittest discover -s tests -p 'test_full_month_*.py'
 	@$(MAKE) test-security-audit
 	@$(MAKE) test-docker-runtime

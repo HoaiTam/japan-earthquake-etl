@@ -71,7 +71,7 @@ class ReadinessQaTest(unittest.TestCase):
                     "jma_year_backfill.acquire_source_lease": "failed", "jma_year_backfill.ingest_archive": "upstream_failed"
                 } if name == self.qa.BACKFILL else {key: "success" for key in (
                     "resolve_daily", "acquire_source_lease", "jma_readiness", "usgs_bronze", "sources_ready",
-                    "release_source_lease", "completion_gate")}), patch.object(
+                    "real_etl", "release_source_lease", "completion_gate")}), patch.object(
                 self.qa, "summary", side_effect=report), contextlib.redirect_stdout(io.StringIO()):
             self.qa.main()
 

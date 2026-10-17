@@ -49,7 +49,7 @@ def failure_details(dag_id, run_id):
     try:
         states = task_states(dag_id, run_id)
         allowed = {"resolve_daily", "acquire_source_lease", "jma_readiness", "usgs_bronze",
-                   "sources_ready", "release_source_lease", "completion_gate"}
+                   "sources_ready", "real_etl", "release_source_lease", "completion_gate"}
         if dag_id == BACKFILL:
             allowed = {"jma_year_backfill." + name for name in ("resolve_plan", "acquire_source_lease", "select_archives",
                 "ingest_archive", "run_summary", "bronze_ready_gate", "release_source_lease", "completion_gate")}
@@ -138,7 +138,7 @@ def wait(dag_id, run_id, expected="success"):
             if dag_id == DAG and expected == "success":
                 tasks = task_states(dag_id, run_id)
                 required = {"resolve_daily", "acquire_source_lease", "jma_readiness", "usgs_bronze",
-                            "sources_ready", "release_source_lease", "completion_gate"}
+                            "sources_ready", "real_etl", "release_source_lease", "completion_gate"}
                 if set(tasks) != required or any(value != "success" for value in tasks.values()):
                     raise RuntimeError("SOURCE_TASKS_NOT_EXECUTED")
             return current
@@ -166,6 +166,8 @@ def main():
     print("event=source_readiness_qa_started evidence_id=" + token, flush=True)
     try:
         settings = profile()
+        if os.environ.get("ORC07_DAILY_MODE", "disabled") != "disabled":
+            raise QaFailure("QA_REQUIRES_DEFAULT_BOUNDED_PROFILE", DAG)
         if (settings["mode"] != "multi-source" or settings["years"] != [1997, 2000, 2023]
                 or settings["audit_weekday"] != 6 or os.environ.get("PIPELINE_OVERLAP_DAYS") != "3"):
             raise RuntimeError("QA_REQUIRES_DEFAULT_BOUNDED_PROFILE")

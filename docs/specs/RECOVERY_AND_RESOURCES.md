@@ -22,9 +22,10 @@ shuffle bởi Spark. Profile không bổ sung DB nghiệp vụ hoặc ML service
 | Thành phần | Giá trị / guardrail |
 |---|---|
 | Airflow LocalExecutor | `parallelism=1`, default `max_active_tasks_per_dag=1`; source/ETL/backfill DAG tối đa 1 run/1 task |
+| ORC-07 local ETL phase | Spark `local[1]`, driver768m, shuffle1/UI off; scheduler/QA limit3GiB sau manual QA OOM ở 2GiB, API/dag-processor vẫn1GiB; whole-run source lease, không phải standalone/historical benchmark |
 | JMA mapping | `min(JMA_BACKFILL_MAX_CONCURRENCY, 1)`; giá trị requested vẫn validate 1..4; `.env` cũ =2/4 không mở thêm archive slot |
 | Source JVM | `SOURCE_RUNNER_HEAP=384m` mặc định; chỉ 128m/192m/256m/384m/512m; cả USGS/JMA/Bronze-reuse wrapper đặt `-Xmx` |
-| Scheduler | 1.5 CPU / 2 GiB container: chứa Airflow + task Python + JVM source; không phải 2 GiB heap Java |
+| Scheduler | 1.5 CPU / 3 GiB container: chứa Airflow + task Python + source JVM hoặc ORC-07 local Spark; không phải 3 GiB heap Java |
 | Spark master/worker daemon | `SPARK_DAEMON_MEMORY=256m`; worker limit vẫn 2 CPU / 3 GiB |
 | Regular Spark smoke | `.env.example`: driver 512m, executor 1g, worker 1 core; dynamic allocation off, driver result cap64m, shuffle4/default parallelism1 |
 | Read-only resource pilot | driver512m, executor512m, 1 core, shuffle4, dynamic allocation off; client limit1 CPU /1 GiB |

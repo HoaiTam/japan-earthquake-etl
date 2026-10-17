@@ -70,6 +70,16 @@ class GoldPublicationTest {
         assertEquals(1,fake.queries.stream().filter(q->q.startsWith("INSERT")).count());
         assertThrows(Exception.class,()->publisher.publish("gold-test","iceberg.other","a".repeat(64)));
     }
+    @Test void readOnlyVerificationCannotPublishOrCreateServingObjects() throws Exception {
+        var store=new FileSilverObjectStore(root);
+        store.put("gold-commits/gold-test/commit.json",JSON.writeValueAsBytes(commit()),"application/json");
+        var fake=new Fake(); var publisher=new GoldPublisher(fake,store,()->{});
+        var report=publisher.verify("gold-test","iceberg.gold","a".repeat(64));
+        assertEquals("PASSED",report.path("verify_status").asText()); assertFalse(report.path("published").asBoolean(true));
+        assertFalse(fake.queries.stream().anyMatch(q->q.startsWith("CREATE") || q.startsWith("INSERT")));
+        assertFalse(store.exists("gold-verification/gold-test/publication.json"));
+        fake.failed=true; assertThrows(Exception.class,()->publisher.verify("gold-test","iceberg.gold","a".repeat(64)));
+    }
     @Test void literalPinsOutsideScopeAndTypedSchema() throws Exception {
         var c=commit();c.path("scope").path("baseline_snapshots").deepCopy();
         ((ObjectNode)c.path("scope").path("baseline_snapshots")).put("event_current",99);

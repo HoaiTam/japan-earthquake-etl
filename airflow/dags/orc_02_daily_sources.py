@@ -1,4 +1,4 @@
-"""ORC-02 real source readiness. Silver/Gold adapters remain a separate ETL gate."""
+"""Sole daily owner: source readiness and opt-in ORC-07 full-month real publication."""
 from datetime import timedelta
 from runtime_profile import MUTATING_RETRIES
 
@@ -7,6 +7,7 @@ from airflow.sdk import dag, get_current_context, task
 from airflow.timetables.interval import CronDataIntervalTimetable
 
 from source_run_guard import lease, owner
+import real_etl_runtime as real_etl
 from source_schedule_runtime import ingest_usgs, profile, ready_summary, refresh_jma, resolve_daily
 from run_observability import (dag_failure_summary, observe, source_context, source_details,
                                unresolved_context)
@@ -63,27 +64,39 @@ def daily_sources():
         return observe(source_context(plan), "verify", lambda: ready_summary(plan, jma, usgs),
                        lambda result: {})
 
+    @task(task_id="real_etl", retries=0)
+    def publish(plan, summary):
+        return real_etl.daily(plan, summary)
+
     @task(task_id="release_source_lease", trigger_rule="all_done", retries=0)
-    def release():
+    def release(result):
+        if real_etl.enabled():
+            return real_etl.release(result["context"], result["summary"])
         return lease("release", owner(get_current_context()))
 
     @task(task_id="completion_gate", retries=0)
-    def complete(plan, summary, released):
+    def complete(plan, summary, released, result):
         def operation():
             if summary["status"] != "SourcesReady" or released["status"] != "RELEASED":
                 raise RuntimeError("source completion gate failed")
+            if real_etl.enabled():
+                real_etl.require(result["summary"]["published"] is True, "REAL_COMPLETION_REQUIRED")
+                return result["summary"]
             return {"status": "SourcesReady", "published": False}
         return observe(source_context(plan), "complete", operation,
-                       lambda result: {"completion_status": "SourcesReady"})
+                       lambda result: {"completion_status": result["status"],
+                           **({key: result[key] for key in ("publication_uri", "verification_report_uri")}
+                              if result.get("published") is True else {})})
 
     plan = resolve()
     acquired = acquire(plan)
     jma = jma_ready(plan, acquired)
     usgs = usgs_ready(plan, jma)
     summary = summarize(plan, jma, usgs)
-    released = release()
-    summary >> released
-    complete(plan, summary, released)  # Strict sole leaf; cleanup cannot mask upstream failure.
+    result = publish(plan, summary)
+    released = release(result)
+    result >> released
+    complete(plan, summary, released, result)  # Strict sole leaf; failures retain the real ETL lease.
 
 
 daily_sources()

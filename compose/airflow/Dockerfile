@@ -22,8 +22,10 @@ ENV PATH="/opt/java/openjdk/bin:${PATH}"
 RUN mkdir -p /opt/pipeline/bin /opt/pipeline/lib \
     && chown -R airflow:0 /opt/pipeline
 
-COPY --from=java-runtime /opt/spark /opt/spark
 COPY --from=java-runtime /opt/java/openjdk /opt/java/openjdk
+COPY --from=java-runtime /opt/spark /opt/spark
+COPY --from=build --chown=airflow:0 /workspace/spark/target/japan-earthquake-etl-runner.jar /opt/spark/jobs/japan-earthquake-etl-runner.jar
+COPY --from=build --chown=airflow:0 /workspace/spark/target/iceberg/ /opt/spark/jobs/iceberg/
 COPY --from=build --chown=airflow:0 \
     /workspace/spark/target/japan-earthquake-etl-runner.jar \
     /opt/pipeline/lib/usgs-ingest-runner.jar

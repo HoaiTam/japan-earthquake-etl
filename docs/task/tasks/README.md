@@ -142,7 +142,7 @@ fixture/inventory; assignee `HoaiTam`, reviewer `unassigned`. Xem
 | [ORC-04](./ORC-04.md) - Chuẩn hóa logging và run summary | 4 | Observability | Core | P1 | 4h | Done |
 | [ORC-05](./ORC-05.md) - Chốt recovery, concurrency và tài nguyên | 4 | Recovery and resources | Core | P1 | 4h | Done |
 | [ORC-06](./ORC-06.md) - Resolve affected months và dựng full-month Silver state | 5 | Full-month state resolution | Core | P0 | 8h | Done |
-| [ORC-07](./ORC-07.md) - Kết nối real ETL adapters đến Gold Published | 5 | Real ETL adapter integration | Core | P0 | 8h | Ready |
+| [ORC-07](./ORC-07.md) - Kết nối real ETL adapters đến Gold Published | 5 | Real ETL adapter integration | Core | P0 | 8h | Done |
 
 ## G - ML Dataset
 
