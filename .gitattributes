@@ -10,3 +10,5 @@ tests/fixtures/**/*.zip binary
 spark/src/test/resources/ml/results/**/*.json text eol=lf
 spark/src/test/resources/ml/results/**/*.txt text eol=lf
 spark/src/test/resources/ml/results/**/*.parquet binary
+config/jma/hypocenter_archives_v1.csv text eol=lf
+airflow/dags/fixtures/qa_03_jma_historical_matrix.json text eol=lf

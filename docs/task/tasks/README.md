@@ -194,7 +194,7 @@ fixture/inventory; assignee `HoaiTam`, reviewer `unassigned`. Xem
 | [OPS-01](./OPS-01.md) - Smoke test backup và restore metadata | 6 | Backup and restore | Stretch | P2 | 4h | Backlog |
 | [QA-01](./QA-01.md) - Chạy E2E daily đa nguồn | 5 | E2E | Core | P0 | 5h | Backlog |
 | [QA-02](./QA-02.md) - Test rerun, duplicate và late revision | 5 | Idempotency | Core | P0 | 5h | In Progress |
-| [QA-03](./QA-03.md) - Kiểm thử JMA historical backfill | 5 | Historical backfill | Core | P0 | 5h | Backlog |
+| [QA-03](./QA-03.md) - Kiểm thử JMA historical backfill | 5 | Historical backfill | Core | P0 | 5h | In Progress |
 | [QA-04](./QA-04.md) - Test failure và recovery theo tầng | 6 | Failure recovery | Core | P0 | 4h | Backlog |
 | [QA-05](./QA-05.md) - Profile dữ liệu lịch sử và tài nguyên local | 8 | Performance | Stretch | P2 | 4h | Backlog |
 | [SEC-01](./SEC-01.md) - Review secret và bề mặt truy cập | 4 | Security | Core | P1 | 4h | Review |

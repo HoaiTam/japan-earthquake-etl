@@ -1,0 +1,187 @@
+{
+  "capacity": {
+    "download_count": null,
+    "download_reused": null,
+    "duration_seconds": null,
+    "peak_memory_mb": null,
+    "resource_failures": null,
+    "verified_archive_reused": null
+  },
+  "cases": [
+    {
+      "case_id": "resume_after_failure",
+      "expected": {
+        "duplicate_count_delta": 0,
+        "readback": true,
+        "same_verified_archive": true
+      },
+      "operation_id": "qa03-resume-001",
+      "status": "PENDING_RUNTIME"
+    },
+    {
+      "case_id": "reuse_verified_archive",
+      "expected": {
+        "archive_sha256_after": "pinned",
+        "archive_sha256_before": "pinned",
+        "download_count": 0,
+        "verification_retained": true
+      },
+      "operation_id": "qa03-reuse-001",
+      "status": "PENDING_RUNTIME"
+    },
+    {
+      "case_id": "changed_release",
+      "expected": {
+        "archive_name": "h199701.zip",
+        "month": "1997-09",
+        "new_catalog_release": "new",
+        "new_manifest_sha256": "pinned",
+        "new_snapshot": "new_table_snapshot",
+        "old_catalog_release": "pinned",
+        "old_snapshot": "pinned_table_snapshot",
+        "old_snapshot_readback": "readable"
+      },
+      "operation_id": "qa03-release-001",
+      "status": "PENDING_RUNTIME"
+    },
+    {
+      "case_id": "same_release_different_bytes",
+      "expected": {
+        "data_unchanged": true,
+        "downstream_blocked": true,
+        "new_sha256": "different",
+        "old_sha256": "pinned",
+        "rejected": true
+      },
+      "operation_id": "qa03-bytes-001",
+      "status": "PENDING_RUNTIME"
+    },
+    {
+      "case_id": "retention_outside_scope",
+      "expected": {
+        "outside_scope_after": "equal",
+        "outside_scope_before": "pinned",
+        "snapshot_readback": "readable"
+      },
+      "operation_id": "qa03-retention-001",
+      "status": "PENDING_RUNTIME"
+    },
+    {
+      "case_id": "resource_guard",
+      "expected": {
+        "batch_months": "one_closed_month",
+        "guard_triggered": true,
+        "recovery_passed": true,
+        "scope_months": "pinned"
+      },
+      "operation_id": "qa03-resource-001",
+      "status": "PENDING_RUNTIME"
+    }
+  ],
+  "coverage": [
+    {
+      "halo_end_utc": "1997-10-01T00:00:16Z",
+      "halo_start_utc": "1997-08-31T23:59:44Z",
+      "month": "1997-09",
+      "required_archives": [
+        "h199701.zip",
+        "h199710.zip"
+      ],
+      "utc_end": "1997-10-01T00:00:00Z",
+      "utc_start": "1997-09-01T00:00:00Z"
+    },
+    {
+      "halo_end_utc": "1997-11-01T00:00:16Z",
+      "halo_start_utc": "1997-09-30T23:59:44Z",
+      "month": "1997-10",
+      "required_archives": [
+        "h199710.zip"
+      ],
+      "utc_end": "1997-11-01T00:00:00Z",
+      "utc_start": "1997-10-01T00:00:00Z"
+    },
+    {
+      "halo_end_utc": "2000-02-01T00:00:16Z",
+      "halo_start_utc": "1999-12-31T23:59:44Z",
+      "month": "2000-01",
+      "required_archives": [
+        "h2000.zip"
+      ],
+      "utc_end": "2000-02-01T00:00:00Z",
+      "utc_start": "2000-01-01T00:00:00Z"
+    },
+    {
+      "halo_end_utc": "2023-10-01T00:00:16Z",
+      "halo_start_utc": "2023-08-31T23:59:44Z",
+      "month": "2023-09",
+      "required_archives": [
+        "h2023.zip"
+      ],
+      "utc_end": "2023-10-01T00:00:00Z",
+      "utc_start": "2023-09-01T00:00:00Z"
+    }
+  ],
+  "dependency_gate": {
+    "JMA-05": "Done",
+    "ORC-07": "Ready",
+    "acceptance": "PENDING_REAL_ADAPTERS"
+  },
+  "input_pins": {
+    "namespace": "qa-03-jma-backfill",
+    "resource_guard": {
+      "batch": "closed_month",
+      "max_archive_bytes": 33554432
+    },
+    "synthetic_revision_fixture": true,
+    "timezone": "UTC"
+  },
+  "inventory_sha256": "61dc2c73f1bb9cee48fba851cbb941cc62c893201c36db583cdd55ae19f8199a",
+  "matrix_sha256": "0d1449e05fb5cbe9a3ce664abdc8f0cc870d28b8b04f27f0f5854370f45f9c7b",
+  "next_gate": "Run closed-month batches through ORC-07 real adapters and attach Bronze-to-Published counts/snapshots.",
+  "report_version": "qa-03-report-v3",
+  "runtime_complete": false,
+  "scope": [
+    {
+      "archive_identity": "h199701.zip",
+      "member_name": "h199701",
+      "month": "1997-09",
+      "segment": "jan-sep",
+      "year": 1997
+    },
+    {
+      "archive_identity": "h199710.zip",
+      "member_name": "h199710",
+      "month": "1997-10",
+      "segment": "oct-dec",
+      "year": 1997
+    },
+    {
+      "archive_identity": "h2000.zip",
+      "member_name": "h2000",
+      "month": "2000-01",
+      "segment": "full-year",
+      "year": 2000
+    },
+    {
+      "archive_identity": "h2023.zip",
+      "member_name": "h2023",
+      "month": "2023-09",
+      "segment": "full-year",
+      "year": 2023
+    }
+  ],
+  "snapshots": {
+    "bootstrap": true,
+    "refs": []
+  },
+  "status": "PREPARED",
+  "summary": {
+    "case_count": 6,
+    "failed": 0,
+    "passed": 0,
+    "pending_runtime": 6,
+    "scope_count": 4
+  },
+  "synthetic_revision_fixture": true,
+  "task_id": "QA-03"
+}

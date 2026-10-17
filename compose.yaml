@@ -837,6 +837,21 @@ services:
       QA_02_RUNTIME_REQUEST: ${QA_02_RUNTIME_REQUEST:-}
       QA_02_RUNTIME_COMMAND: ${QA_02_RUNTIME_COMMAND:-}
 
+  qa-03-jma-historical-backfill:
+    extends: {service: spark-gold-qa}
+    profiles: [gold]
+    command:
+      - |
+        mkdir -p /opt/pipeline/staging/qa-03 /opt/pipeline/staging/source-guard
+        exec python3 /opt/airflow/dags/qa_03_jma_historical_backfill.py --live "$${QA_03_RUNTIME_REQUEST}"
+    environment:
+      TRINO_HOST: ${TRINO_HOST:?TRINO_HOST is required}
+      TRINO_INTERNAL_PORT: ${TRINO_INTERNAL_PORT:?TRINO_INTERNAL_PORT is required}
+      QA_03_RUNTIME_REQUEST: ${QA_03_RUNTIME_REQUEST:-}
+      QA_03_RUNTIME_COMMAND: ${QA_03_RUNTIME_COMMAND:-}
+    volumes:
+      - ./config/jma/hypocenter_archives_v1.csv:/opt/pipeline/config/jma/hypocenter_archives_v1.csv:ro
+
   trino:
     <<: *runtime-defaults
     image: trinodb/trino:483@sha256:db58cc93e593a2706553745f276bb119c9810e69918be56ecde088ba7ccb0534

@@ -20,6 +20,11 @@ RUN_SUMMARY_ROOT ?= staging/run-summary
 RUN_SUMMARY_DAG ?= orc_01_etl_pipeline
 RUN_SUMMARY_RUN_ID ?=
 SECURITY_REPORT ?= staging/sec-01-report.json
+QA_03_MATRIX ?= airflow/dags/fixtures/qa_03_jma_historical_matrix.json
+QA_03_JSON ?= staging/qa-03/qa-03.json
+QA_03_MARKDOWN ?= staging/qa-03/qa-03.md
+QA_03_RUNTIME_REQUEST ?=
+QA_03_RUNTIME_COMMAND ?=
 QA_02_MATRIX ?= airflow/dags/fixtures/qa_02_rerun_revision_matrix.json
 QA_02_JSON ?= staging/qa-02/qa-02.json
 QA_02_MARKDOWN ?= staging/qa-02/qa-02.md
@@ -54,6 +59,7 @@ COMPONENT_SMOKES := smoke-minio smoke-airflow smoke-spark smoke-query smoke-usgs
 .PHONY: test-recovery smoke-recovery smoke-resource-pilot maintenance-preview
 .PHONY: test-silver-integration smoke-silver-integration
 .PHONY: test-ml-audit smoke-ml-audit
+.PHONY: test-qa-03 smoke-qa-03
 .PHONY: test-qa-02 smoke-qa-02
 .PHONY: test-mli-import smoke-mli-import
 .PHONY: test-ml-window smoke-ml-window resume-ml-window
@@ -144,6 +150,18 @@ smoke-ml-audit: check-config-local ## MLD-02 Published JMA audit/Mc QA; không t
 	@$(RUNTIME_CHECK) --component ml --client gold-input-audit-qa
 	@$(COMPOSE) --profile gold run --rm --no-deps --pull never gold-input-audit-qa
 
+test-qa-03: ## QA-03 historical scope/resource/reuse matrix và report checks; không gọi nguồn
+	@python3 -m unittest discover -s airflow/tests -p 'test_qa_03_jma_historical_backfill.py'
+	@python3 airflow/dags/qa_03_jma_historical_backfill.py --matrix "$(QA_03_MATRIX)" --json "$(QA_03_JSON)" --markdown "$(QA_03_MARKDOWN)"
+
+smoke-qa-03: check-config-local ## QA-03 Bronze-to-Published backfill; cần ORC-07 và request runtime đã pin
+	@test -n "$(QA_03_RUNTIME_REQUEST)" || { echo 'Set QA_03_RUNTIME_REQUEST=/opt/pipeline/staging/.../request.json'; exit 2; }
+	@test -n "$(QA_03_RUNTIME_COMMAND)" || { echo 'Set QA_03_RUNTIME_COMMAND to the JMA backfill runner'; exit 2; }
+	@$(RUNTIME_CHECK) --component gold --client qa-03-jma-historical-backfill
+	@$(COMPOSE) --profile gold run --rm --no-deps --pull never \
+		-e QA_03_RUNTIME_REQUEST="$(QA_03_RUNTIME_REQUEST)" \
+		-e QA_03_RUNTIME_COMMAND="$(QA_03_RUNTIME_COMMAND)" \
+		qa-03-jma-historical-backfill
 test-qa-02: ## QA-02 matrix/fixture/report checks; không gọi nguồn hoặc runtime
 	@python3 -m unittest discover -s airflow/tests -p 'test_qa_02_rerun_revision.py'
 	@python3 airflow/dags/qa_02_rerun_revision.py --matrix "$(QA_02_MATRIX)" --json "$(QA_02_JSON)" --markdown "$(QA_02_MARKDOWN)"
