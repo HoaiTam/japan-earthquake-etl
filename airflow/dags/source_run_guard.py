@@ -3,10 +3,15 @@
 flock protects atomic lease updates; the persisted owner protects the WHOLE run,
 not just a task/process. No expiration, takeover or automatic deletion on failure.
 """
-import fcntl
 import json
 import os
 from pathlib import Path
+
+try:
+    import fcntl
+except ModuleNotFoundError:  # pragma: no cover - exercised by Windows offline tests
+    fcntl = None
+    import msvcrt
 
 from jma_backfill_runtime import _atomic_json
 
@@ -31,19 +36,33 @@ def lease(action, identity, environment=None):
     root = Path(env.get("SOURCE_GUARD_ROOT", "/opt/pipeline/staging/source-guard"))
     root.mkdir(parents=True, exist_ok=True)
     target = root / "owner.json"
-    with (root / "mutex.lock").open("a") as mutex:
-        fcntl.flock(mutex, fcntl.LOCK_EX)
-        # Corrupt/unreadable state fails closed; never silently remove another run.
-        current = json.loads(target.read_text()) if target.exists() else None
-        if action == "assert":
-            if current != identity:
-                raise SourceRunBusy("SOURCE_LEASE_NOT_HELD: rerun acquisition before source tasks")
-            return {"status": "HELD", **identity}
-        if action == "acquire":
-            if current is not None and current != identity:
-                raise SourceRunBusy("SOURCE_RUN_BUSY: daily/backfill must not overlap")
-            _atomic_json(target, identity)
-            return {"status": "ACQUIRED", **identity}
-        if current == identity:
-            target.unlink()  # Only our tiny lease, not staging data or publication pointers.
-        return {"status": "RELEASED" if current in (None, identity) else "NOT_OWNER", **identity}
+    with (root / "mutex.lock").open("a+") as mutex:
+        if fcntl is not None:
+            fcntl.flock(mutex, fcntl.LOCK_EX)
+        else:
+            mutex.seek(0)
+            mutex.write("0")
+            mutex.flush()
+            mutex.seek(0)
+            msvcrt.locking(mutex.fileno(), msvcrt.LK_LOCK, 1)
+        try:
+            # Corrupt/unreadable state fails closed; never silently remove another run.
+            current = json.loads(target.read_text()) if target.exists() else None
+            if action == "assert":
+                if current != identity:
+                    raise SourceRunBusy("SOURCE_LEASE_NOT_HELD: rerun acquisition before source tasks")
+                return {"status": "HELD", **identity}
+            if action == "acquire":
+                if current is not None and current != identity:
+                    raise SourceRunBusy("SOURCE_RUN_BUSY: daily/backfill must not overlap")
+                _atomic_json(target, identity)
+                return {"status": "ACQUIRED", **identity}
+            if current == identity:
+                target.unlink()  # Only our tiny lease, not staging data or publication pointers.
+            return {"status": "RELEASED" if current in (None, identity) else "NOT_OWNER", **identity}
+        finally:
+            if fcntl is not None:
+                fcntl.flock(mutex, fcntl.LOCK_UN)
+            else:
+                mutex.seek(0)
+                msvcrt.locking(mutex.fileno(), msvcrt.LK_UNLCK, 1)

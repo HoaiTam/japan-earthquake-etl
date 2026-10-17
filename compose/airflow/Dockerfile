@@ -29,6 +29,8 @@ COPY --from=build --chown=airflow:0 /workspace/spark/target/iceberg/ /opt/spark/
 COPY --from=build --chown=airflow:0 \
     /workspace/spark/target/japan-earthquake-etl-runner.jar \
     /opt/pipeline/lib/usgs-ingest-runner.jar
+COPY --from=build --chown=airflow:0 \
+    /workspace/spark/target/iceberg /opt/pipeline/lib/iceberg
 COPY --chown=airflow:0 --chmod=0755 \
     compose/airflow/usgs-runner.sh \
     /opt/pipeline/bin/usgs-ingest-runner
@@ -38,6 +40,9 @@ COPY --chown=airflow:0 --chmod=0755 \
 COPY --chown=airflow:0 --chmod=0755 \
     compose/airflow/bronze-reuse-runner.sh \
     /opt/pipeline/bin/bronze-reuse-verifier
+COPY --chown=airflow:0 --chmod=0755 \
+    compose/airflow/mli-import-runner.sh \
+    /opt/pipeline/bin/mli-import-runner
 COPY --chown=airflow:0 config/jma/hypocenter_archives_v1.csv \
     /opt/pipeline/config/jma/hypocenter_archives_v1.csv
 

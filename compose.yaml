@@ -57,6 +57,10 @@ x-airflow-environment: &airflow-environment
   CONFIG_VERSION: ${CONFIG_VERSION:?CONFIG_VERSION is required}
   ETL_PHASE_RUNNER_COMMAND: ${ETL_PHASE_RUNNER_COMMAND:-}
   ETL_PHASE_RUNNER_TIMEOUT_SECONDS: ${ETL_PHASE_RUNNER_TIMEOUT_SECONDS:-3600}
+  MLI_IMPORT_REQUEST: ${MLI_IMPORT_REQUEST:-}
+  MLI_IMPORT_RUNNER_COMMAND: ${MLI_IMPORT_RUNNER_COMMAND:-/opt/pipeline/bin/mli-import-runner}
+  MLI_IMPORT_RUNNER_TIMEOUT_SECONDS: ${MLI_IMPORT_RUNNER_TIMEOUT_SECONDS:-3600}
+  MLI_DATASET_REGISTRY_ROOT: ${MLI_DATASET_REGISTRY_ROOT:-/opt/pipeline/staging/ml-artifacts}
   ETL_STAGING_ROOT: /opt/pipeline/staging/etl
   ORC07_DAILY_MODE: ${ORC07_DAILY_MODE:-disabled}
   ORC07_DAILY_REQUEST_KEY: ${ORC07_DAILY_REQUEST_KEY:-}
@@ -841,6 +845,43 @@ services:
         exec python3 /opt/airflow/dags/mainshock_window_qa.py
     volumes:
       - ${MAINSHOCK_BRONZE_PINS:-./airflow/dags/fixtures/slv_09_bronze_inputs.json}:/opt/pipeline/window-bronze-pins.json:ro
+
+  mli-03-import-results:
+    extends: {service: spark-gold-qa}
+    profiles: [ml]
+    command:
+      - |
+        exec true
+    environment:
+      TRINO_HOST: ${TRINO_HOST:?TRINO_HOST is required}
+      TRINO_INTERNAL_PORT: ${TRINO_INTERNAL_PORT:?TRINO_INTERNAL_PORT is required}
+      MLI_DATASET_REGISTRY_ROOT: ${MLI_DATASET_REGISTRY_ROOT:-/opt/pipeline/staging/ml-artifacts}
+
+  qa-02-rerun-revision:
+    extends: {service: spark-gold-qa}
+    profiles: [ml]
+    command:
+      - |
+        mkdir -p /opt/pipeline/staging/qa-02 /opt/pipeline/staging/source-guard
+        exec python3 /opt/airflow/dags/qa_02_rerun_revision.py --live "$${QA_02_RUNTIME_REQUEST}"
+    environment:
+      QA_02_RUNTIME_REQUEST: ${QA_02_RUNTIME_REQUEST:-}
+      QA_02_RUNTIME_COMMAND: ${QA_02_RUNTIME_COMMAND:-}
+
+  qa-03-jma-historical-backfill:
+    extends: {service: spark-gold-qa}
+    profiles: [gold]
+    command:
+      - |
+        mkdir -p /opt/pipeline/staging/qa-03 /opt/pipeline/staging/source-guard
+        exec python3 /opt/airflow/dags/qa_03_jma_historical_backfill.py --live "$${QA_03_RUNTIME_REQUEST}"
+    environment:
+      TRINO_HOST: ${TRINO_HOST:?TRINO_HOST is required}
+      TRINO_INTERNAL_PORT: ${TRINO_INTERNAL_PORT:?TRINO_INTERNAL_PORT is required}
+      QA_03_RUNTIME_REQUEST: ${QA_03_RUNTIME_REQUEST:-}
+      QA_03_RUNTIME_COMMAND: ${QA_03_RUNTIME_COMMAND:-}
+    volumes:
+      - ./config/jma/hypocenter_archives_v1.csv:/opt/pipeline/config/jma/hypocenter_archives_v1.csv:ro
 
   trino:
     <<: *runtime-defaults

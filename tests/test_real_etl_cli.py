@@ -47,6 +47,16 @@ class RealEtlCliTest(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "IMAGE_STALE"):
             self.command("qa", [Mock(returncode=1)])
 
+    def test_shared_airflow_environment_has_unique_etl_and_ml_settings(self):
+        source = (ROOT / "compose.yaml").read_text()
+        environment = source.split("x-airflow-environment: &airflow-environment\n", 1)[1].split("\nx-airflow-common:", 1)[0]
+        keys = [line.split(":", 1)[0].strip() for line in environment.splitlines()
+                if line.startswith("  ") and ":" in line]
+        self.assertEqual(len(keys), len(set(keys)), "duplicate shared Airflow environment keys")
+        self.assertTrue({"ORC07_DAILY_MODE", "ORC07_STAGING_ROOT", "MLI_IMPORT_RUNNER_COMMAND",
+                         "MLI_DATASET_REGISTRY_ROOT", "ICEBERG_CATALOG_NAME", "ICEBERG_CATALOG_URI",
+                         "WAREHOUSE_PATH", "S3_REGION"} <= set(keys))
+
     def test_acceptance_seed_has_provided_dependencies_and_no_mark_success_shortcut(self):
         source = (ROOT / "airflow/dags/real_etl_acceptance.py").read_text()
         self.assertIn("/opt/spark/jars/*:/opt/spark/jobs/iceberg/*", source)

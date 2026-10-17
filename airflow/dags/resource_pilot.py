@@ -3,7 +3,10 @@ import json
 import os
 from pathlib import Path
 import subprocess
-import pwd
+try:
+    import pwd
+except ModuleNotFoundError:  # pragma: no cover - Windows offline control-plane tests
+    pwd = None
 import tempfile
 import uuid
 from urllib.request import urlopen
@@ -79,6 +82,8 @@ def java_identity(environment, root):
     Temporary files contain only UID/GID, no credential, and live through submit.
     """
     env = dict(environment)
+    if pwd is None:
+        return env
     try:
         pwd.getpwuid(os.getuid())
         return env

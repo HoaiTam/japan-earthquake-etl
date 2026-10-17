@@ -101,7 +101,7 @@ chỉ định; planned cross-review không phải approval đã tồn tại.
 - **Trạng thái:** Done
 - **Assignee:** HoaiTam
 - **Reviewer:** unassigned
-- **Evidence / PR:** [ORC-07 implementation và acceptance](../../evidence/ORC-07.md), key `75b2a4a0d4ad4a49817ac8cde6b1f868`: daily 8/8 và manual 5/5 task success, Published qua actual MinIO/Iceberg/Trino; final-binary replay identical và owned partial-commit recovery đạt. Branch `feat/orc-07-real-etl-adapters`, từ main `accdb24` (ORC-06 / PR #78 đã merge). Chưa commit/push/PR; không có reviewer approval. Đây là production DAGs qua DAG.test, không scheduled deployment acceptance của QA-01.
+- **Evidence / PR:** [ORC-07 implementation và acceptance](../../evidence/ORC-07.md), key `75b2a4a0d4ad4a49817ac8cde6b1f868`: daily 8/8 và manual 5/5 task success, Published qua actual MinIO/Iceberg/Trino; final-binary replay identical và owned partial-commit recovery đạt. Implementation `53efb06` đã có trên nhánh remote `feat/orc-07-real-etl-adapters`, tạo từ main `accdb24`; đang đồng bộ main `1e720a6` (PR #79/#80/#81) ngày 2026-10-17 trước khi mở PR. Bản đồng bộ chưa commit/push; không có reviewer approval. Đây là production DAGs qua DAG.test, không scheduled deployment acceptance của QA-01; không coi evidence binary cũ là nghiệm thu runtime mới sau merge.
 
 ## Checklist bàn giao
 

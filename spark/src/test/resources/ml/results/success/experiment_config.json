@@ -5,5 +5,7 @@
   "model_config_version" : "1",
   "algorithm_version" : "fixture-1",
   "package_version" : "fixture-1",
-  "code_version" : "fixture-1"
+  "code_version" : "fixture-1",
+  "runtime_environment_json" : "{\"python\":\"fixture\",\"platform\":\"test\"}",
+  "requirements_lock_sha256" : "79101f8f748f954bbfd12fd610c97cf68fa71b11f2534dc59de86f7096ef5590"
 }

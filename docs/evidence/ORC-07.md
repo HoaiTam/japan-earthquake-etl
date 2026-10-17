@@ -2,7 +2,9 @@
 
 Trạng thái Done. Owner HoaiTam, reviewer unassigned. Branch `feat/orc-07-real-etl-adapters`,
 tạo từ main `accdb24` (ORC-06 đã merge PR #78), ngày 2026-10-16.
-Chưa commit/push/mở PR; không ghi approval hoặc GitHub-hosted CI giả.
+Implementation đã commit tại `53efb06` và có trên nhánh remote cùng tên;
+chưa mở PR tại thời điểm đồng bộ 2026-10-17. Không ghi approval hoặc
+GitHub-hosted CI giả.
 
 ## Implementation
 
@@ -50,6 +52,31 @@ Prepare cuối sau resource configuration 3 GiB dùng cache, thành công tại
 `staging/orc07-host-bbb3d5161ca44039bbbfb0b52dc31460/private.log`.
 Maven verify trong Docker mất khoảng 13–17 phút ở môi trường này. Chi phí build
 chỉ thuộc prepare; `qa-real-etl` không lặp build hoặc init service.
+
+## Đồng bộ main ngày 2026-10-17
+
+- Nhánh ORC-07 tích hợp `origin/main` tại `1e720a6`: MLI-03 / PR #79,
+  QA-02 / PR #80 và QA-03 / PR #81. Không lấy các PR đang mở EXP/MLI-02/QA-04.
+- Merge không có conflict văn bản, nhưng phát sinh hai chỗ trùng ngữ nghĩa:
+  COPY Spark hai lần trong Airflow Dockerfile và bốn key Catalog/S3 lặp trong
+  shared Airflow environment. Đã gộp còn một bản, giữ đủ Spark jobs/Iceberg JAR,
+  ML import runner và cấu hình riêng của cả ETL/ML.
+- Thêm hai regression tests trong `test_java_build_inputs.py` và
+  `test_real_etl_cli.py`; cả hai đã fail trên kết quả auto-merge trước bản vá,
+  sau bản vá đạt. Không đổi source lease policy, dữ liệu hay `.env`.
+- Checks sau đồng bộ: Airflow/control-plane 269 tests, Docker lifecycle 48,
+  CI workflow/planner 37, pilot 16, packaging/host CLI 18; đều pass.
+  `JAVA_HOME=<JDK21> make ci-java`: 400 tests, 0 failure/error/skip,
+  Maven BUILD SUCCESS và artifact fingerprint hợp lệ trên đầu vào đã chốt.
+  `make ci-docs-base`, Compose/MinIO/Trino static và whitespace checks đạt.
+  macOS dùng `TMPDIR=/private/tmp` để các file tạm không đi qua symlink `/var`;
+  không bỏ runtime path guard. Spark/HTTP mock tests cần loopback permission.
+- Đây là regression offline trên checkout đã merge, không build Docker,
+  khởi động service hoặc chạy lại Bronze-to-Published acceptance. Runtime
+  evidence bên dưới thuộc binary/ngày nghiệm thu đã ghi, không tự chuyển
+  thành evidence mới. QA-01/02/03/04 và SEC-01 giữ các gate độc lập.
+- Merge/bản vá còn chờ operator commit/push. Không có hosted CI hoặc reviewer
+  approval mới trước khi push.
 
 ## Runtime acceptance
 

@@ -16,6 +16,11 @@ make ci-airflow test-ci-workflow
 make check-task-status
 ```
 
+Trên macOS, nếu QA-03 báo `QA03_MATRIX_NOT_BOUNDED` khi unittest tạo file
+tạm dưới đường dẫn `/var/...` (symlink đến `/private/var/...`), chạy lại với
+`TMPDIR=/private/tmp`, ví dụ `TMPDIR=/private/tmp make ci-airflow`.
+Không bỏ kiểm tra symlink của runtime để làm test xanh.
+
 Thành công: unittest OK; Maven BUILD SUCCESS, 0 failure/error/skip. Java kiểm
 actual local Iceberg commit/replay, context/upstream/lease/proof corruption và
 read-only verification. Python kiểm failure từng phase, timeout/interruption,
