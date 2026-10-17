@@ -1,6 +1,6 @@
 ---
 task_id: "MLI-02"
-status: "Backlog"
+status: "In Progress"
 week: 5
 block: "I - ML Integration"
 workstream: "Dataset build orchestration"
@@ -39,10 +39,10 @@ Truyền `dataset_id`, snapshot, period, config version, run ID, counts và arti
 
 ## Tiêu chí hoàn thành
 
-- [ ] DAG không chạy nếu Gold chưa Published hoặc dataset config invalid.
-- [ ] Retry dùng cùng logical dataset identity và không trộn export attempts.
-- [ ] Failure dừng trước `DATASET_EXPORTED`; downstream Colab không được đánh dấu ready.
-- [ ] DAG không tự trigger Colab miễn phí như một job service giả định.
+- [x] DAG không chạy nếu Gold chưa Published hoặc dataset config invalid.
+- [x] Retry dùng cùng logical dataset identity và không trộn export attempts.
+- [x] Failure dừng trước `DATASET_EXPORTED`; downstream Colab không được đánh dấu ready.
+- [x] DAG không tự trigger Colab miễn phí như một job service giả định.
 
 ## Hard dependency
 
@@ -70,22 +70,25 @@ khi các Spark jobs được tích hợp thật.
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
+- **Trạng thái:** In Progress
 - **Assignee:** HoaiTam
 - **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Evidence / PR:** [Offline Acceptance](../../evidence/MLI-02_OFFLINE_ACCEPTANCE.md)
 - **Kỹ năng phù hợp:** Airflow, orchestration, idempotency
 
 ## Checklist bàn giao
 
-- [ ] Deliverable và test/evidence tồn tại trong repository.
-- [ ] Acceptance criteria đã được kiểm tra.
-- [ ] Contract/docs đã cập nhật và không chứa secret/data dump.
+- [x] Deliverable và test/evidence tồn tại trong repository.
+- [x] Acceptance criteria đã được kiểm tra.
+- [x] Contract/docs đã cập nhật và không chứa secret/data dump.
 - [ ] Reviewer độc lập được khuyến nghị cho P0.
 
 ## Tài liệu liên quan
 
+- [Runbook Dataset Build](../../runbooks/MLI-02_DATASET_BUILD.md)
+- [Evidence Offline](../../evidence/MLI-02_OFFLINE_ACCEPTANCE.md)
 - [Roadmap HDBSCAN](../HDBSCAN_WORKSTREAM.md)
 - [MLD-05](./MLD-05.md)
 - [ORC-01](./ORC-01.md)
+
 
