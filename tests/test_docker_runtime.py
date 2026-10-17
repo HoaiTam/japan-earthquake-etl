@@ -30,7 +30,7 @@ class DockerDouble:
         for _, _, clients, _ in runtime.COMPONENTS.values():
             names.update(clients)
         names.update(runtime.BUILD_SERVICES)
-        qa_clients = ("spark-gold-qa", "gold-verification-qa", "dataset-manifest-qa", "gold-input-audit-qa", "mainshock-window-qa", "mli-03-import-results", "qa-02-rerun-revision", "qa-03-jma-historical-backfill")
+        qa_clients = ("spark-gold-qa", "gold-verification-qa", "dataset-manifest-qa", "gold-input-audit-qa", "mainshock-window-qa", "mli-03-import-results", "qa-02-rerun-revision", "qa-03-jma-historical-backfill", "qa-04-failure-recovery")
         names.update(qa_clients)
         for name in sorted(names):
             if name.startswith("airflow-") and name not in ("airflow-postgres", "airflow-init") or name in ("usgs-live-smoke", "jma-live-qa", "source-readiness-qa"):
@@ -41,7 +41,7 @@ class DockerDouble:
                 image = "local-minio:verified"
             elif name in ("minio-init", "minio-smoke"):
                 image = "local-mc:verified"
-            elif name in ("spark-gold-qa", "gold-verification-qa", "dataset-manifest-qa", "mli-03-import-results", "qa-03-jma-historical-backfill"):
+            elif name in ("spark-gold-qa", "gold-verification-qa", "dataset-manifest-qa", "mli-03-import-results", "qa-03-jma-historical-backfill", "qa-04-failure-recovery"):
                 image = "local-gold:verified"
             elif name == "trino-smoke":
                 image = "trino:test@sha256:" + "a" * 64
@@ -173,6 +173,19 @@ class DockerRuntimeTests(unittest.TestCase):
         self.artifacts()
         self.context().check("gold", client="qa-03-jma-historical-backfill")
         self.assert_read_only()
+
+    def test_qa04_client_is_preflighted_with_ml_runtime_dependencies(self):
+        self.artifacts()
+        self.context().check("ml", client="qa-04-failure-recovery")
+        self.assert_read_only()
+
+    def test_qa04_smoke_target_uses_supported_client_and_qa_runner_service(self):
+        makefile = (REPO / "Makefile").read_text(encoding="utf-8")
+        target = re.search(r"(?ms)^smoke-qa-04:.*?(?=^[A-Za-z0-9_.-]+:|\Z)", makefile)
+        self.assertIsNotNone(target)
+        self.assertIn("--component ml --client qa-04-failure-recovery", target.group(0))
+        self.assertIn("qa-04-failure-recovery", target.group(0))
+        self.assertNotIn("airflow-smoke", target.group(0))
 
     def test_usgs_does_not_require_unrelated_spark_or_trino(self):
         for name in ("spark-master", "spark-worker", "trino", "iceberg-rest"):

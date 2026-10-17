@@ -1,0 +1,17 @@
+{
+  "task_id": "QA-04",
+  "version": "qa04-v1",
+  "description": "Bounded failure and recovery matrix; synthetic inputs only.",
+  "cases": [
+    {"case_id": "fetch_timeout", "fault_stage": "FETCH", "reason_code": "FETCH_TIMEOUT", "recovery_boundary": "same_window_fetch", "expected_blocker": "BRONZE_NOT_READY", "scope": ["2023-09"]},
+    {"case_id": "archive_invalid", "fault_stage": "ARCHIVE", "reason_code": "JMA_ARCHIVE_CHECKSUM_INVALID", "recovery_boundary": "same_release_new_attempt", "expected_blocker": "ARCHIVE_REJECTED", "scope": ["1997-09"]},
+    {"case_id": "silver_failure", "fault_stage": "SILVER", "reason_code": "SILVER_QUALITY_FAILED", "recovery_boundary": "reuse_verified_bronze", "expected_blocker": "SILVER_NOT_READY", "scope": ["2023-09"]},
+    {"case_id": "gold_commit_partial", "fault_stage": "GOLD", "reason_code": "GOLD_COMMIT_PARTIAL", "recovery_boundary": "reconcile_missing_tables", "expected_blocker": "GOLD_NOT_PUBLISHED", "scope": ["2023-09"]},
+    {"case_id": "gold_commit_receipt_lost", "fault_stage": "GOLD", "reason_code": "GOLD_RECEIPT_LOST", "recovery_boundary": "readback_operation_fingerprint", "expected_blocker": "GOLD_NOT_PUBLISHED", "scope": ["2023-09"]},
+    {"case_id": "trino_verify_failure", "fault_stage": "TRINO", "reason_code": "TRINO_VERIFY_FAILED", "recovery_boundary": "verify_same_snapshots", "expected_blocker": "PUBLICATION_BLOCKED", "scope": ["2023-09"]},
+    {"case_id": "publication_metadata_failure", "fault_stage": "PUBLICATION", "reason_code": "PUBLICATION_READBACK_FAILED", "recovery_boundary": "retry_same_bundle", "expected_blocker": "PUBLICATION_NOT_CONFIRMED", "scope": ["2023-09"]},
+    {"case_id": "ml_bundle_invalid", "fault_stage": "ML_IMPORT", "reason_code": "ML_BUNDLE_CHECKSUM_OR_SCHEMA_INVALID", "recovery_boundary": "new_experiment_run_id", "expected_blocker": "IMPORT_REJECTED", "scope": ["ml_qa"]},
+    {"case_id": "ml_import_partial", "fault_stage": "ML_IMPORT", "reason_code": "ML_COMMIT_PARTIAL", "recovery_boundary": "resume_same_fingerprint", "expected_blocker": "IMPORT_VALIDATING", "scope": ["ml_qa"]},
+    {"case_id": "lease_timeout_contender", "fault_stage": "LEASE", "reason_code": "TIMEOUT_LEASE_RETAINED", "recovery_boundary": "quiesce_then_exact_owner_release", "expected_blocker": "RECOVERY_BLOCKED_BY_OWNER", "scope": ["2023-09"]}
+  ]
+}

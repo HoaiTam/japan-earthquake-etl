@@ -32,6 +32,9 @@ QA_02_RUNTIME_REQUEST ?=
 QA_02_RUNTIME_COMMAND ?=
 MLI_IMPORT_REQUEST ?=
 MLI_IMPORT_RUNNER_COMMAND ?= /opt/pipeline/bin/mli-import-runner
+QA_04_REQUEST ?=
+QA_04_RUNTIME_COMMAND ?=
+QA_04_STAGING_ROOT ?= /opt/pipeline/staging/qa-04
 
 COMPOSE = docker compose --env-file "$(ENV_FILE)" -f "$(COMPOSE_FILE)"
 RUNTIME_ENV = ENV_FILE="$(ENV_FILE)" COMPOSE_FILE="$(COMPOSE_FILE)"
@@ -62,6 +65,7 @@ COMPONENT_SMOKES := smoke-minio smoke-airflow smoke-spark smoke-query smoke-usgs
 .PHONY: test-qa-03 smoke-qa-03
 .PHONY: test-qa-02 smoke-qa-02
 .PHONY: test-mli-import smoke-mli-import
+.PHONY: test-qa-04 smoke-qa-04
 .PHONY: test-ml-window smoke-ml-window resume-ml-window
 .PHONY: prepare-ml-local stage-ml-windows test-ml-feature ml-features-local ml-pilot-local pilot-env test-pilot inspect-pilot jupyter-pilot
 .PHONY: pack-pilot
@@ -229,6 +233,25 @@ test-gold-storage: ## GLD-03 real Iceberg snapshot/recovery tests và control pl
 smoke-gold-storage: check-config-local ## GLD-03 six QA Iceberg snapshots, chưa Published; không tự build/start
 	@$(RUNTIME_CHECK) --component gold
 	@$(COMPOSE) --profile gold run --rm --no-deps --pull never spark-gold-qa
+
+test-qa-04: ## QA-04 bounded failure/recovery matrix và component gates offline
+	@python3 -m unittest discover -s airflow/tests -p 'test_qa_04_failure_recovery.py'
+	@python3 -m unittest discover -s airflow/tests -p 'test_recovery*.py'
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am \
+		-Dtest=GoldIcebergWriterTest,GoldPublicationTest,TrinoSqlClientTest,ResultBundleContractTest \
+		-Dsurefire.failIfNoSpecifiedTests=false test
+
+smoke-qa-04: check-config-local ## QA-04 runtime recovery trong namespace QA; không tự build/start/init
+	@test -n "$(QA_04_REQUEST)" || { echo 'Set QA_04_REQUEST=/opt/pipeline/staging/.../qa-04-request.json'; exit 2; }
+	@test -n "$(QA_04_RUNTIME_COMMAND)" || { echo 'Set QA_04_RUNTIME_COMMAND to the deployed QA-04 runner'; exit 2; }
+	@$(RUNTIME_CHECK) --component ml --client qa-04-failure-recovery
+	@$(COMPOSE) --profile ml run --rm --no-deps --pull never \
+		-e QA_04_REQUEST="$(QA_04_REQUEST)" \
+		-e QA_04_RUNTIME_COMMAND="$(QA_04_RUNTIME_COMMAND)" \
+		-e QA_04_STAGING_ROOT="$(QA_04_STAGING_ROOT)" \
+		-e ORC_07_STATUS="$${ORC_07_STATUS:-Ready}" \
+		-e MLI_03_STATUS="$${MLI_03_STATUS:-In Progress}" \
+		qa-04-failure-recovery
 
 .PHONY: ci ci-docs ci-java ci-airflow test-ci-workflow test-security-audit audit-security audit-security-runtime
 .PHONY: ci-plan ci-docs-base ci-java-impact ci-airflow-impact ci-pilot-impact ci-suite

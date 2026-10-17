@@ -48,7 +48,7 @@ COMPONENTS = {
     "backfill": (("minio",), ("minio-init", "airflow-init"), ("airflow-api-server",), False),
     "gold": (QUERY, ("minio-init", "airflow-init"), ("spark-gold-qa",), True),
     "ml": (QUERY, ("minio-init", "airflow-init"),
-           ("mainshock-window-qa", "mli-03-import-results", "qa-02-rerun-revision"), True),
+           ("mainshock-window-qa", "mli-03-import-results", "qa-02-rerun-revision", "qa-04-failure-recovery"), True),
 }
 ARTIFACTS = ("spark/target/japan-earthquake-etl-runner.jar",
              "spark/target/iceberg/iceberg-spark-runtime-3.5_2.12-1.10.1.jar",
@@ -231,7 +231,7 @@ class Runtime:
     def check(self, component, runner_jar=None, client=None):
         healthy, inits, clients, mounted = COMPONENTS[component]
         if client:
-            if client not in ("spark-gold-qa", "gold-verification-qa", "dataset-manifest-qa", "gold-input-audit-qa", "mainshock-window-qa", "mli-03-import-results", "qa-02-rerun-revision", "qa-03-jma-historical-backfill") or component not in ("gold", "ml"):
+            if client not in ("spark-gold-qa", "gold-verification-qa", "dataset-manifest-qa", "gold-input-audit-qa", "mainshock-window-qa", "mli-03-import-results", "qa-02-rerun-revision", "qa-03-jma-historical-backfill", "qa-04-failure-recovery") or component not in ("gold", "ml"):
                 raise RuntimeFailure("UNSUPPORTED_QA_CLIENT")
             clients = (client,)
         required = tuple(dict.fromkeys((*healthy, *inits, *clients)))

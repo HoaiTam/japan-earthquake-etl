@@ -175,7 +175,7 @@ khoa học. EXP-02 local report PASSED mới cho Colab pilot với cùng code/by
 Official Colab research vẫn chờ MLD-05 EXPORTED.
 
 - [QA-04 — Test failure và recovery theo tầng](./tasks/QA-04.md):
-  dời nghiệm thu toàn tầng sang tuần 6, owner HoaiTam/4h giữ nguyên.
+  dời nghiệm thu toàn tầng sang tuần 6, owner ThanhTris/4h theo phân công hiện tại.
 - [EXP-03 — HDBSCAN adaptive và multi-sequence](./tasks/EXP-03.md),
   [EXP-04 — Scientific evaluation](./tasks/EXP-04.md),
   [EXP-05 — Out-of-period extension](./tasks/EXP-05.md):
