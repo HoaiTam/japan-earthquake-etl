@@ -1,6 +1,6 @@
 ---
 task_id: "EXP-01"
-status: "Ready"
+status: "Done"
 week: 5
 block: "H - Experiment"
 workstream: "Jupyter-first harness"
@@ -41,14 +41,14 @@ local gate EXP-02, không viết hai model pipelines.
 
 ## Tiêu chí hoàn thành
 
-- [ ] Bundle checksum/schema sai bị dừng trước fit model.
-- [ ] Package/code/config version và identity theo mode xuất hiện trong mọi artifact.
-- [ ] Restart kernel → run all trên Jupyter đạt với DAT-02 pilot; không dựa state cũ.
-- [ ] Loader/writer tách pilot/official; pilot không phát _SUCCESS hoặc status official.
-- [ ] Colab path adapter có offline tests và yêu cầu local-smoke PASSED;
+- [x] Bundle checksum/schema sai bị dừng trước fit model.
+- [x] Package/code/config version và identity theo mode xuất hiện trong mọi artifact.
+- [x] Restart kernel → run all trên Jupyter đạt với DAT-02 pilot; không dựa state cũ.
+- [x] Loader/writer tách pilot/official; pilot không phát _SUCCESS hoặc status official.
+- [x] Colab path adapter có offline tests và yêu cầu local-smoke PASSED;
       smoke cloud sau EXP-02 local, không tạo dependency vòng cho harness.
-- [ ] `_SUCCESS.json` không được ghi nếu output chưa hoàn tất/checksum chưa tính.
-- [ ] Notebook không chứa MinIO/Airflow/Drive credential hoặc local absolute path.
+- [x] `_SUCCESS.json` không được ghi nếu output chưa hoàn tất/checksum chưa tính.
+- [x] Notebook không chứa MinIO/Airflow/Drive credential hoặc local absolute path.
 
 ## Hard dependency
 
@@ -81,17 +81,17 @@ MLD-05 để hoàn tất local harness. Cloud smoke nằm trong EXP-02 giai đo�
 
 ## Theo dõi
 
-- **Trạng thái:** Ready
+- **Trạng thái:** Done
 - **Assignee:** rosy179
-- **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Reviewer:** unassigned
+- **Evidence / PR:** Shared harness `notebooks/experiment_harness.py`, requirements lock `notebooks/requirements-lock.txt`, thin smoke notebook `notebooks/exp_01_harness_smoke.ipynb`, notebook runner `scripts/inspect-exp01-notebook.py`, và unit test suite 15/15 PASS `tests/test_experiment_harness.py`. Notebook restart-run-all đạt `RESTART_RUN_ALL_PASSED` với `local_smoke_status=PASSED` và `colab_migration_allowed=true`. Xem [evidence EXP-01](../../evidence/EXP-01.md).
 - **Kỹ năng phù hợp:** Python, Jupyter, Colab, reproducible environments
 
 ## Checklist bàn giao
 
-- [ ] Deliverable và test/evidence tồn tại trong repository.
-- [ ] Acceptance criteria đã được kiểm tra.
-- [ ] Contract/docs đã cập nhật và không chứa secret/data dump.
+- [x] Deliverable và test/evidence tồn tại trong repository.
+- [x] Acceptance criteria đã được kiểm tra.
+- [x] Contract/docs đã cập nhật và không chứa secret/data dump.
 - [ ] Reviewer độc lập được khuyến nghị cho P0.
 
 ## Tài liệu liên quan

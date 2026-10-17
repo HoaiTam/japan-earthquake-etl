@@ -58,7 +58,7 @@ COMPONENT_SMOKES := smoke-minio smoke-airflow smoke-spark smoke-query smoke-usgs
 .PHONY: test-mli-import smoke-mli-import
 .PHONY: test-ml-window smoke-ml-window resume-ml-window
 .PHONY: prepare-ml-local stage-ml-windows test-ml-feature ml-features-local ml-pilot-local pilot-env test-pilot inspect-pilot jupyter-pilot
-.PHONY: pack-pilot
+.PHONY: pack-pilot test-exp01 inspect-exp01 jupyter-exp01
 .PHONY: prepare-full-month test-full-month qa-full-month-live full-month-local
 FULL_MONTH_ROOT ?= staging/orc06-full-month
 FULL_MONTH_REQUEST ?=
@@ -117,6 +117,24 @@ pack-pilot: ## Đóng đúng 5 file pilot đã verify để gửi team; PILOT_BU
 jupyter-pilot: ## Mở Jupyter loopback với bundle local đã chọn; Ctrl+C để dừng, không tự export
 	@test -n "$(PILOT_BUNDLE)" || { echo 'Set PILOT_BUNDLE=staging/ml-pilot/pilot_id=<exact-id>'; exit 2; }
 	@PILOT_BUNDLE="$(abspath $(PILOT_BUNDLE))" $(PILOT_PYTHON) -m jupyterlab --ip=127.0.0.1 --no-browser notebooks/dat_02_inspection.ipynb
+
+test-exp01: ## EXP-01 harness & Colab adapter unit tests; không Docker/network
+	@python3 -m unittest tests/test_experiment_harness.py
+
+inspect-exp01: ## EXP-01 fresh Jupyter kernel Run All; không Docker/API
+	@python3 scripts/inspect-exp01-notebook.py $${PILOT_BUNDLE:+--bundle "$$PILOT_BUNDLE"}
+
+jupyter-exp01: ## Mở Jupyter loopback cho EXP-01 harness smoke notebook
+	@jupyter lab --ip=127.0.0.1 --no-browser notebooks/exp_01_harness_smoke.ipynb
+
+test-exp02: ## EXP-02 Window, DBSCAN, HDBSCAN global unit tests; không Docker/network
+	@python3 -m unittest tests/test_baseline_algorithms.py
+
+inspect-exp02: ## EXP-02 fresh Jupyter kernel Run All cho baseline algorithms; không Docker/API
+	@python3 scripts/inspect-exp02-notebook.py $${PILOT_BUNDLE:+--pilot-bundle "$$PILOT_BUNDLE"}
+
+jupyter-exp02: ## Mở Jupyter loopback cho EXP-02 baseline algorithms notebook
+	@jupyter lab --ip=127.0.0.1 --no-browser notebooks/exp_02_baseline_algorithms.ipynb
 export QA_RUN_ID
 
 test-ml-window: ## MLD-03 bucket physical plan, distributed invariants, microseconds và fail-fast Parquet tests
