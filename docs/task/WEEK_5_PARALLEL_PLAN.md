@@ -99,8 +99,11 @@ Không thêm task/effort hoặc tự tái phân budget từ phần nghiệm thu 
 
 Cập nhật 2026-10-16: ORC-06 Done, có resolver/coverage/receipt và bounded
 file-backed full-month QA 09/2023, xem [evidence](../evidence/ORC-06.md).
-ORC-07 chuyển Ready vì hard dependencies đều Done; chưa có daily/manual
-MinIO → Gold → Trino publication acceptance, vẫn cần làm adapters và QA-01.
+ORC-07 Done sau bounded daily/manual production DAGs qua DAG.test:
+MinIO → full-month Silver → sáu Gold snapshots → actual Trino → Published;
+same-operation replay và owned partial-commit recovery đạt.
+Xem [evidence](../evidence/ORC-07.md). QA-01 vẫn cần nghiệm thu scheduled
+deployment độc lập; không suy QA-01/02/03/04 Done từ adapter acceptance.
 Tháng đang mở không được ORC-06 v1 chứng nhận COMPLETE_MONTHS.
 
 ## 3. Nhóm HoaiTam làm trước — không chặn mọi người viết code
@@ -198,8 +201,11 @@ thức, cập nhật plan/metadata/index và planning checks/tests cùng PR.
 - [ ] Mỗi task có branch/PR riêng, assignee đúng, status metadata/Theo dõi/index đồng bộ.
 - [x] ORC-06 proof đủ tháng; moved event có cả tháng cũ/mới; incomplete bị chặn;
       bounded file-backed acceptance, không thay ORC-07/QA-01 whole-pipeline gate.
-- [ ] ORC-07/QA-01 có Airflow run → exact Bronze → Silver → đủ Gold snapshots →
-      Trino report → publication cùng identity; mock `published=false`.
+- [x] ORC-07 có bounded daily/manual Airflow DAG.test → exact Bronze → Silver →
+      đủ Gold snapshots → Trino report → publication cùng identity; mock
+      `published=false`, replay identical và partial-commit resume bảo toàn snapshots.
+- [ ] QA-01 nghiệm thu E2E scheduled deployment độc lập, traces/counts/publication;
+      không dùng bounded adapter acceptance thay cho QA-01.
 - [ ] QA-02/03 có rerun/revision/resume evidence, không mất dữ liệu ngoài scope;
       QA-04 ghi rõ kế hoạch nghiệm thu recovery tuần 6.
 - [ ] MLD-04/05 count/grain/feature/checksum/lifecycle đúng; research coverage không bị nói quá.

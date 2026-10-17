@@ -78,7 +78,7 @@ public final class FullMonthAcceptanceJob {
             System.out.println(JSON.writeValueAsString(evidence));
         } finally { spark.stop(); }
     }
-    private static Map<String,String> query(URI uri) throws Exception {
+    public static Map<String,String> query(URI uri) throws Exception {
         var out=new TreeMap<String,String>();
         for(String token:uri.getRawQuery().split("&")) {
             var pair=token.split("=",2); require(pair.length==2,"EXACT_CAPTURE_QUERY_REQUIRED");
