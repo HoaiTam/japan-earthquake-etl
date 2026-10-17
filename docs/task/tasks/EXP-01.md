@@ -1,6 +1,6 @@
 ---
 task_id: "EXP-01"
-status: "Ready"
+status: "Done"
 week: 5
 block: "H - Experiment"
 workstream: "Jupyter-first harness"
@@ -8,7 +8,7 @@ scope: "Core"
 priority: "P0"
 effort_hours: 5
 assignee: "rosy179"
-reviewer: "unassigned"
+reviewer: "HoaiTam"
 dependencies: ["CON-03", "DAT-02"]
 ---
 
@@ -41,14 +41,14 @@ local gate EXP-02, không viết hai model pipelines.
 
 ## Tiêu chí hoàn thành
 
-- [ ] Bundle checksum/schema sai bị dừng trước fit model.
-- [ ] Package/code/config version và identity theo mode xuất hiện trong mọi artifact.
-- [ ] Restart kernel → run all trên Jupyter đạt với DAT-02 pilot; không dựa state cũ.
-- [ ] Loader/writer tách pilot/official; pilot không phát _SUCCESS hoặc status official.
-- [ ] Colab path adapter có offline tests và yêu cầu local-smoke PASSED;
+- [x] Bundle checksum/schema sai bị dừng trước fit model.
+- [x] Package/code/config version và identity theo mode xuất hiện trong mọi artifact.
+- [x] Restart kernel → run all trên Jupyter đạt với DAT-02 pilot; không dựa state cũ.
+- [x] Loader/writer tách pilot/official; pilot không phát _SUCCESS hoặc status official.
+- [x] Colab path adapter có offline tests và yêu cầu local-smoke PASSED;
       smoke cloud sau EXP-02 local, không tạo dependency vòng cho harness.
-- [ ] `_SUCCESS.json` không được ghi nếu output chưa hoàn tất/checksum chưa tính.
-- [ ] Notebook không chứa MinIO/Airflow/Drive credential hoặc local absolute path.
+- [x] `_SUCCESS.json` không được ghi nếu output chưa hoàn tất/checksum chưa tính.
+- [x] Notebook không chứa MinIO/Airflow/Drive credential hoặc local absolute path.
 
 ## Hard dependency
 
@@ -81,17 +81,17 @@ MLD-05 để hoàn tất local harness. Cloud smoke nằm trong EXP-02 giai đo�
 
 ## Theo dõi
 
-- **Trạng thái:** Ready
+- **Trạng thái:** Done
 - **Assignee:** rosy179
-- **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Reviewer:** HoaiTam
+- **Evidence / PR:** Đã khắc phục toàn bộ review comments từ HoaiTam tại PR #83 [comment-6229834764](https://github.com/HoaiTam/japan-earthquake-etl/pull/83#issuecomment-6229834764). Đã bổ sung 12 unit tests (tổng cộng 27 tests PASS), thêm cross-process integration test Python writer → Java reader (`ResultBundleContractTest`), hoàn thiện schema Parquet, omit `checksums.sha256` trong OFFICIAL, đồng bộ run_id và wire vào CI `test-pilot`. Chi tiết tại [docs/evidence/EXP-01.md](../../evidence/EXP-01.md).
 - **Kỹ năng phù hợp:** Python, Jupyter, Colab, reproducible environments
 
 ## Checklist bàn giao
 
-- [ ] Deliverable và test/evidence tồn tại trong repository.
-- [ ] Acceptance criteria đã được kiểm tra.
-- [ ] Contract/docs đã cập nhật và không chứa secret/data dump.
+- [x] Deliverable và test/evidence tồn tại trong repository.
+- [x] Acceptance criteria đã được kiểm tra.
+- [x] Contract/docs đã cập nhật và không chứa secret/data dump.
 - [ ] Reviewer độc lập được khuyến nghị cho P0.
 
 ## Tài liệu liên quan

@@ -1,0 +1,11 @@
+# EXP-01 pinned reproducible environment lock for local Jupyter harness and Colab migration
+# Python target: 3.11 - 3.13
+pyarrow==21.0.0
+numpy==2.2.2
+scipy==1.15.1
+scikit-learn==1.6.1
+hdbscan==0.8.40
+nbformat==5.10.4
+nbclient==0.10.2
+ipykernel==6.30.1
+jupyterlab==4.4.7
