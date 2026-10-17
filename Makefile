@@ -34,6 +34,7 @@ MLI_IMPORT_REQUEST ?=
 MLI_IMPORT_RUNNER_COMMAND ?= /opt/pipeline/bin/mli-import-runner
 QA_04_REQUEST ?=
 QA_04_RUNTIME_COMMAND ?=
+QA_04_STAGING_ROOT ?= /opt/pipeline/staging/qa-04
 
 COMPOSE = docker compose --env-file "$(ENV_FILE)" -f "$(COMPOSE_FILE)"
 RUNTIME_ENV = ENV_FILE="$(ENV_FILE)" COMPOSE_FILE="$(COMPOSE_FILE)"
@@ -230,13 +231,14 @@ test-qa-04: ## QA-04 bounded failure/recovery matrix và component gates offline
 smoke-qa-04: check-config-local ## QA-04 runtime recovery trong namespace QA; không tự build/start/init
 	@test -n "$(QA_04_REQUEST)" || { echo 'Set QA_04_REQUEST=/opt/pipeline/staging/.../qa-04-request.json'; exit 2; }
 	@test -n "$(QA_04_RUNTIME_COMMAND)" || { echo 'Set QA_04_RUNTIME_COMMAND to the deployed QA-04 runner'; exit 2; }
-	@$(RUNTIME_CHECK) --component foundation --client airflow-smoke
-	@$(COMPOSE) run --rm --no-deps --pull never \
-		-e PYTHONPATH=/opt/airflow/dags \
+	@$(RUNTIME_CHECK) --component ml --client qa-04-failure-recovery
+	@$(COMPOSE) --profile ml run --rm --no-deps --pull never \
+		-e QA_04_REQUEST="$(QA_04_REQUEST)" \
+		-e QA_04_RUNTIME_COMMAND="$(QA_04_RUNTIME_COMMAND)" \
+		-e QA_04_STAGING_ROOT="$(QA_04_STAGING_ROOT)" \
 		-e ORC_07_STATUS="$${ORC_07_STATUS:-Ready}" \
 		-e MLI_03_STATUS="$${MLI_03_STATUS:-In Progress}" \
-		-e QA_04_RUNTIME_COMMAND="$(QA_04_RUNTIME_COMMAND)" \
-		airflow-dag-processor python3 /opt/airflow/dags/qa_04_failure_recovery.py runtime --request "$(QA_04_REQUEST)"
+		qa-04-failure-recovery
 
 .PHONY: ci ci-docs ci-java ci-airflow test-ci-workflow test-security-audit audit-security audit-security-runtime
 .PHONY: ci-plan ci-docs-base ci-java-impact ci-airflow-impact ci-pilot-impact ci-suite

@@ -852,6 +852,22 @@ services:
     volumes:
       - ./config/jma/hypocenter_archives_v1.csv:/opt/pipeline/config/jma/hypocenter_archives_v1.csv:ro
 
+  qa-04-failure-recovery:
+    extends: {service: spark-gold-qa}
+    profiles: [ml]
+    command:
+      - |
+        mkdir -p /opt/pipeline/staging/qa-04 /opt/pipeline/staging/source-guard
+        exec python3 /opt/airflow/dags/qa_04_failure_recovery.py runtime --request "$${QA_04_REQUEST}"
+    environment:
+      TRINO_HOST: ${TRINO_HOST:?TRINO_HOST is required}
+      TRINO_INTERNAL_PORT: ${TRINO_INTERNAL_PORT:?TRINO_INTERNAL_PORT is required}
+      QA_04_REQUEST: ${QA_04_REQUEST:-}
+      QA_04_RUNTIME_COMMAND: ${QA_04_RUNTIME_COMMAND:-}
+      QA_04_STAGING_ROOT: /opt/pipeline/staging/qa-04
+      ORC_07_STATUS: ${ORC_07_STATUS:-Ready}
+      MLI_03_STATUS: ${MLI_03_STATUS:-In Progress}
+
   trino:
     <<: *runtime-defaults
     image: trinodb/trino:483@sha256:db58cc93e593a2706553745f276bb119c9810e69918be56ecde088ba7ccb0534
