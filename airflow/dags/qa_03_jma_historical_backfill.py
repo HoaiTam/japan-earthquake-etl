@@ -26,7 +26,7 @@ DEFAULT_MATRIX = ROOT / "airflow/dags/fixtures/qa_03_jma_historical_matrix.json"
 DEFAULT_INVENTORY = ROOT / "config/jma/hypocenter_archives_v1.csv"
 MATRIX_VERSION = "qa-03-v2"
 REQUEST_VERSION = "qa-03-runtime-v1"
-REPORT_VERSION = "qa-03-report-v2"
+REPORT_VERSION = "qa-03-report-v3"
 HALO_SECONDS = 16
 MAX_MATRIX_BYTES = 256 * 1024
 MAX_REQUEST_BYTES = 64 * 1024
@@ -39,11 +39,17 @@ SAFE_SNAPSHOT = re.compile(r"[1-9][0-9]{0,18}\Z")
 REQUIRED_CASES = {
     "resume_after_failure": {"same_verified_archive", "duplicate_count_delta", "readback"},
     "reuse_verified_archive": {"archive_sha256_before", "archive_sha256_after", "download_count", "verification_retained"},
-    "changed_release": {"old_catalog_release", "new_catalog_release", "old_snapshot_readable", "old_snapshot_id", "new_snapshot_id"},
+    "changed_release": {"month", "archive_name", "old_catalog_release", "new_catalog_release", "new_manifest_sha256",
+                        "old_snapshot", "new_snapshot", "old_snapshot_readback"},
     "same_release_different_bytes": {"rejected", "downstream_blocked", "data_unchanged", "old_sha256", "new_sha256"},
-    "retention_outside_scope": {"outside_scope_before", "outside_scope_after", "snapshots"},
+    "retention_outside_scope": {"outside_scope_before", "outside_scope_after", "snapshot_readback"},
     "resource_guard": {"batch_months", "guard_triggered", "recovery_passed", "scope_months"},
 }
+GOLD_TABLES = ("event_current", "event_source_bridge", "dim_date", "dim_region",
+              "dim_magnitude_band", "dim_depth_band")
+GOLD_BLOCKER_CHECKS = ("required_fields", "bridge_lineage", "source_counts", "primary_provenance",
+                       "utc_jst", "dimensions", "aggregate_count", "changed_run_scope",
+                       "outside:event_current", "outside:event_source_bridge")
 EXPECTED_SCOPE = {
     (1997, "jan-sep", "1997-09"),
     (1997, "oct-dec", "1997-10"),
@@ -401,7 +407,20 @@ def _validate_snapshots(value: Any, *, allow_bootstrap: bool = False) -> None:
         seen.add(identity)
 
 
-def _validate_assertions(case_id: str, assertions: Mapping[str, Any], selected_months: set[str]) -> None:
+def _snapshot_key(value: Any) -> tuple[str, int]:
+    if not isinstance(value, dict) or not isinstance(value.get("table"), str) or not SAFE_ID.fullmatch(value["table"]):
+        _fail("QA03_RUNTIME_SNAPSHOT_RECEIPT_INVALID")
+    snapshot_id = value.get("snapshot_id")
+    if isinstance(snapshot_id, bool) or not isinstance(snapshot_id, (int, str)):
+        _fail("QA03_RUNTIME_SNAPSHOT_RECEIPT_INVALID")
+    text = str(snapshot_id)
+    if not SAFE_SNAPSHOT.fullmatch(text) or int(text) > 2**63 - 1:
+        _fail("QA03_RUNTIME_SNAPSHOT_RECEIPT_INVALID")
+    return value["table"], int(text)
+
+
+def _validate_assertions(case_id: str, assertions: Mapping[str, Any], selected_months: set[str],
+                         snapshots_before: Mapping[str, Any], snapshots_after: Mapping[str, Any]) -> None:
     required = REQUIRED_CASES[case_id]
     if not required <= set(assertions):
         _fail("QA03_RUNTIME_ASSERTIONS_INCOMPLETE")
@@ -418,15 +437,28 @@ def _validate_assertions(case_id: str, assertions: Mapping[str, Any], selected_m
                 or assertions["verification_retained"] is not True):
             _fail("QA03_RUNTIME_ASSERTION_FAILED")
     elif case_id == "changed_release":
-        if (not all(isinstance(assertions[key], str) and assertions[key] for key in ("old_catalog_release", "new_catalog_release"))
-                or assertions["old_catalog_release"] == assertions["new_catalog_release"]
-                or assertions["old_snapshot_readable"] is not True):
+        if (not isinstance(assertions.get("month"), str) or assertions["month"] not in selected_months
+                or not isinstance(assertions.get("archive_name"), str)
+                or not all(isinstance(assertions[key], str) and assertions[key] for key in ("old_catalog_release", "new_catalog_release"))
+                or assertions["old_catalog_release"] == assertions["new_catalog_release"]):
             _fail("QA03_RUNTIME_ASSERTION_FAILED")
-        for key in ("old_snapshot_id", "new_snapshot_id"):
-            value = assertions[key]
-            if (isinstance(value, bool) or not isinstance(value, (int, str))
-                    or not SAFE_SNAPSHOT.fullmatch(str(value)) or int(value) > 2**63 - 1):
-                _fail("QA03_RUNTIME_ASSERTION_FAILED")
+        old_key = _snapshot_key(assertions["old_snapshot"])
+        new_key = _snapshot_key(assertions["new_snapshot"])
+        readback_key = _snapshot_key(assertions["old_snapshot_readback"])
+        old_release, new_release = assertions["old_catalog_release"], assertions["new_catalog_release"]
+        if (old_key[0] != new_key[0] or old_key[1] == new_key[1] or readback_key != old_key
+                or assertions["old_snapshot"].get("catalog_release") != old_release
+                or assertions["new_snapshot"].get("catalog_release") != new_release
+                or assertions["old_snapshot_readback"].get("catalog_release") != old_release
+                or assertions["old_snapshot_readback"].get("readable") is not True):
+            _fail("QA03_RUNTIME_ASSERTION_FAILED")
+        before_refs = {_snapshot_key(ref): ref for ref in snapshots_before["refs"]}
+        after_refs = {_snapshot_key(ref): ref for ref in snapshots_after["refs"]}
+        if (old_key not in before_refs or new_key not in after_refs or old_key not in after_refs
+                or before_refs[old_key].get("catalog_release") != old_release
+                or after_refs[new_key].get("catalog_release") != new_release
+                or after_refs[old_key].get("catalog_release") != old_release):
+            _fail("QA03_RUNTIME_ASSERTION_FAILED")
     elif case_id == "same_release_different_bytes":
         if not all(assertions[key] is True for key in ("rejected", "downstream_blocked", "data_unchanged")):
             _fail("QA03_RUNTIME_ASSERTION_FAILED")
@@ -437,12 +469,26 @@ def _validate_assertions(case_id: str, assertions: Mapping[str, Any], selected_m
         before, after = assertions["outside_scope_before"], assertions["outside_scope_after"]
         for value in (before, after):
             if (not isinstance(value, dict) or not isinstance(value.get("partition"), str)
+                    or not re.fullmatch(r"[0-9]{4}-(0[1-9]|1[0-2])", value["partition"])
                     or isinstance(value.get("count"), bool) or not isinstance(value.get("count"), int)
-                    or value["count"] < 0 or not SAFE_SHA256.fullmatch(str(value.get("content_sha256", "")))):
+                    or value["count"] < 0 or not SAFE_SHA256.fullmatch(str(value.get("content_sha256", "")))
+                    or _snapshot_key(value) is None):
                 _fail("QA03_RUNTIME_ASSERTION_FAILED")
-        if before != after:
+        if (before.get("partition") in selected_months or before.get("partition") != after.get("partition")
+                or before.get("table") != after.get("table") or before.get("count") != after.get("count")
+                or before.get("content_sha256") != after.get("content_sha256")):
             _fail("QA03_RUNTIME_ASSERTION_FAILED")
-        _validate_snapshots(assertions["snapshots"])
+        readback = assertions["snapshot_readback"]
+        before_key, after_key = _snapshot_key(before), _snapshot_key(after)
+        if (not isinstance(readback, dict) or _snapshot_key(readback) != before_key
+                or readback.get("readable") is not True or readback.get("partition") != before["partition"]
+                or readback.get("count") != before["count"]
+                or readback.get("content_sha256") != before["content_sha256"]):
+            _fail("QA03_RUNTIME_ASSERTION_FAILED")
+        before_refs = {_snapshot_key(ref) for ref in snapshots_before["refs"]}
+        after_refs = {_snapshot_key(ref) for ref in snapshots_after["refs"]}
+        if before_key not in before_refs or before_key not in after_refs or after_key not in after_refs:
+            _fail("QA03_RUNTIME_ASSERTION_FAILED")
     elif case_id == "resource_guard":
         batch, scope = assertions["batch_months"], assertions["scope_months"]
         if (not isinstance(batch, list) or len(batch) != 1 or not isinstance(batch[0], str)
@@ -450,6 +496,132 @@ def _validate_assertions(case_id: str, assertions: Mapping[str, Any], selected_m
                 or any(month not in selected_months for month in scope)
                 or assertions["guard_triggered"] is not True or assertions["recovery_passed"] is not True):
             _fail("QA03_RUNTIME_ASSERTION_FAILED")
+
+
+def _read_gold_artifact(report_path: Path, reference: Any, reason: str) -> tuple[dict[str, Any], bytes]:
+    if not isinstance(reference, dict):
+        _fail(reason)
+    relative = reference.get("file")
+    checksum = reference.get("sha256")
+    if (not isinstance(relative, str) or not relative or "\\" in relative or ":" in relative
+            or PurePosixPath(relative).is_absolute() or ".." in PurePosixPath(relative).parts
+            or not isinstance(checksum, str) or not SAFE_SHA256.fullmatch(checksum)):
+        _fail(reason)
+    root = report_path.parent
+    artifact_path = root.joinpath(*PurePosixPath(relative).parts)
+    try:
+        contained = root.resolve() in artifact_path.resolve().parents
+    except (OSError, RuntimeError, ValueError) as error:
+        raise Qa03Error(reason) from error
+    if (not contained or not _check_path_components(artifact_path) or not artifact_path.is_file()
+            or artifact_path.stat().st_size > MAX_EVIDENCE_BYTES):
+        _fail(reason)
+    raw = artifact_path.read_bytes()
+    if _sha256_bytes(raw) != checksum:
+        _fail("QA03_RUNTIME_GOLD_ARTIFACT_CHECKSUM_MISMATCH")
+    return _load(artifact_path, MAX_EVIDENCE_BYTES, "GOLD_ARTIFACT"), raw
+
+
+def _validate_gold_checks(publication: Mapping[str, Any], tables: Mapping[str, Any]) -> None:
+    checks = publication.get("checks")
+    if not isinstance(checks, dict):
+        _fail("QA03_RUNTIME_GOLD_CHECKS_INVALID")
+    required = {f"{prefix}:{name}" for prefix in ("count", "identity", "current", "unique") for name in GOLD_TABLES}
+    required.update(GOLD_BLOCKER_CHECKS)
+    required.update({"serving_count", "stable_serving_count"})
+    if set(checks) != required:
+        _fail("QA03_RUNTIME_GOLD_CHECKS_INCOMPLETE")
+    for name, check in checks.items():
+        if (not isinstance(check, dict) or not isinstance(check.get("sql"), str) or not check["sql"]
+                or isinstance(check.get("expected"), bool) or not isinstance(check.get("expected"), int)
+                or isinstance(check.get("actual"), bool) or not isinstance(check.get("actual"), int)
+                or check["actual"] != check["expected"]):
+            _fail("QA03_RUNTIME_GOLD_CHECK_FAILED")
+        expected = check["expected"]
+        if name.startswith("count:"):
+            table = name.split(":", 1)[1]
+            if table not in tables or expected != tables[table]["count"]:
+                _fail("QA03_RUNTIME_GOLD_CHECK_FAILED")
+        elif name.startswith("identity:"):
+            if name.split(":", 1)[1] not in tables or expected != 1:
+                _fail("QA03_RUNTIME_GOLD_CHECK_FAILED")
+        elif name.startswith("current:"):
+            table = name.split(":", 1)[1]
+            if table not in tables or expected != tables[table]["snapshot_id"]:
+                _fail("QA03_RUNTIME_GOLD_CHECK_FAILED")
+        elif name.startswith("unique:") or name in GOLD_BLOCKER_CHECKS:
+            if expected != 0:
+                _fail("QA03_RUNTIME_GOLD_CHECK_FAILED")
+        elif name in {"serving_count", "stable_serving_count"} and expected < 0:
+            _fail("QA03_RUNTIME_GOLD_CHECK_FAILED")
+    if checks["serving_count"]["actual"] != checks["stable_serving_count"]["actual"]:
+        _fail("QA03_RUNTIME_GOLD_CHECK_FAILED")
+
+
+def _validate_gold_publications(report: Mapping[str, Any], identity: Mapping[str, Any], matrix: Mapping[str, Any],
+                                report_path: Path) -> set[tuple[str, int, str]]:
+    publications = report.get("gold_publications")
+    months = {item["month"] for item in matrix["_selected_scope"]}
+    if not isinstance(publications, list) or len(publications) != len(months):
+        _fail("QA03_RUNTIME_GOLD_PUBLICATION_INCOMPLETE")
+    seen: set[str] = set()
+    all_snapshots: set[tuple[str, int, str]] = set()
+    expected_namespace: str | None = None
+    expected_gold_schema = re.sub(r"[^a-z0-9_]", "_", str(identity["namespace"]).lower())
+    for item in publications:
+        if not isinstance(item, dict):
+            _fail("QA03_RUNTIME_GOLD_PUBLICATION_INVALID")
+        month = item.get("month")
+        if (not isinstance(month, str) or month not in months or month in seen or item.get("run_id") != identity["run_id"]
+                or item.get("operation_id") != identity["operation_id"]
+                or item.get("namespace") != identity["namespace"]):
+            _fail("QA03_RUNTIME_GOLD_PUBLICATION_IDENTITY_MISMATCH")
+        seen.add(month)
+        commit, commit_bytes = _read_gold_artifact(report_path, item.get("commit"), "QA03_RUNTIME_GOLD_COMMIT_INVALID")
+        publication, _ = _read_gold_artifact(report_path, item.get("publication"), "QA03_RUNTIME_GOLD_PUBLICATION_INVALID")
+        bundle_sha = _sha256_bytes(commit_bytes)
+        namespace = commit.get("namespace")
+        gold_run = commit.get("gold_run_id")
+        tables = commit.get("tables")
+        scope = commit.get("scope")
+        context = scope.get("context") if isinstance(scope, dict) else None
+        if (not isinstance(namespace, str) or not re.fullmatch(r"[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*", namespace)
+                or namespace.rsplit(".", 1)[-1] != expected_gold_schema
+                or not isinstance(gold_run, str) or not SAFE_ID.fullmatch(gold_run)
+                or commit.get("status") != "COMMITTED" or commit.get("published") is not False
+                or not SAFE_SHA256.fullmatch(str(commit.get("identity_sha256", "")))
+                or not isinstance(tables, dict) or set(tables) != set(GOLD_TABLES)
+                or not isinstance(scope, dict) or scope.get("affected_months") != [month]
+                or not isinstance(context, dict) or context.get("run_id") != gold_run):
+            _fail("QA03_RUNTIME_GOLD_COMMIT_INVALID")
+        if expected_namespace is None:
+            expected_namespace = namespace
+        elif namespace != expected_namespace:
+            _fail("QA03_RUNTIME_GOLD_NAMESPACE_MISMATCH")
+        normalized_tables: dict[str, dict[str, Any]] = {}
+        for name in GOLD_TABLES:
+            pin = tables[name]
+            if not isinstance(pin, dict):
+                _fail("QA03_RUNTIME_GOLD_SNAPSHOT_INVALID")
+            snapshot_id, count = pin.get("snapshot_id"), pin.get("count")
+            if (pin.get("table") != namespace + "." + name or isinstance(snapshot_id, bool)
+                    or not isinstance(snapshot_id, int) or not 0 < snapshot_id <= 2**63 - 1
+                    or isinstance(count, bool) or not isinstance(count, int) or count < 0):
+                _fail("QA03_RUNTIME_GOLD_SNAPSHOT_INVALID")
+            normalized_tables[name] = {"table": pin["table"], "snapshot_id": snapshot_id, "count": count}
+            all_snapshots.add((pin["table"], snapshot_id, month))
+        if (publication.get("task") != "GLD-04" or publication.get("engine") != "TRINO"
+                or publication.get("verify_status") != "PASSED" or publication.get("published") is not True
+                or publication.get("namespace") != namespace or publication.get("gold_run_id") != gold_run
+                or publication.get("identity_sha256") != commit["identity_sha256"]
+                or publication.get("bundle_sha256") != bundle_sha
+                or publication.get("publication_id") != "pub_" + bundle_sha
+                or publication.get("snapshot_bundle") != tables or publication.get("scope") != commit.get("scope")):
+            _fail("QA03_RUNTIME_GOLD_PUBLICATION_INVALID")
+        _validate_gold_checks(publication, normalized_tables)
+    if seen != months:
+        _fail("QA03_RUNTIME_GOLD_PUBLICATION_INCOMPLETE")
+    return all_snapshots
 
 
 def _validate_runtime_report(report: Mapping[str, Any], request: Mapping[str, Any], matrix: Mapping[str, Any],
@@ -471,7 +643,8 @@ def _validate_runtime_report(report: Mapping[str, Any], request: Mapping[str, An
     if not isinstance(runtime_coverage, list) or len(runtime_coverage) != len(matrix["_computed_coverage"]):
         _fail("QA03_RUNTIME_COVERAGE_INCOMPLETE")
     input_refs_by_archive = {ref["archive_name"]: ref for ref in request["input_refs"]}
-    coverage_by_month = {entry.get("month"): entry for entry in runtime_coverage if isinstance(entry, dict)}
+    coverage_by_month = {entry.get("month"): entry for entry in runtime_coverage
+                         if isinstance(entry, dict) and isinstance(entry.get("month"), str)}
     if set(coverage_by_month) != {entry["month"] for entry in matrix["_computed_coverage"]}:
         _fail("QA03_RUNTIME_COVERAGE_INCOMPLETE")
     for expected_coverage in matrix["_computed_coverage"]:
@@ -510,16 +683,25 @@ def _validate_runtime_report(report: Mapping[str, Any], request: Mapping[str, An
         if not isinstance(case, dict):
             _fail("QA03_RUNTIME_CASE_INVALID")
         case_id = case.get("case_id")
-        if (case_id not in REQUIRED_CASES or case_id in seen or case.get("status") != "PASS"
+        if (not isinstance(case_id, str) or case_id not in REQUIRED_CASES or case_id in seen or case.get("status") != "PASS"
                 or case.get("operation_id") != expected_operations.get(case_id)):
             _fail("QA03_RUNTIME_CASE_INVALID")
         seen.add(case_id)
         assertions = case.get("assertions")
         if not isinstance(assertions, dict):
             _fail("QA03_RUNTIME_ASSERTIONS_INCOMPLETE")
-        _validate_assertions(case_id, assertions, {item["month"] for item in matrix["_selected_scope"]})
         _validate_snapshots(case.get("snapshots_before"), allow_bootstrap=True)
         _validate_snapshots(case.get("snapshots_after"))
+        selected_months = {item["month"] for item in matrix["_selected_scope"]}
+        _validate_assertions(case_id, assertions, selected_months,
+                             case["snapshots_before"], case["snapshots_after"])
+        if case_id == "changed_release":
+            selected = next((item for item in matrix["_selected_scope"] if item["month"] == assertions["month"]), None)
+            pinned_input = next((ref for ref in request["input_refs"] if ref["archive_name"] == assertions["archive_name"]), None)
+            if (selected is None or selected["archive_identity"] != assertions["archive_name"]
+                    or pinned_input is None or pinned_input["catalog_release"] != assertions["new_catalog_release"]
+                    or pinned_input["sha256"] != assertions["new_manifest_sha256"]):
+                _fail("QA03_RUNTIME_ASSERTION_FAILED")
         evidence = case.get("evidence")
         if not isinstance(evidence, dict):
             _fail("QA03_RUNTIME_EVIDENCE_INVALID")
@@ -554,7 +736,19 @@ def _validate_runtime_report(report: Mapping[str, Any], request: Mapping[str, An
                        "passed": len(REQUIRED_CASES), "failed": 0, "pending_runtime": 0}
     if summary != expected_summary:
         _fail("QA03_RUNTIME_SUMMARY_MISMATCH")
+    gold_snapshots = _validate_gold_publications(report, identity, matrix, report_path)
     _validate_snapshots(report.get("snapshots"))
+    report_snapshots = report["snapshots"]["refs"]
+    report_snapshot_keys = set()
+    selected_months = {item["month"] for item in matrix["_selected_scope"]}
+    for ref in report_snapshots:
+        key = _snapshot_key(ref)
+        month = ref.get("month")
+        if not isinstance(month, str) or month not in selected_months:
+            _fail("QA03_RUNTIME_GOLD_SNAPSHOT_BUNDLE_MISMATCH")
+        report_snapshot_keys.add((key[0], key[1], month))
+    if report_snapshot_keys != gold_snapshots:
+        _fail("QA03_RUNTIME_GOLD_SNAPSHOT_BUNDLE_MISMATCH")
 
 
 def run_live(request_path: str | Path, environment: Mapping[str, str] | None = None) -> dict[str, Any]:

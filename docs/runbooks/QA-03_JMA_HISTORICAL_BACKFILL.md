@@ -32,10 +32,19 @@ Sau khi ORC-07 đóng gói adapter, request JSON cần có:
 - `report_path` mới bên trong thư mục staging đã mount; helper tạo evidence ở
   `<report_path>.evidence/`. Không dùng symlink hoặc đường dẫn có `..`.
 
-Runtime report v2 phải khớp toàn bộ identity/scope, bốn coverage month và archive
+Runtime report v3 phải khớp toàn bộ identity/scope, bốn coverage month và archive
 pins đã verify, sáu case cùng operation IDs, snapshots trước/sau, evidence JSON
-có checksum, và các phép đo capacity hữu hạn. Case `PASS` phải chứng minh assertion
-theo scenario; report chỉ có cờ PASS sẽ bị từ chối.
+có checksum, và các phép đo capacity hữu hạn. Changed release phải đối chiếu
+table/snapshot/release cũ và mới với receipts trước/sau, đồng thời đọc lại được
+snapshot cũ. Retention phải dùng partition tháng hợp lệ nằm ngoài write scope,
+đối chiếu count/content và readback snapshot với receipts.
+
+Để ghi nhận PASS, report còn phải kèm commit receipt và publication report GLD-04
+cho đủ bốn tháng. Mỗi cặp phải khớp checksum, Gold run, tháng/scope, namespace,
+publication ID và bundle SHA; bundle gồm đủ sáu bảng và snapshot. Publication phải
+có `engine=TRINO`, `verify_status=PASSED`, `published=true`, cùng các check Trino
+bằng expected values. Snapshot tổng của report phải đúng bundle các tháng đó.
+Report chỉ tới Silver, thiếu publication hoặc thiếu một gate Trino sẽ bị từ chối.
 
 ## Smoke Bronze-to-Published
 
@@ -56,6 +65,7 @@ acceptance. Dùng namespace QA riêng và chỉ request scope đã pin.
 ## Evidence
 
 Template hiện ở [QA-03 JSON](../evidence/QA-03-prepared.json) và [Markdown](../evidence/QA-03-prepared.md).
-Historical report/capacity note chỉ hoàn tất sau khi có output adapter thật,
+Prepared evidence hiện chỉ là fixture kiểm tra validator, không phải Gold runtime
+receipt. Historical report/capacity note chỉ hoàn tất sau khi có output adapter thật,
 readback snapshots và reconciliation cho từng case. Bốn tháng đại diện không
 đại diện toàn bộ 40 năm.

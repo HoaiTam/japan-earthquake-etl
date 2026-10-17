@@ -1,7 +1,7 @@
 {
   "task_id": "QA-03",
   "matrix_version": "qa-03-v2",
-  "inventory_sha256": "f599b442b2b4a3e024adf2b7baa2b27f731a7638ab121af5233ec5f4572d1963",
+  "inventory_sha256": "61dc2c73f1bb9cee48fba851cbb941cc62c893201c36db583cdd55ae19f8199a",
   "halo_seconds": 16,
   "dependency_gate": {
     "ORC-07": "Ready",
@@ -23,9 +23,9 @@
   "cases": [
     {"case_id": "resume_after_failure", "operation_id": "qa03-resume-001", "expected": {"same_verified_archive": true, "duplicate_count_delta": 0, "readback": true}},
     {"case_id": "reuse_verified_archive", "operation_id": "qa03-reuse-001", "expected": {"archive_sha256_before": "pinned", "archive_sha256_after": "pinned", "download_count": 0, "verification_retained": true}},
-    {"case_id": "changed_release", "operation_id": "qa03-release-001", "expected": {"old_catalog_release": "pinned", "new_catalog_release": "new", "old_snapshot_readable": true, "old_snapshot_id": "pinned", "new_snapshot_id": "new"}},
+    {"case_id": "changed_release", "operation_id": "qa03-release-001", "expected": {"month": "1997-09", "archive_name": "h199701.zip", "old_catalog_release": "pinned", "new_catalog_release": "new", "new_manifest_sha256": "pinned", "old_snapshot": "pinned_table_snapshot", "new_snapshot": "new_table_snapshot", "old_snapshot_readback": "readable"}},
     {"case_id": "same_release_different_bytes", "operation_id": "qa03-bytes-001", "expected": {"rejected": true, "downstream_blocked": true, "data_unchanged": true, "old_sha256": "pinned", "new_sha256": "different"}},
-    {"case_id": "retention_outside_scope", "operation_id": "qa03-retention-001", "expected": {"outside_scope_before": "pinned", "outside_scope_after": "equal", "snapshots": "readable"}},
+    {"case_id": "retention_outside_scope", "operation_id": "qa03-retention-001", "expected": {"outside_scope_before": "pinned", "outside_scope_after": "equal", "snapshot_readback": "readable"}},
     {"case_id": "resource_guard", "operation_id": "qa03-resource-001", "expected": {"batch_months": "one_closed_month", "guard_triggered": true, "recovery_passed": true, "scope_months": "pinned"}}
   ]
 }
