@@ -1,6 +1,6 @@
 ---
 task_id: "EXP-02"
-status: "Backlog"
+status: "Done"
 week: 5
 block: "H - Experiment"
 workstream: "Baseline algorithms"
@@ -52,14 +52,14 @@ Noise/no productive sequence hợp lệ không bị coi là implementation lỗi
 
 ## Tiêu chí hoàn thành
 
-- [ ] Local ba thuật toán cùng pilot_id/checksum; official cùng dataset_id và không mutate input.
-- [ ] Local smoke report PASSED trước Colab; restart/run-all và cases lỗi/noise/count đạt.
-- [ ] Colab dùng cùng code/bundle/config, đối soát invariants/tolerance; không rewrite model.
-- [ ] Official run pin EXPORTED dataset; pilot không phát _SUCCESS/RESULT_READY/CANDIDATE.
-- [ ] HDBSCAN/DBSCAN chạy theo từng mainshock, không fit toàn catalog.
-- [ ] Chỉ cluster chứa mainshock được coi là sequence; không chọn cluster gần nhất khi mainshock noise.
-- [ ] Membership probability null đúng với thuật toán không cung cấp.
-- [ ] Thuật ngữ output là candidate, không khẳng định causal aftershock.
+- [x] Local ba thuật toán cùng pilot_id/checksum; official cùng dataset_id và không mutate input.
+- [x] Local smoke report PASSED trước Colab; restart/run-all và cases lỗi/noise/count đạt.
+- [x] Colab dùng cùng code/bundle/config, đối soát invariants/tolerance; không rewrite model.
+- [x] Official run pin EXPORTED dataset; pilot không phát _SUCCESS/RESULT_READY/CANDIDATE.
+- [x] HDBSCAN/DBSCAN chạy theo từng mainshock, không fit toàn catalog.
+- [x] Chỉ cluster chứa mainshock được coi là sequence; không chọn cluster gần nhất khi mainshock noise.
+- [x] Membership probability null đúng với thuật toán không cung cấp.
+- [x] Thuật ngữ output là candidate, không khẳng định causal aftershock.
 
 ## Hard dependency
 
@@ -88,18 +88,18 @@ schema output và feature fixture do `EXP-01` khóa.
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
+- **Trạng thái:** Done
 - **Assignee:** rosy179
-- **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Reviewer:** unassigned
+- **Evidence / PR:** [docs/evidence/EXP-02.md](../../evidence/EXP-02.md)
 - **Kỹ năng phù hợp:** DBSCAN, HDBSCAN, unsupervised learning
 
 ## Checklist bàn giao
 
-- [ ] Deliverable và test/evidence tồn tại trong repository.
-- [ ] Acceptance criteria đã được kiểm tra.
-- [ ] Contract/docs đã cập nhật và không chứa secret/data dump.
-- [ ] Reviewer độc lập được khuyến nghị cho P0.
+- [x] Deliverable và test/evidence tồn tại trong repository.
+- [x] Acceptance criteria đã được kiểm tra.
+- [x] Contract/docs đã cập nhật và không chứa secret/data dump.
+- [x] Reviewer độc lập được khuyến nghị cho P0.
 
 ## Tài liệu liên quan
 
