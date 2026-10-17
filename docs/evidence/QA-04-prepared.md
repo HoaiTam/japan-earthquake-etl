@@ -4,8 +4,8 @@ Status: `PREPARED`
 
 Runtime request: `qa-04-runtime-v1`; runtime report: `qa-04-report-v1`.
 
-Runtime evidence remains pending until ORC-07 and MLI-03 are Done.
-PR #79 is merged; MLI-03 runtime acceptance remains incomplete.
+ORC-07 is Done; runtime evidence remains pending until MLI-03 is Done.
+PR #79 is merged; MLI-03 MinIO/Catalog/Trino runtime acceptance remains incomplete.
 
 | Case | Fault | Status |
 |---|---|---|

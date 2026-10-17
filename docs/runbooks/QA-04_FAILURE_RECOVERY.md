@@ -3,8 +3,8 @@
 QA-04 dùng ma trận bounded trong
 `airflow/dags/fixtures/qa_04_failure_recovery_matrix.json`. Offline runner ghi
 state/report vào thư mục được chỉ định, không gọi nguồn thật và không ghi
-lakehouse. Runtime chỉ được bật trong namespace QA sau khi ORC-07 và MLI-03
-đã nghiệm thu.
+lakehouse. ORC-07 đã nghiệm thu real adapters đến Gold Published; runtime QA-04
+chỉ được bật trong namespace riêng sau khi MLI-03 hoàn tất acceptance runtime.
 
 ## Offline checks
 
@@ -38,8 +38,10 @@ Runtime request dùng contract `qa-04-runtime-v1`, pin SHA-256 của matrix,
 `run_id`/`operation_id`, namespace `iceberg.qa04_<id>`, scope canonical theo
 case, exact input/artifact checksums, baseline snapshot receipts và report path
 mới trong `/opt/pipeline/staging/qa-04`. Tháng ETL phải khớp window UTC tháng
-đầy đủ; case ML phải pin experiment run ID. Snapshot chưa tồn tại được ghi rõ
-`state=ABSENT`. URI wildcard hoặc có credential bị từ chối.
+đầy đủ; case ML phải pin experiment run ID. Baseline table chưa tồn tại được
+ghi rõ `state=ABSENT`; kết quả recovery `ml_import_partial` bắt buộc có snapshot
+`PRESENT` cho `sequence_membership`, `sequence_summary` và `experiment_run`,
+khớp chính xác với readback. URI wildcard hoặc có credential bị từ chối.
 
 Runner executable chỉ lấy từ `QA_04_RUNTIME_COMMAND`; request phải pin đúng một
 artifact `qa04-runtime-runner` bằng đường dẫn tuyệt đối và SHA-256. Controller
@@ -48,9 +50,13 @@ Controller pin bytes của request trước khi gọi runner và kiểm tra requ
 không đổi sau execution. Report và từng evidence phải mang runner SHA-256 đã
 pin. Runner trả contract `qa-04-report-v1`; mỗi case phải gắn evidence
 JSON đã stage, checksum, fault/recovery identity, snapshots/counts và readback.
+Partition evidence ngoài scope phải hợp lệ, giữ nguyên trước/sau và nằm ngoài
+write scope: tháng UTC với case ETL, experiment run ID khác với case ML.
 Report offline (`mode=offline_control`), receipt thiếu hoặc report ghi sẵn
 không thể thành runtime PASS. Gold cases cần sáu snapshot và GLD-04 Trino
-publication receipt; ML cases cần MLI-03 journal/publication evidence.
+publication receipt cho `event_current`, `event_source_bridge`, `dim_date`,
+`dim_region`, `dim_magnitude_band` và `dim_depth_band`; ML cases cần MLI-03
+journal/publication evidence.
 
 ```bash
 make smoke-qa-04 \
@@ -61,8 +67,8 @@ make smoke-qa-04 \
 Lệnh preflight `ml` kiểm MinIO/Catalog/Trino, image Spark QA, JAR và mounts;
 sau đó gọi service `qa-04-failure-recovery`. Nó không build, pull, start, init
 hoặc đổi credential. Runtime dừng với `QA04_RUNTIME_DEPENDENCY_PENDING` khi
-ORC-07 hoặc MLI-03 chưa nghiệm thu xong. PR #79 đã merge nhưng MLI-03 vẫn
-`In Progress` do còn thiếu acceptance MinIO/Catalog/Trino.
+ORC-07 hoặc MLI-03 chưa nghiệm thu xong. ORC-07 đã `Done`; PR #79 đã merge,
+nhưng MLI-03 vẫn `In Progress` do còn thiếu acceptance MinIO/Catalog/Trino.
 
 ## Recovery rules
 
@@ -87,5 +93,6 @@ ORC-07 hoặc MLI-03 chưa nghiệm thu xong. PR #79 đã merge nhưng MLI-03 v�
 Mỗi case phải ghi fault stage/reason, downstream calls, lease state, snapshots,
 counts trước/sau, logical keys ngoài scope và report/query readback. Evidence
 fixture chỉ chứng minh control-plane/component behavior. QA-04 chỉ chuyển Done
-sau khi ORC-07 và MLI-03 cung cấp evidence thật từ Bronze → Silver → Gold →
-Trino/Published và ML import.
+sau khi recovery runtime dùng real Bronze → Silver → Gold → Trino/Published;
+ML import cần evidence MinIO/Catalog/Trino của MLI-03. ORC-07 đã hoàn tất
+phần ETL.

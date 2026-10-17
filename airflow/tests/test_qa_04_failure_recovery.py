@@ -4,6 +4,7 @@ import json
 import hashlib
 import os
 from pathlib import Path
+import re
 import sys
 import tempfile
 import unittest
@@ -13,7 +14,26 @@ sys.path.insert(0, str(Path(__file__).parents[1] / "dags"))
 import qa_04_failure_recovery as qa
 
 
+EXPECTED_GOLD_TABLES = (
+    "event_current", "event_source_bridge", "dim_date", "dim_region",
+    "dim_magnitude_band", "dim_depth_band",
+)
+
+
 class Qa04FailureRecoveryTest(unittest.TestCase):
+    def _edit_evidence(self, case_result, mutate):
+        evidence_path = Path(case_result["evidence"]["path"])
+        evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+        mutate(evidence)
+        evidence_bytes = json.dumps(evidence, sort_keys=True, separators=(",", ":")).encode()
+        evidence_path.write_bytes(evidence_bytes)
+        case_result["evidence"]["sha256"] = hashlib.sha256(evidence_bytes).hexdigest()
+
+    def _validate_fixture(self, root, request, report, matrix):
+        qa._validate_runtime_report(
+            report, request, hashlib.sha256(Path(root, "request.json").read_bytes()).hexdigest(),
+            matrix, hashlib.sha256(qa.MATRIX_PATH.read_bytes()).hexdigest(), Path(root).resolve())
+
     def _runtime_fixture(self, root, case_ids=None):
         runner_path = Path(root, "qa04-runtime-runner")
         runner_bytes = b"qa04 synthetic runner fixture v1\n"
@@ -57,8 +77,8 @@ class Qa04FailureRecoveryTest(unittest.TestCase):
             scope_hash = qa._sha256(scopes[case_id])
             base_snapshot = {"table": "iceberg.qa04_fixture.event_current", "state": "PRESENT", "snapshot_id": 41}
             snapshots = [base_snapshot]
-            outside_month = "2023-08"
-            if item["scope"][0] != "ml_qa":
+            outside_month = "exp-outside-qa04" if case_id.startswith("ml_") else "2023-08"
+            if not case_id.startswith("ml_"):
                 year, month = (int(part) for part in item["scope"][0].split("-"))
                 outside_month = f"{year - 1:04d}-12" if month == 1 else f"{year:04d}-{month - 1:02d}"
             evidence = {
@@ -82,19 +102,19 @@ class Qa04FailureRecoveryTest(unittest.TestCase):
                 evidence["gold"] = {
                     "operation_id": request["operation_id"], "fingerprint_sha256": fingerprint,
                     "commit_sha256": commit_sha, "published_before_recovery": False,
-                    "tables": [{"name": name, "snapshot_id": index + 100} for index, name in enumerate(qa.GOLD_TABLES)],
-                    "counts": {name: 1 for name in qa.GOLD_TABLES},
+                    "tables": [{"name": name, "snapshot_id": index + 100} for index, name in enumerate(EXPECTED_GOLD_TABLES)],
+                    "counts": {name: 1 for name in EXPECTED_GOLD_TABLES},
                     "publication": {"engine": "TRINO", "verify_status": "PASSED", "published": True,
                                     "bundle_sha256": commit_sha, "scope_sha256": scope_hash,
-                                    "table_snapshots": {name: index + 100 for index, name in enumerate(qa.GOLD_TABLES)},
+                                    "table_snapshots": {name: index + 100 for index, name in enumerate(EXPECTED_GOLD_TABLES)},
                                     "trino_checks": {"six_table_snapshot_readback": "PASSED",
                                                      "count_reconciliation": "PASSED",
                                                      "outside_scope_unchanged": "PASSED"}},
                 }
                 committed = [{"table": "iceberg.qa04_fixture." + name, "state": "PRESENT", "snapshot_id": index + 100}
-                             for index, name in enumerate(qa.GOLD_TABLES)]
+                             for index, name in enumerate(EXPECTED_GOLD_TABLES)]
                 before = [{"table": "iceberg.qa04_fixture." + name, "state": "PRESENT", "snapshot_id": 41}
-                          for name in qa.GOLD_TABLES]
+                          for name in EXPECTED_GOLD_TABLES]
                 evidence["snapshots_before"] = before
                 evidence["snapshots_after"] = committed
                 evidence["readback"]["snapshots"] = committed
@@ -247,6 +267,127 @@ class Qa04FailureRecoveryTest(unittest.TestCase):
             matrix_sha = hashlib.sha256(qa.MATRIX_PATH.read_bytes()).hexdigest()
             qa._validate_runtime_request(request, matrix)
             qa._validate_runtime_report(report, request, request_sha, matrix, matrix_sha, staging)
+
+    def test_gold_table_names_match_independent_writer_contract(self):
+        self.assertEqual(EXPECTED_GOLD_TABLES, qa.GOLD_TABLES)
+        repo_root = Path(__file__).parents[2]
+        writer_source = (repo_root / "spark/src/main/java/ie212/earthquake/spark/gold/GoldIcebergWriter.java").read_text(encoding="utf-8")
+        declaration = re.search(r"public static final List<String> TABLES = List\.of\((.*?)\);", writer_source, re.DOTALL)
+        self.assertIsNotNone(declaration)
+        self.assertEqual(EXPECTED_GOLD_TABLES, tuple(re.findall(r'"([^\"]+)"', declaration.group(1))))
+
+    def test_gold_rejects_legacy_alias_and_missing_table(self):
+        with tempfile.TemporaryDirectory() as root:
+            def rename_legacy(evidence):
+                def replace(value):
+                    if isinstance(value, str):
+                        return value.replace("dim_magnitude_band", "magnitude_band").replace("dim_depth_band", "depth_band")
+                    if isinstance(value, list):
+                        return [replace(item) for item in value]
+                    if isinstance(value, dict):
+                        return {replace(key): replace(item) for key, item in value.items()}
+                    return value
+                replaced = replace(evidence)
+                evidence.clear()
+                evidence.update(replaced)
+
+            request, report, matrix = self._runtime_fixture(root, ["gold_commit_partial"])
+            case_result = report["cases"][0]
+            self._edit_evidence(case_result, rename_legacy)
+            with self.assertRaisesRegex(qa.Qa04Error, "QA04_RUNTIME_GOLD_EVIDENCE_INVALID"):
+                self._validate_fixture(root, request, report, matrix)
+
+            request, report, matrix = self._runtime_fixture(root, ["gold_commit_partial"])
+            case_result = report["cases"][0]
+            self._edit_evidence(case_result, lambda evidence: evidence["gold"]["tables"].pop())
+            with self.assertRaisesRegex(qa.Qa04Error, "QA04_RUNTIME_GOLD_EVIDENCE_INVALID"):
+                self._validate_fixture(root, request, report, matrix)
+
+    def test_ml_recovery_requires_three_present_matching_snapshots(self):
+        invalid_cases = ("all_absent", "one_absent", "missing_table", "duplicate", "duplicate_absent", "wrong_namespace", "after_drift", "readback_drift",
+                         "bad_id_true", "bad_id_zero", "bad_id_negative", "bad_id_overflow")
+        for invalid_case in invalid_cases:
+            with self.subTest(invalid_case=invalid_case), tempfile.TemporaryDirectory() as root:
+                request, report, matrix = self._runtime_fixture(root, ["ml_import_partial"])
+                case_result = report["cases"][0]
+
+                def mutate(evidence):
+                    ml_refs = evidence["ml"]["snapshots"]
+                    ml_tables = {row["table"] for row in ml_refs}
+                    after = evidence["snapshots_after"]
+                    readback = evidence["readback"]["snapshots"]
+                    if invalid_case == "all_absent":
+                        evidence["ml"]["snapshots"] = [{"table": row["table"], "state": "ABSENT"} for row in ml_refs]
+                        evidence["snapshots_after"] = [row for row in after if row["table"] not in ml_tables] + evidence["ml"]["snapshots"]
+                        evidence["readback"]["snapshots"] = list(evidence["snapshots_after"])
+                    elif invalid_case == "one_absent":
+                        absent = {"table": ml_refs[0]["table"], "state": "ABSENT"}
+                        evidence["ml"]["snapshots"][0] = absent
+                        evidence["snapshots_after"] = [row for row in after if row["table"] != absent["table"]] + [absent]
+                        evidence["readback"]["snapshots"] = list(evidence["snapshots_after"])
+                    elif invalid_case == "missing_table":
+                        evidence["ml"]["snapshots"].pop()
+                    elif invalid_case == "duplicate":
+                        evidence["ml"]["snapshots"].append(dict(ml_refs[0], snapshot_id=999))
+                    elif invalid_case == "duplicate_absent":
+                        absent = {"table": ml_refs[0]["table"], "state": "ABSENT"}
+                        evidence["ml"]["snapshots"].append(absent)
+                        evidence["snapshots_after"].append(absent)
+                        evidence["readback"]["snapshots"].append(absent)
+                    elif invalid_case == "wrong_namespace":
+                        original_table = ml_refs[0]["table"]
+                        for key, refs in (("ml", ml_refs), ("after", after), ("readback", readback)):
+                            if key == "ml":
+                                refs[0]["table"] = "iceberg.other." + original_table.rsplit(".", 1)[-1]
+                            else:
+                                match = next(item for item in refs if item["table"] == original_table)
+                                match["table"] = "iceberg.other." + match["table"].rsplit(".", 1)[-1]
+                    elif invalid_case in {"after_drift", "readback_drift"}:
+                        refs = after if invalid_case == "after_drift" else readback
+                        next(row for row in refs if row["table"] in ml_tables)["snapshot_id"] = 999
+                    else:
+                        invalid_id = {"bad_id_true": True, "bad_id_zero": 0, "bad_id_negative": -1,
+                                      "bad_id_overflow": 1 << 63}[invalid_case]
+                        ml_refs[0]["snapshot_id"] = invalid_id
+
+                self._edit_evidence(case_result, mutate)
+                with self.assertRaisesRegex(qa.Qa04Error, "QA04_RUNTIME_(?:ML_RECOVERY_INVALID|SNAPSHOTS_MISSING|READBACK_MISMATCH)"):
+                    self._validate_fixture(root, request, report, matrix)
+
+    def test_outside_scope_partition_must_be_valid_and_outside_each_case_scope(self):
+        invalid_partitions = ("2023-09", None, "", 7, "2023-00", "2023-13", "0000-08")
+        for partition in invalid_partitions:
+            with self.subTest(partition=partition), tempfile.TemporaryDirectory() as root:
+                request, report, matrix = self._runtime_fixture(root, ["fetch_timeout"])
+                case_result = report["cases"][0]
+                self._edit_evidence(case_result, lambda evidence: (
+                    evidence["outside_scope"]["before"].update(partition=partition),
+                    evidence["outside_scope"]["after"].update(partition=partition)))
+                with self.assertRaisesRegex(qa.Qa04Error, "QA04_RUNTIME_OUTSIDE_SCOPE_CHANGED"):
+                    self._validate_fixture(root, request, report, matrix)
+
+        with tempfile.TemporaryDirectory() as root:
+            request, report, matrix = self._runtime_fixture(root, ["fetch_timeout"])
+            case_result = report["cases"][0]
+            self._edit_evidence(case_result, lambda evidence: (
+                evidence["outside_scope"]["before"].pop("partition"),
+                evidence["outside_scope"]["after"].pop("partition")))
+            with self.assertRaisesRegex(qa.Qa04Error, "QA04_RUNTIME_OUTSIDE_SCOPE_CHANGED"):
+                self._validate_fixture(root, request, report, matrix)
+
+        with tempfile.TemporaryDirectory() as root:
+            request, report, matrix = self._runtime_fixture(root, ["ml_import_partial"])
+            case_result = report["cases"][0]
+            in_scope_id = request["case_scopes"]["ml_import_partial"]["experiment_run_ids"][0]
+            self._edit_evidence(case_result, lambda evidence: (
+                evidence["outside_scope"]["before"].update(partition=in_scope_id),
+                evidence["outside_scope"]["after"].update(partition=in_scope_id)))
+            with self.assertRaisesRegex(qa.Qa04Error, "QA04_RUNTIME_OUTSIDE_SCOPE_CHANGED"):
+                self._validate_fixture(root, request, report, matrix)
+
+        with tempfile.TemporaryDirectory() as root:
+            request, report, matrix = self._runtime_fixture(root, ["ml_import_partial"])
+            self._validate_fixture(root, request, report, matrix)
 
     def test_runtime_rejects_offline_report_returned_by_successful_runner(self):
         with tempfile.TemporaryDirectory() as root:

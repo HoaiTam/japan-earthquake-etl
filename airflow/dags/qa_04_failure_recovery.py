@@ -17,6 +17,7 @@ import re
 import shlex
 import subprocess
 import tempfile
+from datetime import date
 from typing import Any, Mapping
 
 from jma_backfill_runtime import _atomic_json
@@ -49,8 +50,8 @@ GOLD_TABLES = (
     "event_source_bridge",
     "dim_date",
     "dim_region",
-    "magnitude_band",
-    "depth_band",
+    "dim_magnitude_band",
+    "dim_depth_band",
 )
 MATRIX_PATH = Path(__file__).parent / "fixtures" / "qa_04_failure_recovery_matrix.json"
 RUNTIME_REQUEST_VERSION = "qa-04-runtime-v1"
@@ -608,6 +609,7 @@ def _validate_runtime_report(report: Mapping[str, Any], request: Mapping[str, An
         before_scope = evidence["outside_scope"].get("before")
         after_scope = evidence["outside_scope"].get("after")
         if (not isinstance(before_scope, dict) or before_scope != after_scope
+                or not _partition_is_outside_scope(case_id, before_scope.get("partition"), request)
                 or isinstance(before_scope.get("count"), bool) or not isinstance(before_scope.get("count"), int)
                 or before_scope["count"] < 0
                 or not SHA256_RE.fullmatch(str(before_scope.get("keys_sha256", "")))
@@ -648,6 +650,33 @@ def _valid_snapshot_refs(value: Any) -> bool:
             return False
         seen.add(identity)
     return True
+
+
+def _partition_is_outside_scope(case_id: str, partition: Any, request: Mapping[str, Any]) -> bool:
+    if not isinstance(partition, str) or not partition:
+        return False
+    scope = request["case_scopes"][case_id]
+    if case_id.startswith("ml_"):
+        run_ids = scope["experiment_run_ids"]
+        return bool(IDENTITY_RE.fullmatch(partition)) and partition not in run_ids
+    if not re.fullmatch(r"\d{4}-(0[1-9]|1[0-2])", partition):
+        return False
+    try:
+        date.fromisoformat(partition + "-01")
+    except ValueError:
+        return False
+    return partition not in scope["write_months"]
+
+
+def _present_snapshot_map(value: Any, expected_tables: set[str]) -> dict[str, int] | None:
+    if not _valid_snapshot_refs(value) or len(value) != len(expected_tables):
+        return None
+    if any(item["state"] != "PRESENT" for item in value):
+        return None
+    snapshots = {item["table"]: item["snapshot_id"] for item in value}
+    if len(snapshots) != len(value) or set(snapshots) != expected_tables:
+        return None
+    return snapshots
 
 
 def _validate_special_case_evidence(case_id: str, evidence: Mapping[str, Any], request: Mapping[str, Any]) -> None:
@@ -702,11 +731,21 @@ def _validate_special_case_evidence(case_id: str, evidence: Mapping[str, Any], r
                 or ml.get("readback_status") != "PASSED" or ml.get("publication_fingerprint_sha256") != ml.get("fingerprint_sha256")):
             raise Qa04Error("QA04_RUNTIME_ML_RECOVERY_INVALID")
         if case_id == "ml_import_partial":
+            expected_tables = {
+                request["namespace"] + ".sequence_membership",
+                request["namespace"] + ".sequence_summary",
+                request["namespace"] + ".experiment_run",
+            }
             ml_snapshots = ml.get("snapshots")
-            if (not _valid_snapshot_refs(ml_snapshots)
-                    or {item["table"] for item in ml_snapshots} != {
-                        request["namespace"] + ".sequence_membership", request["namespace"] + ".sequence_summary",
-                        request["namespace"] + ".experiment_run"}):
+            ml_map = _present_snapshot_map(ml_snapshots, expected_tables)
+            after_map = _present_snapshot_map(
+                [item for item in evidence["snapshots_after"] if item.get("table") in expected_tables], expected_tables)
+            readback_refs = evidence.get("readback", {}).get("snapshots")
+            readback_map = _present_snapshot_map(
+                [item for item in readback_refs if isinstance(item, dict) and item.get("table") in expected_tables]
+                if isinstance(readback_refs, list) else readback_refs,
+                expected_tables)
+            if ml_map is None or after_map != ml_map or readback_map != ml_map:
                 raise Qa04Error("QA04_RUNTIME_ML_RECOVERY_INVALID")
     if case_id == "lease_timeout_contender":
         lease_state = evidence.get("lease")
@@ -800,7 +839,7 @@ def prepare_report(matrix_path: str | Path, output_json: str | Path, output_mark
         "runtime_request_contract": RUNTIME_REQUEST_VERSION,
         "runtime_report_contract": RUNTIME_REPORT_VERSION,
         "evidence_scope": "offline fixture and control-plane contract only",
-        "runtime_dependencies": {"ORC-05": "Done", "ORC-07": "Ready", "MLI-03": "In Progress",
+        "runtime_dependencies": {"ORC-05": "Done", "ORC-07": "Done", "MLI-03": "In Progress",
                                  "PR-79": "merged; runtime acceptance remains incomplete"},
         "cases": [
             {"case_id": item["case_id"], "status": "PENDING_RUNTIME", "fault_stage": item["fault_stage"],
@@ -811,8 +850,8 @@ def prepare_report(matrix_path: str | Path, output_json: str | Path, output_mark
     _atomic_json(Path(output_json), report)
     lines = ["# QA-04 prepared evidence", "", "Status: `PREPARED`",
              "", f"Runtime request: `{RUNTIME_REQUEST_VERSION}`; runtime report: `{RUNTIME_REPORT_VERSION}`.",
-             "", "Runtime evidence remains pending until ORC-07 and MLI-03 are Done.",
-             "PR #79 is merged; MLI-03 runtime acceptance remains incomplete.",
+             "", "ORC-07 is Done; runtime evidence remains pending until MLI-03 is Done.",
+             "PR #79 is merged; MLI-03 MinIO/Catalog/Trino runtime acceptance remains incomplete.",
              "", "| Case | Fault | Status |", "|---|---|---|"]
     lines.extend(f"| `{item['case_id']}` | `{item['reason_code']}` | `PENDING_RUNTIME` |" for item in report["cases"])
     Path(output_markdown).parent.mkdir(parents=True, exist_ok=True)
