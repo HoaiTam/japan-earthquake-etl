@@ -1,0 +1,21 @@
+{
+  "algorithm_name": "HDBSCAN_ADAPTIVE",
+  "algorithm_version": "1.0.0",
+  "model_config_version": "hdbscan-adaptive-dev-v1",
+  "metric": "euclidean",
+  "cluster_selection_epsilon": 0.0,
+  "allow_single_cluster": true,
+  "adaptive_policy": {
+    "policy_name": "log_candidate_magnitude_scaling",
+    "min_cluster_size_base": 3,
+    "min_cluster_size_min": 3,
+    "min_cluster_size_max": 25,
+    "candidate_count_factor": 1.5,
+    "magnitude_factor": 1.0,
+    "magnitude_threshold": 5.5,
+    "min_samples_ratio": 0.6,
+    "min_samples_min": 2,
+    "min_samples_max": 15
+  },
+  "description": "HDBSCAN adaptive baseline: deterministic per-window parameter scaling based on candidate count and mainshock magnitude without manual per-sequence overrides."
+}
