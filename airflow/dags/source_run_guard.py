@@ -3,14 +3,13 @@
 flock protects atomic lease updates; the persisted owner protects the WHOLE run,
 not just a task/process. No expiration, takeover or automatic deletion on failure.
 """
-from contextlib import contextmanager
 import json
 import os
 from pathlib import Path
 
 try:
     import fcntl
-except ModuleNotFoundError:  # pragma: no cover - Windows development host
+except ModuleNotFoundError:  # pragma: no cover - exercised by Windows offline tests
     fcntl = None
     import msvcrt
 
@@ -19,24 +18,6 @@ from jma_backfill_runtime import _atomic_json
 
 class SourceRunBusy(RuntimeError):
     pass
-
-
-@contextmanager
-def _locked(mutex):
-    """Use flock on POSIX and a one-byte msvcrt lock on Windows."""
-    if fcntl is not None:
-        fcntl.flock(mutex, fcntl.LOCK_EX)
-    else:
-        mutex.seek(0)
-        msvcrt.locking(mutex.fileno(), msvcrt.LK_LOCK, 1)
-    try:
-        yield
-    finally:
-        if fcntl is not None:
-            fcntl.flock(mutex, fcntl.LOCK_UN)
-        else:
-            mutex.seek(0)
-            msvcrt.locking(mutex.fileno(), msvcrt.LK_UNLCK, 1)
 
 
 def owner(context):
@@ -55,8 +36,16 @@ def lease(action, identity, environment=None):
     root = Path(env.get("SOURCE_GUARD_ROOT", "/opt/pipeline/staging/source-guard"))
     root.mkdir(parents=True, exist_ok=True)
     target = root / "owner.json"
-    with (root / "mutex.lock").open("a") as mutex:
-        with _locked(mutex):
+    with (root / "mutex.lock").open("a+") as mutex:
+        if fcntl is not None:
+            fcntl.flock(mutex, fcntl.LOCK_EX)
+        else:
+            mutex.seek(0)
+            mutex.write("0")
+            mutex.flush()
+            mutex.seek(0)
+            msvcrt.locking(mutex.fileno(), msvcrt.LK_LOCK, 1)
+        try:
             # Corrupt/unreadable state fails closed; never silently remove another run.
             current = json.loads(target.read_text()) if target.exists() else None
             if action == "assert":
@@ -71,3 +60,9 @@ def lease(action, identity, environment=None):
             if current == identity:
                 target.unlink()  # Only our tiny lease, not staging data or publication pointers.
             return {"status": "RELEASED" if current in (None, identity) else "NOT_OWNER", **identity}
+        finally:
+            if fcntl is not None:
+                fcntl.flock(mutex, fcntl.LOCK_UN)
+            else:
+                mutex.seek(0)
+                msvcrt.locking(mutex.fileno(), msvcrt.LK_UNLCK, 1)

@@ -3,14 +3,13 @@ import json
 import os
 from pathlib import Path
 import subprocess
+try:
+    import pwd
+except ModuleNotFoundError:  # pragma: no cover - Windows offline control-plane tests
+    pwd = None
 import tempfile
 import uuid
 from urllib.request import urlopen
-
-try:
-    import pwd
-except ModuleNotFoundError:  # pragma: no cover - Windows development host
-    pwd = None
 
 from backfill_runtime import resolve, require, BackfillError
 from jma_backfill_runtime import _atomic_json

@@ -170,7 +170,7 @@ fixture/inventory; assignee `HoaiTam`, reviewer `unassigned`. Xem
 |---|---:|---|---|---|---:|---|
 | [MLI-01](./MLI-01.md) - Khóa result bundle và experiment lifecycle | 4 | Result bundle contract | Core | P0 | 5h | Done |
 | [MLI-02](./MLI-02.md) - Tạo Airflow DAG build ML dataset | 5 | Dataset build orchestration | Core | P0 | 5h | Backlog |
-| [MLI-03](./MLI-03.md) - Validate/import kết quả và commit bảng ML Iceberg | 5 | Result import and Iceberg publish | Core | P0 | 7h | Ready |
+| [MLI-03](./MLI-03.md) - Validate/import kết quả và commit bảng ML Iceberg | 5 | Result import and Iceberg publish | Core | P0 | 7h | In Progress |
 | [MLI-04](./MLI-04.md) - Tạo Trino views và static report cho experiment | 8 | ML serving and report | Core | P0 | 4h | Backlog |
 | [MLQ-01](./MLQ-01.md) - Chạy E2E Gold snapshot đến ML report | 8 | ML end-to-end QA | Core | P0 | 6h | Backlog |
 
@@ -193,8 +193,8 @@ fixture/inventory; assignee `HoaiTam`, reviewer `unassigned`. Xem
 | [DEMO-02](./DEMO-02.md) - Rehearsal và tạo release candidate | 8 | Release | Core | P0 | 6h | Backlog |
 | [OPS-01](./OPS-01.md) - Smoke test backup và restore metadata | 6 | Backup and restore | Stretch | P2 | 4h | Backlog |
 | [QA-01](./QA-01.md) - Chạy E2E daily đa nguồn | 5 | E2E | Core | P0 | 5h | Backlog |
-| [QA-02](./QA-02.md) - Test rerun, duplicate và late revision | 5 | Idempotency | Core | P0 | 5h | Backlog |
-| [QA-03](./QA-03.md) - Kiểm thử JMA historical backfill | 5 | Historical backfill | Core | P0 | 5h | Backlog |
+| [QA-02](./QA-02.md) - Test rerun, duplicate và late revision | 5 | Idempotency | Core | P0 | 5h | In Progress |
+| [QA-03](./QA-03.md) - Kiểm thử JMA historical backfill | 5 | Historical backfill | Core | P0 | 5h | In Progress |
 | [QA-04](./QA-04.md) - Test failure và recovery theo tầng | 6 | Failure recovery | Core | P0 | 4h | In Progress |
 | [QA-05](./QA-05.md) - Profile dữ liệu lịch sử và tài nguyên local | 8 | Performance | Stretch | P2 | 4h | Backlog |
 | [SEC-01](./SEC-01.md) - Review secret và bề mặt truy cập | 4 | Security | Core | P1 | 4h | Review |

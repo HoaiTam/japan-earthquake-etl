@@ -1,6 +1,6 @@
 ---
 task_id: "MLI-03"
-status: "Ready"
+status: "In Progress"
 week: 5
 block: "I - ML Integration"
 workstream: "Result import and Iceberg publish"
@@ -63,7 +63,7 @@ trước khi Colab sinh output thật.
 - **Làm gì / có gì:** Importer/validator/writer + physical ML mapping, same-run idempotency, partial commit/rejected states và snapshot-pinned readback.
 - **Dùng để làm gì / output:** Namespace ml.* được quality-gate trước CANDIDATE, không thêm label vào Gold và không tự APPROVED.
 - **Bắt đầu ngay / gate:** Dùng valid/invalid fixtures MLI-01 ngay; candidate IDs/dataset EXPORTED phải tồn tại ở QA namespace pin rõ. Fixture real-storage acceptance không là scientific approval, không chờ EXP-02 để code.
-- **Theo dõi:** Phân công không có nghĩa đã triển khai; chỉ đổi In Progress khi bắt đầu, Done khi đủ acceptance/evidence. Reviewer hiện unassigned, chưa có approval.
+- **Theo dõi:** Đã bắt đầu trên branch `feat/mli-03-validate-import-iceberg`; giữ reviewer `unassigned` cho đến khi có review độc lập.
 
 ## Điều chỉnh Jupyter-first — 2026-10-14
 
@@ -74,17 +74,18 @@ Thêm acceptance case reject DAT-02 DEVELOPMENT_PILOT/pilot_result_manifest và 
 
 ## Theo dõi
 
-- **Trạng thái:** Ready
+- **Trạng thái:** In Progress
 - **Assignee:** ThanhTris
 - **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Evidence / PR:** [Offline evidence](../../evidence/MLI-03-offline.md); [PR #79](https://github.com/HoaiTam/japan-earthquake-etl/pull/79) — review comment đang được xử lý; reviewer `unassigned`
 - **Kỹ năng phù hợp:** Airflow, Spark validation, Iceberg transactions
 
 ## Checklist bàn giao
 
-- [ ] Deliverable và test/evidence tồn tại trong repository.
-- [ ] Acceptance criteria đã được kiểm tra.
-- [ ] Contract/docs đã cập nhật và không chứa secret/data dump.
+- [x] Importer, trusted dataset resolver, result writer, manual DAG graph và offline regression test đã có trong repository.
+- [x] Checksum/schema/grain/lineage/count, publication gate và same-run recovery đã được kiểm tra bằng fixture MLI-01/local Iceberg.
+- [x] Contract/docs/Make/Compose preflight đã cập nhật và không chứa secret/data dump.
+- [ ] Acceptance runtime trên MinIO/Catalog/Trino với exact snapshots chưa chạy.
 - [ ] Reviewer độc lập được khuyến nghị cho P0.
 
 ## Tài liệu liên quan
@@ -93,3 +94,13 @@ Thêm acceptance case reject DAT-02 DEVELOPMENT_PILOT/pilot_result_manifest và 
 - [ML logical data model](../../specs/ML_DATA_MODEL.md)
 - [MLI-01](./MLI-01.md)
 - [GLD-03](./GLD-03.md)
+- [MLI-03 result import runbook](../../runbooks/MLI-03_RESULT_IMPORT.md)
+
+## Evidence hiện có
+
+- Bản sửa review PR #79 thêm fixture Docker cho runner MLI-03; reserve experiment ID/fingerprint trước khi ghi result; giữ canonical journal và ghi retry failure trong `attempts/`; pin request SHA-256 theo identity DagRun thật, tách lease owner và yêu cầu receipt release trước completion.
+- Java/Spark: nhóm regression MLI-03 (`ResultBundleContractTest`, `MlResultImportJobTest`, `TrustedDatasetResolverTest`, `MlResultPublicationIcebergTest`) đạt 19/19 trên local Spark/Iceberg.
+- Airflow: `airflow/tests` đạt 223/223 trong image Airflow; DAG import đăng ký đủ 9 task. `tests/ci` đạt 37/37 trong cùng image.
+- Docker lifecycle: test preflight riêng cho `mli-03-import-results` đạt 1/1. Full suite tại workspace bị giới hạn bởi shell/symlink trên Windows và thiếu `make` trong container; GitHub Actions Project CI #54 trên commit `e46faa3` đã xanh toàn bộ, gồm `docs-contracts`.
+- `py_compile` và `git diff --check` đạt. Audit bảo mật có 0 findings, còn 3 coverage items và `can_mark_done=false`.
+- Chưa chạy import runtime trên MinIO/Catalog/Trino hoặc verify exact snapshots. Task vẫn `In Progress`; PR #79 còn mở, chưa merge.
