@@ -1,0 +1,11 @@
+{
+  "algorithm_name": "HDBSCAN_GLOBAL",
+  "algorithm_version": "1.0.0",
+  "model_config_version": "hdbscan-global-dev-v1",
+  "min_cluster_size": 3,
+  "min_samples": 2,
+  "cluster_selection_epsilon": 0.0,
+  "allow_single_cluster": true,
+  "metric": "euclidean",
+  "description": "HDBSCAN global baseline: 4-D Euclidean fit per-mainshock window with variable density clustering and membership probabilities"
+}
