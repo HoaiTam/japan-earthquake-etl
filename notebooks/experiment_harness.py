@@ -160,7 +160,7 @@ SEQUENCE_SUMMARY_FIELDS = [
     pa.field("is_nested_mainshock_candidate", pa.bool_(), nullable=False),
     pa.field("parent_mainshock_event_id", pa.string(), nullable=True),
     pa.field("nested_membership_probability", pa.float64(), nullable=True),
-    pa.field("metric_reason_codes", pa.list_(pa.string()), nullable=True),
+    pa.field("metric_reason_codes", pa.list_(pa.field("element", pa.string(), nullable=False)), nullable=True),
     pa.field("failure_reason_code", pa.string(), nullable=True),
     pa.field("created_at_utc", pa.timestamp("ms", tz="UTC"), nullable=False),
 ]
@@ -271,12 +271,20 @@ def load_feature_bundle(bundle_dir: Union[str, Path], mode: str = MODE_DEVELOPME
         }
 
     else:  # mode == MODE_OFFICIAL
-        found_files = {p.name for p in root.iterdir()}
+        found_files = {p.name for p in root.iterdir() if p.is_file()}
         require("pilot_manifest.json" not in found_files, "OFFICIAL_LOADER_REJECTS_PILOT_BUNDLE")
 
-        # Check official dataset export
+        # Official bundle MUST have a non-empty checksums.sha256 file
+        require(len(checksum_entries) > 0, "EXP_EMPTY_CHECKSUMS_FILE")
+
+        # Every file in the bundle directory (except checksums.sha256) MUST be indexed
+        expected_indexed_files = found_files - {"checksums.sha256"}
+        require(expected_indexed_files == set(checksum_entries.keys()), "EXP_OFFICIAL_CHECKSUM_SET_MISMATCH")
+
+        # Check official dataset export manifest
         manifest_path = root / "dataset_manifest.json"
         require(manifest_path.is_file(), "EXP_MISSING_DATASET_MANIFEST")
+        require("dataset_manifest.json" in checksum_entries, "EXP_MISSING_DATASET_MANIFEST_CHECKSUM")
 
         manifest = read_json_safe(manifest_path.read_bytes())
         require(manifest.get("schema_version") == "1.0", "EXP_OFFICIAL_SCHEMA_VERSION_MISMATCH")
@@ -287,21 +295,63 @@ def load_feature_bundle(bundle_dir: Union[str, Path], mode: str = MODE_DEVELOPME
         # Load features parquet
         feature_parts = sorted(root.glob("features-part-*.parquet"))
         require(len(feature_parts) > 0, "EXP_NO_FEATURE_PARQUET_FOUND")
+        for fp in feature_parts:
+            require(fp.name in checksum_entries, f"EXP_MISSING_FEATURE_PARQUET_CHECKSUM:{fp.name}")
+
         tables = [pq.read_table(p) for p in feature_parts]
         features_table = pa.concat_tables(tables)
+
+        # Validate required columns according to MLD-05 contract
+        required_cols = ["dataset_id", "mainshock_event_id", "candidate_event_id"] + VECTOR_COLUMNS
+        for col_name in required_cols:
+            require(col_name in features_table.column_names, f"EXP_MISSING_REQUIRED_COL:{col_name}")
 
         # Validate feature counts & nonfinite
         expected_rows = manifest.get("feature_row_count")
         if expected_rows is not None:
             require(features_table.num_rows == expected_rows, "EXP_FEATURE_ROW_COUNT_MISMATCH")
 
+        # Lineage check: dataset_id in all rows must strictly match manifest dataset_id
+        dataset_ids_in_rows = set(features_table["dataset_id"].to_pylist())
+        require(dataset_ids_in_rows == {manifest["dataset_id"]},
+                f"EXP_DATASET_LINEAGE_MISMATCH:{dataset_ids_in_rows}!={manifest['dataset_id']}")
+
         # Check vector columns and finite constraints
         for col_name in VECTOR_COLUMNS:
-            require(col_name in features_table.column_names, f"EXP_MISSING_VECTOR_COL:{col_name}")
             col = features_table[col_name]
             for chunk in col.chunks:
                 for val in chunk.to_pylist():
                     require(val is not None and math.isfinite(val), f"EXP_NONFINITE_FEATURE:{col_name}")
+
+        # Unique grain check: (dataset_id, mainshock_event_id, candidate_event_id)
+        # and self-event zero-vector check
+        pydict = features_table.to_pydict()
+        n_rows = features_table.num_rows
+        seen_grains = set()
+        window_self_found: Dict[str, bool] = {}
+
+        for i in range(n_rows):
+            d_id = pydict["dataset_id"][i]
+            m_id = pydict["mainshock_event_id"][i]
+            c_id = pydict["candidate_event_id"][i]
+
+            grain_key = (d_id, m_id, c_id)
+            require(grain_key not in seen_grains, f"EXP_DUPLICATE_GRAIN:{grain_key}")
+            seen_grains.add(grain_key)
+
+            if c_id == m_id:
+                # Mainshock self-event must have zero vector
+                window_self_found[m_id] = True
+                for vcol in VECTOR_COLUMNS:
+                    val = float(pydict[vcol][i])
+                    require(abs(val) < 1e-6, f"EXP_NONZERO_SELF_VECTOR:{vcol}={val}")
+            else:
+                if m_id not in window_self_found:
+                    window_self_found[m_id] = False
+
+        # Every mainshock window must contain its own self event
+        for mid, has_self in window_self_found.items():
+            require(has_self, f"EXP_MISSING_SELF_EVENT:{mid}")
 
         return {
             "mode": MODE_OFFICIAL,
@@ -585,7 +635,7 @@ def write_experiment_result(
     code_ver = code_version or runtime_meta["code_version"]
     pkg_ver = package_version_override or runtime_meta["package_versions"].get("scikit-learn", "1.6.1")
 
-    # Generate identity run ID
+    # Generate identity run ID including random_seed
     source_dataset_id = bundle.get("source_dataset_id", bundle.get("bundle_id"))
     run_id_payload = {
         "dataset_id": source_dataset_id,
@@ -595,8 +645,42 @@ def write_experiment_result(
         "model_config": model_config,
         "code_version": code_ver,
         "mode": mode,
+        "random_seed": random_seed,
     }
     identity_digest = sha256_bytes(canonical(run_id_payload).encode("utf-8"))[:32]
+    effective_run_id = f"pilot_run_{identity_digest}" if mode == MODE_DEVELOPMENT else f"exp_run_{identity_digest}"
+
+    # Synchronize effective_run_id and source_dataset_id across all membership records
+    if isinstance(memberships, list):
+        for r in memberships:
+            r["experiment_run_id"] = effective_run_id
+            r["dataset_id"] = source_dataset_id
+        memberships_table = pa.Table.from_pylist(memberships, schema=MEMBERSHIP_SCHEMA)
+    else:
+        pydict = memberships.to_pydict()
+        pydict["experiment_run_id"] = [effective_run_id] * memberships.num_rows
+        pydict["dataset_id"] = [source_dataset_id] * memberships.num_rows
+        memberships_table = pa.Table.from_pydict(pydict, schema=MEMBERSHIP_SCHEMA)
+
+    # Synchronize effective_run_id and source_dataset_id across all summary records
+    if isinstance(summaries, list):
+        for s in summaries:
+            s["experiment_run_id"] = effective_run_id
+            s["dataset_id"] = source_dataset_id
+        summary_table = pa.Table.from_pylist(summaries, schema=SEQUENCE_SUMMARY_SCHEMA)
+    else:
+        pydict = summaries.to_pydict()
+        pydict["experiment_run_id"] = [effective_run_id] * summaries.num_rows
+        pydict["dataset_id"] = [source_dataset_id] * summaries.num_rows
+        summary_table = pa.Table.from_pydict(pydict, schema=SEQUENCE_SUMMARY_SCHEMA)
+
+    # Reconciliation and integrity checks before writing
+    if mode == MODE_OFFICIAL:
+        require(memberships_table.num_rows > 0, "EXP_MISSING_MEMBERSHIP_ROWS")
+        require(summary_table.num_rows > 0, "EXP_MISSING_SUMMARY_ROWS")
+        mem_mids = set(memberships_table["mainshock_event_id"].to_pylist())
+        sum_mids = set(summary_table["mainshock_event_id"].to_pylist())
+        require(mem_mids == sum_mids, f"EXP_SUMMARY_WINDOW_MISMATCH:{mem_mids}!={sum_mids}")
 
     # Clean previous _SUCCESS.json if exists to avoid stale markers
     stale_success = out_path / "_SUCCESS.json"
@@ -620,7 +704,6 @@ def write_experiment_result(
 
     # 3. Write experiment_config.json
     config_file = out_path / "experiment_config.json"
-    effective_run_id = f"pilot_run_{identity_digest}" if mode == MODE_DEVELOPMENT else f"exp_run_{identity_digest}"
     config_payload = {
         "schema_version": SCHEMA_VERSION,
         "experiment_run_id": effective_run_id,
@@ -634,6 +717,7 @@ def write_experiment_result(
         "random_seed": random_seed,
         "mode": mode,
         "runtime_environment": runtime_meta,
+        "runtime_environment_json": canonical(runtime_meta),
     }
     config_file.write_text(canonical(config_payload) + "\n", encoding="utf-8")
 
@@ -671,13 +755,13 @@ def write_experiment_result(
             rel_path = f"optional-model-artifacts/{art_name}"
             checksums[rel_path] = sha256_bytes((out_path / rel_path).read_bytes())
 
-    # Write checksums.sha256 file
-    checksums_txt = "".join(f"{checksums[k]}  {k}\n" for k in sorted(checksums.keys()))
-    (out_path / "checksums.sha256").write_text(checksums_txt, encoding="utf-8")
-
     completed_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     if mode == MODE_DEVELOPMENT:
+        # Write checksums.sha256 file for development pilot
+        checksums_txt = "".join(f"{checksums[k]}  {k}\n" for k in sorted(checksums.keys()))
+        (out_path / "checksums.sha256").write_text(checksums_txt, encoding="utf-8")
+
         # DEVELOPMENT PILOT: MUST NOT write _SUCCESS.json
         manifest_file = out_path / "pilot_result_manifest.json"
         pilot_manifest = {
@@ -712,6 +796,22 @@ def write_experiment_result(
         }
 
     else:  # mode == MODE_OFFICIAL
+        # In OFFICIAL mode, checksums.sha256 MUST NOT exist as a separate file
+        # because MlResultBundleReader rejects unexpected artifacts (IMP_UNSAFE_ARTIFACT_METADATA).
+        # Checksums are recorded inside _SUCCESS.json.
+        stale_chk = out_path / "checksums.sha256"
+        if stale_chk.exists():
+            stale_chk.unlink()
+
+        # Read-after-write verification
+        read_mem = pq.read_table(memberships_file)
+        read_sum = pq.read_table(summary_file)
+        require(read_mem.num_rows == memberships_table.num_rows, "EXP_READBACK_MEMBERSHIP_ROW_MISMATCH")
+        require(read_sum.num_rows == summary_table.num_rows, "EXP_READBACK_SUMMARY_ROW_MISMATCH")
+        for sf in standard_files:
+            actual_sha = sha256_bytes((out_path / sf).read_bytes())
+            require(actual_sha == checksums[sf], f"EXP_READBACK_CHECKSUM_MISMATCH:{sf}")
+
         # OFFICIAL RUN: write _SUCCESS.json as final atomic marker
         artifact_uri = f"s3://lakehouse/ml-experiments/experiment-run-{effective_run_id}"
         success_marker = {

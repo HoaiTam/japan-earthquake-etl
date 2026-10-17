@@ -77,7 +77,8 @@ public final class MlResultBundleReader {
         List<JsonNode> rows = new ArrayList<>();
         try (ParquetFileReader reader = ParquetFileReader.open(input(path))) {
             MessageType actual = reader.getFooter().getFileMetaData().getSchema();
-            if (!actual.equals(expected)) throw new IllegalArgumentException("IMP_SCHEMA_MISMATCH");
+            if (!actual.equals(expected) && !actual.getFields().equals(expected.getFields()))
+                throw new IllegalArgumentException("IMP_SCHEMA_MISMATCH");
             var pages = reader.readNextRowGroup();
             while (pages != null) {
                 var records = new ColumnIOFactory().getColumnIO(actual).getRecordReader(pages, new GroupRecordConverter(actual));

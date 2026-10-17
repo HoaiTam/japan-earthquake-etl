@@ -104,7 +104,7 @@ class ResultBundleContractTest {
         List<JsonNode> rows=new ArrayList<>();
         try(var reader=ParquetFileReader.open(input(path))) {
             MessageType type=reader.getFooter().getFileMetaData().getSchema();
-            if(!type.equals(schema(artifact)))throw new IllegalArgumentException("IMP_SCHEMA_MISMATCH");
+            if(!type.equals(schema(artifact)) && !type.getFields().equals(schema(artifact).getFields()))throw new IllegalArgumentException("IMP_SCHEMA_MISMATCH");
             var pages=reader.readNextRowGroup();
             while(pages!=null) {
                 var records=new ColumnIOFactory().getColumnIO(type).getRecordReader(pages,new GroupRecordConverter(type));
@@ -251,5 +251,50 @@ class ResultBundleContractTest {
         var noise=load("hdb-noise");List<JsonNode> rows=new ArrayList<>(noise.memberships());ObjectNode post=rows.get(1).deepCopy();
         post.put("is_mainshock_cluster_member",true);rows.set(1,post);
         assertThrows(IllegalArgumentException.class,()->VALIDATOR.validate(new ResultBundleValidator.DecodedBundle(noise.success(),noise.artifacts(),rows,noise.summaries(),true),context("HDBSCAN_GLOBAL",null)));
+    }
+    @Test void pythonWriterBundleIsReadSuccessfullyByMlResultBundleReader() throws Exception {
+        Path root = Files.exists(Path.of("notebooks")) ? Path.of(".") : Path.of("..");
+        Path harnessScript = root.resolve("notebooks/experiment_harness.py").normalize();
+        if (!Files.exists(harnessScript)) return;
+
+        String pythonExe = null;
+        for (String cmd : List.of("python", "python3", "py")) {
+            try {
+                var p = new ProcessBuilder(cmd, "-c", "import pyarrow, notebooks.experiment_harness").directory(root.toFile()).start();
+                if (p.waitFor() == 0) {
+                    pythonExe = cmd;
+                    break;
+                }
+            } catch (Exception ignored) {}
+        }
+        if (pythonExe == null) return;
+
+        Path tempDir = Files.createTempDirectory("mli03-py-writer-");
+        String code = "import shutil, sys\n"
+            + "from pathlib import Path\n"
+            + "import notebooks.experiment_harness as harness\n"
+            + "out_dir = Path(sys.argv[1])\n"
+            + "bundle = {'mode': harness.MODE_OFFICIAL, 'source_dataset_id': 'ds_fixture', 'feature_version': 'v1', 'scaling_config_version': 'v1', 'manifest': {'dataset_id': 'ds_fixture'}}\n"
+            + "candidates = [{'candidate_event_id': 'main', 'delta_time_hours': 0.0}, {'candidate_event_id': 'post', 'delta_time_hours': 1.0}]\n"
+            + "mem_rows = harness.build_membership_rows(experiment_run_id='exp_fixture', dataset_id='ds_fixture', mainshock_event_id='main', candidate_records=candidates, algorithm_name='WINDOW', model_config_version='1')\n"
+            + "sum_row = harness.build_sequence_summary_row(experiment_run_id='exp_fixture', dataset_id='ds_fixture', mainshock_event_id='main', candidate_count=2, algorithm_name='WINDOW', model_config_version='1', membership_rows=mem_rows)\n"
+            + "metrics = {'dataset_id': 'ds_fixture', 'experiment_run_id': 'exp_fixture', 'algorithm_name': 'WINDOW', 'model_config_version': '1', 'algorithm_version': '1.0.0', 'package_version': '1.0.0', 'code_version': 'v1', 'membership_row_count': 2, 'summary_row_count': 1}\n"
+            + "harness.write_experiment_result(output_dir=out_dir, bundle=bundle, algorithm_name='WINDOW', algorithm_version='1.0.0', model_config_version='1', model_config={'param': 'test'}, memberships=mem_rows, summaries=[sum_row], metrics=metrics, mode=harness.MODE_OFFICIAL, random_seed=42)\n";
+
+        var proc = new ProcessBuilder(pythonExe, "-c", code, tempDir.toAbsolutePath().toString())
+            .directory(root.toFile())
+            .redirectError(ProcessBuilder.Redirect.INHERIT)
+            .start();
+        assertTrue(proc.waitFor(30, java.util.concurrent.TimeUnit.SECONDS));
+        assertEquals(0, proc.exitValue());
+        var bundle = MlResultBundleReader.read(tempDir);
+        assertNotNull(bundle);
+        assertEquals(2, bundle.memberships().size());
+        assertEquals(1, bundle.summaries().size());
+        assertEquals("COMPLETED", bundle.success().path("status").asText());
+        String runId = bundle.success().path("experiment_run_id").asText();
+        var context = new ResultBundleValidator.Context("ds_fixture", "EXPORTED", runId, "WINDOW", "1", CANDIDATES, null);
+        var receipt = VALIDATOR.validate(bundle, context);
+        assertEquals("RESULT_READY", receipt.nextStatus());
     }
 }

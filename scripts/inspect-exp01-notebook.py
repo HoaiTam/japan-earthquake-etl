@@ -24,7 +24,7 @@ def run_notebook_cells(notebook_path: Path, env_override: dict) -> dict:
                 raise ValueError("EXP01_SOURCE_NOTEBOOK_MUST_BE_CLEARED")
 
     code_cells = [cell for cell in data.get("cells", []) if cell.get("cell_type") == "code"]
-    
+
     # Try nbclient first if available
     nbclient_available = False
     try:
@@ -88,9 +88,10 @@ def run_notebook_cells(notebook_path: Path, env_override: dict) -> dict:
         raise ValueError("EXP01_SOURCE_NOTEBOOK_MUTATED")
 
     return {
-        "notebook_status": "RESTART_RUN_ALL_PASSED",
-        "local_smoke_status": "PASSED",
-        "colab_migration_allowed": True,
+        "notebook_status": "RESTART_RUN_ALL_PASSED" if nbclient_available else "FALLBACK_EXEC_PASSED",
+        "local_smoke_status": "PASSED" if nbclient_available else "FALLBACK_EXEC_WARNING",
+        "colab_migration_allowed": bool(nbclient_available),
+        "fresh_kernel_acceptance": bool(nbclient_available),
         "notebook_sha256": source_sha,
         "executed_code_cells": executed_count,
         "runtime_seconds": round(elapsed, 4),

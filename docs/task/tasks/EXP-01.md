@@ -8,7 +8,7 @@ scope: "Core"
 priority: "P0"
 effort_hours: 5
 assignee: "rosy179"
-reviewer: "unassigned"
+reviewer: "HoaiTam"
 dependencies: ["CON-03", "DAT-02"]
 ---
 
@@ -83,8 +83,8 @@ MLD-05 để hoàn tất local harness. Cloud smoke nằm trong EXP-02 giai đo�
 
 - **Trạng thái:** Done
 - **Assignee:** rosy179
-- **Reviewer:** unassigned
-- **Evidence / PR:** Shared harness `notebooks/experiment_harness.py`, requirements lock `notebooks/requirements-lock.txt`, thin smoke notebook `notebooks/exp_01_harness_smoke.ipynb`, notebook runner `scripts/inspect-exp01-notebook.py`, và unit test suite 15/15 PASS `tests/test_experiment_harness.py`. Notebook restart-run-all đạt `RESTART_RUN_ALL_PASSED` với `local_smoke_status=PASSED` và `colab_migration_allowed=true`. Xem [evidence EXP-01](../../evidence/EXP-01.md).
+- **Reviewer:** HoaiTam
+- **Evidence / PR:** Đã khắc phục toàn bộ review comments từ HoaiTam tại PR #83 [comment-6229834764](https://github.com/HoaiTam/japan-earthquake-etl/pull/83#issuecomment-6229834764). Đã bổ sung 12 unit tests (tổng cộng 27 tests PASS), thêm cross-process integration test Python writer → Java reader (`ResultBundleContractTest`), hoàn thiện schema Parquet, omit `checksums.sha256` trong OFFICIAL, đồng bộ run_id và wire vào CI `test-pilot`. Chi tiết tại [docs/evidence/EXP-01.md](../../evidence/EXP-01.md).
 - **Kỹ năng phù hợp:** Python, Jupyter, Colab, reproducible environments
 
 ## Checklist bàn giao
