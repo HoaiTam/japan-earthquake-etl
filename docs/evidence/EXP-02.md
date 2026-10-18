@@ -1,6 +1,6 @@
 # EXP-02 — Chạy Window, DBSCAN và HDBSCAN global evidence
 
-Ngày kiểm chứng: 2026-10-17.
+Ngày kiểm chứng: 2026-10-18 (Review Round 2).
 Branch: `feat/exp-02-baseline-algorithms`.
 Assignee: `rosy179`.
 Reviewer: `unassigned`.
@@ -13,76 +13,80 @@ Task EXP-02 triển khai ba thuật toán baseline trên cùng pilot feature bun
 
 Theo quy trình `JUPYTER_PILOT_WORKFLOW.md`, toàn bộ phát triển và kiểm chứng kỹ thuật được thực hiện trên Jupyter local trước; chỉ khi `local_smoke_status=PASSED` và `colab_migration_allowed=true` mới được phép chuyển sang Google Colab. Pilot outputs tuyệt đối không phát `_SUCCESS.json` hoặc tự nhận `RESULT_READY`/`CANDIDATE`.
 
-## 2. Các quy tắc hợp đồng cốt lõi đã kiểm chứng
+Sau đợt review 1 (commit `68edc26`), @HoaiTam đã phản hồi tại PR #84 (comment-6229895703) về 5 điểm cải tiến (2 P1 và 3 P2). Bản cập nhật này giải quyết triệt để toàn bộ 5 điểm nêu trên.
 
-1. **Per-mainshock window fitting:** Cả ba thuật toán đều fit độc lập cho từng cửa sổ mainshock; không fit toàn catalog gộp.
-2. **Mainshock cluster isolation:** Chỉ cụm chứa chính mainshock được coi là sequence; nếu mainshock bị gán nhãn `-1` (noise), cửa sổ ghi nhận `window_result_status="FAILED"`, `failure_reason_code="EXP_MAINSHOCK_CLASSIFIED_AS_NOISE"`, không có sequence member nào, và tuyệt đối không chọn cụm gần nhất.
-3. **Probability policy:**
-   - `WINDOW`: `cluster_id`, `is_noise`, `is_mainshock_cluster_member`, `membership_probability` bắt buộc là `None`.
-   - `DBSCAN`: `cluster_id` và `is_noise` hợp lệ (`-1` cho noise), `membership_probability` bắt buộc là `None`.
-   - `HDBSCAN_GLOBAL`: `membership_probability` bắt buộc là giá trị thực hữu hạn trong `[0.0, 1.0]`.
-4. **Input immutability:** Bảng/bản ghi candidate đầu vào được bảo toàn nguyên vẹn, không bị mutate trong suốt quá trình fit và trích xuất đặc trưng.
-5. **Terminology:** Toàn bộ kết quả đầu ra được gọi là sequence candidate / aftershock candidate; không tuyên bố quan hệ nhân quả vật lý hoặc dự đoán động đất.
-6. **Result marker separation:** Kết quả pilot ghi `pilot_result_manifest.json`, không bao giờ ghi `_SUCCESS.json`.
+## 2. Các điểm đã khắc phục theo review của @HoaiTam
+
+### 2.1. [P1] Thắt chặt Local Smoke Gate và kiểm định kỹ thuật
+- **Vấn đề:** `generate_local_smoke_report()` trước đây chỉ so khớp `total_candidates` rồi gán luôn `PASSED` và `colab_migration_allowed=true`, bỏ lọt trường hợp kết quả rỗng, thiếu thuật toán hoặc membership/summary không hợp lệ.
+- **Khắc phục:**
+  - Bắt buộc kiểm tra đủ ba thuật toán baseline: `WINDOW`, `DBSCAN`, `HDBSCAN_GLOBAL`. Từ chối ngay nếu rỗng hoặc thiếu bất kỳ thuật toán nào (`MISSING_REQUIRED_BASELINE_ALGORITHMS`).
+  - Đối chiếu thực tế các artifact trên đĩa: kiểm tra tồn tại và tính hợp lệ của hash SHA-256 các file `memberships.parquet`, `sequence_summary.parquet`, `experiment_metrics.json`, `experiment_config.json`, `pilot_result_manifest.json`.
+  - Kiểm tra tính hợp lệ của vai trò sự kiện: `event_role_candidate` phải thuộc `{"PRE", "MAINSHOCK", "POST"}`; mainshock tự liên kết phải mang vai trò `MAINSHOCK`.
+  - Kiểm tra null probability policy: `membership_probability` bắt buộc là `None` cho `WINDOW` và `DBSCAN`; bắt buộc thuộc `[0.0, 1.0]` cho `HDBSCAN_GLOBAL`.
+  - Đối soát chi tiết từng window: số lượng membership phải khớp `candidate_count`, `sequence_member_count`, `aftershock_count`, `foreshock_candidate_count`, `noise_count`.
+  - Phân biệt rõ các kết quả vật lý/phân cụm hợp lệ (`EXP_MAINSHOCK_CLASSIFIED_AS_NOISE`, window không có POST) với lỗi cài đặt: ghi nhận vào `case_results` của report thay vì coi là lỗi code.
+  - Cập nhật `ColabPathAdapter.verify_local_smoke_gate` để chặn các report thiếu thuật toán hoặc rỗng phần reconciliation.
+
+### 2.2. [P1] Xử lý Multi-Sequence Overlap và Đồng bộ Run ID
+- **Vấn đề:** Các hàm fit gán nhãn `UNIQUE` độc lập theo từng window; candidate nằm trong nhiều window đều bị gán `UNIQUE`/rank 1. Runner cũng gán cứng `run_id="temp_run"`.
+- **Khắc phục:**
+  - Giữ nguyên toàn bộ raw memberships (candidate xuất hiện ở cả hai sequence theo hợp đồng ML_DATA_MODEL.md).
+  - Đối soát xuyên window: nếu candidate được nhận vào nhiều hơn 1 sequence (`is_sequence_member=True`), đánh dấu `multi_sequence_status="AMBIGUOUS"` và `resolution_rank=None` (chờ bộ giải quyết tie-break adaptive tại task EXP-03).
+  - Nếu candidate chỉ thuộc 1 sequence: giữ `multi_sequence_status="UNIQUE"` và `resolution_rank=1`.
+  - Đồng bộ `effective_run_id` sinh ngẫu nhiên/xác định ngay từ đầu `run_baseline_experiment` truyền xuyên suốt vào memberships, summaries, manifest và config, thay thế hoàn toàn chuỗi tạm `"temp_run"`.
+
+### 2.3. [P2] Phân định Fresh-Kernel Run và Lưu trữ Artifacts
+- **Vấn đề:** `scripts/inspect-exp02-notebook.py` fallback sang `isolated_exec` nhưng vẫn trả `RESTART_RUN_ALL_PASSED` và `colab_migration_allowed=true`. Notebook dùng `TemporaryDirectory` và xóa sạch ở cell cuối.
+- **Khắc phục:**
+  - Phân biệt rõ ràng: chỉ khi có `nbclient`/`ipykernel` thật sự chạy kernel mới xác nhận `RESTART_RUN_ALL_PASSED`, `fresh_kernel_acceptance=True`, `colab_migration_allowed=True`. Nếu chạy fallback `isolated_exec`, trả về `FALLBACK_EXEC_PASSED`, `fresh_kernel_acceptance=False`, `colab_migration_allowed=False`.
+  - Cấu hình thư mục output `EXP02_OUTPUT_DIR` (mặc định `staging/ml-experiments/exp02-baselines`) và không xóa thư mục kết quả ở cell cuối; bảo toàn toàn bộ kết quả và báo cáo để tái kiểm chứng.
+
+### 2.4. [P2] Điều chỉnh trạng thái Task EXP-02 về In Progress
+- Chuyển trạng thái task `EXP-02` trong `EXP-02.md` và `docs/task/tasks/README.md` về `In Progress`.
+- Bỏ tick các tiêu chí chờ Colab và official MLD-05 export:
+  - `[ ] Colab dùng cùng code/bundle/config, đối soát invariants/tolerance; không rewrite model (chờ môi trường Colab sau local gate).`
+  - `[ ] Official run pin EXPORTED dataset; pilot không phát _SUCCESS/RESULT_READY/CANDIDATE (chờ MLD-05 export).`
+
+### 2.5. [P2] Sửa CI và Đưa Tests Mới vào Phạm vi Chạy
+- Đã xóa trailing whitespace tại dòng 27 của `scripts/inspect-exp02-notebook.py`.
+- Đồng bộ rebase với các bản vá harness từ nhánh `feat/exp-01-jupyter-harness`.
+- Bổ sung `test_baseline_algorithms.py` vào target `test-pilot` trong `Makefile`.
+- Bổ sung dependencies `numpy==2.2.2`, `scipy==1.15.1`, `scikit-learn==1.6.1` vào `tests/ci/requirements.txt`.
+- Bổ sung các file/script/config EXP vào `scripts/ci-impact.py` để tự động chạy kiểm thử khi có thay đổi.
 
 ## 3. Checks và tests đã chạy
 
 - **Unit and Contract Test Suite (`tests/test_baseline_algorithms.py`):**
   - Lệnh: `python -m unittest tests/test_baseline_algorithms.py`
-  - Kết quả: **8 tests PASS**, 0 errors, 0 failures (thời gian chạy: ~1.95s).
-  - Chi tiết các test cases:
-    1. `test_window_baseline_identifies_post_and_preserves_nulls`: Xác thực WINDOW baseline nhận diện đúng các POST candidate trong window làm aftershocks và giữ nguyên các trường cluster/probability là `None`.
-    2. `test_dbscan_baseline_cluster_and_noise_separation`: Xác thực DBSCAN phân tách cụm sequence quanh mainshock và gán nhãn `-1` cho điểm nhiễu không gian xa (`FAR_NOISE`), xác nhận khả năng giảm background event so với window rule.
-    3. `test_dbscan_mainshock_classified_as_noise_fails_window`: Xác thực quy tắc nghiêm ngặt: khi mainshock bị gán nhãn `-1`, toàn bộ window bị đánh dấu `EXP_MAINSHOCK_CLASSIFIED_AS_NOISE`, không nhận vơ cụm khác.
-    4. `test_hdbscan_global_baseline_probabilities_and_mainshock_cluster`: Xác thực HDBSCAN global tính toán xác suất thành viên hợp lệ trong `[0.0, 1.0]` và nhận diện đúng cụm mainshock.
-    5. `test_hdbscan_multiple_clusters_isolates_only_mainshock_cluster`: Xác thực khi cửa sổ có nhiều cụm động đất khác nhau, chỉ duy nhất cụm chứa mainshock được lấy làm sequence; các cụm phụ xa bị loại khỏi sequence (`NOT_MEMBER`).
-    6. `test_empty_post_candidates`: Xác thực trường hợp cửa sổ không có sự kiện POST nào (chỉ có mainshock hoặc mainshock + foreshock PRE); cả ba thuật toán xử lý trơn tru với `aftershock_count=0` và `productive_sequence_detected=False`.
-    7. `test_input_candidates_are_not_mutated`: Xác thực tính bất biến của dữ liệu candidate đầu vào sau khi chạy cả ba thuật toán.
-    8. `test_run_all_baselines_and_generate_local_smoke_report`: Xác thực hàm điều phối `run_baseline_experiment` và xuất `local-smoke-report.json` với `local_smoke_status="PASSED"`.
+  - Kết quả: **13 tests PASS**, 0 errors, 0 failures.
+  - Các test cases mới bổ sung:
+    1. `test_multi_sequence_overlap_marked_ambiguous_and_rank_none`: Xác thực candidate chung giữa hai mainshock window mang trạng thái `AMBIGUOUS` và `resolution_rank=None`, trong khi candidate độc quyền giữ `UNIQUE` và rank 1.
+    2. `test_runner_synchronizes_run_id_across_memberships_and_manifest`: Xác thực run ID đồng bộ giữa memberships, summaries, manifest và config.
+    3. `test_local_smoke_report_rejects_empty_or_missing_algorithms`: Xác thực reject khi thiếu thuật toán baseline.
+    4. `test_local_smoke_report_rejects_corrupted_roles_and_count_mismatch`: Xác thực reject khi sai lệch count hoặc vai trò không hợp lệ.
+    5. `test_colab_adapter_rejects_incomplete_smoke_report`: Xác thực Colab adapter reject báo cáo thiếu hoặc sai reconciliation.
+
+- **EXP-01 Harness Suite (`tests/test_experiment_harness.py`):**
+  - Lệnh: `python -m unittest tests/test_experiment_harness.py`
+  - Kết quả: **44 tests PASS**, 0 errors, 0 failures.
 
 - **Notebook headless runner (`scripts/inspect-exp02-notebook.py`):**
   - Lệnh: `python scripts/inspect-exp02-notebook.py`
-  - Kết quả:
-    - `notebook_status`: `RESTART_RUN_ALL_PASSED`
-    - `local_smoke_status`: `PASSED`
-    - `colab_migration_allowed`: `true`
-    - `executed_code_cells`: 7
-    - `source_notebook_outputs_cleared`: `true`
-    - `runtime_seconds`: ~3.98s
+  - Kết quả: Hoàn thành 7/7 code cells, lưu trữ artifacts và report tại `staging/ml-experiments/exp02-baselines/local-smoke-report.json`, thông báo chế độ fallback rõ ràng khi chưa có Jupyter kernel runner.
 
-- **EXP-01 Regression Test (`tests/test_experiment_harness.py`):**
-  - Lệnh: `python -m unittest tests/test_experiment_harness.py`
-  - Kết quả: **15 tests PASS**, 0 errors, 0 failures.
+- **Workflow Contract & CI (`tests/ci/test_workflow_contract.py`):**
+  - Lệnh: `python -m unittest tests/ci/test_workflow_contract.py`
+  - Kết quả: **4 tests PASS**.
 
-- **EXP-01 Notebook Inspection (`scripts/inspect-exp01-notebook.py`):**
-  - Lệnh: `python scripts/inspect-exp01-notebook.py`
-  - Kết quả: `RESTART_RUN_ALL_PASSED`, `local_smoke_status`: `PASSED`.
+- **Task Status Consistency:**
+  - Lệnh: `python scratch/check_task_status.py`
+  - Kết quả: **76 task files, tracking sections and index rows agree**.
 
-- **CI Impact Suite (`tests/ci`):**
-  - Lệnh: `python -m unittest discover -s tests/ci`
-  - Kết quả: **37 tests PASS**.
-
-## 4. Deliverables của task
-
-1. **Model Configurations:**
-   - `config/ml/models/window_baseline_v1.json`: Cấu hình window baseline temporal rule.
-   - `config/ml/models/dbscan_global_dev_v1.json`: Cấu hình DBSCAN (`eps=0.5, min_samples=3, metric=euclidean`).
-   - `config/ml/models/hdbscan_global_dev_v1.json`: Cấu hình HDBSCAN (`min_cluster_size=3, min_samples=2, allow_single_cluster=true`).
-2. **Algorithm Implementation Module:**
-   - `notebooks/baseline_models.py`: Triển khai các hàm fit `fit_window_baseline`, `fit_dbscan_baseline`, `fit_hdbscan_global_baseline`, runner đa thuật toán `run_baseline_experiment`, và generator `generate_local_smoke_report`.
-3. **Thin Jupyter Smoke Notebook:**
-   - `notebooks/exp_02_baseline_algorithms.ipynb`: Notebook mỏng thực hiện toàn bộ quy trình tải bundle, fit 3 baseline, đối soát đếm candidate/sequence member/noise, và xuất báo cáo kiểm định. Đã dọn sạch outputs và execution counts.
-4. **Notebook Inspection Script:**
-   - `scripts/inspect-exp02-notebook.py`: Script tự động kiểm tra restart-run-all không sửa source notebook.
-5. **Unit & Contract Test Suite:**
-   - `tests/test_baseline_algorithms.py`: Bộ 8 tests tự động kiểm thử toàn diện các điều kiện biên và hợp đồng dữ liệu.
-6. **Makefile Integration:**
-   - Bổ sung targets: `test-exp02`, `inspect-exp02`, `jupyter-exp02`.
-
-## 5. Giới hạn / Rủi ro / Bước tiếp theo
+## 4. Giới hạn / Rủi ro / Bước tiếp theo
 
 - **Colab pilot portability:** Việc chạy đối soát cùng code/config/bundle trên Google Colab sau local gate thuộc về giai đoạn tiếp theo của [EXP-02 - Chạy Window, DBSCAN và HDBSCAN global](docs/task/tasks/EXP-02.md).
 - **Official research dataset export:** Nghiên cứu chính thức trên toàn kỳ phụ thuộc vào [MLD-05 - Validate feature snapshot và export Parquet bundle](docs/task/tasks/MLD-05.md); pilot hiện tại chỉ dùng phục vụ kiểm tra kỹ thuật (DEVELOPMENT_ONLY).
-- **Kỹ thuật phân cụm nâng cao / Region tuning:** Tinh chỉnh tham số theo vùng không gian (regional / adaptive DBSCAN) thuộc về [EXP-03 - Tuning regional và adaptive DBSCAN](docs/task/tasks/EXP-03.md).
+- **Kỹ thuật phân cụm nâng cao / Adaptive sequence resolver:** Thuật toán giải quyết candidate thuộc nhiều sequence thuộc về [EXP-03 - Xây HDBSCAN adaptive và giải quyết multi-sequence](docs/task/tasks/EXP-03.md).
 - **Import Iceberg `ml.*`:** Việc nạp kết quả nghiên cứu vào bảng Iceberg thuộc về [MLI-03 - Validate/import kết quả và commit bảng ML Iceberg](docs/task/tasks/MLI-03.md).
 - **Reviewer:** Reviewer độc lập cho task P0 này hiện là `unassigned`.

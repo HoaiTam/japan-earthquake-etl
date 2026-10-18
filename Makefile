@@ -129,6 +129,7 @@ pilot-env: ## Chuẩn bị venv notebook riêng một lần; cần Internet, kh�
 test-pilot: ## Synthetic loader/staging regression; cần pyarrow, không Docker/network/notebook kernel
 	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_pilot_*.py'
 	@$(PILOT_PYTHON) -m unittest tests/test_experiment_harness.py
+	@$(PILOT_PYTHON) -m unittest tests/test_baseline_algorithms.py
 
 inspect-pilot: ## Fresh Jupyter kernel Run All; PILOT_BUNDLE=exact local directory, không Docker/API
 	@test -n "$(PILOT_BUNDLE)" || { echo 'Set PILOT_BUNDLE=staging/ml-pilot/pilot_id=<exact-id>'; exit 2; }
