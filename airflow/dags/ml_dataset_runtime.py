@@ -422,23 +422,23 @@ def execute_step(
     env = dict(os.environ if environment is None else environment)
     owner = context["lease_owner"]
 
-    # Verify lease is still held, unless mark_dataset_exported is retried after a successful publish
+    # Verify lease is still held, unless step is retried or repeated for an already-published dataset
     is_already_published = False
-    if step_name == "mark_dataset_exported":
+    if step_name in ("export_parquet", "mark_dataset_exported"):
         export_root = Path(context["export_root"])
         final_export_dir = export_root / f"dataset_id={context['dataset_id']}"
         manifest_target = final_export_dir / "dataset_manifest.json"
         checksums_target = final_export_dir / "checksums.sha256"
-        if manifest_target.is_file() and checksums_target.is_file():
+        if manifest_target.is_file():
             try:
                 m_data = json.loads(manifest_target.read_text(encoding="utf-8"))
-                if (
-                    m_data.get("dataset_id") == context["dataset_id"]
-                    and m_data.get("identity_payload_sha256") == context["identity_payload_sha256"]
-                    and m_data.get("build_run_id") == context["run_id"]
-                    and m_data.get("dataset_status") == "EXPORTED"
-                ):
-                    is_already_published = True
+                if m_data.get("dataset_id") == context["dataset_id"]:
+                    if m_data.get("identity_payload_sha256") != context["identity_payload_sha256"]:
+                        raise Mli02Error("DS_IDENTITY_CONFLICT")
+                    if m_data.get("dataset_status") == "EXPORTED" and checksums_target.is_file():
+                        is_already_published = True
+            except Mli02Error:
+                raise
             except Exception:
                 is_already_published = False
 
@@ -448,10 +448,7 @@ def execute_step(
             if mock_manifest_target.is_file():
                 try:
                     m_data = json.loads(mock_manifest_target.read_text(encoding="utf-8"))
-                    if (
-                        m_data.get("dataset_id") == context["dataset_id"]
-                        and m_data.get("build_run_id") == context["run_id"]
-                    ):
+                    if m_data.get("dataset_id") == context["dataset_id"]:
                         is_already_published = True
                 except Exception:
                     is_already_published = False
@@ -471,14 +468,7 @@ def execute_step(
         if not val_report_path.is_file():
             raise Mli02Error("DS_VALIDATION_GATE_MISSING")
         val_doc = _read_step(val_report_path)
-        if (
-            val_doc.get("status") not in {"FEATURE_SNAPSHOT_VALIDATED", "PASSED", "SUCCESS", "VALIDATED"}
-            or val_doc.get("quality_gate_status") in {"FAILED", "ERROR", "REJECTED"}
-            or (val_doc.get("quality_gate_status") is not None and val_doc.get("quality_gate_status") not in {"PASSED", "SUCCESS"})
-            or int(val_doc.get("invalid_feature_count", 0)) > 0
-            or val_doc.get("candidate_row_count") != val_doc.get("feature_row_count")
-        ):
-            raise Mli02Error("DS_VALIDATION_GATE_FAILED")
+        verify_validation_report(val_doc)
 
     mock_pipeline = context.get("mock_pipeline")
     runner_cmd = env.get("ML_BUILD_RUNNER_COMMAND", "").strip()
@@ -815,6 +805,71 @@ def _run_mock_test_adapter_step(
     raise Mli02Error(f"DS_UNHANDLED_STEP:{step_name}")
 
 
+def verify_validation_report(report: Mapping[str, Any]) -> None:
+    """Enforce strict fail-closed contract validation on feature snapshot validation report.
+
+    Requirements:
+    1. status must be present and in {"FEATURE_SNAPSHOT_VALIDATED", "PASSED", "SUCCESS", "VALIDATED"}.
+    2. quality_gate_status must be present, non-null, and in {"PASSED", "SUCCESS"}.
+    3. invalid_feature_count must be present, non-null, non-boolean integer == 0.
+    4. candidate_row_count and feature_row_count must be present, non-null, non-boolean integers > 0, and equal.
+    """
+    if not isinstance(report, Mapping):
+        raise Mli02Error("DS_VALIDATION_REPORT_INVALID:not_dict")
+
+    # 1. Status
+    status = report.get("status")
+    if not status or status in {"FAILED", "ERROR", "REJECTED"} or status not in {
+        "FEATURE_SNAPSHOT_VALIDATED",
+        "PASSED",
+        "SUCCESS",
+        "VALIDATED",
+    }:
+        raise Mli02Error(f"DS_VALIDATION_STATUS_FAILED:{status}")
+
+    # 2. Quality gate status
+    if "quality_gate_status" not in report or report["quality_gate_status"] is None:
+        raise Mli02Error("DS_QUALITY_GATE_MISSING")
+    qg_status = report["quality_gate_status"]
+    if qg_status in {"FAILED", "ERROR", "REJECTED"} or qg_status not in {"PASSED", "SUCCESS"}:
+        raise Mli02Error(f"DS_QUALITY_GATE_FAILED:{qg_status}")
+
+    # 3. Invalid feature count
+    if "invalid_feature_count" not in report or report["invalid_feature_count"] is None:
+        raise Mli02Error("DS_INVALID_FEATURES_MISSING")
+    raw_inv = report["invalid_feature_count"]
+    if isinstance(raw_inv, bool):
+        raise Mli02Error("DS_INVALID_FEATURES_INVALID_TYPE")
+    if isinstance(raw_inv, int):
+        inv_count = raw_inv
+    elif isinstance(raw_inv, str) and (raw_inv.isdigit() or (raw_inv.startswith("-") and raw_inv[1:].isdigit())):
+        inv_count = int(raw_inv)
+    else:
+        raise Mli02Error("DS_INVALID_FEATURES_INVALID_TYPE")
+
+    if inv_count < 0:
+        raise Mli02Error(f"DS_INVALID_FEATURES_NEGATIVE:{inv_count}")
+    if inv_count != 0:
+        raise Mli02Error(f"DS_INVALID_FEATURES_FOUND:{inv_count}")
+
+    # 4. Row counts
+    if "candidate_row_count" not in report or report["candidate_row_count"] is None:
+        raise Mli02Error("DS_CANDIDATE_ROWS_MISSING")
+    if "feature_row_count" not in report or report["feature_row_count"] is None:
+        raise Mli02Error("DS_FEATURE_ROWS_MISSING")
+    cand_raw = report["candidate_row_count"]
+    feat_raw = report["feature_row_count"]
+    if isinstance(cand_raw, bool) or isinstance(feat_raw, bool):
+        raise Mli02Error("DS_COUNT_INVALID_TYPE")
+    try:
+        cand_count = int(cand_raw)
+        feat_count = int(feat_raw)
+    except (ValueError, TypeError):
+        raise Mli02Error("DS_COUNT_INVALID_TYPE")
+    if cand_count <= 0 or feat_count <= 0 or cand_count != feat_count:
+        raise Mli02Error("DS_COUNT_RECONCILIATION_FAILED")
+
+
 def validate_runner_receipt(
     step_name: str,
     report: Mapping[str, Any],
@@ -839,6 +894,8 @@ def validate_runner_receipt(
         raise Mli02Error(f"DS_RUNNER_RECEIPT_INVALID:{step_name}_attempt_mismatch")
     if "identity_payload_sha256" in report and report["identity_payload_sha256"] != context["identity_payload_sha256"]:
         raise Mli02Error(f"DS_RUNNER_RECEIPT_INVALID:{step_name}_identity_mismatch")
+    if step_name == "validate_feature_snapshot":
+        verify_validation_report(report)
 
 
 def _run_external_runner_step(
@@ -919,19 +976,7 @@ def _run_external_runner_step(
             raise Mli02Error("DS_FEATURE_ROWS_EMPTY")
 
     elif step_name == "validate_feature_snapshot":
-        status = report.get("status")
-        if status in {"FAILED", "ERROR", "REJECTED"} or status not in {"FEATURE_SNAPSHOT_VALIDATED", "PASSED", "SUCCESS", "VALIDATED"}:
-            raise Mli02Error(f"DS_VALIDATION_STATUS_FAILED:{status}")
-        qg_status = report.get("quality_gate_status")
-        if qg_status in {"FAILED", "ERROR", "REJECTED"} or (qg_status is not None and qg_status not in {"PASSED", "SUCCESS"}):
-            raise Mli02Error(f"DS_QUALITY_GATE_FAILED:{qg_status}")
-        invalid_feat_count = int(report.get("invalid_feature_count", 0))
-        if invalid_feat_count > 0:
-            raise Mli02Error(f"DS_INVALID_FEATURES_FOUND:{invalid_feat_count}")
-        cand_count = report.get("candidate_row_count")
-        feat_count = report.get("feature_row_count")
-        if cand_count is None or feat_count is None or int(cand_count) != int(feat_count) or int(cand_count) <= 0:
-            raise Mli02Error("DS_COUNT_RECONCILIATION_FAILED")
+        verify_validation_report(report)
 
     elif step_name == "mark_dataset_exported":
         if report.get("status") != "DATASET_EXPORTED":
@@ -961,120 +1006,146 @@ def promote_and_publish_dataset(
     export_root = Path(context["export_root"])
     registry_root = Path(context["registry_root"])
     final_export_dir = export_root / f"dataset_id={dataset_id}"
+    manifest_target = final_export_dir / "dataset_manifest.json"
+    checksums_target = final_export_dir / "checksums.sha256"
     now_iso = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-
-    feat_step = _read_step(staging_root / "step_07_build_spacetime_features.json")
-    expected_feature_rows = feat_step["feature_row_count"]
 
     # Verify validation gate passed before promote and publish
     val_report_path = staging_root / "step_08_validate_feature_snapshot.json"
     if not val_report_path.is_file():
         raise Mli02Error("DS_VALIDATION_GATE_MISSING")
     val_doc = _read_step(val_report_path)
-    if (
-        val_doc.get("status") not in {"FEATURE_SNAPSHOT_VALIDATED", "PASSED", "SUCCESS", "VALIDATED"}
-        or val_doc.get("quality_gate_status") in {"FAILED", "ERROR", "REJECTED"}
-        or (val_doc.get("quality_gate_status") is not None and val_doc.get("quality_gate_status") not in {"PASSED", "SUCCESS"})
-        or int(val_doc.get("invalid_feature_count", 0)) > 0
-        or val_doc.get("candidate_row_count") != val_doc.get("feature_row_count")
-    ):
-        raise Mli02Error("DS_VALIDATION_GATE_FAILED")
+    verify_validation_report(val_doc)
 
-    # Check if a verified export already exists (Idempotent dataset export)
-    manifest_target = final_export_dir / "dataset_manifest.json"
-    checksums_target = final_export_dir / "checksums.sha256"
-    if manifest_target.is_file() and checksums_target.is_file():
+    feat_step = _read_step(staging_root / "step_07_build_spacetime_features.json")
+    expected_feature_rows = feat_step["feature_row_count"]
+
+    # Check if a verified export already exists (Idempotent dataset reuse per ML_DATA_MODEL.md:168)
+    if final_export_dir.exists():
+        if not (manifest_target.is_file() and checksums_target.is_file()):
+            raise Mli02Error("DS_EXISTING_BUNDLE_CORRUPT")
+
         try:
             existing_manifest = json.loads(manifest_target.read_text(encoding="utf-8"))
-            if (
-                existing_manifest.get("dataset_id") == dataset_id
-                and existing_manifest.get("identity_payload_sha256") == context["identity_payload_sha256"]
-                and existing_manifest.get("build_run_id") == context["run_id"]
-                and existing_manifest.get("dataset_status") == "EXPORTED"
-            ):
-                _verify_bundle_checksums(final_export_dir)
-                verify_exported_parquet_readback(
-                    final_export_dir,
-                    expected_dataset_id=dataset_id,
-                    expected_feature_row_count=expected_feature_rows,
-                )
-                export_manifest_sha = hashlib.sha256(checksums_target.read_bytes()).hexdigest()
-                manifest_sha = hashlib.sha256(manifest_target.read_bytes()).hexdigest()
+        except Exception as err:
+            raise Mli02Error("DS_EXISTING_BUNDLE_CORRUPT") from err
 
-                # Ensure registry is in sync
-                reg_manifest = registry_root / f"{dataset_id}.json"
-                reg_manifest_reg = registry_root / "registry" / f"{dataset_id}.json"
-                _atomic_json(reg_manifest, existing_manifest)
-                _atomic_json(reg_manifest_reg, existing_manifest)
-
-                reg_export_dir = registry_root / "exports" / dataset_id
-                reg_export_dir.mkdir(parents=True, exist_ok=True)
-                _atomic_copy(checksums_target, reg_export_dir / "checksums.sha256")
-
-                receipt_path = staging_root / "lease_release_receipt.json"
-                release_receipt = None
-                if receipt_path.is_file():
-                    try:
-                        existing_rc = json.loads(receipt_path.read_text(encoding="utf-8"))
-                        if (
-                            isinstance(existing_rc, Mapping)
-                            and existing_rc.get("status") == "RELEASED"
-                            and existing_rc.get("dag_id") == context.get("dag_id", DAG_ID)
-                            and existing_rc.get("run_id") == context["run_id"]
-                        ):
-                            release_receipt = existing_rc
-                    except Exception:
-                        release_receipt = None
-
-                # Only attempt to release lease if not already released or owner still matches
-                guard_root = Path(environment.get("SOURCE_GUARD_ROOT", "/opt/pipeline/staging/source-guard"))
-                owner_file = guard_root / "owner.json"
-                if owner_file.is_file():
-                    try:
-                        cur_owner = json.loads(owner_file.read_text(encoding="utf-8"))
-                        if cur_owner == context["lease_owner"]:
-                            lease("release", context["lease_owner"], environment)
-                    except Exception:
-                        pass
-                elif release_receipt is None:
-                    lease("release", context["lease_owner"], environment)
-
-                if release_receipt is None:
-                    release_receipt = {
-                        "status": "RELEASED",
-                        "dag_id": context.get("dag_id", DAG_ID),
-                        "run_id": context["run_id"],
-                        "released_at_utc": now_iso,
-                    }
-                    _atomic_json(receipt_path, release_receipt)
-
-                return {
-                    "step": "mark_dataset_exported",
-                    "status": "DATASET_EXPORTED",
-                    "dataset_id": dataset_id,
-                    "run_id": context["run_id"],
-                    "gold_snapshot_id": context["gold_publication"]["gold_snapshot_id"],
-                    "attempt": attempt,
-                    "dataset_status": "EXPORTED",
-                    "export_artifact_uri": str(final_export_dir),
-                    "export_manifest_sha256": export_manifest_sha,
-                    "dataset_manifest_sha256": manifest_sha,
-                    "registry_path": str(reg_manifest),
-                    "lease_released": True,
-                    "lease_release_receipt": release_receipt,
-                    "reused_existing_bundle": True,
-                    "colab_handoff": {
-                        "status": "MANUAL_OPERATOR_REQUIRED",
-                        "ready": True,
-                        "auto_triggered": False,
-                        "dataset_id": dataset_id,
-                        "local_bundle_uri": str(final_export_dir),
-                        "notes": "Export bundle is verified and registered locally. Operator should manually stage or upload to Google Drive for Colab notebook access. The pipeline deliberately does not trigger Colab automatically.",
-                    },
-                    "completed_at_utc": now_iso,
-                }
-        except Exception:
+        if not isinstance(existing_manifest, Mapping):
             raise Mli02Error("DS_EXISTING_BUNDLE_CORRUPT")
+
+        # Strict identity check: dataset_id and identity_payload_sha256
+        if (
+            existing_manifest.get("dataset_id") != dataset_id
+            or existing_manifest.get("identity_payload_sha256") != context["identity_payload_sha256"]
+        ):
+            raise Mli02Error("DS_IDENTITY_CONFLICT")
+
+        if existing_manifest.get("dataset_status") != "EXPORTED":
+            raise Mli02Error("DS_EXISTING_BUNDLE_CORRUPT")
+
+        try:
+            _verify_bundle_checksums(final_export_dir)
+            verify_exported_parquet_readback(
+                final_export_dir,
+                expected_dataset_id=dataset_id,
+                expected_feature_row_count=expected_feature_rows,
+            )
+        except Exception as err:
+            raise Mli02Error("DS_EXISTING_BUNDLE_CORRUPT") from err
+
+        export_manifest_sha = hashlib.sha256(checksums_target.read_bytes()).hexdigest()
+        manifest_sha = hashlib.sha256(manifest_target.read_bytes()).hexdigest()
+
+        # Ensure registry is in sync without modifying existing manifest bytes
+        reg_manifest = registry_root / f"{dataset_id}.json"
+        reg_manifest_reg = registry_root / "registry" / f"{dataset_id}.json"
+        if not reg_manifest.is_file() or hashlib.sha256(reg_manifest.read_bytes()).hexdigest() != manifest_sha:
+            _atomic_copy(manifest_target, reg_manifest)
+        if not reg_manifest_reg.is_file() or hashlib.sha256(reg_manifest_reg.read_bytes()).hexdigest() != manifest_sha:
+            _atomic_copy(manifest_target, reg_manifest_reg)
+
+        reg_export_dir = registry_root / "exports" / dataset_id
+        reg_export_dir.mkdir(parents=True, exist_ok=True)
+        reg_checksums = reg_export_dir / "checksums.sha256"
+        if not reg_checksums.is_file() or hashlib.sha256(reg_checksums.read_bytes()).hexdigest() != export_manifest_sha:
+            _atomic_copy(checksums_target, reg_checksums)
+
+        # Release lease for this run
+        receipt_path = staging_root / "lease_release_receipt.json"
+        release_receipt = None
+        if receipt_path.is_file():
+            try:
+                existing_rc = json.loads(receipt_path.read_text(encoding="utf-8"))
+                if (
+                    isinstance(existing_rc, Mapping)
+                    and existing_rc.get("status") == "RELEASED"
+                    and existing_rc.get("dag_id") == context.get("dag_id", DAG_ID)
+                    and existing_rc.get("run_id") == context["run_id"]
+                ):
+                    release_receipt = existing_rc
+            except Exception:
+                release_receipt = None
+
+        guard_root = Path(environment.get("SOURCE_GUARD_ROOT", "/opt/pipeline/staging/source-guard"))
+        owner_file = guard_root / "owner.json"
+        if owner_file.is_file():
+            try:
+                cur_owner = json.loads(owner_file.read_text(encoding="utf-8"))
+                if cur_owner == context["lease_owner"]:
+                    lease("release", context["lease_owner"], environment)
+            except Exception:
+                pass
+        elif release_receipt is None:
+            lease("release", context["lease_owner"], environment)
+
+        if release_receipt is None:
+            release_receipt = {
+                "status": "RELEASED",
+                "dag_id": context.get("dag_id", DAG_ID),
+                "run_id": context["run_id"],
+                "released_at_utc": now_iso,
+            }
+            _atomic_json(receipt_path, release_receipt)
+
+        # Record this run's own staging execution summary (without altering pinned manifest)
+        run_staging_summary = {
+            "run_id": context["run_id"],
+            "dataset_id": dataset_id,
+            "identity_payload_sha256": context["identity_payload_sha256"],
+            "reused_existing_bundle": True,
+            "original_build_run_id": existing_manifest.get("build_run_id"),
+            "dataset_manifest_sha256": manifest_sha,
+            "export_manifest_sha256": export_manifest_sha,
+            "export_artifact_uri": str(final_export_dir),
+            "completed_at_utc": now_iso,
+        }
+        _atomic_json(staging_root / "run_summary.json", run_staging_summary)
+
+        return {
+            "step": "mark_dataset_exported",
+            "status": "DATASET_EXPORTED",
+            "dataset_id": dataset_id,
+            "run_id": context["run_id"],
+            "gold_snapshot_id": context["gold_publication"]["gold_snapshot_id"],
+            "attempt": attempt,
+            "dataset_status": "EXPORTED",
+            "export_artifact_uri": str(final_export_dir),
+            "export_manifest_sha256": export_manifest_sha,
+            "dataset_manifest_sha256": manifest_sha,
+            "registry_path": str(reg_manifest),
+            "lease_released": True,
+            "lease_release_receipt": release_receipt,
+            "reused_existing_bundle": True,
+            "colab_handoff": {
+                "status": "MANUAL_OPERATOR_REQUIRED",
+                "ready": True,
+                "auto_triggered": False,
+                "dataset_id": dataset_id,
+                "local_bundle_uri": str(final_export_dir),
+                "notes": "Export bundle is verified and registered locally. Operator should manually stage or upload to Google Drive for Colab notebook access. The pipeline deliberately does not trigger Colab automatically.",
+            },
+            "completed_at_utc": now_iso,
+        }
 
     # Read and verify checksums in attempt_dir
     verified_files = _verify_bundle_checksums(attempt_dir)
@@ -1087,22 +1158,10 @@ def promote_and_publish_dataset(
         verified_files=verified_files,
     )
 
-    # Clean destination directory before atomic promotion
-    final_export_dir.mkdir(parents=True, exist_ok=True)
-
-    # Promote ONLY verified files (ignoring any unindexed or stray attempt artifacts)
-    for fname in verified_files:
-        src = attempt_dir / fname
-        dst = final_export_dir / fname
-        _atomic_copy(src, dst)
-
-    # Copy checksums.sha256 to final export dir
-    _atomic_copy(attempt_dir / "checksums.sha256", checksums_target)
-
-    export_manifest_sha = hashlib.sha256(checksums_target.read_bytes()).hexdigest()
+    export_manifest_sha = hashlib.sha256((attempt_dir / "checksums.sha256").read_bytes()).hexdigest()
     export_manifest_ref = f"exports/{dataset_id}/checksums.sha256"
 
-    # Assemble and write final dataset_manifest.json with all fields populated
+    # Assemble final dataset_manifest.json with all fields populated from attempt_dir before creating final_export_dir
     manifest_doc = _build_dataset_manifest(
         context,
         staging_root,
@@ -1110,18 +1169,34 @@ def promote_and_publish_dataset(
         export_artifact_uri=str(final_export_dir),
         export_manifest_sha256=export_manifest_sha,
         export_manifest_ref=export_manifest_ref,
-        attempt_dir=final_export_dir,
+        attempt_dir=attempt_dir,
     )
-    _atomic_json(manifest_target, manifest_doc)
-    manifest_sha = hashlib.sha256(manifest_target.read_bytes()).hexdigest()
 
-    # Re-verify the final promoted bundle
-    _verify_bundle_checksums(final_export_dir)
-    verify_exported_parquet_readback(
-        final_export_dir,
-        expected_dataset_id=dataset_id,
-        expected_feature_row_count=expected_feature_rows,
-    )
+    try:
+        final_export_dir.mkdir(parents=True, exist_ok=True)
+
+        # Promote ONLY verified files (ignoring any unindexed or stray attempt artifacts)
+        for fname in verified_files:
+            src = attempt_dir / fname
+            dst = final_export_dir / fname
+            _atomic_copy(src, dst)
+
+        # Copy checksums.sha256 and manifest to final export dir
+        _atomic_copy(attempt_dir / "checksums.sha256", checksums_target)
+        _atomic_json(manifest_target, manifest_doc)
+        manifest_sha = hashlib.sha256(manifest_target.read_bytes()).hexdigest()
+
+        # Re-verify the final promoted bundle
+        _verify_bundle_checksums(final_export_dir)
+        verify_exported_parquet_readback(
+            final_export_dir,
+            expected_dataset_id=dataset_id,
+            expected_feature_row_count=expected_feature_rows,
+        )
+    except Exception:
+        import shutil
+        shutil.rmtree(final_export_dir, ignore_errors=True)
+        raise
 
     # Register in shared registry for MLI-03 / Colab consumers
     reg_manifest = registry_root / f"{dataset_id}.json"
@@ -1141,6 +1216,20 @@ def promote_and_publish_dataset(
         "released_at_utc": now_iso,
     }
     _atomic_json(staging_root / "lease_release_receipt.json", release_receipt)
+
+    # Record this run's own staging execution summary
+    run_staging_summary = {
+        "run_id": context["run_id"],
+        "dataset_id": dataset_id,
+        "identity_payload_sha256": context["identity_payload_sha256"],
+        "reused_existing_bundle": False,
+        "original_build_run_id": context["run_id"],
+        "dataset_manifest_sha256": manifest_sha,
+        "export_manifest_sha256": export_manifest_sha,
+        "export_artifact_uri": str(final_export_dir),
+        "completed_at_utc": now_iso,
+    }
+    _atomic_json(staging_root / "run_summary.json", run_staging_summary)
 
     return {
         "step": "mark_dataset_exported",
@@ -1519,6 +1608,8 @@ def mark_dataset_exported_summary(
         "export_manifest_sha256": export_manifest_sha,
         "dataset_manifest_sha256": dataset_manifest_sha,
         "lease_owner": owner,
+        "reused_existing_bundle": final_result.get("reused_existing_bundle", False),
+        "original_build_run_id": manifest_doc.get("build_run_id"),
         "colab_handoff": final_result.get("colab_handoff"),
     }
     summary_path = Path(context["staging_root"]) / "run_summary.json"

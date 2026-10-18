@@ -552,9 +552,9 @@ class Mli02RuntimeControlPlaneTest(unittest.TestCase):
         with self.assertRaisesRegex(runtime.Mli02Error, "DS_RUNNER_STEP_FAILED:validate_feature_snapshot:FAILED"):
             runtime.validate_runner_receipt("validate_feature_snapshot", bad_val_report, ctx, attempt=1)
 
-        # Gate check in promote_and_publish_dataset must fail if validation report has quality_gate_status FAILED
+        # Gate check in promote_and_publish_dataset must fail if validation report has status FAILED
         runtime._atomic_json(staging_root / "step_08_validate_feature_snapshot.json", bad_val_report)
-        with self.assertRaisesRegex(runtime.Mli02Error, "DS_VALIDATION_GATE_FAILED"):
+        with self.assertRaisesRegex(runtime.Mli02Error, "DS_VALIDATION_STATUS_FAILED:FAILED"):
             runtime.promote_and_publish_dataset(ctx, staging_root / "attempt_01", 1, env)
 
         # Confirm step 10 was never run
@@ -644,6 +644,201 @@ class Mli02RuntimeControlPlaneTest(unittest.TestCase):
 
         # Clean up other lease
         owner_file.unlink()
+
+    def test_two_distinct_dagruns_same_dataset_reuses_existing_bundle_without_mutating_manifest(self):
+        # Point 1: Two distinct DagRuns with identical dataset config reuse existing EXPORTED bundle.
+        # DagRun B must NOT modify final_export_dir/dataset_manifest.json or its SHA-256 or created_at,
+        # must retain build_run_id of DagRun A in the pinned manifest, and must write its own execution metadata to staging.
+        env = {
+            **self.env,
+            "ML_BUILD_RUNNER_COMMAND": f'"{sys.executable}" "{RUNNER_FIXTURE_PATH}"',
+        }
+        # 1. Run A produces official export
+        req_a = {"conf": self.fixture["conf"], "run_id": "run_dagrun_A"}
+        ctx_a = runtime.resolve_run_context(req_a, env)
+        upstream_a = None
+        for step in runtime.STEPS:
+            upstream_a = runtime.execute_step(step, ctx_a, upstream_a, env, attempt=1)
+        summary_a = runtime.mark_dataset_exported_summary(ctx_a, upstream_a, env)
+        self.assertEqual("DATASET_EXPORTED", summary_a["status"])
+        self.assertFalse(upstream_a["reused_existing_bundle"])
+
+        # Capture bundle state after Run A
+        export_dir = Path(summary_a["export_artifact_uri"])
+        manifest_path = export_dir / "dataset_manifest.json"
+        manifest_bytes_a = manifest_path.read_bytes()
+        manifest_doc_a = json.loads(manifest_bytes_a.decode("utf-8"))
+        manifest_sha_a = summary_a["dataset_manifest_sha256"]
+        self.assertEqual("run_dagrun_A", manifest_doc_a["build_run_id"])
+
+        # 2. Run B runs with same dataset config but different run_id
+        req_b = {"conf": self.fixture["conf"], "run_id": "run_dagrun_B"}
+        ctx_b = runtime.resolve_run_context(req_b, env)
+        self.assertEqual(ctx_a["dataset_id"], ctx_b["dataset_id"])
+        self.assertEqual(ctx_a["identity_payload_sha256"], ctx_b["identity_payload_sha256"])
+
+        upstream_b = None
+        for step in runtime.STEPS:
+            upstream_b = runtime.execute_step(step, ctx_b, upstream_b, env, attempt=1)
+        summary_b = runtime.mark_dataset_exported_summary(ctx_b, upstream_b, env)
+
+        # Must succeed with reused_existing_bundle = True
+        self.assertEqual("DATASET_EXPORTED", summary_b["status"])
+        self.assertTrue(upstream_b["reused_existing_bundle"])
+        self.assertEqual("run_dagrun_B", summary_b["run_id"])
+
+        # Pinned manifest on disk MUST NOT have changed even by a single byte!
+        manifest_bytes_after = manifest_path.read_bytes()
+        self.assertEqual(manifest_bytes_a, manifest_bytes_after)
+        self.assertEqual(manifest_sha_a, hashlib.sha256(manifest_bytes_after).hexdigest())
+
+        # Pinned manifest on disk MUST retain original build_run_id = run_dagrun_A!
+        manifest_doc_after = json.loads(manifest_bytes_after.decode("utf-8"))
+        self.assertEqual("run_dagrun_A", manifest_doc_after["build_run_id"])
+        self.assertEqual(manifest_doc_a["created_at_utc"], manifest_doc_after["created_at_utc"])
+
+        # Run B's own staging execution summary is recorded in Run B's staging
+        staging_b = Path(ctx_b["staging_root"])
+        run_b_summary_path = staging_b / "run_summary.json"
+        self.assertTrue(run_b_summary_path.is_file())
+        run_b_summary = json.loads(run_b_summary_path.read_text(encoding="utf-8"))
+        self.assertEqual("run_dagrun_B", run_b_summary["run_id"])
+        self.assertTrue(run_b_summary["reused_existing_bundle"])
+        self.assertEqual("run_dagrun_A", run_b_summary["original_build_run_id"])
+        self.assertEqual(manifest_sha_a, run_b_summary["dataset_manifest_sha256"])
+
+        # 3. Test existing bundle with conflicting identity fails closed (DS_IDENTITY_CONFLICT)
+        corrupt_manifest = deepcopy(manifest_doc_a)
+        corrupt_manifest["identity_payload_sha256"] = "conflicting_hash_12345"
+        manifest_path.write_text(json.dumps(corrupt_manifest, indent=2), encoding="utf-8")
+        with self.assertRaisesRegex(runtime.Mli02Error, "DS_IDENTITY_CONFLICT"):
+            runtime.promote_and_publish_dataset(ctx_b, staging_b / "attempt_01", 1, env)
+
+        # 4. Test existing bundle with missing checksums fails closed (DS_EXISTING_BUNDLE_CORRUPT)
+        checksums_target = export_dir / "checksums.sha256"
+        checksums_backup = checksums_target.read_bytes()
+        checksums_target.unlink()
+        with self.assertRaisesRegex(runtime.Mli02Error, "DS_EXISTING_BUNDLE_CORRUPT"):
+            runtime.promote_and_publish_dataset(ctx_b, staging_b / "attempt_01", 1, env)
+
+        # Restore bundle for cleanliness
+        manifest_path.write_bytes(manifest_bytes_a)
+        checksums_target.write_bytes(checksums_backup)
+
+    def test_validation_report_strict_fail_closed_contract(self):
+        # Point 2: Fail closed if quality_gate_status missing/null/not-PASSED,
+        # invalid_feature_count missing/null/non-int/non-zero, or candidate != feature rows.
+        base_valid = {
+            "step": "validate_feature_snapshot",
+            "status": "FEATURE_SNAPSHOT_VALIDATED",
+            "quality_gate_status": "PASSED",
+            "invalid_feature_count": 0,
+            "candidate_row_count": 142,
+            "feature_row_count": 142,
+        }
+        # Sanity check: valid report passes
+        runtime.verify_validation_report(base_valid)
+
+        # 1. Missing or null quality_gate_status
+        r1 = deepcopy(base_valid)
+        del r1["quality_gate_status"]
+        with self.assertRaisesRegex(runtime.Mli02Error, "DS_QUALITY_GATE_MISSING"):
+            runtime.verify_validation_report(r1)
+
+        r2 = deepcopy(base_valid)
+        r2["quality_gate_status"] = None
+        with self.assertRaisesRegex(runtime.Mli02Error, "DS_QUALITY_GATE_MISSING"):
+            runtime.verify_validation_report(r2)
+
+        # 2. quality_gate_status not PASSED (e.g. FAILED, UNKNOWN)
+        r3 = deepcopy(base_valid)
+        r3["quality_gate_status"] = "UNKNOWN"
+        with self.assertRaisesRegex(runtime.Mli02Error, "DS_QUALITY_GATE_FAILED:UNKNOWN"):
+            runtime.verify_validation_report(r3)
+
+        # 3. Missing or null invalid_feature_count
+        r4 = deepcopy(base_valid)
+        del r4["invalid_feature_count"]
+        with self.assertRaisesRegex(runtime.Mli02Error, "DS_INVALID_FEATURES_MISSING"):
+            runtime.verify_validation_report(r4)
+
+        r5 = deepcopy(base_valid)
+        r5["invalid_feature_count"] = None
+        with self.assertRaisesRegex(runtime.Mli02Error, "DS_INVALID_FEATURES_MISSING"):
+            runtime.verify_validation_report(r5)
+
+        # 4. invalid_feature_count invalid types (boolean or non-int string)
+        r6 = deepcopy(base_valid)
+        r6["invalid_feature_count"] = False
+        with self.assertRaisesRegex(runtime.Mli02Error, "DS_INVALID_FEATURES_INVALID_TYPE"):
+            runtime.verify_validation_report(r6)
+
+        r7 = deepcopy(base_valid)
+        r7["invalid_feature_count"] = True
+        with self.assertRaisesRegex(runtime.Mli02Error, "DS_INVALID_FEATURES_INVALID_TYPE"):
+            runtime.verify_validation_report(r7)
+
+        r8 = deepcopy(base_valid)
+        r8["invalid_feature_count"] = "not_a_number"
+        with self.assertRaisesRegex(runtime.Mli02Error, "DS_INVALID_FEATURES_INVALID_TYPE"):
+            runtime.verify_validation_report(r8)
+
+        # 5. invalid_feature_count negative or non-zero
+        r9 = deepcopy(base_valid)
+        r9["invalid_feature_count"] = -1
+        with self.assertRaisesRegex(runtime.Mli02Error, "DS_INVALID_FEATURES_NEGATIVE:-1"):
+            runtime.verify_validation_report(r9)
+
+        r10 = deepcopy(base_valid)
+        r10["invalid_feature_count"] = 3
+        with self.assertRaisesRegex(runtime.Mli02Error, "DS_INVALID_FEATURES_FOUND:3"):
+            runtime.verify_validation_report(r10)
+
+        # 6. Row counts missing, bool, or mismatch
+        r11 = deepcopy(base_valid)
+        del r11["candidate_row_count"]
+        with self.assertRaisesRegex(runtime.Mli02Error, "DS_CANDIDATE_ROWS_MISSING"):
+            runtime.verify_validation_report(r11)
+
+        r12 = deepcopy(base_valid)
+        r12["candidate_row_count"] = True
+        with self.assertRaisesRegex(runtime.Mli02Error, "DS_COUNT_INVALID_TYPE"):
+            runtime.verify_validation_report(r12)
+
+        r13 = deepcopy(base_valid)
+        r13["feature_row_count"] = 100
+        with self.assertRaisesRegex(runtime.Mli02Error, "DS_COUNT_RECONCILIATION_FAILED"):
+            runtime.verify_validation_report(r13)
+
+        # 7. Pipeline execution test: receipt without quality_gate_status halts before export
+        env = {
+            **self.env,
+            "ML_BUILD_RUNNER_COMMAND": f'"{sys.executable}" "{RUNNER_FIXTURE_PATH}"',
+        }
+        ctx = runtime.resolve_run_context({"conf": self.fixture["conf"], "run_id": "run_missing_qg"}, env)
+        staging_root = Path(ctx["staging_root"])
+        upstream = None
+        for step in runtime.STEPS[:7]:
+            upstream = runtime.execute_step(step, ctx, upstream, env, attempt=1)
+        receipt_missing_qg = {
+            "step": "validate_feature_snapshot",
+            "status": "FEATURE_SNAPSHOT_VALIDATED",
+            "run_id": ctx["run_id"],
+            "dataset_id": ctx["dataset_id"],
+            "gold_snapshot_id": ctx["gold_publication"]["gold_snapshot_id"],
+            "attempt": 1,
+            "candidate_row_count": 142,
+            "feature_row_count": 142,
+        }
+        with self.assertRaisesRegex(runtime.Mli02Error, "DS_QUALITY_GATE_MISSING"):
+            runtime.validate_runner_receipt("validate_feature_snapshot", receipt_missing_qg, ctx, attempt=1)
+
+        runtime._atomic_json(staging_root / "step_08_validate_feature_snapshot.json", receipt_missing_qg)
+        with self.assertRaisesRegex(runtime.Mli02Error, "DS_QUALITY_GATE_MISSING"):
+            runtime.promote_and_publish_dataset(ctx, staging_root / "attempt_01", 1, env)
+
+        self.assertFalse((staging_root / "step_10_mark_dataset_exported.json").exists())
+        runtime.lease("release", ctx["lease_owner"], env)
 
 
 if __name__ == "__main__":

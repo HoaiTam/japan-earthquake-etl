@@ -60,14 +60,33 @@ Sau review từ commit `adff6b6` ([PR #85](https://github.com/HoaiTam/japan-eart
    - Không nuốt `ValueError`/`OSError` khi đọc `owner.json` (ném lỗi `DS_LEASE_STATE_CORRUPT`).
    - Bắt buộc kiểm tra biên nhận giải phóng lease `lease_release_receipt.json` hợp lệ khớp đúng `dag_id` và `run_id`.
    - Sửa `test_leaf_gate_fails_if_lease_still_held` dùng artifact URI và export bundle thực tế để kiểm tra đúng cơ chế lease gate.
-5. **[P2] Bổ sung dependency pyarrow trong CI workflow:**
-   - Thêm bước cài đặt `pip install -r tests/ci/requirements.txt` vào job `airflow-tests` trong `.github/workflows/ci.yml` trước `make ci-suite`.
+### 1.3. Đợt review lần 3 ([PR #85 Comment 6248468165](https://github.com/HoaiTam/japan-earthquake-etl/pull/85#issuecomment-6248468165))
+
+2 điểm làm lại cần thiết đã được xử lý triệt để:
+
+1. **[P1] Tách bạch dataset identity và execution identity, ngăn DagRun mới ghi đè bundle EXPORTED:**
+   - Theo đặc tả `docs/specs/ML_DATA_MODEL.md:168`, `build_run_id` là execution context, tuyệt đối KHÔNG nằm trong dataset identity (`dataset_id`, `identity_payload_sha256`).
+   - Xóa bỏ việc so khớp `build_run_id == context["run_id"]` khi kiểm tra bundle EXPORTED đã tồn tại trên đĩa (`execute_step` và `promote_and_publish_dataset`).
+   - Khi DagRun B chạy lại cùng config với DagRun A đã export thành công trước đó:
+     - Runtime phát hiện bundle EXPORTED hợp lệ, kiểm tra toàn vẹn checksums và Parquet readback, và REUSE bundle đó nguyên vẹn mà không ghi đè hoặc chỉnh sửa dù chỉ 1 byte của `dataset_manifest.json`, giữ nguyên SHA-256 và timestamp mà consumer (MLI-03 / Colab) đã pin.
+     - Trả về `reused_existing_bundle = True`.
+     - Nếu bundle đã tồn tại nhưng sai identity -> fail-closed với `DS_IDENTITY_CONFLICT`.
+     - Nếu bundle đã tồn tại nhưng thiếu file, hỏng checksum hoặc schema không hợp lệ -> fail-closed với `DS_EXISTING_BUNDLE_CORRUPT`.
+     - Metadata riêng của DagRun B (`run_id = "run_dagrun_B"`, `reused_existing_bundle = True`, `original_build_run_id = "run_dagrun_A"`) được ghi vào file `run_summary.json` trong staging riêng của DagRun B, không làm ảnh hưởng đến bundle đã pin.
+     - Bổ sung kiểm thử `test_two_distinct_dagruns_same_dataset_reuses_existing_bundle_without_mutating_manifest`.
+
+2. **[P1] Thắt chặt fail-closed bằng chứng quality gate (verify_validation_report):**
+   - Tạo hàm chốt chặn dùng chung `verify_validation_report(report)` áp dụng đồng nhất ở TẤT CẢ các chốt chặn: `validate_runner_receipt`, `_run_external_runner_step`, `execute_step` và `promote_and_publish_dataset`.
+   - `quality_gate_status`: Bắt buộc phải có trong receipt, không được null, và bắt buộc thuộc tập `{"PASSED", "SUCCESS"}`. Thiếu hoặc null ném ngay `DS_QUALITY_GATE_MISSING`; sai giá trị ném `DS_QUALITY_GATE_FAILED:<status>`.
+   - `invalid_feature_count`: Bắt buộc phải có, không được null, là số nguyên hợp lệ (từ chối boolean hoặc chuỗi không parse được -> `DS_INVALID_FEATURES_INVALID_TYPE`), không âm, và bắt buộc strictly `== 0`.
+   - `candidate_row_count` & `feature_row_count`: Bắt buộc phải có, kiểu số nguyên, `> 0`, và `candidate_row_count == feature_row_count`.
+   - Bổ sung kiểm thử `test_validation_report_strict_fail_closed_contract` bao phủ toàn bộ các trường hợp thiếu field, field rỗng, boolean giả số nguyên, mismatch count, và xác nhận pipeline dừng trước export.
 
 ---
 
 ## 2. Kiểm tra thực tế và kết quả
 
-### 2.1. Chạy bộ kiểm thử đơn vị & hợp đồng DAG (24/24 passed)
+### 2.1. Chạy bộ kiểm thử đơn vị & hợp đồng DAG (26/26 passed)
 
 Lệnh:
 ```powershell
@@ -78,34 +97,36 @@ Kết quả:
 ```text
 ============================= test session starts =============================
 platform win32 -- Python 3.11.0, pytest-9.0.3, pluggy-1.6.0
-collected 24 items
+collected 26 items
 
-airflow/tests/test_mli_02_build_dataset.py::Mli02DagContractTest::test_manual_paused_single_run_and_no_retries PASSED [  4%]
-airflow/tests/test_mli_02_build_dataset.py::Mli02DagContractTest::test_no_colab_external_service_triggers_in_source PASSED [  8%]
-airflow/tests/test_mli_02_build_dataset.py::Mli02DagContractTest::test_sole_final_leaf_all_success PASSED [ 12%]
-airflow/tests/test_mli_02_build_dataset.py::Mli02DagContractTest::test_ten_task_groups_in_exact_sequence PASSED [ 16%]
-airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_airflow_run_id_with_plus_and_colon_is_accepted PASSED [ 20%]
-airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_attempt_isolation_rejects_dirty_existing_directory PASSED [ 25%]
-airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_candidate_lineage_and_snapshot_pins_reconciliation PASSED [ 29%]
-airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_dag_fails_if_dataset_config_invalid PASSED [ 33%]
-airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_dag_fails_if_gold_not_published PASSED [ 37%]
-airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_deterministic_dataset_id_and_identity_conflict_detection PASSED [ 41%]
-airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_external_runner_receipt_validation_rejects_identity_mismatch PASSED [ 45%]
-airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_failure_stops_before_dataset_exported_and_colab_not_ready PASSED [ 50%]
-airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_leaf_gate_fails_if_lease_still_held PASSED [ 54%]
-airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_leaf_gate_fails_if_release_receipt_missing_or_invalid PASSED [ 58%]
-airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_leaf_gate_fails_on_corrupt_lease_state PASSED [ 62%]
-airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_mock_pipeline_isolated_cannot_publish_official_registry PASSED [ 66%]
-airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_production_fails_without_runner_and_without_mock PASSED [ 70%]
-airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_promote_excludes_stray_unindexed_attempt_parts PASSED [ 75%]
-airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_publish_retry_bypasses_lease_assert_and_does_not_steal_leases PASSED [ 79%]
-airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_readback_checksum_tampering_is_caught PASSED [ 83%]
-airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_readback_count_mismatch_fails_gate PASSED [ 87%]
-airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_retry_isolates_export_attempts_without_mixing_parts PASSED [ 91%]
-airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_successful_full_run_with_external_runner_and_registry_handoff PASSED [ 95%]
-airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_validation_failure_halts_export_and_leaves_colab_not_ready PASSED [100%]
+airflow/tests/test_mli_02_build_dataset.py::Mli02DagContractTest::test_manual_paused_single_run_and_no_retries PASSED [  3%]
+airflow/tests/test_mli_02_build_dataset.py::Mli02DagContractTest::test_no_colab_external_service_triggers_in_source PASSED [  7%]
+airflow/tests/test_mli_02_build_dataset.py::Mli02DagContractTest::test_sole_final_leaf_all_success PASSED [ 11%]
+airflow/tests/test_mli_02_build_dataset.py::Mli02DagContractTest::test_ten_task_groups_in_exact_sequence PASSED [ 15%]
+airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_airflow_run_id_with_plus_and_colon_is_accepted PASSED [ 19%]
+airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_attempt_isolation_rejects_dirty_existing_directory PASSED [ 23%]
+airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_candidate_lineage_and_snapshot_pins_reconciliation PASSED [ 26%]
+airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_dag_fails_if_dataset_config_invalid PASSED [ 30%]
+airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_dag_fails_if_gold_not_published PASSED [ 34%]
+airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_deterministic_dataset_id_and_identity_conflict_detection PASSED [ 38%]
+airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_external_runner_receipt_validation_rejects_identity_mismatch PASSED [ 42%]
+airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_failure_stops_before_dataset_exported_and_colab_not_ready PASSED [ 46%]
+airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_leaf_gate_fails_if_lease_still_held PASSED [ 50%]
+airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_leaf_gate_fails_if_release_receipt_missing_or_invalid PASSED [ 53%]
+airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_leaf_gate_fails_on_corrupt_lease_state PASSED [ 57%]
+airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_mock_pipeline_isolated_cannot_publish_official_registry PASSED [ 61%]
+airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_production_fails_without_runner_and_without_mock PASSED [ 65%]
+airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_promote_excludes_stray_unindexed_attempt_parts PASSED [ 69%]
+airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_publish_retry_bypasses_lease_assert_and_does_not_steal_leases PASSED [ 73%]
+airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_readback_checksum_tampering_is_caught PASSED [ 76%]
+airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_readback_count_mismatch_fails_gate PASSED [ 80%]
+airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_retry_isolates_export_attempts_without_mixing_parts PASSED [ 84%]
+airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_successful_full_run_with_external_runner_and_registry_handoff PASSED [ 88%]
+airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_two_distinct_dagruns_same_dataset_reuses_existing_bundle_without_mutating_manifest PASSED [ 92%]
+airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_validation_failure_halts_export_and_leaves_colab_not_ready PASSED [ 96%]
+airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_validation_report_strict_fail_closed_contract PASSED [100%]
 
-============================= 24 passed in 21.20s =============================
+============================= 26 passed in 28.75s =============================
 ```
 
 ### 2.2. Kiểm tra tính tương thích resolver Java (TrustedDatasetResolverTest)
