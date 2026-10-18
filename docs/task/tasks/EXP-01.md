@@ -1,6 +1,6 @@
 ---
 task_id: "EXP-01"
-status: "Ready"
+status: "Done"
 week: 5
 block: "H - Experiment"
 workstream: "Jupyter-first harness"
@@ -8,7 +8,7 @@ scope: "Core"
 priority: "P0"
 effort_hours: 5
 assignee: "rosy179"
-reviewer: "unassigned"
+reviewer: "HoaiTam"
 dependencies: ["CON-03", "DAT-02"]
 ---
 
@@ -41,14 +41,14 @@ local gate EXP-02, không viết hai model pipelines.
 
 ## Tiêu chí hoàn thành
 
-- [ ] Bundle checksum/schema sai bị dừng trước fit model.
-- [ ] Package/code/config version và identity theo mode xuất hiện trong mọi artifact.
-- [ ] Restart kernel → run all trên Jupyter đạt với DAT-02 pilot; không dựa state cũ.
-- [ ] Loader/writer tách pilot/official; pilot không phát _SUCCESS hoặc status official.
-- [ ] Colab path adapter có offline tests và yêu cầu local-smoke PASSED;
+- [x] Bundle checksum/schema sai bị dừng trước fit model.
+- [x] Package/code/config version và identity theo mode xuất hiện trong mọi artifact.
+- [x] Restart kernel → run all trên Jupyter đạt với DAT-02 pilot; không dựa state cũ.
+- [x] Loader/writer tách pilot/official; pilot không phát _SUCCESS hoặc status official.
+- [x] Colab path adapter có offline tests và yêu cầu local-smoke PASSED;
       smoke cloud sau EXP-02 local, không tạo dependency vòng cho harness.
-- [ ] `_SUCCESS.json` không được ghi nếu output chưa hoàn tất/checksum chưa tính.
-- [ ] Notebook không chứa MinIO/Airflow/Drive credential hoặc local absolute path.
+- [x] `_SUCCESS.json` không được ghi nếu output chưa hoàn tất/checksum chưa tính.
+- [x] Notebook không chứa MinIO/Airflow/Drive credential hoặc local absolute path.
 
 ## Hard dependency
 
@@ -81,17 +81,17 @@ MLD-05 để hoàn tất local harness. Cloud smoke nằm trong EXP-02 giai đo�
 
 ## Theo dõi
 
-- **Trạng thái:** Ready
+- **Trạng thái:** Done
 - **Assignee:** rosy179
-- **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Reviewer:** HoaiTam
+- **Evidence / PR:** Đã khắc phục toàn bộ review comments từ HoaiTam tại PR #83 ([comment-6229834764](https://github.com/HoaiTam/japan-earthquake-etl/pull/83#issuecomment-6229834764), [comment-6231696916](https://github.com/HoaiTam/japan-earthquake-etl/pull/83#issuecomment-6231696916), [comment-6244707869](https://github.com/HoaiTam/japan-earthquake-etl/pull/83#issuecomment-6244707869) và [comment-6244865924](https://github.com/HoaiTam/japan-earthquake-etl/pull/83#issuecomment-6244865924)). Đã giải quyết triệt để vấn đề ràng buộc retry run ID / config / seed, lineage guard trên memberships/summaries chạy trước retry reuse, xác thực marker status, checksums map không rỗng và bao phủ đủ standard required files, verify toàn bộ file hash trên đĩa. Bổ sung regression tests (tổng cộng 44 Python tests và 15 Java tests PASS). Chi tiết tại [docs/evidence/EXP-01.md](../../evidence/EXP-01.md).
 - **Kỹ năng phù hợp:** Python, Jupyter, Colab, reproducible environments
 
 ## Checklist bàn giao
 
-- [ ] Deliverable và test/evidence tồn tại trong repository.
-- [ ] Acceptance criteria đã được kiểm tra.
-- [ ] Contract/docs đã cập nhật và không chứa secret/data dump.
+- [x] Deliverable và test/evidence tồn tại trong repository.
+- [x] Acceptance criteria đã được kiểm tra.
+- [x] Contract/docs đã cập nhật và không chứa secret/data dump.
 - [ ] Reviewer độc lập được khuyến nghị cho P0.
 
 ## Tài liệu liên quan

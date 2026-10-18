@@ -68,7 +68,7 @@ COMPONENT_SMOKES := smoke-minio smoke-airflow smoke-spark smoke-query smoke-usgs
 .PHONY: test-qa-04 smoke-qa-04
 .PHONY: test-ml-window smoke-ml-window resume-ml-window
 .PHONY: prepare-ml-local stage-ml-windows test-ml-feature ml-features-local ml-pilot-local pilot-env test-pilot inspect-pilot jupyter-pilot
-.PHONY: pack-pilot
+.PHONY: pack-pilot test-exp01 inspect-exp01 jupyter-exp01
 .PHONY: prepare-full-month test-full-month qa-full-month-live full-month-local
 FULL_MONTH_ROOT ?= staging/orc06-full-month
 FULL_MONTH_REQUEST ?=
@@ -128,6 +128,7 @@ pilot-env: ## Chuẩn bị venv notebook riêng một lần; cần Internet, kh�
 
 test-pilot: ## Synthetic loader/staging regression; cần pyarrow, không Docker/network/notebook kernel
 	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_pilot_*.py'
+	@$(PILOT_PYTHON) -m unittest tests/test_experiment_harness.py
 
 inspect-pilot: ## Fresh Jupyter kernel Run All; PILOT_BUNDLE=exact local directory, không Docker/API
 	@test -n "$(PILOT_BUNDLE)" || { echo 'Set PILOT_BUNDLE=staging/ml-pilot/pilot_id=<exact-id>'; exit 2; }
@@ -140,6 +141,15 @@ pack-pilot: ## Đóng đúng 5 file pilot đã verify để gửi team; PILOT_BU
 jupyter-pilot: ## Mở Jupyter loopback với bundle local đã chọn; Ctrl+C để dừng, không tự export
 	@test -n "$(PILOT_BUNDLE)" || { echo 'Set PILOT_BUNDLE=staging/ml-pilot/pilot_id=<exact-id>'; exit 2; }
 	@PILOT_BUNDLE="$(abspath $(PILOT_BUNDLE))" $(PILOT_PYTHON) -m jupyterlab --ip=127.0.0.1 --no-browser notebooks/dat_02_inspection.ipynb
+
+test-exp01: ## EXP-01 harness & Colab adapter unit tests; không Docker/network
+	@python3 -m unittest tests/test_experiment_harness.py
+
+inspect-exp01: ## EXP-01 fresh Jupyter kernel Run All; không Docker/API
+	@python3 scripts/inspect-exp01-notebook.py $${PILOT_BUNDLE:+--bundle "$$PILOT_BUNDLE"}
+
+jupyter-exp01: ## Mở Jupyter loopback cho EXP-01 harness smoke notebook
+	@jupyter lab --ip=127.0.0.1 --no-browser notebooks/exp_01_harness_smoke.ipynb
 export QA_RUN_ID
 
 test-ml-window: ## MLD-03 bucket physical plan, distributed invariants, microseconds và fail-fast Parquet tests
