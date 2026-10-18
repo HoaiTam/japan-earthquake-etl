@@ -44,6 +44,7 @@ def main() -> None:
             "published": True,
             "verified_at_utc": now_iso,
         }
+        runtime._atomic_json(staging_root / "step_01_wait_gold_published.json", report)
     elif step_name == "resolve_gold_snapshot":
         report = {
             "step": step_name,
@@ -51,11 +52,13 @@ def main() -> None:
             "run_id": run_id,
             "dataset_id": dataset_id,
             "gold_snapshot_id": snapshot_id,
+            "registry_snapshot_id": f"reg_gold_{snapshot_id}",
             "attempt": attempt,
             "identity_payload_sha256": context["identity_payload_sha256"],
             "dataset_status": "BUILDING",
             "pinned_at_utc": now_iso,
         }
+        runtime._atomic_json(staging_root / "step_02_resolve_gold_snapshot.json", report)
     elif step_name == "audit_gold_input":
         report = {
             "step": step_name,
@@ -95,6 +98,7 @@ def main() -> None:
             "run_id": run_id,
             "dataset_id": dataset_id,
             "gold_snapshot_id": snapshot_id,
+            "mainshock_snapshot_id": f"main_{snapshot_id}_v1",
             "attempt": attempt,
             "mainshock_count": 2,
             "mainshock_ids": ["evt_001", "evt_002"],
@@ -108,6 +112,7 @@ def main() -> None:
             "run_id": run_id,
             "dataset_id": dataset_id,
             "gold_snapshot_id": snapshot_id,
+            "candidate_snapshot_id": f"cand_{snapshot_id}_v1",
             "attempt": attempt,
             "candidate_row_count": 142,
             "built_at_utc": now_iso,
@@ -130,6 +135,8 @@ def main() -> None:
         report = {
             "step": step_name,
             "status": "FEATURE_SNAPSHOT_VALIDATED",
+            "quality_gate_status": "PASSED",
+            "invalid_feature_count": 0,
             "run_id": run_id,
             "dataset_id": dataset_id,
             "gold_snapshot_id": snapshot_id,
@@ -145,7 +152,9 @@ def main() -> None:
             sys.exit(2)
         attempt_dir.mkdir(parents=True, exist_ok=True)
         part_path = attempt_dir / "features-part-00000.parquet"
-        runtime._materialize_features_parquet(part_path, context, row_count=142)
+        sel_step = runtime._read_step(staging_root / "step_05_select_mainshocks.json")
+        mainshocks = [{"mainshock_event_id": mid} for mid in sel_step.get("mainshock_ids", ["evt_001", "evt_002"])]
+        runtime._materialize_features_parquet(part_path, context, row_count=142, mainshocks=mainshocks)
         part_sha = hashlib.sha256(part_path.read_bytes()).hexdigest()
         checksums_content = f"{part_sha}  features-part-00000.parquet\n"
         (attempt_dir / "checksums.sha256").write_text(checksums_content, encoding="utf-8")
@@ -161,8 +170,12 @@ def main() -> None:
         }
         runtime._atomic_json(staging_root / "step_09_export_parquet.json", report)
     elif step_name == "mark_dataset_exported":
-        step_export = runtime._read_step(staging_root / "step_09_export_parquet.json")
-        attempt_dir = Path(step_export["attempt_dir"])
+        step_export_file = staging_root / "step_09_export_parquet.json"
+        if step_export_file.is_file():
+            step_export = runtime._read_step(step_export_file)
+            attempt_dir = Path(step_export.get("attempt_dir", staging_root / "mock_attempt"))
+        else:
+            attempt_dir = staging_root / "mock_attempt"
         report = runtime.promote_and_publish_dataset(context, attempt_dir, attempt, dict(os.environ))
         runtime._atomic_json(staging_root / "step_10_mark_dataset_exported.json", report)
     else:

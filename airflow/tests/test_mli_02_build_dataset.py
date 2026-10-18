@@ -377,19 +377,75 @@ class Mli02RuntimeControlPlaneTest(unittest.TestCase):
             runtime.validate_runner_receipt("wait_gold_published", bad_report2, ctx, attempt=1)
 
     def test_leaf_gate_fails_if_lease_still_held(self):
-        # Point 3: Leaf gate fails if lease is still held
-        ctx = runtime.resolve_run_context({"conf": self.fixture["conf"], "run_id": "run_lease_gate"}, self.env)
-
-        # Construct a fake final result that did not release lease
-        fake_final = {
-            "status": "DATASET_EXPORTED",
-            "dataset_id": ctx["dataset_id"],
-            "run_id": ctx["run_id"],
-            "gold_snapshot_id": ctx["gold_publication"]["gold_snapshot_id"],
-            "export_artifact_uri": None,
+        # Point 4: Leaf gate fails closed if lease is still held
+        env = {
+            **self.env,
+            "ML_BUILD_RUNNER_COMMAND": f'"{sys.executable}" "{RUNNER_FIXTURE_PATH}"',
         }
-        with self.assertRaisesRegex(runtime.Mli02Error, "DS_EXPORT_GATE_FAILED"):
-            runtime.mark_dataset_exported_summary(ctx, fake_final, self.env)
+        ctx = runtime.resolve_run_context({"conf": self.fixture["conf"], "run_id": "run_lease_held_test"}, env)
+        upstream = None
+        for step in runtime.STEPS:
+            upstream = runtime.execute_step(step, ctx, upstream, env, attempt=1)
+
+        # Restore lease as if it was never released by our run
+        owner_file = Path(env["SOURCE_GUARD_ROOT"]) / "owner.json"
+        owner_file.parent.mkdir(parents=True, exist_ok=True)
+        runtime._atomic_json(owner_file, ctx["lease_owner"])
+
+        with self.assertRaisesRegex(runtime.Mli02Error, "DS_LEASE_STILL_HELD"):
+            runtime.mark_dataset_exported_summary(ctx, upstream, env)
+
+        # Release lease to clean up
+        runtime.lease("release", ctx["lease_owner"], env)
+
+    def test_leaf_gate_fails_on_corrupt_lease_state(self):
+        # Point 4: Leaf gate fails closed if owner.json is corrupt/unreadable
+        env = {
+            **self.env,
+            "ML_BUILD_RUNNER_COMMAND": f'"{sys.executable}" "{RUNNER_FIXTURE_PATH}"',
+        }
+        ctx = runtime.resolve_run_context({"conf": self.fixture["conf"], "run_id": "run_corrupt_lease"}, env)
+        upstream = None
+        for step in runtime.STEPS:
+            upstream = runtime.execute_step(step, ctx, upstream, env, attempt=1)
+
+        owner_file = Path(env["SOURCE_GUARD_ROOT"]) / "owner.json"
+        owner_file.parent.mkdir(parents=True, exist_ok=True)
+        owner_file.write_text("{corrupted_json: true,", encoding="utf-8")
+
+        with self.assertRaisesRegex(runtime.Mli02Error, "DS_LEASE_STATE_CORRUPT"):
+            runtime.mark_dataset_exported_summary(ctx, upstream, env)
+
+        owner_file.unlink()
+
+    def test_leaf_gate_fails_if_release_receipt_missing_or_invalid(self):
+        # Point 4: Leaf gate fails closed if lease_release_receipt.json is missing or mismatched
+        env = {
+            **self.env,
+            "ML_BUILD_RUNNER_COMMAND": f'"{sys.executable}" "{RUNNER_FIXTURE_PATH}"',
+        }
+        ctx = runtime.resolve_run_context({"conf": self.fixture["conf"], "run_id": "run_receipt_missing"}, env)
+        upstream = None
+        for step in runtime.STEPS:
+            upstream = runtime.execute_step(step, ctx, upstream, env, attempt=1)
+
+        receipt_file = Path(ctx["staging_root"]) / "lease_release_receipt.json"
+        self.assertTrue(receipt_file.is_file())
+        receipt_file.unlink()
+
+        with self.assertRaisesRegex(runtime.Mli02Error, "DS_LEASE_RELEASE_RECEIPT_MISSING"):
+            runtime.mark_dataset_exported_summary(ctx, upstream, env)
+
+        # Write invalid receipt with mismatched run_id
+        bad_receipt = {
+            "status": "RELEASED",
+            "dag_id": ctx.get("dag_id", runtime.DAG_ID),
+            "run_id": "wrong_run_id",
+            "released_at_utc": "2026-10-18T00:00:00Z",
+        }
+        runtime._atomic_json(receipt_file, bad_receipt)
+        with self.assertRaisesRegex(runtime.Mli02Error, "DS_LEASE_RELEASE_RECEIPT_INVALID"):
+            runtime.mark_dataset_exported_summary(ctx, upstream, env)
 
     def test_airflow_run_id_with_plus_and_colon_is_accepted(self):
         # Point 5: Standard Airflow run IDs with '+', ':', etc. must be accepted
@@ -455,9 +511,139 @@ class Mli02RuntimeControlPlaneTest(unittest.TestCase):
         self.assertIs(True, handoff["ready"])
         self.assertIs(False, handoff["auto_triggered"])
 
+        # Verify genuine candidate lineage and snapshot pins
+        self.assertTrue(manifest_data.get("registry_snapshot_id"))
+        self.assertTrue(manifest_data.get("candidate_snapshot_id"))
+        self.assertTrue(manifest_data.get("mainshock_snapshot_id"))
+        candidates = manifest_data.get("candidates", [])
+        self.assertEqual(142, len(candidates))
+        self.assertEqual({"evt_001", "evt_002"}, {c["mainshock_event_id"] for c in candidates})
+
         # Verify lease is released
         owner_file = Path(self.env["SOURCE_GUARD_ROOT"]) / "owner.json"
         self.assertFalse(owner_file.exists())
+
+    def test_validation_failure_halts_export_and_leaves_colab_not_ready(self):
+        # Point 1: Step 8 validation failure (status=FAILED, quality_gate_status=FAILED, invalid_feature_count > 0)
+        # halts before export, never publishes, and colab handoff is not ready.
+        env = {
+            **self.env,
+            "ML_BUILD_RUNNER_COMMAND": f'"{sys.executable}" "{RUNNER_FIXTURE_PATH}"',
+        }
+        ctx = runtime.resolve_run_context({"conf": self.fixture["conf"], "run_id": "run_val_fail"}, env)
+        upstream = None
+        for step in runtime.STEPS[:7]:
+            upstream = runtime.execute_step(step, ctx, upstream, env, attempt=1)
+
+        staging_root = Path(ctx["staging_root"])
+        bad_val_report = {
+            "step": "validate_feature_snapshot",
+            "status": "FAILED",
+            "quality_gate_status": "FAILED",
+            "run_id": ctx["run_id"],
+            "dataset_id": ctx["dataset_id"],
+            "gold_snapshot_id": ctx["gold_publication"]["gold_snapshot_id"],
+            "attempt": 1,
+            "candidate_row_count": 142,
+            "feature_row_count": 142,
+            "invalid_feature_count": 7,
+            "validated_at_utc": "2026-10-18T00:00:00Z",
+        }
+        with self.assertRaisesRegex(runtime.Mli02Error, "DS_RUNNER_STEP_FAILED:validate_feature_snapshot:FAILED"):
+            runtime.validate_runner_receipt("validate_feature_snapshot", bad_val_report, ctx, attempt=1)
+
+        # Gate check in promote_and_publish_dataset must fail if validation report has quality_gate_status FAILED
+        runtime._atomic_json(staging_root / "step_08_validate_feature_snapshot.json", bad_val_report)
+        with self.assertRaisesRegex(runtime.Mli02Error, "DS_VALIDATION_GATE_FAILED"):
+            runtime.promote_and_publish_dataset(ctx, staging_root / "attempt_01", 1, env)
+
+        # Confirm step 10 was never run
+        step10_file = staging_root / "step_10_mark_dataset_exported.json"
+        self.assertFalse(step10_file.exists())
+        runtime.lease("release", ctx["lease_owner"], env)
+
+    def test_candidate_lineage_and_snapshot_pins_reconciliation(self):
+        # Point 2: Fail closed if snapshot pins missing, or if grain duplicate in Parquet parts
+        env = {
+            **self.env,
+            "ML_BUILD_RUNNER_COMMAND": f'"{sys.executable}" "{RUNNER_FIXTURE_PATH}"',
+        }
+        ctx = runtime.resolve_run_context({"conf": self.fixture["conf"], "run_id": "run_grain_pins"}, env)
+        upstream = None
+        for step in runtime.STEPS[:9]:
+            upstream = runtime.execute_step(step, ctx, upstream, env, attempt=1)
+
+        staging_root = Path(ctx["staging_root"])
+        attempt_dir = Path(upstream["attempt_dir"])
+
+        # Test missing snapshot pin fails closed
+        step_sel = runtime._read_step(staging_root / "step_05_select_mainshocks.json")
+        del step_sel["mainshock_snapshot_id"]
+        runtime._atomic_json(staging_root / "step_05_select_mainshocks.json", step_sel)
+        with self.assertRaisesRegex(runtime.Mli02Error, "DS_SNAPSHOT_PINS_MISSING:mainshock_snapshot_id"):
+            runtime.promote_and_publish_dataset(ctx, attempt_dir, 1, env)
+
+        # Restore mainshock_snapshot_id
+        step_sel["mainshock_snapshot_id"] = "main_snap_test"
+        runtime._atomic_json(staging_root / "step_05_select_mainshocks.json", step_sel)
+
+        # Test duplicate grain key fails closed
+        import pyarrow as pa
+        import pyarrow.parquet as pq
+        dup_part = attempt_dir / "features-part-00000.parquet"
+        existing_table = pq.read_table(dup_part)
+        dup_rows = existing_table.to_pylist()
+        # Duplicate the grain key of row 0 into row 1
+        dup_rows[1]["mainshock_event_id"] = dup_rows[0]["mainshock_event_id"]
+        dup_rows[1]["candidate_event_id"] = dup_rows[0]["candidate_event_id"]
+        dup_table = pa.Table.from_pylist(dup_rows, schema=existing_table.schema)
+        pq.write_table(dup_table, dup_part)
+        sha = hashlib.sha256(dup_part.read_bytes()).hexdigest()
+        (attempt_dir / "checksums.sha256").write_text(f"{sha}  features-part-00000.parquet\n", encoding="utf-8")
+
+        with self.assertRaisesRegex(runtime.Mli02Error, "DS_GRAIN_DUPLICATE"):
+            runtime.promote_and_publish_dataset(ctx, attempt_dir, 1, env)
+        runtime.lease("release", ctx["lease_owner"], env)
+
+    def test_publish_retry_bypasses_lease_assert_and_does_not_steal_leases(self):
+        # Point 3: When mark_dataset_exported is retried on an already-exported bundle,
+        # it bypasses lease assert, reuses existing bundle, and does NOT steal another run's lease.
+        env = {
+            **self.env,
+            "ML_BUILD_RUNNER_COMMAND": f'"{sys.executable}" "{RUNNER_FIXTURE_PATH}"',
+        }
+        req = {"conf": self.fixture["conf"], "run_id": "run_publish_retry"}
+        ctx = runtime.resolve_run_context(req, env)
+        upstream = None
+        for step in runtime.STEPS:
+            upstream = runtime.execute_step(step, ctx, upstream, env, attempt=1)
+        summary1 = runtime.mark_dataset_exported_summary(ctx, upstream, env)
+        self.assertEqual("DATASET_EXPORTED", summary1["status"])
+
+        # Simulate another DAG / run acquiring the source lease immediately after our release
+        other_owner = {"dag_id": "other_pipeline_dag", "run_id": "run_other_123"}
+        guard_root = Path(env["SOURCE_GUARD_ROOT"])
+        owner_file = guard_root / "owner.json"
+        runtime._atomic_json(owner_file, other_owner)
+
+        # Retrying step 10 on the first run's context (simulating task retry in Airflow)
+        res = runtime.execute_step("mark_dataset_exported", ctx, upstream, env, attempt=2)
+
+        # Must succeed with reused_existing_bundle=True
+        self.assertTrue(res["reused_existing_bundle"])
+        self.assertEqual("DATASET_EXPORTED", res["status"])
+
+        # Crucial: Must NOT have stolen or deleted the other run's lease!
+        self.assertTrue(owner_file.is_file())
+        cur_owner = json.loads(owner_file.read_text(encoding="utf-8"))
+        self.assertEqual(other_owner, cur_owner)
+
+        # Summary leaf gate also passes because receipt exists and cur_owner != our owner
+        leaf_summary = runtime.mark_dataset_exported_summary(ctx, res, env)
+        self.assertEqual("DATASET_EXPORTED", leaf_summary["status"])
+
+        # Clean up other lease
+        owner_file.unlink()
 
 
 if __name__ == "__main__":

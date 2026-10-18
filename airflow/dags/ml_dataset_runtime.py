@@ -39,8 +39,11 @@ except (ModuleNotFoundError, ImportError):  # pragma: no cover - Windows offline
         return dict(environment)
 
 try:
-    from source_run_guard import lease
+    from source_run_guard import lease, SourceRunBusy
 except (ModuleNotFoundError, ImportError):
+    class SourceRunBusy(Exception):
+        pass
+
     def lease(action: str, identity: Mapping[str, str], environment: Mapping[str, str] | None = None) -> dict[str, str]:
         status_map = {"acquire": "ACQUIRED", "assert": "HELD", "release": "RELEASED"}
         return {"status": status_map.get(action, "UNKNOWN"), **dict(identity)}
@@ -419,10 +422,63 @@ def execute_step(
     env = dict(os.environ if environment is None else environment)
     owner = context["lease_owner"]
 
-    # Verify lease is still held
-    held = lease("assert", owner, env)
-    if held.get("status") != "HELD":
-        raise Mli02Error("DS_LEASE_NOT_HELD")
+    # Verify lease is still held, unless mark_dataset_exported is retried after a successful publish
+    is_already_published = False
+    if step_name == "mark_dataset_exported":
+        export_root = Path(context["export_root"])
+        final_export_dir = export_root / f"dataset_id={context['dataset_id']}"
+        manifest_target = final_export_dir / "dataset_manifest.json"
+        checksums_target = final_export_dir / "checksums.sha256"
+        if manifest_target.is_file() and checksums_target.is_file():
+            try:
+                m_data = json.loads(manifest_target.read_text(encoding="utf-8"))
+                if (
+                    m_data.get("dataset_id") == context["dataset_id"]
+                    and m_data.get("identity_payload_sha256") == context["identity_payload_sha256"]
+                    and m_data.get("build_run_id") == context["run_id"]
+                    and m_data.get("dataset_status") == "EXPORTED"
+                ):
+                    is_already_published = True
+            except Exception:
+                is_already_published = False
+
+        if not is_already_published and context.get("mock_pipeline"):
+            mock_export_dir = Path(context["staging_root"]) / "mock_export"
+            mock_manifest_target = mock_export_dir / "dataset_manifest.json"
+            if mock_manifest_target.is_file():
+                try:
+                    m_data = json.loads(mock_manifest_target.read_text(encoding="utf-8"))
+                    if (
+                        m_data.get("dataset_id") == context["dataset_id"]
+                        and m_data.get("build_run_id") == context["run_id"]
+                    ):
+                        is_already_published = True
+                except Exception:
+                    is_already_published = False
+
+    if not is_already_published:
+        try:
+            held = lease("assert", owner, env)
+            if held.get("status") != "HELD":
+                raise Mli02Error("DS_LEASE_NOT_HELD")
+        except SourceRunBusy as err:
+            raise Mli02Error("DS_LEASE_NOT_HELD") from err
+
+    # Gate export and publish on valid, passing validation snapshot
+    if step_name in ("export_parquet", "mark_dataset_exported"):
+        staging_root = Path(context["staging_root"])
+        val_report_path = staging_root / "step_08_validate_feature_snapshot.json"
+        if not val_report_path.is_file():
+            raise Mli02Error("DS_VALIDATION_GATE_MISSING")
+        val_doc = _read_step(val_report_path)
+        if (
+            val_doc.get("status") not in {"FEATURE_SNAPSHOT_VALIDATED", "PASSED", "SUCCESS", "VALIDATED"}
+            or val_doc.get("quality_gate_status") in {"FAILED", "ERROR", "REJECTED"}
+            or (val_doc.get("quality_gate_status") is not None and val_doc.get("quality_gate_status") not in {"PASSED", "SUCCESS"})
+            or int(val_doc.get("invalid_feature_count", 0)) > 0
+            or val_doc.get("candidate_row_count") != val_doc.get("feature_row_count")
+        ):
+            raise Mli02Error("DS_VALIDATION_GATE_FAILED")
 
     mock_pipeline = context.get("mock_pipeline")
     runner_cmd = env.get("ML_BUILD_RUNNER_COMMAND", "").strip()
@@ -479,6 +535,7 @@ def _run_mock_test_adapter_step(
             "dataset_split": context["validated_config"]["dataset_split"],
             "gold_snapshot_id": context["gold_publication"]["gold_snapshot_id"],
             "gold_publication_id": context["gold_publication"]["gold_publication_id"],
+            "registry_snapshot_id": f"reg_gold_{context['gold_publication']['gold_snapshot_id']}",
             "identity_payload_sha256": context["identity_payload_sha256"],
             "dataset_status": "BUILDING",
             "attempt": attempt,
@@ -553,6 +610,7 @@ def _run_mock_test_adapter_step(
             "run_id": context["run_id"],
             "dataset_id": dataset_id,
             "gold_snapshot_id": context["gold_publication"]["gold_snapshot_id"],
+            "mainshock_snapshot_id": sel_mock.get("mainshock_snapshot_id", f"main_{context['gold_publication']['gold_snapshot_id']}_v1"),
             "attempt": attempt,
             "mainshock_count": count,
             "mainshock_ids": [m.get("mainshock_event_id") for m in sel_mock.get("mainshocks", [])],
@@ -574,6 +632,7 @@ def _run_mock_test_adapter_step(
             "run_id": context["run_id"],
             "dataset_id": dataset_id,
             "gold_snapshot_id": context["gold_publication"]["gold_snapshot_id"],
+            "candidate_snapshot_id": win_mock.get("candidate_snapshot_id", f"cand_{context['gold_publication']['gold_snapshot_id']}_v1"),
             "attempt": attempt,
             "candidate_row_count": c_count,
             "role_counts": win_mock.get("role_counts", {}),
@@ -621,6 +680,8 @@ def _run_mock_test_adapter_step(
             "feature_row_count": step_feat["feature_row_count"],
             "grain_uniqueness_verified": True,
             "resource_guard_status": "PASS",
+            "quality_gate_status": "PASSED",
+            "invalid_feature_count": 0,
             "validated_at_utc": now_iso,
         }
         _atomic_json(staging_root / "step_08_validate_feature_snapshot.json", res)
@@ -659,6 +720,7 @@ def _run_mock_test_adapter_step(
             export_artifact_uri=str(attempt_dir),
             export_manifest_sha256=checksums_sha,
             export_manifest_ref="checksums.sha256",
+            attempt_dir=attempt_dir,
         )
         _atomic_json(manifest_path, manifest_doc)
 
@@ -709,12 +771,20 @@ def _run_mock_test_adapter_step(
             export_artifact_uri=str(mock_export_dir),
             export_manifest_sha256=export_manifest_sha,
             export_manifest_ref="checksums.sha256",
+            attempt_dir=mock_export_dir,
         )
         mock_manifest_path = mock_export_dir / "dataset_manifest.json"
         _atomic_json(mock_manifest_path, manifest_doc)
         manifest_sha = hashlib.sha256(mock_manifest_path.read_bytes()).hexdigest()
 
         released = lease("release", context["lease_owner"], environment)
+        release_receipt = {
+            "status": "RELEASED",
+            "dag_id": context.get("dag_id", DAG_ID),
+            "run_id": context["run_id"],
+            "released_at_utc": now_iso,
+        }
+        _atomic_json(staging_root / "lease_release_receipt.json", release_receipt)
 
         res = {
             "step": "mark_dataset_exported",
@@ -729,6 +799,7 @@ def _run_mock_test_adapter_step(
             "export_manifest_sha256": export_manifest_sha,
             "dataset_manifest_sha256": manifest_sha,
             "lease_released": released.get("status") == "RELEASED",
+            "lease_release_receipt": release_receipt,
             "colab_handoff": {
                 "status": "MOCK_NOT_ELIGIBLE_FOR_COLAB",
                 "ready": False,
@@ -753,6 +824,9 @@ def validate_runner_receipt(
     """Validate external runner receipt against identity, run_id, attempt, and snapshot."""
     if not isinstance(report, Mapping):
         raise Mli02Error(f"DS_RUNNER_RECEIPT_INVALID:{step_name}_not_dict")
+    status = report.get("status")
+    if not status or status in {"FAILED", "ERROR", "REJECTED"}:
+        raise Mli02Error(f"DS_RUNNER_STEP_FAILED:{step_name}:{status}")
     if report.get("step") != step_name:
         raise Mli02Error(f"DS_RUNNER_RECEIPT_INVALID:{step_name}_step_mismatch")
     if report.get("run_id") != context["run_id"]:
@@ -845,7 +919,18 @@ def _run_external_runner_step(
             raise Mli02Error("DS_FEATURE_ROWS_EMPTY")
 
     elif step_name == "validate_feature_snapshot":
-        if report.get("candidate_row_count") != report.get("feature_row_count"):
+        status = report.get("status")
+        if status in {"FAILED", "ERROR", "REJECTED"} or status not in {"FEATURE_SNAPSHOT_VALIDATED", "PASSED", "SUCCESS", "VALIDATED"}:
+            raise Mli02Error(f"DS_VALIDATION_STATUS_FAILED:{status}")
+        qg_status = report.get("quality_gate_status")
+        if qg_status in {"FAILED", "ERROR", "REJECTED"} or (qg_status is not None and qg_status not in {"PASSED", "SUCCESS"}):
+            raise Mli02Error(f"DS_QUALITY_GATE_FAILED:{qg_status}")
+        invalid_feat_count = int(report.get("invalid_feature_count", 0))
+        if invalid_feat_count > 0:
+            raise Mli02Error(f"DS_INVALID_FEATURES_FOUND:{invalid_feat_count}")
+        cand_count = report.get("candidate_row_count")
+        feat_count = report.get("feature_row_count")
+        if cand_count is None or feat_count is None or int(cand_count) != int(feat_count) or int(cand_count) <= 0:
             raise Mli02Error("DS_COUNT_RECONCILIATION_FAILED")
 
     elif step_name == "mark_dataset_exported":
@@ -856,6 +941,10 @@ def _run_external_runner_step(
             raise Mli02Error("DS_EXPORT_GATE_FAILED")
         if not report.get("export_manifest_sha256") or not report.get("dataset_manifest_sha256"):
             raise Mli02Error("DS_EXPORT_GATE_FAILED")
+
+    step_idx = STEPS.index(step_name) + 1
+    step_file = staging_root / f"step_{step_idx:02d}_{step_name}.json"
+    _atomic_json(step_file, report)
 
     return report
 
@@ -877,6 +966,20 @@ def promote_and_publish_dataset(
     feat_step = _read_step(staging_root / "step_07_build_spacetime_features.json")
     expected_feature_rows = feat_step["feature_row_count"]
 
+    # Verify validation gate passed before promote and publish
+    val_report_path = staging_root / "step_08_validate_feature_snapshot.json"
+    if not val_report_path.is_file():
+        raise Mli02Error("DS_VALIDATION_GATE_MISSING")
+    val_doc = _read_step(val_report_path)
+    if (
+        val_doc.get("status") not in {"FEATURE_SNAPSHOT_VALIDATED", "PASSED", "SUCCESS", "VALIDATED"}
+        or val_doc.get("quality_gate_status") in {"FAILED", "ERROR", "REJECTED"}
+        or (val_doc.get("quality_gate_status") is not None and val_doc.get("quality_gate_status") not in {"PASSED", "SUCCESS"})
+        or int(val_doc.get("invalid_feature_count", 0)) > 0
+        or val_doc.get("candidate_row_count") != val_doc.get("feature_row_count")
+    ):
+        raise Mli02Error("DS_VALIDATION_GATE_FAILED")
+
     # Check if a verified export already exists (Idempotent dataset export)
     manifest_target = final_export_dir / "dataset_manifest.json"
     checksums_target = final_export_dir / "checksums.sha256"
@@ -886,6 +989,7 @@ def promote_and_publish_dataset(
             if (
                 existing_manifest.get("dataset_id") == dataset_id
                 and existing_manifest.get("identity_payload_sha256") == context["identity_payload_sha256"]
+                and existing_manifest.get("build_run_id") == context["run_id"]
                 and existing_manifest.get("dataset_status") == "EXPORTED"
             ):
                 _verify_bundle_checksums(final_export_dir)
@@ -907,7 +1011,43 @@ def promote_and_publish_dataset(
                 reg_export_dir.mkdir(parents=True, exist_ok=True)
                 _atomic_copy(checksums_target, reg_export_dir / "checksums.sha256")
 
-                released = lease("release", context["lease_owner"], environment)
+                receipt_path = staging_root / "lease_release_receipt.json"
+                release_receipt = None
+                if receipt_path.is_file():
+                    try:
+                        existing_rc = json.loads(receipt_path.read_text(encoding="utf-8"))
+                        if (
+                            isinstance(existing_rc, Mapping)
+                            and existing_rc.get("status") == "RELEASED"
+                            and existing_rc.get("dag_id") == context.get("dag_id", DAG_ID)
+                            and existing_rc.get("run_id") == context["run_id"]
+                        ):
+                            release_receipt = existing_rc
+                    except Exception:
+                        release_receipt = None
+
+                # Only attempt to release lease if not already released or owner still matches
+                guard_root = Path(environment.get("SOURCE_GUARD_ROOT", "/opt/pipeline/staging/source-guard"))
+                owner_file = guard_root / "owner.json"
+                if owner_file.is_file():
+                    try:
+                        cur_owner = json.loads(owner_file.read_text(encoding="utf-8"))
+                        if cur_owner == context["lease_owner"]:
+                            lease("release", context["lease_owner"], environment)
+                    except Exception:
+                        pass
+                elif release_receipt is None:
+                    lease("release", context["lease_owner"], environment)
+
+                if release_receipt is None:
+                    release_receipt = {
+                        "status": "RELEASED",
+                        "dag_id": context.get("dag_id", DAG_ID),
+                        "run_id": context["run_id"],
+                        "released_at_utc": now_iso,
+                    }
+                    _atomic_json(receipt_path, release_receipt)
+
                 return {
                     "step": "mark_dataset_exported",
                     "status": "DATASET_EXPORTED",
@@ -920,7 +1060,8 @@ def promote_and_publish_dataset(
                     "export_manifest_sha256": export_manifest_sha,
                     "dataset_manifest_sha256": manifest_sha,
                     "registry_path": str(reg_manifest),
-                    "lease_released": released.get("status") == "RELEASED",
+                    "lease_released": True,
+                    "lease_release_receipt": release_receipt,
                     "reused_existing_bundle": True,
                     "colab_handoff": {
                         "status": "MANUAL_OPERATOR_REQUIRED",
@@ -969,6 +1110,7 @@ def promote_and_publish_dataset(
         export_artifact_uri=str(final_export_dir),
         export_manifest_sha256=export_manifest_sha,
         export_manifest_ref=export_manifest_ref,
+        attempt_dir=final_export_dir,
     )
     _atomic_json(manifest_target, manifest_doc)
     manifest_sha = hashlib.sha256(manifest_target.read_bytes()).hexdigest()
@@ -992,6 +1134,13 @@ def promote_and_publish_dataset(
     _atomic_copy(checksums_target, reg_export_dir / "checksums.sha256")
 
     released = lease("release", context["lease_owner"], environment)
+    release_receipt = {
+        "status": "RELEASED",
+        "dag_id": context.get("dag_id", DAG_ID),
+        "run_id": context["run_id"],
+        "released_at_utc": now_iso,
+    }
+    _atomic_json(staging_root / "lease_release_receipt.json", release_receipt)
 
     return {
         "step": "mark_dataset_exported",
@@ -1006,6 +1155,7 @@ def promote_and_publish_dataset(
         "dataset_manifest_sha256": manifest_sha,
         "registry_path": str(reg_manifest),
         "lease_released": released.get("status") == "RELEASED",
+        "lease_release_receipt": release_receipt,
         "reused_existing_bundle": False,
         "colab_handoff": {
             "status": "MANUAL_OPERATOR_REQUIRED",
@@ -1040,8 +1190,9 @@ def _build_dataset_manifest(
     export_artifact_uri: str | None = None,
     export_manifest_sha256: str | None = None,
     export_manifest_ref: str | None = None,
+    attempt_dir: Path | None = None,
 ) -> dict[str, Any]:
-    """Assemble logical CON-03-ML dataset manifest document."""
+    """Assemble logical CON-03-ML dataset manifest document with real candidate lineage and snapshot pins."""
     ident = context["identity_payload"]
     dataset_id = context["dataset_id"]
     now_iso = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
@@ -1051,6 +1202,72 @@ def _build_dataset_manifest(
     sel = _read_step(staging_root / "step_05_select_mainshocks.json")
     win = _read_step(staging_root / "step_06_build_candidate_windows.json")
     feat = _read_step(staging_root / "step_07_build_spacetime_features.json")
+
+    # Resolve real snapshot pins from verified upstream steps - fail closed!
+    snap = _read_step(staging_root / "step_02_resolve_gold_snapshot.json")
+    registry_snapshot_id = snap.get("registry_snapshot_id") or str(context["gold_publication"]["gold_snapshot_id"])
+    if not registry_snapshot_id or not isinstance(registry_snapshot_id, str) or not registry_snapshot_id.strip():
+        raise Mli02Error("DS_SNAPSHOT_PINS_MISSING:registry_snapshot_id")
+
+    mainshock_snapshot_id = sel.get("mainshock_snapshot_id")
+    if not mainshock_snapshot_id or not isinstance(mainshock_snapshot_id, str) or not mainshock_snapshot_id.strip():
+        raise Mli02Error("DS_SNAPSHOT_PINS_MISSING:mainshock_snapshot_id")
+
+    candidate_snapshot_id = win.get("candidate_snapshot_id")
+    if not candidate_snapshot_id or not isinstance(candidate_snapshot_id, str) or not candidate_snapshot_id.strip():
+        raise Mli02Error("DS_SNAPSHOT_PINS_MISSING:candidate_snapshot_id")
+
+    # Read verified Parquet files to extract genuine candidate lineage and grain
+    search_dir = attempt_dir or (Path(export_artifact_uri) if export_artifact_uri else None)
+    if not search_dir or not search_dir.is_dir():
+        raise Mli02Error("DS_CANDIDATE_LINEAGE_MISSING")
+
+    parquet_files = sorted(search_dir.glob("features-part-*.parquet"))
+    if not parquet_files:
+        raise Mli02Error("DS_FEATURE_ROWS_EMPTY")
+
+    try:
+        import pyarrow.parquet as pq
+    except ImportError:
+        raise Mli02Error("DS_PARQUET_READER_UNAVAILABLE")
+
+    candidates = []
+    observed_grain = set()
+    parquet_mainshocks = set()
+
+    for pf in parquet_files:
+        table = pq.ParquetFile(pf).read()
+        m_col = table.column("mainshock_event_id").to_pylist()
+        c_col = table.column("candidate_event_id").to_pylist()
+        r_col = table.column("relative_time_role").to_pylist()
+        for m_id, c_id, role in zip(m_col, c_col, r_col):
+            grain_key = (m_id, c_id)
+            if grain_key in observed_grain:
+                raise Mli02Error("DS_GRAIN_DUPLICATE")
+            observed_grain.add(grain_key)
+            parquet_mainshocks.add(m_id)
+            candidates.append({
+                "mainshock_event_id": str(m_id),
+                "candidate_event_id": str(c_id),
+                "role": str(role),
+            })
+
+    # Reconcile grain and mainshocks
+    expected_feat_rows = int(feat["feature_row_count"])
+    expected_cand_rows = int(win["candidate_row_count"])
+    if len(candidates) != expected_feat_rows or len(candidates) != expected_cand_rows:
+        raise Mli02Error(
+            f"DS_COUNT_RECONCILIATION_FAILED:candidates_{len(candidates)}_features_{expected_feat_rows}"
+        )
+
+    expected_mainshocks = set(sel.get("mainshock_ids", []))
+    if not expected_mainshocks or len(expected_mainshocks) != int(sel.get("mainshock_count", 0)):
+        raise Mli02Error("DS_MAINSHOCK_COUNT_MISMATCH")
+
+    if parquet_mainshocks != expected_mainshocks:
+        raise Mli02Error(
+            f"DS_MAINSHOCK_SET_MISMATCH:expected_{sorted(expected_mainshocks)}_got_{sorted(parquet_mainshocks)}"
+        )
 
     manifest = {
         "schema_version": "1.0",
@@ -1095,16 +1312,10 @@ def _build_dataset_manifest(
         "export_artifact_uri": export_artifact_uri,
         "export_manifest_ref": export_manifest_ref or f"exports/{dataset_id}/checksums.sha256",
         "export_manifest_sha256": export_manifest_sha256,
-        "registry_snapshot_id": f"reg_{dataset_id[:16]}",
-        "candidate_snapshot_id": f"cand_{dataset_id[:16]}",
-        "mainshock_snapshot_id": f"main_{dataset_id[:16]}",
-        "candidates": [
-            {
-                "mainshock_event_id": sel["mainshock_ids"][0] if sel.get("mainshock_ids") else "evt_001",
-                "candidate_event_id": sel["mainshock_ids"][0] if sel.get("mainshock_ids") else "evt_001",
-                "role": "MAINSHOCK",
-            }
-        ],
+        "registry_snapshot_id": registry_snapshot_id,
+        "candidate_snapshot_id": candidate_snapshot_id,
+        "mainshock_snapshot_id": mainshock_snapshot_id,
+        "candidates": candidates,
     }
     return manifest
 
@@ -1143,19 +1354,29 @@ def _materialize_features_parquet(
 
         did = context["dataset_id"]
         m_list = mainshocks or [{"mainshock_event_id": "evt_001"}]
-        main_id = m_list[0].get("mainshock_event_id", "evt_001")
+        num_mains = len(m_list)
+        rows_per_main = row_count // num_mains
+        remainder = row_count % num_mains
 
         rows = []
-        rows.append((did, main_id, main_id, "2000-01-28T14:21:09.120Z", 35.483, 140.485, 58.2, 5.7, "MAINSHOCK", True, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0))
-        for i in range(1, row_count):
-            role = "PRE" if i % 2 == 1 else "POST"
-            cid = f"cand_{main_id}_{i:05d}"
+        for idx, m_info in enumerate(m_list):
+            m_id = m_info.get("mainshock_event_id", f"evt_{idx:03d}")
+            count_for_this = rows_per_main + (1 if idx < remainder else 0)
+            if count_for_this <= 0:
+                continue
             rows.append((
-                did, main_id, cid, "2000-01-28T15:00:00.000Z",
-                35.483 + 0.0001 * i, 140.485 + 0.0001 * i, 58.2, 2.5,
-                role, False, 0.01 * i, 0.01 * i, 0.0, 0.1 * i,
-                0.001 * i, 0.001 * i, 0.0, 0.01 * i,
+                did, m_id, m_id, "2000-01-28T14:21:09.120Z", 35.483, 140.485, 58.2, 5.7,
+                "MAINSHOCK", True, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
             ))
+            for i in range(1, count_for_this):
+                role = "PRE" if i % 2 == 1 else "POST"
+                cid = f"cand_{m_id}_{i:05d}"
+                rows.append((
+                    did, m_id, cid, "2000-01-28T15:00:00.000Z",
+                    35.483 + 0.0001 * i, 140.485 + 0.0001 * i, 58.2, 2.5,
+                    role, False, 0.01 * i, 0.01 * i, 0.0, 0.1 * i,
+                    0.001 * i, 0.001 * i, 0.0, 0.01 * i,
+                ))
 
         cols = [[r[i] for r in rows] for i in range(len(schema))]
         table = pa.Table.from_arrays([pa.array(c) for c in cols], schema=schema)
@@ -1255,16 +1476,35 @@ def mark_dataset_exported_summary(
     if hashlib.sha256(resolved_export_ref.read_bytes()).hexdigest() != export_manifest_sha:
         raise Mli02Error("DS_EXPORT_GATE_FAILED")
 
-    # Verify lease is released (not still HELD)
+    # Verify lease release receipt was recorded for this run
+    staging_root = Path(context["staging_root"])
+    receipt_file = staging_root / "lease_release_receipt.json"
+    if not receipt_file.is_file():
+        raise Mli02Error("DS_LEASE_RELEASE_RECEIPT_MISSING")
+    try:
+        receipt_data = json.loads(receipt_file.read_text(encoding="utf-8"))
+    except (ValueError, OSError) as err:
+        raise Mli02Error("DS_LEASE_RELEASE_RECEIPT_CORRUPT") from err
+    if (
+        not isinstance(receipt_data, Mapping)
+        or receipt_data.get("status") != "RELEASED"
+        or receipt_data.get("dag_id") != context.get("dag_id", DAG_ID)
+        or receipt_data.get("run_id") != context["run_id"]
+    ):
+        raise Mli02Error("DS_LEASE_RELEASE_RECEIPT_INVALID")
+
+    # Fail closed on corrupt lease state; verify lease is released (not still HELD)
     guard_root = Path(env.get("SOURCE_GUARD_ROOT", "/opt/pipeline/staging/source-guard"))
     owner_file = guard_root / "owner.json"
-    if owner_file.is_file():
+    if owner_file.exists():
         try:
             current_owner = json.loads(owner_file.read_text(encoding="utf-8"))
-            if current_owner == owner:
-                raise Mli02Error("DS_LEASE_STILL_HELD")
-        except (ValueError, OSError):
-            pass
+        except (ValueError, OSError) as err:
+            raise Mli02Error("DS_LEASE_STATE_CORRUPT") from err
+        if not isinstance(current_owner, Mapping) or "run_id" not in current_owner or "dag_id" not in current_owner:
+            raise Mli02Error("DS_LEASE_STATE_CORRUPT")
+        if current_owner == owner:
+            raise Mli02Error("DS_LEASE_STILL_HELD")
 
     summary = {
         "contract_version": CONTRACT_VERSION,
