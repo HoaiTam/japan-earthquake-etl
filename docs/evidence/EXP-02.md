@@ -1,6 +1,6 @@
 # EXP-02 — Chạy Window, DBSCAN và HDBSCAN global evidence
 
-Ngày kiểm chứng: 2026-10-18 (Review Round 2).
+Ngày kiểm chứng: 2026-10-18 (Review Round 3).
 Branch: `feat/exp-02-baseline-algorithms`.
 Assignee: `rosy179`.
 Reviewer: `unassigned`.
@@ -11,77 +11,68 @@ Task EXP-02 triển khai ba thuật toán baseline trên cùng pilot feature bun
 1. Liệu density clustering (DBSCAN/HDBSCAN) có giảm background noise tốt hơn so với counting window rule hay không.
 2. HDBSCAN với variable density clustering và membership probabilities có mang lại thông tin định lượng hơn DBSCAN hay không.
 
-Theo quy trình `JUPYTER_PILOT_WORKFLOW.md`, toàn bộ phát triển và kiểm chứng kỹ thuật được thực hiện trên Jupyter local trước; chỉ khi `local_smoke_status=PASSED` và `colab_migration_allowed=true` mới được phép chuyển sang Google Colab. Pilot outputs tuyệt đối không phát `_SUCCESS.json` hoặc tự nhận `RESULT_READY`/`CANDIDATE`.
+Theo quy trình `JUPYTER_PILOT_WORKFLOW.md`, toàn bộ phát triển và kiểm chứng kỹ thuật được thực hiện trên Jupyter local trước; chỉ khi `local_smoke_status=PASSED`, `fresh_kernel_acceptance=true` và `colab_migration_allowed=true` mới được phép chuyển sang Google Colab. Pilot outputs tuyệt đối không phát `_SUCCESS.json` hoặc tự nhận `RESULT_READY`/`CANDIDATE`.
 
-Sau đợt review 1 (commit `68edc26`), @HoaiTam đã phản hồi tại PR #84 (comment-6229895703) về 5 điểm cải tiến (2 P1 và 3 P2). Bản cập nhật này giải quyết triệt để toàn bộ 5 điểm nêu trên.
+Sau đợt review 2, @HoaiTam đã phản hồi tại PR #84 (comment-6245643656) về 4 điểm cần hoàn thiện:
+1. Sửa hai test CI `docs-contracts` (`test_shared_and_unmapped_paths_fail_safe_to_full` và `test_matrix_output_contains_only_fixed_group_ids_and_summary_counts`).
+2. Chế độ fallback của notebook inspection phải tạo `local-smoke-report.json` không mở Colab gate (`FALLBACK_EXEC_WARNING`, `colab_migration_allowed=false`, `fresh_kernel_acceptance=false`).
+3. Bắt buộc có đủ checksum cho mọi artifact được bảo vệ trong manifest và đọc/đối soát thực tế dữ liệu vật lý trên đĩa.
+4. Trích xuất `bundle_checksum` của pilot bundle đầu vào không bị null (đúng contract checksums index).
 
 ## 2. Các điểm đã khắc phục theo review của @HoaiTam
 
-### 2.1. [P1] Thắt chặt Local Smoke Gate và kiểm định kỹ thuật
-- **Vấn đề:** `generate_local_smoke_report()` trước đây chỉ so khớp `total_candidates` rồi gán luôn `PASSED` và `colab_migration_allowed=true`, bỏ lọt trường hợp kết quả rỗng, thiếu thuật toán hoặc membership/summary không hợp lệ.
+### 2.1. [CI] Sửa hai test CI thất bại
+- **Policy dependency dùng chung:** Đưa `notebooks/requirements-pilot.txt` ra khỏi `EXP_FILES` trong `scripts/ci-impact.py` để file dependency dùng chung này tuân thủ đúng policy fail-safe về chạy full cả 3 thành phần (`java=full, airflow=full, pilot=full`).
+- **Đồng bộ nhãn summary:** Cập nhật đồng bộ assertion trong `tests/ci/test_suites.py` khớp với nhãn summary mới `DAT-02/EXP-01/EXP-02 pilot & baselines`.
+
+### 2.2. [Gate] Thống nhất chế độ Fallback và Colab Migration Gate
+- **Vấn đề:** Khi chạy inspection ở môi trường không có `nbclient`, notebook tạo `local-smoke-report.json` ghi `PASSED` và `colab_migration_allowed=true`, dẫn đến Colab gate vẫn mở.
 - **Khắc phục:**
-  - Bắt buộc kiểm tra đủ ba thuật toán baseline: `WINDOW`, `DBSCAN`, `HDBSCAN_GLOBAL`. Từ chối ngay nếu rỗng hoặc thiếu bất kỳ thuật toán nào (`MISSING_REQUIRED_BASELINE_ALGORITHMS`).
-  - Đối chiếu thực tế các artifact trên đĩa: kiểm tra tồn tại và tính hợp lệ của hash SHA-256 các file `memberships.parquet`, `sequence_summary.parquet`, `experiment_metrics.json`, `experiment_config.json`, `pilot_result_manifest.json`.
-  - Kiểm tra tính hợp lệ của vai trò sự kiện: `event_role_candidate` phải thuộc `{"PRE", "MAINSHOCK", "POST"}`; mainshock tự liên kết phải mang vai trò `MAINSHOCK`.
-  - Kiểm tra null probability policy: `membership_probability` bắt buộc là `None` cho `WINDOW` và `DBSCAN`; bắt buộc thuộc `[0.0, 1.0]` cho `HDBSCAN_GLOBAL`.
-  - Đối soát chi tiết từng window: số lượng membership phải khớp `candidate_count`, `sequence_member_count`, `aftershock_count`, `foreshock_candidate_count`, `noise_count`.
-  - Phân biệt rõ các kết quả vật lý/phân cụm hợp lệ (`EXP_MAINSHOCK_CLASSIFIED_AS_NOISE`, window không có POST) với lỗi cài đặt: ghi nhận vào `case_results` của report thay vì coi là lỗi code.
-  - Cập nhật `ColabPathAdapter.verify_local_smoke_gate` để chặn các report thiếu thuật toán hoặc rỗng phần reconciliation.
+  - `scripts/inspect-exp02-notebook.py` truyền rõ ràng cờ môi trường `EXP02_RUNNER_MODE` và `EXP02_FRESH_KERNEL_ACCEPTANCE` ("false" khi chạy isolated exec).
+  - `generate_local_smoke_report()` ghi nhận trung thực: trong chế độ fallback, `local_smoke_status="FALLBACK_EXEC_WARNING"`, `colab_migration_allowed=false`, `fresh_kernel_acceptance=false`.
+  - `ColabPathAdapter.verify_local_smoke_gate()` bắt buộc kiểm tra `fresh_kernel_acceptance is True`, `colab_migration_allowed is True` và `local_smoke_status == "PASSED"`; từ chối mở gate nếu chạy fallback.
 
-### 2.2. [P1] Xử lý Multi-Sequence Overlap và Đồng bộ Run ID
-- **Vấn đề:** Các hàm fit gán nhãn `UNIQUE` độc lập theo từng window; candidate nằm trong nhiều window đều bị gán `UNIQUE`/rank 1. Runner cũng gán cứng `run_id="temp_run"`.
+### 2.3. [Integrity] Bắt buộc đủ Checksum trong Manifest & Đối soát dữ liệu vật lý
+- **Vấn đề:** Checksum chỉ được so sánh nếu tên file có trong manifest (nếu xóa entry manifest thì bị bỏ qua). Chưa kiểm tra dữ liệu vật lý trên đĩa ngoài bộ nhớ.
 - **Khắc phục:**
-  - Giữ nguyên toàn bộ raw memberships (candidate xuất hiện ở cả hai sequence theo hợp đồng ML_DATA_MODEL.md).
-  - Đối soát xuyên window: nếu candidate được nhận vào nhiều hơn 1 sequence (`is_sequence_member=True`), đánh dấu `multi_sequence_status="AMBIGUOUS"` và `resolution_rank=None` (chờ bộ giải quyết tie-break adaptive tại task EXP-03).
-  - Nếu candidate chỉ thuộc 1 sequence: giữ `multi_sequence_status="UNIQUE"` và `resolution_rank=1`.
-  - Đồng bộ `effective_run_id` sinh ngẫu nhiên/xác định ngay từ đầu `run_baseline_experiment` truyền xuyên suốt vào memberships, summaries, manifest và config, thay thế hoàn toàn chuỗi tạm `"temp_run"`.
+  - Bắt buộc mọi artifact trong `standard_files` (`memberships.parquet`, `sequence_summary.parquet`, `experiment_metrics.json`, `experiment_config.json`) phải tồn tại entry checksum trong manifest (`MISSING_MANIFEST_CHECKSUM_ENTRY`).
+  - Đọc và phân tích trực tiếp file vật lý: parse `experiment_metrics.json` và `experiment_config.json` (bắt lỗi `CORRUPT_PHYSICAL_METRICS_JSON`), đọc `memberships.parquet` và `sequence_summary.parquet` bằng PyArrow (bắt lỗi `CORRUPT_PHYSICAL_MEMBERSHIPS_PARQUET`), đối soát số hàng thực tế khớp với input candidate.
 
-### 2.3. [P2] Phân định Fresh-Kernel Run và Lưu trữ Artifacts
-- **Vấn đề:** `scripts/inspect-exp02-notebook.py` fallback sang `isolated_exec` nhưng vẫn trả `RESTART_RUN_ALL_PASSED` và `colab_migration_allowed=true`. Notebook dùng `TemporaryDirectory` và xóa sạch ở cell cuối.
+### 2.4. [Contract] Trích xuất non-null Bundle Checksum & Fingerprint
+- **Vấn đề:** Report đọc `manifest.checksums["features.parquet"]` trong khi bundle DAT-02 dùng `features-part-00000.parquet`, khiến `bundle_checksum` bị `null`.
 - **Khắc phục:**
-  - Phân biệt rõ ràng: chỉ khi có `nbclient`/`ipykernel` thật sự chạy kernel mới xác nhận `RESTART_RUN_ALL_PASSED`, `fresh_kernel_acceptance=True`, `colab_migration_allowed=True`. Nếu chạy fallback `isolated_exec`, trả về `FALLBACK_EXEC_PASSED`, `fresh_kernel_acceptance=False`, `colab_migration_allowed=False`.
-  - Cấu hình thư mục output `EXP02_OUTPUT_DIR` (mặc định `staging/ml-experiments/exp02-baselines`) và không xóa thư mục kết quả ở cell cuối; bảo toàn toàn bộ kết quả và báo cáo để tái kiểm chứng.
-
-### 2.4. [P2] Điều chỉnh trạng thái Task EXP-02 về In Progress
-- Chuyển trạng thái task `EXP-02` trong `EXP-02.md` và `docs/task/tasks/README.md` về `In Progress`.
-- Bỏ tick các tiêu chí chờ Colab và official MLD-05 export:
-  - `[ ] Colab dùng cùng code/bundle/config, đối soát invariants/tolerance; không rewrite model (chờ môi trường Colab sau local gate).`
-  - `[ ] Official run pin EXPORTED dataset; pilot không phát _SUCCESS/RESULT_READY/CANDIDATE (chờ MLD-05 export).`
-
-### 2.5. [P2] Sửa CI và Đưa Tests Mới vào Phạm vi Chạy
-- Đã xóa trailing whitespace tại dòng 27 của `scripts/inspect-exp02-notebook.py`.
-- Đồng bộ rebase với các bản vá harness từ nhánh `feat/exp-01-jupyter-harness`.
-- Bổ sung `test_baseline_algorithms.py` vào target `test-pilot` trong `Makefile`.
-- Bổ sung dependencies `numpy==2.2.2`, `scipy==1.15.1`, `scikit-learn==1.6.1` vào `tests/ci/requirements.txt`.
-- Bổ sung các file/script/config EXP vào `scripts/ci-impact.py` để tự động chạy kiểm thử khi có thay đổi.
+  - `load_feature_bundle` trả về trường `checksums` được parse từ `checksums.sha256`.
+  - `generate_local_smoke_report()` tìm nạp checksum của features parquet từ `features-part-00000.parquet` hoặc `features*.parquet`. Bắt buộc `bundle_checksum` không được null và phải là chuỗi SHA-256 64 ký tự hợp lệ.
+  - Ghi nhận `bundle_fingerprint` đầy đủ (`features_sha256`, `pilot_id`, `checksums_index_sha256`) vào report.
+  - `ColabPathAdapter.verify_local_smoke_gate()` từ chối nếu `bundle_checksum` thiếu hoặc null.
 
 ## 3. Checks và tests đã chạy
 
 - **Unit and Contract Test Suite (`tests/test_baseline_algorithms.py`):**
   - Lệnh: `python -m unittest tests/test_baseline_algorithms.py`
-  - Kết quả: **13 tests PASS**, 0 errors, 0 failures.
-  - Các test cases mới bổ sung:
-    1. `test_multi_sequence_overlap_marked_ambiguous_and_rank_none`: Xác thực candidate chung giữa hai mainshock window mang trạng thái `AMBIGUOUS` và `resolution_rank=None`, trong khi candidate độc quyền giữ `UNIQUE` và rank 1.
-    2. `test_runner_synchronizes_run_id_across_memberships_and_manifest`: Xác thực run ID đồng bộ giữa memberships, summaries, manifest và config.
-    3. `test_local_smoke_report_rejects_empty_or_missing_algorithms`: Xác thực reject khi thiếu thuật toán baseline.
-    4. `test_local_smoke_report_rejects_corrupted_roles_and_count_mismatch`: Xác thực reject khi sai lệch count hoặc vai trò không hợp lệ.
-    5. `test_colab_adapter_rejects_incomplete_smoke_report`: Xác thực Colab adapter reject báo cáo thiếu hoặc sai reconciliation.
+  - Kết quả: **18 tests PASS**, 0 errors, 0 failures.
+  - Bao gồm các regression tests:
+    - `test_local_smoke_report_rejects_missing_manifest_checksum_entry`
+    - `test_local_smoke_report_rejects_corrupted_physical_json_and_parquet`
+    - `test_local_smoke_report_extracts_non_null_bundle_checksum_and_fingerprint`
+    - `test_fallback_mode_smoke_report_blocks_colab_gate`
+    - `test_colab_adapter_rejects_null_or_invalid_bundle_checksum`
 
 - **EXP-01 Harness Suite (`tests/test_experiment_harness.py`):**
   - Lệnh: `python -m unittest tests/test_experiment_harness.py`
   - Kết quả: **44 tests PASS**, 0 errors, 0 failures.
 
-- **Notebook headless runner (`scripts/inspect-exp02-notebook.py`):**
+- **CI Test Suite (`tests/ci/`):**
+  - Lệnh: `python -m unittest tests/ci/test_impact.py tests/ci/test_suites.py tests/ci/test_workflow_contract.py`
+  - Kết quả: **37 tests PASS**, 0 errors, 0 failures.
+
+- **Notebook Headless Runner (`scripts/inspect-exp02-notebook.py`):**
   - Lệnh: `python scripts/inspect-exp02-notebook.py`
-  - Kết quả: Hoàn thành 7/7 code cells, lưu trữ artifacts và report tại `staging/ml-experiments/exp02-baselines/local-smoke-report.json`, thông báo chế độ fallback rõ ràng khi chưa có Jupyter kernel runner.
+  - Kết quả: 7/7 code cells thực thi thành công; lưu artifact và report tại `staging/ml-experiments/exp02-baselines/`; ghi nhận đúng trạng thái fallback khi chưa có fresh kernel engine.
 
-- **Workflow Contract & CI (`tests/ci/test_workflow_contract.py`):**
-  - Lệnh: `python -m unittest tests/ci/test_workflow_contract.py`
-  - Kết quả: **4 tests PASS**.
-
-- **Task Status Consistency:**
-  - Lệnh: `python scratch/check_task_status.py`
-  - Kết quả: **76 task files, tracking sections and index rows agree**.
+- **Whitespace Check:**
+  - Lệnh: `git diff --check`
+  - Kết quả: 0 whitespace errors.
 
 ## 4. Giới hạn / Rủi ro / Bước tiếp theo
 

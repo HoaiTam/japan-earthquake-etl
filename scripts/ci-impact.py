@@ -22,8 +22,6 @@ EXP_FILES = {
     "notebooks/baseline_models.py",
     "notebooks/exp_01_harness_smoke.ipynb",
     "notebooks/exp_02_baseline_algorithms.ipynb",
-    "notebooks/requirements-lock.txt",
-    "notebooks/requirements-pilot.txt",
 }
 EXP_SCRIPTS = {
     "scripts/inspect-exp01-notebook.py",

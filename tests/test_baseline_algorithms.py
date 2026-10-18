@@ -320,6 +320,7 @@ class BaselineModelsTest(unittest.TestCase):
             algorithm_results=results,
             output_path=smoke_report_file,
             code_version="test-exp02",
+            fresh_kernel_acceptance=True,
         )
         self.assertEqual(report["local_smoke_status"], "PASSED")
         self.assertTrue(report["colab_migration_allowed"])
@@ -528,6 +529,8 @@ class BaselineModelsTest(unittest.TestCase):
             "report_version": "exp-02-local-smoke-v2",
             "local_smoke_status": "PASSED",
             "colab_migration_allowed": True,
+            "fresh_kernel_acceptance": True,
+            "bundle_checksum": "a" * 64,
             "algorithms_evaluated": ["WINDOW"],
             "reconciliation": {"WINDOW": {"total_candidates": 2}},
         }), encoding="utf-8")
@@ -541,12 +544,173 @@ class BaselineModelsTest(unittest.TestCase):
             "report_version": "exp-02-local-smoke-v2",
             "local_smoke_status": "PASSED",
             "colab_migration_allowed": True,
+            "fresh_kernel_acceptance": True,
+            "bundle_checksum": "a" * 64,
             "algorithms_evaluated": ["DBSCAN", "HDBSCAN_GLOBAL", "WINDOW"],
             "reconciliation": {},
         }), encoding="utf-8")
 
         with self.assertRaisesRegex(ValueError, "COLAB_GATE_BLOCKED: Missing or incomplete reconciliation"):
             adapter.verify_local_smoke_gate(bad_reconcile_path)
+
+    def test_local_smoke_report_rejects_missing_manifest_checksum_entry(self):
+        temp_bundle_dir = self.out_dir / "pilot_bundle_missing_cs"
+        temp_bundle_dir.mkdir()
+        test_harness.create_pilot_fixture(temp_bundle_dir)
+        bundle = harness.load_feature_bundle(temp_bundle_dir, mode=harness.MODE_DEVELOPMENT)
+
+        results = {}
+        for algo in ["WINDOW", "DBSCAN", "HDBSCAN_GLOBAL"]:
+            results[algo] = models.run_baseline_experiment(
+                bundle=bundle,
+                algorithm_name=algo,
+                config={"model_config_version": f"{algo.lower()}_v1"},
+                model_config_version=f"{algo.lower()}_v1",
+                output_dir=self.out_dir / f"missing_cs_{algo.lower()}",
+                mode=harness.MODE_DEVELOPMENT,
+            )
+
+        # Corrupt WINDOW manifest by deleting experiment_metrics.json checksum entry
+        win_manifest_path = Path(results["WINDOW"]["write_result"]["manifest_path"])
+        manifest_data = json.loads(win_manifest_path.read_text(encoding="utf-8"))
+        del manifest_data["checksums"]["experiment_metrics.json"]
+        win_manifest_path.write_text(json.dumps(manifest_data), encoding="utf-8")
+
+        out_rep = self.out_dir / "rep_missing_cs.json"
+        with self.assertRaisesRegex(ValueError, "MISSING_MANIFEST_CHECKSUM_ENTRY:WINDOW:experiment_metrics.json"):
+            models.generate_local_smoke_report(bundle, results, out_rep)
+
+    def test_local_smoke_report_rejects_corrupted_physical_json_and_parquet(self):
+        temp_bundle_dir = self.out_dir / "pilot_bundle_phys_corrupt"
+        temp_bundle_dir.mkdir()
+        test_harness.create_pilot_fixture(temp_bundle_dir)
+        bundle = harness.load_feature_bundle(temp_bundle_dir, mode=harness.MODE_DEVELOPMENT)
+
+        results = {}
+        for algo in ["WINDOW", "DBSCAN", "HDBSCAN_GLOBAL"]:
+            results[algo] = models.run_baseline_experiment(
+                bundle=bundle,
+                algorithm_name=algo,
+                config={"model_config_version": f"{algo.lower()}_v1"},
+                model_config_version=f"{algo.lower()}_v1",
+                output_dir=self.out_dir / f"phys_corrupt_{algo.lower()}",
+                mode=harness.MODE_DEVELOPMENT,
+            )
+
+        # 1. Non-JSON string written to experiment_metrics.json
+        metrics_file = self.out_dir / "phys_corrupt_window" / "experiment_metrics.json"
+        metrics_file.write_text("THIS IS NOT A VALID JSON STRING", encoding="utf-8")
+        # Update manifest to match new checksum so it passes checksum check but fails physical json parse
+        win_manifest_path = Path(results["WINDOW"]["write_result"]["manifest_path"])
+        manifest_data = json.loads(win_manifest_path.read_text(encoding="utf-8"))
+        manifest_data["checksums"]["experiment_metrics.json"] = harness.sha256_bytes(metrics_file.read_bytes())
+        win_manifest_path.write_text(json.dumps(manifest_data), encoding="utf-8")
+
+        out_rep = self.out_dir / "rep_corrupt_json.json"
+        with self.assertRaisesRegex(ValueError, "CORRUPT_PHYSICAL_METRICS_JSON:WINDOW"):
+            models.generate_local_smoke_report(bundle, results, out_rep)
+
+        # Restore valid metrics json so test 2 isolates parquet corruption
+        valid_metrics_content = harness.canonical({
+            "schema_version": "1.0",
+            "experiment_run_id": results["WINDOW"]["run_id"],
+            "dataset_id": bundle["source_dataset_id"],
+            "algorithm_name": "WINDOW",
+            "membership_row_count": 2,
+            "summary_row_count": 1,
+            "metrics": results["WINDOW"]["metrics"],
+        })
+        metrics_file.write_text(valid_metrics_content, encoding="utf-8")
+        manifest_data["checksums"]["experiment_metrics.json"] = harness.sha256_bytes(metrics_file.read_bytes())
+
+        # 2. Corrupted parquet file
+        mems_file = self.out_dir / "phys_corrupt_window" / "memberships.parquet"
+        mems_file.write_bytes(b"INVALID_PARQUET_HEADER_BYTES")
+        manifest_data["checksums"]["memberships.parquet"] = harness.sha256_bytes(mems_file.read_bytes())
+        win_manifest_path.write_text(json.dumps(manifest_data), encoding="utf-8")
+
+        with self.assertRaisesRegex(ValueError, "CORRUPT_PHYSICAL_MEMBERSHIPS_PARQUET:WINDOW"):
+            models.generate_local_smoke_report(bundle, results, out_rep)
+
+    def test_local_smoke_report_extracts_non_null_bundle_checksum_and_fingerprint(self):
+        temp_bundle_dir = self.out_dir / "pilot_bundle_cs_extract"
+        temp_bundle_dir.mkdir()
+        test_harness.create_pilot_fixture(temp_bundle_dir)
+        bundle = harness.load_feature_bundle(temp_bundle_dir, mode=harness.MODE_DEVELOPMENT)
+
+        results = {}
+        for algo in ["WINDOW", "DBSCAN", "HDBSCAN_GLOBAL"]:
+            results[algo] = models.run_baseline_experiment(
+                bundle=bundle,
+                algorithm_name=algo,
+                config={"model_config_version": f"{algo.lower()}_v1"},
+                model_config_version=f"{algo.lower()}_v1",
+                output_dir=self.out_dir / f"cs_extract_{algo.lower()}",
+                mode=harness.MODE_DEVELOPMENT,
+            )
+
+        out_rep = self.out_dir / "rep_cs_extract.json"
+        rep = models.generate_local_smoke_report(bundle, results, out_rep, fresh_kernel_acceptance=True)
+
+        self.assertIsNotNone(rep["bundle_checksum"])
+        self.assertEqual(len(rep["bundle_checksum"]), 64)
+        self.assertEqual(rep["local_smoke_status"], "PASSED")
+        self.assertTrue(rep["colab_migration_allowed"])
+        self.assertTrue(rep["fresh_kernel_acceptance"])
+        self.assertIn("bundle_fingerprint", rep)
+        self.assertEqual(rep["bundle_fingerprint"]["features_sha256"], rep["bundle_checksum"])
+
+        adapter = harness.ColabPathAdapter()
+        verified = adapter.verify_local_smoke_gate(out_rep)
+        self.assertEqual(verified["bundle_checksum"], rep["bundle_checksum"])
+
+    def test_fallback_mode_smoke_report_blocks_colab_gate(self):
+        temp_bundle_dir = self.out_dir / "pilot_bundle_fallback_gate"
+        temp_bundle_dir.mkdir()
+        test_harness.create_pilot_fixture(temp_bundle_dir)
+        bundle = harness.load_feature_bundle(temp_bundle_dir, mode=harness.MODE_DEVELOPMENT)
+
+        results = {}
+        for algo in ["WINDOW", "DBSCAN", "HDBSCAN_GLOBAL"]:
+            results[algo] = models.run_baseline_experiment(
+                bundle=bundle,
+                algorithm_name=algo,
+                config={"model_config_version": f"{algo.lower()}_v1"},
+                model_config_version=f"{algo.lower()}_v1",
+                output_dir=self.out_dir / f"fallback_{algo.lower()}",
+                mode=harness.MODE_DEVELOPMENT,
+            )
+
+        out_rep = self.out_dir / "rep_fallback.json"
+        rep = models.generate_local_smoke_report(bundle, results, out_rep, fresh_kernel_acceptance=False)
+
+        self.assertEqual(rep["local_smoke_status"], "FALLBACK_EXEC_WARNING")
+        self.assertFalse(rep["colab_migration_allowed"])
+        self.assertFalse(rep["fresh_kernel_acceptance"])
+
+        adapter = harness.ColabPathAdapter()
+        with self.assertRaisesRegex(ValueError, "COLAB_GATE_BLOCKED: Local smoke status is FALLBACK_EXEC_WARNING"):
+            adapter.verify_local_smoke_gate(out_rep)
+
+    def test_colab_adapter_rejects_null_or_invalid_bundle_checksum(self):
+        adapter = harness.ColabPathAdapter()
+        bad_report_path = self.out_dir / "bad_checksum_report.json"
+        bad_report_path.write_text(json.dumps({
+            "report_version": "exp-02-local-smoke-v2",
+            "local_smoke_status": "PASSED",
+            "colab_migration_allowed": True,
+            "fresh_kernel_acceptance": True,
+            "bundle_checksum": None,
+            "algorithms_evaluated": ["DBSCAN", "HDBSCAN_GLOBAL", "WINDOW"],
+            "reconciliation": {
+                "WINDOW": {"total_candidates": 2},
+                "DBSCAN": {"total_candidates": 2},
+                "HDBSCAN_GLOBAL": {"total_candidates": 2},
+            },
+        }), encoding="utf-8")
+
+        with self.assertRaisesRegex(ValueError, "COLAB_GATE_BLOCKED: bundle_checksum is missing, null, or invalid"):
+            adapter.verify_local_smoke_gate(bad_report_path)
 
 
 if __name__ == "__main__":

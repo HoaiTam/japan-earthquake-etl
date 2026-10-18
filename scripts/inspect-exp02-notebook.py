@@ -38,8 +38,11 @@ def run_notebook_cells(notebook_path: Path, env_override: dict) -> dict:
 
     executed_count = 0
     t0 = time.time()
+    env_override = dict(env_override)
 
     if nbclient_available:
+        env_override["EXP02_RUNNER_MODE"] = "nbclient"
+        env_override["EXP02_FRESH_KERNEL_ACCEPTANCE"] = "true"
         import nbformat
         from nbclient import NotebookClient
         from jupyter_client import KernelManager
@@ -65,6 +68,8 @@ def run_notebook_cells(notebook_path: Path, env_override: dict) -> dict:
                     manager.shutdown_kernel(now=True)
             executed_count = len(code_cells)
     else:
+        env_override["EXP02_RUNNER_MODE"] = "isolated_exec"
+        env_override["EXP02_FRESH_KERNEL_ACCEPTANCE"] = "false"
         # Direct execution in isolated namespace
         exec_globals = {
             "__name__": "__main__",

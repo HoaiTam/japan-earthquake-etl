@@ -22,6 +22,8 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import uuid
 
 import numpy as np
+import pyarrow as pa
+import pyarrow.parquet as pq
 
 # Import HDBSCAN: use sklearn.cluster if available, else hdbscan
 try:
@@ -567,16 +569,21 @@ def generate_local_smoke_report(
     algorithm_results: Dict[str, Dict[str, Any]],
     output_path: Union[str, Path],
     code_version: Optional[str] = None,
+    fresh_kernel_acceptance: Optional[bool] = None,
 ) -> Dict[str, Any]:
     """Generate the official local-smoke-report.json technical report for Colab gate.
 
     Enforces:
     - All three baseline algorithms (WINDOW, DBSCAN, HDBSCAN_GLOBAL) must be present.
     - Physical result bundle artifacts and SHA-256 checksums on disk are verified.
+    - Protected artifacts must have non-empty checksum entries in manifest.
+    - Physical on-disk files (Parquet and JSON) are parsed and reconciled.
     - Exact candidate reconciliation against feature inputs.
     - Event role, mainshock self-identity, and probability null policies.
     - Window-level membership-to-summary counts reconciliation.
     - Valid physical outcomes (mainshock noise, empty POST) recorded in case_results.
+    - Non-null bundle_checksum from checksums index or bundle fingerprint.
+    - Fresh-kernel acceptance gate required for Colab migration.
     """
     required_algos = {"WINDOW", "DBSCAN", "HDBSCAN_GLOBAL"}
     require(isinstance(algorithm_results, dict) and len(algorithm_results) > 0,
@@ -590,6 +597,53 @@ def generate_local_smoke_report(
     require(feature_count > 0, "EMPTY_PILOT_BUNDLE")
     source_ds_id = bundle.get("source_dataset_id", bundle.get("bundle_id"))
 
+    # Resolve bundle checksum from bundle checksums index or checksums.sha256
+    checksum_map = dict(bundle.get("checksums") or {})
+    if not checksum_map and "bundle_dir" in bundle:
+        cpath = Path(bundle["bundle_dir"]) / "checksums.sha256"
+        if cpath.is_file():
+            for line in cpath.read_text(encoding="utf-8").splitlines():
+                line = line.strip()
+                if line and "  " in line:
+                    digest, name = line.split("  ", 1)
+                    checksum_map[name] = digest
+
+    feature_checksum = (
+        checksum_map.get("features-part-00000.parquet")
+        or checksum_map.get("features.parquet")
+    )
+    if not feature_checksum:
+        for fname, fdigest in checksum_map.items():
+            if fname.startswith("features") and fname.endswith(".parquet"):
+                feature_checksum = fdigest
+                break
+
+    if not feature_checksum:
+        manifest_checksums = bundle.get("manifest", {}).get("checksums", {})
+        feature_checksum = (
+            manifest_checksums.get("features-part-00000.parquet")
+            or manifest_checksums.get("features.parquet")
+        )
+
+    require(feature_checksum is not None and len(feature_checksum) == 64,
+            f"MISSING_INPUT_BUNDLE_CHECKSUM: Unable to extract features parquet checksum for bundle {bundle.get('bundle_id')}")
+
+    bundle_checksum = feature_checksum
+
+    # Determine fresh kernel acceptance and migration status
+    if fresh_kernel_acceptance is None:
+        env_fk = os.environ.get("EXP02_FRESH_KERNEL_ACCEPTANCE", "").lower()
+        if env_fk in {"1", "true", "yes"}:
+            fresh_kernel_acceptance = True
+        elif env_fk in {"0", "false", "no"}:
+            fresh_kernel_acceptance = False
+        else:
+            fresh_kernel_acceptance = False
+
+    runner_mode = os.environ.get("EXP02_RUNNER_MODE", "nbclient" if fresh_kernel_acceptance else "isolated_exec")
+    local_smoke_status = "PASSED" if fresh_kernel_acceptance else "FALLBACK_EXEC_WARNING"
+    colab_allowed = bool(fresh_kernel_acceptance)
+
     meta = get_runtime_metadata(code_version=code_version)
     reconciliation: Dict[str, Any] = {}
     case_results: Dict[str, Any] = {}
@@ -600,7 +654,6 @@ def generate_local_smoke_report(
         "sequence_summary.parquet",
         "experiment_metrics.json",
         "experiment_config.json",
-        "pilot_result_manifest.json",
     ]
 
     for algo in sorted(required_algos):
@@ -640,9 +693,53 @@ def generate_local_smoke_report(
             require(target_file.is_file(), f"MISSING_REQUIRED_ARTIFACT:{algo}:{sf}")
             file_bytes = target_file.read_bytes()
             actual_sha = sha256_bytes(file_bytes)
-            if sf in checksums:
-                require(checksums[sf] == actual_sha, f"CHECKSUM_MISMATCH:{algo}:{sf}:{checksums[sf]}!={actual_sha}")
+            # Require checksum entry to exist in manifest and match disk digest
+            require(sf in checksums and bool(checksums[sf]), f"MISSING_MANIFEST_CHECKSUM_ENTRY:{algo}:{sf}")
+            require(checksums[sf] == actual_sha, f"CHECKSUM_MISMATCH:{algo}:{sf}:{checksums[sf]}!={actual_sha}")
             algo_checksums[sf] = actual_sha
+
+        # Verify manifest itself
+        algo_checksums["pilot_result_manifest.json"] = sha256_bytes(Path(manifest_path).read_bytes())
+
+        # Physical on-disk read & validation
+        metrics_file = algo_out_dir / "experiment_metrics.json"
+        try:
+            disk_metrics = json.loads(metrics_file.read_text(encoding="utf-8"))
+        except Exception as exc:
+            raise ValueError(f"CORRUPT_PHYSICAL_METRICS_JSON:{algo}:{exc}")
+        require(isinstance(disk_metrics, dict), f"INVALID_PHYSICAL_METRICS_TYPE:{algo}")
+        disk_inner_metrics = disk_metrics.get("metrics") if isinstance(disk_metrics.get("metrics"), dict) else disk_metrics
+        total_cands = disk_inner_metrics.get("total_candidates", disk_metrics.get("membership_row_count"))
+        require(total_cands == feature_count,
+                f"PHYSICAL_METRICS_COUNT_MISMATCH:{algo}:{total_cands}!={feature_count}")
+        require(disk_metrics.get("membership_row_count") == feature_count,
+                f"PHYSICAL_METRICS_MEMBERSHIP_COUNT_MISMATCH:{algo}:{disk_metrics.get('membership_row_count')}!={feature_count}")
+        require(disk_metrics.get("summary_row_count") == len(summaries),
+                f"PHYSICAL_METRICS_SUMMARY_COUNT_MISMATCH:{algo}:{disk_metrics.get('summary_row_count')}!={len(summaries)}")
+
+        config_file = algo_out_dir / "experiment_config.json"
+        try:
+            disk_config = json.loads(config_file.read_text(encoding="utf-8"))
+        except Exception as exc:
+            raise ValueError(f"CORRUPT_PHYSICAL_CONFIG_JSON:{algo}:{exc}")
+        require(isinstance(disk_config, dict), f"INVALID_PHYSICAL_CONFIG_TYPE:{algo}")
+        require(disk_config.get("algorithm_name") == algo, f"PHYSICAL_CONFIG_ALGO_MISMATCH:{algo}")
+
+        mems_file = algo_out_dir / "memberships.parquet"
+        try:
+            disk_mems_table = pq.read_table(mems_file)
+        except Exception as exc:
+            raise ValueError(f"CORRUPT_PHYSICAL_MEMBERSHIPS_PARQUET:{algo}:{exc}")
+        require(disk_mems_table.num_rows == feature_count,
+                f"PHYSICAL_MEMBERSHIP_ROW_COUNT_MISMATCH:{algo}:{disk_mems_table.num_rows}!={feature_count}")
+
+        summ_file = algo_out_dir / "sequence_summary.parquet"
+        try:
+            disk_summ_table = pq.read_table(summ_file)
+        except Exception as exc:
+            raise ValueError(f"CORRUPT_PHYSICAL_SUMMARY_PARQUET:{algo}:{exc}")
+        require(disk_summ_table.num_rows == len(summaries),
+                f"PHYSICAL_SUMMARY_ROW_COUNT_MISMATCH:{algo}:{disk_summ_table.num_rows}!={len(summaries)}")
 
         artifacts_verified[algo] = {
             "relative_dir": algo.lower(),
@@ -730,11 +827,22 @@ def generate_local_smoke_report(
             "empty_post_windows": empty_post_count,
         }
 
+    checksum_index_sha = None
+    if "bundle_dir" in bundle:
+        cindex = Path(bundle["bundle_dir"]) / "checksums.sha256"
+        if cindex.is_file():
+            checksum_index_sha = sha256_bytes(cindex.read_bytes())
+
     report = {
         "report_version": "exp-02-local-smoke-v2",
         "pilot_id": bundle.get("bundle_id"),
         "source_dataset_id": source_ds_id,
-        "bundle_checksum": bundle.get("manifest", {}).get("checksums", {}).get("features.parquet"),
+        "bundle_checksum": bundle_checksum,
+        "bundle_fingerprint": {
+            "features_sha256": bundle_checksum,
+            "pilot_id": bundle.get("bundle_id"),
+            "checksums_index_sha256": checksum_index_sha,
+        },
         "code_version": meta["code_version"],
         "python_version": meta["python_version"],
         "package_versions": meta["package_versions"],
@@ -743,8 +851,10 @@ def generate_local_smoke_report(
         "case_results": case_results,
         "artifacts_verified": artifacts_verified,
         "coverage_status": bundle.get("manifest", {}).get("coverage_status", "PARTIAL"),
-        "local_smoke_status": "PASSED",
-        "colab_migration_allowed": True,
+        "local_smoke_status": local_smoke_status,
+        "colab_migration_allowed": colab_allowed,
+        "fresh_kernel_acceptance": bool(fresh_kernel_acceptance),
+        "runner_mode": runner_mode,
         "technical_summary": "Window, DBSCAN, and HDBSCAN Global baselines fitted per-mainshock window without mutating inputs; counts reconciled; roles, null probabilities, and physical case outcomes verified.",
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
     }
