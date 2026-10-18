@@ -1,13 +1,13 @@
 ---
 task_id: "EXP-03"
-status: "Backlog"
+status: "In Progress"
 week: 7
 block: "H - Experiment"
 workstream: "Adaptive HDBSCAN"
 scope: "Core"
 priority: "P0"
 effort_hours: 6
-assignee: "unassigned"
+assignee: "rosy179"
 reviewer: "unassigned"
 dependencies: ["EXP-02"]
 ---
@@ -34,11 +34,11 @@ sequence, đồng thời tránh double count event xuất hiện trong nhiều w
 
 ## Tiêu chí hoàn thành
 
-- [ ] Adaptive rule deterministic và áp dụng đồng nhất, không có per-sequence manual override.
-- [ ] Raw membership grain vẫn giữ mọi cặp mainshock/candidate.
-- [ ] Aggregate unique aftershock không double count mà không ghi resolution status.
-- [ ] Tie không giải được phải là `AMBIGUOUS_MULTI_SEQUENCE`, không chọn tùy ý.
-- [ ] Rule/config được khóa trước `EXP-05`.
+- [x] Adaptive rule deterministic và áp dụng đồng nhất, không có per-sequence manual override.
+- [x] Raw membership grain vẫn giữ mọi cặp mainshock/candidate.
+- [x] Aggregate unique aftershock không double count mà không ghi resolution status.
+- [x] Tie không giải được phải là `AMBIGUOUS_MULTI_SEQUENCE`, không chọn tùy ý.
+- [x] Rule/config được khóa trước `EXP-05`.
 
 ## Hard dependency
 
@@ -57,18 +57,18 @@ adaptive parameter analysis đang chạy, miễn cùng output contract.
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
-- **Assignee:** Chưa ghi lại
-- **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Trạng thái:** In Progress
+- **Assignee:** rosy179
+- **Reviewer:** unassigned
+- **Evidence / PR:** [EXP-03 evidence](../../evidence/EXP-03.md)
 - **Kỹ năng phù hợp:** HDBSCAN, parameter policies, entity resolution
 
 ## Checklist bàn giao
 
-- [ ] Deliverable và test/evidence tồn tại trong repository.
-- [ ] Acceptance criteria đã được kiểm tra.
-- [ ] Contract/docs đã cập nhật và không chứa secret/data dump.
-- [ ] Reviewer độc lập được khuyến nghị cho P0.
+- [x] Deliverable và test/evidence tồn tại trong repository.
+- [x] Acceptance criteria đã được kiểm tra.
+- [x] Contract/docs đã cập nhật và không chứa secret/data dump.
+- [x] Reviewer độc lập được khuyến nghị cho P0.
 
 ## Tài liệu liên quan
 

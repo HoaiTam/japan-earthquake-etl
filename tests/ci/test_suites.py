@@ -96,7 +96,7 @@ class SuitePolicyTest(unittest.TestCase):
             for component, ids in (("java", impact.JAVA_SUITES), ("airflow", impact.AIRFLOW_SUITES)):
                 self.assertEqual(json.loads(values[component + "_matrix"]), {"suite": list(ids)})
             self.assertIn("mld-03-windows", summary.read_text())
-            self.assertIn("DAT-02/EXP-01/EXP-02 pilot & baselines", summary.read_text())
+            self.assertIn("DAT-02/EXP-01/EXP-02/EXP-03 pilot, baselines & adaptive", summary.read_text())
 
     def test_java_suite_builds_and_checks_only_its_inventory_and_propagates_failures(self):
         run = Mock()
@@ -140,6 +140,21 @@ class SuitePolicyTest(unittest.TestCase):
                         else:
                             with self.assertRaisesRegex(ValueError, "DID_NOT_PASS"):
                                 impact.gate(planner, mode, worker)
+
+    def test_adaptive_hdbscan_changes_trigger_full_pilot_python(self):
+        paths = [
+            "notebooks/adaptive_hdbscan.py",
+            "notebooks/exp_03_adaptive_hdbscan.ipynb",
+            "scripts/inspect-exp03-notebook.py",
+            "config/ml/models/hdbscan_adaptive_dev_v1.json",
+            "tests/test_adaptive_hdbscan.py",
+        ]
+        for p in paths:
+            with self.subTest(path=p):
+                res = impact.classify([("M", p)])
+                self.assertEqual(res["pilot"], "full")
+                self.assertEqual(res["airflow"], "none")
+                self.assertEqual(res["java"], "selected")
 
 
 if __name__ == "__main__": unittest.main()
