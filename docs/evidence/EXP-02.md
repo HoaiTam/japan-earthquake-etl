@@ -1,6 +1,6 @@
 # EXP-02 — Chạy Window, DBSCAN và HDBSCAN global evidence
 
-Ngày kiểm chứng: 2026-10-18 (Review Round 3).
+Ngày kiểm chứng: 2026-10-18 (Review Round 4).
 Branch: `feat/exp-02-baseline-algorithms`.
 Assignee: `rosy179`.
 Reviewer: `unassigned`.
@@ -13,32 +13,44 @@ Task EXP-02 triển khai ba thuật toán baseline trên cùng pilot feature bun
 
 Theo quy trình `JUPYTER_PILOT_WORKFLOW.md`, toàn bộ phát triển và kiểm chứng kỹ thuật được thực hiện trên Jupyter local trước; chỉ khi `local_smoke_status=PASSED`, `fresh_kernel_acceptance=true` và `colab_migration_allowed=true` mới được phép chuyển sang Google Colab. Pilot outputs tuyệt đối không phát `_SUCCESS.json` hoặc tự nhận `RESULT_READY`/`CANDIDATE`.
 
-Sau đợt review 2, @HoaiTam đã phản hồi tại PR #84 (comment-6245643656) về 4 điểm cần hoàn thiện:
-1. Sửa hai test CI `docs-contracts` (`test_shared_and_unmapped_paths_fail_safe_to_full` và `test_matrix_output_contains_only_fixed_group_ids_and_summary_counts`).
-2. Chế độ fallback của notebook inspection phải tạo `local-smoke-report.json` không mở Colab gate (`FALLBACK_EXEC_WARNING`, `colab_migration_allowed=false`, `fresh_kernel_acceptance=false`).
-3. Bắt buộc có đủ checksum cho mọi artifact được bảo vệ trong manifest và đọc/đối soát thực tế dữ liệu vật lý trên đĩa.
-4. Trích xuất `bundle_checksum` của pilot bundle đầu vào không bị null (đúng contract checksums index).
+Tại Review Round 4 (PR #84, comment-6246509089), @HoaiTam đã phản hồi về lỗ hổng đối soát cross-pilot:
+- `generate_local_smoke_report()` trước đây chỉ so khớp `feature_count` (số lượng ứng viên), dẫn đến trường hợp hai pilot A và B có cùng số hàng (ví dụ: 2 hàng) nhưng khác danh tính (`pilot_id`, `mainshock_event_id`, `candidate_event_id`) thì việc chạy trên pilot A rồi truyền `bundle=B, results=results_A` vẫn được chấp thuận, cấp phép sai cho pilot B với kết quả của pilot A.
 
 ## 2. Các điểm đã khắc phục theo review của @HoaiTam
 
-### 2.1. [CI] Sửa hai test CI thất bại
+### 2.1. [Security & Lineage] Đối soát danh tính nghiêm ngặt và hạt dữ liệu (Grain Matching)
+- **Vấn đề:** Nếu chỉ so khớp số lượng hàng `feature_count`, kết quả từ pilot khác có cùng số hàng có thể bị chấp nhận sai lệch.
+- **Khắc phục:**
+  - **Trích xuất hạt dữ liệu đầu vào:** Trích xuất `(mainshock_event_id, candidate_event_id)` kèm bội số (`collections.Counter`) từ `bundle["features_table"]`, cùng tập hợp `input_mainshocks`.
+  - **Đối soát Manifest:** Bắt buộc `manifest.pilot_id == bundle.bundle_id`, `manifest.source_dataset_id == source_ds_id`, `manifest.pilot_run_id == run_id`, `manifest.algorithm_name == algo`.
+  - **Đối soát cấu hình và metrics trên đĩa:** Kiểm tra `experiment_config.json` và `experiment_metrics.json` có `dataset_id == source_ds_id`, `experiment_run_id == run_id`, `algorithm_name == algo`.
+  - **Đối soát hạt dữ liệu Parquet và In-memory Memberships:**
+    - `Counter((m["mainshock_event_id"], m["candidate_event_id"]) for m in memberships) == input_grains`.
+    - Đọc `memberships.parquet` trên đĩa và đối soát `Counter(disk_grains) == input_grains`.
+    - Kiểm tra mọi bản ghi memberships (in-memory và parquet) đều mang đúng `dataset_id`, `experiment_run_id`, `algorithm_name`.
+  - **Đối soát Mainshocks và Lineage của Sequence Summary:**
+    - Tập mainshocks trong `summaries` và trong `sequence_summary.parquet` trên đĩa phải khớp tuyệt đối với `input_mainshocks`.
+    - Kiểm tra mọi bản ghi summary mang đúng `dataset_id`, `experiment_run_id`, `algorithm_name`.
+  - **Regression Test:** Thêm test `test_local_smoke_report_rejects_cross_pilot_lineage_and_grain_mismatch` tạo 2 pilot A và B độc lập (cùng 2 hàng ứng viên nhưng khác event IDs và pilot IDs); kiểm chứng bắt buộc cặp trùng khớp (A + results_A) phải PASS, còn cặp chéo (B + results_A) phải bị REJECT với lỗi lineage/grain mismatch.
+
+### 2.2. [CI] Sửa hai test CI thất bại
 - **Policy dependency dùng chung:** Đưa `notebooks/requirements-pilot.txt` ra khỏi `EXP_FILES` trong `scripts/ci-impact.py` để file dependency dùng chung này tuân thủ đúng policy fail-safe về chạy full cả 3 thành phần (`java=full, airflow=full, pilot=full`).
 - **Đồng bộ nhãn summary:** Cập nhật đồng bộ assertion trong `tests/ci/test_suites.py` khớp với nhãn summary mới `DAT-02/EXP-01/EXP-02 pilot & baselines`.
 
-### 2.2. [Gate] Thống nhất chế độ Fallback và Colab Migration Gate
+### 2.3. [Gate] Thống nhất chế độ Fallback và Colab Migration Gate
 - **Vấn đề:** Khi chạy inspection ở môi trường không có `nbclient`, notebook tạo `local-smoke-report.json` ghi `PASSED` và `colab_migration_allowed=true`, dẫn đến Colab gate vẫn mở.
 - **Khắc phục:**
   - `scripts/inspect-exp02-notebook.py` truyền rõ ràng cờ môi trường `EXP02_RUNNER_MODE` và `EXP02_FRESH_KERNEL_ACCEPTANCE` ("false" khi chạy isolated exec).
   - `generate_local_smoke_report()` ghi nhận trung thực: trong chế độ fallback, `local_smoke_status="FALLBACK_EXEC_WARNING"`, `colab_migration_allowed=false`, `fresh_kernel_acceptance=false`.
   - `ColabPathAdapter.verify_local_smoke_gate()` bắt buộc kiểm tra `fresh_kernel_acceptance is True`, `colab_migration_allowed is True` và `local_smoke_status == "PASSED"`; từ chối mở gate nếu chạy fallback.
 
-### 2.3. [Integrity] Bắt buộc đủ Checksum trong Manifest & Đối soát dữ liệu vật lý
+### 2.4. [Integrity] Bắt buộc đủ Checksum trong Manifest & Đối soát dữ liệu vật lý
 - **Vấn đề:** Checksum chỉ được so sánh nếu tên file có trong manifest (nếu xóa entry manifest thì bị bỏ qua). Chưa kiểm tra dữ liệu vật lý trên đĩa ngoài bộ nhớ.
 - **Khắc phục:**
   - Bắt buộc mọi artifact trong `standard_files` (`memberships.parquet`, `sequence_summary.parquet`, `experiment_metrics.json`, `experiment_config.json`) phải tồn tại entry checksum trong manifest (`MISSING_MANIFEST_CHECKSUM_ENTRY`).
   - Đọc và phân tích trực tiếp file vật lý: parse `experiment_metrics.json` và `experiment_config.json` (bắt lỗi `CORRUPT_PHYSICAL_METRICS_JSON`), đọc `memberships.parquet` và `sequence_summary.parquet` bằng PyArrow (bắt lỗi `CORRUPT_PHYSICAL_MEMBERSHIPS_PARQUET`), đối soát số hàng thực tế khớp với input candidate.
 
-### 2.4. [Contract] Trích xuất non-null Bundle Checksum & Fingerprint
+### 2.5. [Contract] Trích xuất non-null Bundle Checksum & Fingerprint
 - **Vấn đề:** Report đọc `manifest.checksums["features.parquet"]` trong khi bundle DAT-02 dùng `features-part-00000.parquet`, khiến `bundle_checksum` bị `null`.
 - **Khắc phục:**
   - `load_feature_bundle` trả về trường `checksums` được parse từ `checksums.sha256`.
@@ -50,8 +62,9 @@ Sau đợt review 2, @HoaiTam đã phản hồi tại PR #84 (comment-6245643656
 
 - **Unit and Contract Test Suite (`tests/test_baseline_algorithms.py`):**
   - Lệnh: `python -m unittest tests/test_baseline_algorithms.py`
-  - Kết quả: **18 tests PASS**, 0 errors, 0 failures.
+  - Kết quả: **19 tests PASS**, 0 errors, 0 failures.
   - Bao gồm các regression tests:
+    - `test_local_smoke_report_rejects_cross_pilot_lineage_and_grain_mismatch`
     - `test_local_smoke_report_rejects_missing_manifest_checksum_entry`
     - `test_local_smoke_report_rejects_corrupted_physical_json_and_parquet`
     - `test_local_smoke_report_extracts_non_null_bundle_checksum_and_fingerprint`

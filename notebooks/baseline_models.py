@@ -578,6 +578,11 @@ def generate_local_smoke_report(
     - Physical result bundle artifacts and SHA-256 checksums on disk are verified.
     - Protected artifacts must have non-empty checksum entries in manifest.
     - Physical on-disk files (Parquet and JSON) are parsed and reconciled.
+    - Exact grain matching (mainshock_event_id, candidate_event_id) and multiplicity
+      reconciled across input features, in-memory memberships, and on-disk memberships.parquet.
+    - Window mainshock set reconciled across input features, in-memory summaries, and on-disk sequence_summary.parquet.
+    - Strict lineage identity (pilot_id, dataset_id, run_id, algo) reconciled across
+      input bundle, manifest, config, metrics, memberships, and summaries.
     - Exact candidate reconciliation against feature inputs.
     - Event role, mainshock self-identity, and probability null policies.
     - Window-level membership-to-summary counts reconciliation.
@@ -596,6 +601,16 @@ def generate_local_smoke_report(
     feature_count = features_table.num_rows
     require(feature_count > 0, "EMPTY_PILOT_BUNDLE")
     source_ds_id = bundle.get("source_dataset_id", bundle.get("bundle_id"))
+    pilot_id = bundle.get("bundle_id")
+
+    # Extract input grains and mainshocks for exact identity and multiplicity reconciliation
+    features_pydict = features_table.to_pydict()
+    require("mainshock_event_id" in features_pydict and "candidate_event_id" in features_pydict,
+            "INVALID_FEATURES_TABLE_SCHEMA: missing mainshock_event_id or candidate_event_id")
+    input_grains = Counter(
+        zip(features_pydict["mainshock_event_id"], features_pydict["candidate_event_id"])
+    )
+    input_mainshocks = set(features_pydict["mainshock_event_id"])
 
     # Resolve bundle checksum from bundle checksums index or checksums.sha256
     checksum_map = dict(bundle.get("checksums") or {})
@@ -687,6 +702,19 @@ def generate_local_smoke_report(
         manifest_data = json.loads(Path(manifest_path).read_text(encoding="utf-8"))
         checksums = manifest_data.get("checksums", {})
 
+        # Reconcile manifest identities against input bundle and execution run
+        if "pilot_id" in manifest_data:
+            require(manifest_data.get("pilot_id") == pilot_id,
+                    f"MANIFEST_PILOT_ID_MISMATCH:{algo}:{manifest_data.get('pilot_id')}!={pilot_id}")
+        if "source_dataset_id" in manifest_data:
+            require(manifest_data.get("source_dataset_id") == source_ds_id,
+                    f"MANIFEST_DATASET_ID_MISMATCH:{algo}:{manifest_data.get('source_dataset_id')}!={source_ds_id}")
+        manifest_run_id = manifest_data.get("pilot_run_id") or manifest_data.get("experiment_run_id")
+        require(manifest_run_id == run_id,
+                f"MANIFEST_RUN_ID_MISMATCH:{algo}:{manifest_run_id}!={run_id}")
+        require(manifest_data.get("algorithm_name") == algo,
+                f"MANIFEST_ALGO_MISMATCH:{algo}:{manifest_data.get('algorithm_name')}!={algo}")
+
         algo_checksums = {}
         for sf in standard_files:
             target_file = algo_out_dir / sf
@@ -708,6 +736,13 @@ def generate_local_smoke_report(
         except Exception as exc:
             raise ValueError(f"CORRUPT_PHYSICAL_METRICS_JSON:{algo}:{exc}")
         require(isinstance(disk_metrics, dict), f"INVALID_PHYSICAL_METRICS_TYPE:{algo}")
+        require(disk_metrics.get("dataset_id") == source_ds_id,
+                f"METRICS_DATASET_ID_MISMATCH:{algo}:{disk_metrics.get('dataset_id')}!={source_ds_id}")
+        require(disk_metrics.get("experiment_run_id") == run_id,
+                f"METRICS_RUN_ID_MISMATCH:{algo}:{disk_metrics.get('experiment_run_id')}!={run_id}")
+        require(disk_metrics.get("algorithm_name") == algo,
+                f"METRICS_ALGO_MISMATCH:{algo}:{disk_metrics.get('algorithm_name')}!={algo}")
+
         disk_inner_metrics = disk_metrics.get("metrics") if isinstance(disk_metrics.get("metrics"), dict) else disk_metrics
         total_cands = disk_inner_metrics.get("total_candidates", disk_metrics.get("membership_row_count"))
         require(total_cands == feature_count,
@@ -724,6 +759,10 @@ def generate_local_smoke_report(
             raise ValueError(f"CORRUPT_PHYSICAL_CONFIG_JSON:{algo}:{exc}")
         require(isinstance(disk_config, dict), f"INVALID_PHYSICAL_CONFIG_TYPE:{algo}")
         require(disk_config.get("algorithm_name") == algo, f"PHYSICAL_CONFIG_ALGO_MISMATCH:{algo}")
+        require(disk_config.get("dataset_id") == source_ds_id,
+                f"CONFIG_DATASET_ID_MISMATCH:{algo}:{disk_config.get('dataset_id')}!={source_ds_id}")
+        require(disk_config.get("experiment_run_id") == run_id,
+                f"CONFIG_RUN_ID_MISMATCH:{algo}:{disk_config.get('experiment_run_id')}!={run_id}")
 
         mems_file = algo_out_dir / "memberships.parquet"
         try:
@@ -733,6 +772,21 @@ def generate_local_smoke_report(
         require(disk_mems_table.num_rows == feature_count,
                 f"PHYSICAL_MEMBERSHIP_ROW_COUNT_MISMATCH:{algo}:{disk_mems_table.num_rows}!={feature_count}")
 
+        disk_mems_pydict = disk_mems_table.to_pydict()
+        require("mainshock_event_id" in disk_mems_pydict and "candidate_event_id" in disk_mems_pydict,
+                f"PHYSICAL_MEMBERSHIP_MISSING_GRAIN_COLUMNS:{algo}")
+        disk_grains = Counter(
+            zip(disk_mems_pydict["mainshock_event_id"], disk_mems_pydict["candidate_event_id"])
+        )
+        require(disk_grains == input_grains,
+                f"PHYSICAL_MEMBERSHIP_GRAIN_MISMATCH:{algo}")
+        require(set(disk_mems_pydict.get("dataset_id", [])) == {source_ds_id},
+                f"PHYSICAL_MEMBERSHIP_DATASET_ID_MISMATCH:{algo}")
+        require(set(disk_mems_pydict.get("experiment_run_id", [])) == {run_id},
+                f"PHYSICAL_MEMBERSHIP_RUN_ID_MISMATCH:{algo}")
+        require(set(disk_mems_pydict.get("algorithm_name", [])) == {algo},
+                f"PHYSICAL_MEMBERSHIP_ALGO_MISMATCH:{algo}")
+
         summ_file = algo_out_dir / "sequence_summary.parquet"
         try:
             disk_summ_table = pq.read_table(summ_file)
@@ -741,6 +795,19 @@ def generate_local_smoke_report(
         require(disk_summ_table.num_rows == len(summaries),
                 f"PHYSICAL_SUMMARY_ROW_COUNT_MISMATCH:{algo}:{disk_summ_table.num_rows}!={len(summaries)}")
 
+        disk_summ_pydict = disk_summ_table.to_pydict()
+        require("mainshock_event_id" in disk_summ_pydict,
+                f"PHYSICAL_SUMMARY_MISSING_MAINSHOCK_COLUMN:{algo}")
+        disk_summary_mainshocks = set(disk_summ_pydict["mainshock_event_id"])
+        require(disk_summary_mainshocks == input_mainshocks,
+                f"PHYSICAL_SUMMARY_MAINSHOCK_SET_MISMATCH:{algo}")
+        require(set(disk_summ_pydict.get("dataset_id", [])) == {source_ds_id},
+                f"PHYSICAL_SUMMARY_DATASET_ID_MISMATCH:{algo}")
+        require(set(disk_summ_pydict.get("experiment_run_id", [])) == {run_id},
+                f"PHYSICAL_SUMMARY_RUN_ID_MISMATCH:{algo}")
+        require(set(disk_summ_pydict.get("algorithm_name", [])) == {algo},
+                f"PHYSICAL_SUMMARY_ALGO_MISMATCH:{algo}")
+
         artifacts_verified[algo] = {
             "relative_dir": algo.lower(),
             "manifest_file": "pilot_result_manifest.json",
@@ -748,6 +815,30 @@ def generate_local_smoke_report(
             "has_success_marker": write_res.get("has_success_marker", False),
         }
         require(not write_res.get("has_success_marker", False), f"ILLEGAL_SUCCESS_MARKER_IN_PILOT:{algo}")
+
+        # In-memory memberships grain and lineage reconciliation
+        mem_grains = Counter((m["mainshock_event_id"], m["candidate_event_id"]) for m in memberships)
+        require(mem_grains == input_grains,
+                f"MEMBERSHIP_GRAIN_MISMATCH:{algo}")
+        for m in memberships:
+            require(m.get("dataset_id") == source_ds_id,
+                    f"MEMBERSHIP_DATASET_ID_MISMATCH:{algo}:{m.get('dataset_id')}!={source_ds_id}")
+            require(m.get("experiment_run_id") == run_id,
+                    f"MEMBERSHIP_RUN_ID_MISMATCH:{algo}:{m.get('experiment_run_id')}!={run_id}")
+            require(m.get("algorithm_name") == algo,
+                    f"MEMBERSHIP_ALGO_MISMATCH:{algo}:{m.get('algorithm_name')}!={algo}")
+
+        # In-memory summaries mainshocks and lineage reconciliation
+        summary_mainshocks = set(s["mainshock_event_id"] for s in summaries)
+        require(summary_mainshocks == input_mainshocks,
+                f"SUMMARY_MAINSHOCK_SET_MISMATCH:{algo}")
+        for s in summaries:
+            require(s.get("dataset_id") == source_ds_id,
+                    f"SUMMARY_DATASET_ID_MISMATCH:{algo}:{s.get('dataset_id')}!={source_ds_id}")
+            require(s.get("experiment_run_id") == run_id,
+                    f"SUMMARY_RUN_ID_MISMATCH:{algo}:{s.get('experiment_run_id')}!={run_id}")
+            require(s.get("algorithm_name") == algo,
+                    f"SUMMARY_ALGO_MISMATCH:{algo}:{s.get('algorithm_name')}!={algo}")
 
         # 3. Roles and probability null policy validation
         for m in memberships:
