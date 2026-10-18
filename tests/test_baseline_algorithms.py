@@ -330,6 +330,223 @@ class BaselineModelsTest(unittest.TestCase):
         adapter = harness.ColabPathAdapter()
         verified = adapter.verify_local_smoke_gate(smoke_report_file)
         self.assertEqual(verified["local_smoke_status"], "PASSED")
+        self.assertIn("case_results", verified)
+
+    # -------------------------------------------------------------------------
+    # 7. Multi-Sequence Overlap and Run ID Synchronization Tests (Review P1)
+    # -------------------------------------------------------------------------
+    def test_multi_sequence_overlap_marked_ambiguous_and_rank_none(self):
+        mid1 = "evt_m1_" + "1" * 25
+        mid2 = "evt_m2_" + "2" * 25
+        shared_cand = "evt_shared_" + "9" * 21
+        exclusive_cand = "evt_excl_" + "8" * 23
+
+        # Construct two windows with one shared candidate
+        rows = [
+            # Window 1: mainshock 1 + shared candidate (POST)
+            {
+                "mainshock_event_id": mid1,
+                "candidate_event_id": mid1,
+                "delta_time_hours": 0.0,
+                "x_scaled": 0.0, "y_scaled": 0.0, "z_scaled": 0.0, "time_scaled": 0.0,
+                "candidate_magnitude": 6.0,
+            },
+            {
+                "mainshock_event_id": mid1,
+                "candidate_event_id": shared_cand,
+                "delta_time_hours": 2.0,
+                "x_scaled": 0.02, "y_scaled": 0.02, "z_scaled": 0.01, "time_scaled": 0.01,
+                "candidate_magnitude": 4.0,
+            },
+            # Window 2: mainshock 2 + shared candidate (POST) + exclusive candidate (POST)
+            {
+                "mainshock_event_id": mid2,
+                "candidate_event_id": mid2,
+                "delta_time_hours": 0.0,
+                "x_scaled": 0.0, "y_scaled": 0.0, "z_scaled": 0.0, "time_scaled": 0.0,
+                "candidate_magnitude": 6.5,
+            },
+            {
+                "mainshock_event_id": mid2,
+                "candidate_event_id": shared_cand,
+                "delta_time_hours": 4.0,
+                "x_scaled": 0.03, "y_scaled": 0.01, "z_scaled": 0.01, "time_scaled": 0.02,
+                "candidate_magnitude": 4.0,
+            },
+            {
+                "mainshock_event_id": mid2,
+                "candidate_event_id": exclusive_cand,
+                "delta_time_hours": 6.0,
+                "x_scaled": 0.05, "y_scaled": 0.04, "z_scaled": 0.02, "time_scaled": 0.03,
+                "candidate_magnitude": 3.8,
+            },
+        ]
+
+        import pyarrow as pa
+        features_table = pa.Table.from_pylist(rows)
+        mock_bundle = {
+            "mode": harness.MODE_DEVELOPMENT,
+            "bundle_id": "pilot_overlap_test",
+            "source_dataset_id": "ds_overlap_test",
+            "features_table": features_table,
+            "manifest": {"coverage_status": "PARTIAL", "checksums": {}},
+        }
+
+        cfg_win = {"model_config_version": "window_v1"}
+        out_win = self.out_dir / "overlap_window"
+        res = models.run_baseline_experiment(
+            bundle=mock_bundle,
+            algorithm_name="WINDOW",
+            config=cfg_win,
+            model_config_version="window_v1",
+            output_dir=out_win,
+            mode=harness.MODE_DEVELOPMENT,
+        )
+
+        all_mems = res["memberships"]
+        self.assertEqual(len(all_mems), 5)
+
+        # Shared candidate rows
+        shared_rows = [m for m in all_mems if m["candidate_event_id"] == shared_cand]
+        self.assertEqual(len(shared_rows), 2)
+        for sr in shared_rows:
+            self.assertTrue(sr["is_sequence_member"])
+            self.assertEqual(sr["multi_sequence_status"], "AMBIGUOUS")
+            self.assertIsNone(sr["resolution_rank"])
+
+        # Exclusive candidate row
+        excl_row = next(m for m in all_mems if m["candidate_event_id"] == exclusive_cand)
+        self.assertTrue(excl_row["is_sequence_member"])
+        self.assertEqual(excl_row["multi_sequence_status"], "UNIQUE")
+        self.assertEqual(excl_row["resolution_rank"], 1)
+
+        # PyArrow roundtrip adheres to MLI-01 MEMBERSHIP_SCHEMA
+        table = pa.Table.from_pylist(all_mems, schema=harness.MEMBERSHIP_SCHEMA)
+        self.assertEqual(table.num_rows, 5)
+
+    def test_runner_synchronizes_run_id_across_memberships_and_manifest(self):
+        temp_bundle_dir = self.out_dir / "pilot_bundle_sync"
+        temp_bundle_dir.mkdir()
+        test_harness.create_pilot_fixture(temp_bundle_dir)
+        bundle = harness.load_feature_bundle(temp_bundle_dir, mode=harness.MODE_DEVELOPMENT)
+
+        cfg_win = {"model_config_version": "window_v1"}
+        out_win = self.out_dir / "sync_window"
+        res = models.run_baseline_experiment(
+            bundle=bundle,
+            algorithm_name="WINDOW",
+            config=cfg_win,
+            model_config_version="window_v1",
+            output_dir=out_win,
+            mode=harness.MODE_DEVELOPMENT,
+        )
+
+        effective_run_id = res["run_id"]
+        self.assertTrue(effective_run_id.startswith("pilot_run_"))
+        self.assertNotEqual(effective_run_id, "temp_run")
+
+        # Check in-memory rows
+        for m in res["memberships"]:
+            self.assertEqual(m["experiment_run_id"], effective_run_id)
+        for s in res["summaries"]:
+            self.assertEqual(s["experiment_run_id"], effective_run_id)
+
+        # Check on-disk manifest and config
+        manifest = json.loads((out_win / "pilot_result_manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual(manifest["pilot_run_id"], effective_run_id)
+
+        config_data = json.loads((out_win / "experiment_config.json").read_text(encoding="utf-8"))
+        self.assertEqual(config_data["experiment_run_id"], effective_run_id)
+
+    # -------------------------------------------------------------------------
+    # 8. Local Smoke Report Gate Regression Tests (Review P1)
+    # -------------------------------------------------------------------------
+    def test_local_smoke_report_rejects_empty_or_missing_algorithms(self):
+        temp_bundle_dir = self.out_dir / "pilot_bundle_gate"
+        temp_bundle_dir.mkdir()
+        test_harness.create_pilot_fixture(temp_bundle_dir)
+        bundle = harness.load_feature_bundle(temp_bundle_dir, mode=harness.MODE_DEVELOPMENT)
+
+        out_rep = self.out_dir / "rep_fail.json"
+
+        # 1. Empty algorithm_results
+        with self.assertRaisesRegex(ValueError, "MISSING_REQUIRED_BASELINE_ALGORITHMS"):
+            models.generate_local_smoke_report(bundle, {}, out_rep)
+
+        # 2. Incomplete baseline algorithms (missing HDBSCAN_GLOBAL)
+        with self.assertRaisesRegex(ValueError, "MISSING_REQUIRED_BASELINE_ALGORITHMS"):
+            models.generate_local_smoke_report(bundle, {"WINDOW": {}, "DBSCAN": {}}, out_rep)
+
+    def test_local_smoke_report_rejects_corrupted_roles_and_count_mismatch(self):
+        temp_bundle_dir = self.out_dir / "pilot_bundle_reconcile"
+        temp_bundle_dir.mkdir()
+        test_harness.create_pilot_fixture(temp_bundle_dir)
+        bundle = harness.load_feature_bundle(temp_bundle_dir, mode=harness.MODE_DEVELOPMENT)
+
+        results = {}
+        for algo in ["WINDOW", "DBSCAN", "HDBSCAN_GLOBAL"]:
+            res = models.run_baseline_experiment(
+                bundle=bundle,
+                algorithm_name=algo,
+                config={"model_config_version": f"{algo.lower()}_v1"},
+                model_config_version=f"{algo.lower()}_v1",
+                output_dir=self.out_dir / f"reconcile_{algo.lower()}",
+                mode=harness.MODE_DEVELOPMENT,
+            )
+            results[algo] = res
+
+        out_rep = self.out_dir / "rep_reconcile.json"
+
+        # Count mismatch
+        corrupted_results = dict(results)
+        corrupted_win = dict(results["WINDOW"])
+        corrupted_win["metrics"] = dict(results["WINDOW"]["metrics"], total_candidates=999)
+        corrupted_results["WINDOW"] = corrupted_win
+
+        with self.assertRaisesRegex(ValueError, "COUNT_MISMATCH"):
+            models.generate_local_smoke_report(bundle, corrupted_results, out_rep)
+
+        # Corrupted role
+        corrupted_mems = [dict(m) for m in results["WINDOW"]["memberships"]]
+        corrupted_mems[0]["event_role_candidate"] = "INVALID_ROLE"
+        corrupted_win_role = dict(results["WINDOW"], memberships=corrupted_mems)
+        corrupted_results_role = dict(results, WINDOW=corrupted_win_role)
+
+        with self.assertRaisesRegex(ValueError, "INVALID_EVENT_ROLE"):
+            models.generate_local_smoke_report(bundle, corrupted_results_role, out_rep)
+
+    def test_colab_adapter_rejects_incomplete_smoke_report(self):
+        adapter = harness.ColabPathAdapter()
+
+        # Missing report
+        with self.assertRaisesRegex(ValueError, "COLAB_GATE_BLOCKED: Missing local smoke report"):
+            adapter.verify_local_smoke_gate(self.out_dir / "nonexistent.json")
+
+        # Report missing required algorithms
+        bad_report_path = self.out_dir / "bad_report.json"
+        bad_report_path.write_text(json.dumps({
+            "report_version": "exp-02-local-smoke-v2",
+            "local_smoke_status": "PASSED",
+            "colab_migration_allowed": True,
+            "algorithms_evaluated": ["WINDOW"],
+            "reconciliation": {"WINDOW": {"total_candidates": 2}},
+        }), encoding="utf-8")
+
+        with self.assertRaisesRegex(ValueError, "COLAB_GATE_BLOCKED: Report missing required algorithms"):
+            adapter.verify_local_smoke_gate(bad_report_path)
+
+        # Report with empty reconciliation
+        bad_reconcile_path = self.out_dir / "bad_reconcile.json"
+        bad_reconcile_path.write_text(json.dumps({
+            "report_version": "exp-02-local-smoke-v2",
+            "local_smoke_status": "PASSED",
+            "colab_migration_allowed": True,
+            "algorithms_evaluated": ["DBSCAN", "HDBSCAN_GLOBAL", "WINDOW"],
+            "reconciliation": {},
+        }), encoding="utf-8")
+
+        with self.assertRaisesRegex(ValueError, "COLAB_GATE_BLOCKED: Missing or incomplete reconciliation"):
+            adapter.verify_local_smoke_gate(bad_reconcile_path)
 
 
 if __name__ == "__main__":

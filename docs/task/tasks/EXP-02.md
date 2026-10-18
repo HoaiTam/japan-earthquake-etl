@@ -1,6 +1,6 @@
 ---
 task_id: "EXP-02"
-status: "Done"
+status: "In Progress"
 week: 5
 block: "H - Experiment"
 workstream: "Baseline algorithms"
@@ -52,10 +52,10 @@ Noise/no productive sequence hợp lệ không bị coi là implementation lỗi
 
 ## Tiêu chí hoàn thành
 
-- [x] Local ba thuật toán cùng pilot_id/checksum; official cùng dataset_id và không mutate input.
+- [x] Local ba thuật toán cùng pilot_id/checksum; không mutate input.
 - [x] Local smoke report PASSED trước Colab; restart/run-all và cases lỗi/noise/count đạt.
-- [x] Colab dùng cùng code/bundle/config, đối soát invariants/tolerance; không rewrite model.
-- [x] Official run pin EXPORTED dataset; pilot không phát _SUCCESS/RESULT_READY/CANDIDATE.
+- [ ] Colab dùng cùng code/bundle/config, đối soát invariants/tolerance; không rewrite model (chờ môi trường Colab sau local gate).
+- [ ] Official run pin EXPORTED dataset; pilot không phát _SUCCESS/RESULT_READY/CANDIDATE (chờ MLD-05 export).
 - [x] HDBSCAN/DBSCAN chạy theo từng mainshock, không fit toàn catalog.
 - [x] Chỉ cluster chứa mainshock được coi là sequence; không chọn cluster gần nhất khi mainshock noise.
 - [x] Membership probability null đúng với thuật toán không cung cấp.
@@ -88,7 +88,7 @@ schema output và feature fixture do `EXP-01` khóa.
 
 ## Theo dõi
 
-- **Trạng thái:** Done
+- **Trạng thái:** In Progress
 - **Assignee:** rosy179
 - **Reviewer:** unassigned
 - **Evidence / PR:** [docs/evidence/EXP-02.md](../../evidence/EXP-02.md)
@@ -97,9 +97,9 @@ schema output và feature fixture do `EXP-01` khóa.
 ## Checklist bàn giao
 
 - [x] Deliverable và test/evidence tồn tại trong repository.
-- [x] Acceptance criteria đã được kiểm tra.
+- [ ] Acceptance criteria đã được kiểm tra (local development hoàn tất; Colab và official run chờ bước tiếp theo).
 - [x] Contract/docs đã cập nhật và không chứa secret/data dump.
-- [x] Reviewer độc lập được khuyến nghị cho P0.
+- [ ] Reviewer độc lập được khuyến nghị cho P0.
 
 ## Tài liệu liên quan
 
