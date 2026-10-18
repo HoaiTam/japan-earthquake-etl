@@ -22,6 +22,7 @@ from pathlib import Path
 import sys
 import time
 from typing import Any, Dict, List, Optional, Tuple, Union
+import uuid
 
 import numpy as np
 
@@ -52,6 +53,7 @@ from experiment_harness import (
     canonical,
     get_runtime_metadata,
     require,
+    sha256_bytes,
     MODE_DEVELOPMENT,
     MODE_OFFICIAL,
 )
@@ -547,12 +549,41 @@ def run_adaptive_experiment(
     mode: str = MODE_DEVELOPMENT,
     code_version: Optional[str] = None,
     random_seed: Optional[int] = None,
+    experiment_run_id: Optional[str] = None,
+    execution_id: Optional[str] = None,
+    is_retry: bool = False,
+    allow_overwrite: bool = False,
+    subfolder_by_run_id: bool = False,
 ) -> Dict[str, Any]:
     """Execute HDBSCAN Adaptive with full entity resolution across all windows in bundle."""
     algorithm_name = "HDBSCAN_ADAPTIVE"
     features_table = bundle["features_table"]
     rows = features_table.to_pylist()
     source_ds_id = bundle.get("source_dataset_id", bundle.get("bundle_id"))
+
+    runtime_meta = get_runtime_metadata(code_version=code_version, random_seed=random_seed)
+    code_ver = code_version or runtime_meta["code_version"]
+
+    if experiment_run_id:
+        effective_run_id = experiment_run_id
+    else:
+        exec_token = execution_id or uuid.uuid4().hex[:16]
+        run_id_payload = {
+            "dataset_id": source_ds_id,
+            "algorithm_name": algorithm_name,
+            "algorithm_version": "1.0.0",
+            "model_config_version": model_config_version,
+            "model_config": config,
+            "code_version": code_ver,
+            "mode": mode,
+            "random_seed": random_seed,
+            "execution_token": exec_token,
+        }
+        identity_digest = sha256_bytes(canonical(run_id_payload).encode("utf-8"))[:32]
+        effective_run_id = f"pilot_run_{identity_digest}" if mode == MODE_DEVELOPMENT else f"exp_run_{identity_digest}"
+
+    target_dir = (Path(output_dir) / effective_run_id) if subfolder_by_run_id else Path(output_dir)
+    target_dir.mkdir(parents=True, exist_ok=True)
 
     # Group candidates by mainshock_event_id
     windows: Dict[str, List[Dict[str, Any]]] = {}
@@ -569,7 +600,7 @@ def run_adaptive_experiment(
             window_candidates=candidates,
             mainshock_id=mid,
             config=config,
-            run_id="temp_run",
+            run_id=effective_run_id,
             dataset_id=source_ds_id,
             model_config_version=model_config_version,
         )
@@ -620,7 +651,7 @@ def run_adaptive_experiment(
 
     # Write result bundle
     write_res = write_experiment_result(
-        output_dir=output_dir,
+        output_dir=target_dir,
         bundle=bundle,
         algorithm_name=algorithm_name,
         algorithm_version="1.0.0",
@@ -630,13 +661,18 @@ def run_adaptive_experiment(
         summaries=resolved_summaries,
         metrics=metrics,
         mode=mode,
-        code_version=code_version,
+        code_version=code_ver,
         random_seed=random_seed,
+        experiment_run_id=effective_run_id,
+        execution_id=execution_id,
+        is_retry=is_retry,
+        allow_overwrite=allow_overwrite,
     )
 
     return {
         "algorithm_name": algorithm_name,
-        "run_id": write_res["run_id"],
+        "run_id": effective_run_id,
+        "output_dir": target_dir,
         "metrics": metrics,
         "write_result": write_res,
         "summaries": resolved_summaries,

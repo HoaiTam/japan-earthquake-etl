@@ -962,6 +962,7 @@ def write_experiment_result(
             "manifest_path": manifest_file,
             "has_success_marker": False,
             "checksums": checksums,
+            "is_reused": False,
         }
 
     else:  # mode == MODE_OFFICIAL
@@ -1008,6 +1009,7 @@ def write_experiment_result(
             "success_marker_path": stale_success,
             "has_success_marker": True,
             "checksums": checksums,
+            "is_reused": False,
         }
 
 

@@ -1,5 +1,6 @@
 """Unit and integration tests for EXP-03 HDBSCAN Adaptive and Multi-Sequence Resolution."""
 from datetime import datetime, timezone
+import importlib.util
 import itertools
 import json
 from pathlib import Path
@@ -21,6 +22,10 @@ if str(TESTS_DIR) not in sys.path:
     sys.path.insert(0, str(TESTS_DIR))
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+
+spec_inspect = importlib.util.spec_from_file_location("inspect_exp03", ROOT / "scripts/inspect-exp03-notebook.py")
+inspect_exp03 = importlib.util.module_from_spec(spec_inspect)
+spec_inspect.loader.exec_module(inspect_exp03)
 
 from adaptive_hdbscan import (
     find_best_membership_row,
@@ -891,6 +896,132 @@ class TestAdaptiveHDBSCAN(unittest.TestCase):
                 self.assertIsNone(sum_y["parent_mainshock_event_id"])
                 self.assertIsNone(sum_y["nested_membership_probability"])
                 self.assertIn("AMBIGUOUS_NESTED_PARENT_TIE", sum_y["metric_reason_codes"])
+
+    # -------------------------------------------------------------------------
+    # 8. Workflow Regression: Consecutive Runs & Retry Idempotency
+    # -------------------------------------------------------------------------
+    def test_run_adaptive_experiment_subfolder_and_retry(self):
+        """run_adaptive_experiment supports subfolder_by_run_id and safe retry verification."""
+        temp_bundle_dir = self.tmp_dir / "pilot_bundle_subfolder"
+        temp_bundle_dir.mkdir(parents=True, exist_ok=True)
+        test_experiment_harness.create_pilot_fixture(temp_bundle_dir)
+        bundle = load_feature_bundle(temp_bundle_dir, mode=MODE_DEVELOPMENT)
+
+        out_root = self.tmp_dir / "results_subfolder"
+        out_root.mkdir(parents=True, exist_ok=True)
+
+        # 1. Run with subfolder_by_run_id=True
+        res1 = run_adaptive_experiment(
+            bundle=bundle,
+            config=self.model_config,
+            model_config_version="hdbscan-adaptive-dev-v1",
+            output_dir=out_root,
+            mode=MODE_DEVELOPMENT,
+            subfolder_by_run_id=True,
+        )
+        run_id_1 = res1["run_id"]
+        dir_1 = Path(res1["output_dir"])
+        self.assertEqual(dir_1, out_root / run_id_1)
+        self.assertTrue((dir_1 / "pilot_result_manifest.json").is_file())
+        self.assertFalse(res1["write_result"].get("is_reused", False))
+
+        # 2. Second run with same root generates new subfolder without conflict
+        res2 = run_adaptive_experiment(
+            bundle=bundle,
+            config=self.model_config,
+            model_config_version="hdbscan-adaptive-dev-v1",
+            output_dir=out_root,
+            mode=MODE_DEVELOPMENT,
+            subfolder_by_run_id=True,
+        )
+        run_id_2 = res2["run_id"]
+        dir_2 = Path(res2["output_dir"])
+        self.assertNotEqual(run_id_1, run_id_2)
+        self.assertNotEqual(dir_1, dir_2)
+        self.assertTrue((dir_2 / "pilot_result_manifest.json").is_file())
+        self.assertTrue((dir_1 / "pilot_result_manifest.json").is_file())
+
+        # 3. Retry same run_id_1 with is_retry=True reuses intact bundle
+        res3 = run_adaptive_experiment(
+            bundle=bundle,
+            config=self.model_config,
+            model_config_version="hdbscan-adaptive-dev-v1",
+            output_dir=out_root,
+            mode=MODE_DEVELOPMENT,
+            experiment_run_id=run_id_1,
+            is_retry=True,
+            subfolder_by_run_id=True,
+        )
+        self.assertEqual(res3["run_id"], run_id_1)
+        self.assertTrue(res3["write_result"]["is_reused"])
+
+    def test_notebook_consecutive_runs_with_same_output_root(self):
+        """Regression test for comment-6249619054: Running notebook twice consecutively
+
+        with the same output root must both succeed, create separate subfolders per run,
+        and strictly preserve the checksums of the first bundle.
+        """
+        out_root = self.tmp_dir / "notebook_consecutive_runs"
+        out_root.mkdir(parents=True, exist_ok=True)
+        nb_path = ROOT / "notebooks/exp_03_adaptive_hdbscan.ipynb"
+
+        # 1. First execution
+        report1 = inspect_exp03.run_notebook_cells(
+            notebook_path=nb_path,
+            env_override={"EXP03_OUTPUT_DIR": str(out_root)},
+        )
+        self.assertIn(report1["notebook_status"], ("RESTART_RUN_ALL_PASSED", "FALLBACK_EXEC_PASSED"))
+
+        run_dirs_after_1 = sorted([d for d in out_root.iterdir() if d.is_dir()])
+        self.assertEqual(len(run_dirs_after_1), 1)
+        run_1_dir = run_dirs_after_1[0]
+
+        # Record SHA-256 of all files in run_1_dir
+        run_1_checksums = {}
+        for p in run_1_dir.iterdir():
+            if p.is_file():
+                run_1_checksums[p.name] = sha256_bytes(p.read_bytes())
+
+        self.assertIn("pilot_result_manifest.json", run_1_checksums)
+        self.assertIn("memberships.parquet", run_1_checksums)
+        self.assertIn("sequence_summary.parquet", run_1_checksums)
+        self.assertIn("checksums.sha256", run_1_checksums)
+
+        # 2. Second execution with identical input/config and SAME output root
+        report2 = inspect_exp03.run_notebook_cells(
+            notebook_path=nb_path,
+            env_override={"EXP03_OUTPUT_DIR": str(out_root)},
+        )
+        self.assertIn(report2["notebook_status"], ("RESTART_RUN_ALL_PASSED", "FALLBACK_EXEC_PASSED"))
+
+        run_dirs_after_2 = sorted([d for d in out_root.iterdir() if d.is_dir()])
+        self.assertEqual(len(run_dirs_after_2), 2)
+        self.assertIn(run_1_dir, run_dirs_after_2)
+
+        run_2_dir = [d for d in run_dirs_after_2 if d != run_1_dir][0]
+        self.assertNotEqual(run_1_dir.name, run_2_dir.name)
+
+        # Verify that EVERY file in the first bundle has EXACTLY the same checksum as before
+        for fname, expected_sha in run_1_checksums.items():
+            actual_sha = sha256_bytes((run_1_dir / fname).read_bytes())
+            self.assertEqual(expected_sha, actual_sha, f"File {fname} in first run was altered by second execution!")
+
+        # 3. Third execution: retry of first execution reuses existing bundle
+        report3 = inspect_exp03.run_notebook_cells(
+            notebook_path=nb_path,
+            env_override={
+                "EXP03_OUTPUT_DIR": str(out_root),
+                "EXP03_RUN_ID": run_1_dir.name,
+                "EXP03_IS_RETRY": "true",
+            },
+        )
+        self.assertIn(report3["notebook_status"], ("RESTART_RUN_ALL_PASSED", "FALLBACK_EXEC_PASSED"))
+
+        run_dirs_after_3 = sorted([d for d in out_root.iterdir() if d.is_dir()])
+        self.assertEqual(len(run_dirs_after_3), 2)
+        for fname, expected_sha in run_1_checksums.items():
+            actual_sha = sha256_bytes((run_1_dir / fname).read_bytes())
+            self.assertEqual(expected_sha, actual_sha)
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 # EXP-03 — Xây HDBSCAN adaptive và giải quyết multi-sequence evidence
 
-Ngày kiểm chứng: 2026-10-18 (Review Round 3).
+Ngày kiểm chứng: 2026-10-18 (Review Round 4).
 Branch: `feat/exp-03-adaptive-hdbscan`.
 Assignee: `rosy179`.
 Reviewer: `unassigned`.
@@ -15,12 +15,28 @@ Toàn bộ cấu hình được cố định trong `config/ml/models/hdbscan_ada
 
 ## 2. Các điểm đã khắc phục theo review của @HoaiTam (PR #86)
 
-### 2.1. [P2] Order-dependent resolution khi có $\ge 3$ sequences (comment-6249299753)
-- **Vấn đề:** Khi sử dụng `functools.cmp_to_key(compare_membership_rows)` với sai số `eps_tie` để sắp xếp danh sách $\ge 3$ candidate sequences, comparator theo cặp (pairwise) vi phạm tính bắc cầu (non-transitive cycle: $A > B$, $B > C$, $C > A$). Cụ thể:
-  - Candidate A: prob = 0.8000000, dist = 0.1
-  - Candidate B: prob = 0.80000075, dist = 0.2
-  - Candidate C: prob = 0.8000015, dist = 0.3
-  Với `eps_tie = 1e-6`: $|p_B - p_A| \le 10^{-6}$ (prob tied $\to$ dist $A < B \to A > B$); $|p_C - p_B| \le 10^{-6}$ (prob tied $\to$ dist $B < C \to B > C$); nhưng $|p_C - p_A| = 1.5 \times 10^{-6} > 10^{-6}$ (xét prob $C > A \to C > A$). Do đó thứ tự mảng ban đầu sẽ làm lệch kết quả phân giải.
+### 2.1. [P2] Notebook không chạy lại được sau lần thực thi đầu tiên (comment-6249619054)
+- **Vị trí:** `notebooks/exp_03_adaptive_hdbscan.ipynb:140-154` và `notebooks/adaptive_hdbscan.py:622-635`.
+- **Vấn đề:** Notebook ghi đè trực tiếp vào một thư mục cố định `staging/ml-experiments/exp03-adaptive/adaptive` mà không phân chia subfolder theo execution/run ID hoặc quản lý retry. Khi chạy lại lần hai bằng `scripts/inspect-exp03-notebook.py` với cùng root, lần thực thi thứ hai văng lỗi `EXP_COMPLETED_BUNDLE_CONFLICT` do vi phạm tính bất biến của bundle đã hoàn tất.
+- **Khắc phục:**
+  1. Trong `notebooks/adaptive_hdbscan.py`:
+     - Bổ sung tham số `subfolder_by_run_id: bool = False`, `experiment_run_id`, `execution_id`, `is_retry`, `allow_overwrite` cho `run_adaptive_experiment`.
+     - Sinh `effective_run_id` xác định đồng bộ upfront từ execution token/runtime metadata.
+     - Khi `subfolder_by_run_id=True`, tạo thư mục con `target_dir = Path(output_dir) / effective_run_id`.
+     - Chuyển `target_dir`, `effective_run_id`, `is_retry`, `allow_overwrite` xuống `write_experiment_result`.
+     - Trả về `output_dir: target_dir` và `run_id: effective_run_id` trong kết quả.
+  2. Trong `notebooks/exp_03_adaptive_hdbscan.ipynb`:
+     - Cell cấu hình thực thi đọc `EXP03_EXECUTION_ID`, `EXP03_RUN_ID`, `EXP03_IS_RETRY` từ biến môi trường.
+     - Kích hoạt `subfolder_by_run_id=True`, nhận diện `output_dir = Path(result['output_dir'])`, in log kiểm toán `Is Reused`.
+     - Dọn sạch toàn bộ cell output và execution count trong notebook.
+  3. Trong `notebooks/experiment_harness.py`:
+     - Bổ sung trường `"is_reused": False` vào dictionary trả về của `write_experiment_result` trên các lần ghi mới (cả DEVELOPMENT và OFFICIAL mode) để đồng nhất interface với nhánh reuse (`"is_reused": True`).
+  4. Bổ sung regression tests trong `tests/test_adaptive_hdbscan.py`:
+     - `test_run_adaptive_experiment_subfolder_and_retry`: Kiểm thử subfolder per-run-id và cơ chế retry tái sử dụng bundle nguyên vẹn.
+     - `test_notebook_consecutive_runs_with_same_output_root`: Kiểm thử thực thi notebook liên tiếp hai lần với cùng một thư mục gốc `output_root`: cả 2 lần đều hoàn tất thành công, sinh ra 2 subfolder riêng biệt theo run ID, toàn bộ file và mã băm SHA-256 của bundle lần 1 được bảo tồn nguyên vẹn 100%. Lần thứ 3 retry run 1 tái sử dụng thành công bundle cũ mà không ghi đè dữ liệu lên disk.
+
+### 2.2. [P2] Order-dependent resolution khi có $\ge 3$ sequences (comment-6249299753)
+- **Vấn đề:** Khi sử dụng `functools.cmp_to_key(compare_membership_rows)` với sai số `eps_tie` để sắp xếp danh sách $\ge 3$ candidate sequences, comparator theo cặp (pairwise) vi phạm tính bắc cầu (non-transitive cycle: $A > B$, $B > C$, $C > A$).
 - **Khắc phục:**
   - Thay thế toàn bộ việc sort pairwise bằng hàm phân giải toàn cục (global), bất biến với thứ tự `find_best_membership_row(rows, eps_tie=1e-6)`:
     1. Xác định xác suất lớn nhất $p_{max}$ trong tập ứng viên.
@@ -31,7 +47,7 @@ Toàn bộ cấu hình được cố định trong `config/ml/models/hdbscan_ada
   - Áp dụng chuẩn xác cùng chính sách này cho việc phân giải nested candidate parents trong `resolve_multi_sequence_and_nested_mainshocks`.
   - Thêm 6 bộ test hoán vị (`itertools.permutations`) cho $\ge 3$ sequences kiểm chứng toàn diện tính bất biến thứ tự.
 
-### 2.2. [P2] Tích hợp adaptive tests vào CI pipeline (comment-6249299753)
+### 2.3. [P2] Tích hợp adaptive tests vào CI pipeline (comment-6249299753)
 - **Vấn đề:** `Makefile:test-pilot` và `scripts/ci-impact.py` chưa kích hoạt chạy `tests/test_adaptive_hdbscan.py`.
 - **Khắc phục:**
   - Bổ sung `@$(PILOT_PYTHON) -m unittest tests/test_adaptive_hdbscan.py` vào target `test-pilot` trong `Makefile`.
@@ -43,7 +59,7 @@ Toàn bộ cấu hình được cố định trong `config/ml/models/hdbscan_ada
     - Cập nhật regex selector cho `test_adaptive_hdbscan.py` và summary table.
   - Thêm test `test_adaptive_hdbscan_changes_trigger_full_pilot_python` trong `tests/ci/test_suites.py`.
 
-### 2.3. [P2] Đồng bộ trạng thái task và chuyển sang persistent staging (comment-6249299753)
+### 2.4. [P2] Đồng bộ trạng thái task và chuyển sang persistent staging (comment-6249299753)
 - **Vấn đề:** CI `docs-contracts` báo lỗi lệch trạng thái `EXP-02 metadata=In Progress but index=Done`. Đồng thời EXP-03 được chuyển `Done` quá sớm khi đang trong quá trình review/fix. `notebooks/exp_03_adaptive_hdbscan.ipynb` dùng `tempfile.TemporaryDirectory` làm mất artifact sau khi kernel đóng.
 - **Khắc phục:**
   - Khôi phục trạng thái `EXP-02` trong `docs/task/tasks/README.md` về `In Progress` để khớp với metadata file `EXP-02.md`.
@@ -51,7 +67,7 @@ Toàn bộ cấu hình được cố định trong `config/ml/models/hdbscan_ada
   - Loại bỏ hoàn toàn `tempfile.TemporaryDirectory` trong `notebooks/exp_03_adaptive_hdbscan.ipynb`: chuyển sang thư mục staging bền vững `staging/ml-experiments/exp03-adaptive` (cấu hình được qua biến môi trường `EXP03_OUTPUT_DIR`) và `staging/ml-pilot/exp03-fixture`.
   - Cập nhật script `scripts/inspect-exp03-notebook.py` hỗ trợ `--output-dir` và ghi nhận kết quả vào `docs/evidence/EXP-03-local-smoke.json`.
 
-### 2.4. Các điểm khắc phục từ Round 1 (comment-6230270173)
+### 2.5. Các điểm khắc phục từ Round 1 (comment-6230270173)
 - Đọc đúng trường `mainshock_magnitude` thay vì `magnitude` mặc định `5.5`.
 - Xử lý hòa bằng chứng nested parent khách quan, ghi nhận `AMBIGUOUS_NESTED_PARENT_TIE`.
 - Kiểm tra tolerance probability tie-breaking bằng distance chính xác.
@@ -61,8 +77,10 @@ Toàn bộ cấu hình được cố định trong `config/ml/models/hdbscan_ada
 
 - **Unit & Contract Tests cho Adaptive HDBSCAN (`tests/test_adaptive_hdbscan.py`):**
   - Lệnh: `python -m unittest tests/test_adaptive_hdbscan.py`
-  - Kết quả: **21 tests PASS**, 0 errors, 0 failures (thời gian chạy: ~0.20s).
-  - Chi tiết các test mới:
+  - Kết quả: **23 tests PASS**, 0 errors, 0 failures (thời gian chạy: ~0.60s).
+  - Chi tiết các test mới được bổ sung:
+    - `test_run_adaptive_experiment_subfolder_and_retry`: subfolder generation per run_id, pilot manifest verification, idempotent retry reuse mà không conflict.
+    - `test_notebook_consecutive_runs_with_same_output_root`: chạy lại notebook liên tiếp hai lần trên cùng thư mục gốc, tạo 2 subfolder riêng biệt, toàn bộ checksums của bundle lần 1 được bảo toàn 100%. Lần 3 retry an toàn.
     - `test_find_best_membership_row_3_sequences_counterexample_permutations`: 6 hoán vị đều chọn B là winner.
     - `test_find_best_membership_row_3_sequences_unresolvable_tie_permutations`: 6 hoán vị đều xác định `is_tie=True` và `winner=None`.
     - `test_multi_sequence_resolution_3_sequences_all_permutations`: 6 hoán vị đều gán rank 1 cho B, rank 2 cho C, rank 3 cho A.
@@ -73,8 +91,9 @@ Toàn bộ cấu hình được cố định trong `config/ml/models/hdbscan_ada
 - **Toàn bộ Experiment Regression Suite:**
   - `python -m unittest tests/test_experiment_harness.py`: **44 tests PASS**, 0 errors, 0 failures.
   - `python -m unittest tests/test_baseline_algorithms.py`: **19 tests PASS**, 0 errors, 0 failures.
+  - `python -m unittest tests/test_adaptive_hdbscan.py`: **23 tests PASS**, 0 errors, 0 failures.
   - `python -m unittest tests/ci/test_suites.py`: **13 tests PASS**, 0 errors, 0 failures.
-  - Chạy tổng hợp 97 tests: **OK**.
+  - Chạy tổng hợp 99 tests: **OK**.
 
 - **Kiểm tra đồng bộ danh mục task (76/76 tasks):**
   - Metadata frontmatter, mục Theo dõi và dòng index trong `docs/task/tasks/README.md` khớp nhau 100%.
@@ -85,7 +104,8 @@ Toàn bộ cấu hình được cố định trong `config/ml/models/hdbscan_ada
 
 - **Notebook headless inspection (`scripts/inspect-exp03-notebook.py`):**
   - Lệnh: `python scripts/inspect-exp03-notebook.py --output-json docs/evidence/EXP-03-local-smoke.json`
-  - Kết quả:
+  - Kết quả chạy 2 lần liên tiếp: **Cả 2 lần đều hoàn tất thành công (exit code 0)**, không bị lỗi `EXP_COMPLETED_BUNDLE_CONFLICT`.
+  - JSON evidence:
     - `notebook_status`: `FALLBACK_EXEC_PASSED`
     - `local_smoke_status`: `FALLBACK_EXEC_WARNING`
     - `colab_migration_allowed`: `false`
@@ -93,7 +113,7 @@ Toàn bộ cấu hình được cố định trong `config/ml/models/hdbscan_ada
     - `runner_mode`: `isolated_exec`
     - `executed_code_cells`: 5
     - `source_notebook_outputs_cleared`: `true`
-    - `runtime_seconds`: ~2.11s
+    - `runtime_seconds`: ~2.15s
 
 ## 4. Deliverables của task
 
