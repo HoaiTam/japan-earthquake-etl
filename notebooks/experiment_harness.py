@@ -273,6 +273,7 @@ def load_feature_bundle(bundle_dir: Union[str, Path], mode: str = MODE_DEVELOPME
             "coverage": pilot_data["coverage"],
             "bundle_dir": root,
             "is_official": False,
+            "checksums": checksum_entries,
         }
 
     else:  # mode == MODE_OFFICIAL
@@ -381,6 +382,7 @@ def load_feature_bundle(bundle_dir: Union[str, Path], mode: str = MODE_DEVELOPME
             "coverage": None,
             "bundle_dir": root,
             "is_official": True,
+            "checksums": checksum_entries,
         }
 
 
@@ -1024,9 +1026,38 @@ class ColabPathAdapter:
 
         status = report.get("local_smoke_status", report.get("notebook_status"))
         allowed = report.get("colab_migration_allowed", True)
+        fresh_kernel = report.get("fresh_kernel_acceptance")
 
         is_passed = (status in {"PASSED", "RESTART_RUN_ALL_PASSED"}) and bool(allowed)
         require(is_passed, f"COLAB_GATE_BLOCKED: Local smoke status is {status}, migration allowed={allowed}")
+        require(fresh_kernel is not False,
+                f"COLAB_GATE_BLOCKED: Fresh kernel acceptance failed (fresh_kernel_acceptance={fresh_kernel})")
+
+        # If this is an EXP-02 local smoke report, enforce mandatory algorithm coverage and non-empty reconciliation
+        report_ver = str(report.get("report_version", ""))
+        if "local-smoke" in report_ver or "algorithms_evaluated" in report:
+            require(fresh_kernel is True,
+                    f"COLAB_GATE_BLOCKED: Fresh kernel acceptance is required for Colab migration (fresh_kernel_acceptance={fresh_kernel})")
+            bundle_cs = report.get("bundle_checksum")
+            require(isinstance(bundle_cs, str) and len(bundle_cs) == 64,
+                    f"COLAB_GATE_BLOCKED: bundle_checksum is missing, null, or invalid in local smoke report: {bundle_cs}")
+
+            algos = report.get("algorithms_evaluated")
+            require(isinstance(algos, list),
+                    "COLAB_GATE_BLOCKED: Report missing evaluated algorithms list")
+            required_algos = {"WINDOW", "DBSCAN", "HDBSCAN_GLOBAL"}
+            require(required_algos.issubset(set(algos)),
+                    f"COLAB_GATE_BLOCKED: Report missing required algorithms: {sorted(required_algos - set(algos))}")
+
+            reconciliation = report.get("reconciliation")
+            require(isinstance(reconciliation, dict) and len(reconciliation) >= 3,
+                    "COLAB_GATE_BLOCKED: Missing or incomplete reconciliation in local smoke report")
+            for req_algo in required_algos:
+                require(req_algo in reconciliation, f"COLAB_GATE_BLOCKED: Missing reconciliation for {req_algo}")
+                metrics = reconciliation[req_algo]
+                require(isinstance(metrics, dict), f"COLAB_GATE_BLOCKED: Invalid metrics structure for {req_algo}")
+                require(metrics.get("total_candidates", 0) > 0, f"COLAB_GATE_BLOCKED: Zero candidates in {req_algo}")
+
         return report
 
     @staticmethod

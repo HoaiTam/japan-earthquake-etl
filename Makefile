@@ -129,6 +129,7 @@ pilot-env: ## Chuẩn bị venv notebook riêng một lần; cần Internet, kh�
 test-pilot: ## Synthetic loader/staging regression; cần pyarrow, không Docker/network/notebook kernel
 	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_pilot_*.py'
 	@$(PILOT_PYTHON) -m unittest tests/test_experiment_harness.py
+	@$(PILOT_PYTHON) -m unittest tests/test_baseline_algorithms.py
 
 inspect-pilot: ## Fresh Jupyter kernel Run All; PILOT_BUNDLE=exact local directory, không Docker/API
 	@test -n "$(PILOT_BUNDLE)" || { echo 'Set PILOT_BUNDLE=staging/ml-pilot/pilot_id=<exact-id>'; exit 2; }
@@ -150,6 +151,15 @@ inspect-exp01: ## EXP-01 fresh Jupyter kernel Run All; không Docker/API
 
 jupyter-exp01: ## Mở Jupyter loopback cho EXP-01 harness smoke notebook
 	@jupyter lab --ip=127.0.0.1 --no-browser notebooks/exp_01_harness_smoke.ipynb
+
+test-exp02: ## EXP-02 Window, DBSCAN, HDBSCAN global unit tests; không Docker/network
+	@python3 -m unittest tests/test_baseline_algorithms.py
+
+inspect-exp02: ## EXP-02 fresh Jupyter kernel Run All cho baseline algorithms; không Docker/API
+	@python3 scripts/inspect-exp02-notebook.py $${PILOT_BUNDLE:+--pilot-bundle "$$PILOT_BUNDLE"}
+
+jupyter-exp02: ## Mở Jupyter loopback cho EXP-02 baseline algorithms notebook
+	@jupyter lab --ip=127.0.0.1 --no-browser notebooks/exp_02_baseline_algorithms.ipynb
 export QA_RUN_ID
 
 test-ml-window: ## MLD-03 bucket physical plan, distributed invariants, microseconds và fail-fast Parquet tests

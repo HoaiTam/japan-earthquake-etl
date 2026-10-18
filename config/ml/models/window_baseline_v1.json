@@ -1,0 +1,9 @@
+{
+  "algorithm_name": "WINDOW",
+  "algorithm_version": "1.0.0",
+  "model_config_version": "window-baseline-v1",
+  "pre_window_role": "PRE",
+  "post_window_role": "POST",
+  "include_post_only": true,
+  "description": "Standard space-time counting window baseline: POST candidates in window marked sequence candidates"
+}
