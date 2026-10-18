@@ -9,12 +9,15 @@ Covers:
 - Input immutability.
 - Multi-baseline execution and local smoke report generation.
 """
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import importlib.util
 import json
 from pathlib import Path
 import tempfile
 import unittest
+
+import pyarrow as pa
+import pyarrow.parquet as pq
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -91,6 +94,173 @@ def create_window_candidates() -> list[dict]:
             "candidate_magnitude": 2.5,
         },
     ]
+
+
+def create_custom_pilot_bundle(root: Path, tag: str) -> str:
+    """Create a valid synthetic DAT-02 pilot bundle with custom event IDs and dataset ID."""
+    centre = datetime(2000, 7, 1, tzinfo=timezone.utc)
+    mid = f"evt_m_{tag}_" + "1" * 24
+    post_evt = f"evt_p_{tag}_" + "2" * 24
+    ds_id = f"ds_fixture_{tag}"
+
+    selection = {"source_dataset_id": ds_id, "native_report_sha256": "f" * 64, "mainshock_ids": [mid]}
+    scaling = {"mode": "GLOBAL", "space_scale_km": 50.0, "depth_scale_km": 30.0, "time_scale_hours": 720.0}
+    payload = {
+        "source_dataset_id": ds_id,
+        "native_report_sha256": "f" * 64,
+        "scaling_config_sha256": harness.sha256_bytes(harness.canonical(scaling).encode()),
+        "selection_config_sha256": harness.sha256_bytes(harness.canonical(selection).encode()),
+    }
+    pid = "pilot_" + harness.sha256_bytes(harness.canonical(payload).encode())
+
+    main_row = {
+        "schema_version": "fixture-v1",
+        "dataset_id": ds_id,
+        "pilot_id": pid,
+        "mainshock_event_id": mid,
+        "selection_rule_version": "fixture-v1",
+        "window_model_version": "fixture-v1",
+        "resource_guard_status": "PASS",
+        "resource_reason_code": None,
+        "latitude": 35.0,
+        "longitude": 140.0,
+        "depth_km": 80.0,
+        "magnitude": 6.0,
+        "mc_value": 1.0,
+        "pre_window_hours": 24.0,
+        "post_window_hours": 720.0,
+        "search_radius_km": 50.0,
+        "event_time_utc": centre,
+        "created_at_utc": centre,
+        "candidate_count": 2,
+    }
+
+    own_row = {
+        "schema_version": "fixture-v1",
+        "dataset_id": ds_id,
+        "pilot_id": pid,
+        "mainshock_event_id": mid,
+        "candidate_event_id": mid,
+        "relative_time_role": "MAINSHOCK",
+        "window_model_version": "fixture-v1",
+        "feature_version": "relative-4d-v1",
+        "scaling_config_version": "fixture-v1",
+        "candidate_latitude": 35.0,
+        "candidate_longitude": 140.0,
+        "candidate_depth_km": 80.0,
+        "candidate_magnitude": 6.0,
+        "mainshock_magnitude": 6.0,
+        "mc_value": 1.0,
+        "dx_km": 0.0,
+        "dy_km": 0.0,
+        "dz_km": 0.0,
+        "delta_time_hours": 0.0,
+        "distance_3d_km": 0.0,
+        "x_scaled": 0.0,
+        "y_scaled": 0.0,
+        "z_scaled": 0.0,
+        "time_scaled": 0.0,
+        "space_scale_km": 50.0,
+        "depth_scale_km": 30.0,
+        "time_scale_hours": 720.0,
+        "is_mainshock": True,
+        "candidate_time_utc": centre,
+        "created_at_utc": centre,
+    }
+
+    post_row = dict(
+        own_row,
+        candidate_event_id=post_evt,
+        is_mainshock=False,
+        relative_time_role="POST",
+        candidate_magnitude=3.5,
+        candidate_time_utc=centre + timedelta(hours=2),
+        delta_time_hours=2.0,
+        time_scaled=2.0 / 720.0,
+        dx_km=10.0,
+        dy_km=5.0,
+        dz_km=-2.0,
+        distance_3d_km=11.3578,
+        x_scaled=10.0 / 50.0,
+        y_scaled=5.0 / 50.0,
+        z_scaled=-2.0 / 30.0,
+    )
+
+    arrow_types = {
+        "string": pa.string(),
+        "double": pa.float64(),
+        "long": pa.int64(),
+        "timestamp": pa.timestamp("us", tz="UTC"),
+        "boolean": pa.bool_(),
+    }
+
+    pq.write_table(
+        pa.Table.from_pylist([own_row, post_row], schema=pa.schema([(k, arrow_types[t]) for k, t in test_harness.pilot.FEATURE_TYPES.items()])),
+        root / "features-part-00000.parquet",
+    )
+    pq.write_table(
+        pa.Table.from_pylist([main_row], schema=pa.schema([(k, arrow_types[t]) for k, t in test_harness.pilot.MAIN_TYPES.items()])),
+        root / "mainshocks.parquet",
+    )
+
+    cov = {
+        "research_ready": False,
+        "status": "PARTIAL",
+        "windows": [
+            {
+                "mainshock_event_id": mid,
+                "candidate_count": 2,
+                "required_start_utc": "2000-06-30T00:00:00Z",
+                "required_end_utc_exclusive": "2000-07-31T00:00:00.000001Z",
+                "status": "PARTIAL",
+                "available_ranges": [{"start_utc": "2000-06-30T00:00:00Z", "end_utc_exclusive": "2000-07-05T00:00:00Z"}],
+                "missing_ranges": [{"start_utc": "2000-07-05T00:00:00Z", "end_utc_exclusive": "2000-07-31T00:00:00.000001Z"}],
+            }
+        ],
+    }
+    (root / "coverage_report.json").write_text(harness.canonical(cov) + "\n", encoding="utf-8")
+
+    table_names = ["event_current", "event_source_bridge", "dim_date", "dim_region", "dim_magnitude_band", "dim_depth_band"]
+    pins = {t: {"table": "iceberg.fixture." + t, "snapshot_id": 9223372036854775700 + i} for i, t in enumerate(table_names)}
+
+    manifest = {
+        "manifest_version": "dat-02-pilot-v1",
+        "pilot_id": pid,
+        "artifact_kind": "DEVELOPMENT_PILOT",
+        "allowed_usage": "DEVELOPMENT_ONLY",
+        "research_ready": False,
+        "source_dataset_status": "BUILDING",
+        "source_dataset_id": ds_id,
+        "identity_payload": payload,
+        "scaling_config_json": harness.canonical(scaling),
+        "selection_config_json": harness.canonical(selection),
+        "vector_columns": harness.VECTOR_COLUMNS,
+        "feature_version": "relative-4d-v1",
+        "scaling_config_version": "fixture-v1",
+        "feature_count": 2,
+        "mainshock_count": 1,
+        "invalid_count": 0,
+        "selected_mainshock_ids": [mid],
+        "coverage_status": "PARTIAL",
+        "feature_schema": [{"name": k, "type": t} for k, t in test_harness.pilot.FEATURE_TYPES.items()],
+        "mainshock_schema": [{"name": k, "type": t} for k, t in test_harness.pilot.MAIN_TYPES.items()],
+        "coverage_sha256": harness.sha256_bytes((root / "coverage_report.json").read_bytes()),
+        "source_manifest": {
+            "dataset_id": ds_id,
+            "dataset_status": "BUILDING",
+            "gold_publication_id": f"pub_fixture_{tag}",
+            "gold_snapshot_id": pins["event_current"]["snapshot_id"],
+            "physical_gold_table_name": pins["event_current"]["table"],
+        },
+        "gold_publication": {"publication_id": f"pub_fixture_{tag}", "published": True, "verify_status": "PASSED", "snapshot_bundle": pins},
+    }
+    manifest["schema_sha256"] = harness.sha256_bytes(harness.canonical(manifest["feature_schema"]).encode())
+    (root / "pilot_manifest.json").write_text(harness.canonical(manifest) + "\n", encoding="utf-8")
+
+    names = sorted(p.name for p in root.iterdir() if p.name != "checksums.sha256")
+    checksums_txt = "".join(f"{harness.sha256_bytes((root / n).read_bytes())}  {n}\n" for n in names)
+    (root / "checksums.sha256").write_text(checksums_txt, encoding="utf-8")
+    return pid
 
 
 class BaselineModelsTest(unittest.TestCase):
@@ -320,6 +490,7 @@ class BaselineModelsTest(unittest.TestCase):
             algorithm_results=results,
             output_path=smoke_report_file,
             code_version="test-exp02",
+            fresh_kernel_acceptance=True,
         )
         self.assertEqual(report["local_smoke_status"], "PASSED")
         self.assertTrue(report["colab_migration_allowed"])
@@ -330,6 +501,431 @@ class BaselineModelsTest(unittest.TestCase):
         adapter = harness.ColabPathAdapter()
         verified = adapter.verify_local_smoke_gate(smoke_report_file)
         self.assertEqual(verified["local_smoke_status"], "PASSED")
+        self.assertIn("case_results", verified)
+
+    # -------------------------------------------------------------------------
+    # 7. Multi-Sequence Overlap and Run ID Synchronization Tests (Review P1)
+    # -------------------------------------------------------------------------
+    def test_multi_sequence_overlap_marked_ambiguous_and_rank_none(self):
+        mid1 = "evt_m1_" + "1" * 25
+        mid2 = "evt_m2_" + "2" * 25
+        shared_cand = "evt_shared_" + "9" * 21
+        exclusive_cand = "evt_excl_" + "8" * 23
+
+        # Construct two windows with one shared candidate
+        rows = [
+            # Window 1: mainshock 1 + shared candidate (POST)
+            {
+                "mainshock_event_id": mid1,
+                "candidate_event_id": mid1,
+                "delta_time_hours": 0.0,
+                "x_scaled": 0.0, "y_scaled": 0.0, "z_scaled": 0.0, "time_scaled": 0.0,
+                "candidate_magnitude": 6.0,
+            },
+            {
+                "mainshock_event_id": mid1,
+                "candidate_event_id": shared_cand,
+                "delta_time_hours": 2.0,
+                "x_scaled": 0.02, "y_scaled": 0.02, "z_scaled": 0.01, "time_scaled": 0.01,
+                "candidate_magnitude": 4.0,
+            },
+            # Window 2: mainshock 2 + shared candidate (POST) + exclusive candidate (POST)
+            {
+                "mainshock_event_id": mid2,
+                "candidate_event_id": mid2,
+                "delta_time_hours": 0.0,
+                "x_scaled": 0.0, "y_scaled": 0.0, "z_scaled": 0.0, "time_scaled": 0.0,
+                "candidate_magnitude": 6.5,
+            },
+            {
+                "mainshock_event_id": mid2,
+                "candidate_event_id": shared_cand,
+                "delta_time_hours": 4.0,
+                "x_scaled": 0.03, "y_scaled": 0.01, "z_scaled": 0.01, "time_scaled": 0.02,
+                "candidate_magnitude": 4.0,
+            },
+            {
+                "mainshock_event_id": mid2,
+                "candidate_event_id": exclusive_cand,
+                "delta_time_hours": 6.0,
+                "x_scaled": 0.05, "y_scaled": 0.04, "z_scaled": 0.02, "time_scaled": 0.03,
+                "candidate_magnitude": 3.8,
+            },
+        ]
+
+        import pyarrow as pa
+        features_table = pa.Table.from_pylist(rows)
+        mock_bundle = {
+            "mode": harness.MODE_DEVELOPMENT,
+            "bundle_id": "pilot_overlap_test",
+            "source_dataset_id": "ds_overlap_test",
+            "features_table": features_table,
+            "manifest": {"coverage_status": "PARTIAL", "checksums": {}},
+        }
+
+        cfg_win = {"model_config_version": "window_v1"}
+        out_win = self.out_dir / "overlap_window"
+        res = models.run_baseline_experiment(
+            bundle=mock_bundle,
+            algorithm_name="WINDOW",
+            config=cfg_win,
+            model_config_version="window_v1",
+            output_dir=out_win,
+            mode=harness.MODE_DEVELOPMENT,
+        )
+
+        all_mems = res["memberships"]
+        self.assertEqual(len(all_mems), 5)
+
+        # Shared candidate rows
+        shared_rows = [m for m in all_mems if m["candidate_event_id"] == shared_cand]
+        self.assertEqual(len(shared_rows), 2)
+        for sr in shared_rows:
+            self.assertTrue(sr["is_sequence_member"])
+            self.assertEqual(sr["multi_sequence_status"], "AMBIGUOUS")
+            self.assertIsNone(sr["resolution_rank"])
+
+        # Exclusive candidate row
+        excl_row = next(m for m in all_mems if m["candidate_event_id"] == exclusive_cand)
+        self.assertTrue(excl_row["is_sequence_member"])
+        self.assertEqual(excl_row["multi_sequence_status"], "UNIQUE")
+        self.assertEqual(excl_row["resolution_rank"], 1)
+
+        # PyArrow roundtrip adheres to MLI-01 MEMBERSHIP_SCHEMA
+        table = pa.Table.from_pylist(all_mems, schema=harness.MEMBERSHIP_SCHEMA)
+        self.assertEqual(table.num_rows, 5)
+
+    def test_runner_synchronizes_run_id_across_memberships_and_manifest(self):
+        temp_bundle_dir = self.out_dir / "pilot_bundle_sync"
+        temp_bundle_dir.mkdir()
+        test_harness.create_pilot_fixture(temp_bundle_dir)
+        bundle = harness.load_feature_bundle(temp_bundle_dir, mode=harness.MODE_DEVELOPMENT)
+
+        cfg_win = {"model_config_version": "window_v1"}
+        out_win = self.out_dir / "sync_window"
+        res = models.run_baseline_experiment(
+            bundle=bundle,
+            algorithm_name="WINDOW",
+            config=cfg_win,
+            model_config_version="window_v1",
+            output_dir=out_win,
+            mode=harness.MODE_DEVELOPMENT,
+        )
+
+        effective_run_id = res["run_id"]
+        self.assertTrue(effective_run_id.startswith("pilot_run_"))
+        self.assertNotEqual(effective_run_id, "temp_run")
+
+        # Check in-memory rows
+        for m in res["memberships"]:
+            self.assertEqual(m["experiment_run_id"], effective_run_id)
+        for s in res["summaries"]:
+            self.assertEqual(s["experiment_run_id"], effective_run_id)
+
+        # Check on-disk manifest and config
+        manifest = json.loads((out_win / "pilot_result_manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual(manifest["pilot_run_id"], effective_run_id)
+
+        config_data = json.loads((out_win / "experiment_config.json").read_text(encoding="utf-8"))
+        self.assertEqual(config_data["experiment_run_id"], effective_run_id)
+
+    # -------------------------------------------------------------------------
+    # 8. Local Smoke Report Gate Regression Tests (Review P1)
+    # -------------------------------------------------------------------------
+    def test_local_smoke_report_rejects_empty_or_missing_algorithms(self):
+        temp_bundle_dir = self.out_dir / "pilot_bundle_gate"
+        temp_bundle_dir.mkdir()
+        test_harness.create_pilot_fixture(temp_bundle_dir)
+        bundle = harness.load_feature_bundle(temp_bundle_dir, mode=harness.MODE_DEVELOPMENT)
+
+        out_rep = self.out_dir / "rep_fail.json"
+
+        # 1. Empty algorithm_results
+        with self.assertRaisesRegex(ValueError, "MISSING_REQUIRED_BASELINE_ALGORITHMS"):
+            models.generate_local_smoke_report(bundle, {}, out_rep)
+
+        # 2. Incomplete baseline algorithms (missing HDBSCAN_GLOBAL)
+        with self.assertRaisesRegex(ValueError, "MISSING_REQUIRED_BASELINE_ALGORITHMS"):
+            models.generate_local_smoke_report(bundle, {"WINDOW": {}, "DBSCAN": {}}, out_rep)
+
+    def test_local_smoke_report_rejects_corrupted_roles_and_count_mismatch(self):
+        temp_bundle_dir = self.out_dir / "pilot_bundle_reconcile"
+        temp_bundle_dir.mkdir()
+        test_harness.create_pilot_fixture(temp_bundle_dir)
+        bundle = harness.load_feature_bundle(temp_bundle_dir, mode=harness.MODE_DEVELOPMENT)
+
+        results = {}
+        for algo in ["WINDOW", "DBSCAN", "HDBSCAN_GLOBAL"]:
+            res = models.run_baseline_experiment(
+                bundle=bundle,
+                algorithm_name=algo,
+                config={"model_config_version": f"{algo.lower()}_v1"},
+                model_config_version=f"{algo.lower()}_v1",
+                output_dir=self.out_dir / f"reconcile_{algo.lower()}",
+                mode=harness.MODE_DEVELOPMENT,
+            )
+            results[algo] = res
+
+        out_rep = self.out_dir / "rep_reconcile.json"
+
+        # Count mismatch
+        corrupted_results = dict(results)
+        corrupted_win = dict(results["WINDOW"])
+        corrupted_win["metrics"] = dict(results["WINDOW"]["metrics"], total_candidates=999)
+        corrupted_results["WINDOW"] = corrupted_win
+
+        with self.assertRaisesRegex(ValueError, "COUNT_MISMATCH"):
+            models.generate_local_smoke_report(bundle, corrupted_results, out_rep)
+
+        # Corrupted role
+        corrupted_mems = [dict(m) for m in results["WINDOW"]["memberships"]]
+        corrupted_mems[0]["event_role_candidate"] = "INVALID_ROLE"
+        corrupted_win_role = dict(results["WINDOW"], memberships=corrupted_mems)
+        corrupted_results_role = dict(results, WINDOW=corrupted_win_role)
+
+        with self.assertRaisesRegex(ValueError, "INVALID_EVENT_ROLE"):
+            models.generate_local_smoke_report(bundle, corrupted_results_role, out_rep)
+
+    def test_colab_adapter_rejects_incomplete_smoke_report(self):
+        adapter = harness.ColabPathAdapter()
+
+        # Missing report
+        with self.assertRaisesRegex(ValueError, "COLAB_GATE_BLOCKED: Missing local smoke report"):
+            adapter.verify_local_smoke_gate(self.out_dir / "nonexistent.json")
+
+        # Report missing required algorithms
+        bad_report_path = self.out_dir / "bad_report.json"
+        bad_report_path.write_text(json.dumps({
+            "report_version": "exp-02-local-smoke-v2",
+            "local_smoke_status": "PASSED",
+            "colab_migration_allowed": True,
+            "fresh_kernel_acceptance": True,
+            "bundle_checksum": "a" * 64,
+            "algorithms_evaluated": ["WINDOW"],
+            "reconciliation": {"WINDOW": {"total_candidates": 2}},
+        }), encoding="utf-8")
+
+        with self.assertRaisesRegex(ValueError, "COLAB_GATE_BLOCKED: Report missing required algorithms"):
+            adapter.verify_local_smoke_gate(bad_report_path)
+
+        # Report with empty reconciliation
+        bad_reconcile_path = self.out_dir / "bad_reconcile.json"
+        bad_reconcile_path.write_text(json.dumps({
+            "report_version": "exp-02-local-smoke-v2",
+            "local_smoke_status": "PASSED",
+            "colab_migration_allowed": True,
+            "fresh_kernel_acceptance": True,
+            "bundle_checksum": "a" * 64,
+            "algorithms_evaluated": ["DBSCAN", "HDBSCAN_GLOBAL", "WINDOW"],
+            "reconciliation": {},
+        }), encoding="utf-8")
+
+        with self.assertRaisesRegex(ValueError, "COLAB_GATE_BLOCKED: Missing or incomplete reconciliation"):
+            adapter.verify_local_smoke_gate(bad_reconcile_path)
+
+    def test_local_smoke_report_rejects_missing_manifest_checksum_entry(self):
+        temp_bundle_dir = self.out_dir / "pilot_bundle_missing_cs"
+        temp_bundle_dir.mkdir()
+        test_harness.create_pilot_fixture(temp_bundle_dir)
+        bundle = harness.load_feature_bundle(temp_bundle_dir, mode=harness.MODE_DEVELOPMENT)
+
+        results = {}
+        for algo in ["WINDOW", "DBSCAN", "HDBSCAN_GLOBAL"]:
+            results[algo] = models.run_baseline_experiment(
+                bundle=bundle,
+                algorithm_name=algo,
+                config={"model_config_version": f"{algo.lower()}_v1"},
+                model_config_version=f"{algo.lower()}_v1",
+                output_dir=self.out_dir / f"missing_cs_{algo.lower()}",
+                mode=harness.MODE_DEVELOPMENT,
+            )
+
+        # Corrupt WINDOW manifest by deleting experiment_metrics.json checksum entry
+        win_manifest_path = Path(results["WINDOW"]["write_result"]["manifest_path"])
+        manifest_data = json.loads(win_manifest_path.read_text(encoding="utf-8"))
+        del manifest_data["checksums"]["experiment_metrics.json"]
+        win_manifest_path.write_text(json.dumps(manifest_data), encoding="utf-8")
+
+        out_rep = self.out_dir / "rep_missing_cs.json"
+        with self.assertRaisesRegex(ValueError, "MISSING_MANIFEST_CHECKSUM_ENTRY:WINDOW:experiment_metrics.json"):
+            models.generate_local_smoke_report(bundle, results, out_rep)
+
+    def test_local_smoke_report_rejects_corrupted_physical_json_and_parquet(self):
+        temp_bundle_dir = self.out_dir / "pilot_bundle_phys_corrupt"
+        temp_bundle_dir.mkdir()
+        test_harness.create_pilot_fixture(temp_bundle_dir)
+        bundle = harness.load_feature_bundle(temp_bundle_dir, mode=harness.MODE_DEVELOPMENT)
+
+        results = {}
+        for algo in ["WINDOW", "DBSCAN", "HDBSCAN_GLOBAL"]:
+            results[algo] = models.run_baseline_experiment(
+                bundle=bundle,
+                algorithm_name=algo,
+                config={"model_config_version": f"{algo.lower()}_v1"},
+                model_config_version=f"{algo.lower()}_v1",
+                output_dir=self.out_dir / f"phys_corrupt_{algo.lower()}",
+                mode=harness.MODE_DEVELOPMENT,
+            )
+
+        # 1. Non-JSON string written to experiment_metrics.json
+        metrics_file = self.out_dir / "phys_corrupt_window" / "experiment_metrics.json"
+        metrics_file.write_text("THIS IS NOT A VALID JSON STRING", encoding="utf-8")
+        # Update manifest to match new checksum so it passes checksum check but fails physical json parse
+        win_manifest_path = Path(results["WINDOW"]["write_result"]["manifest_path"])
+        manifest_data = json.loads(win_manifest_path.read_text(encoding="utf-8"))
+        manifest_data["checksums"]["experiment_metrics.json"] = harness.sha256_bytes(metrics_file.read_bytes())
+        win_manifest_path.write_text(json.dumps(manifest_data), encoding="utf-8")
+
+        out_rep = self.out_dir / "rep_corrupt_json.json"
+        with self.assertRaisesRegex(ValueError, "CORRUPT_PHYSICAL_METRICS_JSON:WINDOW"):
+            models.generate_local_smoke_report(bundle, results, out_rep)
+
+        # Restore valid metrics json so test 2 isolates parquet corruption
+        valid_metrics_content = harness.canonical({
+            "schema_version": "1.0",
+            "experiment_run_id": results["WINDOW"]["run_id"],
+            "dataset_id": bundle["source_dataset_id"],
+            "algorithm_name": "WINDOW",
+            "membership_row_count": 2,
+            "summary_row_count": 1,
+            "metrics": results["WINDOW"]["metrics"],
+        })
+        metrics_file.write_text(valid_metrics_content, encoding="utf-8")
+        manifest_data["checksums"]["experiment_metrics.json"] = harness.sha256_bytes(metrics_file.read_bytes())
+
+        # 2. Corrupted parquet file
+        mems_file = self.out_dir / "phys_corrupt_window" / "memberships.parquet"
+        mems_file.write_bytes(b"INVALID_PARQUET_HEADER_BYTES")
+        manifest_data["checksums"]["memberships.parquet"] = harness.sha256_bytes(mems_file.read_bytes())
+        win_manifest_path.write_text(json.dumps(manifest_data), encoding="utf-8")
+
+        with self.assertRaisesRegex(ValueError, "CORRUPT_PHYSICAL_MEMBERSHIPS_PARQUET:WINDOW"):
+            models.generate_local_smoke_report(bundle, results, out_rep)
+
+    def test_local_smoke_report_extracts_non_null_bundle_checksum_and_fingerprint(self):
+        temp_bundle_dir = self.out_dir / "pilot_bundle_cs_extract"
+        temp_bundle_dir.mkdir()
+        test_harness.create_pilot_fixture(temp_bundle_dir)
+        bundle = harness.load_feature_bundle(temp_bundle_dir, mode=harness.MODE_DEVELOPMENT)
+
+        results = {}
+        for algo in ["WINDOW", "DBSCAN", "HDBSCAN_GLOBAL"]:
+            results[algo] = models.run_baseline_experiment(
+                bundle=bundle,
+                algorithm_name=algo,
+                config={"model_config_version": f"{algo.lower()}_v1"},
+                model_config_version=f"{algo.lower()}_v1",
+                output_dir=self.out_dir / f"cs_extract_{algo.lower()}",
+                mode=harness.MODE_DEVELOPMENT,
+            )
+
+        out_rep = self.out_dir / "rep_cs_extract.json"
+        rep = models.generate_local_smoke_report(bundle, results, out_rep, fresh_kernel_acceptance=True)
+
+        self.assertIsNotNone(rep["bundle_checksum"])
+        self.assertEqual(len(rep["bundle_checksum"]), 64)
+        self.assertEqual(rep["local_smoke_status"], "PASSED")
+        self.assertTrue(rep["colab_migration_allowed"])
+        self.assertTrue(rep["fresh_kernel_acceptance"])
+        self.assertIn("bundle_fingerprint", rep)
+        self.assertEqual(rep["bundle_fingerprint"]["features_sha256"], rep["bundle_checksum"])
+
+        adapter = harness.ColabPathAdapter()
+        verified = adapter.verify_local_smoke_gate(out_rep)
+        self.assertEqual(verified["bundle_checksum"], rep["bundle_checksum"])
+
+    def test_fallback_mode_smoke_report_blocks_colab_gate(self):
+        temp_bundle_dir = self.out_dir / "pilot_bundle_fallback_gate"
+        temp_bundle_dir.mkdir()
+        test_harness.create_pilot_fixture(temp_bundle_dir)
+        bundle = harness.load_feature_bundle(temp_bundle_dir, mode=harness.MODE_DEVELOPMENT)
+
+        results = {}
+        for algo in ["WINDOW", "DBSCAN", "HDBSCAN_GLOBAL"]:
+            results[algo] = models.run_baseline_experiment(
+                bundle=bundle,
+                algorithm_name=algo,
+                config={"model_config_version": f"{algo.lower()}_v1"},
+                model_config_version=f"{algo.lower()}_v1",
+                output_dir=self.out_dir / f"fallback_{algo.lower()}",
+                mode=harness.MODE_DEVELOPMENT,
+            )
+
+        out_rep = self.out_dir / "rep_fallback.json"
+        rep = models.generate_local_smoke_report(bundle, results, out_rep, fresh_kernel_acceptance=False)
+
+        self.assertEqual(rep["local_smoke_status"], "FALLBACK_EXEC_WARNING")
+        self.assertFalse(rep["colab_migration_allowed"])
+        self.assertFalse(rep["fresh_kernel_acceptance"])
+
+        adapter = harness.ColabPathAdapter()
+        with self.assertRaisesRegex(ValueError, "COLAB_GATE_BLOCKED: Local smoke status is FALLBACK_EXEC_WARNING"):
+            adapter.verify_local_smoke_gate(out_rep)
+
+    def test_colab_adapter_rejects_null_or_invalid_bundle_checksum(self):
+        adapter = harness.ColabPathAdapter()
+        bad_report_path = self.out_dir / "bad_checksum_report.json"
+        bad_report_path.write_text(json.dumps({
+            "report_version": "exp-02-local-smoke-v2",
+            "local_smoke_status": "PASSED",
+            "colab_migration_allowed": True,
+            "fresh_kernel_acceptance": True,
+            "bundle_checksum": None,
+            "algorithms_evaluated": ["DBSCAN", "HDBSCAN_GLOBAL", "WINDOW"],
+            "reconciliation": {
+                "WINDOW": {"total_candidates": 2},
+                "DBSCAN": {"total_candidates": 2},
+                "HDBSCAN_GLOBAL": {"total_candidates": 2},
+            },
+        }), encoding="utf-8")
+
+        with self.assertRaisesRegex(ValueError, "COLAB_GATE_BLOCKED: bundle_checksum is missing, null, or invalid"):
+            adapter.verify_local_smoke_gate(bad_report_path)
+
+    def test_local_smoke_report_rejects_cross_pilot_lineage_and_grain_mismatch(self):
+        # Create two distinct pilots A and B, each with exactly 2 candidate rows but different identities
+        dir_a = self.out_dir / "cross_pilot_a"
+        dir_b = self.out_dir / "cross_pilot_b"
+        dir_a.mkdir()
+        dir_b.mkdir()
+
+        pid_a = create_custom_pilot_bundle(dir_a, tag="A")
+        pid_b = create_custom_pilot_bundle(dir_b, tag="B")
+        self.assertNotEqual(pid_a, pid_b)
+
+        bundle_a = harness.load_feature_bundle(dir_a, mode=harness.MODE_DEVELOPMENT)
+        bundle_b = harness.load_feature_bundle(dir_b, mode=harness.MODE_DEVELOPMENT)
+        self.assertEqual(bundle_a["features_table"].num_rows, 2)
+        self.assertEqual(bundle_b["features_table"].num_rows, 2)
+
+        # Run baselines on pilot A
+        results_a = {}
+        for algo in ["WINDOW", "DBSCAN", "HDBSCAN_GLOBAL"]:
+            results_a[algo] = models.run_baseline_experiment(
+                bundle=bundle_a,
+                algorithm_name=algo,
+                config={"model_config_version": f"{algo.lower()}_v1"},
+                model_config_version=f"{algo.lower()}_v1",
+                output_dir=self.out_dir / f"cross_a_{algo.lower()}",
+                mode=harness.MODE_DEVELOPMENT,
+            )
+
+        # 1. Matched pairing (bundle_a + results_a) must pass
+        rep_a_path = self.out_dir / "rep_a.json"
+        rep_a = models.generate_local_smoke_report(bundle_a, results_a, rep_a_path, fresh_kernel_acceptance=True)
+        self.assertEqual(rep_a["local_smoke_status"], "PASSED")
+        self.assertEqual(rep_a["pilot_id"], pid_a)
+
+        # 2. Mismatched pairing: bundle_b (2 candidates) paired with results_a (2 candidates from pilot A)
+        # MUST fail due to lineage mismatch (manifest pilot_id mismatch or grain mismatch)
+        rep_mismatch_path = self.out_dir / "rep_mismatch.json"
+        with self.assertRaises(ValueError) as ctx:
+            models.generate_local_smoke_report(bundle_b, results_a, rep_mismatch_path)
+        err_msg = str(ctx.exception)
+        self.assertTrue(
+            any(k in err_msg for k in ["MANIFEST_PILOT_ID_MISMATCH", "MANIFEST_DATASET_ID_MISMATCH", "GRAIN_MISMATCH", "LINEAGE_MISMATCH"]),
+            f"Expected lineage or grain mismatch error, got: {err_msg}"
+        )
 
 
 if __name__ == "__main__":

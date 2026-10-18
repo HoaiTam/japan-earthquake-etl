@@ -8,7 +8,7 @@ scope: "Core"
 priority: "P0"
 effort_hours: 5
 assignee: "rosy179"
-reviewer: "unassigned"
+reviewer: "HoaiTam"
 dependencies: ["CON-03", "DAT-02"]
 ---
 
@@ -83,8 +83,8 @@ MLD-05 để hoàn tất local harness. Cloud smoke nằm trong EXP-02 giai đo�
 
 - **Trạng thái:** Done
 - **Assignee:** rosy179
-- **Reviewer:** unassigned
-- **Evidence / PR:** Shared harness `notebooks/experiment_harness.py`, requirements lock `notebooks/requirements-lock.txt`, thin smoke notebook `notebooks/exp_01_harness_smoke.ipynb`, notebook runner `scripts/inspect-exp01-notebook.py`, và unit test suite 15/15 PASS `tests/test_experiment_harness.py`. Notebook restart-run-all đạt `RESTART_RUN_ALL_PASSED` với `local_smoke_status=PASSED` và `colab_migration_allowed=true`. Xem [evidence EXP-01](../../evidence/EXP-01.md).
+- **Reviewer:** HoaiTam
+- **Evidence / PR:** Đã khắc phục toàn bộ review comments từ HoaiTam tại PR #83 ([comment-6229834764](https://github.com/HoaiTam/japan-earthquake-etl/pull/83#issuecomment-6229834764), [comment-6231696916](https://github.com/HoaiTam/japan-earthquake-etl/pull/83#issuecomment-6231696916), [comment-6244707869](https://github.com/HoaiTam/japan-earthquake-etl/pull/83#issuecomment-6244707869) và [comment-6244865924](https://github.com/HoaiTam/japan-earthquake-etl/pull/83#issuecomment-6244865924)). Đã giải quyết triệt để vấn đề ràng buộc retry run ID / config / seed, lineage guard trên memberships/summaries chạy trước retry reuse, xác thực marker status, checksums map không rỗng và bao phủ đủ standard required files, verify toàn bộ file hash trên đĩa. Bổ sung regression tests (tổng cộng 44 Python tests và 15 Java tests PASS). Chi tiết tại [docs/evidence/EXP-01.md](../../evidence/EXP-01.md).
 - **Kỹ năng phù hợp:** Python, Jupyter, Colab, reproducible environments
 
 ## Checklist bàn giao

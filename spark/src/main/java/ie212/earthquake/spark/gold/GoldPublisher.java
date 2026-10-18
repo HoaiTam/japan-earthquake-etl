@@ -19,6 +19,31 @@ public final class GoldPublisher {
     public GoldPublisher(Sql sql, SilverObjectStore store, Runnable lease) {
         this.sql=Objects.requireNonNull(sql);this.store=Objects.requireNonNull(store);this.lease=Objects.requireNonNull(lease);
     }
+    /** Read-only ORC-07 gate: no views, PASSED rows, aliases or publication journals. */
+    public JsonNode verify(String goldRun,String namespace,String identity) throws Exception {
+        lease.run();
+        if(goldRun==null || !goldRun.matches("[A-Za-z0-9][A-Za-z0-9_-]{0,127}")) throw new IOException("EXACT_GOLD_RUN_REQUIRED");
+        byte[] bytes=store.read("gold-commits/"+goldRun+"/commit.json");
+        var commit=JSON.readTree(bytes);
+        if(!goldRun.equals(commit.path("gold_run_id").asText()) || !namespace.equals(commit.path("namespace").asText())
+                || !identity.equals(commit.path("identity_sha256").asText())) throw new IOException("COMMIT_PIN_MISMATCH");
+        var plan=new GoldVerificationPlan(commit); var report=JSON.createObjectNode();
+        report.put("engine","TRINO"); report.put("gold_run_id",goldRun); report.put("namespace",namespace);
+        report.put("identity_sha256",identity); report.put("bundle_sha256",SilverBundlePublisher.sha(bytes));
+        report.set("snapshot_bundle",commit.path("tables")); var checks=report.putObject("checks");
+        for(String name:GoldIcebergWriter.TABLES) {
+            var shape=sql.execute("SELECT * FROM "+plan.ref(name)+" LIMIT 0");
+            Map<String,String> actual=new TreeMap<>(); shape.columns().forEach(c->actual.put(c.path("name").asText(),c.path("type").asText()));
+            if(!actual.equals(plan.expectedTypes(name))) throw new IOException("TRINO_SCHEMA_MISMATCH:"+name);
+            checked(checks,"count:"+name,"SELECT count(*) FROM "+plan.ref(name),plan.count(name));
+            checked(checks,"identity:"+name,"SELECT count(*) FROM "+plan.metadata(name,"snapshots")+" WHERE snapshot_id="+plan.snapshot(name)
+                    +" AND summary['gold.operation_id']="+quote(goldRun)+" AND summary['gold.identity_sha256']="+quote(identity),1);
+        }
+        for(var query:plan.blockers().entrySet()) checked(checks,query.getKey(),query.getValue(),0);
+        checked(checks,"outside:event_current",plan.outsideScope("event_current"),0);
+        checked(checks,"outside:event_source_bridge",plan.outsideScope("event_source_bridge"),0);
+        report.put("verify_status","PASSED"); report.put("published",false); return report;
+    }
     public JsonNode publish(String goldRun, String expectedNamespace, String expectedIdentity) throws Exception {
         lease.run();
         if(goldRun==null || !goldRun.matches("[A-Za-z0-9][A-Za-z0-9_-]{0,127}")) throw new IllegalArgumentException("EXACT_GOLD_RUN_REQUIRED");

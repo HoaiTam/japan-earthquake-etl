@@ -24,7 +24,7 @@ def run_notebook_cells(notebook_path: Path, env_override: dict) -> dict:
                 raise ValueError("EXP02_SOURCE_NOTEBOOK_MUST_BE_CLEARED")
 
     code_cells = [cell for cell in data.get("cells", []) if cell.get("cell_type") == "code"]
-    
+
     # Try nbclient first if available
     nbclient_available = False
     try:
@@ -38,8 +38,11 @@ def run_notebook_cells(notebook_path: Path, env_override: dict) -> dict:
 
     executed_count = 0
     t0 = time.time()
+    env_override = dict(env_override)
 
     if nbclient_available:
+        env_override["EXP02_RUNNER_MODE"] = "nbclient"
+        env_override["EXP02_FRESH_KERNEL_ACCEPTANCE"] = "true"
         import nbformat
         from nbclient import NotebookClient
         from jupyter_client import KernelManager
@@ -65,6 +68,8 @@ def run_notebook_cells(notebook_path: Path, env_override: dict) -> dict:
                     manager.shutdown_kernel(now=True)
             executed_count = len(code_cells)
     else:
+        env_override["EXP02_RUNNER_MODE"] = "isolated_exec"
+        env_override["EXP02_FRESH_KERNEL_ACCEPTANCE"] = "false"
         # Direct execution in isolated namespace
         exec_globals = {
             "__name__": "__main__",
@@ -88,9 +93,10 @@ def run_notebook_cells(notebook_path: Path, env_override: dict) -> dict:
         raise ValueError("EXP02_SOURCE_NOTEBOOK_MUTATED")
 
     return {
-        "notebook_status": "RESTART_RUN_ALL_PASSED",
-        "local_smoke_status": "PASSED",
-        "colab_migration_allowed": True,
+        "notebook_status": "RESTART_RUN_ALL_PASSED" if nbclient_available else "FALLBACK_EXEC_PASSED",
+        "local_smoke_status": "PASSED" if nbclient_available else "FALLBACK_EXEC_WARNING",
+        "colab_migration_allowed": bool(nbclient_available),
+        "fresh_kernel_acceptance": bool(nbclient_available),
         "notebook_sha256": source_sha,
         "executed_code_cells": executed_count,
         "runtime_seconds": round(elapsed, 4),

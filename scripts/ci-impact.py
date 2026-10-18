@@ -17,11 +17,26 @@ FEATURE_TESTS = {"FeatureScalingConfigTest", "SpacetimeFeatureEngineTest", "Pilo
 PILOT_SCRIPTS = {"scripts/local-ml.py", "scripts/stage-ml-windows.py", "scripts/inspect-pilot-notebook.py", "scripts/pack-pilot.py"}
 PILOT_CONFIGS = {"config/ml/feature_scaling_global_dev_v1.json", "config/ml/feature_scaling_adaptive_dev_v1.json", "config/ml/dat02_reproduction_v1.json"}
 PILOT_FILES = {"notebooks/pilot_bundle.py", "notebooks/dat_02_inspection.ipynb"}
+EXP_FILES = {
+    "notebooks/experiment_harness.py",
+    "notebooks/baseline_models.py",
+    "notebooks/exp_01_harness_smoke.ipynb",
+    "notebooks/exp_02_baseline_algorithms.ipynb",
+}
+EXP_SCRIPTS = {
+    "scripts/inspect-exp01-notebook.py",
+    "scripts/inspect-exp02-notebook.py",
+}
+EXP_CONFIGS = {
+    "config/ml/models/window_baseline_v1.json",
+    "config/ml/models/dbscan_global_dev_v1.json",
+    "config/ml/models/hdbscan_global_dev_v1.json",
+}
 LEAF_DAGS = {"airflow/dags/" + name + ".py" for name in
              ("afl_01_smoke", "usg_04_usgs_ingest", "jma_04_year_backfill", "orc_01_etl_pipeline", "orc_02_daily_sources", "orc_03_backfill")}
 WINDOW_TESTS = {"MainshockRuntimeTest", "MainshockWindowEngineTest", "MainshockWindowIntegrationTest",
                 "MainshockWindowRegressionTest", "WindowModelResolverTest"}
-JAVA_SUITES = ("foundation-integration", "usgs-bronze", "jma-bronze", "silver", "gold", "orc-06-full-month",
+JAVA_SUITES = ("foundation-integration", "usgs-bronze", "jma-bronze", "silver", "gold", "orc-06-full-month", "orc-07-real-adapters",
                "mld-01-02-contract-audit", "mld-03-windows", "mld-04-features")
 AIRFLOW_SUITES = ("source-ingestion", "orchestration-recovery", "silver-gold-qa", "ml-qa")
 SOURCE_TESTS = {"test_smoke_dag_contract", "test_usg_04_dag_contract", "test_usgs_ingest_runtime",
@@ -54,13 +69,25 @@ def classify(changes, root=ROOT):
         if path.startswith(("docs/specs/", "docs/contracts/")): return full("shared-contract", len(changes))
         if path in {"README.md", "LICENSE", "LICENSE.md"} or (path.startswith("docs/") and path.endswith(".md")):
             reasons.add("documentation"); continue
-        if path in PILOT_FILES or path in PILOT_SCRIPTS or re.fullmatch(r"tests/test_pilot_[a-z0-9_]+\.py", path):
-            pilot = "full"; reasons.add("pilot-python")
-            # Runtime scripts orchestrate the Java feature/export boundary too.
-            if path in PILOT_SCRIPTS: scopes.add("feature")
+        if (
+            path in PILOT_FILES
+            or path in PILOT_SCRIPTS
+            or path in EXP_FILES
+            or path in EXP_SCRIPTS
+            or re.fullmatch(r"tests/test_(pilot_[a-z0-9_]+|experiment_harness|baseline_algorithms)\.py", path)
+        ):
+            pilot = "full"
+            reasons.add("pilot-python")
+            if path in PILOT_SCRIPTS:
+                scopes.add("feature")
+            elif path in EXP_FILES or path in EXP_SCRIPTS or "experiment_harness" in path or "baseline_algorithms" in path:
+                scopes.add("ml")
             continue
-        if path in PILOT_CONFIGS:
-            scopes.add("feature"); pilot = "full"; reasons.add("feature-config"); continue
+        if path in PILOT_CONFIGS or path in EXP_CONFIGS:
+            scopes.add("feature" if path in PILOT_CONFIGS else "ml")
+            pilot = "full"
+            reasons.add("feature-config" if path in PILOT_CONFIGS else "experiment-config")
+            continue
         match = re.fullmatch(r"spark/src/(main|test)/java/ie212/earthquake/spark/ml/([A-Za-z0-9_]+)\.java", path)
         if match:
             kind, name = match.groups()
@@ -127,7 +154,7 @@ def inventory(component, root=ROOT):
             package = relative.parent.as_posix()
             group = "foundation-integration"
             if package == "ie212/earthquake/spark/orchestration":
-                group = "orc-06-full-month"
+                group = "orc-07-real-adapters" if path.stem == "RealEtlAdapterTest" else "orc-06-full-month"
             elif package == "ie212/earthquake/spark/ml":
                 group = ("mld-04-features" if path.stem in FEATURE_TESTS else
                          "mld-03-windows" if path.stem in WINDOW_TESTS else "mld-01-02-contract-audit")
@@ -197,7 +224,7 @@ def emit(result, output=None, summary=None, root=ROOT):
             file.write("\n| Component | Functional/task suite | Test classes/modules |\n|---|---|---|\n")
             for component, groups in matrices.items():
                 for group, tests in groups.items(): file.write(f"| {component} | {group} | {len(tests)} |\n")
-            if result["pilot"] != "none": file.write("| Python | DAT-02 pilot-handoff | test_pilot_*.py |\n")
+            if result["pilot"] != "none": file.write("| Python | DAT-02/EXP-01/EXP-02 pilot & baselines | test_pilot_*.py, test_experiment_harness.py, test_baseline_algorithms.py |\n")
 
 
 def commands(result, component):

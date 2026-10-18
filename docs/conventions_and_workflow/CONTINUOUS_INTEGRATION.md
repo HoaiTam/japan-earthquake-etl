@@ -48,7 +48,7 @@ PR và push `main` không hủy lẫn nhau. Việc hủy chỉ tác động runn
 | Check trên PR | Lệnh | Kiểm tra gì / dùng để làm gì |
 |---|---|---|
 | `impact-plan` | `ci-impact.py plan` | Diff base→merge ref, xuất modes/matrix, summary lý do và nhóm được chọn |
-| `Java / <suite>` | `ci-suite`, `CI_COMPONENT=java` | 9 nhóm Java: shared, USGS, JMA, Silver, Gold, ORC-06, ML contract/audit, window, feature; chỉ materialize nhóm áp dụng |
+| `Java / <suite>` | `ci-suite`, `CI_COMPONENT=java` | 10 nhóm Java: shared, USGS, JMA, Silver, Gold, ORC-06, ORC-07, ML contract/audit, window, feature; chỉ materialize nhóm áp dụng |
 | `Control / <suite>` | `ci-suite`, `CI_COMPONENT=airflow` | 4 nhóm: source, orchestration/recovery, Silver/Gold QA, ML QA |
 | `DAT-02 / pilot-handoff` | `ci-pilot-impact` | Loader và handoff Python theo impact; không chạy notebook kernel/fit model |
 | `docs-contracts` | `ci-docs-base` + actionlint + gate | Always-on contract/config/security/workflow guards và gate planner/pilot |

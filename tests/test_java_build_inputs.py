@@ -66,6 +66,21 @@ class JavaBuildInputsTest(unittest.TestCase):
         result = self.run_check(self.root)
         self.assertEqual(0, result.returncode, result.stdout + result.stderr)
 
+    def test_airflow_runtime_keeps_etl_and_ml_packaging_without_duplicate_spark_copy(self):
+        dockerfile = (self.root / "compose/airflow/Dockerfile").read_text()
+        self.assertEqual(1, dockerfile.splitlines().count(
+            "COPY --from=java-runtime /opt/spark /opt/spark"))
+        for required in (
+            "/opt/spark/jobs/japan-earthquake-etl-runner.jar",
+            "/opt/spark/jobs/iceberg/",
+            "/opt/pipeline/lib/usgs-ingest-runner.jar",
+            "/opt/pipeline/lib/iceberg",
+            "compose/airflow/mli-import-runner.sh",
+            "/opt/pipeline/bin/mli-import-runner",
+        ):
+            with self.subTest(required=required):
+                self.assertIn(required, dockerfile)
+
     def test_original_spark_packaging_bug_is_rejected(self):
         self.change_dockerfile(FIXTURE_COPY, "")
         self.change_dockerfile(INVENTORY_COPY, "")

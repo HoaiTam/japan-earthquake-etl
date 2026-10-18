@@ -22,6 +22,7 @@ chạy gì. Nguồn chọn test vẫn là [impact policy](./CI_IMPACT_TESTING.md
 | `Java / silver` | SLV | Parse USGS/JMA, lineage/key, quality, dedup/entity, Parquet và publication |
 | `Java / gold` | GLD | Canonical transform, Iceberg commit, publication và Trino client |
 | `Java / orc-06-full-month` | ORC-06 | Coverage registry, baseline+delta, month/link closure, immutable state và Gold handoff |
+| `Java / orc-07-real-adapters` | ORC-07 | Exact context/receipt chain, lease, full-month proof và actual local Iceberg retry; MinIO/Trino nghiệm thu riêng |
 | `Java / mld-01-02-contract-audit` | MLD-01/02 và shared ML | Dataset/result contract, Gold audit, Mc/histogram; ML test mới chưa map cũng vào shared ML |
 | `Java / mld-03-windows` | MLD-03 | Mainshock runtime/window engine/integration/regression/model resolver |
 | `Java / mld-04-features` | MLD-04, Java boundary DAT-02 | Scaling, feature engine, pilot exporter và cross-JVM Parquet |

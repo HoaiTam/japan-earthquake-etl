@@ -290,6 +290,11 @@ Hướng dẫn vận hành đầy đủ được duy trì trong
 
 ## Làm việc với repository
 
+ORC-07 bổ sung [real ETL adapters](./docs/specs/REAL_ETL_ADAPTER_CONTRACT.md):
+daily source DAG là cron owner duy nhất, manual full-month reprocess dùng
+`orc_07_real_etl`. [Runbook](./docs/runbooks/ORC-07_REAL_ETL.md) tách prepare,
+offline test và QA MinIO/Airflow/Trino thật; daily publication mặc định disabled.
+
 ORC-06 cung cấp [resolver full-month Silver](./docs/specs/FULL_MONTH_STATE_CONTRACT.md)
 để delta không ghi đè mất phần còn lại của tháng. [Runbook](./docs/runbooks/ORC-06_FULL_MONTH_STATE.md)
 có offline tests, public full-month QA và giao diện bàn giao ORC-07; chưa tự

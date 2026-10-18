@@ -6,7 +6,6 @@ are scoped gauges, not incrementing counters: retries must not double them.
 from contextlib import contextmanager
 from copy import deepcopy
 from datetime import datetime, timezone
-import fcntl
 import hashlib
 import json
 import logging
@@ -17,6 +16,12 @@ import re
 import tempfile
 import time
 from urllib.parse import urlsplit
+
+try:
+    import fcntl
+except ModuleNotFoundError:  # pragma: no cover - Windows development host
+    fcntl = None
+    import msvcrt
 
 VERSION = "orc-04-v1"
 PHASES = ("resolve", "readiness", "bronze", "silver", "gold", "verify", "publish", "complete")
@@ -276,11 +281,19 @@ def _locked(root):
     root.mkdir(parents=True, exist_ok=True)
     with (root / ".lock").open("a+b") as lock:
         os.chmod(root / ".lock", 0o600)
-        fcntl.flock(lock, fcntl.LOCK_EX)
+        if fcntl is not None:
+            fcntl.flock(lock, fcntl.LOCK_EX)
+        else:
+            lock.seek(0)
+            msvcrt.locking(lock.fileno(), msvcrt.LK_LOCK, 1)
         try:
             yield
         finally:
-            fcntl.flock(lock, fcntl.LOCK_UN)
+            if fcntl is not None:
+                fcntl.flock(lock, fcntl.LOCK_UN)
+            else:
+                lock.seek(0)
+                msvcrt.locking(lock.fileno(), msvcrt.LK_UNLCK, 1)
 
 
 def _summary(state):

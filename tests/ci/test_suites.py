@@ -96,7 +96,7 @@ class SuitePolicyTest(unittest.TestCase):
             for component, ids in (("java", impact.JAVA_SUITES), ("airflow", impact.AIRFLOW_SUITES)):
                 self.assertEqual(json.loads(values[component + "_matrix"]), {"suite": list(ids)})
             self.assertIn("mld-03-windows", summary.read_text())
-            self.assertIn("DAT-02 pilot-handoff", summary.read_text())
+            self.assertIn("DAT-02/EXP-01/EXP-02 pilot & baselines", summary.read_text())
 
     def test_java_suite_builds_and_checks_only_its_inventory_and_propagates_failures(self):
         run = Mock()

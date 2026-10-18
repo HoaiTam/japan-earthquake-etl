@@ -20,6 +20,11 @@ RUN_SUMMARY_ROOT ?= staging/run-summary
 RUN_SUMMARY_DAG ?= orc_01_etl_pipeline
 RUN_SUMMARY_RUN_ID ?=
 SECURITY_REPORT ?= staging/sec-01-report.json
+QA_03_MATRIX ?= airflow/dags/fixtures/qa_03_jma_historical_matrix.json
+QA_03_JSON ?= staging/qa-03/qa-03.json
+QA_03_MARKDOWN ?= staging/qa-03/qa-03.md
+QA_03_RUNTIME_REQUEST ?=
+QA_03_RUNTIME_COMMAND ?=
 QA_02_MATRIX ?= airflow/dags/fixtures/qa_02_rerun_revision_matrix.json
 QA_02_JSON ?= staging/qa-02/qa-02.json
 QA_02_MARKDOWN ?= staging/qa-02/qa-02.md
@@ -27,6 +32,9 @@ QA_02_RUNTIME_REQUEST ?=
 QA_02_RUNTIME_COMMAND ?=
 MLI_IMPORT_REQUEST ?=
 MLI_IMPORT_RUNNER_COMMAND ?= /opt/pipeline/bin/mli-import-runner
+QA_04_REQUEST ?=
+QA_04_RUNTIME_COMMAND ?=
+QA_04_STAGING_ROOT ?= /opt/pipeline/staging/qa-04
 
 COMPOSE = docker compose --env-file "$(ENV_FILE)" -f "$(COMPOSE_FILE)"
 RUNTIME_ENV = ENV_FILE="$(ENV_FILE)" COMPOSE_FILE="$(COMPOSE_FILE)"
@@ -54,14 +62,29 @@ COMPONENT_SMOKES := smoke-minio smoke-airflow smoke-spark smoke-query smoke-usgs
 .PHONY: test-recovery smoke-recovery smoke-resource-pilot maintenance-preview
 .PHONY: test-silver-integration smoke-silver-integration
 .PHONY: test-ml-audit smoke-ml-audit
+.PHONY: test-qa-03 smoke-qa-03
 .PHONY: test-qa-02 smoke-qa-02
 .PHONY: test-mli-import smoke-mli-import
+.PHONY: test-qa-04 smoke-qa-04
 .PHONY: test-ml-window smoke-ml-window resume-ml-window
 .PHONY: prepare-ml-local stage-ml-windows test-ml-feature ml-features-local ml-pilot-local pilot-env test-pilot inspect-pilot jupyter-pilot
 .PHONY: pack-pilot test-exp01 inspect-exp01 jupyter-exp01
 .PHONY: prepare-full-month test-full-month qa-full-month-live full-month-local
 FULL_MONTH_ROOT ?= staging/orc06-full-month
 FULL_MONTH_REQUEST ?=
+.PHONY: prepare-real-etl-runtime test-real-etl qa-real-etl
+ORC07_CAPTURE_ROOT ?= staging/orc06-full-month/captures
+
+prepare-real-etl-runtime: check-config-local check-java-build-inputs ## ORC-07 build explicit image riêng; không start/restart foundation
+	@python3 scripts/real-etl.py prepare
+
+test-real-etl: ## ORC-07 control-plane + Spark/Iceberg local; không nguồn thật/Docker
+	@python3 -m unittest discover -s tests -p 'test_real_etl_cli.py'
+	@python3 -m unittest discover -s airflow/tests -p 'test_real_etl_*.py'
+	@SPARK_LOCAL_IP=127.0.0.1 SPARK_LOCAL_HOSTNAME=localhost ./mvnw --batch-mode --no-transfer-progress -pl spark -am test -Dtest=RealEtlAdapterTest,GoldPublicationTest -Dsurefire.failIfNoSpecifiedTests=false
+
+qa-real-etl: check-config-local ## ORC-07 bounded MinIO/Airflow/Trino QA; image/services/captures phải chuẩn bị riêng
+	@python3 scripts/real-etl.py qa --captures "$(ORC07_CAPTURE_ROOT)"
 
 prepare-full-month: ## ORC-06 chuẩn bị JAR/classpath host một lần; không Docker, không lấy dữ liệu
 	@python3 scripts/local-ml.py prepare
@@ -105,6 +128,8 @@ pilot-env: ## Chuẩn bị venv notebook riêng một lần; cần Internet, kh�
 
 test-pilot: ## Synthetic loader/staging regression; cần pyarrow, không Docker/network/notebook kernel
 	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_pilot_*.py'
+	@$(PILOT_PYTHON) -m unittest tests/test_experiment_harness.py
+	@$(PILOT_PYTHON) -m unittest tests/test_baseline_algorithms.py
 
 inspect-pilot: ## Fresh Jupyter kernel Run All; PILOT_BUNDLE=exact local directory, không Docker/API
 	@test -n "$(PILOT_BUNDLE)" || { echo 'Set PILOT_BUNDLE=staging/ml-pilot/pilot_id=<exact-id>'; exit 2; }
@@ -162,6 +187,18 @@ smoke-ml-audit: check-config-local ## MLD-02 Published JMA audit/Mc QA; không t
 	@$(RUNTIME_CHECK) --component ml --client gold-input-audit-qa
 	@$(COMPOSE) --profile gold run --rm --no-deps --pull never gold-input-audit-qa
 
+test-qa-03: ## QA-03 historical scope/resource/reuse matrix và report checks; không gọi nguồn
+	@python3 -m unittest discover -s airflow/tests -p 'test_qa_03_jma_historical_backfill.py'
+	@python3 airflow/dags/qa_03_jma_historical_backfill.py --matrix "$(QA_03_MATRIX)" --json "$(QA_03_JSON)" --markdown "$(QA_03_MARKDOWN)"
+
+smoke-qa-03: check-config-local ## QA-03 Bronze-to-Published backfill; cần ORC-07 và request runtime đã pin
+	@test -n "$(QA_03_RUNTIME_REQUEST)" || { echo 'Set QA_03_RUNTIME_REQUEST=/opt/pipeline/staging/.../request.json'; exit 2; }
+	@test -n "$(QA_03_RUNTIME_COMMAND)" || { echo 'Set QA_03_RUNTIME_COMMAND to the JMA backfill runner'; exit 2; }
+	@$(RUNTIME_CHECK) --component gold --client qa-03-jma-historical-backfill
+	@$(COMPOSE) --profile gold run --rm --no-deps --pull never \
+		-e QA_03_RUNTIME_REQUEST="$(QA_03_RUNTIME_REQUEST)" \
+		-e QA_03_RUNTIME_COMMAND="$(QA_03_RUNTIME_COMMAND)" \
+		qa-03-jma-historical-backfill
 test-qa-02: ## QA-02 matrix/fixture/report checks; không gọi nguồn hoặc runtime
 	@python3 -m unittest discover -s airflow/tests -p 'test_qa_02_rerun_revision.py'
 	@python3 airflow/dags/qa_02_rerun_revision.py --matrix "$(QA_02_MATRIX)" --json "$(QA_02_JSON)" --markdown "$(QA_02_MARKDOWN)"
@@ -217,6 +254,25 @@ smoke-gold-storage: check-config-local ## GLD-03 six QA Iceberg snapshots, chưa
 	@$(RUNTIME_CHECK) --component gold
 	@$(COMPOSE) --profile gold run --rm --no-deps --pull never spark-gold-qa
 
+test-qa-04: ## QA-04 bounded failure/recovery matrix và component gates offline
+	@python3 -m unittest discover -s airflow/tests -p 'test_qa_04_failure_recovery.py'
+	@python3 -m unittest discover -s airflow/tests -p 'test_recovery*.py'
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am \
+		-Dtest=GoldIcebergWriterTest,GoldPublicationTest,TrinoSqlClientTest,ResultBundleContractTest \
+		-Dsurefire.failIfNoSpecifiedTests=false test
+
+smoke-qa-04: check-config-local ## QA-04 runtime recovery trong namespace QA; không tự build/start/init
+	@test -n "$(QA_04_REQUEST)" || { echo 'Set QA_04_REQUEST=/opt/pipeline/staging/.../qa-04-request.json'; exit 2; }
+	@test -n "$(QA_04_RUNTIME_COMMAND)" || { echo 'Set QA_04_RUNTIME_COMMAND to the deployed QA-04 runner'; exit 2; }
+	@$(RUNTIME_CHECK) --component ml --client qa-04-failure-recovery
+	@$(COMPOSE) --profile ml run --rm --no-deps --pull never \
+		-e QA_04_REQUEST="$(QA_04_REQUEST)" \
+		-e QA_04_RUNTIME_COMMAND="$(QA_04_RUNTIME_COMMAND)" \
+		-e QA_04_STAGING_ROOT="$(QA_04_STAGING_ROOT)" \
+		-e ORC_07_STATUS="$${ORC_07_STATUS:-Ready}" \
+		-e MLI_03_STATUS="$${MLI_03_STATUS:-In Progress}" \
+		qa-04-failure-recovery
+
 .PHONY: ci ci-docs ci-java ci-airflow test-ci-workflow test-security-audit audit-security audit-security-runtime
 .PHONY: ci-plan ci-docs-base ci-java-impact ci-airflow-impact ci-pilot-impact ci-suite
 
@@ -243,6 +299,7 @@ ci-docs: ## Docs/contracts/secret hygiene/Compose tĩnh; không đọc .env riê
 
 ci-docs-base: ## Always-on CI guards; pilot tests được chọn riêng theo impact, không Docker daemon
 	@$(MAKE) test-contracts
+	@python3 -m unittest discover -s tests -p 'test_real_etl_cli.py'
 	@python3 -m unittest discover -s tests -p 'test_full_month_*.py'
 	@$(MAKE) test-security-audit
 	@$(MAKE) test-docker-runtime

@@ -20,6 +20,7 @@ from pathlib import Path
 import re
 import sys
 from typing import Any, Dict, List, Optional, Tuple, Union
+import uuid
 
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -160,7 +161,7 @@ SEQUENCE_SUMMARY_FIELDS = [
     pa.field("is_nested_mainshock_candidate", pa.bool_(), nullable=False),
     pa.field("parent_mainshock_event_id", pa.string(), nullable=True),
     pa.field("nested_membership_probability", pa.float64(), nullable=True),
-    pa.field("metric_reason_codes", pa.list_(pa.string()), nullable=True),
+    pa.field("metric_reason_codes", pa.list_(pa.field("element", pa.string(), nullable=False)), nullable=True),
     pa.field("failure_reason_code", pa.string(), nullable=True),
     pa.field("created_at_utc", pa.timestamp("ms", tz="UTC"), nullable=False),
 ]
@@ -170,7 +171,11 @@ SEQUENCE_SUMMARY_SCHEMA = pa.schema(SEQUENCE_SUMMARY_FIELDS)
 # -----------------------------------------------------------------------------
 # Runtime Metadata & Pinning
 # -----------------------------------------------------------------------------
-def get_runtime_metadata(code_version: Optional[str] = None, random_seed: Optional[int] = None) -> Dict[str, Any]:
+def get_runtime_metadata(
+    code_version: Optional[str] = None,
+    random_seed: Optional[int] = None,
+    timestamp_utc: Optional[str] = None,
+) -> Dict[str, Any]:
     """Capture environment, python, package versions, and execution parameters."""
     packages = ["pyarrow", "numpy", "scipy", "scikit-learn", "hdbscan", "nbformat", "nbclient"]
     pkg_map = {}
@@ -186,7 +191,7 @@ def get_runtime_metadata(code_version: Optional[str] = None, random_seed: Option
         "package_versions": pkg_map,
         "code_version": code_version or "dev-local",
         "random_seed": random_seed,
-        "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+        "timestamp_utc": timestamp_utc or datetime.now(timezone.utc).isoformat(),
         "vector_columns": VECTOR_COLUMNS,
     }
 
@@ -268,15 +273,24 @@ def load_feature_bundle(bundle_dir: Union[str, Path], mode: str = MODE_DEVELOPME
             "coverage": pilot_data["coverage"],
             "bundle_dir": root,
             "is_official": False,
+            "checksums": checksum_entries,
         }
 
     else:  # mode == MODE_OFFICIAL
-        found_files = {p.name for p in root.iterdir()}
+        found_files = {p.name for p in root.iterdir() if p.is_file()}
         require("pilot_manifest.json" not in found_files, "OFFICIAL_LOADER_REJECTS_PILOT_BUNDLE")
 
-        # Check official dataset export
+        # Official bundle MUST have a non-empty checksums.sha256 file
+        require(len(checksum_entries) > 0, "EXP_EMPTY_CHECKSUMS_FILE")
+
+        # Every file in the bundle directory (except checksums.sha256) MUST be indexed
+        expected_indexed_files = found_files - {"checksums.sha256"}
+        require(expected_indexed_files == set(checksum_entries.keys()), "EXP_OFFICIAL_CHECKSUM_SET_MISMATCH")
+
+        # Check official dataset export manifest
         manifest_path = root / "dataset_manifest.json"
         require(manifest_path.is_file(), "EXP_MISSING_DATASET_MANIFEST")
+        require("dataset_manifest.json" in checksum_entries, "EXP_MISSING_DATASET_MANIFEST_CHECKSUM")
 
         manifest = read_json_safe(manifest_path.read_bytes())
         require(manifest.get("schema_version") == "1.0", "EXP_OFFICIAL_SCHEMA_VERSION_MISMATCH")
@@ -287,21 +301,76 @@ def load_feature_bundle(bundle_dir: Union[str, Path], mode: str = MODE_DEVELOPME
         # Load features parquet
         feature_parts = sorted(root.glob("features-part-*.parquet"))
         require(len(feature_parts) > 0, "EXP_NO_FEATURE_PARQUET_FOUND")
+        for fp in feature_parts:
+            require(fp.name in checksum_entries, f"EXP_MISSING_FEATURE_PARQUET_CHECKSUM:{fp.name}")
+
         tables = [pq.read_table(p) for p in feature_parts]
         features_table = pa.concat_tables(tables)
 
-        # Validate feature counts & nonfinite
+        # Validate required columns according to MLD-05 contract
+        id_cols = ["dataset_id", "mainshock_event_id", "candidate_event_id"]
+        required_cols = id_cols + VECTOR_COLUMNS
+        for col_name in required_cols:
+            require(col_name in features_table.column_names, f"EXP_MISSING_REQUIRED_COL:{col_name}")
+
+        # Validate PyArrow data types and null/empty constraints for ID columns
+        for col_name in id_cols:
+            col = features_table[col_name]
+            require(pa.types.is_string(col.type) or pa.types.is_large_string(col.type),
+                    f"EXP_INVALID_ID_COL_TYPE:{col_name}:{col.type}")
+            require(col.null_count == 0, f"EXP_NULL_REQUIRED_ID_COL:{col_name}")
+            for chunk in col.chunks:
+                for val in chunk.to_pylist():
+                    require(val is not None and len(val.strip()) > 0, f"EXP_EMPTY_REQUIRED_ID_COL:{col_name}")
+
+        # Validate PyArrow floating types, null check, and finite constraints for vector columns
+        for col_name in VECTOR_COLUMNS:
+            col = features_table[col_name]
+            require(pa.types.is_floating(col.type), f"EXP_INVALID_VECTOR_COL_TYPE:{col_name}:{col.type}")
+            require(col.null_count == 0, f"EXP_NULL_VECTOR_COL:{col_name}")
+            for chunk in col.chunks:
+                for val in chunk.to_pylist():
+                    require(val is not None and math.isfinite(val), f"EXP_NONFINITE_FEATURE:{col_name}")
+
+        # Validate feature counts
         expected_rows = manifest.get("feature_row_count")
         if expected_rows is not None:
             require(features_table.num_rows == expected_rows, "EXP_FEATURE_ROW_COUNT_MISMATCH")
 
-        # Check vector columns and finite constraints
-        for col_name in VECTOR_COLUMNS:
-            require(col_name in features_table.column_names, f"EXP_MISSING_VECTOR_COL:{col_name}")
-            col = features_table[col_name]
-            for chunk in col.chunks:
-                for val in chunk.to_pylist():
-                    require(val is not None and math.isfinite(val), f"EXP_NONFINITE_FEATURE:{col_name}")
+        # Lineage check: dataset_id in all rows must strictly match manifest dataset_id
+        dataset_ids_in_rows = set(features_table["dataset_id"].to_pylist())
+        require(dataset_ids_in_rows == {manifest["dataset_id"]},
+                f"EXP_DATASET_LINEAGE_MISMATCH:{dataset_ids_in_rows}!={manifest['dataset_id']}")
+
+        # Unique grain check: (dataset_id, mainshock_event_id, candidate_event_id)
+        # and self-event zero-vector check
+        pydict = features_table.to_pydict()
+        n_rows = features_table.num_rows
+        seen_grains = set()
+        window_self_found: Dict[str, bool] = {}
+
+        for i in range(n_rows):
+            d_id = pydict["dataset_id"][i]
+            m_id = pydict["mainshock_event_id"][i]
+            c_id = pydict["candidate_event_id"][i]
+
+            grain_key = (d_id, m_id, c_id)
+            require(grain_key not in seen_grains, f"EXP_DUPLICATE_GRAIN:{grain_key}")
+            seen_grains.add(grain_key)
+
+            if c_id == m_id:
+                # Mainshock self-event must have zero vector
+                window_self_found[m_id] = True
+                for vcol in VECTOR_COLUMNS:
+                    val = float(pydict[vcol][i])
+                    require(abs(val) < 1e-6, f"EXP_NONZERO_SELF_VECTOR:{vcol}={val}")
+            else:
+                if m_id not in window_self_found:
+                    window_self_found[m_id] = False
+
+        # Every mainshock window must contain its own self event
+        for mid, has_self in window_self_found.items():
+            require(has_self, f"EXP_MISSING_SELF_EVENT:{mid}")
 
         return {
             "mode": MODE_OFFICIAL,
@@ -313,6 +382,7 @@ def load_feature_bundle(bundle_dir: Union[str, Path], mode: str = MODE_DEVELOPME
             "coverage": None,
             "bundle_dir": root,
             "is_official": True,
+            "checksums": checksum_entries,
         }
 
 
@@ -421,6 +491,7 @@ def build_sequence_summary_row(
     is_nested_mainshock_candidate: bool = False,
     parent_mainshock_event_id: Optional[str] = None,
     nested_membership_probability: Optional[float] = None,
+    metric_reason_codes: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """Build a sequence summary dictionary row conforming to result-bundle-v1."""
     require(window_result_status in WINDOW_RESULT_STATUSES, f"INVALID_WINDOW_STATUS:{window_result_status}")
@@ -491,7 +562,7 @@ def build_sequence_summary_row(
             "is_nested_mainshock_candidate": bool(is_nested_mainshock_candidate),
             "parent_mainshock_event_id": parent_mainshock_event_id,
             "nested_membership_probability": nested_membership_probability,
-            "metric_reason_codes": ["METRIC_NOT_APPLICABLE"],
+            "metric_reason_codes": metric_reason_codes if metric_reason_codes is not None else ["METRIC_NOT_APPLICABLE"],
             "failure_reason_code": None,
             "created_at_utc": created_at_utc,
         }
@@ -530,7 +601,7 @@ def build_sequence_summary_row(
             "is_nested_mainshock_candidate": bool(is_nested_mainshock_candidate),
             "parent_mainshock_event_id": parent_mainshock_event_id,
             "nested_membership_probability": nested_membership_probability,
-            "metric_reason_codes": ["METRIC_NOT_APPLICABLE"],
+            "metric_reason_codes": metric_reason_codes if metric_reason_codes is not None else ["METRIC_NOT_APPLICABLE"],
             "failure_reason_code": failure_reason_code,
             "created_at_utc": created_at_utc,
         }
@@ -556,6 +627,12 @@ def write_experiment_result(
     random_seed: Optional[int] = None,
     package_version_override: Optional[str] = None,
     optional_model_artifacts: Optional[Dict[str, bytes]] = None,
+    experiment_run_id: Optional[str] = None,
+    execution_id: Optional[str] = None,
+    timestamp_utc: Optional[str] = None,
+    completed_at_utc: Optional[str] = None,
+    is_retry: bool = False,
+    allow_overwrite: bool = False,
 ) -> Dict[str, Any]:
     """Write experiment outputs conforming to mode boundaries.
 
@@ -564,6 +641,11 @@ def write_experiment_result(
       Never claims RESULT_READY or CANDIDATE.
     - OFFICIAL mode: writes all required artifacts, verifies row counts and checksums,
       and writes _SUCCESS.json strictly as the final atomic marker.
+    - Idempotent Retry: if the output directory already contains an intact completed bundle
+      for the target run, verifies checksums and returns reuse without modifying disk.
+    - Immutability Protection: writing into an existing completed bundle directory without
+      verified retry or explicit allow_overwrite raises EXP_COMPLETED_BUNDLE_CONFLICT.
+    - New Execution Identity: each new execution receives a unique run ID, preventing run ID reuse.
     """
     require(mode in VALID_MODES, f"INVALID_MODE:{mode}")
     require(mode == bundle.get("mode"), f"MODE_MISMATCH_WITH_BUNDLE:{mode}!={bundle.get('mode')}")
@@ -572,34 +654,202 @@ def write_experiment_result(
     out_path = Path(output_dir).resolve()
     out_path.mkdir(parents=True, exist_ok=True)
 
-    # Convert memberships to pa.Table if list of dicts
+    source_dataset_id = bundle.get("source_dataset_id", bundle.get("bundle_id"))
+
+    # 1. Strictly validate dataset_id lineage across memberships and summaries before checking retry/reuse
     if isinstance(memberships, list):
-        memberships_table = pa.Table.from_pylist(memberships, schema=MEMBERSHIP_SCHEMA)
+        for r in memberships:
+            row_ds = r.get("dataset_id")
+            require(row_ds == source_dataset_id,
+                    f"EXP_DATASET_LINEAGE_MISMATCH:{row_ds}!={source_dataset_id}")
+    elif isinstance(memberships, pa.Table):
+        require("dataset_id" in memberships.column_names, "EXP_DATASET_LINEAGE_MISMATCH:missing_dataset_id")
+        if memberships.num_rows > 0:
+            row_dataset_ids = set(memberships["dataset_id"].to_pylist())
+            require(row_dataset_ids == {source_dataset_id},
+                    f"EXP_DATASET_LINEAGE_MISMATCH:{row_dataset_ids}!={source_dataset_id}")
     else:
-        memberships_table = memberships
+        raise TypeError(f"Unsupported memberships type: {type(memberships)}")
 
-    # Convert summaries to pa.Table if list of dicts
     if isinstance(summaries, list):
-        summary_table = pa.Table.from_pylist(summaries, schema=SEQUENCE_SUMMARY_SCHEMA)
+        for s in summaries:
+            row_ds = s.get("dataset_id")
+            require(row_ds == source_dataset_id,
+                    f"EXP_DATASET_LINEAGE_MISMATCH:{row_ds}!={source_dataset_id}")
+    elif isinstance(summaries, pa.Table):
+        require("dataset_id" in summaries.column_names, "EXP_DATASET_LINEAGE_MISMATCH:missing_dataset_id")
+        if summaries.num_rows > 0:
+            row_dataset_ids = set(summaries["dataset_id"].to_pylist())
+            require(row_dataset_ids == {source_dataset_id},
+                    f"EXP_DATASET_LINEAGE_MISMATCH:{row_dataset_ids}!={source_dataset_id}")
     else:
-        summary_table = summaries
+        raise TypeError(f"Unsupported summaries type: {type(summaries)}")
 
-    runtime_meta = get_runtime_metadata(code_version=code_version, random_seed=random_seed)
+    # 2. Protect immutable completed bundles & support idempotent retry reuse
+    success_marker_file = out_path / ("_SUCCESS.json" if mode == MODE_OFFICIAL else "pilot_result_manifest.json")
+    if success_marker_file.is_file():
+        is_marker_valid = False
+        existing_run_id = None
+        existing_ds_id = None
+        existing_checksums = None
+        try:
+            existing_marker = json.loads(success_marker_file.read_text(encoding="utf-8"))
+            if isinstance(existing_marker, dict):
+                if mode == MODE_OFFICIAL:
+                    if (existing_marker.get("status") == "COMPLETED" and
+                        existing_marker.get("schema_version") == SCHEMA_VERSION):
+                        existing_run_id = existing_marker.get("experiment_run_id")
+                        existing_ds_id = existing_marker.get("dataset_id")
+                        existing_checksums = existing_marker.get("checksums")
+                        is_marker_valid = bool(existing_run_id and existing_ds_id)
+                else:
+                    if (existing_marker.get("status") == "DEVELOPMENT_RUN_COMPLETED" and
+                        existing_marker.get("artifact_kind") == "PILOT_EXPERIMENT_RESULT"):
+                        existing_run_id = existing_marker.get("pilot_run_id")
+                        existing_ds_id = existing_marker.get("source_dataset_id")
+                        existing_checksums = existing_marker.get("checksums")
+                        is_marker_valid = bool(existing_run_id and existing_ds_id)
+        except Exception:
+            is_marker_valid = False
+
+        standard_required_files = [
+            "memberships.parquet",
+            "sequence_summary.parquet",
+            "experiment_metrics.json",
+            "experiment_config.json",
+            "requirements-lock.txt",
+        ]
+        is_checksums_valid = False
+        sha_hex_pattern = re.compile(r"^[a-f0-9]{64}$")
+        if is_marker_valid and isinstance(existing_checksums, dict) and len(existing_checksums) > 0:
+            if all(rf in existing_checksums for rf in standard_required_files):
+                all_entries_valid = True
+                for rel_name, exp_sha in existing_checksums.items():
+                    if (not isinstance(rel_name, str) or not isinstance(exp_sha, str) or
+                        not rel_name.strip() or
+                        ".." in rel_name or rel_name.startswith(("/", "\\")) or
+                        not sha_hex_pattern.match(exp_sha)):
+                        all_entries_valid = False
+                        break
+                    try:
+                        resolved_f_path = (out_path / rel_name).resolve()
+                        if not resolved_f_path.is_relative_to(out_path):
+                            all_entries_valid = False
+                            break
+                    except Exception:
+                        all_entries_valid = False
+                        break
+                is_checksums_valid = all_entries_valid
+
+        all_files_intact = False
+        if is_checksums_valid:
+            intact = True
+            for rel_name, exp_sha in existing_checksums.items():
+                f_path = out_path / rel_name
+                if not f_path.is_file():
+                    intact = False
+                    break
+                try:
+                    if sha256_bytes(f_path.read_bytes()) != exp_sha:
+                        intact = False
+                        break
+                except Exception:
+                    intact = False
+                    break
+            all_files_intact = intact
+
+        config_matches = False
+        if all_files_intact:
+            try:
+                cfg_path = out_path / "experiment_config.json"
+                cfg_data = json.loads(cfg_path.read_text(encoding="utf-8"))
+                if (cfg_data.get("dataset_id") == source_dataset_id and
+                    existing_ds_id == source_dataset_id and
+                    cfg_data.get("algorithm_name") == algorithm_name and
+                    cfg_data.get("algorithm_version") == algorithm_version and
+                    cfg_data.get("model_config_version") == model_config_version and
+                    canonical(cfg_data.get("model_config")) == canonical(model_config) and
+                    cfg_data.get("random_seed") == random_seed and
+                    (code_version is None or cfg_data.get("code_version") == code_version)):
+                    config_matches = True
+            except Exception:
+                config_matches = False
+
+        run_id_matches = (experiment_run_id is None or experiment_run_id == existing_run_id)
+        caller_allows_reuse = (is_retry or (experiment_run_id is not None and experiment_run_id == existing_run_id))
+
+        can_reuse = (caller_allows_reuse and run_id_matches and is_marker_valid and
+                     is_checksums_valid and all_files_intact and config_matches)
+
+        if can_reuse:
+            return {
+                "mode": mode,
+                "run_id": existing_run_id,
+                "success_marker_path": success_marker_file if mode == MODE_OFFICIAL else None,
+                "manifest_path": success_marker_file if mode == MODE_DEVELOPMENT else None,
+                "has_success_marker": (mode == MODE_OFFICIAL),
+                "checksums": existing_checksums,
+                "is_reused": True,
+            }
+
+        if not allow_overwrite:
+            run_label = existing_run_id or "unknown_run"
+            require(False, f"EXP_COMPLETED_BUNDLE_CONFLICT: Output directory {out_path} already contains a completed bundle for run '{run_label}' that cannot be reused or overwritten.")
+
+    runtime_meta = get_runtime_metadata(code_version=code_version, random_seed=random_seed, timestamp_utc=timestamp_utc)
     code_ver = code_version or runtime_meta["code_version"]
     pkg_ver = package_version_override or runtime_meta["package_versions"].get("scikit-learn", "1.6.1")
 
-    # Generate identity run ID
-    source_dataset_id = bundle.get("source_dataset_id", bundle.get("bundle_id"))
-    run_id_payload = {
-        "dataset_id": source_dataset_id,
-        "algorithm_name": algorithm_name,
-        "algorithm_version": algorithm_version,
-        "model_config_version": model_config_version,
-        "model_config": model_config,
-        "code_version": code_ver,
-        "mode": mode,
-    }
-    identity_digest = sha256_bytes(canonical(run_id_payload).encode("utf-8"))[:32]
+    if experiment_run_id:
+        effective_run_id = experiment_run_id
+    else:
+        # Generate unique run ID for new execution, avoiding collisions across runs with identical config
+        exec_token = execution_id or uuid.uuid4().hex[:16]
+        run_id_payload = {
+            "dataset_id": source_dataset_id,
+            "algorithm_name": algorithm_name,
+            "algorithm_version": algorithm_version,
+            "model_config_version": model_config_version,
+            "model_config": model_config,
+            "code_version": code_ver,
+            "mode": mode,
+            "random_seed": random_seed,
+            "execution_token": exec_token,
+        }
+        identity_digest = sha256_bytes(canonical(run_id_payload).encode("utf-8"))[:32]
+        effective_run_id = f"pilot_run_{identity_digest}" if mode == MODE_DEVELOPMENT else f"exp_run_{identity_digest}"
+
+    # Synchronize effective_run_id across membership records
+    if isinstance(memberships, list):
+        for r in memberships:
+            r["experiment_run_id"] = effective_run_id
+        memberships_table = pa.Table.from_pylist(memberships, schema=MEMBERSHIP_SCHEMA)
+    elif isinstance(memberships, pa.Table):
+        pydict = memberships.to_pydict()
+        pydict["experiment_run_id"] = [effective_run_id] * memberships.num_rows
+        memberships_table = pa.Table.from_pydict(pydict, schema=MEMBERSHIP_SCHEMA)
+    else:
+        raise TypeError(f"Unsupported memberships type: {type(memberships)}")
+
+    # Synchronize effective_run_id across summary records
+    if isinstance(summaries, list):
+        for s in summaries:
+            s["experiment_run_id"] = effective_run_id
+        summary_table = pa.Table.from_pylist(summaries, schema=SEQUENCE_SUMMARY_SCHEMA)
+    elif isinstance(summaries, pa.Table):
+        pydict = summaries.to_pydict()
+        pydict["experiment_run_id"] = [effective_run_id] * summaries.num_rows
+        summary_table = pa.Table.from_pydict(pydict, schema=SEQUENCE_SUMMARY_SCHEMA)
+    else:
+        raise TypeError(f"Unsupported summaries type: {type(summaries)}")
+
+    # Reconciliation and integrity checks before writing
+    if mode == MODE_OFFICIAL:
+        require(memberships_table.num_rows > 0, "EXP_MISSING_MEMBERSHIP_ROWS")
+        require(summary_table.num_rows > 0, "EXP_MISSING_SUMMARY_ROWS")
+        mem_mids = set(memberships_table["mainshock_event_id"].to_pylist())
+        sum_mids = set(summary_table["mainshock_event_id"].to_pylist())
+        require(mem_mids == sum_mids, f"EXP_SUMMARY_WINDOW_MISMATCH:{mem_mids}!={sum_mids}")
 
     # Clean previous _SUCCESS.json if exists to avoid stale markers
     stale_success = out_path / "_SUCCESS.json"
@@ -623,7 +873,6 @@ def write_experiment_result(
 
     # 3. Write experiment_config.json
     config_file = out_path / "experiment_config.json"
-    effective_run_id = f"pilot_run_{identity_digest}" if mode == MODE_DEVELOPMENT else f"exp_run_{identity_digest}"
     config_payload = {
         "schema_version": SCHEMA_VERSION,
         "experiment_run_id": effective_run_id,
@@ -637,6 +886,7 @@ def write_experiment_result(
         "random_seed": random_seed,
         "mode": mode,
         "runtime_environment": runtime_meta,
+        "runtime_environment_json": canonical(runtime_meta),
     }
     config_file.write_text(canonical(config_payload) + "\n", encoding="utf-8")
 
@@ -674,13 +924,13 @@ def write_experiment_result(
             rel_path = f"optional-model-artifacts/{art_name}"
             checksums[rel_path] = sha256_bytes((out_path / rel_path).read_bytes())
 
-    # Write checksums.sha256 file
-    checksums_txt = "".join(f"{checksums[k]}  {k}\n" for k in sorted(checksums.keys()))
-    (out_path / "checksums.sha256").write_text(checksums_txt, encoding="utf-8")
-
-    completed_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    completed_at = completed_at_utc or datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     if mode == MODE_DEVELOPMENT:
+        # Write checksums.sha256 file for development pilot
+        checksums_txt = "".join(f"{checksums[k]}  {k}\n" for k in sorted(checksums.keys()))
+        (out_path / "checksums.sha256").write_text(checksums_txt, encoding="utf-8")
+
         # DEVELOPMENT PILOT: MUST NOT write _SUCCESS.json
         manifest_file = out_path / "pilot_result_manifest.json"
         pilot_manifest = {
@@ -715,6 +965,22 @@ def write_experiment_result(
         }
 
     else:  # mode == MODE_OFFICIAL
+        # In OFFICIAL mode, checksums.sha256 MUST NOT exist as a separate file
+        # because MlResultBundleReader rejects unexpected artifacts (IMP_UNSAFE_ARTIFACT_METADATA).
+        # Checksums are recorded inside _SUCCESS.json.
+        stale_chk = out_path / "checksums.sha256"
+        if stale_chk.exists():
+            stale_chk.unlink()
+
+        # Read-after-write verification
+        read_mem = pq.read_table(memberships_file)
+        read_sum = pq.read_table(summary_file)
+        require(read_mem.num_rows == memberships_table.num_rows, "EXP_READBACK_MEMBERSHIP_ROW_MISMATCH")
+        require(read_sum.num_rows == summary_table.num_rows, "EXP_READBACK_SUMMARY_ROW_MISMATCH")
+        for sf in standard_files:
+            actual_sha = sha256_bytes((out_path / sf).read_bytes())
+            require(actual_sha == checksums[sf], f"EXP_READBACK_CHECKSUM_MISMATCH:{sf}")
+
         # OFFICIAL RUN: write _SUCCESS.json as final atomic marker
         artifact_uri = f"s3://lakehouse/ml-experiments/experiment-run-{effective_run_id}"
         success_marker = {
@@ -764,9 +1030,38 @@ class ColabPathAdapter:
 
         status = report.get("local_smoke_status", report.get("notebook_status"))
         allowed = report.get("colab_migration_allowed", True)
+        fresh_kernel = report.get("fresh_kernel_acceptance")
 
         is_passed = (status in {"PASSED", "RESTART_RUN_ALL_PASSED"}) and bool(allowed)
         require(is_passed, f"COLAB_GATE_BLOCKED: Local smoke status is {status}, migration allowed={allowed}")
+        require(fresh_kernel is not False,
+                f"COLAB_GATE_BLOCKED: Fresh kernel acceptance failed (fresh_kernel_acceptance={fresh_kernel})")
+
+        # If this is an EXP-02 local smoke report, enforce mandatory algorithm coverage and non-empty reconciliation
+        report_ver = str(report.get("report_version", ""))
+        if "local-smoke" in report_ver or "algorithms_evaluated" in report:
+            require(fresh_kernel is True,
+                    f"COLAB_GATE_BLOCKED: Fresh kernel acceptance is required for Colab migration (fresh_kernel_acceptance={fresh_kernel})")
+            bundle_cs = report.get("bundle_checksum")
+            require(isinstance(bundle_cs, str) and len(bundle_cs) == 64,
+                    f"COLAB_GATE_BLOCKED: bundle_checksum is missing, null, or invalid in local smoke report: {bundle_cs}")
+
+            algos = report.get("algorithms_evaluated")
+            require(isinstance(algos, list),
+                    "COLAB_GATE_BLOCKED: Report missing evaluated algorithms list")
+            required_algos = {"WINDOW", "DBSCAN", "HDBSCAN_GLOBAL"}
+            require(required_algos.issubset(set(algos)),
+                    f"COLAB_GATE_BLOCKED: Report missing required algorithms: {sorted(required_algos - set(algos))}")
+
+            reconciliation = report.get("reconciliation")
+            require(isinstance(reconciliation, dict) and len(reconciliation) >= 3,
+                    "COLAB_GATE_BLOCKED: Missing or incomplete reconciliation in local smoke report")
+            for req_algo in required_algos:
+                require(req_algo in reconciliation, f"COLAB_GATE_BLOCKED: Missing reconciliation for {req_algo}")
+                metrics = reconciliation[req_algo]
+                require(isinstance(metrics, dict), f"COLAB_GATE_BLOCKED: Invalid metrics structure for {req_algo}")
+                require(metrics.get("total_candidates", 0) > 0, f"COLAB_GATE_BLOCKED: Zero candidates in {req_algo}")
+
         return report
 
     @staticmethod

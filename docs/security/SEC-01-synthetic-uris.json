@@ -2,8 +2,20 @@
   {
     "path": "airflow/tests/test_source_readiness_qa.py",
     "category": "credential_uri",
+    "normalized_sha256": "1c96d8f5d7a81057ac158b00712efa2bf3480c763fc6cc8ac84cf98c66d45b3c",
+    "reason": "ORC-07 adds real_etl task to QA state fixture only; same reviewed dummy invalid userinfo/redaction test, no credential changed"
+  },
+  {
+    "path": "airflow/tests/test_source_readiness_qa.py",
+    "category": "credential_uri",
     "normalized_sha256": "5cb40e189a5c98efc5bc04a363c5bed5dc4da5ccbfff0b00fbdcd7d513ad8b4f",
     "reason": "Reviewed fixed dummy userinfo in invalid QA receipt; asserts no credential echo"
+  },
+  {
+    "path": "airflow/tests/test_source_readiness_qa.py (history)",
+    "category": "credential_uri",
+    "normalized_sha256": "1c96d8f5d7a81057ac158b00712efa2bf3480c763fc6cc8ac84cf98c66d45b3c",
+    "reason": "Reviewed historical dummy URI in failure redaction test; no external credential"
   },
   {
     "path": "airflow/tests/test_source_schedule_runtime.py",
