@@ -1,10 +1,11 @@
 {
-  "notebook_status": "RESTART_RUN_ALL_PASSED",
-  "local_smoke_status": "PASSED",
-  "colab_migration_allowed": true,
-  "notebook_sha256": "d5aa33dcf476fdab2e9434693788602ce06bbf9b9d86ff173f24c6ffafdf2d42",
+  "notebook_status": "FALLBACK_EXEC_PASSED",
+  "local_smoke_status": "FALLBACK_EXEC_WARNING",
+  "colab_migration_allowed": false,
+  "fresh_kernel_acceptance": false,
+  "notebook_sha256": "64e5a6c59c577c097ac8b93fc6687e0eeef84bf0501613fdc9048711de90249a",
   "executed_code_cells": 5,
-  "runtime_seconds": 2.0564,
+  "runtime_seconds": 3.198,
   "python_version": "3.11.0",
   "runner_mode": "isolated_exec",
   "source_notebook_outputs_cleared": true

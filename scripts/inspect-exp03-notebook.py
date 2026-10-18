@@ -36,6 +36,9 @@ def run_notebook_cells(notebook_path: Path, env_override: dict) -> dict:
     except ImportError:
         nbclient_available = False
 
+    env_override["EXP03_RUNNER_MODE"] = "nbclient" if nbclient_available else "isolated_exec"
+    env_override["EXP03_FRESH_KERNEL_ACCEPTANCE"] = "true" if nbclient_available else "false"
+
     executed_count = 0
     t0 = time.time()
 
@@ -88,9 +91,10 @@ def run_notebook_cells(notebook_path: Path, env_override: dict) -> dict:
         raise ValueError("EXP03_SOURCE_NOTEBOOK_MUTATED")
 
     return {
-        "notebook_status": "RESTART_RUN_ALL_PASSED",
-        "local_smoke_status": "PASSED",
-        "colab_migration_allowed": True,
+        "notebook_status": "RESTART_RUN_ALL_PASSED" if nbclient_available else "FALLBACK_EXEC_PASSED",
+        "local_smoke_status": "PASSED" if nbclient_available else "FALLBACK_EXEC_WARNING",
+        "colab_migration_allowed": bool(nbclient_available),
+        "fresh_kernel_acceptance": bool(nbclient_available),
         "notebook_sha256": source_sha,
         "executed_code_cells": executed_count,
         "runtime_seconds": round(elapsed, 4),

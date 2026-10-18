@@ -13,8 +13,11 @@ import pyarrow.parquet as pq
 
 ROOT = Path(__file__).resolve().parents[1]
 NOTEBOOKS_DIR = ROOT / "notebooks"
+TESTS_DIR = ROOT / "tests"
 if str(NOTEBOOKS_DIR) not in sys.path:
     sys.path.insert(0, str(NOTEBOOKS_DIR))
+if str(TESTS_DIR) not in sys.path:
+    sys.path.insert(0, str(TESTS_DIR))
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
@@ -370,6 +373,227 @@ class TestAdaptiveHDBSCAN(unittest.TestCase):
         # Confirm valid multi_sequence_status in memberships
         statuses = set(mem_pq["multi_sequence_status"].to_pylist())
         self.assertTrue(statuses.issubset({"UNIQUE", "MULTIPLE", "AMBIGUOUS", "NOT_MEMBER"}))
+
+    # -------------------------------------------------------------------------
+    # 6. Regression & Edge-Case Tests for Review Items
+    # -------------------------------------------------------------------------
+    def test_fit_adaptive_reads_schema_mainshock_magnitude(self):
+        """Magnitude is read from mainshock_magnitude / candidate_magnitude and reflects true scaling."""
+        main_id = "main_mag_test"
+        # 100 candidates with mainshock_magnitude = 8.0 conforming to feature bundle contract
+        candidates = []
+        for i in range(100):
+            cid = main_id if i == 0 else f"cand_{i}"
+            candidates.append({
+                "candidate_event_id": cid,
+                "mainshock_event_id": main_id,
+                "mainshock_magnitude": 8.0,
+                "candidate_magnitude": 8.0 if i == 0 else 4.5,
+                "x_scaled": float(i) * 0.01,
+                "y_scaled": float(i) * 0.01,
+                "z_scaled": 0.0,
+                "time_scaled": float(i) * 0.01,
+                "event_role_candidate": "MAINSHOCK" if i == 0 else "POST",
+            })
+
+        # When magnitude is 8.0 with N=100: resolve_adaptive_hdbscan_params yields min_cluster_size=12
+        p_expected = resolve_adaptive_hdbscan_params(100, 8.0, self.model_config)
+        self.assertEqual(p_expected["min_cluster_size"], 12)
+        # If it had erroneously defaulted to 5.5, min_cluster_size would have been 9
+        p_wrong = resolve_adaptive_hdbscan_params(100, 5.5, self.model_config)
+        self.assertEqual(p_wrong["min_cluster_size"], 9)
+
+        # Call fit_hdbscan_adaptive with candidates having mainshock_magnitude=8.0
+        mems, summary = fit_hdbscan_adaptive(
+            window_candidates=candidates,
+            mainshock_id=main_id,
+            config=self.model_config,
+        )
+        self.assertEqual(len(mems), 100)
+        self.assertEqual(summary["candidate_count"], 100)
+
+    def test_fit_adaptive_missing_magnitude_raises_error(self):
+        """Missing mainshock magnitude must fail loudly, never default to 5.5 silently."""
+        main_id = "main_missing_mag"
+        candidates = [{
+            "candidate_event_id": main_id,
+            "mainshock_event_id": main_id,
+            "x_scaled": 0.0,
+            "y_scaled": 0.0,
+            "z_scaled": 0.0,
+            "time_scaled": 0.0,
+            "event_role_candidate": "MAINSHOCK",
+            # Note: NO mainshock_magnitude, candidate_magnitude, or magnitude
+        }]
+        with self.assertRaisesRegex(ValueError, f"MISSING_MAINSHOCK_MAGNITUDE:{main_id}"):
+            fit_hdbscan_adaptive(
+                window_candidates=candidates,
+                mainshock_id=main_id,
+                config=self.model_config,
+            )
+
+    def test_fit_adaptive_invalid_nan_magnitude_raises_error(self):
+        """Non-finite NaN magnitude must raise ValueError."""
+        main_id = "main_nan_mag"
+        candidates = [{
+            "candidate_event_id": main_id,
+            "mainshock_event_id": main_id,
+            "mainshock_magnitude": float("nan"),
+            "x_scaled": 0.0,
+            "y_scaled": 0.0,
+            "z_scaled": 0.0,
+            "time_scaled": 0.0,
+            "event_role_candidate": "MAINSHOCK",
+        }]
+        with self.assertRaises(ValueError):
+            fit_hdbscan_adaptive(
+                window_candidates=candidates,
+                mainshock_id=main_id,
+                config=self.model_config,
+            )
+
+    def test_nested_mainshock_tie_preserves_unresolved_regardless_of_input_order(self):
+        """When candidate parents are tied, parent remains unresolved and order swap produces identical result."""
+        # Mainshock B appears in mainshock A's window and mainshock C's window with identical probability & distance
+        row_in_a = {
+            "candidate_event_id": "main_B",
+            "mainshock_event_id": "main_A",
+            "is_sequence_member": True,
+            "membership_probability": 0.80,
+            "normalized_distance": 0.20,
+            "event_role_candidate": "POST",
+        }
+        row_in_c = {
+            "candidate_event_id": "main_B",
+            "mainshock_event_id": "main_C",
+            "is_sequence_member": True,
+            "membership_probability": 0.80,
+            "normalized_distance": 0.20,
+            "event_role_candidate": "POST",
+        }
+        row_b_self = {
+            "candidate_event_id": "main_B",
+            "mainshock_event_id": "main_B",
+            "is_sequence_member": True,
+            "membership_probability": 1.00,
+            "normalized_distance": 0.00,
+            "event_role_candidate": "MAINSHOCK",
+        }
+
+        # Order 1: A before C
+        memberships_ac = [dict(row_in_a), dict(row_in_c), dict(row_b_self)]
+        summaries_ac = [
+            {"mainshock_event_id": "main_A", "is_nested_mainshock_candidate": False, "metric_reason_codes": []},
+            {"mainshock_event_id": "main_B", "is_nested_mainshock_candidate": False, "metric_reason_codes": []},
+            {"mainshock_event_id": "main_C", "is_nested_mainshock_candidate": False, "metric_reason_codes": []},
+        ]
+        _, res_sum_ac, _ = resolve_multi_sequence_and_nested_mainshocks(memberships_ac, summaries_ac)
+        b_ac = next(s for s in res_sum_ac if s["mainshock_event_id"] == "main_B")
+
+        # Order 2: C before A (swapped row order)
+        memberships_ca = [dict(row_in_c), dict(row_in_a), dict(row_b_self)]
+        summaries_ca = [
+            {"mainshock_event_id": "main_C", "is_nested_mainshock_candidate": False, "metric_reason_codes": []},
+            {"mainshock_event_id": "main_B", "is_nested_mainshock_candidate": False, "metric_reason_codes": []},
+            {"mainshock_event_id": "main_A", "is_nested_mainshock_candidate": False, "metric_reason_codes": []},
+        ]
+        _, res_sum_ca, _ = resolve_multi_sequence_and_nested_mainshocks(memberships_ca, summaries_ca)
+        b_ca = next(s for s in res_sum_ca if s["mainshock_event_id"] == "main_B")
+
+        # Both orders must NOT arbitrarily assign main_A or main_C
+        self.assertTrue(b_ac["is_nested_mainshock_candidate"])
+        self.assertIsNone(b_ac["parent_mainshock_event_id"])
+        self.assertIsNone(b_ac["nested_membership_probability"])
+        self.assertIn("AMBIGUOUS_NESTED_PARENT_TIE", b_ac["metric_reason_codes"])
+
+        self.assertTrue(b_ca["is_nested_mainshock_candidate"])
+        self.assertIsNone(b_ca["parent_mainshock_event_id"])
+        self.assertIsNone(b_ca["nested_membership_probability"])
+        self.assertIn("AMBIGUOUS_NESTED_PARENT_TIE", b_ca["metric_reason_codes"])
+
+        # Invariant to input order
+        self.assertEqual(b_ac["parent_mainshock_event_id"], b_ca["parent_mainshock_event_id"])
+        self.assertEqual(b_ac["nested_membership_probability"], b_ca["nested_membership_probability"])
+
+    def test_multi_sequence_tolerance_distance_tie_break(self):
+        """Probability within eps_tie uses normalized distance to break tie; closer candidate wins."""
+        eps_tie = 1e-6
+        # Candidate ev_close in main_A: prob 0.8000001, dist 0.80 (far)
+        # Candidate ev_close in main_B: prob 0.8000000, dist 0.20 (close)
+        # Difference in probability is 1e-7 <= 1e-6 (tied under tolerance).
+        # Distance tie-break must select main_B as rank 1!
+        memberships = [
+            {
+                "candidate_event_id": "ev_close",
+                "mainshock_event_id": "main_A",
+                "is_sequence_member": True,
+                "membership_probability": 0.8000001,
+                "normalized_distance": 0.80,
+                "event_role_candidate": "POST",
+            },
+            {
+                "candidate_event_id": "ev_close",
+                "mainshock_event_id": "main_B",
+                "is_sequence_member": True,
+                "membership_probability": 0.8000000,
+                "normalized_distance": 0.20,
+                "event_role_candidate": "POST",
+            },
+        ]
+        summaries = [
+            {"mainshock_event_id": "main_A", "is_nested_mainshock_candidate": False},
+            {"mainshock_event_id": "main_B", "is_nested_mainshock_candidate": False},
+        ]
+        res_mem, _, recon = resolve_multi_sequence_and_nested_mainshocks(memberships, summaries, eps_tie=eps_tie)
+
+        row_a = next(m for m in res_mem if m["mainshock_event_id"] == "main_A")
+        row_b = next(m for m in res_mem if m["mainshock_event_id"] == "main_B")
+
+        self.assertEqual(row_b["multi_sequence_status"], "MULTIPLE")
+        self.assertEqual(row_b["resolution_rank"], 1)
+
+        self.assertEqual(row_a["multi_sequence_status"], "MULTIPLE")
+        self.assertEqual(row_a["resolution_rank"], 2)
+        self.assertEqual(recon["resolved_unique_aftershocks"], 1)
+
+    def test_multi_sequence_tolerance_both_within_eps_tie_is_ambiguous(self):
+        """When both probability and distance are within eps_tie, status is AMBIGUOUS."""
+        eps_tie = 1e-6
+        memberships = [
+            {
+                "candidate_event_id": "ev_ambig",
+                "mainshock_event_id": "main_A",
+                "is_sequence_member": True,
+                "membership_probability": 0.8000001,
+                "normalized_distance": 0.2000001,
+                "event_role_candidate": "POST",
+            },
+            {
+                "candidate_event_id": "ev_ambig",
+                "mainshock_event_id": "main_B",
+                "is_sequence_member": True,
+                "membership_probability": 0.8000000,
+                "normalized_distance": 0.2000000,
+                "event_role_candidate": "POST",
+            },
+        ]
+        summaries = [
+            {"mainshock_event_id": "main_A", "is_nested_mainshock_candidate": False},
+            {"mainshock_event_id": "main_B", "is_nested_mainshock_candidate": False},
+        ]
+        res_mem, _, recon = resolve_multi_sequence_and_nested_mainshocks(memberships, summaries, eps_tie=eps_tie)
+
+        row_a = next(m for m in res_mem if m["mainshock_event_id"] == "main_A")
+        row_b = next(m for m in res_mem if m["mainshock_event_id"] == "main_B")
+
+        self.assertEqual(row_a["multi_sequence_status"], "AMBIGUOUS")
+        self.assertIsNone(row_a["resolution_rank"])
+
+        self.assertEqual(row_b["multi_sequence_status"], "AMBIGUOUS")
+        self.assertIsNone(row_b["resolution_rank"])
+
+        self.assertEqual(recon["ambiguous_candidates_count"], 1)
+        self.assertEqual(recon["resolved_unique_aftershocks"], 0)
 
 
 if __name__ == "__main__":

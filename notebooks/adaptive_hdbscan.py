@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
+import functools
 import math
 import os
 from pathlib import Path
@@ -147,7 +148,24 @@ def fit_hdbscan_adaptive(
             break
     require(mainshock_idx is not None, f"MAINSHOCK_NOT_IN_CANDIDATES:{mainshock_id}")
 
-    mainshock_mag = float(mainshock_candidate.get("magnitude", 5.5))
+    # Read mainshock magnitude from contract fields: mainshock_magnitude, candidate_magnitude, or magnitude
+    raw_mag = mainshock_candidate.get("mainshock_magnitude")
+    if raw_mag is None:
+        raw_mag = mainshock_candidate.get("candidate_magnitude")
+    if raw_mag is None:
+        for c in window_candidates:
+            if c.get("mainshock_magnitude") is not None:
+                raw_mag = c.get("mainshock_magnitude")
+                break
+    if raw_mag is None:
+        raw_mag = mainshock_candidate.get("magnitude")
+
+    require(raw_mag is not None, f"MISSING_MAINSHOCK_MAGNITUDE:{mainshock_id}")
+    try:
+        mainshock_mag = float(raw_mag)
+        require(not math.isnan(mainshock_mag) and not math.isinf(mainshock_mag), f"INVALID_MAINSHOCK_MAGNITUDE:{raw_mag}")
+    except (ValueError, TypeError):
+        raise ValueError(f"INVALID_MAINSHOCK_MAGNITUDE:{raw_mag}")
 
     # Resolve adaptive parameters
     params = resolve_adaptive_hdbscan_params(
@@ -272,6 +290,48 @@ def fit_hdbscan_adaptive(
 # -----------------------------------------------------------------------------
 # 3. Multi-Sequence Entity Resolution & Nested Mainshock Detection
 # -----------------------------------------------------------------------------
+def compare_membership_rows(
+    r1: Dict[str, Any],
+    r2: Dict[str, Any],
+    eps_tie: float = 1e-6,
+) -> int:
+    """Compare two candidate membership rows under tolerance hierarchy.
+
+    Hierarchy:
+    1. Membership probability (higher is better):
+       If |p1 - p2| > eps_tie, the one with strictly higher probability wins.
+    2. Normalized distance (lower is better):
+       If probabilities are within eps_tie (considered tied), the one with
+       strictly smaller normalized_distance (|d1 - d2| > eps_tie) wins.
+    3. Unresolvable tie:
+       If both |p1 - p2| <= eps_tie and |d1 - d2| <= eps_tie, returns 0 (tie).
+
+    Returns:
+      -1 if r1 is strictly better than r2
+      +1 if r2 is strictly better than r1
+       0 if tied under both criteria within eps_tie
+    """
+    p1 = 0.0 if r1.get("membership_probability") is None else float(r1["membership_probability"])
+    p2 = 0.0 if r2.get("membership_probability") is None else float(r2["membership_probability"])
+
+    diff_p = p1 - p2
+    if diff_p > eps_tie:
+        return -1
+    elif diff_p < -eps_tie:
+        return 1
+
+    d1 = float(r1.get("normalized_distance", 0.0))
+    d2 = float(r2.get("normalized_distance", 0.0))
+
+    diff_d = d1 - d2
+    if diff_d < -eps_tie:
+        return -1
+    elif diff_d > eps_tie:
+        return 1
+
+    return 0
+
+
 def resolve_multi_sequence_and_nested_mainshocks(
     all_memberships: List[Dict[str, Any]],
     all_summaries: List[Dict[str, Any]],
@@ -335,33 +395,17 @@ def resolve_multi_sequence_and_nested_mainshocks(
             # Multi-sequence candidate
             unique_candidates_multi_seq += 1
 
-            # Sort member rows by hierarchy:
-            # 1. -membership_probability (None treated as -1.0)
-            # 2. normalized_distance
-            def sort_key(row: Dict[str, Any]) -> Tuple[float, float]:
-                p = row.get("membership_probability")
-                prob_val = -1.0 if p is None else float(p)
-                dist_val = float(row.get("normalized_distance", 0.0))
-                return (-prob_val, dist_val)
-
-            sorted_members = sorted(member_rows, key=sort_key)
+            # Sort member rows using comparator with tie tolerance
+            sorted_members = sorted(
+                member_rows,
+                key=functools.cmp_to_key(lambda r1, r2: compare_membership_rows(r1, r2, eps_tie=eps_tie))
+            )
 
             # Check for unresolvable tie between the top two candidates
             top1 = sorted_members[0]
             top2 = sorted_members[1]
 
-            p1 = top1.get("membership_probability")
-            p2 = top2.get("membership_probability")
-            p1_val = 0.0 if p1 is None else float(p1)
-            p2_val = 0.0 if p2 is None else float(p2)
-
-            d1_val = float(top1.get("normalized_distance", 0.0))
-            d2_val = float(top2.get("normalized_distance", 0.0))
-
-            is_prob_tie = abs(p1_val - p2_val) < eps_tie
-            is_dist_tie = abs(d1_val - d2_val) < eps_tie
-
-            if is_prob_tie and is_dist_tie:
+            if compare_membership_rows(top1, top2, eps_tie=eps_tie) == 0:
                 # Unresolvable tie: cannot objectively declare a winner
                 ambiguous_candidates_count += 1
                 for r in member_rows:
@@ -382,11 +426,10 @@ def resolve_multi_sequence_and_nested_mainshocks(
     # -------------------------------------------------------------------------
     # Map mainshock_event_id to its sequence_summary row
     summary_by_mainshock = {s["mainshock_event_id"]: s for s in all_summaries}
-    all_mainshock_ids = set(summary_by_mainshock.keys())
 
     nested_count = 0
     for mid, summary in summary_by_mainshock.items():
-        # Check if this mainshock mid appears as a candidate in other mainshocks' windows
+        # Check if this mainshock mid appears as a sequence member in other mainshocks' windows
         other_memberships = [
             r for r in all_memberships
             if r["candidate_event_id"] == mid
@@ -395,19 +438,41 @@ def resolve_multi_sequence_and_nested_mainshocks(
         ]
 
         if other_memberships:
-            # Find the best parent window: rank 1 winner, or highest probability / lowest distance
+            # Check if one of the other memberships has resolution_rank == 1
             resolved_parent_row = next((r for r in other_memberships if r.get("resolution_rank") == 1), None)
+
             if resolved_parent_row is None:
-                # If ambiguous or no rank 1, pick the one with max probability / min distance
-                resolved_parent_row = max(
-                    other_memberships,
-                    key=lambda r: (r.get("membership_probability") or 0.0, -r.get("normalized_distance", 0.0))
-                )
+                # No other membership has rank 1 (either mid was rank 1 in its own window,
+                # or mid's memberships were marked AMBIGUOUS due to a tie).
+                if len(other_memberships) == 1:
+                    resolved_parent_row = other_memberships[0]
+                else:
+                    sorted_parents = sorted(
+                        other_memberships,
+                        key=functools.cmp_to_key(lambda r1, r2: compare_membership_rows(r1, r2, eps_tie=eps_tie))
+                    )
+                    best_parent = sorted_parents[0]
+                    runner_up = sorted_parents[1]
+
+                    if compare_membership_rows(best_parent, runner_up, eps_tie=eps_tie) == 0:
+                        # Tie between candidate parents: CANNOT assign an arbitrary parent!
+                        resolved_parent_row = None
+                    else:
+                        resolved_parent_row = best_parent
 
             summary["is_nested_mainshock_candidate"] = True
-            summary["parent_mainshock_event_id"] = resolved_parent_row["mainshock_event_id"]
-            summary["nested_membership_probability"] = resolved_parent_row.get("membership_probability")
             nested_count += 1
+
+            if resolved_parent_row is not None:
+                summary["parent_mainshock_event_id"] = resolved_parent_row["mainshock_event_id"]
+                summary["nested_membership_probability"] = resolved_parent_row.get("membership_probability")
+            else:
+                summary["parent_mainshock_event_id"] = None
+                summary["nested_membership_probability"] = None
+                reasons = list(summary.get("metric_reason_codes") or [])
+                if "AMBIGUOUS_NESTED_PARENT_TIE" not in reasons:
+                    reasons.append("AMBIGUOUS_NESTED_PARENT_TIE")
+                summary["metric_reason_codes"] = reasons
         else:
             summary["is_nested_mainshock_candidate"] = False
             summary["parent_mainshock_event_id"] = None

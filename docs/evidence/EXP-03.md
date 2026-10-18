@@ -1,6 +1,6 @@
 # EXP-03 — Xây HDBSCAN adaptive và giải quyết multi-sequence evidence
 
-Ngày kiểm chứng: 2026-10-17.
+Ngày kiểm chứng: 2026-10-18 (Review Round 2).
 Branch: `feat/exp-03-adaptive-hdbscan`.
 Assignee: `rosy179`.
 Reviewer: `unassigned`.
@@ -13,71 +13,88 @@ Task EXP-03 triển khai thuật toán **HDBSCAN Adaptive** và cơ chế **Mult
 
 Toàn bộ cấu hình được cố định trong `config/ml/models/hdbscan_adaptive_dev_v1.json` và khóa trên giai đoạn reproduction (`2000-01-01` đến `2018-09-30`) trước khi tiến hành đánh giá mở rộng tại [EXP-05](./../task/tasks/EXP-05.md).
 
-## 2. Các quy tắc cốt lõi đã kiểm chứng
+## 2. Các điểm đã khắc phục theo review của @HoaiTam (PR #86, comment-6230270173)
 
-1. **Deterministic Adaptive Parameter Resolver:**
-   - Siêu tham số được tính toán hoàn toàn bằng giải thuật toán học đơn điệu, không ngẫu nhiên, không per-sequence manual override:
-     $$m_{cl} = \mathrm{clip}\left(\left\lfloor m_{cl, \text{base}} + k_N \cdot \ln(N + 1) + k_M \cdot \max(0.0, M - M_0) \right\rfloor, m_{cl, \text{min}}, m_{cl, \text{max}}\right)$$
-     $$m_s = \max\left(m_{s, \text{min}}, \min\left(m_{cl}, \left\lfloor \alpha \cdot m_{cl} \right\rfloor\right)\right)$$
-   - Đảm bảo tính đơn điệu: Cửa sổ càng nhiều ứng viên hoặc mainshock càng lớn thì $m_{cl}$ càng lớn tương ứng, tránh hiện tượng vỡ cụm nhỏ lẻ (over-fragmentation); đồng thời với cửa sổ thưa thì $m_{cl}$ giữ ở cận dưới hợp lý ($m_{cl} \ge 3, m_s \ge 2$).
+### 2.1. [P1] Đọc đúng trường magnitude, phản ánh độ lớn mainshock
+- **Vấn đề:** `fit_hdbscan_adaptive` trước đây đọc `mainshock_candidate.get("magnitude", 5.5)`. Feature bundle sử dụng schema `mainshock_magnitude` và `candidate_magnitude`, không có trường `magnitude`. Do đó, dữ liệu đúng schema bị âm thầm thay bằng `5.5`, làm sai lệch siêu tham số thích nghi (ví dụ $N=100, M=8.0$ bị tính ra `min_cluster_size = 9` thay vì `12`).
+- **Khắc phục:**
+  - Đọc đúng các trường metadata chấn tiêu theo thứ tự: `mainshock_candidate.get("mainshock_magnitude")` $\to$ `candidate_magnitude` $\to$ `c.get("mainshock_magnitude")` từ các ứng viên trong cửa sổ $\to$ `magnitude`.
+  - Bắt buộc kiểm tra `raw_mag is not None` và giá trị phải hữu hạn (không NaN, không Inf). Báo lỗi `MISSING_MAINSHOCK_MAGNITUDE` hoặc `INVALID_MAINSHOCK_MAGNITUDE` thay vì mặc định `5.5`.
+  - Thêm unit test `test_fit_adaptive_reads_schema_mainshock_magnitude`, `test_fit_adaptive_missing_magnitude_raises_error`, và `test_fit_adaptive_invalid_nan_magnitude_raises_error`.
 
-2. **Bảo toàn hạt dữ liệu thô (Raw Membership Grain Preservation):**
-   - Mọi cặp `(experiment_run_id, mainshock_event_id, candidate_event_id)` từ tất cả các cửa sổ đều được giữ nguyên 100% trong `memberships.parquet`.
-   - Tuyệt đối không xóa bất kỳ dòng thành viên nào khi candidate được resolve thuộc về sequence khác.
+### 2.2. [P1] Xử lý hòa bằng chứng cho nested parent, đảm bảo bất biến với thứ tự đầu vào
+- **Vấn đề:** Khi không có parent nào có `resolution_rank == 1`, code trước đây dùng hàm `max(...)` để chọn parent. Khi hai candidate parent có cùng xác suất và khoảng cách, `max` chọn phần tử xuất hiện trước, khiến việc đảo thứ tự hai dòng làm đổi parent tùy ý (ví dụ từ A sang C).
+- **Khắc phục:**
+  - Sử dụng comparator phân cấp `compare_membership_rows(r1, r2, eps_tie=eps_tie)`.
+  - Khi hai candidate parent hòa nhau trong ngưỡng tolerance, giữ trạng thái chưa phân giải: `parent_mainshock_event_id = None`, `nested_membership_probability = None`, gắn reason code `"AMBIGUOUS_NESTED_PARENT_TIE"` vào `metric_reason_codes`. Không gán một parent cụ thể khi thiếu bằng chứng khách quan.
+  - Thêm test `test_nested_mainshock_tie_preserves_unresolved_regardless_of_input_order` kiểm chứng hoán đổi thứ tự đầu vào đảm bảo kết quả hoàn toàn nhất quán.
 
-3. **Thứ bậc giải quyết Multi-Sequence (Hierarchy Resolution):**
-   - **Xác suất thành viên (`membership_probability`):** Cửa sổ mainshock nào có xác suất thành viên cao hơn sẽ thắng (`resolution_rank = 1`, các cửa sổ khác nhận `resolution_rank = 2, 3, ...`, tất cả các dòng nhận status `MULTIPLE`).
-   - **Khoảng cách 4-D chuẩn hóa (`normalized_distance`):** Nếu xác suất bằng nhau, cửa sổ có khoảng cách 4-D ngắn hơn thắng (`resolution_rank = 1`).
-   - **Tie bất khả phân (`AMBIGUOUS`):** Nếu cả xác suất lẫn khoảng cách đều bằng nhau (sai số $< 10^{-6}$), không tự ý chọn bừa; toàn bộ các dòng của candidate đó nhận `multi_sequence_status = "AMBIGUOUS"`, `resolution_rank = None`.
-   - **Non-member:** Sự kiện không thuộc chuỗi nhận `multi_sequence_status = "NOT_MEMBER"`, `resolution_rank = None`.
-   - **Unique member:** Sự kiện chỉ thuộc 1 chuỗi duy nhất nhận `multi_sequence_status = "UNIQUE"`, `resolution_rank = 1`.
+### 2.3. [P2] Thống nhất quy tắc tolerance so sánh thứ bậc và tie-break bằng distance
+- **Vấn đề:** Sắp xếp trước đây dùng xác suất chính xác, nhưng kiểm tra hòa lại dùng `eps_tie`. Dẫn đến trường hợp candidate A có prob `0.8000001`, dist `0.8` và candidate B có prob `0.8000000`, dist `0.2`: xác suất hòa theo tolerance nhưng code vẫn chọn A dù B gần hơn đáng kể.
+- **Khắc phục:**
+  - Xây dựng hàm so sánh chuẩn `compare_membership_rows(r1, r2, eps_tie=1e-6)`:
+    1. Nếu chênh lệch xác suất $> \epsilon$, ứng viên có xác suất cao hơn thắng.
+    2. Nếu chênh lệch xác suất $\le \epsilon$ (hòa theo tolerance), so sánh khoảng cách 4-D chuẩn hóa. Ứng viên có khoảng cách nhỏ hơn chênh lệch $> \epsilon$ thắng.
+    3. Nếu cả xác suất lẫn khoảng cách đều hòa trong ngưỡng $\epsilon$, trả về 0 (hòa hoàn toàn $\to$ `AMBIGUOUS`, `resolution_rank = None`).
+  - Toàn bộ việc sort trong `resolve_multi_sequence_and_nested_mainshocks` sử dụng `functools.cmp_to_key(compare_membership_rows)`.
+  - Thêm test `test_multi_sequence_tolerance_distance_tie_break` và `test_multi_sequence_tolerance_both_within_eps_tie_is_ambiguous`.
 
-4. **Gắn bằng chứng Nested Mainshock (Nested Mainshock Evidence):**
-   - Khi một mainshock $B$ xuất hiện trong cửa sổ của mainshock $A$ ($A \ne B$) và được $A$ nhận làm POST sequence member với rank 1 (hoặc xác suất cao nhất), sequence_summary của $B$ được tự động gắn:
-     `is_nested_mainshock_candidate = true`, `parent_mainshock_event_id = A`, `nested_membership_probability = prob(B in A)`.
-   - Ngược lại, giữ `is_nested_mainshock_candidate = false`, `parent_mainshock_event_id = null`, `nested_membership_probability = null`.
+### 2.4. [P2] Khớp evidence với phương thức kiểm chứng thực tế
+- **Vấn đề:** `docs/evidence/EXP-03-local-smoke.json` trước đây ghi `runner_mode: isolated_exec` nhưng lại báo `notebook_status: RESTART_RUN_ALL_PASSED` và `colab_migration_allowed: true`. Việc chạy `exec` chưa chứng minh được Restart & Run All trên fresh kernel Jupyter.
+- **Khắc phục:**
+  - `scripts/inspect-exp03-notebook.py` phân biệt rõ ràng:
+    - Khi có `nbclient`: `runner_mode: "nbclient"`, `notebook_status: "RESTART_RUN_ALL_PASSED"`, `local_smoke_status: "PASSED"`, `colab_migration_allowed: true`, `fresh_kernel_acceptance: true`.
+    - Khi chạy fallback: `runner_mode: "isolated_exec"`, `notebook_status: "FALLBACK_EXEC_PASSED"`, `local_smoke_status: "FALLBACK_EXEC_WARNING"`, `colab_migration_allowed: false`, `fresh_kernel_acceptance: false`.
+  - Không mở gate Colab chỉ từ fallback execution.
+  - Cập nhật lại file `docs/evidence/EXP-03-local-smoke.json` phản ánh đúng thực tế.
 
-5. **Báo cáo đối soát Before/After (Reconciliation Audit):**
-   - Đảm bảo cân bằng bảo toàn:
-     $$\text{raw\_aftershocks} = \text{resolved\_unique\_aftershocks} + \text{ambiguous\_aftershocks} + \text{deduplicated\_aftershocks}$$
-   - Khi tổng hợp số dư chấn duy nhất trong catalog bằng cách lọc `event_role_candidate == 'POST' AND resolution_rank == 1`, hiện tượng double-counting hoàn toàn bị triệt tiêu mà không làm mất thông tin raw.
-
-6. **Giới hạn diễn giải khoa học:**
-   - Kết quả phân cụm chỉ là sequence/aftershock candidate theo mô hình thống kê mật độ, không tuyên bố quan hệ nhân quả vật lý hay dự đoán động đất tiếp theo.
+### 2.5. Đồng bộ bản vá từ PR #83 và #84 và sửa CI
+- **Khắc phục:**
+  - Đã tích hợp đầy đủ các bản vá review từ PR #83 (EXP-01) và PR #84 (EXP-02) từ `origin/main` vào nhánh `feat/exp-03-adaptive-hdbscan`, bao gồm tính nhất quán của run ID và khả năng tương thích của result bundle với Spark Iceberg importer.
+  - Đã xóa sạch các lỗi whitespace (`git diff --check origin/main` trả về 0): không còn trailing whitespace ở `scripts/inspect-exp01-notebook.py`, `scripts/inspect-exp02-notebook.py` hay blank lines ở cuối `tests/test_experiment_harness.py`.
 
 ## 3. Checks và tests đã chạy
 
 - **Unit & Contract Tests cho Adaptive HDBSCAN (`tests/test_adaptive_hdbscan.py`):**
-  - Lệnh: `pytest tests/test_adaptive_hdbscan.py`
-  - Kết quả: **9 tests PASS**, 0 errors, 0 failures (thời gian chạy: ~2.17s).
-  - Chi tiết các test cases:
+  - Lệnh: `python -m unittest tests/test_adaptive_hdbscan.py`
+  - Kết quả: **15 tests PASS**, 0 errors, 0 failures (thời gian chạy: ~0.19s).
+  - Chi tiết 15 test cases:
     1. `test_parameter_resolver_determinism`: Kiểm tra tính xác định 100% của parameter resolver khi gọi lặp lại 50 lần.
     2. `test_parameter_resolver_bounds_and_monotonicity`: Kiểm tra cận trên/dưới và tính đơn điệu của $m_{cl}, m_s$ trên dải $N \in [1, 100000]$ và $M \in [4.0, 9.1]$.
     3. `test_multi_sequence_resolution_unique`: Kiểm tra candidate chỉ xuất hiện trong 1 sequence ra `UNIQUE` và rank 1; non-member ra `NOT_MEMBER` và rank `None`.
     4. `test_multi_sequence_resolution_probability_winner`: Kiểm tra quy tắc ưu tiên 1: xác suất cao hơn thắng rank 1 dù khoảng cách xa hơn; cả hai dòng nhận `MULTIPLE`.
     5. `test_multi_sequence_resolution_distance_tiebreak`: Kiểm tra quy tắc ưu tiên 2: khi xác suất bằng nhau, khoảng cách 4-D nhỏ hơn thắng rank 1.
     6. `test_multi_sequence_unresolvable_tie_becomes_ambiguous`: Kiểm tra tie bất khả phân: cả xác suất lẫn khoảng cách bằng nhau ra `AMBIGUOUS`, rank `None`, không chọn tùy tiện.
-    7. `test_raw_membership_grain_preservation`: Kiểm tra toàn bộ 20 dòng raw memberships được giữ nguyên vẹn sau khi resolve.
+    7. `test_raw_membership_grain_preservation`: Kiểm tra toàn bộ raw memberships được giữ nguyên vẹn sau khi resolve.
     8. `test_nested_mainshock_detection`: Kiểm tra phát hiện mainshock lồng trong sequence khác và gắn đúng trường `parent_mainshock_event_id` và `nested_membership_probability`.
     9. `test_run_adaptive_experiment_e2e`: Kiểm tra luồng E2E `run_adaptive_experiment` trên pilot bundle, xác thực `pilot_result_manifest.json`, schema Arrow Parquet và SHA-256 checksums.
+    10. `test_fit_adaptive_reads_schema_mainshock_magnitude`: Kiểm tra đọc đúng trường metadata magnitude theo feature bundle contract ($N=100, M=8.0 \implies m_{cl}=12$).
+    11. `test_fit_adaptive_missing_magnitude_raises_error`: Kiểm tra thiếu magnitude phải raise lỗi `MISSING_MAINSHOCK_MAGNITUDE`, không âm thầm mặc định 5.5.
+    12. `test_fit_adaptive_invalid_nan_magnitude_raises_error`: Kiểm tra magnitude NaN phải raise lỗi.
+    13. `test_nested_mainshock_tie_preserves_unresolved_regardless_of_input_order`: Kiểm tra khi 2 candidate parent hòa bằng chứng, parent được giữ unresolved (`None`) kèm reason code, hoán đổi thứ tự dòng cho kết quả bất biến 100%.
+    14. `test_multi_sequence_tolerance_distance_tie_break`: Kiểm tra khi chênh lệch xác suất nằm trong `eps_tie`, tie-break bằng khoảng cách chuẩn hóa chính xác.
+    15. `test_multi_sequence_tolerance_both_within_eps_tie_is_ambiguous`: Kiểm tra khi cả xác suất lẫn khoảng cách đều trong ngưỡng tolerance, gán `AMBIGUOUS`.
 
 - **Toàn bộ Experiment Regression Suite:**
-  - Lệnh: `pytest tests/test_adaptive_hdbscan.py tests/test_baseline_algorithms.py tests/test_experiment_harness.py`
-  - Kết quả: **32 tests PASS**, 0 errors, 0 failures.
+  - `python -m unittest tests/test_experiment_harness.py`: **44 tests PASS**, 0 errors, 0 failures (~3.65s).
+  - `python -m unittest tests/test_baseline_algorithms.py`: **19 tests PASS**, 0 errors, 0 failures (~4.50s).
+  - `python -m unittest tests/ci/test_suites.py`: **12 tests PASS**, 0 errors, 0 failures (~0.18s).
 
-- **Java Result Bundle Contract Tests (`spark/src/test/java/.../ResultBundleContractTest.java`):**
-  - Lệnh: `$env:JAVA_HOME="C:\Program Files\Java\jdk-23"; mvn test -Dtest=ResultBundleContractTest`
-  - Kết quả: **BUILD SUCCESS**, 7 tests PASS, 0 failures, 0 errors. Xác thực schema Arrow, enum `multi_sequence_status`, và logic rank 1 tương thích 100% với Spark validator.
+- **Kiểm tra định dạng và CI whitespace:**
+  - Lệnh: `git diff --check origin/main`
+  - Kết quả: **0 whitespace errors**, sạch hoàn toàn trailing whitespace và blank lines thừa.
 
 - **Notebook headless inspection (`scripts/inspect-exp03-notebook.py`):**
   - Lệnh: `python scripts/inspect-exp03-notebook.py --output-json docs/evidence/EXP-03-local-smoke.json`
   - Kết quả:
-    - `notebook_status`: `RESTART_RUN_ALL_PASSED`
-    - `local_smoke_status`: `PASSED`
-    - `colab_migration_allowed`: `true`
+    - `notebook_status`: `FALLBACK_EXEC_PASSED`
+    - `local_smoke_status`: `FALLBACK_EXEC_WARNING`
+    - `colab_migration_allowed`: `false`
+    - `fresh_kernel_acceptance`: `false`
+    - `runner_mode`: `isolated_exec`
     - `executed_code_cells`: 5
     - `source_notebook_outputs_cleared`: `true`
-    - `runtime_seconds`: ~2.05s
+    - `runtime_seconds`: ~3.20s
 
 ## 4. Deliverables của task
 
@@ -86,17 +103,18 @@ Toàn bộ cấu hình được cố định trong `config/ml/models/hdbscan_ada
 2. **Algorithm & Entity Resolution Implementation:**
    - `notebooks/adaptive_hdbscan.py`: Module chứa:
      - `resolve_adaptive_hdbscan_params`: Parameter resolver hàm thuần túy, deterministic.
-     - `fit_hdbscan_adaptive`: Fit HDBSCAN theo cửa sổ với tham số thích nghi.
-     - `resolve_multi_sequence_and_nested_mainshocks`: Bộ quy tắc phân giải đa chuỗi và phát hiện nested mainshock.
+     - `fit_hdbscan_adaptive`: Fit HDBSCAN theo cửa sổ với tham số thích nghi, đọc và kiểm tra strictly mainshock magnitude.
+     - `compare_membership_rows`: Comparator đa tiêu chí với tolerance tie-breaking.
+     - `resolve_multi_sequence_and_nested_mainshocks`: Bộ quy tắc phân giải đa chuỗi và phát hiện nested mainshock có xử lý hòa xác định.
      - `run_adaptive_experiment`: Runner tích hợp toàn bộ quy trình và xuất result bundle.
 3. **Thin Jupyter Smoke Notebook:**
    - `notebooks/exp_03_adaptive_hdbscan.ipynb`: Notebook thực hiện quy trình hoàn chỉnh từ tải bundle, fit adaptive, resolve multi-sequences, đối soát Before/After count đến nghiệm thu hợp đồng dữ liệu. Toàn bộ code cells đã được dọn sạch outputs và execution counts.
 4. **Notebook Inspection Script:**
-   - `scripts/inspect-exp03-notebook.py`: Script kiểm tra Restart & Run All trong môi trường cách ly, đảm bảo notebook không bị sửa đổi khi chạy.
+   - `scripts/inspect-exp03-notebook.py`: Script kiểm tra Restart & Run All trong môi trường cách ly, ghi nhận chính xác trạng thái kiểm thử và gate Colab.
 5. **Unit & Contract Test Suite:**
-   - `tests/test_adaptive_hdbscan.py`: Bộ 9 tests tự động bao phủ 100% acceptance criteria của task.
+   - `tests/test_adaptive_hdbscan.py`: Bộ 15 tests tự động bao phủ 100% acceptance criteria và các trường hợp review edge-case.
 6. **Inspection Evidence Artifact:**
-   - `docs/evidence/EXP-03-local-smoke.json`: JSON report nghiệm thu kiểm tra notebook và local smoke gate.
+   - `docs/evidence/EXP-03-local-smoke.json`: JSON report nghiệm thu kiểm tra notebook và local smoke gate trung thực.
 
 ## 5. Giới hạn / Rủi ro / Bước tiếp theo
 
