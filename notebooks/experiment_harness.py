@@ -20,6 +20,7 @@ from pathlib import Path
 import re
 import sys
 from typing import Any, Dict, List, Optional, Tuple, Union
+import uuid
 
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -170,7 +171,11 @@ SEQUENCE_SUMMARY_SCHEMA = pa.schema(SEQUENCE_SUMMARY_FIELDS)
 # -----------------------------------------------------------------------------
 # Runtime Metadata & Pinning
 # -----------------------------------------------------------------------------
-def get_runtime_metadata(code_version: Optional[str] = None, random_seed: Optional[int] = None) -> Dict[str, Any]:
+def get_runtime_metadata(
+    code_version: Optional[str] = None,
+    random_seed: Optional[int] = None,
+    timestamp_utc: Optional[str] = None,
+) -> Dict[str, Any]:
     """Capture environment, python, package versions, and execution parameters."""
     packages = ["pyarrow", "numpy", "scipy", "scikit-learn", "hdbscan", "nbformat", "nbclient"]
     pkg_map = {}
@@ -186,7 +191,7 @@ def get_runtime_metadata(code_version: Optional[str] = None, random_seed: Option
         "package_versions": pkg_map,
         "code_version": code_version or "dev-local",
         "random_seed": random_seed,
-        "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+        "timestamp_utc": timestamp_utc or datetime.now(timezone.utc).isoformat(),
         "vector_columns": VECTOR_COLUMNS,
     }
 
@@ -616,6 +621,12 @@ def write_experiment_result(
     random_seed: Optional[int] = None,
     package_version_override: Optional[str] = None,
     optional_model_artifacts: Optional[Dict[str, bytes]] = None,
+    experiment_run_id: Optional[str] = None,
+    execution_id: Optional[str] = None,
+    timestamp_utc: Optional[str] = None,
+    completed_at_utc: Optional[str] = None,
+    is_retry: bool = False,
+    allow_overwrite: bool = False,
 ) -> Dict[str, Any]:
     """Write experiment outputs conforming to mode boundaries.
 
@@ -624,6 +635,11 @@ def write_experiment_result(
       Never claims RESULT_READY or CANDIDATE.
     - OFFICIAL mode: writes all required artifacts, verifies row counts and checksums,
       and writes _SUCCESS.json strictly as the final atomic marker.
+    - Idempotent Retry: if the output directory already contains an intact completed bundle
+      for the target run, verifies checksums and returns reuse without modifying disk.
+    - Immutability Protection: writing into an existing completed bundle directory without
+      verified retry or explicit allow_overwrite raises EXP_COMPLETED_BUNDLE_CONFLICT.
+    - New Execution Identity: each new execution receives a unique run ID, preventing run ID reuse.
     """
     require(mode in VALID_MODES, f"INVALID_MODE:{mode}")
     require(mode == bundle.get("mode"), f"MODE_MISMATCH_WITH_BUNDLE:{mode}!={bundle.get('mode')}")
@@ -632,24 +648,67 @@ def write_experiment_result(
     out_path = Path(output_dir).resolve()
     out_path.mkdir(parents=True, exist_ok=True)
 
-    runtime_meta = get_runtime_metadata(code_version=code_version, random_seed=random_seed)
+    source_dataset_id = bundle.get("source_dataset_id", bundle.get("bundle_id"))
+
+    # Protect immutable completed bundles & support idempotent retry reuse
+    success_marker_file = out_path / ("_SUCCESS.json" if mode == MODE_OFFICIAL else "pilot_result_manifest.json")
+    if success_marker_file.is_file():
+        try:
+            existing_marker = json.loads(success_marker_file.read_text(encoding="utf-8"))
+        except Exception:
+            existing_marker = {}
+
+        existing_run_id = existing_marker.get("experiment_run_id") if mode == MODE_OFFICIAL else existing_marker.get("pilot_run_id")
+        existing_ds_id = existing_marker.get("dataset_id") if mode == MODE_OFFICIAL else existing_marker.get("source_dataset_id")
+        existing_checksums = existing_marker.get("checksums", {})
+
+        target_run_id = experiment_run_id
+        is_retry_candidate = (is_retry or (target_run_id is not None and target_run_id == existing_run_id))
+
+        if is_retry_candidate and existing_run_id is not None and existing_ds_id == source_dataset_id:
+            all_intact = True
+            for rel_name, exp_sha in existing_checksums.items():
+                f_path = out_path / rel_name
+                if not f_path.is_file() or sha256_bytes(f_path.read_bytes()) != exp_sha:
+                    all_intact = False
+                    break
+
+            if all_intact:
+                return {
+                    "mode": mode,
+                    "run_id": existing_run_id,
+                    "success_marker_path": success_marker_file if mode == MODE_OFFICIAL else None,
+                    "manifest_path": success_marker_file if mode == MODE_DEVELOPMENT else None,
+                    "has_success_marker": (mode == MODE_OFFICIAL),
+                    "checksums": existing_checksums,
+                    "is_reused": True,
+                }
+
+        if not allow_overwrite:
+            require(False, f"EXP_COMPLETED_BUNDLE_CONFLICT: Output directory {out_path} already contains a completed bundle for run '{existing_run_id}'. Overwriting completed bundle is forbidden.")
+
+    runtime_meta = get_runtime_metadata(code_version=code_version, random_seed=random_seed, timestamp_utc=timestamp_utc)
     code_ver = code_version or runtime_meta["code_version"]
     pkg_ver = package_version_override or runtime_meta["package_versions"].get("scikit-learn", "1.6.1")
 
-    # Generate identity run ID including random_seed
-    source_dataset_id = bundle.get("source_dataset_id", bundle.get("bundle_id"))
-    run_id_payload = {
-        "dataset_id": source_dataset_id,
-        "algorithm_name": algorithm_name,
-        "algorithm_version": algorithm_version,
-        "model_config_version": model_config_version,
-        "model_config": model_config,
-        "code_version": code_ver,
-        "mode": mode,
-        "random_seed": random_seed,
-    }
-    identity_digest = sha256_bytes(canonical(run_id_payload).encode("utf-8"))[:32]
-    effective_run_id = f"pilot_run_{identity_digest}" if mode == MODE_DEVELOPMENT else f"exp_run_{identity_digest}"
+    if experiment_run_id:
+        effective_run_id = experiment_run_id
+    else:
+        # Generate unique run ID for new execution, avoiding collisions across runs with identical config
+        exec_token = execution_id or uuid.uuid4().hex[:16]
+        run_id_payload = {
+            "dataset_id": source_dataset_id,
+            "algorithm_name": algorithm_name,
+            "algorithm_version": algorithm_version,
+            "model_config_version": model_config_version,
+            "model_config": model_config,
+            "code_version": code_ver,
+            "mode": mode,
+            "random_seed": random_seed,
+            "execution_token": exec_token,
+        }
+        identity_digest = sha256_bytes(canonical(run_id_payload).encode("utf-8"))[:32]
+        effective_run_id = f"pilot_run_{identity_digest}" if mode == MODE_DEVELOPMENT else f"exp_run_{identity_digest}"
 
     # Synchronize effective_run_id and strictly validate dataset_id lineage across membership records
     if isinstance(memberships, list):
@@ -772,7 +831,7 @@ def write_experiment_result(
             rel_path = f"optional-model-artifacts/{art_name}"
             checksums[rel_path] = sha256_bytes((out_path / rel_path).read_bytes())
 
-    completed_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    completed_at = completed_at_utc or datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     if mode == MODE_DEVELOPMENT:
         # Write checksums.sha256 file for development pilot

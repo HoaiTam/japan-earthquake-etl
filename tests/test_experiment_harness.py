@@ -1203,6 +1203,188 @@ class ExperimentHarnessTest(unittest.TestCase):
                 metrics={}, mode=harness.MODE_OFFICIAL,
             )
 
+    def test_retry_same_run_preserves_checksums_and_idempotent_import(self):
+        bundle = harness.load_feature_bundle(self.official_dir, mode=harness.MODE_OFFICIAL)
+        candidates = [{"candidate_event_id": MID, "delta_time_hours": 0.0}]
+        mem_rows = harness.build_membership_rows(
+            experiment_run_id="temp",
+            dataset_id=bundle["source_dataset_id"],
+            mainshock_event_id=MID,
+            candidate_records=candidates,
+            algorithm_name="WINDOW",
+            model_config_version="v1",
+        )
+        sum_row = harness.build_sequence_summary_row(
+            experiment_run_id="temp",
+            dataset_id=bundle["source_dataset_id"],
+            mainshock_event_id=MID,
+            candidate_count=1,
+            algorithm_name="WINDOW",
+            model_config_version="v1",
+            membership_rows=mem_rows,
+        )
+        res1 = harness.write_experiment_result(
+            output_dir=self.out_dir,
+            bundle=bundle,
+            algorithm_name="WINDOW",
+            algorithm_version="1.0.0",
+            model_config_version="v1",
+            model_config={"param": "test"},
+            memberships=mem_rows,
+            summaries=[sum_row],
+            metrics={"time_sec": 0.1},
+            mode=harness.MODE_OFFICIAL,
+            random_seed=42,
+        )
+        run_id = res1["run_id"]
+        checksums_before = dict(res1["checksums"])
+        config_before_sha = checksums_before["experiment_config.json"]
+
+        # Retry into the same directory
+        res2 = harness.write_experiment_result(
+            output_dir=self.out_dir,
+            bundle=bundle,
+            algorithm_name="WINDOW",
+            algorithm_version="1.0.0",
+            model_config_version="v1",
+            model_config={"param": "test"},
+            memberships=mem_rows,
+            summaries=[sum_row],
+            metrics={"time_sec": 0.1},
+            mode=harness.MODE_OFFICIAL,
+            random_seed=42,
+            experiment_run_id=run_id,
+            is_retry=True,
+        )
+        self.assertEqual(res2["run_id"], run_id)
+        self.assertEqual(res2["checksums"], checksums_before)
+        self.assertTrue(res2.get("is_reused"))
+        self.assertEqual(res2["checksums"]["experiment_config.json"], config_before_sha)
+
+        # Retry clone into a separate directory with pinned execution metadata
+        cfg_data = json.loads((self.out_dir / "experiment_config.json").read_text(encoding="utf-8"))
+        res3 = harness.write_experiment_result(
+            output_dir=self.out_dir / "retry_clone",
+            bundle=bundle,
+            algorithm_name="WINDOW",
+            algorithm_version="1.0.0",
+            model_config_version="v1",
+            model_config={"param": "test"},
+            memberships=mem_rows,
+            summaries=[sum_row],
+            metrics={"time_sec": 0.1},
+            mode=harness.MODE_OFFICIAL,
+            random_seed=42,
+            experiment_run_id=run_id,
+            timestamp_utc=cfg_data["runtime_environment"]["timestamp_utc"],
+        )
+        self.assertEqual(res3["run_id"], run_id)
+        self.assertEqual(res3["checksums"], checksums_before)
+
+    def test_new_execution_with_same_config_and_seed_does_not_reuse_run_id(self):
+        bundle = harness.load_feature_bundle(self.official_dir, mode=harness.MODE_OFFICIAL)
+        candidates = [{"candidate_event_id": MID, "delta_time_hours": 0.0}]
+        mem_rows = harness.build_membership_rows(
+            experiment_run_id="temp",
+            dataset_id=bundle["source_dataset_id"],
+            mainshock_event_id=MID,
+            candidate_records=candidates,
+            algorithm_name="WINDOW",
+            model_config_version="v1",
+        )
+        sum_row = harness.build_sequence_summary_row(
+            experiment_run_id="temp",
+            dataset_id=bundle["source_dataset_id"],
+            mainshock_event_id=MID,
+            candidate_count=1,
+            algorithm_name="WINDOW",
+            model_config_version="v1",
+            membership_rows=mem_rows,
+        )
+        res1 = harness.write_experiment_result(
+            output_dir=self.out_dir / "exec1",
+            bundle=bundle,
+            algorithm_name="WINDOW",
+            algorithm_version="1.0.0",
+            model_config_version="v1",
+            model_config={"param": "repeatable"},
+            memberships=mem_rows,
+            summaries=[sum_row],
+            metrics={},
+            mode=harness.MODE_OFFICIAL,
+            random_seed=42,
+        )
+        res2 = harness.write_experiment_result(
+            output_dir=self.out_dir / "exec2",
+            bundle=bundle,
+            algorithm_name="WINDOW",
+            algorithm_version="1.0.0",
+            model_config_version="v1",
+            model_config={"param": "repeatable"},
+            memberships=mem_rows,
+            summaries=[sum_row],
+            metrics={},
+            mode=harness.MODE_OFFICIAL,
+            random_seed=42,
+        )
+        self.assertNotEqual(res1["run_id"], res2["run_id"])
+
+    def test_writing_to_completed_directory_without_permission_rejects_conflict(self):
+        bundle = harness.load_feature_bundle(self.official_dir, mode=harness.MODE_OFFICIAL)
+        candidates = [{"candidate_event_id": MID, "delta_time_hours": 0.0}]
+        mem_rows = harness.build_membership_rows(
+            experiment_run_id="temp",
+            dataset_id=bundle["source_dataset_id"],
+            mainshock_event_id=MID,
+            candidate_records=candidates,
+            algorithm_name="WINDOW",
+            model_config_version="v1",
+        )
+        sum_row = harness.build_sequence_summary_row(
+            experiment_run_id="temp",
+            dataset_id=bundle["source_dataset_id"],
+            mainshock_event_id=MID,
+            candidate_count=1,
+            algorithm_name="WINDOW",
+            model_config_version="v1",
+            membership_rows=mem_rows,
+        )
+        res1 = harness.write_experiment_result(
+            output_dir=self.out_dir,
+            bundle=bundle,
+            algorithm_name="WINDOW",
+            algorithm_version="1.0.0",
+            model_config_version="v1",
+            model_config={"param": "initial"},
+            memberships=mem_rows,
+            summaries=[sum_row],
+            metrics={},
+            mode=harness.MODE_OFFICIAL,
+        )
+        success_marker = self.out_dir / "_SUCCESS.json"
+        self.assertTrue(success_marker.is_file())
+        initial_sha = harness.sha256_bytes(success_marker.read_bytes())
+
+        # Attempt to write a new execution into the completed directory
+        with self.assertRaisesRegex(ValueError, "EXP_COMPLETED_BUNDLE_CONFLICT"):
+            harness.write_experiment_result(
+                output_dir=self.out_dir,
+                bundle=bundle,
+                algorithm_name="WINDOW",
+                algorithm_version="1.0.0",
+                model_config_version="v1",
+                model_config={"param": "conflict_attempt"},
+                memberships=mem_rows,
+                summaries=[sum_row],
+                metrics={},
+                mode=harness.MODE_OFFICIAL,
+                is_retry=False,
+            )
+
+        # Existing marker and bundle remain strictly intact
+        self.assertTrue(success_marker.is_file())
+        self.assertEqual(harness.sha256_bytes(success_marker.read_bytes()), initial_sha)
+
 
 if __name__ == "__main__":
     unittest.main()

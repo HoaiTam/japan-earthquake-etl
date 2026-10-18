@@ -3,7 +3,7 @@
 Ngày kiểm chứng: 2026-10-18.
 Branch: `feat/exp-01-jupyter-harness`.
 Assignee: `rosy179`.
-Reviewer: `HoaiTam` (phản hồi review tại [PR #83 comment-6229834764](https://github.com/HoaiTam/japan-earthquake-etl/pull/83#issuecomment-6229834764) và [comment-6231696916](https://github.com/HoaiTam/japan-earthquake-etl/pull/83#issuecomment-6231696916)).
+Reviewer: `HoaiTam` (phản hồi review tại [PR #83 comment-6229834764](https://github.com/HoaiTam/japan-earthquake-etl/pull/83#issuecomment-6229834764), [comment-6231696916](https://github.com/HoaiTam/japan-earthquake-etl/pull/83#issuecomment-6231696916) và [comment-6244707869](https://github.com/HoaiTam/japan-earthquake-etl/pull/83#issuecomment-6244707869)).
 
 ## 1. Mục tiêu và bối cảnh
 
@@ -36,15 +36,24 @@ Task EXP-01 tạo shared Python module và thin Jupyter notebook harness tái l�
    - Thay thế các lệnh `if (...) return;` im lặng trong `pythonWriterBundleIsReadSuccessfullyByMlResultBundleReader` bằng `Assumptions.assumeTrue(...)`.
    - Đảm bảo khi môi trường thiếu Python, PyArrow hoặc file script harness, test sẽ được JUnit 5 ghi nhận là **SKIPPED** rõ ràng thay vì báo PASS giả lập.
 
+### Đợt 3 (PR #83 comment-6244707869)
+1. **[P1] Phân biệt lần chạy mới và retry; bảo vệ tính bất biến của completed bundle:**
+   - **Lần chạy mới có Run ID riêng:** Đưa `execution_token` duy nhất (qua `execution_id` hoặc UUID token) vào payload sinh `effective_run_id`. Đảm bảo hai lần chạy mới khác nhau dù cùng dataset, algorithm, model config và random seed sẽ không bao giờ bị trùng `experiment_run_id`.
+   - **Idempotent Retry & Reuse:** Khi caller thực hiện retry cho cùng run ID (`is_retry=True` hoặc `experiment_run_id == existing_run_id`) vào thư mục đã hoàn tất (`out_path` chứa `_SUCCESS.json` hoặc `pilot_result_manifest.json`), writer kiểm tra toàn diện SHA-256 các artifact files hiện có. Nếu còn nguyên vẹn, writer trả về kết quả reuse mà **không sửa đổi bất kỳ byte nào trên đĩa** (không sinh lại `timestamp_utc` mới làm lệch checksum).
+   - **Pinned metadata khi retry clone:** Hỗ trợ caller truyền `timestamp_utc` và `completed_at_utc` đã pin trong `write_experiment_result` và `get_runtime_metadata`, giúp việc tái lập bundle ở thư mục mới giữ nguyên 100% SHA-256.
+   - **Chống ghi đè completed bundle (`EXP_COMPLETED_BUNDLE_CONFLICT`):** Tuyệt đối không âm thầm unlink `_SUCCESS.json` và ghi đè artifact. Nếu thư mục đã có completed bundle và không phải retry hợp lệ của chính run đó, writer ném ngay `EXP_COMPLETED_BUNDLE_CONFLICT` để bảo vệ dữ liệu bất biến.
+   - **Giữ nguyên guard `IMP_EXPERIMENT_RUN_REUSED` của Java validator:** Java importer (`ResultBundleValidator`) kiểm tra fingerprint đối với `previousBundleSha256`; retry giữ nguyên fingerprint nên được nhận idempotently; run khác có fingerprint khác không bị va chạm.
+   - **Regression tests:** Thêm 3 regression tests trong `tests/test_experiment_harness.py` và mở rộng test tích hợp cross-process `ResultBundleContractTest.java` (kiểm tra cả retry idempotent nhận dạng khớp `bundleSha256()` và conflict rejection khi cố ý ghi đè).
+
 ## 3. Checks và tests đã chạy
 
 - **Python unit test suite (`tests/test_experiment_harness.py`):**
   - Chạy: `python -m unittest tests/test_experiment_harness.py`
-  - Kết quả: **36 tests PASS**, 0 errors, 0 failures.
+  - Kết quả: **39 tests PASS**, 0 errors, 0 failures.
 
 - **Java cross-process integration test (`ResultBundleContractTest`):**
   - Chạy: `$env:JAVA_HOME = "C:\Program Files\Java\jdk-23"; .\mvnw.cmd test -Dtest=ResultBundleContractTest`
-  - Kết quả: **8 tests PASS**, 0 errors, 0 failures (bao gồm `pythonWriterBundleIsReadSuccessfullyByMlResultBundleReader`).
+  - Kết quả: **8 tests PASS**, 0 errors, 0 failures (bao gồm `pythonWriterBundleIsReadSuccessfullyByMlResultBundleReader` test cả fresh run, retry idempotent reuse và conflict rejection).
 
 - **Java ML result import suite (`MlResultImportJobTest`):**
   - Chạy: `$env:JAVA_HOME = "C:\Program Files\Java\jdk-23"; .\mvnw.cmd test -Dtest=MlResultImportJobTest`

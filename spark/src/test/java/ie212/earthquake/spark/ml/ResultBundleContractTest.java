@@ -296,5 +296,48 @@ class ResultBundleContractTest {
         var context = new ResultBundleValidator.Context("ds_fixture", "EXPORTED", runId, "WINDOW", "1", CANDIDATES, null);
         var receipt = VALIDATOR.validate(bundle, context);
         assertEquals("RESULT_READY", receipt.nextStatus());
+
+        // 1. Idempotent Retry: Writing retry of the same run into tempDir preserves checksums and passes validation
+        String retryCode = "import sys\n"
+            + "from pathlib import Path\n"
+            + "import notebooks.experiment_harness as harness\n"
+            + "out_dir = Path(sys.argv[1])\n"
+            + "bundle = {'mode': harness.MODE_OFFICIAL, 'source_dataset_id': 'ds_fixture', 'feature_version': 'v1', 'scaling_config_version': 'v1', 'manifest': {'dataset_id': 'ds_fixture'}}\n"
+            + "candidates = [{'candidate_event_id': 'main', 'delta_time_hours': 0.0}, {'candidate_event_id': 'post', 'delta_time_hours': 1.0}]\n"
+            + "mem_rows = harness.build_membership_rows(experiment_run_id='" + runId + "', dataset_id='ds_fixture', mainshock_event_id='main', candidate_records=candidates, algorithm_name='WINDOW', model_config_version='1')\n"
+            + "sum_row = harness.build_sequence_summary_row(experiment_run_id='" + runId + "', dataset_id='ds_fixture', mainshock_event_id='main', candidate_count=2, algorithm_name='WINDOW', model_config_version='1', membership_rows=mem_rows)\n"
+            + "metrics = {'dataset_id': 'ds_fixture', 'experiment_run_id': '" + runId + "', 'algorithm_name': 'WINDOW', 'model_config_version': '1', 'algorithm_version': '1.0.0', 'package_version': '1.0.0', 'code_version': 'v1', 'membership_row_count': 2, 'summary_row_count': 1}\n"
+            + "harness.write_experiment_result(output_dir=out_dir, bundle=bundle, algorithm_name='WINDOW', algorithm_version='1.0.0', model_config_version='1', model_config={'param': 'test'}, memberships=mem_rows, summaries=[sum_row], metrics=metrics, mode=harness.MODE_OFFICIAL, random_seed=42, experiment_run_id='" + runId + "', is_retry=True)\n";
+
+        var procRetry = new ProcessBuilder(pythonExe, "-c", retryCode, tempDir.toAbsolutePath().toString())
+            .directory(root.toFile())
+            .redirectError(ProcessBuilder.Redirect.INHERIT)
+            .start();
+        assertTrue(procRetry.waitFor(30, java.util.concurrent.TimeUnit.SECONDS));
+        assertEquals(0, procRetry.exitValue());
+
+        var retryBundle = MlResultBundleReader.read(tempDir);
+        var retryContext = new ResultBundleValidator.Context("ds_fixture", "EXPORTED", runId, "WINDOW", "1", CANDIDATES, receipt.bundleSha256());
+        var retryReceipt = VALIDATOR.validate(retryBundle, retryContext);
+        assertEquals("RESULT_READY", retryReceipt.nextStatus());
+        assertEquals(receipt.bundleSha256(), retryReceipt.bundleSha256());
+
+        // 2. Conflict: Writing into completed directory without retry permission is rejected
+        String conflictCode = "import sys\n"
+            + "from pathlib import Path\n"
+            + "import notebooks.experiment_harness as harness\n"
+            + "out_dir = Path(sys.argv[1])\n"
+            + "bundle = {'mode': harness.MODE_OFFICIAL, 'source_dataset_id': 'ds_fixture', 'feature_version': 'v1', 'scaling_config_version': 'v1', 'manifest': {'dataset_id': 'ds_fixture'}}\n"
+            + "candidates = [{'candidate_event_id': 'main', 'delta_time_hours': 0.0}]\n"
+            + "mem_rows = harness.build_membership_rows(experiment_run_id='conflict_run', dataset_id='ds_fixture', mainshock_event_id='main', candidate_records=candidates, algorithm_name='WINDOW', model_config_version='1')\n"
+            + "sum_row = harness.build_sequence_summary_row(experiment_run_id='conflict_run', dataset_id='ds_fixture', mainshock_event_id='main', candidate_count=1, algorithm_name='WINDOW', model_config_version='1', membership_rows=mem_rows)\n"
+            + "metrics = {'dataset_id': 'ds_fixture', 'experiment_run_id': 'conflict_run', 'algorithm_name': 'WINDOW', 'model_config_version': '1', 'algorithm_version': '1.0.0', 'package_version': '1.0.0', 'code_version': 'v1', 'membership_row_count': 1, 'summary_row_count': 1}\n"
+            + "harness.write_experiment_result(output_dir=out_dir, bundle=bundle, algorithm_name='WINDOW', algorithm_version='1.0.0', model_config_version='1', model_config={'param': 'test'}, memberships=mem_rows, summaries=[sum_row], metrics=metrics, mode=harness.MODE_OFFICIAL, is_retry=False)\n";
+
+        var procConflict = new ProcessBuilder(pythonExe, "-c", conflictCode, tempDir.toAbsolutePath().toString())
+            .directory(root.toFile())
+            .start();
+        assertTrue(procConflict.waitFor(30, java.util.concurrent.TimeUnit.SECONDS));
+        assertNotEquals(0, procConflict.exitValue());
     }
 }

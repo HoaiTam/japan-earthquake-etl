@@ -84,7 +84,7 @@ MLD-05 để hoàn tất local harness. Cloud smoke nằm trong EXP-02 giai đo�
 - **Trạng thái:** Done
 - **Assignee:** rosy179
 - **Reviewer:** HoaiTam
-- **Evidence / PR:** Đã khắc phục toàn bộ review comments từ HoaiTam tại PR #83 [comment-6229834764](https://github.com/HoaiTam/japan-earthquake-etl/pull/83#issuecomment-6229834764) và [comment-6231696916](https://github.com/HoaiTam/japan-earthquake-etl/pull/83#issuecomment-6231696916). Đã bổ sung xác thực PyArrow types, null/empty ID & vector checks, writer lineage guard (chống overwrite lineage cho cả list và table), và JUnit 5 assumptions cho cross-process integration test (tổng cộng 36 tests PASS). Chi tiết tại [docs/evidence/EXP-01.md](../../evidence/EXP-01.md).
+- **Evidence / PR:** Đã khắc phục toàn bộ review comments từ HoaiTam tại PR #83 ([comment-6229834764](https://github.com/HoaiTam/japan-earthquake-etl/pull/83#issuecomment-6229834764), [comment-6231696916](https://github.com/HoaiTam/japan-earthquake-etl/pull/83#issuecomment-6231696916), và [comment-6244707869](https://github.com/HoaiTam/japan-earthquake-etl/pull/83#issuecomment-6244707869)). Đã giải quyết triệt để vấn đề run ID / artifact checksum: execution mới luôn có run ID riêng; retry cùng run giữ nguyên checksums và được Java validator nhận idempotently; chống ghi đè completed bundle (`EXP_COMPLETED_BUNDLE_CONFLICT`). Bổ sung regression tests (tổng cộng 39 Python tests và 15 Java tests PASS). Chi tiết tại [docs/evidence/EXP-01.md](../../evidence/EXP-01.md).
 - **Kỹ năng phù hợp:** Python, Jupyter, Colab, reproducible environments
 
 ## Checklist bàn giao
