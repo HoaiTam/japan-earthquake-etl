@@ -1,9 +1,9 @@
 # EXP-01 — Jupyter harness và chuẩn bị chuyển sang Colab evidence
 
-Ngày kiểm chứng: 2026-10-17.
+Ngày kiểm chứng: 2026-10-18.
 Branch: `feat/exp-01-jupyter-harness`.
 Assignee: `rosy179`.
-Reviewer: `HoaiTam` (phản hồi review tại [PR #83 comment-6229834764](https://github.com/HoaiTam/japan-earthquake-etl/pull/83#issuecomment-6229834764)).
+Reviewer: `HoaiTam` (phản hồi review tại [PR #83 comment-6229834764](https://github.com/HoaiTam/japan-earthquake-etl/pull/83#issuecomment-6229834764) và [comment-6231696916](https://github.com/HoaiTam/japan-earthquake-etl/pull/83#issuecomment-6231696916)).
 
 ## 1. Mục tiêu và bối cảnh
 
@@ -11,48 +11,43 @@ Task EXP-01 tạo shared Python module và thin Jupyter notebook harness tái l�
 
 ## 2. Các điểm review từ Hoài Tâm và giải pháp khắc phục
 
-1. **[P1] Loader OFFICIAL:**
-   - Bắt buộc checksum set bao phủ toàn bộ files trong bundle; từ chối file `checksums.sha256` rỗng (`EXP_EMPTY_CHECKSUMS`).
-   - Kiểm tra `found_files - {"checksums.sha256"} == checksum_entries.keys()`; bắt buộc index đủ `dataset_manifest.json` và `features-part-*.parquet`.
-   - Bắt buộc đủ các cột ID: `dataset_id`, `mainshock_event_id`, `candidate_event_id` cùng vector columns.
-   - Kiểm tra lineage: `dataset_id` trong mọi dòng Parquet phải khớp `dataset_id` trong manifest (`EXP_DATASET_LINEAGE_MISMATCH`).
-   - Kiểm tra unique grain `(dataset_id, mainshock_event_id, candidate_event_id)` (`EXP_DUPLICATE_GRAIN`).
-   - Kiểm tra mainshock self-event bắt buộc tồn tại (`EXP_MISSING_SELF_EVENT`) và vector của self-event phải là vector zero (`EXP_NONZERO_SELF_VECTOR`).
-   - Bổ sung 6 negative unit tests chi tiết trong `tests/test_experiment_harness.py`.
+### Đợt 1 (PR #83 comment-6229834764)
+1. **[P1] Loader OFFICIAL:** Bắt buộc checksum set bao phủ bundle; index đủ files; kiểm tra unique grain, mainshock self-event tồn tại và mang zero vector.
+2. **[P1] Output tương thích MLI-03 importer:** Không sinh `checksums.sha256` lẻ trên đĩa; schema Parquet khớp `MlResultBundleReader.java`; thêm `runtime_environment_json`.
+3. **[P1] Run identity & completion marker:** Đưa `random_seed` vào hash payload; đồng bộ `effective_run_id`; reconciliation check số dòng và mainshock IDs; read-after-write verification.
+4. **[P2] Fresh-kernel runner:** Báo rõ `FALLBACK_EXEC_WARNING` và `fresh_kernel_acceptance=false` khi không có `nbclient/ipykernel`.
+5. **[P2] CI wiring & Whitespace:** Nối `test_experiment_harness.py` vào `test-pilot` trong `Makefile`.
 
-2. **[P1] Official output tương thích MLI-03 importer:**
-   - Trong chế độ `OFFICIAL`, tuyệt đối **không sinh file `checksums.sha256`** trên đĩa (vì `MlResultBundleReader.java` ném `IMP_UNSAFE_ARTIFACT_METADATA` cho bất kỳ file không rõ nguồn gốc ngoài required 5 files). Checksums được nhúng trực tiếp trong `_SUCCESS.json`.
-   - Cập nhật schema Parquet `metric_reason_codes` có child list element tên `"element"` và `nullable=False` (`pa.list_(pa.field("element", pa.string(), nullable=False))`) khớp 100% với `MlResultBundleReader.java`.
-   - Ghi trường `"runtime_environment_json"` chứa chuỗi JSON chính tắc về môi trường runtime trong `experiment_config.json`.
-   - Cập nhật `MlResultBundleReader.java` và `ResultBundleContractTest.java` chấp nhận schema Parquet có trường khớp hoàn toàn (cho phép root group name khác biệt giữa Java ExampleParquetWriter `"result"` và Arrow C++ / PyArrow `"schema"`).
-   - Bổ sung integration test cross-process Python writer → Java reader (`ResultBundleContractTest.pythonWriterBundleIsReadSuccessfullyByMlResultBundleReader`).
+### Đợt 2 (PR #83 comment-6231696916)
+1. **[P1] Loader OFFICIAL schema & type enforcement (`notebooks/experiment_harness.py`):**
+   - Xác thực bắt buộc kiểm tra null (`col.null_count == 0` -> `EXP_NULL_REQUIRED_ID_COL`) và chuỗi rỗng (`len(val.strip()) > 0` -> `EXP_EMPTY_REQUIRED_ID_COL`) trên các cột định danh bắt buộc: `dataset_id`, `mainshock_event_id`, `candidate_event_id`.
+   - Xác thực kiểu dữ liệu PyArrow: cột ID bắt buộc là string/large_string (`EXP_INVALID_ID_COL_TYPE`), vector columns (`x_scaled`, `y_scaled`, `z_scaled`, `time_scaled`) bắt buộc là floating type (`pa.types.is_floating` -> `EXP_INVALID_VECTOR_COL_TYPE`), từ chối `int64` hoặc các kiểu khác; từ chối `null` vector (`EXP_NULL_VECTOR_COL`).
+   - Sắp xếp kiểm tra kiểu dữ liệu PyArrow và null/empty constraint cho toàn bộ ID và vector columns ngay tại bước schema checks trước khi đối soát count và lineage.
+   - Bổ sung 5 negative unit tests trong `tests/test_experiment_harness.py`.
 
-3. **[P1] Run identity & completion marker:**
-   - Đưa `random_seed` vào payload sinh identity digest để các seed khác nhau luôn sinh `run_id` khác nhau.
-   - Đồng bộ `effective_run_id` và `source_dataset_id` vào toàn bộ rows của memberships và summaries trước khi ghi Parquet (không bao giờ giữ lại ID tạm thời).
-   - Reconciliation check: Bắt buộc `memberships` và `summaries` có số dòng > 0 và tập hợp `mainshock_event_id` phải khớp nhau 100% (`EXP_SUMMARY_WINDOW_MISMATCH`).
-   - Bổ sung read-after-write verification đọc lại Parquet và kiểm tra SHA-256 các file trước khi ghi marker atomically `_SUCCESS.json`.
+2. **[P1] Writer Lineage Guard (`notebooks/experiment_harness.py`):**
+   - Loại bỏ hoàn toàn việc gán đè `dataset_id = source_dataset_id` trong `write_experiment_result`.
+   - Xác thực fail-closed: kiểm tra toàn bộ rows của `memberships` và `summaries` phải có `dataset_id == source_dataset_id`. Nếu có bất kỳ dòng nào mang `dataset_id` khác bundle source dataset -> ném `EXP_DATASET_LINEAGE_MISMATCH`.
+   - Hỗ trợ và kiểm tra đầy đủ cho cả hai kiểu input: `list[dict]` và `pa.Table`.
+   - Chỉ đồng bộ `effective_run_id`, bảo toàn nguyên vẹn `dataset_id`.
+   - Bổ sung 4 unit tests xác thực reject lineage mismatch cho memberships (list + table) và summaries (list + table).
 
-4. **[P2] Notebook runner fresh-kernel acceptance:**
-   - Trong `scripts/inspect-exp01-notebook.py`, nếu thiếu `nbclient/ipykernel` và chỉ chạy exec fallback thì trả `notebook_status="FALLBACK_EXEC_PASSED"`, `local_smoke_status="FALLBACK_EXEC_WARNING"`, `colab_migration_allowed=false`, `fresh_kernel_acceptance=false`.
-   - Chỉ khi thực sự có fresh isolated kernel runner mới trả `RESTART_RUN_ALL_PASSED` và `fresh_kernel_acceptance=true`.
-
-5. **[P2] CI wiring & Whitespace:**
-   - Nối `test_experiment_harness.py` vào target `test-pilot` trong `Makefile`.
-   - Xóa trailing whitespace tại `scripts/inspect-exp01-notebook.py:27` và dòng trống thừa cuối `tests/test_experiment_harness.py`. `git diff --check` PASS 100%.
+3. **[P2] JUnit 5 Assumptions cho cross-process integration test (`ResultBundleContractTest.java`):**
+   - Thay thế các lệnh `if (...) return;` im lặng trong `pythonWriterBundleIsReadSuccessfullyByMlResultBundleReader` bằng `Assumptions.assumeTrue(...)`.
+   - Đảm bảo khi môi trường thiếu Python, PyArrow hoặc file script harness, test sẽ được JUnit 5 ghi nhận là **SKIPPED** rõ ràng thay vì báo PASS giả lập.
 
 ## 3. Checks và tests đã chạy
 
 - **Python unit test suite (`tests/test_experiment_harness.py`):**
   - Chạy: `python -m unittest tests/test_experiment_harness.py`
-  - Kết quả: **27 tests PASS**, 0 errors, 0 failures.
+  - Kết quả: **36 tests PASS**, 0 errors, 0 failures.
 
 - **Java cross-process integration test (`ResultBundleContractTest`):**
-  - Chạy: `./mvnw.cmd test -Dtest=ResultBundleContractTest`
+  - Chạy: `$env:JAVA_HOME = "C:\Program Files\Java\jdk-23"; .\mvnw.cmd test -Dtest=ResultBundleContractTest`
   - Kết quả: **8 tests PASS**, 0 errors, 0 failures (bao gồm `pythonWriterBundleIsReadSuccessfullyByMlResultBundleReader`).
 
 - **Java ML result import suite (`MlResultImportJobTest`):**
-  - Chạy: `./mvnw.cmd test -Dtest=MlResultImportJobTest`
+  - Chạy: `$env:JAVA_HOME = "C:\Program Files\Java\jdk-23"; .\mvnw.cmd test -Dtest=MlResultImportJobTest`
   - Kết quả: **7 tests PASS**, 0 errors, 0 failures.
 
 - **Notebook headless runner (`scripts/inspect-exp01-notebook.py`):**

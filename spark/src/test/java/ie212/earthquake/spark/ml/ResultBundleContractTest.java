@@ -255,7 +255,7 @@ class ResultBundleContractTest {
     @Test void pythonWriterBundleIsReadSuccessfullyByMlResultBundleReader() throws Exception {
         Path root = Files.exists(Path.of("notebooks")) ? Path.of(".") : Path.of("..");
         Path harnessScript = root.resolve("notebooks/experiment_harness.py").normalize();
-        if (!Files.exists(harnessScript)) return;
+        Assumptions.assumeTrue(Files.exists(harnessScript), "Harness script must exist at " + harnessScript);
 
         String pythonExe = null;
         for (String cmd : List.of("python", "python3", "py")) {
@@ -267,7 +267,7 @@ class ResultBundleContractTest {
                 }
             } catch (Exception ignored) {}
         }
-        if (pythonExe == null) return;
+        Assumptions.assumeTrue(pythonExe != null, "Python environment with pyarrow and experiment_harness must be available");
 
         Path tempDir = Files.createTempDirectory("mli03-py-writer-");
         String code = "import shutil, sys\n"

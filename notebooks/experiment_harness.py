@@ -302,11 +302,31 @@ def load_feature_bundle(bundle_dir: Union[str, Path], mode: str = MODE_DEVELOPME
         features_table = pa.concat_tables(tables)
 
         # Validate required columns according to MLD-05 contract
-        required_cols = ["dataset_id", "mainshock_event_id", "candidate_event_id"] + VECTOR_COLUMNS
+        id_cols = ["dataset_id", "mainshock_event_id", "candidate_event_id"]
+        required_cols = id_cols + VECTOR_COLUMNS
         for col_name in required_cols:
             require(col_name in features_table.column_names, f"EXP_MISSING_REQUIRED_COL:{col_name}")
 
-        # Validate feature counts & nonfinite
+        # Validate PyArrow data types and null/empty constraints for ID columns
+        for col_name in id_cols:
+            col = features_table[col_name]
+            require(pa.types.is_string(col.type) or pa.types.is_large_string(col.type),
+                    f"EXP_INVALID_ID_COL_TYPE:{col_name}:{col.type}")
+            require(col.null_count == 0, f"EXP_NULL_REQUIRED_ID_COL:{col_name}")
+            for chunk in col.chunks:
+                for val in chunk.to_pylist():
+                    require(val is not None and len(val.strip()) > 0, f"EXP_EMPTY_REQUIRED_ID_COL:{col_name}")
+
+        # Validate PyArrow floating types, null check, and finite constraints for vector columns
+        for col_name in VECTOR_COLUMNS:
+            col = features_table[col_name]
+            require(pa.types.is_floating(col.type), f"EXP_INVALID_VECTOR_COL_TYPE:{col_name}:{col.type}")
+            require(col.null_count == 0, f"EXP_NULL_VECTOR_COL:{col_name}")
+            for chunk in col.chunks:
+                for val in chunk.to_pylist():
+                    require(val is not None and math.isfinite(val), f"EXP_NONFINITE_FEATURE:{col_name}")
+
+        # Validate feature counts
         expected_rows = manifest.get("feature_row_count")
         if expected_rows is not None:
             require(features_table.num_rows == expected_rows, "EXP_FEATURE_ROW_COUNT_MISMATCH")
@@ -315,13 +335,6 @@ def load_feature_bundle(bundle_dir: Union[str, Path], mode: str = MODE_DEVELOPME
         dataset_ids_in_rows = set(features_table["dataset_id"].to_pylist())
         require(dataset_ids_in_rows == {manifest["dataset_id"]},
                 f"EXP_DATASET_LINEAGE_MISMATCH:{dataset_ids_in_rows}!={manifest['dataset_id']}")
-
-        # Check vector columns and finite constraints
-        for col_name in VECTOR_COLUMNS:
-            col = features_table[col_name]
-            for chunk in col.chunks:
-                for val in chunk.to_pylist():
-                    require(val is not None and math.isfinite(val), f"EXP_NONFINITE_FEATURE:{col_name}")
 
         # Unique grain check: (dataset_id, mainshock_event_id, candidate_event_id)
         # and self-event zero-vector check
@@ -619,18 +632,6 @@ def write_experiment_result(
     out_path = Path(output_dir).resolve()
     out_path.mkdir(parents=True, exist_ok=True)
 
-    # Convert memberships to pa.Table if list of dicts
-    if isinstance(memberships, list):
-        memberships_table = pa.Table.from_pylist(memberships, schema=MEMBERSHIP_SCHEMA)
-    else:
-        memberships_table = memberships
-
-    # Convert summaries to pa.Table if list of dicts
-    if isinstance(summaries, list):
-        summary_table = pa.Table.from_pylist(summaries, schema=SEQUENCE_SUMMARY_SCHEMA)
-    else:
-        summary_table = summaries
-
     runtime_meta = get_runtime_metadata(code_version=code_version, random_seed=random_seed)
     code_ver = code_version or runtime_meta["code_version"]
     pkg_ver = package_version_override or runtime_meta["package_versions"].get("scikit-learn", "1.6.1")
@@ -650,29 +651,45 @@ def write_experiment_result(
     identity_digest = sha256_bytes(canonical(run_id_payload).encode("utf-8"))[:32]
     effective_run_id = f"pilot_run_{identity_digest}" if mode == MODE_DEVELOPMENT else f"exp_run_{identity_digest}"
 
-    # Synchronize effective_run_id and source_dataset_id across all membership records
+    # Synchronize effective_run_id and strictly validate dataset_id lineage across membership records
     if isinstance(memberships, list):
         for r in memberships:
+            row_ds = r.get("dataset_id")
+            require(row_ds == source_dataset_id,
+                    f"EXP_DATASET_LINEAGE_MISMATCH:{row_ds}!={source_dataset_id}")
             r["experiment_run_id"] = effective_run_id
-            r["dataset_id"] = source_dataset_id
         memberships_table = pa.Table.from_pylist(memberships, schema=MEMBERSHIP_SCHEMA)
-    else:
+    elif isinstance(memberships, pa.Table):
+        require("dataset_id" in memberships.column_names, "EXP_DATASET_LINEAGE_MISMATCH:missing_dataset_id")
+        if memberships.num_rows > 0:
+            row_dataset_ids = set(memberships["dataset_id"].to_pylist())
+            require(row_dataset_ids == {source_dataset_id},
+                    f"EXP_DATASET_LINEAGE_MISMATCH:{row_dataset_ids}!={source_dataset_id}")
         pydict = memberships.to_pydict()
         pydict["experiment_run_id"] = [effective_run_id] * memberships.num_rows
-        pydict["dataset_id"] = [source_dataset_id] * memberships.num_rows
         memberships_table = pa.Table.from_pydict(pydict, schema=MEMBERSHIP_SCHEMA)
+    else:
+        raise TypeError(f"Unsupported memberships type: {type(memberships)}")
 
-    # Synchronize effective_run_id and source_dataset_id across all summary records
+    # Synchronize effective_run_id and strictly validate dataset_id lineage across summary records
     if isinstance(summaries, list):
         for s in summaries:
+            row_ds = s.get("dataset_id")
+            require(row_ds == source_dataset_id,
+                    f"EXP_DATASET_LINEAGE_MISMATCH:{row_ds}!={source_dataset_id}")
             s["experiment_run_id"] = effective_run_id
-            s["dataset_id"] = source_dataset_id
         summary_table = pa.Table.from_pylist(summaries, schema=SEQUENCE_SUMMARY_SCHEMA)
-    else:
+    elif isinstance(summaries, pa.Table):
+        require("dataset_id" in summaries.column_names, "EXP_DATASET_LINEAGE_MISMATCH:missing_dataset_id")
+        if summaries.num_rows > 0:
+            row_dataset_ids = set(summaries["dataset_id"].to_pylist())
+            require(row_dataset_ids == {source_dataset_id},
+                    f"EXP_DATASET_LINEAGE_MISMATCH:{row_dataset_ids}!={source_dataset_id}")
         pydict = summaries.to_pydict()
         pydict["experiment_run_id"] = [effective_run_id] * summaries.num_rows
-        pydict["dataset_id"] = [source_dataset_id] * summaries.num_rows
         summary_table = pa.Table.from_pydict(pydict, schema=SEQUENCE_SUMMARY_SCHEMA)
+    else:
+        raise TypeError(f"Unsupported summaries type: {type(summaries)}")
 
     # Reconciliation and integrity checks before writing
     if mode == MODE_OFFICIAL:

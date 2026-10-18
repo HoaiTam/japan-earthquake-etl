@@ -84,7 +84,7 @@ MLD-05 để hoàn tất local harness. Cloud smoke nằm trong EXP-02 giai đo�
 - **Trạng thái:** Done
 - **Assignee:** rosy179
 - **Reviewer:** HoaiTam
-- **Evidence / PR:** Đã khắc phục toàn bộ review comments từ HoaiTam tại PR #83 [comment-6229834764](https://github.com/HoaiTam/japan-earthquake-etl/pull/83#issuecomment-6229834764). Đã bổ sung 12 unit tests (tổng cộng 27 tests PASS), thêm cross-process integration test Python writer → Java reader (`ResultBundleContractTest`), hoàn thiện schema Parquet, omit `checksums.sha256` trong OFFICIAL, đồng bộ run_id và wire vào CI `test-pilot`. Chi tiết tại [docs/evidence/EXP-01.md](../../evidence/EXP-01.md).
+- **Evidence / PR:** Đã khắc phục toàn bộ review comments từ HoaiTam tại PR #83 [comment-6229834764](https://github.com/HoaiTam/japan-earthquake-etl/pull/83#issuecomment-6229834764) và [comment-6231696916](https://github.com/HoaiTam/japan-earthquake-etl/pull/83#issuecomment-6231696916). Đã bổ sung xác thực PyArrow types, null/empty ID & vector checks, writer lineage guard (chống overwrite lineage cho cả list và table), và JUnit 5 assumptions cho cross-process integration test (tổng cộng 36 tests PASS). Chi tiết tại [docs/evidence/EXP-01.md](../../evidence/EXP-01.md).
 - **Kỹ năng phù hợp:** Python, Jupyter, Colab, reproducible environments
 
 ## Checklist bàn giao

@@ -918,6 +918,291 @@ class ExperimentHarnessTest(unittest.TestCase):
         self.assertTrue(isinstance(config_data["runtime_environment_json"], str))
         self.assertIn("python_version", config_data["runtime_environment_json"])
 
+    def test_official_loader_rejects_null_required_id_column(self):
+        centre = datetime(2000, 7, 1, tzinfo=timezone.utc)
+        schema = pa.schema([
+            ("dataset_id", pa.string()),
+            ("mainshock_event_id", pa.string()),
+            ("candidate_event_id", pa.string()),
+            ("relative_time_role", pa.string()),
+            ("is_mainshock", pa.bool_()),
+            ("x_scaled", pa.float64()),
+            ("y_scaled", pa.float64()),
+            ("z_scaled", pa.float64()),
+            ("time_scaled", pa.float64()),
+            ("candidate_magnitude", pa.float64()),
+            ("candidate_time_utc", pa.timestamp("us", tz="UTC")),
+        ])
+        row1 = {
+            "dataset_id": "ds_official_1234567890abcdef",
+            "mainshock_event_id": MID,
+            "candidate_event_id": None,
+            "relative_time_role": "MAINSHOCK",
+            "is_mainshock": True,
+            "x_scaled": 0.0,
+            "y_scaled": 0.0,
+            "z_scaled": 0.0,
+            "time_scaled": 0.0,
+            "candidate_magnitude": 6.0,
+            "candidate_time_utc": centre,
+        }
+        row2 = dict(row1, candidate_event_id=POST_EVT, is_mainshock=False, relative_time_role="POST", x_scaled=0.1)
+        pq.write_table(pa.Table.from_pylist([row1, row2], schema=schema), self.official_dir / "features-part-00000.parquet")
+        names = sorted(p.name for p in self.official_dir.iterdir() if p.name != "checksums.sha256")
+        (self.official_dir / "checksums.sha256").write_text("".join(f"{harness.sha256_bytes((self.official_dir / n).read_bytes())}  {n}\n" for n in names), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "EXP_NULL_REQUIRED_ID_COL:candidate_event_id"):
+            harness.load_feature_bundle(self.official_dir, mode=harness.MODE_OFFICIAL)
+
+    def test_official_loader_rejects_empty_required_id_column(self):
+        centre = datetime(2000, 7, 1, tzinfo=timezone.utc)
+        schema = pa.schema([
+            ("dataset_id", pa.string()),
+            ("mainshock_event_id", pa.string()),
+            ("candidate_event_id", pa.string()),
+            ("relative_time_role", pa.string()),
+            ("is_mainshock", pa.bool_()),
+            ("x_scaled", pa.float64()),
+            ("y_scaled", pa.float64()),
+            ("z_scaled", pa.float64()),
+            ("time_scaled", pa.float64()),
+            ("candidate_magnitude", pa.float64()),
+            ("candidate_time_utc", pa.timestamp("us", tz="UTC")),
+        ])
+        row1 = {
+            "dataset_id": "ds_official_1234567890abcdef",
+            "mainshock_event_id": MID,
+            "candidate_event_id": "   ",
+            "relative_time_role": "MAINSHOCK",
+            "is_mainshock": True,
+            "x_scaled": 0.0,
+            "y_scaled": 0.0,
+            "z_scaled": 0.0,
+            "time_scaled": 0.0,
+            "candidate_magnitude": 6.0,
+            "candidate_time_utc": centre,
+        }
+        row2 = dict(row1, candidate_event_id=POST_EVT, is_mainshock=False, relative_time_role="POST", x_scaled=0.1)
+        pq.write_table(pa.Table.from_pylist([row1, row2], schema=schema), self.official_dir / "features-part-00000.parquet")
+        names = sorted(p.name for p in self.official_dir.iterdir() if p.name != "checksums.sha256")
+        (self.official_dir / "checksums.sha256").write_text("".join(f"{harness.sha256_bytes((self.official_dir / n).read_bytes())}  {n}\n" for n in names), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "EXP_EMPTY_REQUIRED_ID_COL:candidate_event_id"):
+            harness.load_feature_bundle(self.official_dir, mode=harness.MODE_OFFICIAL)
+
+    def test_official_loader_rejects_invalid_id_column_type(self):
+        centre = datetime(2000, 7, 1, tzinfo=timezone.utc)
+        schema = pa.schema([
+            ("dataset_id", pa.int64()),
+            ("mainshock_event_id", pa.string()),
+            ("candidate_event_id", pa.string()),
+            ("relative_time_role", pa.string()),
+            ("is_mainshock", pa.bool_()),
+            ("x_scaled", pa.float64()),
+            ("y_scaled", pa.float64()),
+            ("z_scaled", pa.float64()),
+            ("time_scaled", pa.float64()),
+            ("candidate_magnitude", pa.float64()),
+            ("candidate_time_utc", pa.timestamp("us", tz="UTC")),
+        ])
+        row1 = {
+            "dataset_id": 12345,
+            "mainshock_event_id": MID,
+            "candidate_event_id": MID,
+            "relative_time_role": "MAINSHOCK",
+            "is_mainshock": True,
+            "x_scaled": 0.0,
+            "y_scaled": 0.0,
+            "z_scaled": 0.0,
+            "time_scaled": 0.0,
+            "candidate_magnitude": 6.0,
+            "candidate_time_utc": centre,
+        }
+        row2 = dict(row1, candidate_event_id=POST_EVT, is_mainshock=False, relative_time_role="POST", x_scaled=0.1)
+        pq.write_table(pa.Table.from_pylist([row1, row2], schema=schema), self.official_dir / "features-part-00000.parquet")
+        names = sorted(p.name for p in self.official_dir.iterdir() if p.name != "checksums.sha256")
+        (self.official_dir / "checksums.sha256").write_text("".join(f"{harness.sha256_bytes((self.official_dir / n).read_bytes())}  {n}\n" for n in names), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "EXP_INVALID_ID_COL_TYPE:dataset_id"):
+            harness.load_feature_bundle(self.official_dir, mode=harness.MODE_OFFICIAL)
+
+    def test_official_loader_rejects_non_floating_vector_column_type(self):
+        centre = datetime(2000, 7, 1, tzinfo=timezone.utc)
+        schema = pa.schema([
+            ("dataset_id", pa.string()),
+            ("mainshock_event_id", pa.string()),
+            ("candidate_event_id", pa.string()),
+            ("relative_time_role", pa.string()),
+            ("is_mainshock", pa.bool_()),
+            ("x_scaled", pa.int64()),
+            ("y_scaled", pa.float64()),
+            ("z_scaled", pa.float64()),
+            ("time_scaled", pa.float64()),
+            ("candidate_magnitude", pa.float64()),
+            ("candidate_time_utc", pa.timestamp("us", tz="UTC")),
+        ])
+        row1 = {
+            "dataset_id": "ds_official_1234567890abcdef",
+            "mainshock_event_id": MID,
+            "candidate_event_id": MID,
+            "relative_time_role": "MAINSHOCK",
+            "is_mainshock": True,
+            "x_scaled": 0,
+            "y_scaled": 0.0,
+            "z_scaled": 0.0,
+            "time_scaled": 0.0,
+            "candidate_magnitude": 6.0,
+            "candidate_time_utc": centre,
+        }
+        row2 = dict(row1, candidate_event_id=POST_EVT, is_mainshock=False, relative_time_role="POST", x_scaled=1)
+        pq.write_table(pa.Table.from_pylist([row1, row2], schema=schema), self.official_dir / "features-part-00000.parquet")
+        names = sorted(p.name for p in self.official_dir.iterdir() if p.name != "checksums.sha256")
+        (self.official_dir / "checksums.sha256").write_text("".join(f"{harness.sha256_bytes((self.official_dir / n).read_bytes())}  {n}\n" for n in names), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "EXP_INVALID_VECTOR_COL_TYPE:x_scaled"):
+            harness.load_feature_bundle(self.official_dir, mode=harness.MODE_OFFICIAL)
+
+    def test_official_loader_rejects_null_vector_column(self):
+        centre = datetime(2000, 7, 1, tzinfo=timezone.utc)
+        schema = pa.schema([
+            ("dataset_id", pa.string()),
+            ("mainshock_event_id", pa.string()),
+            ("candidate_event_id", pa.string()),
+            ("relative_time_role", pa.string()),
+            ("is_mainshock", pa.bool_()),
+            ("x_scaled", pa.float64()),
+            ("y_scaled", pa.float64()),
+            ("z_scaled", pa.float64()),
+            ("time_scaled", pa.float64()),
+            ("candidate_magnitude", pa.float64()),
+            ("candidate_time_utc", pa.timestamp("us", tz="UTC")),
+        ])
+        row1 = {
+            "dataset_id": "ds_official_1234567890abcdef",
+            "mainshock_event_id": MID,
+            "candidate_event_id": MID,
+            "relative_time_role": "MAINSHOCK",
+            "is_mainshock": True,
+            "x_scaled": None,
+            "y_scaled": 0.0,
+            "z_scaled": 0.0,
+            "time_scaled": 0.0,
+            "candidate_magnitude": 6.0,
+            "candidate_time_utc": centre,
+        }
+        row2 = dict(row1, candidate_event_id=POST_EVT, is_mainshock=False, relative_time_role="POST", x_scaled=0.1)
+        pq.write_table(pa.Table.from_pylist([row1, row2], schema=schema), self.official_dir / "features-part-00000.parquet")
+        names = sorted(p.name for p in self.official_dir.iterdir() if p.name != "checksums.sha256")
+        (self.official_dir / "checksums.sha256").write_text("".join(f"{harness.sha256_bytes((self.official_dir / n).read_bytes())}  {n}\n" for n in names), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "EXP_NULL_VECTOR_COL:x_scaled"):
+            harness.load_feature_bundle(self.official_dir, mode=harness.MODE_OFFICIAL)
+
+    def test_official_writer_rejects_lineage_mismatch_memberships_list(self):
+        bundle = harness.load_feature_bundle(self.official_dir, mode=harness.MODE_OFFICIAL)
+        candidates = [{"candidate_event_id": MID, "delta_time_hours": 0.0}]
+        mem_rows = harness.build_membership_rows(
+            experiment_run_id="temp",
+            dataset_id="foreign_dataset_id",
+            mainshock_event_id=MID,
+            candidate_records=candidates,
+            algorithm_name="WINDOW",
+            model_config_version="v1",
+        )
+        sum_row = harness.build_sequence_summary_row(
+            experiment_run_id="temp",
+            dataset_id=bundle["source_dataset_id"],
+            mainshock_event_id=MID,
+            candidate_count=1,
+            algorithm_name="WINDOW",
+            model_config_version="v1",
+            membership_rows=mem_rows,
+        )
+        with self.assertRaisesRegex(ValueError, "EXP_DATASET_LINEAGE_MISMATCH"):
+            harness.write_experiment_result(
+                output_dir=self.out_dir, bundle=bundle, algorithm_name="WINDOW", algorithm_version="1.0.0",
+                model_config_version="v1", model_config={}, memberships=mem_rows, summaries=[sum_row],
+                metrics={}, mode=harness.MODE_OFFICIAL,
+            )
+
+    def test_official_writer_rejects_lineage_mismatch_memberships_table(self):
+        bundle = harness.load_feature_bundle(self.official_dir, mode=harness.MODE_OFFICIAL)
+        candidates = [{"candidate_event_id": MID, "delta_time_hours": 0.0}]
+        mem_rows = harness.build_membership_rows(
+            experiment_run_id="temp",
+            dataset_id="foreign_dataset_id",
+            mainshock_event_id=MID,
+            candidate_records=candidates,
+            algorithm_name="WINDOW",
+            model_config_version="v1",
+        )
+        mem_table = pa.Table.from_pylist(mem_rows, schema=harness.MEMBERSHIP_SCHEMA)
+        sum_row = harness.build_sequence_summary_row(
+            experiment_run_id="temp",
+            dataset_id=bundle["source_dataset_id"],
+            mainshock_event_id=MID,
+            candidate_count=1,
+            algorithm_name="WINDOW",
+            model_config_version="v1",
+            membership_rows=mem_rows,
+        )
+        with self.assertRaisesRegex(ValueError, "EXP_DATASET_LINEAGE_MISMATCH"):
+            harness.write_experiment_result(
+                output_dir=self.out_dir, bundle=bundle, algorithm_name="WINDOW", algorithm_version="1.0.0",
+                model_config_version="v1", model_config={}, memberships=mem_table, summaries=[sum_row],
+                metrics={}, mode=harness.MODE_OFFICIAL,
+            )
+
+    def test_official_writer_rejects_lineage_mismatch_summaries_list(self):
+        bundle = harness.load_feature_bundle(self.official_dir, mode=harness.MODE_OFFICIAL)
+        candidates = [{"candidate_event_id": MID, "delta_time_hours": 0.0}]
+        mem_rows = harness.build_membership_rows(
+            experiment_run_id="temp",
+            dataset_id=bundle["source_dataset_id"],
+            mainshock_event_id=MID,
+            candidate_records=candidates,
+            algorithm_name="WINDOW",
+            model_config_version="v1",
+        )
+        sum_row = harness.build_sequence_summary_row(
+            experiment_run_id="temp",
+            dataset_id="foreign_dataset_id",
+            mainshock_event_id=MID,
+            candidate_count=1,
+            algorithm_name="WINDOW",
+            model_config_version="v1",
+            membership_rows=mem_rows,
+        )
+        with self.assertRaisesRegex(ValueError, "EXP_DATASET_LINEAGE_MISMATCH"):
+            harness.write_experiment_result(
+                output_dir=self.out_dir, bundle=bundle, algorithm_name="WINDOW", algorithm_version="1.0.0",
+                model_config_version="v1", model_config={}, memberships=mem_rows, summaries=[sum_row],
+                metrics={}, mode=harness.MODE_OFFICIAL,
+            )
+
+    def test_official_writer_rejects_lineage_mismatch_summaries_table(self):
+        bundle = harness.load_feature_bundle(self.official_dir, mode=harness.MODE_OFFICIAL)
+        candidates = [{"candidate_event_id": MID, "delta_time_hours": 0.0}]
+        mem_rows = harness.build_membership_rows(
+            experiment_run_id="temp",
+            dataset_id=bundle["source_dataset_id"],
+            mainshock_event_id=MID,
+            candidate_records=candidates,
+            algorithm_name="WINDOW",
+            model_config_version="v1",
+        )
+        sum_row = harness.build_sequence_summary_row(
+            experiment_run_id="temp",
+            dataset_id="foreign_dataset_id",
+            mainshock_event_id=MID,
+            candidate_count=1,
+            algorithm_name="WINDOW",
+            model_config_version="v1",
+            membership_rows=mem_rows,
+        )
+        sum_table = pa.Table.from_pylist([sum_row], schema=harness.SEQUENCE_SUMMARY_SCHEMA)
+        with self.assertRaisesRegex(ValueError, "EXP_DATASET_LINEAGE_MISMATCH"):
+            harness.write_experiment_result(
+                output_dir=self.out_dir, bundle=bundle, algorithm_name="WINDOW", algorithm_version="1.0.0",
+                model_config_version="v1", model_config={}, memberships=mem_rows, summaries=sum_table,
+                metrics={}, mode=harness.MODE_OFFICIAL,
+            )
+
 
 if __name__ == "__main__":
     unittest.main()
