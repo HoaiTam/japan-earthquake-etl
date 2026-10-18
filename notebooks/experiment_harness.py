@@ -650,42 +650,145 @@ def write_experiment_result(
 
     source_dataset_id = bundle.get("source_dataset_id", bundle.get("bundle_id"))
 
-    # Protect immutable completed bundles & support idempotent retry reuse
+    # 1. Strictly validate dataset_id lineage across memberships and summaries before checking retry/reuse
+    if isinstance(memberships, list):
+        for r in memberships:
+            row_ds = r.get("dataset_id")
+            require(row_ds == source_dataset_id,
+                    f"EXP_DATASET_LINEAGE_MISMATCH:{row_ds}!={source_dataset_id}")
+    elif isinstance(memberships, pa.Table):
+        require("dataset_id" in memberships.column_names, "EXP_DATASET_LINEAGE_MISMATCH:missing_dataset_id")
+        if memberships.num_rows > 0:
+            row_dataset_ids = set(memberships["dataset_id"].to_pylist())
+            require(row_dataset_ids == {source_dataset_id},
+                    f"EXP_DATASET_LINEAGE_MISMATCH:{row_dataset_ids}!={source_dataset_id}")
+    else:
+        raise TypeError(f"Unsupported memberships type: {type(memberships)}")
+
+    if isinstance(summaries, list):
+        for s in summaries:
+            row_ds = s.get("dataset_id")
+            require(row_ds == source_dataset_id,
+                    f"EXP_DATASET_LINEAGE_MISMATCH:{row_ds}!={source_dataset_id}")
+    elif isinstance(summaries, pa.Table):
+        require("dataset_id" in summaries.column_names, "EXP_DATASET_LINEAGE_MISMATCH:missing_dataset_id")
+        if summaries.num_rows > 0:
+            row_dataset_ids = set(summaries["dataset_id"].to_pylist())
+            require(row_dataset_ids == {source_dataset_id},
+                    f"EXP_DATASET_LINEAGE_MISMATCH:{row_dataset_ids}!={source_dataset_id}")
+    else:
+        raise TypeError(f"Unsupported summaries type: {type(summaries)}")
+
+    # 2. Protect immutable completed bundles & support idempotent retry reuse
     success_marker_file = out_path / ("_SUCCESS.json" if mode == MODE_OFFICIAL else "pilot_result_manifest.json")
     if success_marker_file.is_file():
+        is_marker_valid = False
+        existing_run_id = None
+        existing_ds_id = None
+        existing_checksums = None
         try:
             existing_marker = json.loads(success_marker_file.read_text(encoding="utf-8"))
+            if isinstance(existing_marker, dict):
+                if mode == MODE_OFFICIAL:
+                    if (existing_marker.get("status") == "COMPLETED" and
+                        existing_marker.get("schema_version") == SCHEMA_VERSION):
+                        existing_run_id = existing_marker.get("experiment_run_id")
+                        existing_ds_id = existing_marker.get("dataset_id")
+                        existing_checksums = existing_marker.get("checksums")
+                        is_marker_valid = bool(existing_run_id and existing_ds_id)
+                else:
+                    if (existing_marker.get("status") == "DEVELOPMENT_RUN_COMPLETED" and
+                        existing_marker.get("artifact_kind") == "PILOT_EXPERIMENT_RESULT"):
+                        existing_run_id = existing_marker.get("pilot_run_id")
+                        existing_ds_id = existing_marker.get("source_dataset_id")
+                        existing_checksums = existing_marker.get("checksums")
+                        is_marker_valid = bool(existing_run_id and existing_ds_id)
         except Exception:
-            existing_marker = {}
+            is_marker_valid = False
 
-        existing_run_id = existing_marker.get("experiment_run_id") if mode == MODE_OFFICIAL else existing_marker.get("pilot_run_id")
-        existing_ds_id = existing_marker.get("dataset_id") if mode == MODE_OFFICIAL else existing_marker.get("source_dataset_id")
-        existing_checksums = existing_marker.get("checksums", {})
+        standard_required_files = [
+            "memberships.parquet",
+            "sequence_summary.parquet",
+            "experiment_metrics.json",
+            "experiment_config.json",
+            "requirements-lock.txt",
+        ]
+        is_checksums_valid = False
+        sha_hex_pattern = re.compile(r"^[a-f0-9]{64}$")
+        if is_marker_valid and isinstance(existing_checksums, dict) and len(existing_checksums) > 0:
+            if all(rf in existing_checksums for rf in standard_required_files):
+                all_entries_valid = True
+                for rel_name, exp_sha in existing_checksums.items():
+                    if (not isinstance(rel_name, str) or not isinstance(exp_sha, str) or
+                        not rel_name.strip() or
+                        ".." in rel_name or rel_name.startswith(("/", "\\")) or
+                        not sha_hex_pattern.match(exp_sha)):
+                        all_entries_valid = False
+                        break
+                    try:
+                        resolved_f_path = (out_path / rel_name).resolve()
+                        if not resolved_f_path.is_relative_to(out_path):
+                            all_entries_valid = False
+                            break
+                    except Exception:
+                        all_entries_valid = False
+                        break
+                is_checksums_valid = all_entries_valid
 
-        target_run_id = experiment_run_id
-        is_retry_candidate = (is_retry or (target_run_id is not None and target_run_id == existing_run_id))
-
-        if is_retry_candidate and existing_run_id is not None and existing_ds_id == source_dataset_id:
-            all_intact = True
+        all_files_intact = False
+        if is_checksums_valid:
+            intact = True
             for rel_name, exp_sha in existing_checksums.items():
                 f_path = out_path / rel_name
-                if not f_path.is_file() or sha256_bytes(f_path.read_bytes()) != exp_sha:
-                    all_intact = False
+                if not f_path.is_file():
+                    intact = False
                     break
+                try:
+                    if sha256_bytes(f_path.read_bytes()) != exp_sha:
+                        intact = False
+                        break
+                except Exception:
+                    intact = False
+                    break
+            all_files_intact = intact
 
-            if all_intact:
-                return {
-                    "mode": mode,
-                    "run_id": existing_run_id,
-                    "success_marker_path": success_marker_file if mode == MODE_OFFICIAL else None,
-                    "manifest_path": success_marker_file if mode == MODE_DEVELOPMENT else None,
-                    "has_success_marker": (mode == MODE_OFFICIAL),
-                    "checksums": existing_checksums,
-                    "is_reused": True,
-                }
+        config_matches = False
+        if all_files_intact:
+            try:
+                cfg_path = out_path / "experiment_config.json"
+                cfg_data = json.loads(cfg_path.read_text(encoding="utf-8"))
+                if (cfg_data.get("dataset_id") == source_dataset_id and
+                    existing_ds_id == source_dataset_id and
+                    cfg_data.get("algorithm_name") == algorithm_name and
+                    cfg_data.get("algorithm_version") == algorithm_version and
+                    cfg_data.get("model_config_version") == model_config_version and
+                    canonical(cfg_data.get("model_config")) == canonical(model_config) and
+                    cfg_data.get("random_seed") == random_seed and
+                    (code_version is None or cfg_data.get("code_version") == code_version)):
+                    config_matches = True
+            except Exception:
+                config_matches = False
+
+        run_id_matches = (experiment_run_id is None or experiment_run_id == existing_run_id)
+        caller_allows_reuse = (is_retry or (experiment_run_id is not None and experiment_run_id == existing_run_id))
+
+        can_reuse = (caller_allows_reuse and run_id_matches and is_marker_valid and
+                     is_checksums_valid and all_files_intact and config_matches)
+
+        if can_reuse:
+            return {
+                "mode": mode,
+                "run_id": existing_run_id,
+                "success_marker_path": success_marker_file if mode == MODE_OFFICIAL else None,
+                "manifest_path": success_marker_file if mode == MODE_DEVELOPMENT else None,
+                "has_success_marker": (mode == MODE_OFFICIAL),
+                "checksums": existing_checksums,
+                "is_reused": True,
+            }
 
         if not allow_overwrite:
-            require(False, f"EXP_COMPLETED_BUNDLE_CONFLICT: Output directory {out_path} already contains a completed bundle for run '{existing_run_id}'. Overwriting completed bundle is forbidden.")
+            run_label = existing_run_id or "unknown_run"
+            require(False, f"EXP_COMPLETED_BUNDLE_CONFLICT: Output directory {out_path} already contains a completed bundle for run '{run_label}' that cannot be reused or overwritten.")
 
     runtime_meta = get_runtime_metadata(code_version=code_version, random_seed=random_seed, timestamp_utc=timestamp_utc)
     code_ver = code_version or runtime_meta["code_version"]
@@ -710,40 +813,24 @@ def write_experiment_result(
         identity_digest = sha256_bytes(canonical(run_id_payload).encode("utf-8"))[:32]
         effective_run_id = f"pilot_run_{identity_digest}" if mode == MODE_DEVELOPMENT else f"exp_run_{identity_digest}"
 
-    # Synchronize effective_run_id and strictly validate dataset_id lineage across membership records
+    # Synchronize effective_run_id across membership records
     if isinstance(memberships, list):
         for r in memberships:
-            row_ds = r.get("dataset_id")
-            require(row_ds == source_dataset_id,
-                    f"EXP_DATASET_LINEAGE_MISMATCH:{row_ds}!={source_dataset_id}")
             r["experiment_run_id"] = effective_run_id
         memberships_table = pa.Table.from_pylist(memberships, schema=MEMBERSHIP_SCHEMA)
     elif isinstance(memberships, pa.Table):
-        require("dataset_id" in memberships.column_names, "EXP_DATASET_LINEAGE_MISMATCH:missing_dataset_id")
-        if memberships.num_rows > 0:
-            row_dataset_ids = set(memberships["dataset_id"].to_pylist())
-            require(row_dataset_ids == {source_dataset_id},
-                    f"EXP_DATASET_LINEAGE_MISMATCH:{row_dataset_ids}!={source_dataset_id}")
         pydict = memberships.to_pydict()
         pydict["experiment_run_id"] = [effective_run_id] * memberships.num_rows
         memberships_table = pa.Table.from_pydict(pydict, schema=MEMBERSHIP_SCHEMA)
     else:
         raise TypeError(f"Unsupported memberships type: {type(memberships)}")
 
-    # Synchronize effective_run_id and strictly validate dataset_id lineage across summary records
+    # Synchronize effective_run_id across summary records
     if isinstance(summaries, list):
         for s in summaries:
-            row_ds = s.get("dataset_id")
-            require(row_ds == source_dataset_id,
-                    f"EXP_DATASET_LINEAGE_MISMATCH:{row_ds}!={source_dataset_id}")
             s["experiment_run_id"] = effective_run_id
         summary_table = pa.Table.from_pylist(summaries, schema=SEQUENCE_SUMMARY_SCHEMA)
     elif isinstance(summaries, pa.Table):
-        require("dataset_id" in summaries.column_names, "EXP_DATASET_LINEAGE_MISMATCH:missing_dataset_id")
-        if summaries.num_rows > 0:
-            row_dataset_ids = set(summaries["dataset_id"].to_pylist())
-            require(row_dataset_ids == {source_dataset_id},
-                    f"EXP_DATASET_LINEAGE_MISMATCH:{row_dataset_ids}!={source_dataset_id}")
         pydict = summaries.to_pydict()
         pydict["experiment_run_id"] = [effective_run_id] * summaries.num_rows
         summary_table = pa.Table.from_pydict(pydict, schema=SEQUENCE_SUMMARY_SCHEMA)

@@ -3,7 +3,7 @@
 Ngày kiểm chứng: 2026-10-18.
 Branch: `feat/exp-01-jupyter-harness`.
 Assignee: `rosy179`.
-Reviewer: `HoaiTam` (phản hồi review tại [PR #83 comment-6229834764](https://github.com/HoaiTam/japan-earthquake-etl/pull/83#issuecomment-6229834764), [comment-6231696916](https://github.com/HoaiTam/japan-earthquake-etl/pull/83#issuecomment-6231696916) và [comment-6244707869](https://github.com/HoaiTam/japan-earthquake-etl/pull/83#issuecomment-6244707869)).
+Reviewer: `HoaiTam` (phản hồi review tại [PR #83 comment-6229834764](https://github.com/HoaiTam/japan-earthquake-etl/pull/83#issuecomment-6229834764), [comment-6231696916](https://github.com/HoaiTam/japan-earthquake-etl/pull/83#issuecomment-6231696916), [comment-6244707869](https://github.com/HoaiTam/japan-earthquake-etl/pull/83#issuecomment-6244707869) và [comment-6244865924](https://github.com/HoaiTam/japan-earthquake-etl/pull/83#issuecomment-6244865924)).
 
 ## 1. Mục tiêu và bối cảnh
 
@@ -45,11 +45,22 @@ Task EXP-01 tạo shared Python module và thin Jupyter notebook harness tái l�
    - **Giữ nguyên guard `IMP_EXPERIMENT_RUN_REUSED` của Java validator:** Java importer (`ResultBundleValidator`) kiểm tra fingerprint đối với `previousBundleSha256`; retry giữ nguyên fingerprint nên được nhận idempotently; run khác có fingerprint khác không bị va chạm.
    - **Regression tests:** Thêm 3 regression tests trong `tests/test_experiment_harness.py` và mở rộng test tích hợp cross-process `ResultBundleContractTest.java` (kiểm tra cả retry idempotent nhận dạng khớp `bundleSha256()` và conflict rejection khi cố ý ghi đè).
 
+### Đợt 4 (PR #83 comment-6244865924)
+1. **[P1] Ràng buộc chặt chẽ Run ID, đối chiếu Config/Seed và Lineage Guard trước retry reuse:**
+   - **Lineage Guard chạy đầu tiên:** Di chuyển kiểm tra lineage trên `memberships` và `summaries` lên ngay đầu hàm `write_experiment_result` trước khối kiểm tra retry reuse. Nếu dữ liệu truyền vào chứa `dataset_id` không khớp với `source_dataset_id`, ném ngay `EXP_DATASET_LINEAGE_MISMATCH`, không bao giờ bypass lineage guard dù caller đặt `is_retry=True`.
+   - **Ràng buộc chính xác Run ID:** Retry chỉ cho phép tái sử dụng khi `experiment_run_id is None or experiment_run_id == existing_run_id`. Nếu caller chỉ định một run ID khác với run ID trong completed bundle, lập tức fail-closed với `EXP_COMPLETED_BUNDLE_CONFLICT`.
+   - **Đối chiếu đầy đủ config artifact:** Đọc `experiment_config.json` trên đĩa và đối chiếu toàn bộ các tham số: `algorithm_name`, `algorithm_version`, `model_config_version`, `model_config` (deterministic canonical JSON), `random_seed`, và `code_version`. Mọi thay đổi về thuật toán, siêu tham số, hoặc seed đều bị từ chối tái sử dụng và fail-closed với `EXP_COMPLETED_BUNDLE_CONFLICT`.
+
+2. **[P1] Xác thực nghiêm ngặt Marker Status, Checksums Map và File Integrity:**
+   - **Marker status & schema:** Bắt buộc `status == "COMPLETED"` và `schema_version == "1.0"` đối với OFFICIAL mode; `status == "DEVELOPMENT_RUN_COMPLETED"` và `artifact_kind == "PILOT_EXPERIMENT_RESULT"` đối với DEVELOPMENT mode.
+   - **Checksums map:** Bắt buộc là dictionary không rỗng và phải bao phủ đầy đủ toàn bộ 5 standard required files (`memberships.parquet`, `sequence_summary.parquet`, `experiment_metrics.json`, `experiment_config.json`, `requirements-lock.txt`). Bắt buộc giá trị SHA-256 là 64 ký tự hex thường và đường dẫn tương đối an toàn (ngăn chặn path traversal).
+   - **Đọc và xác thực từng file thật trên đĩa:** Đọc bytes từng file và tính hash SHA-256 đối chiếu với checksum đã lưu. Nếu thiếu file hoặc sai lệch hash, bundle không hợp lệ và ném `EXP_COMPLETED_BUNDLE_CONFLICT`, tuyệt đối không âm thầm tái sử dụng bundle rỗng hoặc bị hư hỏng.
+
 ## 3. Checks và tests đã chạy
 
 - **Python unit test suite (`tests/test_experiment_harness.py`):**
   - Chạy: `python -m unittest tests/test_experiment_harness.py`
-  - Kết quả: **39 tests PASS**, 0 errors, 0 failures.
+  - Kết quả: **44 tests PASS**, 0 errors, 0 failures (bổ sung 5 tests chuyên biệt kiểm tra retry lineage guard, run_id matching, config matching, empty/incomplete checksums map, và invalid marker status/tampered files).
 
 - **Java cross-process integration test (`ResultBundleContractTest`):**
   - Chạy: `$env:JAVA_HOME = "C:\Program Files\Java\jdk-23"; .\mvnw.cmd test -Dtest=ResultBundleContractTest`

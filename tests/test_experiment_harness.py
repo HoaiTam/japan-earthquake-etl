@@ -1385,6 +1385,240 @@ class ExperimentHarnessTest(unittest.TestCase):
         self.assertTrue(success_marker.is_file())
         self.assertEqual(harness.sha256_bytes(success_marker.read_bytes()), initial_sha)
 
+    def test_retry_rejects_lineage_mismatch_memberships_even_when_is_retry_true(self):
+        bundle = harness.load_feature_bundle(self.official_dir, mode=harness.MODE_OFFICIAL)
+        candidates = [{"candidate_event_id": MID, "delta_time_hours": 0.0}]
+        mem_rows = harness.build_membership_rows(
+            experiment_run_id="temp",
+            dataset_id=bundle["source_dataset_id"],
+            mainshock_event_id=MID,
+            candidate_records=candidates,
+            algorithm_name="WINDOW",
+            model_config_version="v1",
+        )
+        sum_row = harness.build_sequence_summary_row(
+            experiment_run_id="temp",
+            dataset_id=bundle["source_dataset_id"],
+            mainshock_event_id=MID,
+            candidate_count=1,
+            algorithm_name="WINDOW",
+            model_config_version="v1",
+            membership_rows=mem_rows,
+        )
+        res1 = harness.write_experiment_result(
+            output_dir=self.out_dir, bundle=bundle, algorithm_name="WINDOW", algorithm_version="1.0.0",
+            model_config_version="v1", model_config={"param": "test"}, memberships=mem_rows,
+            summaries=[sum_row], metrics={"time_sec": 0.1}, mode=harness.MODE_OFFICIAL, random_seed=42,
+        )
+        # Attempt retry with foreign dataset_id in memberships
+        foreign_mem_rows = harness.build_membership_rows(
+            experiment_run_id="temp",
+            dataset_id="foreign_dataset_id",
+            mainshock_event_id=MID,
+            candidate_records=candidates,
+            algorithm_name="WINDOW",
+            model_config_version="v1",
+        )
+        with self.assertRaisesRegex(ValueError, "EXP_DATASET_LINEAGE_MISMATCH"):
+            harness.write_experiment_result(
+                output_dir=self.out_dir, bundle=bundle, algorithm_name="WINDOW", algorithm_version="1.0.0",
+                model_config_version="v1", model_config={"param": "test"}, memberships=foreign_mem_rows,
+                summaries=[sum_row], metrics={"time_sec": 0.1}, mode=harness.MODE_OFFICIAL, random_seed=42,
+                experiment_run_id=res1["run_id"], is_retry=True,
+            )
+
+    def test_retry_rejects_mismatched_run_id(self):
+        bundle = harness.load_feature_bundle(self.official_dir, mode=harness.MODE_OFFICIAL)
+        candidates = [{"candidate_event_id": MID, "delta_time_hours": 0.0}]
+        mem_rows = harness.build_membership_rows(
+            experiment_run_id="temp",
+            dataset_id=bundle["source_dataset_id"],
+            mainshock_event_id=MID,
+            candidate_records=candidates,
+            algorithm_name="WINDOW",
+            model_config_version="v1",
+        )
+        sum_row = harness.build_sequence_summary_row(
+            experiment_run_id="temp",
+            dataset_id=bundle["source_dataset_id"],
+            mainshock_event_id=MID,
+            candidate_count=1,
+            algorithm_name="WINDOW",
+            model_config_version="v1",
+            membership_rows=mem_rows,
+        )
+        res1 = harness.write_experiment_result(
+            output_dir=self.out_dir, bundle=bundle, algorithm_name="WINDOW", algorithm_version="1.0.0",
+            model_config_version="v1", model_config={"param": "test"}, memberships=mem_rows,
+            summaries=[sum_row], metrics={"time_sec": 0.1}, mode=harness.MODE_OFFICIAL, random_seed=42,
+        )
+        # Attempt retry specifying a different run ID
+        with self.assertRaisesRegex(ValueError, "EXP_COMPLETED_BUNDLE_CONFLICT"):
+            harness.write_experiment_result(
+                output_dir=self.out_dir, bundle=bundle, algorithm_name="WINDOW", algorithm_version="1.0.0",
+                model_config_version="v1", model_config={"param": "test"}, memberships=mem_rows,
+                summaries=[sum_row], metrics={"time_sec": 0.1}, mode=harness.MODE_OFFICIAL, random_seed=42,
+                experiment_run_id="different_run_id_9999", is_retry=True,
+            )
+
+    def test_retry_rejects_modified_config_or_seed(self):
+        bundle = harness.load_feature_bundle(self.official_dir, mode=harness.MODE_OFFICIAL)
+        candidates = [{"candidate_event_id": MID, "delta_time_hours": 0.0}]
+        mem_rows = harness.build_membership_rows(
+            experiment_run_id="temp",
+            dataset_id=bundle["source_dataset_id"],
+            mainshock_event_id=MID,
+            candidate_records=candidates,
+            algorithm_name="WINDOW",
+            model_config_version="v1",
+        )
+        sum_row = harness.build_sequence_summary_row(
+            experiment_run_id="temp",
+            dataset_id=bundle["source_dataset_id"],
+            mainshock_event_id=MID,
+            candidate_count=1,
+            algorithm_name="WINDOW",
+            model_config_version="v1",
+            membership_rows=mem_rows,
+        )
+        res1 = harness.write_experiment_result(
+            output_dir=self.out_dir, bundle=bundle, algorithm_name="WINDOW", algorithm_version="1.0.0",
+            model_config_version="v1", model_config={"param": "test"}, memberships=mem_rows,
+            summaries=[sum_row], metrics={"time_sec": 0.1}, mode=harness.MODE_OFFICIAL, random_seed=42,
+        )
+        # Attempt retry with different algorithm
+        with self.assertRaisesRegex(ValueError, "EXP_COMPLETED_BUNDLE_CONFLICT"):
+            harness.write_experiment_result(
+                output_dir=self.out_dir, bundle=bundle, algorithm_name="DBSCAN", algorithm_version="1.0.0",
+                model_config_version="v1", model_config={"param": "test"}, memberships=mem_rows,
+                summaries=[sum_row], metrics={"time_sec": 0.1}, mode=harness.MODE_OFFICIAL, random_seed=42,
+                experiment_run_id=res1["run_id"], is_retry=True,
+            )
+        # Attempt retry with modified model_config
+        with self.assertRaisesRegex(ValueError, "EXP_COMPLETED_BUNDLE_CONFLICT"):
+            harness.write_experiment_result(
+                output_dir=self.out_dir, bundle=bundle, algorithm_name="WINDOW", algorithm_version="1.0.0",
+                model_config_version="v1", model_config={"param": "MODIFIED_PARAM"}, memberships=mem_rows,
+                summaries=[sum_row], metrics={"time_sec": 0.1}, mode=harness.MODE_OFFICIAL, random_seed=42,
+                experiment_run_id=res1["run_id"], is_retry=True,
+            )
+        # Attempt retry with modified random_seed
+        with self.assertRaisesRegex(ValueError, "EXP_COMPLETED_BUNDLE_CONFLICT"):
+            harness.write_experiment_result(
+                output_dir=self.out_dir, bundle=bundle, algorithm_name="WINDOW", algorithm_version="1.0.0",
+                model_config_version="v1", model_config={"param": "test"}, memberships=mem_rows,
+                summaries=[sum_row], metrics={"time_sec": 0.1}, mode=harness.MODE_OFFICIAL, random_seed=9999,
+                experiment_run_id=res1["run_id"], is_retry=True,
+            )
+
+    def test_retry_rejects_empty_or_incomplete_checksums_map(self):
+        bundle = harness.load_feature_bundle(self.official_dir, mode=harness.MODE_OFFICIAL)
+        candidates = [{"candidate_event_id": MID, "delta_time_hours": 0.0}]
+        mem_rows = harness.build_membership_rows(
+            experiment_run_id="temp",
+            dataset_id=bundle["source_dataset_id"],
+            mainshock_event_id=MID,
+            candidate_records=candidates,
+            algorithm_name="WINDOW",
+            model_config_version="v1",
+        )
+        sum_row = harness.build_sequence_summary_row(
+            experiment_run_id="temp",
+            dataset_id=bundle["source_dataset_id"],
+            mainshock_event_id=MID,
+            candidate_count=1,
+            algorithm_name="WINDOW",
+            model_config_version="v1",
+            membership_rows=mem_rows,
+        )
+        res1 = harness.write_experiment_result(
+            output_dir=self.out_dir, bundle=bundle, algorithm_name="WINDOW", algorithm_version="1.0.0",
+            model_config_version="v1", model_config={"param": "test"}, memberships=mem_rows,
+            summaries=[sum_row], metrics={"time_sec": 0.1}, mode=harness.MODE_OFFICIAL, random_seed=42,
+        )
+        success_marker = self.out_dir / "_SUCCESS.json"
+
+        # Corrupt checksums map to empty dict {}
+        marker_data = json.loads(success_marker.read_text(encoding="utf-8"))
+        marker_data["checksums"] = {}
+        success_marker.write_text(harness.canonical(marker_data) + "\n", encoding="utf-8")
+
+        with self.assertRaisesRegex(ValueError, "EXP_COMPLETED_BUNDLE_CONFLICT"):
+            harness.write_experiment_result(
+                output_dir=self.out_dir, bundle=bundle, algorithm_name="WINDOW", algorithm_version="1.0.0",
+                model_config_version="v1", model_config={"param": "test"}, memberships=mem_rows,
+                summaries=[sum_row], metrics={"time_sec": 0.1}, mode=harness.MODE_OFFICIAL, random_seed=42,
+                experiment_run_id=res1["run_id"], is_retry=True,
+            )
+
+        # Corrupt checksums map to miss a standard required file
+        marker_data["checksums"] = {
+            "memberships.parquet": "a" * 64,
+            # missing sequence_summary.parquet, experiment_metrics.json, etc.
+        }
+        success_marker.write_text(harness.canonical(marker_data) + "\n", encoding="utf-8")
+
+        with self.assertRaisesRegex(ValueError, "EXP_COMPLETED_BUNDLE_CONFLICT"):
+            harness.write_experiment_result(
+                output_dir=self.out_dir, bundle=bundle, algorithm_name="WINDOW", algorithm_version="1.0.0",
+                model_config_version="v1", model_config={"param": "test"}, memberships=mem_rows,
+                summaries=[sum_row], metrics={"time_sec": 0.1}, mode=harness.MODE_OFFICIAL, random_seed=42,
+                experiment_run_id=res1["run_id"], is_retry=True,
+            )
+
+    def test_retry_rejects_invalid_marker_status_or_corrupted_file(self):
+        bundle = harness.load_feature_bundle(self.official_dir, mode=harness.MODE_OFFICIAL)
+        candidates = [{"candidate_event_id": MID, "delta_time_hours": 0.0}]
+        mem_rows = harness.build_membership_rows(
+            experiment_run_id="temp",
+            dataset_id=bundle["source_dataset_id"],
+            mainshock_event_id=MID,
+            candidate_records=candidates,
+            algorithm_name="WINDOW",
+            model_config_version="v1",
+        )
+        sum_row = harness.build_sequence_summary_row(
+            experiment_run_id="temp",
+            dataset_id=bundle["source_dataset_id"],
+            mainshock_event_id=MID,
+            candidate_count=1,
+            algorithm_name="WINDOW",
+            model_config_version="v1",
+            membership_rows=mem_rows,
+        )
+        res1 = harness.write_experiment_result(
+            output_dir=self.out_dir, bundle=bundle, algorithm_name="WINDOW", algorithm_version="1.0.0",
+            model_config_version="v1", model_config={"param": "test"}, memberships=mem_rows,
+            summaries=[sum_row], metrics={"time_sec": 0.1}, mode=harness.MODE_OFFICIAL, random_seed=42,
+        )
+        success_marker = self.out_dir / "_SUCCESS.json"
+        original_marker_content = success_marker.read_text(encoding="utf-8")
+
+        # 1. Invalid status in marker
+        marker_data = json.loads(original_marker_content)
+        marker_data["status"] = "FAILED"
+        success_marker.write_text(harness.canonical(marker_data) + "\n", encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "EXP_COMPLETED_BUNDLE_CONFLICT"):
+            harness.write_experiment_result(
+                output_dir=self.out_dir, bundle=bundle, algorithm_name="WINDOW", algorithm_version="1.0.0",
+                model_config_version="v1", model_config={"param": "test"}, memberships=mem_rows,
+                summaries=[sum_row], metrics={"time_sec": 0.1}, mode=harness.MODE_OFFICIAL, random_seed=42,
+                experiment_run_id=res1["run_id"], is_retry=True,
+            )
+
+        # Restore valid marker, then tamper with a data file on disk
+        success_marker.write_text(original_marker_content, encoding="utf-8")
+        metrics_file = self.out_dir / "experiment_metrics.json"
+        metrics_file.write_text("{\"tampered\": true}\n", encoding="utf-8")
+
+        with self.assertRaisesRegex(ValueError, "EXP_COMPLETED_BUNDLE_CONFLICT"):
+            harness.write_experiment_result(
+                output_dir=self.out_dir, bundle=bundle, algorithm_name="WINDOW", algorithm_version="1.0.0",
+                model_config_version="v1", model_config={"param": "test"}, memberships=mem_rows,
+                summaries=[sum_row], metrics={"time_sec": 0.1}, mode=harness.MODE_OFFICIAL, random_seed=42,
+                experiment_run_id=res1["run_id"], is_retry=True,
+            )
+
 
 if __name__ == "__main__":
     unittest.main()
