@@ -9,81 +9,102 @@
 
 ---
 
-## 1. Tóm tắt thay đổi
+## 1. Tóm tắt thay đổi & Khắc phục Review Comments
 
-1. **Airflow DAG build dataset (`airflow/dags/mli_02_build_dataset.py`):**
-   - Khởi tạo DAG `mli_02_build_dataset` với `schedule=None`, `catchup=False`, `is_paused_upon_creation=True`, `max_active_runs=1`, `max_active_tasks=1`, `retries=0`.
-   - Kết nối tuần tự chính xác 10 task groups / tasks:
-     `wait_gold_published → resolve_gold_snapshot → audit_gold_input → resolve_mc → select_mainshocks → build_candidate_windows → build_spacetime_features → validate_feature_snapshot → export_parquet → mark_dataset_exported`.
-   - Leaf task duy nhất là `mark_dataset_exported.contract_gate` với quy tắc `all_success` (không dùng `all_done` để che giấu lỗi upstream).
-   - Tích hợp callback thất bại `dag_failure_summary`.
+Sau review từ commit `adff6b6` ([PR #85](https://github.com/HoaiTam/japan-earthquake-etl/pull/85#issuecomment-6229976120)), toàn bộ 6 điểm yêu cầu đã được xử lý triệt để:
 
-2. **Control-plane runtime (`airflow/dags/ml_dataset_runtime.py`):**
-   - Định nghĩa `Mli02Error` cho các mã lỗi chuẩn (`DS_GOLD_NOT_PUBLISHED`, `DS_INVALID_PERIOD`, `DS_INVALID_VERSION`, `DS_IDENTITY_CONFLICT`, `DS_EXPORT_CHECKSUM_MISMATCH`, v.v.).
-   - Kiểm tra tính hợp lệ của cấu hình dataset (split `REPRODUCTION` hoặc `EXTENSION`, half-open UTC interval, baseline filters, version strings).
-   - Dẫn xuất deterministic `dataset_id = "ds_" + sha256(canonical_payload)` khớp chính xác thuật toán Java trong `DatasetIdentityPlan.java`.
-   - Quản lý cross-DAG staging lease thông qua `source_run_guard`.
-   - Cơ chế attempt isolation: mỗi lần xuất (attempt) được ghi vào thư mục cách ly `export_attempts/attempt_<N>` trước khi promote, đảm bảo retry không bao giờ trộn lẫn các file part.
-   - Fail-closed: dừng ngay lập tức nếu Gold chưa `Published` hoặc bất kỳ bước nào thất bại, không bao giờ chuyển dataset status sang `EXPORTED`.
-   - Thiết lập ranh giới Colab an toàn: đánh dấu `colab_handoff` ở chế độ `MANUAL_OPERATOR_REQUIRED` với `auto_triggered=false`.
+1. **[P1] Ranh giới runner thật vs mock test double:**
+   - Production path ném lỗi fail-closed `DS_RUNNER_REQUIRED` nếu thiếu `ML_BUILD_RUNNER_COMMAND` và không có mock.
+   - Tách biệt `MockPipelineAdapter` vào adapter kiểm thử riêng: mock không bao giờ ghi đè lên registry chính thức (`MLI_DATASET_REGISTRY_ROOT`) hoặc thư mục export chính thức; đánh dấu status `MOCK_COMPLETED` và `colab_handoff.ready=false`.
+   - Readback Parquet bắt buộc đối soát schema, grain uniqueness, lineage (`dataset_id`), và số dòng thực tế (`feature_row_count`). Nếu Parquet không khớp (ví dụ manifest khai 142 nhưng file chỉ có 3 dòng), runtime ném ngay `DS_COUNT_RECONCILIATION_FAILED`.
 
-3. **Fixture kiểm thử offline (`airflow/dags/fixtures/mli_02_mock_v1.json`):**
-   - Dữ liệu mock xác định cho Reproduction split, Gold publication reference, audit counts, Mc config, mainshocks và candidate windows.
+2. **[P1] Khử tham chiếu hash vòng trong manifest/checksums & Handoff registry:**
+   - `checksums.sha256` lập index SHA-256 cho các file part dữ liệu (`features-part-*.parquet`).
+   - `export_manifest_sha256` được tính bằng hash của file `checksums.sha256`.
+   - `dataset_manifest.json` được tạo đầy đủ với `export_manifest_sha256`, `export_artifact_uri`, `export_manifest_ref` và ghi một lần duy nhất, tránh mọi sửa đổi làm thay đổi checksum sau đó.
+   - Checksums index được sao chép vào `registry_root / exports / <dataset_id> / checksums.sha256` và được trỏ bởi `export_manifest_ref = "exports/<dataset_id>/checksums.sha256"`, tương thích 100% với `TrustedDatasetResolver` (MLI-03).
 
-4. **Bộ kiểm thử tĩnh và kiểm thử đơn vị (`airflow/tests/test_mli_02_build_dataset.py`):**
-   - 11 test cases bao quát hợp đồng DAG và runtime control plane.
+3. **[P1] Xác minh receipt từng bước của external runner & Leaf contract gate:**
+   - Xóa file report cũ trước khi gọi runner để chống đọc nhầm kết quả cũ.
+   - Hàm `validate_runner_receipt` kiểm tra chặt chẽ `step`, `run_id`, `dataset_id`, `gold_snapshot_id`, `attempt`, và `identity_payload_sha256`.
+   - Leaf contract gate `mark_dataset_exported_summary` đọc lại toàn bộ bundle từ đĩa: verify checksums, verify schema/rows Parquet, verify registry manifest, và kiểm tra chắc chắn lease staging đã được giải phóng (`RELEASED`), không cho phép runner vượt rào chỉ bằng `status="DATASET_EXPORTED"`.
 
-5. **Operator Runbook (`docs/runbooks/MLI-02_DATASET_BUILD.md`):**
-   - Hướng dẫn vận hành DAG, kiểm tra checksum, quy trình handoff thủ công lên Google Drive cho Google Colab, và xử lý sự cố.
+4. **[P1] Attempt isolation & Chỉ promote file set đã verify:**
+   - Từ chối tái sử dụng thư mục attempt nếu đã tồn tại file (`DS_ATTEMPT_DIRECTORY_EXISTS`).
+   - Bước promote chỉ copy đúng danh sách file đã được xác minh trong `checksums.sha256`, không quét `iterdir()` thô để tránh promote part cũ/lỗi.
+   - Hỗ trợ tái sử dụng idempotent bundle hợp lệ cho dataset đã được export, bảo toàn nguyên vẹn bytes đã được consumer pin.
+
+5. **[P1] Chấp nhận DagRun run_id chuẩn của Airflow:**
+   - Cập nhật pattern `SAFE_RUN_ID_PATTERN` cho phép các ký tự chuẩn của Airflow (`+`, `:`, `@`, `-`, `_`, `.`).
+   - Giữ nguyên `run_id` gốc trong lease identity và metadata.
+   - Tạo staging directory slug an toàn trên hệ thống tệp (đặc biệt tương thích Windows cấm dấu `:`).
+
+6. **[P2] Sửa lỗi whitespace CI:**
+   - Xóa bỏ các dòng trắng thừa ở cuối file `docs/task/tasks/MLI-02.md`, vượt qua `git diff --check`.
 
 ---
 
 ## 2. Kiểm tra thực tế và kết quả
 
-### 2.1. Chạy bộ kiểm thử đơn vị & hợp đồng DAG
+### 2.1. Chạy bộ kiểm thử đơn vị & hợp đồng DAG (19/19 passed)
 
 Lệnh:
 ```powershell
-pytest airflow/tests/test_mli_02_build_dataset.py
+pytest -v airflow/tests/test_mli_02_build_dataset.py
 ```
 
 Kết quả:
 ```text
 ============================= test session starts =============================
 platform win32 -- Python 3.11.0, pytest-9.0.3, pluggy-1.6.0
-collected 11 items
+collected 19 items
 
-airflow\tests\test_mli_02_build_dataset.py ...........                   [100%]
+airflow/tests/test_mli_02_build_dataset.py::Mli02DagContractTest::test_manual_paused_single_run_and_no_retries PASSED [  5%]
+airflow/tests/test_mli_02_build_dataset.py::Mli02DagContractTest::test_no_colab_external_service_triggers_in_source PASSED [ 10%]
+airflow/tests/test_mli_02_build_dataset.py::Mli02DagContractTest::test_sole_final_leaf_all_success PASSED [ 15%]
+airflow/tests/test_mli_02_build_dataset.py::Mli02DagContractTest::test_ten_task_groups_in_exact_sequence PASSED [ 21%]
+airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_airflow_run_id_with_plus_and_colon_is_accepted PASSED [ 26%]
+airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_attempt_isolation_rejects_dirty_existing_directory PASSED [ 31%]
+airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_dag_fails_if_dataset_config_invalid PASSED [ 36%]
+airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_dag_fails_if_gold_not_published PASSED [ 42%]
+airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_deterministic_dataset_id_and_identity_conflict_detection PASSED [ 47%]
+airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_external_runner_receipt_validation_rejects_identity_mismatch PASSED [ 52%]
+airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_failure_stops_before_dataset_exported_and_colab_not_ready PASSED [ 57%]
+airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_leaf_gate_fails_if_lease_still_held PASSED [ 63%]
+airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_mock_pipeline_isolated_cannot_publish_official_registry PASSED [ 68%]
+airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_production_fails_without_runner_and_without_mock PASSED [ 73%]
+airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_promote_excludes_stray_unindexed_attempt_parts PASSED [ 78%]
+airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_readback_checksum_tampering_is_caught PASSED [ 84%]
+airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_readback_count_mismatch_fails_gate PASSED [ 89%]
+airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_retry_isolates_export_attempts_without_mixing_parts PASSED [ 94%]
+airflow/tests/test_mli_02_build_dataset.py::Mli02RuntimeControlPlaneTest::test_successful_full_run_with_external_runner_and_registry_handoff PASSED [100%]
 
-============================= 11 passed in 1.34s ==============================
+============================= 19 passed in 5.17s ==============================
 ```
 
-Chi tiết 11 test cases:
-1. `test_manual_paused_single_run_and_no_retries`: Xác nhận `dag_id`, `schedule=None`, `catchup=False`, `max_active_runs=1`, `retries=0`.
-2. `test_ten_task_groups_in_exact_sequence`: Xác nhận 10 task groups tồn tại và chuỗi dependency tuần tự chính xác.
-3. `test_sole_final_leaf_all_success`: Xác nhận `mark_dataset_exported.contract_gate` là leaf duy nhất và dùng `trigger_rule="all_success"`.
-4. `test_no_colab_external_service_triggers_in_source`: Xác nhận không có import hoặc trigger gọi dịch vụ cloud/Colab tự động.
-5. `test_dag_fails_if_gold_not_published`: Xác nhận từ chối chạy khi Gold chưa `Published` (`published=false` hoặc `verify_status!="PASSED"`).
-6. `test_dag_fails_if_dataset_config_invalid`: Xác nhận từ chối khi period, split hoặc version config sai quy cách.
-7. `test_deterministic_dataset_id_and_identity_conflict_detection`: Xác nhận tính xác định của `dataset_id` và phát hiện xung đột payload (`DS_IDENTITY_CONFLICT`).
-8. `test_retry_isolates_export_attempts_without_mixing_parts`: Xác nhận attempt isolation phân tách thư mục `attempt_1` và `attempt_2`.
-9. `test_failure_stops_before_dataset_exported_and_colab_not_ready`: Xác nhận khi một bước thất bại, dataset không được đánh dấu `EXPORTED` và Colab không ready.
-10. `test_readback_checksum_tampering_is_caught`: Xác nhận phát hiện sửa đổi file Parquet và từ chối xuất bundle (`DS_EXPORT_CHECKSUM_MISMATCH`).
-11. `test_successful_full_run_and_manual_colab_handoff`: Xác nhận luồng E2E thành công sinh đầy đủ artifact, đăng ký manifest, và chỉ thị handoff Colab thủ công.
-
-### 2.2. Kiểm tra tính nhất quán tài liệu và kế hoạch
+### 2.2. Kiểm tra tính tương thích resolver Java (TrustedDatasetResolverTest)
 
 Lệnh:
 ```powershell
-& "C:\Program Files\Git\bin\sh.exe" scripts/check-task-status.sh
-& "C:\Program Files\Git\bin\sh.exe" scripts/check-week-5-plan.sh
+cmd /c "set JAVA_HOME=C:\Program Files\Java\jdk-23&& .\mvnw.cmd test -pl spark -Dtest=TrustedDatasetResolverTest"
 ```
 
 Kết quả:
 ```text
-Task status check passed: 76 task files, tracking sections and index rows agree.
-Week 5 plan check passed: 12 Core tasks, 72h (32/17/23); ORC-06 accepted by HoaiTam; DAT-02 Jupyter first, Colab gated, QA-04 week 6.
+[INFO] Running ie212.earthquake.spark.ml.TrustedDatasetResolverTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.294 s -- in ie212.earthquake.spark.ml.TrustedDatasetResolverTest
+[INFO] BUILD SUCCESS
 ```
+
+### 2.3. Kiểm tra Whitespace với Git Diff
+
+Lệnh:
+```powershell
+git diff --check origin/main
+```
+
+Kết quả:
+Không có lỗi whitespace (`exit code 0`).
 
 ---
 
@@ -92,8 +113,8 @@ Week 5 plan check passed: 12 Core tasks, 72h (32/17/23); ORC-06 accepted by Hoai
 | Tiêu chí trong task MLI-02 | Trạng thái | Minh chứng |
 |---|---|---|
 | DAG không chạy nếu Gold chưa Published hoặc dataset config invalid | **Đạt** | `test_dag_fails_if_gold_not_published`, `test_dag_fails_if_dataset_config_invalid` ném `DS_GOLD_NOT_PUBLISHED` / `DS_INVALID_*` trước khi tiến hành tính toán |
-| Retry dùng cùng logical dataset identity và không trộn export attempts | **Đạt** | `compute_dataset_id` dẫn xuất cố định từ identity payload; `export_attempts/attempt_<N>` cách ly hoàn toàn các file part giữa các lần retry |
-| Failure dừng trước `DATASET_EXPORTED`; downstream Colab không được đánh dấu ready | **Đạt** | `test_failure_stops_before_dataset_exported_and_colab_not_ready` chứng minh status giữ nguyên `BUILDING`, không tạo file manifest trong registry, Colab `ready=false` |
+| Retry dùng cùng logical dataset identity và không trộn export attempts | **Đạt** | `compute_dataset_id` dẫn xuất cố định từ identity payload; `export_attempts/attempt_<N>` cách ly hoàn toàn các file part giữa các lần retry; từ chối attempt directory có part dở; chỉ promote file set trong checksum index |
+| Failure dừng trước `DATASET_EXPORTED`; downstream Colab không được đánh dấu ready | **Đạt** | Dừng trước `DATASET_EXPORTED`; khi dùng mock hoặc có lỗi, không ghi manifest vào registry chính thức, `colab_handoff.ready=false` |
 | DAG không tự trigger Colab miễn phí như một job service giả định | **Đạt** | Source code kiểm tra AST không có HTTP call / cloud API; run summary trả về chỉ dẫn handoff thủ công cho operator |
 
 ---
@@ -105,5 +126,6 @@ Week 5 plan check passed: 12 Core tasks, 72h (32/17/23); ORC-06 accepted by Hoai
    - Phần việc còn thiếu: Kiểm thử live E2E trên container Docker có Spark/Iceberg runner thật thay vì mock runner.
 2. **Nghiệm thu toàn trình ML:**
    - Việc kiểm thử end-to-end từ Gold Published snapshot qua ML DAG đến serving Trino và báo cáo thí nghiệm thuộc phạm vi của [MLQ-01 - Chạy E2E Gold snapshot đến ML report](docs/task/tasks/MLQ-01.md).
-3. **Review:**
+3. **Trạng thái bàn giao:**
+   - Giữ trạng thái task `In Progress` theo chỉ đạo của review Tâm cho đến khi các hard dependencies upstream hoàn tất nghiệm thu live.
    - Reviewer độc lập hiện chưa được chỉ định (`unassigned`).

@@ -109,10 +109,15 @@ Khi hoàn tất bước `mark_dataset_exported`, thư mục đích chứa layout
 └── checksums.sha256
 ```
 
-Đồng thời, manifest cũng được ghi vào registry dùng chung:
-`/opt/pipeline/staging/ml-artifacts/<dataset_id>.json`.
+Đồng thời, manifest và checksums index cũng được ghi vào registry dùng chung để phục vụ các consumer downstream (MLI-03 `TrustedDatasetResolver`, Google Colab notebook):
+- `/opt/pipeline/staging/ml-artifacts/<dataset_id>.json` (và `/opt/pipeline/staging/ml-artifacts/registry/<dataset_id>.json`)
+- `/opt/pipeline/staging/ml-artifacts/exports/<dataset_id>/checksums.sha256` (được trỏ bởi `export_manifest_ref`).
 
 ### Kiểm tra tính toàn vẹn (Checksum Verification)
+
+Layout được thiết kế tránh tham chiếu hash vòng (non-circular):
+- `checksums.sha256` chứa SHA-256 của các file part dữ liệu (`features-part-*.parquet`).
+- `dataset_manifest.json` ghi nhận `export_manifest_sha256` (hash của file `checksums.sha256`) và được verify độc lập qua `dataset_manifest_sha256`.
 
 Operator có thể đối soát checksum cục bộ trước khi bàn giao:
 
@@ -124,7 +129,6 @@ sha256sum -c checksums.sha256
 Kết quả hợp lệ:
 ```text
 features-part-00000.parquet: OK
-dataset_manifest.json: OK
 ```
 
 ---

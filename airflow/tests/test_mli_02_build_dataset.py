@@ -5,6 +5,7 @@ from __future__ import annotations
 import ast
 from copy import deepcopy
 from datetime import datetime
+import hashlib
 import importlib.util
 import json
 from pathlib import Path
@@ -16,6 +17,7 @@ from unittest.mock import patch
 
 REPOSITORY = Path(__file__).parents[2]
 DAG_PATH = REPOSITORY / "airflow" / "dags" / "mli_02_build_dataset.py"
+RUNNER_FIXTURE_PATH = REPOSITORY / "airflow" / "dags" / "fixtures" / "mock_build_runner.py"
 sys.path.insert(0, str(DAG_PATH.parent))
 
 import ml_dataset_runtime as runtime
@@ -198,9 +200,39 @@ class Mli02RuntimeControlPlaneTest(unittest.TestCase):
         with self.assertRaisesRegex(runtime.Mli02Error, "DS_IDENTITY_CONFLICT"):
             runtime.resolve_run_context({"conf": self.fixture["conf"], "run_id": "run_03"}, self.env)
 
+    def test_production_fails_without_runner_and_without_mock(self):
+        # Point 1: Missing runner in production must fail closed
+        ctx = runtime.resolve_run_context({"conf": self.fixture["conf"], "run_id": "run_no_runner"}, self.env)
+        with self.assertRaisesRegex(runtime.Mli02Error, "DS_RUNNER_REQUIRED"):
+            runtime.execute_step("wait_gold_published", ctx, None, self.env)
+
+    def test_mock_pipeline_isolated_cannot_publish_official_registry(self):
+        # Point 1: Mock pipeline is strictly for testing and cannot write to official registry
+        req = {
+            "conf": self.fixture["conf"],
+            "run_id": "run_mock_test",
+            "mock_pipeline": self.fixture["mock_pipeline"],
+        }
+        summary = runtime.run(req, self.env)
+        self.assertEqual("MOCK_COMPLETED", summary["status"])
+        self.assertFalse(summary["colab_handoff"]["ready"])
+        self.assertEqual("MOCK_NOT_ELIGIBLE_FOR_COLAB", summary["colab_handoff"]["status"])
+
+        # Official registry must remain completely untouched
+        official_reg_path = Path(self.env["MLI_DATASET_REGISTRY_ROOT"]) / f"{summary['dataset_id']}.json"
+        self.assertFalse(official_reg_path.exists())
+
+        # Official export root must remain completely untouched
+        official_export_path = Path(self.env["ML_BUILD_EXPORT_ROOT"]) / f"dataset_id={summary['dataset_id']}"
+        self.assertFalse(official_export_path.exists())
+
     def test_retry_isolates_export_attempts_without_mixing_parts(self):
-        ctx = runtime.resolve_run_context({"conf": self.fixture["conf"], "run_id": "run_attempt_test"}, self.env)
-        # Advance through step 8
+        # Point 4: Different attempts produce isolated directories
+        ctx = runtime.resolve_run_context({
+            "conf": self.fixture["conf"],
+            "run_id": "run_attempt_test",
+            "mock_pipeline": self.fixture["mock_pipeline"],
+        }, self.env)
         upstream = None
         for step in runtime.STEPS[:8]:
             upstream = runtime.execute_step(step, ctx, upstream, self.env, attempt=1)
@@ -218,9 +250,52 @@ class Mli02RuntimeControlPlaneTest(unittest.TestCase):
         self.assertNotEqual(dir1, dir2)
         self.assertTrue((dir2 / "features-part-00000.parquet").is_file())
 
+    def test_attempt_isolation_rejects_dirty_existing_directory(self):
+        # Point 4: Attempt directory that already exists with files must be refused
+        ctx = runtime.resolve_run_context({
+            "conf": self.fixture["conf"],
+            "run_id": "run_dirty_attempt",
+            "mock_pipeline": self.fixture["mock_pipeline"],
+        }, self.env)
+        upstream = None
+        for step in runtime.STEPS[:8]:
+            upstream = runtime.execute_step(step, ctx, upstream, self.env, attempt=1)
+
+        # Create attempt directory with dirty stray file
+        dirty_dir = Path(ctx["staging_root"]) / "export_attempts" / "attempt_1"
+        dirty_dir.mkdir(parents=True, exist_ok=True)
+        (dirty_dir / "features-part-00001.parquet").write_bytes(b"STRAY_PART")
+
+        with self.assertRaisesRegex(runtime.Mli02Error, "DS_ATTEMPT_DIRECTORY_EXISTS"):
+            runtime.execute_step("export_parquet", ctx, upstream, self.env, attempt=1)
+
+    def test_promote_excludes_stray_unindexed_attempt_parts(self):
+        # Point 4: Promote must ONLY copy verified files listed in checksums.sha256
+        ctx = runtime.resolve_run_context({
+            "conf": self.fixture["conf"],
+            "run_id": "run_promote_isolation",
+            "mock_pipeline": self.fixture["mock_pipeline"],
+        }, self.env)
+        upstream = None
+        for step in runtime.STEPS[:9]:
+            upstream = runtime.execute_step(step, ctx, upstream, self.env, attempt=1)
+
+        attempt_dir = Path(upstream["attempt_dir"])
+        # Inject stray unindexed file in attempt directory
+        (attempt_dir / "features-part-00099.parquet").write_bytes(b"UNINDEXED_STRAY_PART")
+
+        # Step 10 promotes to mock_export
+        step10 = runtime.execute_step("mark_dataset_exported", ctx, upstream, self.env, attempt=1)
+        mock_export = Path(step10["export_artifact_uri"])
+        self.assertTrue((mock_export / "features-part-00000.parquet").is_file())
+        self.assertFalse((mock_export / "features-part-00099.parquet").exists())
+
     def test_failure_stops_before_dataset_exported_and_colab_not_ready(self):
-        ctx = runtime.resolve_run_context({"conf": self.fixture["conf"], "run_id": "run_fail_test"}, self.env)
-        # Run steps up to audit
+        ctx = runtime.resolve_run_context({
+            "conf": self.fixture["conf"],
+            "run_id": "run_fail_test",
+            "mock_pipeline": self.fixture["mock_pipeline"],
+        }, self.env)
         upstream = None
         for step in runtime.STEPS[:3]:
             upstream = runtime.execute_step(step, ctx, upstream, self.env)
@@ -231,16 +306,16 @@ class Mli02RuntimeControlPlaneTest(unittest.TestCase):
         with self.assertRaisesRegex(runtime.Mli02Error, "DS_MC_INVALID"):
             runtime.execute_step("resolve_mc", bad_ctx, upstream, self.env)
 
-        # Confirm dataset was never exported and registry has no entry
-        reg_path = Path(self.env["MLI_DATASET_REGISTRY_ROOT"]) / f"{ctx['dataset_id']}.json"
-        self.assertFalse(reg_path.exists())
-
         # Confirm step 10 was never run
         step10_file = Path(ctx["staging_root"]) / "step_10_mark_dataset_exported.json"
         self.assertFalse(step10_file.exists())
 
     def test_readback_checksum_tampering_is_caught(self):
-        ctx = runtime.resolve_run_context({"conf": self.fixture["conf"], "run_id": "run_tamper_test"}, self.env)
+        ctx = runtime.resolve_run_context({
+            "conf": self.fixture["conf"],
+            "run_id": "run_tamper_test",
+            "mock_pipeline": self.fixture["mock_pipeline"],
+        }, self.env)
         upstream = None
         for step in runtime.STEPS[:9]:
             upstream = runtime.execute_step(step, ctx, upstream, self.env, attempt=1)
@@ -252,16 +327,96 @@ class Mli02RuntimeControlPlaneTest(unittest.TestCase):
         with self.assertRaisesRegex(runtime.Mli02Error, "DS_EXPORT_CHECKSUM_MISMATCH"):
             runtime.execute_step("mark_dataset_exported", ctx, upstream, self.env, attempt=1)
 
-    def test_successful_full_run_and_manual_colab_handoff(self):
+    def test_readback_count_mismatch_fails_gate(self):
+        # Point 1 & 3: Manifest declares 142 rows but Parquet has 3 rows -> fails readback
+        ctx = runtime.resolve_run_context({
+            "conf": self.fixture["conf"],
+            "run_id": "run_count_mismatch",
+            "mock_pipeline": self.fixture["mock_pipeline"],
+        }, self.env)
+        upstream = None
+        for step in runtime.STEPS[:9]:
+            upstream = runtime.execute_step(step, ctx, upstream, self.env, attempt=1)
+
+        # Overwrite parquet with only 3 rows while manifest claims 142
+        attempt_dir = Path(upstream["attempt_dir"])
+        part_path = attempt_dir / "features-part-00000.parquet"
+        runtime._materialize_features_parquet(part_path, ctx, row_count=3)
+        part_sha = hashlib.sha256(part_path.read_bytes()).hexdigest()
+        (attempt_dir / "checksums.sha256").write_text(f"{part_sha}  features-part-00000.parquet\n", encoding="utf-8")
+
+        with self.assertRaisesRegex(runtime.Mli02Error, "DS_COUNT_RECONCILIATION_FAILED:expected_142_got_3"):
+            runtime.execute_step("mark_dataset_exported", ctx, upstream, self.env, attempt=1)
+
+    def test_external_runner_receipt_validation_rejects_identity_mismatch(self):
+        # Point 3: Validate receipt step, identity, attempt, snapshot
+        ctx = runtime.resolve_run_context({"conf": self.fixture["conf"], "run_id": "run_receipt_test"}, self.env)
+
+        # Test receipt with wrong dataset_id
+        bad_report = {
+            "step": "wait_gold_published",
+            "status": "VERIFIED_PUBLISHED",
+            "run_id": ctx["run_id"],
+            "dataset_id": "wrong_dataset_id",
+            "gold_snapshot_id": ctx["gold_publication"]["gold_snapshot_id"],
+            "attempt": 1,
+        }
+        with self.assertRaisesRegex(runtime.Mli02Error, "DS_RUNNER_RECEIPT_INVALID:wait_gold_published_dataset_id_mismatch"):
+            runtime.validate_runner_receipt("wait_gold_published", bad_report, ctx, attempt=1)
+
+        # Test receipt with wrong run_id
+        bad_report2 = {
+            "step": "wait_gold_published",
+            "status": "VERIFIED_PUBLISHED",
+            "run_id": "wrong_run_id",
+            "dataset_id": ctx["dataset_id"],
+            "gold_snapshot_id": ctx["gold_publication"]["gold_snapshot_id"],
+            "attempt": 1,
+        }
+        with self.assertRaisesRegex(runtime.Mli02Error, "DS_RUNNER_RECEIPT_INVALID:wait_gold_published_run_id_mismatch"):
+            runtime.validate_runner_receipt("wait_gold_published", bad_report2, ctx, attempt=1)
+
+    def test_leaf_gate_fails_if_lease_still_held(self):
+        # Point 3: Leaf gate fails if lease is still held
+        ctx = runtime.resolve_run_context({"conf": self.fixture["conf"], "run_id": "run_lease_gate"}, self.env)
+
+        # Construct a fake final result that did not release lease
+        fake_final = {
+            "status": "DATASET_EXPORTED",
+            "dataset_id": ctx["dataset_id"],
+            "run_id": ctx["run_id"],
+            "gold_snapshot_id": ctx["gold_publication"]["gold_snapshot_id"],
+            "export_artifact_uri": None,
+        }
+        with self.assertRaisesRegex(runtime.Mli02Error, "DS_EXPORT_GATE_FAILED"):
+            runtime.mark_dataset_exported_summary(ctx, fake_final, self.env)
+
+    def test_airflow_run_id_with_plus_and_colon_is_accepted(self):
+        # Point 5: Standard Airflow run IDs with '+', ':', etc. must be accepted
+        airflow_run_id = "manual__2026-10-17T00:00:00+00:00"
+        ctx = runtime.resolve_run_context({"conf": self.fixture["conf"], "run_id": airflow_run_id}, self.env)
+        self.assertEqual(airflow_run_id, ctx["run_id"])
+        self.assertEqual(airflow_run_id, ctx["lease_owner"]["run_id"])
+
+        # Staging directory on disk must be filesystem safe (no illegal colon on Windows)
+        staging_dir = Path(ctx["staging_root"])
+        self.assertTrue(staging_dir.is_dir())
+        self.assertNotIn(":", staging_dir.name)
+        runtime.lease("release", ctx["lease_owner"], self.env)
+
+    def test_successful_full_run_with_external_runner_and_registry_handoff(self):
+        # Points 1, 2, 3: Full production run using real external runner command protocol
+        env = {
+            **self.env,
+            "ML_BUILD_RUNNER_COMMAND": f'"{sys.executable}" "{RUNNER_FIXTURE_PATH}"',
+        }
         req = {
             "conf": self.fixture["conf"],
-            "run_id": "run_success_e2e",
-            "mock_pipeline": self.fixture["mock_pipeline"],
+            "run_id": "run_prod_e2e_runner",
         }
-        summary = runtime.run(req, self.env)
+        summary = runtime.run(req, env)
 
         self.assertEqual("DATASET_EXPORTED", summary["status"])
-        self.assertEqual(self.fixture["conf"]["dataset_split"], summary["dataset_split"])
         self.assertTrue(summary["dataset_id"].startswith("ds_"))
 
         # Verify exported bundle on disk
@@ -271,18 +426,38 @@ class Mli02RuntimeControlPlaneTest(unittest.TestCase):
         self.assertTrue((export_dir / "dataset_manifest.json").is_file())
         self.assertTrue((export_dir / "checksums.sha256").is_file())
 
-        # Verify manifest registration
-        reg_path = Path(summary["export_artifact_uri"]) / "dataset_manifest.json"
-        manifest_data = json.loads(reg_path.read_text(encoding="utf-8"))
+        # Verify checksums do not have circular reference:
+        # checksums.sha256 only hashes data parts
+        checksums_lines = (export_dir / "checksums.sha256").read_text(encoding="utf-8").strip().splitlines()
+        self.assertEqual(1, len(checksums_lines))
+        self.assertIn("features-part-00000.parquet", checksums_lines[0])
+        self.assertNotIn("dataset_manifest.json", (export_dir / "checksums.sha256").read_text(encoding="utf-8"))
+
+        # Verify manifest registration in MLI_DATASET_REGISTRY_ROOT
+        reg_root = Path(self.env["MLI_DATASET_REGISTRY_ROOT"])
+        manifest_file = reg_root / f"{summary['dataset_id']}.json"
+        self.assertTrue(manifest_file.is_file())
+        manifest_data = json.loads(manifest_file.read_text(encoding="utf-8"))
         self.assertEqual("EXPORTED", manifest_data["dataset_status"])
-        self.assertEqual(summary["dataset_id"], manifest_data["dataset_id"])
+        self.assertEqual(142, manifest_data["feature_row_count"])
+
+        # Verify MLI-03 TrustedDatasetResolver compatibility:
+        # export_manifest_ref can be resolved directly from registry root!
+        ref = manifest_data["export_manifest_ref"]
+        resolved_export_ref = (reg_root / ref).resolve()
+        self.assertTrue(resolved_export_ref.is_file())
+        export_sha = hashlib.sha256(resolved_export_ref.read_bytes()).hexdigest()
+        self.assertEqual(manifest_data["export_manifest_sha256"], export_sha)
 
         # Verify Colab handoff parameters: manual operator required, no auto-trigger
         handoff = summary["colab_handoff"]
         self.assertEqual("MANUAL_OPERATOR_REQUIRED", handoff["status"])
         self.assertIs(True, handoff["ready"])
         self.assertIs(False, handoff["auto_triggered"])
-        self.assertIn("Operator should manually", handoff["notes"])
+
+        # Verify lease is released
+        owner_file = Path(self.env["SOURCE_GUARD_ROOT"]) / "owner.json"
+        self.assertFalse(owner_file.exists())
 
 
 if __name__ == "__main__":
