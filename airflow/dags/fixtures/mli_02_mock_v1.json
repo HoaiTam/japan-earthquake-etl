@@ -1,0 +1,91 @@
+{
+  "contract_version": "1.0",
+  "dag_id": "mli_02_build_dataset",
+  "conf": {
+    "dataset_split": "REPRODUCTION",
+    "period_start_utc": "2000-01-01T00:00:00Z",
+    "period_end_utc_exclusive": "2018-10-01T00:00:00Z",
+    "observation_cutoff_utc": "2026-10-11T00:00:00Z",
+    "filter_config": {
+      "is_natural_earthquake": true,
+      "is_in_study_area": true,
+      "canonical_source_system": "JMA_BULLETIN",
+      "catalog_era": "UNIFIED"
+    },
+    "dataset_config_version": "dataset-identity-v1",
+    "audit_rule_version": "gold-audit-v1",
+    "mc_method_version": "maximum-curvature-v1",
+    "window_model_version": "window-model-v1",
+    "feature_version": "relative-4d-v1",
+    "scaling_config_version": "scaling-v1",
+    "code_version": "56b0cf464c7492f27eb1e75e0bd9b43a31b77dcd",
+    "publication_reference": {
+      "gold_publication_id": "pub_d03dad056f8ea9b4af290ddf92009042d123bf9db0512e549ca0e5e180449b9f",
+      "gold_snapshot_id": 1901025108914282099,
+      "gold_table_name": "iceberg.gold.earthquake_event_current",
+      "physical_gold_table_name": "iceberg.gold.event_current",
+      "publication_bundle_sha256": "d03dad056f8ea9b4af290ddf92009042d123bf9db0512e549ca0e5e180449b9f",
+      "verify_status": "PASSED",
+      "published": true
+    }
+  },
+  "mock_pipeline": {
+    "audit": {
+      "input_event_count": 528,
+      "eligible_event_count": 176,
+      "excluded_event_count": 352,
+      "exclusion_counts_by_primary_reason": {
+        "ML_BELOW_COMPLETENESS": 36,
+        "ML_MISSING_MAGNITUDE": 15,
+        "ML_NON_NATURAL_EVENT": 2,
+        "ML_OUTSIDE_TIME_RANGE": 283,
+        "ML_SOURCE_NOT_COMPARABLE": 16
+      }
+    },
+    "mc": {
+      "mc_method": "MAXIMUM_CURVATURE",
+      "mc_method_version": "maximum-curvature-v1",
+      "mc_value": 0.6,
+      "mc_region_version": "overall-bounded-pilot-v1",
+      "mc_config_json": "{\"applied_mc\":0.6,\"applied_method\":\"MAXIMUM_CURVATURE\",\"central_mc\":0.6,\"is_reliable\":true,\"sample_count\":176}",
+      "mc_config_sha256": "f5d0a12f8a7bc8458375f0d8876005f2548ba0bce78f380005fa95192f4168ff"
+    },
+    "selection": {
+      "mainshock_count": 2,
+      "mainshocks": [
+        {
+          "mainshock_event_id": "evt_d47fcaaf451cc2e5c3dcc8f016a999be",
+          "event_time_utc": "2000-01-28T14:21:09.120000Z",
+          "latitude": 35.483,
+          "longitude": 140.485,
+          "depth_km": 58.2,
+          "magnitude": 5.7,
+          "mc_value": 0.6
+        },
+        {
+          "mainshock_event_id": "evt_f0300848e0b73b5ce9497a70a74a5905",
+          "event_time_utc": "2000-06-07T06:19:15.840000Z",
+          "latitude": 36.812,
+          "longitude": 141.221,
+          "depth_km": 52.0,
+          "magnitude": 6.1,
+          "mc_value": 0.6
+        }
+      ]
+    },
+    "windows": {
+      "candidate_row_count": 142,
+      "role_counts": {
+        "MAINSHOCK": 2,
+        "PRE": 38,
+        "POST": 102
+      }
+    },
+    "features": {
+      "feature_row_count": 142,
+      "feature_schema_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "finite_features_verified": true,
+      "zero_self_vector_verified": true
+    }
+  }
+}
