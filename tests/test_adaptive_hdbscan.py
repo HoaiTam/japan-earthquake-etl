@@ -1,5 +1,6 @@
 """Unit and integration tests for EXP-03 HDBSCAN Adaptive and Multi-Sequence Resolution."""
 from datetime import datetime, timezone
+import itertools
 import json
 from pathlib import Path
 import shutil
@@ -22,6 +23,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from adaptive_hdbscan import (
+    find_best_membership_row,
     resolve_adaptive_hdbscan_params,
     fit_hdbscan_adaptive,
     resolve_multi_sequence_and_nested_mainshocks,
@@ -594,6 +596,301 @@ class TestAdaptiveHDBSCAN(unittest.TestCase):
 
         self.assertEqual(recon["ambiguous_candidates_count"], 1)
         self.assertEqual(recon["resolved_unique_aftershocks"], 0)
+
+    # -------------------------------------------------------------------------
+    # 7. Order-Invariance Permutation Tests (>= 3 Sequences)
+    # -------------------------------------------------------------------------
+    def test_find_best_membership_row_3_sequences_counterexample_permutations(self):
+        """HoaiTam counterexample where pairwise comparison violates transitivity.
+
+        Candidates:
+          A: prob = 0.8000000, dist = 0.1
+          B: prob = 0.80000075, dist = 0.2
+          C: prob = 0.8000015, dist = 0.3
+        With eps_tie = 1e-6:
+          p_max = 0.8000015 (C).
+          Candidates within eps_tie of p_max: B (diff = 7.5e-7 <= 1e-6) and C (diff = 0).
+          Within {B, C}, minimum distance is 0.2 (B).
+          Candidate B is strictly within [0.2, 0.2 + 1e-6]; C has distance 0.3 > 0.2 + 1e-6.
+          Therefore, candidate B is the unique winner across all 6 permutations!
+        """
+        eps_tie = 1e-6
+        cand_a = {"mainshock_event_id": "main_A", "membership_probability": 0.8000000, "normalized_distance": 0.1}
+        cand_b = {"mainshock_event_id": "main_B", "membership_probability": 0.80000075, "normalized_distance": 0.2}
+        cand_c = {"mainshock_event_id": "main_C", "membership_probability": 0.8000015, "normalized_distance": 0.3}
+
+        candidates = [cand_a, cand_b, cand_c]
+        permutations = list(itertools.permutations(candidates))
+        self.assertEqual(len(permutations), 6)
+
+        for perm in permutations:
+            with self.subTest(order=[c["mainshock_event_id"] for c in perm]):
+                winner, is_tie = find_best_membership_row(list(perm), eps_tie=eps_tie)
+                self.assertFalse(is_tie)
+                self.assertIsNotNone(winner)
+                self.assertEqual(winner["mainshock_event_id"], "main_B")
+
+    def test_find_best_membership_row_3_sequences_unresolvable_tie_permutations(self):
+        """When 3 candidates tie on both probability and distance within tolerance.
+
+        All 6 permutations must yield is_tie=True and winner=None without arbitrary picking.
+        """
+        eps_tie = 1e-6
+        cand_a = {"mainshock_event_id": "main_A", "membership_probability": 0.8000000, "normalized_distance": 0.2000000}
+        cand_b = {"mainshock_event_id": "main_B", "membership_probability": 0.8000001, "normalized_distance": 0.2000001}
+        cand_c = {"mainshock_event_id": "main_C", "membership_probability": 0.8000002, "normalized_distance": 0.2000002}
+
+        candidates = [cand_a, cand_b, cand_c]
+        for perm in itertools.permutations(candidates):
+            with self.subTest(order=[c["mainshock_event_id"] for c in perm]):
+                winner, is_tie = find_best_membership_row(list(perm), eps_tie=eps_tie)
+                self.assertTrue(is_tie)
+                self.assertIsNone(winner)
+
+    def test_multi_sequence_resolution_3_sequences_all_permutations(self):
+        """Full multi-sequence resolution across all 6 permutations of 3 sequences.
+
+        Input order must never alter the resolved ranks or winner identity.
+        """
+        eps_tie = 1e-6
+        base_rows = [
+            {
+                "candidate_event_id": "ev_multi_3",
+                "mainshock_event_id": "main_A",
+                "is_sequence_member": True,
+                "membership_probability": 0.8000000,
+                "normalized_distance": 0.1,
+                "event_role_candidate": "POST",
+            },
+            {
+                "candidate_event_id": "ev_multi_3",
+                "mainshock_event_id": "main_B",
+                "is_sequence_member": True,
+                "membership_probability": 0.80000075,
+                "normalized_distance": 0.2,
+                "event_role_candidate": "POST",
+            },
+            {
+                "candidate_event_id": "ev_multi_3",
+                "mainshock_event_id": "main_C",
+                "is_sequence_member": True,
+                "membership_probability": 0.8000015,
+                "normalized_distance": 0.3,
+                "event_role_candidate": "POST",
+            },
+        ]
+
+        for perm in itertools.permutations(base_rows):
+            summaries = [
+                {"mainshock_event_id": "main_A", "is_nested_mainshock_candidate": False},
+                {"mainshock_event_id": "main_B", "is_nested_mainshock_candidate": False},
+                {"mainshock_event_id": "main_C", "is_nested_mainshock_candidate": False},
+            ]
+            # Deep-copy rows for each permutation
+            mem_input = [dict(r) for r in perm]
+            res_mem, _, recon = resolve_multi_sequence_and_nested_mainshocks(mem_input, summaries, eps_tie=eps_tie)
+
+            row_a = next(m for m in res_mem if m["mainshock_event_id"] == "main_A")
+            row_b = next(m for m in res_mem if m["mainshock_event_id"] == "main_B")
+            row_c = next(m for m in res_mem if m["mainshock_event_id"] == "main_C")
+
+            order_str = "->".join(m["mainshock_event_id"] for m in perm)
+            with self.subTest(order=order_str):
+                # B must win rank 1 in every permutation
+                self.assertEqual(row_b["multi_sequence_status"], "MULTIPLE")
+                self.assertEqual(row_b["resolution_rank"], 1)
+
+                # C has next highest probability -> rank 2
+                self.assertEqual(row_c["multi_sequence_status"], "MULTIPLE")
+                self.assertEqual(row_c["resolution_rank"], 2)
+
+                # A has lowest probability -> rank 3
+                self.assertEqual(row_a["multi_sequence_status"], "MULTIPLE")
+                self.assertEqual(row_a["resolution_rank"], 3)
+
+                self.assertEqual(recon["resolved_unique_aftershocks"], 1)
+                self.assertEqual(recon["ambiguous_candidates_count"], 0)
+
+    def test_multi_sequence_resolution_3_sequences_tie_all_permutations(self):
+        """Full multi-sequence resolution with 3-way tie across all 6 permutations.
+
+        Must result in AMBIGUOUS and resolution_rank=None across all permutations.
+        """
+        eps_tie = 1e-6
+        base_rows = [
+            {
+                "candidate_event_id": "ev_tie_3",
+                "mainshock_event_id": "main_A",
+                "is_sequence_member": True,
+                "membership_probability": 0.8500000,
+                "normalized_distance": 0.2000000,
+                "event_role_candidate": "POST",
+            },
+            {
+                "candidate_event_id": "ev_tie_3",
+                "mainshock_event_id": "main_B",
+                "is_sequence_member": True,
+                "membership_probability": 0.8500001,
+                "normalized_distance": 0.2000001,
+                "event_role_candidate": "POST",
+            },
+            {
+                "candidate_event_id": "ev_tie_3",
+                "mainshock_event_id": "main_C",
+                "is_sequence_member": True,
+                "membership_probability": 0.8500002,
+                "normalized_distance": 0.2000002,
+                "event_role_candidate": "POST",
+            },
+        ]
+
+        for perm in itertools.permutations(base_rows):
+            summaries = [
+                {"mainshock_event_id": "main_A", "is_nested_mainshock_candidate": False},
+                {"mainshock_event_id": "main_B", "is_nested_mainshock_candidate": False},
+                {"mainshock_event_id": "main_C", "is_nested_mainshock_candidate": False},
+            ]
+            mem_input = [dict(r) for r in perm]
+            res_mem, _, recon = resolve_multi_sequence_and_nested_mainshocks(mem_input, summaries, eps_tie=eps_tie)
+
+            order_str = "->".join(m["mainshock_event_id"] for m in perm)
+            with self.subTest(order=order_str):
+                for m in res_mem:
+                    self.assertEqual(m["multi_sequence_status"], "AMBIGUOUS")
+                    self.assertIsNone(m["resolution_rank"])
+
+                self.assertEqual(recon["resolved_unique_aftershocks"], 0)
+                self.assertEqual(recon["ambiguous_candidates_count"], 1)
+
+    def test_nested_parent_resolution_3_sequences_all_permutations(self):
+        """Nested parent resolution with >= 3 candidate parents across all permutations.
+
+        Mainshock main_X appears as sequence member in main_A, main_B, main_C.
+        In main_A: prob = 0.8000000, dist = 0.1
+        In main_B: prob = 0.80000075, dist = 0.2
+        In main_C: prob = 0.8000015, dist = 0.3
+        With eps_tie = 1e-6:
+          Global resolution selects main_B as the winning parent across all 6 permutations.
+        """
+        eps_tie = 1e-6
+        base_other_memberships = [
+            {
+                "candidate_event_id": "main_X",
+                "mainshock_event_id": "main_A",
+                "is_sequence_member": True,
+                "membership_probability": 0.8000000,
+                "normalized_distance": 0.1,
+                "event_role_candidate": "POST",
+            },
+            {
+                "candidate_event_id": "main_X",
+                "mainshock_event_id": "main_B",
+                "is_sequence_member": True,
+                "membership_probability": 0.80000075,
+                "normalized_distance": 0.2,
+                "event_role_candidate": "POST",
+            },
+            {
+                "candidate_event_id": "main_X",
+                "mainshock_event_id": "main_C",
+                "is_sequence_member": True,
+                "membership_probability": 0.8000015,
+                "normalized_distance": 0.3,
+                "event_role_candidate": "POST",
+            },
+        ]
+
+        for perm in itertools.permutations(base_other_memberships):
+            # Include main_X's own window
+            memberships = [
+                {
+                    "candidate_event_id": "main_X",
+                    "mainshock_event_id": "main_X",
+                    "is_sequence_member": True,
+                    "membership_probability": 1.0,
+                    "normalized_distance": 0.0,
+                    "event_role_candidate": "MAINSHOCK",
+                }
+            ] + [dict(r) for r in perm]
+
+            summaries = [
+                {"mainshock_event_id": "main_X", "is_nested_mainshock_candidate": False},
+                {"mainshock_event_id": "main_A", "is_nested_mainshock_candidate": False},
+                {"mainshock_event_id": "main_B", "is_nested_mainshock_candidate": False},
+                {"mainshock_event_id": "main_C", "is_nested_mainshock_candidate": False},
+            ]
+
+            _, res_sum, recon = resolve_multi_sequence_and_nested_mainshocks(memberships, summaries, eps_tie=eps_tie)
+            sum_x = next(s for s in res_sum if s["mainshock_event_id"] == "main_X")
+
+            order_str = "->".join(m["mainshock_event_id"] for m in perm)
+            with self.subTest(order=order_str):
+                self.assertTrue(sum_x["is_nested_mainshock_candidate"])
+                self.assertEqual(sum_x["parent_mainshock_event_id"], "main_B")
+                self.assertAlmostEqual(sum_x["nested_membership_probability"], 0.80000075)
+
+    def test_nested_parent_resolution_3_sequences_tie_all_permutations(self):
+        """Nested parent resolution with 3-way tie across all 6 permutations.
+
+        When all 3 candidate parents tie within eps_tie, parent_mainshock_event_id
+        must be None and reason code AMBIGUOUS_NESTED_PARENT_TIE added.
+        """
+        eps_tie = 1e-6
+        base_other_memberships = [
+            {
+                "candidate_event_id": "main_Y",
+                "mainshock_event_id": "main_A",
+                "is_sequence_member": True,
+                "membership_probability": 0.8000000,
+                "normalized_distance": 0.2000000,
+                "event_role_candidate": "POST",
+            },
+            {
+                "candidate_event_id": "main_Y",
+                "mainshock_event_id": "main_B",
+                "is_sequence_member": True,
+                "membership_probability": 0.8000001,
+                "normalized_distance": 0.2000001,
+                "event_role_candidate": "POST",
+            },
+            {
+                "candidate_event_id": "main_Y",
+                "mainshock_event_id": "main_C",
+                "is_sequence_member": True,
+                "membership_probability": 0.8000002,
+                "normalized_distance": 0.2000002,
+                "event_role_candidate": "POST",
+            },
+        ]
+
+        for perm in itertools.permutations(base_other_memberships):
+            memberships = [
+                {
+                    "candidate_event_id": "main_Y",
+                    "mainshock_event_id": "main_Y",
+                    "is_sequence_member": True,
+                    "membership_probability": 1.0,
+                    "normalized_distance": 0.0,
+                    "event_role_candidate": "MAINSHOCK",
+                }
+            ] + [dict(r) for r in perm]
+
+            summaries = [
+                {"mainshock_event_id": "main_Y", "is_nested_mainshock_candidate": False},
+                {"mainshock_event_id": "main_A", "is_nested_mainshock_candidate": False},
+                {"mainshock_event_id": "main_B", "is_nested_mainshock_candidate": False},
+                {"mainshock_event_id": "main_C", "is_nested_mainshock_candidate": False},
+            ]
+
+            _, res_sum, recon = resolve_multi_sequence_and_nested_mainshocks(memberships, summaries, eps_tie=eps_tie)
+            sum_y = next(s for s in res_sum if s["mainshock_event_id"] == "main_Y")
+
+            order_str = "->".join(m["mainshock_event_id"] for m in perm)
+            with self.subTest(order=order_str):
+                self.assertTrue(sum_y["is_nested_mainshock_candidate"])
+                self.assertIsNone(sum_y["parent_mainshock_event_id"])
+                self.assertIsNone(sum_y["nested_membership_probability"])
+                self.assertIn("AMBIGUOUS_NESTED_PARENT_TIE", sum_y["metric_reason_codes"])
 
 
 if __name__ == "__main__":

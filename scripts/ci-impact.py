@@ -20,17 +20,21 @@ PILOT_FILES = {"notebooks/pilot_bundle.py", "notebooks/dat_02_inspection.ipynb"}
 EXP_FILES = {
     "notebooks/experiment_harness.py",
     "notebooks/baseline_models.py",
+    "notebooks/adaptive_hdbscan.py",
     "notebooks/exp_01_harness_smoke.ipynb",
     "notebooks/exp_02_baseline_algorithms.ipynb",
+    "notebooks/exp_03_adaptive_hdbscan.ipynb",
 }
 EXP_SCRIPTS = {
     "scripts/inspect-exp01-notebook.py",
     "scripts/inspect-exp02-notebook.py",
+    "scripts/inspect-exp03-notebook.py",
 }
 EXP_CONFIGS = {
     "config/ml/models/window_baseline_v1.json",
     "config/ml/models/dbscan_global_dev_v1.json",
     "config/ml/models/hdbscan_global_dev_v1.json",
+    "config/ml/models/hdbscan_adaptive_dev_v1.json",
 }
 LEAF_DAGS = {"airflow/dags/" + name + ".py" for name in
              ("afl_01_smoke", "usg_04_usgs_ingest", "jma_04_year_backfill", "orc_01_etl_pipeline", "orc_02_daily_sources", "orc_03_backfill")}
@@ -74,13 +78,13 @@ def classify(changes, root=ROOT):
             or path in PILOT_SCRIPTS
             or path in EXP_FILES
             or path in EXP_SCRIPTS
-            or re.fullmatch(r"tests/test_(pilot_[a-z0-9_]+|experiment_harness|baseline_algorithms)\.py", path)
+            or re.fullmatch(r"tests/test_(pilot_[a-z0-9_]+|experiment_harness|baseline_algorithms|adaptive_hdbscan)\.py", path)
         ):
             pilot = "full"
             reasons.add("pilot-python")
             if path in PILOT_SCRIPTS:
                 scopes.add("feature")
-            elif path in EXP_FILES or path in EXP_SCRIPTS or "experiment_harness" in path or "baseline_algorithms" in path:
+            elif path in EXP_FILES or path in EXP_SCRIPTS or any(k in path for k in ("experiment_harness", "baseline_algorithms", "adaptive_hdbscan")):
                 scopes.add("ml")
             continue
         if path in PILOT_CONFIGS or path in EXP_CONFIGS:
@@ -224,7 +228,7 @@ def emit(result, output=None, summary=None, root=ROOT):
             file.write("\n| Component | Functional/task suite | Test classes/modules |\n|---|---|---|\n")
             for component, groups in matrices.items():
                 for group, tests in groups.items(): file.write(f"| {component} | {group} | {len(tests)} |\n")
-            if result["pilot"] != "none": file.write("| Python | DAT-02/EXP-01/EXP-02 pilot & baselines | test_pilot_*.py, test_experiment_harness.py, test_baseline_algorithms.py |\n")
+            if result["pilot"] != "none": file.write("| Python | DAT-02/EXP-01/EXP-02/EXP-03 pilot, baselines & adaptive | test_pilot_*.py, test_experiment_harness.py, test_baseline_algorithms.py, test_adaptive_hdbscan.py |\n")
 
 
 def commands(result, component):

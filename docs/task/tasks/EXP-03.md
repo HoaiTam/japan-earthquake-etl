@@ -1,6 +1,6 @@
 ---
 task_id: "EXP-03"
-status: "Done"
+status: "In Progress"
 week: 7
 block: "H - Experiment"
 workstream: "Adaptive HDBSCAN"
@@ -57,7 +57,7 @@ adaptive parameter analysis đang chạy, miễn cùng output contract.
 
 ## Theo dõi
 
-- **Trạng thái:** Done
+- **Trạng thái:** In Progress
 - **Assignee:** rosy179
 - **Reviewer:** unassigned
 - **Evidence / PR:** [EXP-03 evidence](../../evidence/EXP-03.md)

@@ -109,6 +109,7 @@ def main():
     parser.add_argument("--notebook", default=str(ROOT / "notebooks/exp_03_adaptive_hdbscan.ipynb"), help="Path to notebook")
     parser.add_argument("--pilot-bundle", default=os.environ.get("PILOT_BUNDLE", ""), help="Path to pilot bundle directory")
     parser.add_argument("--output-json", default="", help="Optional output path for inspection JSON")
+    parser.add_argument("--output-dir", default=os.environ.get("EXP03_OUTPUT_DIR", ""), help="Optional path to output directory")
     args = parser.parse_args()
 
     notebook_path = Path(args.notebook).resolve()
@@ -119,6 +120,8 @@ def main():
     env_override = {}
     if args.pilot_bundle:
         env_override["PILOT_BUNDLE"] = args.pilot_bundle
+    if args.output_dir:
+        env_override["EXP03_OUTPUT_DIR"] = args.output_dir
 
     try:
         report = run_notebook_cells(notebook_path, env_override)

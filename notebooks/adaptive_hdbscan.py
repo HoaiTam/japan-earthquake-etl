@@ -290,6 +290,48 @@ def fit_hdbscan_adaptive(
 # -----------------------------------------------------------------------------
 # 3. Multi-Sequence Entity Resolution & Nested Mainshock Detection
 # -----------------------------------------------------------------------------
+def find_best_membership_row(
+    rows: List[Dict[str, Any]],
+    eps_tie: float = 1e-6,
+) -> Tuple[Optional[Dict[str, Any]], bool]:
+    """Find the best membership row in a candidate set using global, order-invariant resolution.
+
+    Mathematical guarantee:
+    - Never uses pairwise comparator sorting that could break transitivity.
+    - Operates globally on the candidate set:
+      1. Determines maximum probability p_max across all rows.
+      2. Groups candidates within eps_tie of p_max:
+         top_prob = [r for r in rows if p_max - p(r) <= eps_tie]
+      3. Within top_prob, determines minimum normalized distance d_min.
+      4. Groups candidates within eps_tie of d_min:
+         best_candidates = [r for r in top_prob if d(r) - d_min <= eps_tie]
+      5. If len(best_candidates) == 1:
+           returns (best_candidates[0], False)  # Unique winner found
+         Else:
+           returns (None, True)  # Unresolvable tie (>1 tied winners)
+    """
+    if not rows:
+        return None, False
+    if len(rows) == 1:
+        return rows[0], False
+
+    p_max = max(0.0 if r.get("membership_probability") is None else float(r["membership_probability"]) for r in rows)
+    top_prob = [
+        r for r in rows
+        if p_max - (0.0 if r.get("membership_probability") is None else float(r["membership_probability"])) <= eps_tie
+    ]
+
+    d_min = min(float(r.get("normalized_distance", 0.0)) for r in top_prob)
+    best_candidates = [
+        r for r in top_prob
+        if float(r.get("normalized_distance", 0.0)) - d_min <= eps_tie
+    ]
+
+    if len(best_candidates) == 1:
+        return best_candidates[0], False
+    return None, True
+
+
 def compare_membership_rows(
     r1: Dict[str, Any],
     r2: Dict[str, Any],
@@ -352,6 +394,7 @@ def resolve_multi_sequence_and_nested_mainshocks(
     - Single-membership events have status UNIQUE and rank 1.
     - Resolvable multi-sequence events have status MULTIPLE, with distinct ranks 1..K containing 1.
     - Nested mainshocks: Mainshocks occurring in another sequence are flagged in sequence_summary.
+    - Order-invariant: global grouping within tolerance avoids non-transitivity cycles for >=3 candidates.
     - Returns updated memberships, summaries, and audit reconciliation metrics.
     """
     # Group membership rows by candidate_event_id
@@ -395,18 +438,11 @@ def resolve_multi_sequence_and_nested_mainshocks(
             # Multi-sequence candidate
             unique_candidates_multi_seq += 1
 
-            # Sort member rows using comparator with tie tolerance
-            sorted_members = sorted(
-                member_rows,
-                key=functools.cmp_to_key(lambda r1, r2: compare_membership_rows(r1, r2, eps_tie=eps_tie))
-            )
+            # Global order-invariant winner resolution
+            best_row, is_tie = find_best_membership_row(member_rows, eps_tie=eps_tie)
 
-            # Check for unresolvable tie between the top two candidates
-            top1 = sorted_members[0]
-            top2 = sorted_members[1]
-
-            if compare_membership_rows(top1, top2, eps_tie=eps_tie) == 0:
-                # Unresolvable tie: cannot objectively declare a winner
+            if is_tie or best_row is None:
+                # Unresolvable tie for top rank: cannot objectively declare a winner
                 ambiguous_candidates_count += 1
                 for r in member_rows:
                     r["multi_sequence_status"] = "AMBIGUOUS"
@@ -414,8 +450,21 @@ def resolve_multi_sequence_and_nested_mainshocks(
                     if r.get("event_role_candidate") == "POST":
                         ambiguous_aftershocks_count += 1
             else:
-                # Successfully resolved via probability or distance
-                for rank_idx, r in enumerate(sorted_members, start=1):
+                # Successfully resolved rank 1 via global hierarchy
+                # Iteratively peel off remaining ranks; break remaining ties deterministically
+                ordered_rows = []
+                remaining = list(member_rows)
+                while remaining:
+                    best, tie = find_best_membership_row(remaining, eps_tie=eps_tie)
+                    if tie or best is None:
+                        # Lower ranks tie: sort deterministically by mainshock_event_id to guarantee order-invariance
+                        tied_candidates = sorted(remaining, key=lambda r: str(r.get("mainshock_event_id", "")))
+                        ordered_rows.extend(tied_candidates)
+                        break
+                    ordered_rows.append(best)
+                    remaining = [r for r in remaining if r is not best]
+
+                for rank_idx, r in enumerate(ordered_rows, start=1):
                     r["multi_sequence_status"] = "MULTIPLE"
                     r["resolution_rank"] = rank_idx
                     if rank_idx == 1 and r.get("event_role_candidate") == "POST":
@@ -447,14 +496,8 @@ def resolve_multi_sequence_and_nested_mainshocks(
                 if len(other_memberships) == 1:
                     resolved_parent_row = other_memberships[0]
                 else:
-                    sorted_parents = sorted(
-                        other_memberships,
-                        key=functools.cmp_to_key(lambda r1, r2: compare_membership_rows(r1, r2, eps_tie=eps_tie))
-                    )
-                    best_parent = sorted_parents[0]
-                    runner_up = sorted_parents[1]
-
-                    if compare_membership_rows(best_parent, runner_up, eps_tie=eps_tie) == 0:
+                    best_parent, is_parent_tie = find_best_membership_row(other_memberships, eps_tie=eps_tie)
+                    if is_parent_tie:
                         # Tie between candidate parents: CANNOT assign an arbitrary parent!
                         resolved_parent_row = None
                     else:

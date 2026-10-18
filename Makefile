@@ -130,6 +130,7 @@ test-pilot: ## Synthetic loader/staging regression; cần pyarrow, không Docker
 	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_pilot_*.py'
 	@$(PILOT_PYTHON) -m unittest tests/test_experiment_harness.py
 	@$(PILOT_PYTHON) -m unittest tests/test_baseline_algorithms.py
+	@$(PILOT_PYTHON) -m unittest tests/test_adaptive_hdbscan.py
 
 inspect-pilot: ## Fresh Jupyter kernel Run All; PILOT_BUNDLE=exact local directory, không Docker/API
 	@test -n "$(PILOT_BUNDLE)" || { echo 'Set PILOT_BUNDLE=staging/ml-pilot/pilot_id=<exact-id>'; exit 2; }
@@ -160,6 +161,15 @@ inspect-exp02: ## EXP-02 fresh Jupyter kernel Run All cho baseline algorithms; k
 
 jupyter-exp02: ## Mở Jupyter loopback cho EXP-02 baseline algorithms notebook
 	@jupyter lab --ip=127.0.0.1 --no-browser notebooks/exp_02_baseline_algorithms.ipynb
+
+test-exp03: ## EXP-03 HDBSCAN adaptive và entity resolution unit tests; không Docker/network
+	@python3 -m unittest tests/test_adaptive_hdbscan.py
+
+inspect-exp03: ## EXP-03 fresh Jupyter kernel Run All cho adaptive HDBSCAN; không Docker/API
+	@python3 scripts/inspect-exp03-notebook.py $${PILOT_BUNDLE:+--pilot-bundle "$$PILOT_BUNDLE"}
+
+jupyter-exp03: ## Mở Jupyter loopback cho EXP-03 adaptive HDBSCAN notebook
+	@jupyter lab --ip=127.0.0.1 --no-browser notebooks/exp_03_adaptive_hdbscan.ipynb
 export QA_RUN_ID
 
 test-ml-window: ## MLD-03 bucket physical plan, distributed invariants, microseconds và fail-fast Parquet tests

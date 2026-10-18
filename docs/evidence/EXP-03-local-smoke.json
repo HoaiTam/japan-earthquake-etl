@@ -3,9 +3,9 @@
   "local_smoke_status": "FALLBACK_EXEC_WARNING",
   "colab_migration_allowed": false,
   "fresh_kernel_acceptance": false,
-  "notebook_sha256": "64e5a6c59c577c097ac8b93fc6687e0eeef84bf0501613fdc9048711de90249a",
+  "notebook_sha256": "c3afc4d04ceb710092709f5932fcd4eff444f54e4b11b5583d8f51b6abe4c99f",
   "executed_code_cells": 5,
-  "runtime_seconds": 3.198,
+  "runtime_seconds": 2.1122,
   "python_version": "3.11.0",
   "runner_mode": "isolated_exec",
   "source_notebook_outputs_cleared": true
