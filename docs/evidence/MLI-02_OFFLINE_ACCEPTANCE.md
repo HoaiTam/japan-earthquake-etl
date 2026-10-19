@@ -169,10 +169,10 @@ Không có lỗi whitespace (`exit code 0`).
 ## 4. Giới hạn / Rủi ro / Bước tiếp theo
 
 1. **Phụ thuộc upstream MLD-05:**
-   - Việc tích hợp live runner thực tế trên cụm MinIO/Trino phụ thuộc vào việc hoàn thiện mã nguồn export chính thức tại [MLD-05 - Validate feature snapshot và export Parquet bundle](docs/task/tasks/MLD-05.md).
+   - Việc tích hợp live runner thực tế trên cụm MinIO/Trino phụ thuộc vào việc hoàn thiện mã nguồn export chính thức tại [MLD-05 - Validate feature snapshot và export Parquet bundle](../task/tasks/MLD-05.md).
    - Phần việc còn thiếu: Kiểm thử live E2E trên container Docker có Spark/Iceberg runner thật thay vì mock runner.
 2. **Nghiệm thu toàn trình ML:**
-   - Việc kiểm thử end-to-end từ Gold Published snapshot qua ML DAG đến serving Trino và báo cáo thí nghiệm thuộc phạm vi của [MLQ-01 - Chạy E2E Gold snapshot đến ML report](docs/task/tasks/MLQ-01.md).
+   - Việc kiểm thử end-to-end từ Gold Published snapshot qua ML DAG đến serving Trino và báo cáo thí nghiệm thuộc phạm vi của [MLQ-01 - Chạy E2E Gold snapshot đến ML report](../task/tasks/MLQ-01.md).
 3. **Trạng thái bàn giao:**
    - Giữ trạng thái task `In Progress` theo chỉ đạo của review Tâm cho đến khi các hard dependencies upstream hoàn tất nghiệm thu live.
    - Reviewer độc lập hiện chưa được chỉ định (`unassigned`).

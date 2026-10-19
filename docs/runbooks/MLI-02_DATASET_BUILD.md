@@ -2,6 +2,13 @@
 
 ## 1. Phạm vi
 
+DOC-01 cập nhật 19/10/2026: đây là contract/graph/runner boundary đã triển khai,
+**chưa là evidence live official export**. MLI-02 In Progress, MLD-05 Ready;
+mock export không ghi registry official hoặc mở Colab handoff.
+Hướng dẫn notebook thực thi: [onboarding](./DOC-01_TEAM_ONBOARDING.md).
+Hai request bên dưới là ví dụ schema/pins tại mốc thiết kế, không được trigger
+nguyên mẫu nếu chưa resolve Published input/coverage thực tế.
+
 `mli_02_build_dataset` điều phối toàn bộ chuỗi xử lý từ Gold snapshot đã `Published` đến export bundle độc lập để phục vụ thí nghiệm ML (Window, DBSCAN, HDBSCAN global và adaptive).
 
 Quy trình gồm 10 task groups/tasks tuần tự nghiêm ngặt:
@@ -144,7 +151,8 @@ Do Google Colab miễn phí không có quyền truy cập trực tiếp mạng n
    - Sao chép toàn bộ thư mục `dataset_id=<dataset_id>/` vào Google Drive tại đường dẫn dự án:
      `My Drive/japan-earthquake-etl/ml-export/dataset_id=<dataset_id>/`.
 3. **Mở Google Colab Notebook:**
-   - Trong notebook `notebooks/experiment_harness.py` hoặc Colab harness:
+   - Dùng shared module `notebooks/experiment_harness.py` từ notebook Colab;
+     file .py không phải notebook. Chỉ migrate sau actual local EXP-02 gate:
      ```python
      from google.colab import drive
      drive.mount('/content/drive')
@@ -163,11 +171,11 @@ Do Google Colab miễn phí không có quyền truy cập trực tiếp mạng n
   - Trạng thái dừng ở `BUILDING` hoặc `REJECTED`, không bao giờ tạo nhãn `DATASET_EXPORTED`.
   - Staging lease được giữ lại để điều tra vết lỗi (`stdout.private.log`, `stderr.private.log`).
   - Khi retry, Airflow tạo `attempt_<N>` mới, không ghi đè hoặc trộn lẫn các part file từ lần chạy trước.
-- **Xóa lease tồn sau khi đã xử lý lỗi hạ tầng:**
-  Chỉ khi chắc chắn không còn process Spark nào đang ghi dữ liệu:
-  ```bash
-  rm -f /opt/pipeline/staging/source-guard/owner.json
-  ```
+- **Lease còn giữ sau lỗi:** không xóa owner.json hoặc force unlock. Giữ
+  request/context/journal, xác nhận exact owner, writer/JVM và remote statements
+  đã dừng rồi theo scoped recovery được kiểm chứng của
+  [QA-04](./QA-04_FAILURE_RECOVERY.md). Chưa có procedure release phù hợp thì
+  dừng để owner xử lý; không dùng timestamp/TTL làm bằng chứng job đã dừng.
 
 ---
 

@@ -2,24 +2,22 @@
 
 Thư mục này là nguồn tài liệu chính thức cho dự án **Nền tảng phân tích dữ liệu động đất tại Nhật Bản**. Bộ tài liệu mô tả hệ thống ở mức đủ để bắt đầu triển khai, kiểm thử và trình diễn; các giá trị phụ thuộc mã nguồn sẽ được cập nhật sau khi project có phiên bản chạy được.
 
-> Trạng thái hiện tại: **Foundation đã có full-stack smoke checklist**; USGS
-> request, HTTP client, Bronze writer và Airflow ingest DAG đã có contract cùng
-> unit/static acceptance. ORC-01 đã có khung DAG Silver/Gold bằng contract/mock,
-> chưa có daily ETL thật đến Published; xem [giao diện và task còn thiếu](./specs/ETL_ORCHESTRATION_CONTRACT.md#7-handoff-giới-hạn-và-task-còn-thiếu).
+DOC-01 đồng bộ **19/10/2026**, baseline main `09d81a1`. Bắt đầu từ
+[onboarding / reproduction](./runbooks/DOC-01_TEAM_ONBOARDING.md) để hiểu từng
+khối và chạy experiment nhỏ không cần credential. [Known issues](./KNOWN_ISSUES.md)
+nêu task/gate còn thiếu; [task index](./task/tasks/README.md) là nguồn trạng thái.
 
-> ORC-02 bổ sung daily source readiness thật, JMA changed-year/weekly checksum
-> check và daily/backfill shared lease. Output `SourcesReady` chưa phải Gold
-> `Published`; xem [profile/runbook ORC-02](./specs/SOURCE_SCHEDULE_AND_READINESS.md).
-
-> Phạm vi hiện hành dùng [baseline PLN-01](./specs/MVP_SCOPE_KPI_AND_DOD.md):
-> HDBSCAN lifecycle thuộc Core, static report là output bắt buộc và Power BI là
-> Stretch. Các tài liệu mô tả Power BI như điều kiện MVP được hiểu theo baseline
-> cũ cho đến khi `DOC-01` đồng bộ toàn bộ narrative/runbook.
+ETL real adapters/full-month đã có và nghiệm thu bounded DAG.test; QA-01
+scheduled deployment còn In Progress. EXP-01/02/03 có code/harness/notebooks;
+local pilot không thay MLD-05 official EXPORTED, Colab parity hoặc scientific
+approval. Power BI là Stretch; Trino/static report là Core.
 
 ## 1. Đọc tài liệu theo nhu cầu
 
 | Nhu cầu | Tài liệu |
 |---|---|
+| Thành viên mới: setup và tái lập dataset/experiment nhỏ không credential | [DOC-01 onboarding](./runbooks/DOC-01_TEAM_ONBOARDING.md) |
+| Phân biệt đã có implementation, đã verify và còn thiếu gate nào | [Known issues theo task](./KNOWN_ISSUES.md) |
 | Hiểu nhanh đề tài, mục tiêu và công nghệ | [Giới thiệu đề tài](./GIOI_THIEU_DE_TAI_DONG_DAT_NHAT_BAN.md) |
 | Chốt yêu cầu và tiêu chí hoàn thành | [Đặc tả dự án](./specs/PROJECT_SPECIFICATION.md) |
 | Chốt MVP, KPI và Definition of Done | [Baseline PLN-01](./specs/MVP_SCOPE_KPI_AND_DOD.md) |
@@ -37,6 +35,9 @@ Thư mục này là nguồn tài liệu chính thức cho dự án **Nền tản
 | Hiểu schema Silver/Gold, null policy, bands và KPI | [Silver/Gold logical data model](./specs/SILVER_GOLD_DATA_MODEL.md) |
 | Verify Bronze thật, bundle Silver, rerun và Gold handoff | [SLV-09 Silver integration](./specs/SILVER_INTEGRATION.md) |
 | Hiểu grain, lineage và lifecycle dataset/experiment ML | [ML logical data model](./specs/ML_DATA_MODEL.md) |
+| Local pilot → Colab, development vs official | [Jupyter workflow](./specs/JUPYTER_PILOT_WORKFLOW.md) |
+| Full-month state và real ETL adapters | [ORC-06](./runbooks/ORC-06_FULL_MONTH_STATE.md), [ORC-07](./runbooks/ORC-07_REAL_ETL.md) |
+| Hai DAG ML build/export và result import | [MLI-02](./runbooks/MLI-02_DATASET_BUILD.md), [MLI-03](./runbooks/MLI-03_RESULT_IMPORT.md) |
 | Dùng fixture USGS/JMA và expected test matrix | [Shared source fixtures](../tests/fixtures/README.md) |
 | Hiểu cấu trúc module và mount path | [Repository layout](./specs/REPOSITORY_LAYOUT.md) |
 | Thiết lập biến môi trường và secret | [Configuration contract](./specs/CONFIGURATION_AND_SECRETS.md) |
@@ -75,6 +76,9 @@ docs/
 ├── ANALYTICS_DASHBOARD.md
 ├── LOCAL_OPERATIONS_RUNBOOK.md
 ├── DEMO_FLOWS.md
+├── KNOWN_ISSUES.md
+├── runbooks/                 # Onboarding, pilot, ETL, ML và QA
+├── evidence/                 # Bằng chứng có ngày và giới hạn scope
 ├── specs/
 │   ├── PROJECT_SPECIFICATION.md
 │   ├── MVP_SCOPE_KPI_AND_DOD.md
@@ -114,29 +118,16 @@ docs/
     └── COMMIT_CONVENTION.md
 ```
 
-## 3. Phạm vi tài liệu ở giai đoạn này
+## 3. Phạm vi và trạng thái hiện tại
 
-Đã bao gồm:
-
-- Mục tiêu, phạm vi, yêu cầu chức năng và phi chức năng.
-- Kiến trúc local-first với Airflow, Spark, MinIO, Iceberg, Trino và HDBSCAN; Power BI là phần trình bày tùy chọn.
-- Happy path, backfill, retry, idempotency và các điểm kiểm soát dữ liệu.
-- KPI, bố cục dashboard, quy trình demo và runbook vận hành.
-- Cấu trúc repository, ownership module và mount contract.
-- Backlog 8 tuần bằng Markdown, với một file riêng cho từng task để pick, review và lưu evidence.
-- Quy ước Git và commit cho nhóm.
-
-Chưa bao gồm theo phạm vi hiện tại:
-
-- Thiết kế database chi tiết, DBML, DDL hoặc migration.
-- Schema vật lý cuối cùng của các bảng Iceberg.
-- Silver/Gold adapters/jobs thật và lệnh backfill Silver/Gold thực tế
-  (SLV-09 - Tích hợp và kiểm thử Silver đa nguồn, GLD-03 - Ghi Gold Iceberg và
-  commit snapshot, GLD-04 - Tạo Trino views và verification SQL, ORC-03 -
-  Implement backfill và reprocessing); khung DAG ORC-01 đã có tests mock.
-  JMA Bronze
-  đã có manual workflow/runner ở JMA-04 và [live QA JMA-05](./evidence/JMA-05.md)
-  cho 1997/2000/2023, không phải full historical hoặc Silver/Gold Published.
+- Contracts USGS/JMA, Bronze, Silver/Gold/ML và schema/grain/lifecycle đã có.
+- ORC-06/07 cung cấp full-month state và real adapters; code không còn chỉ scaffold.
+- Daily mode mặc định source-only; SourcesReady không phải Published, DAG.test
+  không thay scheduler acceptance QA-01.
+- Jupyter-first pilot và ba baseline đã chạy kỹ thuật trên mẫu PARTIAL; không
+  suy toàn kỳ nghiên cứu hoặc tự nâng official lifecycle.
+- MLD-05/MLI-02/03/04/MLQ-01 còn export/live import/report/E2E theo
+  [known issues](./KNOWN_ISSUES.md). Không có business DB PostgreSQL riêng.
 
 ## 4. Quy ước trạng thái
 

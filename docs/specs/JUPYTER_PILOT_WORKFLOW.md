@@ -3,6 +3,10 @@
 ## 1. Quyết định và trạng thái
 
 Theo yêu cầu ngày 2026-10-14, phát triển **Jupyter local trước, Colab sau**.
+DOC-01 ngày 19/10/2026 bổ sung [onboarding thực thi](../runbooks/DOC-01_TEAM_ONBOARDING.md)
+và [evidence](../evidence/DOC-01.md): EXP-01 harness/EXP-02 baseline code đã có,
+local pilot thật đã chạy fresh kernel. Không thay các final gates Colab/official
+của EXP-02 hoặc biến technical PASSED thành scientific approval.
 Cập nhật triển khai 2026-10-15: MLD-04 có shared Java/Spark feature engine,
 DAT-02 có exporter/loader/notebook inspection trên pilot JMA thật (279 rows,
 2 mainshock, PARTIAL). Xem [runbook](../runbooks/DAT-02_JUPYTER_PILOT.md) và

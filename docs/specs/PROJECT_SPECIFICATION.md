@@ -7,16 +7,19 @@
 | Ngôn ngữ xử lý chính | Java |
 | Cập nhật dữ liệu dự kiến | Một lần mỗi ngày |
 
-> **Phạm vi hiện hành:** [baseline PLN-01](./MVP_SCOPE_KPI_AND_DOD.md) đưa
-> Window/DBSCAN/HDBSCAN vào Core và chuyển Power BI thành Stretch. Khi nội dung
-> trong đặc tả nền tảng này khác baseline, dùng baseline; `DOC-01` chịu trách
-> nhiệm đồng bộ toàn bộ mô tả kiến trúc/runbook sau khi các contract ML ổn định.
+> DOC-01 đồng bộ ngày 19/10/2026 theo [baseline PLN-01](./MVP_SCOPE_KPI_AND_DOD.md):
+> ETL + HDBSCAN hồi cứu và static report là Core; Power BI là Stretch.
+> Đây là yêu cầu sản phẩm, không phải tuyên bố mọi task đã nghiệm thu.
+> [Known issues](../KNOWN_ISSUES.md) ghi trạng thái thực tế và gate còn thiếu.
 
 ## 1. Bối cảnh
 
 Dữ liệu động đất công khai có thể được truy vấn theo thời gian, vị trí, độ lớn và độ sâu. Tuy nhiên, dữ liệu API thô chưa phù hợp để phân tích trực tiếp vì có thể được cập nhật muộn, có bản ghi lặp theo mã sự kiện, dùng múi giờ khác với người xem và chưa có các nhóm phân tích thống nhất.
 
-Project xây dựng một pipeline dữ liệu có thể chạy lại, lưu được dữ liệu gốc, chuẩn hóa dữ liệu bằng Spark và cung cấp dữ liệu phân tích cho Power BI thông qua Trino.
+Project xây dựng Lakehouse đa nguồn có thể chạy lại, chuẩn hóa bằng Spark Java,
+pin Gold snapshot để tạo ML dataset/feature 4-D, so sánh Window/DBSCAN/HDBSCAN
+theo mainshock window trên Jupyter trước Colab, rồi validate/import kết quả vào
+Iceberg ml.* và Trino/static report. Không phải hệ thống prediction/causal.
 
 ## 2. Mục tiêu sản phẩm
 
@@ -24,9 +27,13 @@ Project xây dựng một pipeline dữ liệu có thể chạy lại, lưu đư
 2. Lưu được dữ liệu gốc để truy vết và tái xử lý.
 3. Tạo được observation sạch theo từng nguồn, giữ revision mới nhất và không đếm trùng cùng một động đất giữa USGS/JMA.
 4. Xuất bản dữ liệu phân tích ở tầng Gold dưới dạng bảng Iceberg.
-5. Cho phép Trino truy vấn Gold và Power BI import kết quả.
+5. Cho phép Trino truy vấn Gold/ML và static report đối soát; Power BI Import tùy chọn.
 6. Quan sát được trạng thái từng lần chạy, số lượng bản ghi và nguyên nhân thất bại.
 7. Chạy được toàn bộ backend trên máy local bằng Docker Compose.
+8. Tạo dataset bất biến qua audit/Mc, candidate windows, feature và official export.
+9. Thí nghiệm Window/DBSCAN/HDBSCAN global/adaptive trên cùng input; báo noise,
+   physical consistency/stability/extension và limitation, không giả ground truth.
+10. Import kết quả bằng strict schema/checksum/grain/lineage gate, không cho notebook ghi lake trực tiếp.
 
 ## 3. Đối tượng sử dụng
 
@@ -50,7 +57,10 @@ Hệ thống không có nghiệp vụ đăng ký người dùng hoặc phân quy
 - Spark job viết bằng Java để làm sạch, chuẩn hóa, loại trùng và tổng hợp.
 - Airflow điều phối lịch chạy, dependency, retry và kiểm tra sau xử lý.
 - Gold được quản lý bằng Apache Iceberg và truy vấn bằng Trino.
-- Power BI dùng ODBC ở chế độ Import.
+- ML dataset/experiment/result lifecycle theo [CON-03-ML](./ML_DATA_MODEL.md).
+- DAT-02 development pilot → Jupyter local → Colab sau local gate; official
+  dataset vẫn phải MLD-05 EXPORTED, không lấy pilot thay official.
+- Power BI dùng ODBC/Import là Stretch, không chặn Core.
 - Môi trường chạy chính là Docker Compose trên máy local.
 
 ### 4.2. Ngoài phạm vi phiên bản đầu tiên
@@ -60,8 +70,8 @@ Hệ thống không có nghiệp vụ đăng ký người dùng hoặc phân quy
 - Streaming hoặc near-real-time ingestion.
 - High availability, multi-node production hoặc autoscaling.
 - Ứng dụng web/mobile riêng cho người dùng cuối.
-- Data Science hoặc Generative AI.
-- Thiết kế database/DDL chi tiết.
+- Generative AI hoặc bài toán ML ngoài clustering hồi cứu đã chốt.
+- Business database serving riêng ngoài Lakehouse; PostgreSQL chỉ metadata Airflow.
 
 ## 5. Giả định và ràng buộc
 
@@ -126,15 +136,35 @@ Người vận hành phải có thể chọn một khoảng ngày để thu th�
 
 ### FR-09 — Truy vấn phân tích
 
-Trino phải cho phép truy vấn Gold bằng SQL; Power BI phải import được dataset cần thiết thông qua kết nối ODBC.
+Trino phải truy vấn đúng pinned Gold/ML snapshots bằng SQL để kiểm chứng và
+đối soát static report. Power BI/ODBC chỉ áp dụng nếu chọn Stretch BI-01..05.
 
-**Chấp nhận khi:** một truy vấn kiểm chứng và một lần refresh Power BI hoàn tất.
+**Chấp nhận khi:** verification SQL và static report khớp cùng dataset/run/filter;
+nếu làm BI Stretch thì bổ sung refresh/KPI evidence, không thay Core gate.
 
 ### FR-10 — Ghi nhận vận hành
 
 Mỗi lần chạy phải ghi tối thiểu: run ID, cửa sổ dữ liệu, thời gian bắt đầu/kết thúc, số input, số hợp lệ, số bị loại, số insert/update logic, snapshot Gold và trạng thái.
 
 **Chấp nhận khi:** có thể đối soát số lượng giữa các bước từ log và truy vấn kiểm tra.
+
+### FR-11 — Dataset và feature ML
+
+Pin Published Gold, audit/completeness Mc, chọn mainshock/candidate, chuyển
+tọa độ sang km và scale feature 4-D bằng Spark Java. Official bundle chỉ sau
+VALIDATED/EXPORTED; DAT-02 pilot có marker và limitations riêng.
+
+**Chấp nhận khi:** snapshot/dataset/config identity, finite/zero-self/grain và
+export manifest/checksums khớp. Notebook không nhận credential.
+
+### FR-12 — Experiment và import
+
+Fit từng mainshock window; chỉ chọn cluster chứa mainshock, noise giữ reason.
+Jupyter-first và Colab dùng cùng bundle/code/config sau local gate. Importer
+verify official result bundle trước commit ml.*; CANDIDATE chưa APPROVED.
+
+**Chấp nhận khi:** result schema/lineage/counts và retry identity đạt; có
+evaluation/report theo baseline. Pilot PASSED không thay scientific review.
 
 ## 7. Yêu cầu phi chức năng
 
@@ -147,7 +177,7 @@ Mỗi lần chạy phải ghi tối thiểu: run ID, cửa sổ dữ liệu, th�
 | NFR-05 | Bảo mật | Không hard-code secret; không public MinIO, Catalog, Spark và PostgreSQL |
 | NFR-06 | Khả năng bảo trì | Tách extract, Silver, Gold và verify; cấu hình ngoài mã nguồn |
 | NFR-07 | Tài nguyên | Có thể chạy tuần tự trên máy 16 GiB RAM; 8 GiB là chế độ thử nghiệm có giới hạn |
-| NFR-08 | Hiệu năng | Hoàn tất trước cửa sổ refresh Power BI được cấu hình; ngưỡng chính xác sẽ đo sau khi có dữ liệu mẫu |
+| NFR-08 | Hiệu năng | Ghi resource/runtime/capacity theo run đại diện; không tự tuyên bố SLA hoặc đủ cho toàn lịch sử |
 | NFR-09 | Tính quan sát | Có log có cấu trúc và metric số lượng bản ghi cho từng bước |
 
 ## 8. Tiêu chí hoàn thành phiên bản đầu tiên
@@ -156,10 +186,15 @@ Mỗi lần chạy phải ghi tối thiểu: run ID, cửa sổ dữ liệu, th�
 - Spark tạo Silver observation hợp lệ, xử lý revision trong từng nguồn và tránh double count xuyên nguồn.
 - Spark commit Gold Iceberg; Trino truy vấn được snapshot mới.
 - Các data quality gate bắt buộc đều đạt.
-- Power BI refresh được và hiển thị ba trang dashboard đã đặc tả.
+- Một official dataset qua audit/Mc/window/feature/export và experiment/import
+  ml.*; Trino/static report khớp dataset/run. Power BI là Stretch.
 - Rerun cùng ngày không tạo duplicate logic.
 - Backfill một khoảng ngày nhỏ hoàn tất và không làm hỏng dữ liệu đã có.
 - Một thành viên mới có thể làm theo runbook để khởi động và chạy thử hệ thống.
+
+Các tiêu chí trên là mục tiêu; [known issues](../KNOWN_ISSUES.md) và
+[Definition of Done MVP](./MVP_SCOPE_KPI_AND_DOD.md#9-definition-of-done-cho-mvp)
+không cho dùng bounded pilot hoặc component smoke thay toàn trình.
 
 ## 9. Rủi ro chính
 

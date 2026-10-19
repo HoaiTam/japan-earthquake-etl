@@ -12,7 +12,10 @@ Phạm vi, KPI và Definition of Done hiện hành nằm tại
 MLD-04/DAT-02 có [feature 4-D](./docs/specs/SPACETIME_FEATURES.md) và
 [pilot JMA kiểm tra trên Jupyter local](./docs/runbooks/DAT-02_JUPYTER_PILOT.md):
 279 candidate/2 mainshock trên nguồn pin, PARTIAL/development-only; không nâng
-official dataset lifecycle và chưa fit Window/DBSCAN/HDBSCAN (EXP-01/02).
+official dataset lifecycle. EXP-01/02 đã có harness và ba baseline per-window;
+[onboarding DOC-01](./docs/runbooks/DOC-01_TEAM_ONBOARDING.md) hướng dẫn fresh-kernel
+reproduction không credential. [Known issues](./docs/KNOWN_ISSUES.md) phân biệt
+local technical PASSED với official export/Colab/scientific acceptance còn thiếu.
 
 MinIO server và Client `mc` được build local từ source chính thức pin release/
 commit; `make docker-build` không còn pull client từ Quay. Init và smoke dùng

@@ -238,7 +238,7 @@ Commit CI-only `f856925` không sửa logic MLD-03. Lượt sửa tiếp theo tr
 PR #61 tích hợp main bằng merge commit (không force push), xử lý conflict và
 các điểm review MLD-03: bucket equi-join, invariant phân tán, Parquet fail-fast,
 microsecond precision, cập nhật trạng thái/evidence. Xem
-[evidence MLD-03](../../evidence/MLD-03.md) cho kết quả lượt chạy mới.
+[evidence MLD-03](../evidence/MLD-03.md) cho kết quả lượt chạy mới.
 Task vẫn Needs Update vì gate audit/Mc Published JMA của MLD-02 chưa đạt;
 CI pass không tự chứng minh integration dữ liệu thật.
 

@@ -1,5 +1,10 @@
 # DAT-02 — tạo và kiểm tra pilot JMA trên Jupyter
 
+DOC-01 cập nhật 19/10/2026: phần evidence bên dưới giữ mốc DAT-02 ngày 15/10;
+EXP-01/02 hiện đã có harness/model code. Để fit ba baseline và bàn giao cho
+thành viên mới, dùng [onboarding](./DOC-01_TEAM_ONBOARDING.md) với model venv
+requirements-lock.txt, không chỉ venv inspection requirements-pilot.txt.
+
 ## Mục đích và dữ liệu có sẵn
 
 Pilot kiểm tra **đúng feature/lineage/loader/coverage**, chưa đánh giá model.
@@ -61,8 +66,9 @@ Nhận biết đạt:
 
 - `event=local_ml_prepared` và JAR SHA; build chỉ Java local, không Docker image.
 - Venv ở staging/venvs/dat02; direct dependencies được pin trong
-  notebooks/requirements-pilot.txt. EXP-01 sẽ khóa đầy đủ transitive/model
-  environment; DAT-02 chưa tuyên bố Colab portability.
+  notebooks/requirements-pilot.txt. Model runtime dùng requirements-lock.txt của
+  EXP-01 (pin direct packages, không khóa toàn bộ transitive hashes/wheels).
+  DAT-02 chưa tuyên bố Colab portability; xem known issues của DOC-01.
 - `STAGED_VERIFIED_WINDOWS`, REPRODUCTION, native receipt SHA
   `9246338b3d754ff70835a5d092efe12fbb5ce479ebe197bdb6197579e56f6353`.
   Rerun hiện `reused=true`; byte thay đổi thì fail, không overwrite.
@@ -153,8 +159,8 @@ không phải chữ ký xác thực người gửi nếu cả dữ liệu và ma
 ## Bước tiếp theo / giới hạn
 
 - [EXP-01 — Tạo Jupyter harness và chuẩn bị chuyển sang Colab](../task/tasks/EXP-01.md):
-  reuse loader này hoặc adapter có tests tương đương; bổ sung official loader,
-  result writer, full package lock và Colab path adapter. Chưa có approval reviewer.
+  đã có mode-aware loader/result writer và Colab path adapter; không chạy fit
+  thuật toán trong DAT-02 inspection và không suy adapter tests thành Colab parity.
 - [EXP-02 — Chạy Window, DBSCAN và HDBSCAN global](../task/tasks/EXP-02.md):
   fit ba baseline, report/noise/plots; local model PASSED mới mở Colab gate.
   DAT-02 inspection PASSED **không** phải local model smoke PASSED.
