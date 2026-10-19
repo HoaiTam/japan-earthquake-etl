@@ -51,6 +51,7 @@ Thư mục này là nguồn tài liệu chính thức cho dự án **Nền tản
 | Chạy full-stack foundation smoke và xử lý lỗi | [Foundation smoke contract](./specs/FOUNDATION_SMOKE.md) |
 | Hiểu các thành phần và cách chúng kết nối | [Kiến trúc hệ thống](./SYSTEM_ARCHITECTURE.md) |
 | Hiểu một lần chạy ETL hằng ngày | [Luồng ETL hằng ngày](./flows/DAILY_ETL_PIPELINE.md) |
+| Nghiệm thu một scheduled daily run, counts/snapshots/Trino; phân biệt NOT_READY và Passed | [QA-01 daily E2E](./runbooks/QA-01_DAILY_E2E.md) |
 | Chạy bù, chạy lại hoặc xử lý lỗi | [Backfill và phục hồi](./flows/BACKFILL_AND_RECOVERY.md) |
 | Xác định quy tắc kiểm tra dữ liệu | [Chất lượng dữ liệu](./DATA_QUALITY_AND_OBSERVABILITY.md) |
 | Thiết kế báo cáo Power BI | [Đặc tả dashboard](./ANALYTICS_DASHBOARD.md) |

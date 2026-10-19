@@ -22,9 +22,10 @@ cùng binary đã verify, giữ nguyên bucket/volume/credential. Xem
 > Trạng thái hiện tại: **foundation đã có full-stack smoke checklist**.
 > MinIO bucket bootstrap, Airflow local runtime, Spark Java build/runtime,
 > Iceberg REST Catalog và Trino đã được triển khai và kiểm tra cùng nhau.
-> ORC-01 đã có khung DAG ETL/phase gates và tests mock; chưa có daily ETL thật
-> đến Gold Published: GLD-03/04 đã có QA commit/publication, nhưng production
-> adapters/full-month state của QA-01 chưa hoàn tất.
+> ORC-07 đã có real adapters/full-month state và bounded real `DAG.test` đến
+> Gold Published. [QA-01](./docs/runbooks/QA-01_DAILY_E2E.md) thêm collector
+> scheduled daily end-to-end; deployment acceptance còn In Progress, không
+> dùng component smoke hoặc DAG.test thay scheduled run Published.
 > SLV-09 đã nghiệm thu Bronze thật USGS/JMA → immutable Silver → Gold
 > transformation/handoff và rerun trên mẫu bounded, chưa commit Gold.
 > Cách chạy và phạm vi ở [Silver integration](./docs/specs/SILVER_INTEGRATION.md).
