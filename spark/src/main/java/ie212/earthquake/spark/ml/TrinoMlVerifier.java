@@ -22,7 +22,9 @@ public final class TrinoMlVerifier {
         assertLease.run();
         long membership = exactCount("sequence_membership", commit.membershipSnapshot(), context, fingerprint);
         long summary = exactCount("sequence_summary", commit.summarySnapshot(), context, fingerprint);
-        if (membership <= 0 || summary <= 0) throw new IOException("IMP_TRINO_QUALITY_BLOCKER");
+        long expectedSummary = context.candidates().stream().map(ResultBundleValidator.Candidate::mainshockId).distinct().count();
+        if (membership != context.candidates().size() || summary != expectedSummary || membership <= 0 || summary <= 0)
+            throw new IOException("IMP_TRINO_QUALITY_BLOCKER");
         long duplicates = scalar("SELECT count(*) FROM (SELECT mainshock_event_id,candidate_event_id,count(*) c FROM "
             + ref("sequence_membership", commit.membershipSnapshot()) + " WHERE experiment_run_id=" + quote(context.runId())
             + " GROUP BY mainshock_event_id,candidate_event_id HAVING count(*) > 1)");
@@ -30,6 +32,9 @@ public final class TrinoMlVerifier {
         long lineage = scalar("SELECT count(*) FROM " + ref("sequence_summary", commit.summarySnapshot())
             + " WHERE experiment_run_id=" + quote(context.runId()) + " AND dataset_id=" + quote(context.datasetId()));
         if (lineage != summary) throw new IOException("IMP_TRINO_LINEAGE_MISMATCH");
+        long membershipLineage = scalar("SELECT count(*) FROM " + ref("sequence_membership", commit.membershipSnapshot())
+            + " WHERE experiment_run_id=" + quote(context.runId()) + " AND dataset_id=" + quote(context.datasetId()));
+        if (membershipLineage != membership) throw new IOException("IMP_TRINO_LINEAGE_MISMATCH");
         Map<String, Long> result = new LinkedHashMap<>(); result.put("sequence_membership", membership); result.put("sequence_summary", summary);
         return result;
     }

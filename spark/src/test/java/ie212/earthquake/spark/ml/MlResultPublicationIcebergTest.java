@@ -144,4 +144,25 @@ class MlResultPublicationIcebergTest {
     }
 
     private record TableState(long rows, List<Long> snapshots) { }
+
+    @Test void candidateRetryStillRequiresIndependentVerification(@TempDir Path journal) throws Exception {
+        var pins = new ResultBundleValidator.DatasetPins("registry/ds.json", "1".repeat(64), "2".repeat(64), "r4", "c4", "m4");
+        var context = new ResultBundleValidator.Context("ds_fixture", "EXPORTED", "exp_fixture", "WINDOW", "1",
+            ResultBundleContractTest.CANDIDATES, null, pins, null);
+        String namespace = "lake.ml_qa_retry_verify";
+        var writer = new SparkMlIcebergWriter(spark, namespace, () -> { }, journal);
+        MlResultImportJob.importBundle(FIXTURE, journal, context, writer,
+            (commit, value, fingerprint) -> Map.of("sequence_membership", 2L, "sequence_summary", 1L), namespace);
+        var before = tableStates(namespace);
+        assertEquals("IMP_TRINO_QUALITY_BLOCKER", assertThrows(IOException.class, () ->
+            MlResultImportJob.importBundle(FIXTURE, journal, context, writer,
+                (commit, value, fingerprint) -> { throw new IOException("IMP_TRINO_QUALITY_BLOCKER"); }, namespace)).getMessage());
+        assertEquals(before, tableStates(namespace));
+    }
+
+    @Test void runtimeAcceptanceCannotTargetProductionNamespaces() {
+        MlResultImportAcceptanceJob.requireQaNamespace("iceberg.ml_qa_" + "a".repeat(32));
+        for (String unsafe : List.of("iceberg.ml", "iceberg.gold", "iceberg.ml_qa_short", "iceberg.ml_qa_" + "a".repeat(33)))
+            assertThrows(IllegalStateException.class, () -> MlResultImportAcceptanceJob.requireQaNamespace(unsafe));
+    }
 }

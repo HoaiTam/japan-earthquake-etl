@@ -106,7 +106,7 @@ public final class MlResultBundleReader {
         };
     }
 
-    private static MessageType schema(String artifact) {
+    static MessageType schema(String artifact) {
         StringBuilder text = new StringBuilder("message result { ");
         for (JsonNode field : ResultBundleContract.contract().path("schemas").path(artifact).path("fields")) {
             String repetition = field.path("nullable").asBoolean() ? "optional" : "required";

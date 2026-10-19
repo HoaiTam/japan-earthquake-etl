@@ -2,7 +2,10 @@
 
 Branch: `feat/mli-03-validate-import-iceberg`
 PR baseline: commit `1e881e0`
-Status: `In Progress`
+Status tại mốc offline lịch sử: `In Progress`. Trạng thái hiện tại xem
+[runtime acceptance 19/10/2026](./MLI-03_RUNTIME_ACCEPTANCE.md) và
+[task MLI-03](../task/tasks/MLI-03.md); không dùng các giới hạn lịch sử bên dưới
+để suy PR #79 vẫn mở hoặc runtime hiện tại chưa chạy.
 
 ## PR #79 review fixes
 

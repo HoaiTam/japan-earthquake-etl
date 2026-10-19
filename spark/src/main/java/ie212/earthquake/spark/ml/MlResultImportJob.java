@@ -46,7 +46,9 @@ public final class MlResultImportJob {
             GoldPublisher.Sql sql = new TrinoSqlClient(URI.create("http://" + trinoHost + ":" + trinoPort));
             IndependentVerifier verifier = (commit, value, fingerprint) ->
                 new TrinoMlVerifier(sql, request.path("ml_namespace").asText(), assertLease).verify(commit, value, fingerprint);
-            ObjectNode result = importBundle(bundle, journal, context, writer, verifier, request.path("ml_namespace").asText());
+            String operation = request.path("import_run_id").asText(request.path("run_id").asText());
+            if (operation.isBlank()) throw new IllegalArgumentException("IMP_IMPORT_RUN_ID_REQUIRED");
+            ObjectNode result = importBundle(bundle, journal, context, writer, verifier, request.path("ml_namespace").asText(), operation);
             Files.writeString(journal.resolve("import-report.json"), JSON.writerWithDefaultPrettyPrinter().writeValueAsString(result) + "\n",
                 StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
             System.out.println(JSON.writeValueAsString(result));
@@ -61,6 +63,12 @@ public final class MlResultImportJob {
 
     public static ObjectNode importBundle(Path bundleRoot, Path journalRoot, ResultBundleValidator.Context originalContext,
                                           MlIcebergWriter writer, IndependentVerifier verifier, String namespace) throws Exception {
+        return importBundle(bundleRoot, journalRoot, originalContext, writer, verifier, namespace, null);
+    }
+
+    public static ObjectNode importBundle(Path bundleRoot, Path journalRoot, ResultBundleValidator.Context originalContext,
+                                          MlIcebergWriter writer, IndependentVerifier verifier, String namespace,
+                                          String importRunId) throws Exception {
         Files.createDirectories(journalRoot);
         Path registry = journalRoot.resolve("experiment-run-" + originalContext.runId() + ".json");
         ResultBundleValidator.DecodedBundle bundle;
@@ -69,8 +77,10 @@ public final class MlResultImportJob {
         ResultBundleValidator.Context context;
         ResultBundleValidator.Receipt receipt;
         try {
-            context = enrichMetadata(bundle, originalContext);
-            receipt = new ResultBundleContract().validate(bundle, context);
+            // Validate the complete marker and checked bytes before deriving
+            // metadata; otherwise missing metadata can mask the contract reason.
+            receipt = new ResultBundleContract().validate(bundle, originalContext);
+            context = enrichMetadata(bundle, originalContext, importRunId);
         } catch (RuntimeException error) {
             writeRejected(journalRoot, originalContext, reason(error), true); throw error;
         }
@@ -104,6 +114,12 @@ public final class MlResultImportJob {
             if ("CANDIDATE".equals(reservation.status())) {
                 MlIcebergWriter.ResultCommit pinned = new MlIcebergWriter.ResultCommit(
                     reservation.membershipSnapshot(), reservation.summarySnapshot());
+                // A retry must still pass the independent exact-snapshot gate;
+                // a local Spark readback is not evidence that Trino can serve it.
+                Map<String, Long> verified = verifier.verify(pinned, context, receipt.bundleSha256());
+                if (verified.getOrDefault("sequence_membership", 0L) <= 0
+                        || verified.getOrDefault("sequence_summary", 0L) <= 0)
+                    throw new IllegalStateException("IMP_TRINO_QUALITY_BLOCKER");
                 Map<String, Long> readback = writer.readback(pinned, reservation.experimentSnapshot(), context);
                 String publishedAt = existing != null && "CANDIDATE".equals(existing.path("experiment_status").asText())
                     ? existing.path("candidate_at_utc").asText(null) : null;
@@ -167,14 +183,15 @@ public final class MlResultImportJob {
     }
 
     private static ResultBundleValidator.Context enrichMetadata(ResultBundleValidator.DecodedBundle bundle,
-                                                                ResultBundleValidator.Context context) throws IOException {
+                                                                ResultBundleValidator.Context context, String importRunId) throws IOException {
         JsonNode config = JSON.readTree(bundle.artifacts().get("experiment_config.json"));
         String configJson = new String(bundle.artifacts().get("experiment_config.json"), StandardCharsets.UTF_8);
         String requirementsHash = ResultBundleContract.sha256(bundle.artifacts().get("requirements-lock.txt"));
         String runtime = config.path("runtime_environment_json").asText();
         if (runtime.isBlank()) throw new IllegalArgumentException("IMP_EXPERIMENT_METADATA_REQUIRED");
         String created = context.experimentMetadata() == null ? Instant.now().toString() : context.experimentMetadata().createdAtUtc();
-        String importRun = context.experimentMetadata() == null ? context.runId() : context.experimentMetadata().importRunId();
+        String importRun = importRunId != null ? importRunId
+            : context.experimentMetadata() == null ? context.runId() : context.experimentMetadata().importRunId();
         String ready = bundle.success().path("completed_at_utc").asText();
         ResultBundleValidator.ExperimentMetadata metadata = new ResultBundleValidator.ExperimentMetadata(configJson,
             ResultBundleContract.sha256(bundle.artifacts().get("experiment_config.json")), requirementsHash, runtime,

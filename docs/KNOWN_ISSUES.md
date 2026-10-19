@@ -5,13 +5,17 @@ không phải trạng thái GitHub cập nhật tự động. Trạng thái/evid
 nằm trong [task index](./task/tasks/README.md) và từng task; merge/CI xanh không
 chứng minh live acceptance hoặc scientific approval.
 
+Bổ sung MLI-03 ngày **19/10/2026**, branch `feat/mli-03-runtime-acceptance` từ
+main `b92bf2b`: component storage và Airflow DAG.test đã nghiệm thu; các dòng
+khác bên dưới giữ mốc DOC-01, không được coi là đã re-audit toàn dự án.
+
 | Task / trạng thái tại mốc | Đã có | Còn thiếu / tác động |
 |---|---|---|
 | [QA-01 — Daily E2E](./task/tasks/QA-01.md), In Progress | Collector, offline tests; scheduled run cũ SourcesReady được nhận diện NOT_READY | Deployment ORC-07 mới, eligible request và scheduled run Published + KPI SQL thật; không dùng DAG.test thay cron |
 | [ORC-07 — Real ETL adapters](./task/tasks/ORC-07.md), Done | Bounded real MinIO/Iceberg/Trino/Airflow DAG.test và rerun | Không có nghĩa deployment source-only trên máy đã được cập nhật; xem QA-01 |
 | [MLD-05 — Validate feature snapshot/export](./task/tasks/MLD-05.md), Ready | Contract và feature engine upstream | Official coverage/audit, VALIDATED/EXPORTED bundle; pilot không thay official dataset |
 | [MLI-02 — Build dataset DAG](./task/tasks/MLI-02.md), In Progress | Graph, exact identity, runner boundary và mock tests | Live Spark/export/registry acceptance sau MLD-05; mock export không mở Colab/official lifecycle |
-| [MLI-03 — Result import](./task/tasks/MLI-03.md), In Progress | Java validator/writer, reservations/journals, DAG/control tests | Live import/Trino evidence trên official EXPORTED dataset; reject pilot |
+| [MLI-03 — Result import](./task/tasks/MLI-03.md), Done | [Synthetic QA trên MinIO/Catalog/Trino + production runner + 9/9 Airflow tasks](./evidence/MLI-03_RUNTIME_ACCEPTANCE.md); rejects/rerun/recovery đạt | Official dataset/model run còn thuộc MLD-05/MLI-02/EXP-02..04; không APPROVED hoặc Gold→ML E2E |
 | [EXP-02 — Baselines](./task/tasks/EXP-02.md), In Progress | Ba baseline per-window, local smoke/gate; DOC-01 đã chạy fresh-kernel pilot thật | Colab parity và official run sau MLD-05; không có kết luận thuật toán nào tốt hơn |
 | [EXP-03 — Adaptive/multi-sequence](./task/tasks/EXP-03.md), In Progress | Implementation/config/tests và notebook | Gate/evidence còn lại theo task; report lịch sử isolated_exec không thay fresh kernel/Colab |
 | [EXP-04 — Scientific evaluation](./task/tasks/EXP-04.md), Backlog; [EXP-05 — Extension](./task/tasks/EXP-05.md), Backlog | Contracts/config baseline | DBCV/noise/Omori/stability và extension; không gọi local PASSED là APPROVED |

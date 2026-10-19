@@ -213,6 +213,6 @@ thức, cập nhật plan/metadata/index và planning checks/tests cùng PR.
       Jupyter inspection run-all đạt, không official lifecycle/import.
 - [ ] EXP-01/02 local cùng pilot/config có version; PASSED trước Colab, noise/failure
       không bị ẩn; official result vẫn cần MLD-05 EXPORTED.
-- [ ] MLI-03 rejects bundle lỗi trước serving, CANDIDATE không tự APPROVED.
+- [x] MLI-03 rejects bundle lỗi trước serving, CANDIDATE không tự APPROVED — [runtime component + 9-task Airflow evidence, 19/10/2026](../evidence/MLI-03_RUNTIME_ACCEPTANCE.md); synthetic QA không thay official export/scientific approval.
 - [ ] Docs/checks/CI đạt; carryover chưa có evidence giữ đúng Review/In Progress.
 - [ ] Nếu runtime/coverage trễ: báo blocker và remaining effort, replan tuần 6 thay vì bỏ test.

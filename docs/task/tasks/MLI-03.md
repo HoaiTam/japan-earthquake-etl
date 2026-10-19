@@ -1,6 +1,6 @@
 ---
 task_id: "MLI-03"
-status: "In Progress"
+status: "Done"
 week: 5
 block: "I - ML Integration"
 workstream: "Result import and Iceberg publish"
@@ -35,11 +35,15 @@ không được ghi partial table hoặc sửa Gold core.
 
 ## Tiêu chí hoàn thành
 
-- [ ] Checksum/schema/grain/unknown ID/NaN lỗi bị reject trước commit.
-- [ ] Membership/summary counts đối soát và mainshock/role nhất quán.
-- [ ] Rerun cùng `experiment_run_id` idempotent; reuse với checksum khác bị reject.
-- [ ] Failure commit không tạo trạng thái `CANDIDATE` hoặc snapshot partial visible.
-- [ ] Không thêm cluster field thử nghiệm vào `gold.event_current`.
+- [x] Checksum/schema/grain/unknown ID/NaN lỗi bị reject trước commit.
+- [x] Membership/summary counts đối soát và mainshock/role nhất quán.
+- [x] Rerun cùng `experiment_run_id` idempotent; reuse với checksum khác bị reject.
+- [x] Failure commit không tạo trạng thái `CANDIDATE` hoặc snapshot partial được serving qua publication gate.
+- [x] Không thêm cluster field thử nghiệm vào `gold.event_current`.
+
+Iceberg không có transaction chung cho ba bảng: partial raw snapshots có thể
+tồn tại để recovery, nhưng consumer chỉ được serving qua CANDIDATE registry
+và exact pins. Không được đọc raw result current rồi coi là publication.
 
 ## Hard dependency
 
@@ -63,7 +67,7 @@ trước khi Colab sinh output thật.
 - **Làm gì / có gì:** Importer/validator/writer + physical ML mapping, same-run idempotency, partial commit/rejected states và snapshot-pinned readback.
 - **Dùng để làm gì / output:** Namespace ml.* được quality-gate trước CANDIDATE, không thêm label vào Gold và không tự APPROVED.
 - **Bắt đầu ngay / gate:** Dùng valid/invalid fixtures MLI-01 ngay; candidate IDs/dataset EXPORTED phải tồn tại ở QA namespace pin rõ. Fixture real-storage acceptance không là scientific approval, không chờ EXP-02 để code.
-- **Theo dõi:** Đã bắt đầu trên branch `feat/mli-03-validate-import-iceberg`; giữ reviewer `unassigned` cho đến khi có review độc lập.
+- **Theo dõi:** Hoàn thiện runtime trên branch `feat/mli-03-runtime-acceptance` từ main `b92bf2b`; giữ assignee ThanhTris và reviewer `unassigned`, không tự ghi nhận review chưa có.
 
 ## Điều chỉnh Jupyter-first — 2026-10-14
 
@@ -74,10 +78,10 @@ Thêm acceptance case reject DAT-02 DEVELOPMENT_PILOT/pilot_result_manifest và 
 
 ## Theo dõi
 
-- **Trạng thái:** In Progress
+- **Trạng thái:** Done
 - **Assignee:** ThanhTris
-- **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** [Offline evidence](../../evidence/MLI-03-offline.md); [PR #79](https://github.com/HoaiTam/japan-earthquake-etl/pull/79) — review comment đang được xử lý; reviewer `unassigned`
+- **Reviewer:** unassigned — chưa ghi nhận independent approval
+- **Evidence / PR:** [Runtime acceptance 19/10/2026](../../evidence/MLI-03_RUNTIME_ACCEPTANCE.md), [exact receipts](../../evidence/MLI-03-runtime.json); [offline evidence lịch sử](../../evidence/MLI-03-offline.md). PR #79 đã merge; phần hoàn thiện runtime ở branch `feat/mli-03-runtime-acceptance`, chưa mở PR mới.
 - **Kỹ năng phù hợp:** Airflow, Spark validation, Iceberg transactions
 
 ## Checklist bàn giao
@@ -85,7 +89,7 @@ Thêm acceptance case reject DAT-02 DEVELOPMENT_PILOT/pilot_result_manifest và 
 - [x] Importer, trusted dataset resolver, result writer, manual DAG graph và offline regression test đã có trong repository.
 - [x] Checksum/schema/grain/lineage/count, publication gate và same-run recovery đã được kiểm tra bằng fixture MLI-01/local Iceberg.
 - [x] Contract/docs/Make/Compose preflight đã cập nhật và không chứa secret/data dump.
-- [ ] Acceptance runtime trên MinIO/Catalog/Trino với exact snapshots chưa chạy.
+- [x] Acceptance runtime trên MinIO/Catalog/Trino với exact snapshots, production runner và Airflow DAG.test đạt.
 - [ ] Reviewer độc lập được khuyến nghị cho P0.
 
 ## Tài liệu liên quan
@@ -98,9 +102,16 @@ Thêm acceptance case reject DAT-02 DEVELOPMENT_PILOT/pilot_result_manifest và 
 
 ## Evidence hiện có
 
-- Bản sửa review PR #79 thêm fixture Docker cho runner MLI-03; reserve experiment ID/fingerprint trước khi ghi result; giữ canonical journal và ghi retry failure trong `attempts/`; pin request SHA-256 theo identity DagRun thật, tách lease owner và yêu cầu receipt release trước completion.
-- Java/Spark: nhóm regression MLI-03 (`ResultBundleContractTest`, `MlResultImportJobTest`, `TrustedDatasetResolverTest`, `MlResultPublicationIcebergTest`) đạt 19/19 trên local Spark/Iceberg.
-- Airflow: `airflow/tests` đạt 223/223 trong image Airflow; DAG import đăng ký đủ 9 task. `tests/ci` đạt 37/37 trong cùng image.
-- Docker lifecycle: test preflight riêng cho `mli-03-import-results` đạt 1/1. Full suite tại workspace bị giới hạn bởi shell/symlink trên Windows và thiếu `make` trong container; GitHub Actions Project CI #54 trên commit `e46faa3` đã xanh toàn bộ, gồm `docs-contracts`.
-- `py_compile` và `git diff --check` đạt. Audit bảo mật có 0 findings, còn 3 coverage items và `can_mark_done=false`.
-- Chưa chạy import runtime trên MinIO/Catalog/Trino hoặc verify exact snapshots. Task vẫn `In Progress`; PR #79 còn mở, chưa merge.
+- Java 17 `clean verify`: 407 tests, 0 failure/error, 1 optional notebook cross-process probe skipped trong build context. Host chạy bổ sung 21/21 contract/import tests, không skip; không thay Java 17 verification.
+- Full Airflow: 336/336; Docker lifecycle/Make: 53/53; CI contract: 38/38. Docs links/status và `git diff --check` đạt.
+- `smoke-mli-import-acceptance`: PASSED trên namespace QA mới, có EXPORTED synthetic registry và candidate/mainshock snapshots thật; reject 5 loại bundle lỗi + non-EXPORTED/pilot + đổi tên marker; verify first/rerun/conflict/partial recovery/Trino blocker/Gold boundary.
+- Membership/summary/experiment: 2/1/1 rows, exact result snapshots không đổi qua rerun/journal mới và production Python → shell → Java → Trino.
+- `smoke-mli-import-dag`: fresh DagRun `manual__2026-10-19T16:50:52.703206+00:00`, 9/9 tasks success, completion COMPLETE, lease release đúng DagRun owner; không clear/mark-success hoặc giả scheduled run.
+- Sửa smoke dùng đúng preflighted service/JAR; request CLI không làm đổi shared init config hash. Retry vẫn qua Trino exact count/lineage; metadata giữ import operation ID thay vì lấy experiment ID.
+- Audit source/history còn 7 pattern flags ngoài bản vá và 3 coverage items thuộc [SEC-01 — Security review](./SEC-01.md); không coi task này là security approval. Reviewer độc lập vẫn khuyến nghị nhưng không chặn Done theo AGENTS.md.
+
+## Giới hạn downstream
+
+- [MLD-05 — Validate feature snapshot/export](./MLD-05.md), [MLI-02 — Build dataset DAG](./MLI-02.md): còn official export/coverage acceptance, không dùng DAT-02 pilot thay EXPORTED.
+- [EXP-04 — Scientific evaluation](./EXP-04.md): scientific review và APPROVED riêng; fixture runtime chỉ chứng minh importer.
+- [MLI-04 — Trino/static report](./MLI-04.md), [MLQ-01 — ML E2E](./MLQ-01.md): serving/report và toàn flow Gold→ML còn riêng. [QA-01 — Daily E2E](./QA-01.md) vẫn cần scheduled Published; DAG.test không thay cron evidence.
