@@ -35,6 +35,7 @@ MLI_IMPORT_RUNNER_COMMAND ?= /opt/pipeline/bin/mli-import-runner
 QA_04_REQUEST ?=
 QA_04_RUNTIME_COMMAND ?=
 QA_04_STAGING_ROOT ?= /opt/pipeline/staging/qa-04
+QA_01_RUN_ID ?=
 
 COMPOSE = docker compose --env-file "$(ENV_FILE)" -f "$(COMPOSE_FILE)"
 RUNTIME_ENV = ENV_FILE="$(ENV_FILE)" COMPOSE_FILE="$(COMPOSE_FILE)"
@@ -64,6 +65,7 @@ COMPONENT_SMOKES := smoke-minio smoke-airflow smoke-spark smoke-query smoke-usgs
 .PHONY: test-ml-audit smoke-ml-audit
 .PHONY: test-qa-03 smoke-qa-03
 .PHONY: test-qa-02 smoke-qa-02
+.PHONY: test-qa-01 smoke-qa-01
 .PHONY: test-mli-import smoke-mli-import
 .PHONY: test-qa-04 smoke-qa-04
 .PHONY: test-ml-window smoke-ml-window resume-ml-window
@@ -74,6 +76,16 @@ FULL_MONTH_ROOT ?= staging/orc06-full-month
 FULL_MONTH_REQUEST ?=
 .PHONY: prepare-real-etl-runtime test-real-etl qa-real-etl
 ORC07_CAPTURE_ROOT ?= staging/orc06-full-month/captures
+
+test-qa-01: ## QA-01 identity/chain/count/SQL guards + ORC-07 blocker tests offline; không Docker
+	@python3 -m unittest discover -s airflow/tests -p 'test_qa_01_*.py'
+	@python3 -m unittest discover -s airflow/tests -p 'test_real_etl_runtime.py'
+	@python3 -m unittest discover -s tests -p 'test_qa_01_cli.py'
+
+smoke-qa-01: check-config-local ## QA-01 read-only evidence của scheduled run exact; không build/start/trigger ETL
+	@$(RUNTIME_CHECK) --component observability
+	@$(RUNTIME_CHECK) --component query
+	@python3 scripts/qa-01.py --run-id "$(QA_01_RUN_ID)" --env-file "$(ENV_FILE)" --compose-file "$(COMPOSE_FILE)"
 
 prepare-real-etl-runtime: check-config-local check-java-build-inputs ## ORC-07 build explicit image riêng; không start/restart foundation
 	@python3 scripts/real-etl.py prepare
@@ -311,6 +323,7 @@ ci-docs-base: ## Always-on CI guards; pilot tests được chọn riêng theo im
 	@$(MAKE) test-contracts
 	@python3 -m unittest discover -s tests -p 'test_real_etl_cli.py'
 	@python3 -m unittest discover -s tests -p 'test_full_month_*.py'
+	@python3 -m unittest discover -s tests -p 'test_qa_01_cli.py'
 	@$(MAKE) test-security-audit
 	@$(MAKE) test-docker-runtime
 	@$(MAKE) check-config ENV_FILE=/dev/null
