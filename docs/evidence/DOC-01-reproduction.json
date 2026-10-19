@@ -1,0 +1,52 @@
+{
+  "task_id": "DOC-01",
+  "evidence_date_local": "2026-10-19",
+  "timezone": "Asia/Ho_Chi_Minh",
+  "source_commit": "09d81a1",
+  "python_version": "3.13.3",
+  "venv": "staging/venvs/doc01",
+  "packages": {
+    "pyarrow": "21.0.0",
+    "numpy": "2.2.2",
+    "scipy": "1.15.1",
+    "scikit-learn": "1.6.1",
+    "hdbscan": "0.8.40",
+    "nbformat": "5.10.4",
+    "nbclient": "0.10.2",
+    "ipykernel": "6.30.1",
+    "jupyterlab": "4.4.7"
+  },
+  "zip_sha256": "b53cd7bfdc3768c3fd0ee0bcc5e037ef1c9c9b007d0df900ec223c8dc139bc3e",
+  "zip_bytes": 45907,
+  "pilot_id": "pilot_196b6d4081d347e1c289e331022658fbbe572dd33181ad987900895c1f1b189c",
+  "features_sha256": "3baddf613f237d2117248ad9095230ec17e428ea47f73d499623035d3097d2e6",
+  "checksums_index_sha256": "310b5f232ae34ca4f0a197b0181bff81efe6bee38897b6e151e9b58e8d5a6502",
+  "features": 279,
+  "mainshocks": 2,
+  "coverage_status": "PARTIAL",
+  "research_ready": false,
+  "runner_mode": "nbclient",
+  "fresh_kernel_acceptance": true,
+  "notebook_status": "RESTART_RUN_ALL_PASSED",
+  "local_smoke_status": "PASSED",
+  "source_notebook_outputs_cleared": true,
+  "baseline_notebook_sha256": "ef99622181ef22cb27efc830f2f714af9f147317c65ae5b97211e4158d87ee30",
+  "dataset_notebook_sha256": "72a7aef423f0b4b37c0b62075fb55c7b76d97817d6f036a265baf4d4dfc0293c",
+  "real_runs": [
+    {"output_root": "staging/doc01-reproduction.7Po4CX", "executed_code_cells": 7, "runtime_seconds": 72.5593},
+    {"output_root": "staging/doc01-handoff.OV5zit", "executed_code_cells": 7, "runtime_seconds": 2.5422}
+  ],
+  "same_input_fingerprint": true,
+  "same_counts_and_case_results": true,
+  "baseline_counts": {
+    "WINDOW": {"candidates": 279, "windows": 2, "sequence_members": 257, "aftershock_candidates": 255, "noise": 0},
+    "DBSCAN": {"candidates": 279, "windows": 2, "sequence_members": 251, "aftershock_candidates": 240, "noise": 9},
+    "HDBSCAN_GLOBAL": {"candidates": 279, "windows": 2, "sequence_members": 0, "aftershock_candidates": 0, "noise": 108}
+  },
+  "synthetic_notebook_run": {"candidates": 2, "mainshocks": 1, "executed_code_cells": 7, "fresh_kernel_acceptance": true, "runtime_seconds": 2.5669},
+  "dataset_inspection": {"executed_code_cells": 3, "status": "PILOT_INSPECTION_PASSED", "fresh_kernel_acceptance": true},
+  "backend_ingest_or_write_performed": false,
+  "official_dataset_exported": false,
+  "colab_executed": false,
+  "scientific_approval": false
+}

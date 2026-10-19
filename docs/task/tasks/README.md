@@ -188,7 +188,7 @@ fixture/inventory; assignee `HoaiTam`, reviewer `unassigned`. Xem
 
 | Task | Tuần | Workstream | Scope | Priority | Effort | Trạng thái |
 |---|---:|---|---|---|---:|---|
-| [DOC-01](./DOC-01.md) - Cập nhật tài liệu theo từng block | 6 | Documentation | Core | P0 | 4h | Ready |
+| [DOC-01](./DOC-01.md) - Cập nhật tài liệu theo từng block | 6 | Documentation | Core | P0 | 4h | Done |
 | [DEMO-01](./DEMO-01.md) - Chuẩn bị dữ liệu và kịch bản demo | 8 | Demo | Core | P0 | 4h | Backlog |
 | [DEMO-02](./DEMO-02.md) - Rehearsal và tạo release candidate | 8 | Release | Core | P0 | 6h | Backlog |
 | [OPS-01](./OPS-01.md) - Smoke test backup và restore metadata | 6 | Backup and restore | Stretch | P2 | 4h | Backlog |

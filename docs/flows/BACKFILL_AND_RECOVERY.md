@@ -2,13 +2,14 @@
 
 | Thuộc tính | Giá trị |
 |---|---|
-| Trạng thái | Draft |
+| Trạng thái | Đồng bộ DOC-01; quy trình theo exact owner/receipts, không force unlock |
 | Áp dụng | Daily run, manual rerun, backfill |
 
 Phần triển khai local hiện hành: [ORC-03 exact-scope backfill](../specs/BACKFILL_AND_REPROCESSING.md)
 và [ORC-05 recovery/resource profile](../specs/RECOVERY_AND_RESOURCES.md).
-Các kịch bản Silver/Gold/BI bên dưới là thiết kế/handoff, không evidence writer
-thật; ưu tiên retry boundary/snapshot pin/whole-run lease trong ORC-05.
+Real adapters/full-month đã có ở [ORC-07](../runbooks/ORC-07_REAL_ETL.md),
+bounded DAG.test không thay QA-01 scheduled acceptance. Các bước dưới là quy
+trình vận hành, không tự là evidence live; đọc [known issues](../KNOWN_ISSUES.md).
 
 ## 1. Mục tiêu
 
@@ -22,7 +23,9 @@ thật; ưu tiên retry boundary/snapshot pin/whole-run lease trong ORC-05.
 
 1. Luôn xác định rõ khoảng `[start, end)` bằng UTC.
 2. Ưu tiên tái sử dụng Bronze đã xác nhận hợp lệ; chỉ gọi lại nguồn khi Bronze thiếu/sai.
-3. Mỗi lần thử có `run_id` riêng nhưng cùng data interval.
+3. Retry/resume giữ exact operation/context/pins của run cũ; chỉ execution mới
+   có run identity mới. Không trộn attempts, sửa context hoặc dùng old summary
+   để tự release lease của attempt đang lỗi.
 4. Không dùng wildcard rộng cho input/output của backfill.
 5. Chỉ một job được sửa cùng partition/bảng tại một thời điểm trong môi trường local.
 6. Chỉ refresh Power BI sau khi run cuối cùng đạt trạng thái `Published`.
@@ -75,7 +78,8 @@ flowchart TD
 
 1. Khóa đúng Bronze URI từ lần ingest thành công.
 2. Sửa cấu hình/code nếu cần.
-3. Clear/retry từ task Silver, không gọi lại USGS.
+3. Sau khi xác nhận writer cũ đã dừng và đúng lease owner, theo scoped resume
+   của adapter/QA-04 bằng exact pins. Không clear/mark-success task để ép run xanh.
 4. Ghi output tạm theo attempt mới.
 5. Publish Silver chỉ sau quality gate.
 
@@ -176,7 +180,7 @@ Pipeline nên hỗ trợ in ra, nhưng chưa thực thi:
 | Parse/schema mismatch | Không mặc định | Silver | Cần đánh giá thay đổi nguồn |
 | Spark worker mất kết nối | Không replay write mù | Job/scope đã đối chiếu | Xác nhận app/writer cũ dừng và side effects trước rerun |
 | Quality gate thất bại | Không | Sau khi sửa dữ liệu/logic | Không publish downstream |
-| Iceberg commit conflict | Không ở orchestration | Reconcile committed bundle | Adapter GLD-03 cần idempotency/partial-commit recovery |
+| Iceberg commit conflict | Không ở orchestration | Reconcile committed bundle | Giữ journal/snapshots đã commit theo GLD-03/ORC-07; không append lại mù |
 | Trino tạm không sẵn sàng | Có | Verify | Không rerun Gold nếu snapshot đúng |
 | Power BI/ODBC lỗi | Có thủ công | Refresh BI | ETL không cần chạy lại |
 

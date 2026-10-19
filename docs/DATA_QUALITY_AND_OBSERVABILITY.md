@@ -3,7 +3,7 @@
 | Thuộc tính | Giá trị |
 |---|---|
 | Trạng thái | ORC-04 telemetry đã triển khai; business gates theo task owner |
-| Phạm vi | Bronze, Silver, Gold và pipeline run |
+| Phạm vi | Bronze, Silver, Gold, ML và pipeline run |
 
 ## 1. Mục tiêu
 
@@ -34,6 +34,10 @@ Tên trường, type, null policy, reject schema và Gold grain tuân theo
 | Volume | Số lượng bản ghi có bất thường so với lịch sử gần đây không? |
 
 ## 3. Quy tắc ở Bronze
+
+B-02/B-03 bên dưới là checks riêng cho **USGS GeoJSON**; JMA giữ raw ZIP và
+validate member/physical record count/format theo
+[JMA Bronze contract](./specs/JMA_BRONZE_QA.md). Không ép ZIP parse như JSON.
 
 | ID | Quy tắc | Mức | Hành động khi lỗi |
 |---|---|---|---|

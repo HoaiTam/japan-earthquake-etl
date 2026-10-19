@@ -84,6 +84,6 @@ Task EXP-01 tạo shared Python module và thin Jupyter notebook harness tái l�
 
 ## 4. Giới hạn / Rủi ro / Bước tiếp theo
 
-- Chưa triển khai thuật toán clustering cụ thể (Window, DBSCAN, HDBSCAN global): việc này thuộc về [EXP-02 - Chạy Window, DBSCAN và HDBSCAN global](docs/task/tasks/EXP-02.md).
-- Chưa có dataset nghiên cứu chính thức được export: việc này thuộc về [MLD-05 - Validate feature snapshot và export Parquet bundle](docs/task/tasks/MLD-05.md).
-- Chưa import kết quả vào Iceberg `ml.*`: việc này thuộc về [MLI-03 - Validate/import kết quả và commit bảng ML Iceberg](docs/task/tasks/MLI-03.md).
+- Chưa triển khai thuật toán clustering cụ thể (Window, DBSCAN, HDBSCAN global): việc này thuộc về [EXP-02 - Chạy Window, DBSCAN và HDBSCAN global](../task/tasks/EXP-02.md).
+- Chưa có dataset nghiên cứu chính thức được export: việc này thuộc về [MLD-05 - Validate feature snapshot và export Parquet bundle](../task/tasks/MLD-05.md).
+- Chưa import kết quả vào Iceberg `ml.*`: việc này thuộc về [MLI-03 - Validate/import kết quả và commit bảng ML Iceberg](../task/tasks/MLI-03.md).

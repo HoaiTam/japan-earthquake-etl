@@ -18,6 +18,12 @@ cùng sửa `spark/target` hoặc nhiều smoke cùng thao tác một stack.
 make help
 ```
 
+DOC-01: `make check-docs` kiểm link/file/heading Markdown nội bộ offline;
+`make test-docs` test checker và chống lệnh Make bị drift trong onboarding.
+Hướng dẫn đầy đủ và expected output dataset/experiment nhỏ nằm tại
+[onboarding DOC-01](./runbooks/DOC-01_TEAM_ONBOARDING.md).
+Notebook model dùng `notebooks/requirements-lock.txt`, không chỉ requirements-pilot.txt.
+
 CI có thêm `ci-plan`, `ci-java-impact`, `ci-airflow-impact`, `ci-pilot-impact`:
 PR chọn test theo diff, shared/unknown/main/manual vẫn full. Các lệnh cũ
 `make ci`/`ci-java`/`ci-airflow`/`ci-docs` vẫn full. Cách dùng PR context và

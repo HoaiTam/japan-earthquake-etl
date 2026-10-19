@@ -66,6 +66,7 @@ COMPONENT_SMOKES := smoke-minio smoke-airflow smoke-spark smoke-query smoke-usgs
 .PHONY: test-qa-03 smoke-qa-03
 .PHONY: test-qa-02 smoke-qa-02
 .PHONY: test-qa-01 smoke-qa-01
+.PHONY: check-docs test-docs
 .PHONY: test-mli-import smoke-mli-import
 .PHONY: test-qa-04 smoke-qa-04
 .PHONY: test-ml-window smoke-ml-window resume-ml-window
@@ -76,6 +77,12 @@ FULL_MONTH_ROOT ?= staging/orc06-full-month
 FULL_MONTH_REQUEST ?=
 .PHONY: prepare-real-etl-runtime test-real-etl qa-real-etl
 ORC07_CAPTURE_ROOT ?= staging/orc06-full-month/captures
+
+check-docs: ## DOC-01 validate link/file/heading Markdown nội bộ; offline, không runtime
+	@python3 scripts/check-docs.py
+
+test-docs: ## DOC-01 link checker và onboarding command regression; standard library only
+	@python3 -m unittest discover -s tests -p 'test_documentation.py'
 
 test-qa-01: ## QA-01 identity/chain/count/SQL guards + ORC-07 blocker tests offline; không Docker
 	@python3 -m unittest discover -s airflow/tests -p 'test_qa_01_*.py'
@@ -320,6 +327,7 @@ ci-docs: ## Docs/contracts/secret hygiene/Compose tĩnh; không đọc .env riê
 	@$(MAKE) test-pilot PILOT_PYTHON=python3
 
 ci-docs-base: ## Always-on CI guards; pilot tests được chọn riêng theo impact, không Docker daemon
+	@$(MAKE) check-docs test-docs
 	@$(MAKE) test-contracts
 	@python3 -m unittest discover -s tests -p 'test_real_etl_cli.py'
 	@python3 -m unittest discover -s tests -p 'test_full_month_*.py'

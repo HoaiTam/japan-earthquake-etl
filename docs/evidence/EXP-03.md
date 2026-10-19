@@ -141,8 +141,8 @@ Toàn bộ cấu hình được cố định trong `config/ml/models/hdbscan_ada
 
 ## 5. Giới hạn / Rủi ro / Bước tiếp theo
 
-- **Đánh giá khoa học so sánh (Scientific Evaluation):** Việc so sánh định lượng DBCV, physical consistency (luật Omori), noise ratio và stability giữa Window, DBSCAN, HDBSCAN Global và HDBSCAN Adaptive thuộc về [EXP-04 - Đánh giá quality, physical consistency và stability](docs/task/tasks/EXP-04.md). Không vội kết luận adaptive tốt hơn trước khi EXP-04 hoàn tất.
-- **Out-of-period evaluation:** Thử nghiệm mô hình trên giai đoạn mở rộng 2018–2023 thuộc về [EXP-05 - Chạy out-of-period extension 2018-2023](docs/task/tasks/EXP-05.md). Cấu hình adaptive hiện tại đã được khóa và không được điều chỉnh bằng dữ liệu extension.
-- **Official dataset export:** Dữ liệu nghiên cứu chính thức toàn kỳ phụ thuộc vào [MLD-05 - Validate feature snapshot và export Parquet bundle](docs/task/tasks/MLD-05.md).
-- **Import Iceberg `ml.*`:** Nạp kết quả vào bảng Iceberg thuộc về [MLI-03 - Validate/import kết quả và commit bảng ML Iceberg](docs/task/tasks/MLI-03.md).
+- **Đánh giá khoa học so sánh (Scientific Evaluation):** Việc so sánh định lượng DBCV, physical consistency (luật Omori), noise ratio và stability giữa Window, DBSCAN, HDBSCAN Global và HDBSCAN Adaptive thuộc về [EXP-04 - Đánh giá quality, physical consistency và stability](../task/tasks/EXP-04.md). Không vội kết luận adaptive tốt hơn trước khi EXP-04 hoàn tất.
+- **Out-of-period evaluation:** Thử nghiệm mô hình trên giai đoạn mở rộng 2018–2023 thuộc về [EXP-05 - Chạy out-of-period extension 2018-2023](../task/tasks/EXP-05.md). Cấu hình adaptive hiện tại đã được khóa và không được điều chỉnh bằng dữ liệu extension.
+- **Official dataset export:** Dữ liệu nghiên cứu chính thức toàn kỳ phụ thuộc vào [MLD-05 - Validate feature snapshot và export Parquet bundle](../task/tasks/MLD-05.md).
+- **Import Iceberg `ml.*`:** Nạp kết quả vào bảng Iceberg thuộc về [MLI-03 - Validate/import kết quả và commit bảng ML Iceberg](../task/tasks/MLI-03.md).
 - **Reviewer:** Reviewer độc lập cho task P0 này hiện là `unassigned`.

@@ -1,263 +1,104 @@
 # Luồng ETL hằng ngày
 
-| Thuộc tính | Giá trị |
+Cập nhật DOC-01 **19/10/2026**. Đọc cùng [kiến trúc](../SYSTEM_ARCHITECTURE.md),
+[ORC-07](../runbooks/ORC-07_REAL_ETL.md) và [QA-01](../runbooks/QA-01_DAILY_E2E.md).
+
+## 1. Entry point và trạng thái
+
+`orc_02_daily_sources` là cron owner duy nhất: mặc định `15 7 * * *`,
+Asia/Ho_Chi_Minh, catchup false, max_active_runs/tasks=1, paused upon creation.
+USGS data window dùng UTC. JMA là archives có version, không phải daily event API.
+
+- ORC07_DAILY_MODE=disabled (default): SourcesReady/published=false.
+- Mode real + exact eligible full-month request: sáu Java phases đến Published.
+- ORC-07 có bounded real DAG.test; **QA-01 scheduled deployment chưa PASSED**.
+- orc_01_etl_pipeline là skeleton/mock; MockComplete không thay Published.
+
+## 2. Ba phạm vi thời gian
+
+| Phạm vi | Ý nghĩa |
 |---|---|
-| Trạng thái | Draft |
-| Trigger | Theo lịch hoặc thủ công |
-| Chu kỳ dự kiến | Mỗi ngày |
-| Múi giờ điều phối | `Asia/Ho_Chi_Minh` |
-| Múi giờ cửa sổ dữ liệu | UTC |
+| Airflow data interval | Khoảng lịch ổn định của DagRun, kết thúc ở biên cron |
+| USGS query [start,end) | Ba ngày UTC đã hoàn tất gần nhất, clip ở seed 2023-01-01; API endtime = exclusive end −1ms |
+| Gold affected months | Tập tháng UTC đủ state/coverage được resolver chứng nhận; không chỉ delta ba ngày |
 
-> Implementation hiện tại: ORC-01 đã có **khung manual DAG**
-> `orc_01_etl_pipeline` với contract/mock và strict failure gates. Phần daily
-> schedule/readiness thật thuộc ORC-02 - Cấu hình lịch và readiness cho hai
-> nguồn; SLV-09 - Tích hợp và kiểm thử Silver đa nguồn, GLD-03 - Ghi Gold
-> Iceberg và commit snapshot, GLD-04 - Tạo Trino views và verification SQL
-> chưa hoàn tất adapters đến Published. Phần bên dưới là target flow, không
-> phải evidence daily run đã đạt. Xem [giao diện/test/handoff ORC-01](../specs/ETL_ORCHESTRATION_CONTRACT.md).
+Ví dụ interval Airflow kết thúc 2023-10-01T00:15:00Z: target day 30/09 UTC,
+query USGS `[2023-09-28T00:00:00Z,2023-10-01T00:00:00Z)` với overlap=3.
+Đây là ví dụ tính window, chưa phải request Published đủ tháng.
+Revision cũ hơn overlap cần scoped backfill, không coi ba ngày bắt mọi sửa đổi.
+Rule đầy đủ: [source coverage](../specs/SOURCE_COVERAGE.md),
+[USGS request](../specs/USGS_REQUEST_CONTRACT.md).
 
-## 1. Mục đích
-
-Tài liệu này mô tả happy path của một lần chạy pipeline. Các trường hợp chạy bù, retry có chọn lọc và khôi phục sau lỗi được mô tả tại [Backfill và phục hồi](./BACKFILL_AND_RECOVERY.md). Phạm vi nguồn, ROI, timezone và overlap tuân theo [source coverage contract](../specs/SOURCE_COVERAGE.md); layout raw và manifest tuân theo [Bronze storage contract](../specs/BRONZE_STORAGE_CONTRACT.md); schema và KPI tuân theo [Silver/Gold logical data model](../specs/SILVER_GOLD_DATA_MODEL.md).
-
-## 2. Cửa sổ dữ liệu
-
-Lịch tham khảo là **07:15 giờ Việt Nam**, sau khi ngày UTC trước đó đã kết thúc.
-
-Với ngày chạy logic `D`:
-
-- Cửa sổ bắt buộc: toàn bộ ngày UTC `D - 1`.
-- Cửa sổ revision mặc định: đọc ba ngày UTC hoàn chỉnh gần nhất để nhận sự kiện được USGS sửa muộn; cách tính và seed clipping nằm trong [USGS request contract](../specs/USGS_REQUEST_CONTRACT.md).
-- Mọi timestamp truyền cho API phải có timezone rõ ràng.
-- Giá trị phải cấu hình được; thay default ba ngày là contract change và phải có evidence trước/sau.
-
-Ví dụ, DAG chạy lúc `2026-09-16 07:15 Asia/Ho_Chi_Minh` có ngày UTC bắt buộc là `2026-09-15` và có thể đọc chồng từ `2026-09-13T00:00:00Z` đến trước `2026-09-16T00:00:00Z`.
-
-JMA không phải nguồn daily event-level. Catalog index/update metadata được kiểm
-tra riêng; chỉ year/release mới hoặc đổi checksum mới đi qua JMA ingest. Daily
-Gold có thể dùng observation JMA đã publish cùng USGS mới.
-
-## 3. Luồng tổng thể
+## 3. Graph đang có
 
 ```mermaid
 flowchart TD
-    START["DAG run bắt đầu"] --> RESOLVE["Xác định data interval và run ID"]
-    RESOLVE --> CHECK_SOURCE["Kiểm tra tham số nguồn"]
-    CHECK_SOURCE --> EXTRACT["Gọi USGS API"]
-    EXTRACT --> VALIDATE_RESPONSE{"Response hợp lệ?"}
-    VALIDATE_RESPONSE -- Không --> RETRY["Retry với backoff"]
-    RETRY --> EXTRACT
-    VALIDATE_RESPONSE -- Có --> WRITE_BRONZE["Ghi GeoJSON và ingest metadata vào Bronze"]
-    WRITE_BRONZE --> VERIFY_BRONZE["Kiểm tra object và record count"]
-    VERIFY_BRONZE --> GATE["bronze_ready_gate"]
-    GATE --> STAGE_BRONZE["Stage đúng input theo run ID"]
-    STAGE_BRONZE --> BUILD_SILVER["Spark Java build_silver"]
-    BUILD_SILVER --> CHECK_SILVER{"Silver quality gate đạt?"}
-    CHECK_SILVER -- Không --> FAIL["DAG failed — dừng downstream"]
-    CHECK_SILVER -- Có --> PUBLISH_SILVER["Upload Silver Parquet"]
-    PUBLISH_SILVER --> STAGE_SILVER["Stage partition Silver cần xử lý"]
-    STAGE_SILVER --> BUILD_GOLD["Spark Java build_gold"]
-    BUILD_GOLD --> COMMIT["Commit Iceberg snapshot"]
-    COMMIT --> VERIFY_GOLD{"Trino verification đạt?"}
-    VERIFY_GOLD -- Không --> FAIL
-    VERIFY_GOLD -- Có --> READY["Đánh dấu run Published"]
-    READY -. "Stretch, không chặn Core" .-> REFRESH["Power BI refresh"]
+    R["resolve_daily"] --> A["acquire_source_lease"]
+    A --> J["jma_readiness"]
+    J --> U["usgs_bronze"]
+    U --> S["sources_ready"]
+    S --> E["real_etl<br/>disabled: SourcesReady / real: six phases"]
+    E --> L["release_source_lease<br/>exact completed owner only"]
+    L --> C["completion_gate"]
+    E -. "failure / unknown outcome" .-> F["Fail closed; retain lease"]
 ```
 
-## 4. Chi tiết từng bước
+Đây là 8 tasks; sáu phases real nằm trong task real_etl. Dùng receipts/artifacts
+để xác định phase lỗi, không nhầm chúng với sáu run riêng.
 
-### P01 — Khởi tạo lần chạy
+## 4. Làm gì, gồm gì, dùng để làm gì?
 
-**Input:** logical date, DAG data interval, cấu hình vùng nghiên cứu.
-
-**Xử lý:**
-
-- Sinh/nhận `run_id` duy nhất từ Airflow.
-- Chuẩn hóa `window_start` và `window_end` sang UTC.
-- Xác nhận `window_start < window_end` và không vượt quá thời điểm hiện tại.
-- Ghi các tham số vào log có cấu trúc.
-
-**Output:** run context dùng chung cho các task.
-
-USG-04 giữ context này qua XCom dưới dạng metadata nhỏ; raw body không đi qua
-XCom. Retry dùng lại cùng `logical_run_key` và cửa sổ đã resolve.
-
-### P02 — Extract USGS
-
-**Input:** run context.
-
-**Xử lý:**
-
-- Dùng request plan của `USG-01` để tạo các chunk half-open UTC, endpoint
-  GeoJSON, bounding box Nhật Bản và `eventtype=earthquake`.
-- Truyền thời gian, bounding box và các bộ lọc đã cấu hình; `USGS endtime` được
-  gửi là thời điểm kết thúc độc quyền trừ 1 ms.
-- Dùng `USG-02` HTTP client để đặt timeout, retry lỗi mạng/HTTP `429`/`5xx`,
-  guard kích thước response và pagination khi count vượt `limit`.
-- Không retry vô hạn lỗi tham số hoặc response không đúng hợp đồng.
-
-**Output:** response nguyên bản cùng metadata request/response không chứa secret.
-
-Trong DAG, bước này được thực thi qua runner protocol của [USGS Airflow ingest
-contract](../specs/USGS_AIRFLOW_INGEST_CONTRACT.md); runner bridge sử dụng
-`USG-02` và `USG-03`.
-
-### P03 — Ghi Bronze
-
-**Input:** response GeoJSON hợp lệ ở mức cú pháp từ `USG-02`; lifecycle chi
-tiết nằm trong [USGS Bronze writer contract](../specs/USGS_BRONZE_WRITER_CONTRACT.md).
-
-**Xử lý:**
-
-- Ghi object theo đường dẫn gắn ngày ingest và run ID.
-- Ghi metadata tối thiểu: source, request window, fetch time, HTTP status, feature count, checksum và run ID.
-- Xác nhận object có thể đọc lại trước khi hoàn tất task.
-
-**Output dự kiến:**
-
-```text
-bronze/usgs/ingest_date=YYYY-MM-DD/run_id=<run-id>/attempt=<nn>/response.geojson
-bronze/usgs/ingest_date=YYYY-MM-DD/run_id=<run-id>/attempt=<nn>/manifest.json
-```
-
-Tên cuối cùng sẽ được xác nhận khi mã nguồn được tạo.
-
-`bronze_ready_gate` chỉ thành công sau readback/checksum và manifest
-`BronzeReady`; Silver phải đặt dependency vào gate này.
-
-### P04 — Build Silver
-
-**Input:** danh sách Bronze object được khóa theo run context.
-
-**Xử lý:**
-
-1. Parse `features` và ánh xạ các trường cần thiết.
-2. Chuẩn hóa timestamp về UTC và tạo timestamp JST.
-3. Ép kiểu magnitude, depth, latitude, longitude và flags.
-4. Kiểm tra range, required field và tính hợp lệ.
-5. Loại bản ghi không hợp lệ; ghi count và lý do tổng hợp vào log.
-6. Deduplicate revision trong từng nguồn (`id`/`updated` cho USGS; source key/catalog release cho JMA).
-7. Liên kết observation xuyên nguồn theo contract; candidate mơ hồ không được auto-merge.
-8. Ghi Parquet tạm, chạy quality gate rồi mới upload Silver.
-
-**Output dự kiến:**
-
-```text
-silver/source_observation/event_year_utc=YYYY/event_month_utc=MM/source_system=<source>/*.parquet
-```
-
-### P05 — Build Gold
-
-**Input:** Silver partitions bị ảnh hưởng bởi cửa sổ chạy.
-
-**Xử lý:**
-
-- Enrich khu vực nếu boundary dataset sẵn sàng; giữ `UNKNOWN`/`OFFSHORE` khi
-  không map được.
-- Tạo `event_current`, source bridge và các magnitude/depth band theo contract.
-- Tính các aggregate cần thiết cho dashboard nếu có lợi cho hiệu năng.
-- Ghi vào bảng Iceberg theo chiến lược merge/overwrite partition đã thống nhất.
-- Commit snapshot của từng bảng; lưu đầy đủ table identity/snapshot ID của
-  bundle output. Nhiều bảng không mặc nhiên commit atomically và chỉ được
-  Published sau khi toàn bộ bảng trong scope đã commit và verify.
-
-Thiếu enrichment không được làm mất event. Record không match phải giữ tọa độ gốc và nhận giá trị khu vực quy ước.
-
-### P06 — Verify và publish
-
-**Input:** snapshot ID vừa commit.
-
-**Xử lý:**
-
-- Truy vấn Trino để kiểm tra bảng có thể đọc.
-- Đối soát số lượng, uniqueness và range bắt buộc.
-- Pin/query đúng từng committed snapshot trong bundle, không resolve latest
-  hoặc chỉ xác nhận current rồi query snapshot có thể đã đổi.
-- Ghi metric cuối cùng và đánh dấu run thành công.
-
-**Output:** trạng thái `Published` cho consumer Core; Power BI refresh là
-Stretch. Mock ORC-01 chỉ `MockComplete`, không tạo publication metadata thật.
-
-## 5. Sequence diagram
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant AF as Airflow
-    participant API as USGS API
-    participant M as MinIO
-    participant S as Spark
-    participant C as Iceberg Catalog
-    participant T as Trino
-    participant BI as Power BI
-
-    AF->>API: Query UTC window
-    API-->>AF: GeoJSON
-    AF->>M: Put Bronze + metadata
-    AF->>M: Get/stage Bronze
-    AF->>S: spark-submit build_silver(run context)
-    S-->>AF: Silver output + metrics
-    AF->>M: Put Silver Parquet
-    AF->>M: Get/stage affected Silver
-    AF->>S: spark-submit build_gold(run context)
-    S->>C: Commit Gold snapshot
-    S->>M: Write Iceberg metadata/data files
-    C-->>S: Snapshot committed
-    S-->>AF: Snapshot ID + metrics
-    AF->>T: Verification SQL
-    T->>C: Resolve current snapshot
-    T->>M: Read required files
-    T-->>AF: Verification result
-    AF-->>BI: Run ready for scheduled refresh
-    BI->>T: Import query via ODBC
-```
-
-## 6. Hợp đồng run context
-
-Mỗi job nên nhận cùng một nhóm tham số logic, bất kể cơ chế truyền cụ thể:
-
-| Tham số | Bắt buộc | Ý nghĩa |
+| Bước | Thực hiện / output | Cổng an toàn |
 |---|---|---|
-| `run_id` | Có | Mã truy vết end-to-end |
-| `window_start_utc` | Có | Đầu cửa sổ, inclusive |
-| `window_end_utc` | Có | Cuối cửa sổ, exclusive |
-| `processing_date` | Có | Ngày logic của run |
-| `input_uri` | Có | Input đã được resolve, không dùng wildcard mơ hồ |
-| `output_uri`/table | Có | Đích của bước xử lý |
-| `is_backfill` | Có | Phân biệt run lịch thường và run chạy bù |
-| `config_version` | Nên có | Phiên bản cấu hình/commit phục vụ truy vết |
+| Resolve | Exact dag/run, interval/profile; USGS overlap, JMA watchlist | Daily conf rỗng, không arbitrary historical scope |
+| Lease | Whole-source writer lock đúng owner | Không tranh daily/backfill hoặc tự lấy lease hết hạn |
+| JMA readiness | HEAD/version/checksum audit; reuse hoặc ingest changed release | Raw ZIP + manifest BronzeReady; chưa là full historical coverage |
+| USGS Bronze | Query/fetch/validate/write/readback GeoJSON/manifest | HTTP bounded retry; invalid/quarantine không đi Silver |
+| SourcesReady | Summary hai nguồn, manifest/raw SHA, query context, changed years | Không Published; chưa đủ ML upstream evidence |
+| Silver real | Exact pins + baseline, parse/quality, revisions, links/memberships, full-month proof | COMPLETE_MONTHS; reconciliation; không overwrite tháng bằng delta |
+| Gold real | Sáu bảng Iceberg, scope/baseline/snapshot journal | COMMITTED/published=false, chưa mở serving |
+| Verify/publish | Trino verify counts/keys/fields/lineage/scope/dimensions trên pinned snapshots | Blockers đạt mới có versioned views/PASSED row và Published |
+| Release/completion | Execution/summary SHA của chính operation, exact owner | Summary cũ không release attempt mới đang lỗi |
 
-## 7. Logging và metric bắt buộc
+JMA ZIP vào Bronze nguyên bản; đọc member ZIP để validate/parse không thay raw
+bằng dữ liệu đã lọc. Silver thông thường có reject dataset; ORC-06 full-month
+parser v1 fail-closed nếu có parser rejects. Không bỏ event vì thiếu enrichment.
 
-Mỗi bước phải log:
+## 5. Count và lineage
 
-- `run_id`, task, attempt, window start/end.
-- Input/output URI hoặc table logic, không log credential.
-- Thời gian chạy và trạng thái.
-- Số bản ghi input, parsed, valid, rejected, duplicate, inserted/updated logic và output.
-- Lỗi kèm nguyên nhân gốc và đủ context để chạy lại.
-- Snapshot ID sau khi Gold commit.
+Giữ riêng full Bronze count, selected records, outside temporal selection,
+parser rejects, repeated observation IDs, revisions ngoài affected months,
+current/history, links, memberships và canonical. Không trừ tổng link rows khỏi
+raw count. Overlap không được làm tăng canonical chỉ vì tải lại observation.
 
-## 8. Điều kiện dừng
+Evidence chain: dag_id/run_id → source summary SHA → context/operation →
+Bronze pins → Silver bundle/full-month registry → six Gold snapshots →
+Trino verification → publication_id.
 
-Pipeline phải dừng trước downstream nếu:
+Keys dưới configured Silver prefix: real-etl/operation, full-month/operation,
+bundles/operation, gold-commits/operation, gold-verification/operation.
+Không dùng wildcard/latest hoặc ghép smoke namespace để nhận E2E Passed.
 
-- Response không parse được hoặc thiếu cấu trúc nguồn bắt buộc.
-- Bronze không ghi/đọc lại được.
-- Silver vi phạm quality gate bắt buộc.
-- Spark job trả exit code khác 0.
-- Iceberg commit thất bại.
-- Trino không đọc được snapshot mới hoặc Gold vi phạm kiểm tra bắt buộc.
+## 6. Chạy và nghiệm thu
 
-Việc không có sự kiện trong một cửa sổ nhỏ không mặc định là lỗi; phải phân biệt response rỗng hợp lệ với extract thất bại.
+Chuẩn bị/start Docker riêng theo [local runbook](../LOCAL_OPERATIONS_RUNBOOK.md).
+`make test-real-etl` là regression offline; `make qa-real-etl` là opt-in bounded
+QA có thể ingest/ghi QA namespace, không phải read-only collector hoặc cron.
+Đọc yêu cầu image/captures/lease ở ORC-07 trước khi chạy.
 
-## 9. Điều kiện hoàn tất
+QA-01 có `make test-qa-01` và smoke collector cho exact scheduled run từ UI.
+Preflight stale image dừng trước exec; SourcesReady-only báo NOT_READY.
+[Evidence QA-01](../evidence/QA-01.md) ghi rõ deployment còn thiếu gì.
 
-Một daily run chỉ hoàn tất khi:
+Sau Published, MLI-02 riêng biệt pin dataset; ETL không fit HDBSCAN, trigger
+Colab hoặc chờ experiment. Static report là Core, Power BI refresh là Stretch.
 
-1. Bronze raw object và manifest `BronzeReady` tồn tại, readback/checksum đã được xác nhận.
-2. Silver của các partition liên quan đã publish.
-3. Gold snapshot đã commit.
-4. Trino verification đạt.
-5. Metric đối soát đã ghi đầy đủ.
-6. Run được đánh dấu thành công và có thể refresh Power BI.
+## 7. Giới hạn và recovery
+
+ORC-06/07 v1 chỉ hỗ trợ closed months đủ proof/halo, JMA inventory đến 2023.
+Current-month/as-of-cutoff/JMA sau 2023 **chưa có task riêng**; không bật real
+daily 2026 bằng historical request để bypass coverage.
+QA-01 còn scheduled acceptance; QA-02/03/04 còn matrices rerun/history/recovery
+live. [Known issues](../KNOWN_ISSUES.md) dẫn đúng task.
+Fail/timeout giữ evidence/lease; không clear/mark-success/retry write mù.
+Xem [backfill/recovery](./BACKFILL_AND_RECOVERY.md).

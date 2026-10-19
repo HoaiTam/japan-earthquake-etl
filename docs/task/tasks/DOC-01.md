@@ -1,13 +1,13 @@
 ---
 task_id: "DOC-01"
-status: "Ready"
+status: "Done"
 week: 6
 block: "K - QA & Release"
 workstream: "Documentation"
 scope: "Core"
 priority: "P0"
 effort_hours: 4
-assignee: "unassigned"
+assignee: "HoaiTam"
 reviewer: "unassigned"
 dependencies: []
 ---
@@ -32,12 +32,22 @@ Dùng để tài liệu được cập nhật liên tục theo PR; final review 
 ## Deliverable
 
 - Bộ docs khớp hệ thống thực tế và link nội bộ hợp lệ.
+- [Onboarding / reproduction](../../runbooks/DOC-01_TEAM_ONBOARDING.md),
+  [known issues theo task](../../KNOWN_ISSUES.md), kiến trúc/daily flow/local runbook
+  và lifecycle Gold → ML → Jupyter → Colab → import đã đồng bộ.
+- `make check-docs` / `make test-docs` kiểm links/anchors nội bộ và lệnh onboarding
+  offline; có trong CI docs gate.
 
 ## Tiêu chí hoàn thành
 
-- [ ] Thành viên mới hiểu làm gì, gồm gì, dùng để làm gì và chạy được theo runbook.
-- [ ] không còn mô tả mâu thuẫn.
-- [ ] Thành viên mới tái lập được một dataset/experiment nhỏ mà không cần credential trong notebook.
+- [x] Thành viên mới hiểu làm gì, gồm gì, dùng để làm gì và chạy được theo runbook.
+- [x] không còn mô tả mâu thuẫn.
+- [x] Thành viên mới tái lập được một dataset/experiment nhỏ mà không cần credential trong notebook.
+
+Nghiệm thu DOC-01 ở scope tài liệu/reproduction development: venv mới, synthetic
+clone path, dataset inspection và hai fresh-kernel real-pilot runs ở đường dẫn
+khác nhau có fingerprint/count/case results khớp. Không thay QA-01 scheduled
+deployment, MLD-05 official export hoặc EXP-02 Colab/scientific acceptance.
 
 ## Hard dependency
 
@@ -69,19 +79,19 @@ Bổ sung runbook DAT-02 → EXP-01/02 Jupyter → local PASSED → Colab với 
 
 ## Theo dõi
 
-- **Trạng thái:** Ready
-- **Assignee:** Chưa ghi lại
-- **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Trạng thái:** Done
+- **Assignee:** HoaiTam
+- **Reviewer:** unassigned; chưa có approval độc lập
+- **Evidence / PR:** [DOC-01 evidence](../../evidence/DOC-01.md), [reproduction metadata](../../evidence/DOC-01-reproduction.json). Chưa mở PR.
 - **Kỹ năng phù hợp:** Technical writing, architecture
 
 ## Checklist bàn giao
 
-- [ ] Deliverable đã có trong repository hoặc môi trường demo.
-- [ ] Acceptance criteria đã được kiểm tra.
-- [ ] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
-- [ ] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
-- [ ] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
+- [x] Deliverable đã có trong repository hoặc môi trường demo.
+- [x] Acceptance criteria đã được kiểm tra.
+- [x] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
+- [x] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
+- [x] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
 - [ ] P0/P1 có reviewer khác assignee xác nhận.
 
 ## Tài liệu liên quan
