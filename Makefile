@@ -31,6 +31,9 @@ QA_02_MARKDOWN ?= staging/qa-02/qa-02.md
 QA_02_RUNTIME_REQUEST ?=
 QA_02_RUNTIME_COMMAND ?=
 MLI_IMPORT_REQUEST ?=
+# A per-run CLI input must not change Compose's shared Airflow/init config hash.
+# Pass it explicitly to the one-off service or DAG QA argv below instead.
+unexport MLI_IMPORT_REQUEST
 MLI_IMPORT_RUNNER_COMMAND ?= /opt/pipeline/bin/mli-import-runner
 QA_04_REQUEST ?=
 QA_04_RUNTIME_COMMAND ?=
@@ -67,7 +70,7 @@ COMPONENT_SMOKES := smoke-minio smoke-airflow smoke-spark smoke-query smoke-usgs
 .PHONY: test-qa-02 smoke-qa-02
 .PHONY: test-qa-01 smoke-qa-01
 .PHONY: check-docs test-docs
-.PHONY: test-mli-import smoke-mli-import
+.PHONY: test-mli-import smoke-mli-import smoke-mli-import-acceptance smoke-mli-import-dag up-ml
 .PHONY: test-qa-04 smoke-qa-04
 .PHONY: test-ml-window smoke-ml-window resume-ml-window
 .PHONY: prepare-ml-local stage-ml-windows test-ml-feature ml-features-local ml-pilot-local pilot-env test-pilot inspect-pilot jupyter-pilot
@@ -243,17 +246,30 @@ smoke-qa-02: check-config-local ## QA-02 Bronze-to-Published rerun/revision; c�
 
 test-mli-import: ## MLI-03 offline bundle validation, journal idempotency và control-plane handoff
 	@python3 -m unittest discover -s airflow/tests -p 'test_mli_03_import_results.py'
+	@python3 -m unittest discover -s airflow/tests -p 'test_mli_import_qa.py'
+	@python3 -m unittest discover -s airflow/tests -p 'test_mli_import_dag_qa.py'
 	@./mvnw --batch-mode --no-transfer-progress -pl spark -am \
-		-Dtest=ResultBundleContractTest,MlResultImportJobTest,TrustedDatasetResolverTest,MlResultPublicationIcebergTest -Dsurefire.failIfNoSpecifiedTests=false test
+		-Dtest=ResultBundleContractTest,MlResultImportJobTest,TrustedDatasetResolverTest,MlResultPublicationIcebergTest,TrinoMlVerifierTest -Dsurefire.failIfNoSpecifiedTests=false test
 
 smoke-mli-import: check-config-local ## MLI-03 runtime import vào namespace QA; cần Docker/MinIO/Catalog/Trino và exact request
 	@test -n "$(MLI_IMPORT_REQUEST)" || { echo 'Set MLI_IMPORT_REQUEST=/opt/pipeline/staging/.../request.json'; exit 2; }
 	@test -n "$(MLI_IMPORT_RUNNER_COMMAND)" || { echo 'Set MLI_IMPORT_RUNNER_COMMAND to the container Spark runner'; exit 2; }
 	@$(RUNTIME_CHECK) --component ml --client mli-03-import-results
 	@$(COMPOSE) run --rm --no-deps --pull never \
-		-e PYTHONPATH=/opt/airflow/dags \
+		-e MLI_IMPORT_REQUEST="$(MLI_IMPORT_REQUEST)" \
 		-e MLI_IMPORT_RUNNER_COMMAND="$(MLI_IMPORT_RUNNER_COMMAND)" \
-		airflow-dag-processor python3 /opt/airflow/dags/mli_03_import_results.py "$(MLI_IMPORT_REQUEST)"
+		mli-03-import-results
+
+smoke-mli-import-acceptance: check-config-local ## MLI-03 synthetic fixtures trên MinIO/Iceberg/Trino; namespace QA mới, không build/start/reset
+	@$(RUNTIME_CHECK) --component ml --client mli-03-import-results
+	@$(COMPOSE) run --rm --no-deps --pull never --entrypoint python3 \
+		mli-03-import-results /opt/airflow/dags/mli_import_qa.py
+
+smoke-mli-import-dag: check-config-local ## MLI-03 fresh DAG.test trên accepted QA request; không clear/mark-success hoặc build/start
+	@test -n "$(MLI_IMPORT_REQUEST)" || { echo 'Set MLI_IMPORT_REQUEST to the accepted QA import-request.json'; exit 2; }
+	@$(RUNTIME_CHECK) --component ml --client mli-03-import-results
+	@$(RUNTIME_CHECK) --component airflow
+	@$(COMPOSE) exec -T airflow-dag-processor python3 /opt/airflow/dags/mli_import_dag_qa.py "$(MLI_IMPORT_REQUEST)"
 .PHONY: test-gold-storage smoke-gold-storage
 .PHONY: test-gold-publication smoke-gold-publication test-dataset-manifest smoke-dataset-manifest
 
@@ -610,6 +626,9 @@ up-spark: check-config-local ## Start Spark + staging init khi cần; không bui
 
 up-query: check-config-local ## Start MinIO/Catalog/Trino + init khi cần; không build/pull
 	@$(RUNTIME_ENV) WAIT_TIMEOUT="$(WAIT_TIMEOUT)" python3 scripts/docker-runtime.py up --component query
+
+up-ml: check-config-local ## Start ML storage/query + staging init khi cần; không build/pull hoặc trigger DAG
+	@$(RUNTIME_ENV) WAIT_TIMEOUT="$(WAIT_TIMEOUT)" python3 scripts/docker-runtime.py up --component ml
 
 status: require-env ## Xem toàn bộ container, gồm init đã thoát; SERVICE để lọc
 	@$(COMPOSE) ps -a $(SERVICE)

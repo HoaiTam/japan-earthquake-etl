@@ -851,11 +851,17 @@ services:
     profiles: [ml]
     command:
       - |
-        exec true
+        exec python3 /opt/airflow/dags/mli_03_import_results.py "$${MLI_IMPORT_REQUEST}"
     environment:
       TRINO_HOST: ${TRINO_HOST:?TRINO_HOST is required}
       TRINO_INTERNAL_PORT: ${TRINO_INTERNAL_PORT:?TRINO_INTERNAL_PORT is required}
       MLI_DATASET_REGISTRY_ROOT: ${MLI_DATASET_REGISTRY_ROOT:-/opt/pipeline/staging/ml-artifacts}
+      MLI_IMPORT_REQUEST: ${MLI_IMPORT_REQUEST:-}
+      MLI_IMPORT_RUNNER_COMMAND: ${MLI_IMPORT_RUNNER_COMMAND:-/opt/pipeline/bin/mli-import-runner}
+      MLI_IMPORT_RUNNER_TIMEOUT_SECONDS: ${MLI_IMPORT_RUNNER_TIMEOUT_SECONDS:-3600}
+    volumes:
+      - ./compose/airflow/mli-import-runner.sh:/opt/pipeline/bin/mli-import-runner:ro
+      - ./spark/src/test/resources/ml/results:/opt/pipeline/ml-result-fixtures:ro
 
   qa-02-rerun-revision:
     extends: {service: spark-gold-qa}

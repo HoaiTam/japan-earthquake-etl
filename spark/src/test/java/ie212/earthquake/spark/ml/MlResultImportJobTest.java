@@ -19,6 +19,14 @@ class MlResultImportJobTest {
         "ds_fixture", "EXPORTED", "exp_fixture", "WINDOW", "1",
         ResultBundleContractTest.CANDIDATES, null);
 
+    @Test void importOperationIdentityIsNotReplacedWithExperimentIdentity() throws Exception {
+        FakeWriter writer = new FakeWriter();
+        MlResultImportJob.importBundle(FIXTURE, Files.createTempDirectory("mli03-operation-"), CONTEXT, writer,
+            (commit, context, fingerprint) -> Map.of("sequence_membership", 2L, "sequence_summary", 1L),
+            "iceberg.ml_qa_test", "mli03-actual-operation");
+        assertEquals("mli03-actual-operation", writer.importOperation);
+    }
+
     @Test
     void readsBundleCommitsCandidateAndRerunIsIdempotent() throws Exception {
         Path journal = Files.createTempDirectory("mli03-journal-");
@@ -82,6 +90,11 @@ class MlResultImportJobTest {
         Files.writeString(bundle.resolve("pilot_result_manifest.json"), "{}\n");
         assertEquals("IMP_UNSAFE_ARTIFACT_METADATA", assertThrows(IllegalArgumentException.class,
             () -> MlResultBundleReader.read(bundle)).getMessage());
+        Files.delete(bundle.resolve("pilot_result_manifest.json"));
+        Files.writeString(bundle.resolve("_SUCCESS.json"), "{\"status\":\"DEVELOPMENT_PILOT\"}\n");
+        assertEquals("IMP_INCOMPLETE_BUNDLE", assertThrows(IllegalArgumentException.class,
+            () -> MlResultImportJob.importBundle(bundle, Files.createTempDirectory("mli03-renamed-pilot-"),
+                CONTEXT, new FakeWriter())).getMessage());
     }
 
     @Test
@@ -158,11 +171,13 @@ class MlResultImportJobTest {
         boolean failCommit;
         String fingerprint;
         String status;
+        String importOperation;
         ResultCommit pinned;
 
         @Override public Reservation reserveExperiment(ResultBundleValidator.DecodedBundle bundle,
                                                        ResultBundleValidator.Context context,
                                                        String resultBundleSha256) {
+            importOperation = context.experimentMetadata().importRunId();
             if (fingerprint != null && !fingerprint.equals(resultBundleSha256))
                 throw new IllegalArgumentException("IMP_EXPERIMENT_RUN_REUSED");
             if ("REJECTED".equals(status)) throw new IllegalStateException("IMP_REJECTED_RUN_TERMINAL");

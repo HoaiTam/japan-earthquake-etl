@@ -11,6 +11,17 @@ import static org.junit.jupiter.api.Assertions.*;
 class TrustedDatasetResolverTest {
     private static final ObjectMapper JSON = new ObjectMapper();
 
+    @Test void runtimeQaRejectsBothDatasetStatesWithoutOverwritingEvidence(@TempDir Path root) throws Exception {
+        ObjectNode manifest = JSON.createObjectNode().put("dataset_id", "ds_fixture");
+        ObjectNode request = JSON.createObjectNode().put("dataset_id", "ds_fixture");
+        ObjectNode checks = JSON.createObjectNode();
+        MlResultImportAcceptanceJob.rejectNonExported(root, manifest, request, checks);
+        assertEquals("IMP_UNKNOWN_DATASET", checks.path("BUILDING").asText());
+        assertEquals("IMP_UNKNOWN_DATASET", checks.path("DEVELOPMENT_PILOT").asText());
+        assertTrue(Files.isRegularFile(root.resolve("blocked-BUILDING.json")));
+        assertTrue(Files.isRegularFile(root.resolve("blocked-DEVELOPMENT_PILOT.json")));
+    }
+
     @Test void resolvesOnlyPinnedExportedManifest(@TempDir Path root) throws Exception {
         Path export = root.resolve("exports/checksums.sha256"); Files.createDirectories(export.getParent()); Files.writeString(export, "fixture\n");
         String exportSha = TrustedDatasetResolver.sha256(Files.readAllBytes(export));

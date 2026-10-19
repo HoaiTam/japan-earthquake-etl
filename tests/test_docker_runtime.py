@@ -163,6 +163,25 @@ class DockerRuntimeTests(unittest.TestCase):
     def test_mli_import_client_is_preflighted_with_verified_runtime_mounts(self):
         self.artifacts()
         self.context().check("ml", client="mli-03-import-results")
+        self.assert_read_only()
+
+    def test_mli_smokes_run_the_same_preflighted_service_without_build_or_start(self):
+        makefile = (REPO / "Makefile").read_text(encoding="utf-8")
+        for name in ("smoke-mli-import", "smoke-mli-import-acceptance"):
+            target = re.search(r"(?ms)^" + name + r":.*?(?=^[A-Za-z0-9_.-]+:|\Z)", makefile).group()
+            self.assertIn("--client mli-03-import-results", target)
+            self.assertIn("--no-deps --pull never", target)
+            self.assertIn("mli-03-import-results", target)
+            self.assertNotIn("airflow-dag-processor python", target)
+            self.assertNotRegex(target, r"--build|docker-up|docker-build")
+
+    def test_mli_dag_acceptance_preflights_current_airflow_and_never_clears_runs(self):
+        makefile = (REPO / "Makefile").read_text(encoding="utf-8")
+        target = re.search(r"(?ms)^smoke-mli-import-dag:.*?(?=^[A-Za-z0-9_.-]+:|\Z)", makefile).group()
+        self.assertIn("--component airflow", target)
+        self.assertIn("--client mli-03-import-results", target)
+        self.assertIn("exec -T airflow-dag-processor", target)
+        self.assertNotRegex(target, r"--build|docker-up|docker-build|dags clear|tasks clear|--mark-success")
 
     def test_qa02_client_is_preflighted_with_verified_runtime_mounts(self):
         self.artifacts()
@@ -548,6 +567,13 @@ class DockerRuntimeTests(unittest.TestCase):
 
 
 class SmokeCommandContractTests(unittest.TestCase):
+    def test_per_run_mli_request_is_not_exported_into_compose_preflight_config(self):
+        result = subprocess.run(["make", "--no-print-directory", "-s", "-o", "check-config-local", "smoke-mli-import-dag",
+            "MLI_IMPORT_REQUEST=/opt/pipeline/staging/mli-03-qa/unit/import-request.json",
+            "RUNTIME_CHECK=python3 -c 'import os; assert not os.environ.get(\"MLI_IMPORT_REQUEST\")'",
+            "COMPOSE=true"], cwd=REPO, capture_output=True, text=True)
+        self.assertEqual(0, result.returncode, result.stderr)
+
     def test_airflow_api_cold_probe_retains_real_readiness(self):
         compose = (REPO / "compose.yaml").read_text()
         api = compose.split("\n  airflow-api-server:\n", 1)[1].split("\n  airflow-scheduler:", 1)[0]

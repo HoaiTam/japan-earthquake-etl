@@ -1,0 +1,154 @@
+{
+  "build": {
+    "baseline_commit": "b92bf2ba113cf275d6eda9a3ea9a7e63b04e009a",
+    "branch": "feat/mli-03-runtime-acceptance",
+    "source_sha256": "4612e691329688d2f2cf811fdcbf9388624c538a04c5fce71ee1d18a432e4579",
+    "runner_jar_sha256": "c5022208409d899059186ac4acf8ebf920af5fd0d1ff016fce8b17a87307491d",
+    "java17_build_id": "2dj4jw1lgc6vz8w6vvivshoob",
+    "java_tests": 407,
+    "java_failures": 0,
+    "java_errors": 0,
+    "java_skipped": 1
+  },
+  "storage": {
+    "blocker_namespace": "iceberg.ml_qa_6f191301e7734cec8a29185c2cbc0c0dcd",
+    "checks": {
+      "BUILDING": "IMP_UNKNOWN_DATASET",
+      "DEVELOPMENT_PILOT": "IMP_UNKNOWN_DATASET",
+      "changed_fingerprint": "IMP_EXPERIMENT_RUN_REUSED",
+      "checksum": "IMP_CHECKSUM_MISMATCH",
+      "duplicate": "IMP_DUPLICATE_GRAIN",
+      "gold_unchanged": true,
+      "nan": "IMP_SCHEMA_MISMATCH",
+      "partial_commit_hidden_until_candidate": true,
+      "recovery_reuses_snapshot": true,
+      "renamed_pilot_marker": "IMP_INCOMPLETE_BUNDLE",
+      "rerun_unchanged": true,
+      "schema": "IMP_SCHEMA_MISMATCH",
+      "trino_blocker": "REJECTED",
+      "trino_publication_pins": true,
+      "unknown": "IMP_UNKNOWN_EVENT_ID"
+    },
+    "completed_at_utc": "2026-10-19T16:43:04.283635459Z",
+    "control_plane": {
+      "context_sha256": null,
+      "dag_id": "mli_03_import_results",
+      "dataset_id": "ds_fixture",
+      "experiment_run_id": "exp_fixture",
+      "lease_owner": {
+        "dag_id": "mli_03_import_results",
+        "run_id": "mli03-qa-ea096dbd384a40b599137dff9df6d86c"
+      },
+      "readback": {
+        "experiment_run": 1,
+        "sequence_membership": 2,
+        "sequence_summary": 1
+      },
+      "release": null,
+      "report_path": "/opt/pipeline/staging/mli-03-qa/mli03-qa-ea096dbd384a40b599137dff9df6d86c/journal/import-report.json",
+      "request_sha256": "595ced46beb6def099dea75d2db86986a8f434af863dd45d85cd5f0e27c7544f",
+      "run_id": "mli03-qa-ea096dbd384a40b599137dff9df6d86c",
+      "status": "CANDIDATE"
+    },
+    "input_snapshots": {
+      "candidate_event": 4691854184265549327,
+      "dataset_registry": 1888776220574976321,
+      "mainshock_event": 5630397825108091651
+    },
+    "java_version": "17.0.19",
+    "lease_release": {
+      "dag_id": "mli_03_import_results",
+      "run_id": "mli03-qa-ea096dbd384a40b599137dff9df6d86c",
+      "status": "RELEASED"
+    },
+    "namespace": "iceberg.ml_qa_6f191301e7734cec8a29185c2cbc0c0d",
+    "publication": {
+      "algorithm_name": "WINDOW",
+      "candidate_at_utc": "2026-10-19T16:42:35.666383210Z",
+      "dataset_id": "ds_fixture",
+      "experiment_run_id": "exp_fixture",
+      "experiment_snapshot_id": 8634617115857105431,
+      "experiment_status": "CANDIDATE",
+      "membership_snapshot_id": 2416850644351807568,
+      "namespace": "iceberg.ml_qa_6f191301e7734cec8a29185c2cbc0c0d",
+      "readback": {
+        "experiment_run": 1,
+        "sequence_membership": 2,
+        "sequence_summary": 1
+      },
+      "result_bundle_sha256": "7bad0622eda97fc9fc6e9d5afddbadeb2f864884b1d2e633dc802e61436e716b",
+      "summary_snapshot_id": 8945933300571189287
+    },
+    "recovery_namespace": "iceberg.ml_qa_6f191301e7734cec8a29185c2cbc0c0dab",
+    "report_path": "/opt/pipeline/staging/mli-03-qa/mli03-qa-ea096dbd384a40b599137dff9df6d86c/acceptance-report.json",
+    "scientific_approval": false,
+    "spark_version": "3.5.9",
+    "status": "PASSED",
+    "synthetic_component_qa": true,
+    "tables": {
+      "experiment_run": {
+        "count": 1,
+        "snapshots": [
+          8634617115857105431,
+          8679027601299960781
+        ]
+      },
+      "sequence_membership": {
+        "count": 2,
+        "snapshots": [
+          2416850644351807568
+        ]
+      },
+      "sequence_summary": {
+        "count": 1,
+        "snapshots": [
+          8945933300571189287
+        ]
+      }
+    },
+    "task": "MLI-03"
+  },
+  "airflow": {
+    "backend": "Airflow-DAG.test-Java-MinIO-Iceberg-Trino",
+    "completion_gate": "success",
+    "dag_id": "mli_03_import_results",
+    "dag_run_id": "manual__2026-10-19T16:50:52.703206+00:00",
+    "namespace": "iceberg.ml_qa_6f191301e7734cec8a29185c2cbc0c0d",
+    "publication": {
+      "algorithm_name": "WINDOW",
+      "candidate_at_utc": "2026-10-19T16:42:35.666383210Z",
+      "dataset_id": "ds_fixture",
+      "experiment_run_id": "exp_fixture",
+      "experiment_snapshot_id": 8634617115857105431,
+      "experiment_status": "CANDIDATE",
+      "membership_snapshot_id": 2416850644351807568,
+      "namespace": "iceberg.ml_qa_6f191301e7734cec8a29185c2cbc0c0d",
+      "readback": {
+        "experiment_run": 1,
+        "sequence_membership": 2,
+        "sequence_summary": 1
+      },
+      "result_bundle_sha256": "7bad0622eda97fc9fc6e9d5afddbadeb2f864884b1d2e633dc802e61436e716b",
+      "summary_snapshot_id": 8945933300571189287
+    },
+    "publication_pins_unchanged": true,
+    "report_path": "/opt/pipeline/staging/mli-03-qa/mli03-qa-ea096dbd384a40b599137dff9df6d86c/dag-acceptance-f6cfa7775a3942a88c11c8e1cb33b258.json",
+    "request_sha256": "595ced46beb6def099dea75d2db86986a8f434af863dd45d85cd5f0e27c7544f",
+    "scheduled_run": false,
+    "scientific_approval": false,
+    "status": "PASSED",
+    "synthetic_component_qa": true,
+    "task": "MLI-03",
+    "tasks": {
+      "acquire_lease": "success",
+      "commit_results": "success",
+      "completion_gate": "success",
+      "publish_readback": "success",
+      "release_lease": "success",
+      "resolve_dataset_validate": "success",
+      "resolve_request": "success",
+      "stage": "success",
+      "trino_verify": "success"
+    }
+  }
+}
