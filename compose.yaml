@@ -874,6 +874,7 @@ services:
     volumes:
       - ./tests/fixtures:/opt/pipeline/qa-fixtures:ro
       - ./config/jma/hypocenter_archives_v1.csv:/opt/pipeline/config/jma/hypocenter_archives_v1.csv:ro
+      - ./staging/qa-history-captures:/opt/pipeline/qa-history-captures:ro
 
   qa-02-rerun-revision:
     extends: {service: spark-gold-qa}

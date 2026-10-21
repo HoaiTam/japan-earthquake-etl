@@ -30,7 +30,7 @@ public final class PipelineQaSupport implements AutoCloseable {
     public final Path fixtures=Path.of("/opt/pipeline/qa-fixtures");
     public PipelineQaSupport(JsonNode request,Path root) throws Exception {
         this.root=root; namespace=text(request,"namespace");
-        require(namespace.matches("[a-z][a-z0-9_]*\\.qa02_[a-f0-9]{32}"),"ISOLATED_PIPELINE_QA_REQUIRED");
+        require(namespace.matches("[a-z][a-z0-9_]*\\.qa0[23]_[a-f0-9]{32}"),"ISOLATED_PIPELINE_QA_REQUIRED");
         var owner=request.path("lease_owner");
         lease=()->{try {
             var live=JSON.readTree(Files.readAllBytes(Path.of(Objects.requireNonNull(System.getenv("SOURCE_GUARD_ROOT")),"owner.json")));

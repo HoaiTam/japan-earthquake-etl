@@ -1,0 +1,737 @@
+{
+  "schema_version": "qa03-runtime-summary-v1",
+  "task_id": "QA-03",
+  "status": "PASS",
+  "branch": "test/qa-03-runtime-acceptance",
+  "base_commit": "2ad86558465103ea6c5a0e3b4be3871379b975c1",
+  "runtime_root": "/opt/pipeline/staging/qa-03/qa03-runtime-2bf249ede8a84947afb22c48beb77e07",
+  "acceptance": {
+    "capacity": {
+      "child_peak_rss_mb": 1361.98828125,
+      "duration_seconds": 425.8050279850004,
+      "profile": "local[1], driver heap 768m, container limit 2GiB"
+    },
+    "lease_release": {
+      "dag_id": "pipeline_qa_acceptance",
+      "run_id": "qa03-runtime-2bf249ede8a84947afb22c48beb77e07",
+      "status": "RELEASED"
+    },
+    "namespace": "iceberg.qa03_4e00e47b3c7d4bb38c74385c4be609a0",
+    "report_path": "/opt/pipeline/staging/qa-03/qa03-runtime-2bf249ede8a84947afb22c48beb77e07/runtime-report.json",
+    "report_sha256": "c20758ce8bae508667fddd46b2bdc78cb64f3c712b37d68bb762ade4027ebca9",
+    "run_id": "qa03-runtime-2bf249ede8a84947afb22c48beb77e07",
+    "status": "PASS",
+    "summary": {
+      "case_count": 6,
+      "failed": 0,
+      "passed": 6,
+      "pending_runtime": 0
+    },
+    "task": "QA-03"
+  },
+  "execution": {
+    "capacity": {
+      "child_peak_rss_mb": 1361.98828125,
+      "duration_seconds": 425.8050279850004,
+      "profile": "local[1], driver heap 768m, container limit 2GiB"
+    },
+    "exit_code": 0,
+    "job_class": "ie212.earthquake.spark.usgs.HistoricalBackfillAcceptanceJob",
+    "request_sha256": "4abc9de2cd11c8304c0fe0e106b74f9fbdb48c01f780d426395ca64475648282"
+  },
+  "matrix_sha256": "0973ffb546210a774482379aa6e8bd2f726caabfa8f03103a29345d9a62cb918",
+  "inventory_sha256": "61dc2c73f1bb9cee48fba851cbb941cc62c893201c36db583cdd55ae19f8199a",
+  "capture_pins_sha256": "3ed90ff2ce675032c29b962abc8bcc50fbcce77aba23301812092386e0353d15",
+  "capture_sha256": {
+    "h199701.zip": "c2ce3fd9f8fc023a6463086324b1ed29b53ae2c55d021998a0c3210e162172dd",
+    "h199710.zip": "25349273dfc4ce50ed24ee555c881bd64af5662d400be2d7fbd0d6044d4caead",
+    "h2000.zip": "268441420d9c90b1cb96f42934aefdb107a4d12c5947adafbfeb24af597d15c2",
+    "h2023.zip": "e5ced2bf7275825ba75405b071bb54e9d4c2a5eb55aa6bc9b8d670de1f58b98f",
+    "usgs-2023-09.geojson": "e75b79417edf5b0791227231459b371e2762f7884126ef20121fa9cee01207f0"
+  },
+  "input_files_bytes": {
+    "h199701.zip": 1083079,
+    "h199710.zip": 452012,
+    "h2000.zip": 2892423,
+    "h2023.zip": 6977812,
+    "usgs-2023-09.geojson": 104134
+  },
+  "source_cutoff_utc": "2026-10-21T04:38:24.041Z",
+  "completed_at_utc": "2026-10-21T04:45:25.722298670Z",
+  "controller_sha256_at_export": "10f3ce9f19fedb611be5dc6f17fe95a01164c5758e4aac3fb99d81783cfa2d30",
+  "source_download_count_during_execution": 0,
+  "original_public_captures": true,
+  "changed_release_is_synthetic": true,
+  "research_ready": false,
+  "global_lease_free_at_capture": true,
+  "checks": {
+    "resume_after_failure": true,
+    "reuse_verified_archive": true,
+    "retention_outside_scope": true,
+    "changed_release": true,
+    "same_release_different_bytes": true,
+    "resource_guard": true
+  },
+  "resume": {
+    "reason": "QA_STOP_AFTER_DURABLE_SILVER",
+    "exception_class": "java.io.IOException",
+    "process_restart": false,
+    "reused_phase_receipt_sha256": {
+      "readiness": "09a3a4b13fd02ceaecfca1569a43481faf2b951c4fc0ac14d8495adb2b4ae306",
+      "bronze": "44d653f397efde6c1a5df3d162d9bb8d74cf32f2467a282c5c4f5a0333304d11",
+      "silver": "5c178044846564eb0c1d34c920d429dcd2c517ea2abb09742f2769f3001da4c4"
+    }
+  },
+  "retention": {
+    "month": "2000-02",
+    "before_sha256": "a45508462a2920b10250a4e1dacd330f965eceadbfd0cad8c6a9f5e92a6d92aa",
+    "after_sha256": "a45508462a2920b10250a4e1dacd330f965eceadbfd0cad8c6a9f5e92a6d92aa",
+    "baseline_count": 5068,
+    "old_snapshot_readback": true,
+    "before_operation_id": "orc07-2b3b6c77b44abca7531c350fafa0c68a58cab97a",
+    "after_operation_id": "orc07-2353ff2bf2f47fd9bf6e8dece35d2739e5d8f60f"
+  },
+  "changed_release": {
+    "before_operation_id": "orc07-108a2f946eeb28ec52ddd87551b08a5f6c8f9e44",
+    "after_operation_id": "orc07-2353ff2bf2f47fd9bf6e8dece35d2739e5d8f60f",
+    "synthetic": true,
+    "old_snapshot_readback": true,
+    "old_pin": {
+      "source_system": "JMA_BULLETIN",
+      "manifest_uri": "s3://japan-earthquake/bronze/jma/year=1997/catalog_release=release-v1/ingest_date=2026-10-21/run_id=qa03-runtime-2bf249ede8a84947afb22c48beb77e07-h199701/attempt=01/manifest.json",
+      "manifest_sha256": "7131d44cc8f99e03c22dd5b2ad1e6443d25a8468b04da282eb5cf8f5feb8c7bd",
+      "sha256": "c2ce3fd9f8fc023a6463086324b1ed29b53ae2c55d021998a0c3210e162172dd",
+      "year": 1997,
+      "segment": "jan-sep",
+      "catalog_release": "release-v1"
+    },
+    "new_pin": {
+      "source_system": "JMA_BULLETIN",
+      "manifest_uri": "s3://japan-earthquake/bronze/jma/year=1997/catalog_release=release-v2/ingest_date=2026-10-21/run_id=qa03-runtime-2bf249ede8a84947afb22c48beb77e07-changed/attempt=01/manifest.json",
+      "manifest_sha256": "a9c5e0acb401468498eadf52dcbb2b8513ebac7ad4df69025d40e19475d6f710",
+      "sha256": "edd6d3a13eaf9064789c7d97e2557bea279aee888423d7703e12e72f8da99f21",
+      "year": 1997,
+      "segment": "jan-sep",
+      "catalog_release": "release-v2"
+    }
+  },
+  "collision": {
+    "reason": "JMA_RELEASE_IDENTITY_OR_ORDER_CONFLICT",
+    "baselines_before": {
+      "dim_date": "7347203877092064849",
+      "dim_depth_band": "3999017116720711688",
+      "dim_magnitude_band": "1687224497100669801",
+      "dim_region": "7179337068901334461",
+      "event_current": "5148454550118777185",
+      "event_source_bridge": "4885261737998908264"
+    },
+    "baselines_after": {
+      "dim_date": "7347203877092064849",
+      "dim_depth_band": "3999017116720711688",
+      "dim_magnitude_band": "1687224497100669801",
+      "dim_region": "7179337068901334461",
+      "event_current": "5148454550118777185",
+      "event_source_bridge": "4885261737998908264"
+    }
+  },
+  "resource_guard": {
+    "reason": "BOUNDED_EXACT_MONTHS_REQUIRED",
+    "requested_month_count": 25,
+    "recovery_operation_id": "orc07-2353ff2bf2f47fd9bf6e8dece35d2739e5d8f60f"
+  },
+  "operations": [
+    {
+      "operation_id": "orc07-2b3b6c77b44abca7531c350fafa0c68a58cab97a",
+      "context_sha256": "9fffa8a8d4fc9ced09fb20b08ebcd14e18b420ba919417a2cda969acc5d9e847",
+      "target_months": [
+        "2000-02"
+      ],
+      "affected_months": [
+        "2000-02"
+      ],
+      "commit_sha256": "af6eff203d92faaaa42eebafacc5da1ce7c5a3e36d776e86e7592dc413de399a",
+      "publication_id": "pub_af6eff203d92faaaa42eebafacc5da1ce7c5a3e36d776e86e7592dc413de399a",
+      "engine": "TRINO",
+      "verify_status": "PASSED",
+      "published": true,
+      "reconciliation": {
+        "balanced": true,
+        "canonical": 5068,
+        "canonical_by_month": {
+          "2000-02": 5068
+        },
+        "current": 5068,
+        "explicit_empty_months": [],
+        "history": 0,
+        "input_unique_revisions": 5068,
+        "links": 0,
+        "memberships": 5068,
+        "output_revisions": 5068,
+        "repeated_input_observation_ids": 0,
+        "revisions_outside_affected_months": 0,
+        "selected_input_records": 5068,
+        "sources": [
+          {
+            "full_bronze_records": 109967,
+            "manifest_uri": "s3://japan-earthquake/bronze/jma/year=2000/catalog_release=release-v1/ingest_date=2026-10-21/run_id=qa03-runtime-2bf249ede8a84947afb22c48beb77e07-h2000/attempt=01/manifest.json",
+            "outside_temporal_selection": 104899,
+            "parser_rejects": 0,
+            "repeated_observation_ids": 0,
+            "selected_records": 5068,
+            "source_system": "JMA_BULLETIN",
+            "unique_revisions_added": 5068
+          }
+        ]
+      },
+      "trino_check_count": 36,
+      "tables": {
+        "event_current": {
+          "snapshot_id": "1432651766355566323",
+          "count": 5068
+        },
+        "event_source_bridge": {
+          "snapshot_id": "6391537758480331039",
+          "count": 5068
+        },
+        "dim_date": {
+          "snapshot_id": "641277080543665096",
+          "count": 30
+        },
+        "dim_region": {
+          "snapshot_id": "6013886756256525510",
+          "count": 1
+        },
+        "dim_magnitude_band": {
+          "snapshot_id": "2451358021399510342",
+          "count": 7
+        },
+        "dim_depth_band": {
+          "snapshot_id": "1675591079888184801",
+          "count": 5
+        }
+      }
+    },
+    {
+      "operation_id": "orc07-f3412ee421d74b96757e079efecfe0de404f9102",
+      "context_sha256": "e5ddb3a649bd685d441e5dfc75951483bd998d6c636899a3743c6b627b541ca4",
+      "target_months": [
+        "1997-09"
+      ],
+      "affected_months": [
+        "1997-09"
+      ],
+      "commit_sha256": "d1fea8012e3d37029a3a515af73e59054303afe66b1a5fc2bbc52ce06ccba4f4",
+      "publication_id": "pub_d1fea8012e3d37029a3a515af73e59054303afe66b1a5fc2bbc52ce06ccba4f4",
+      "engine": "TRINO",
+      "verify_status": "PASSED",
+      "published": true,
+      "reconciliation": {
+        "balanced": true,
+        "canonical": 3378,
+        "canonical_by_month": {
+          "1997-09": 3378
+        },
+        "current": 3378,
+        "explicit_empty_months": [],
+        "history": 0,
+        "input_unique_revisions": 8446,
+        "links": 0,
+        "memberships": 3378,
+        "output_revisions": 3378,
+        "repeated_input_observation_ids": 0,
+        "revisions_outside_affected_months": 5068,
+        "selected_input_records": 8446,
+        "sources": [
+          {
+            "full_bronze_records": 39951,
+            "manifest_uri": "s3://japan-earthquake/bronze/jma/year=1997/catalog_release=release-v1/ingest_date=2026-10-21/run_id=qa03-runtime-2bf249ede8a84947afb22c48beb77e07-h199701/attempt=01/manifest.json",
+            "outside_temporal_selection": 36635,
+            "parser_rejects": 0,
+            "repeated_observation_ids": 0,
+            "selected_records": 3316,
+            "source_system": "JMA_BULLETIN",
+            "unique_revisions_added": 3316
+          },
+          {
+            "full_bronze_records": 16284,
+            "manifest_uri": "s3://japan-earthquake/bronze/jma/year=1997/catalog_release=release-v1/ingest_date=2026-10-21/run_id=qa03-runtime-2bf249ede8a84947afb22c48beb77e07-h199710/attempt=01/manifest.json",
+            "outside_temporal_selection": 16222,
+            "parser_rejects": 0,
+            "repeated_observation_ids": 0,
+            "selected_records": 62,
+            "source_system": "JMA_BULLETIN",
+            "unique_revisions_added": 62
+          },
+          {
+            "full_bronze_records": 109967,
+            "manifest_uri": "s3://japan-earthquake/bronze/jma/year=2000/catalog_release=release-v1/ingest_date=2026-10-21/run_id=qa03-runtime-2bf249ede8a84947afb22c48beb77e07-h2000/attempt=01/manifest.json",
+            "outside_temporal_selection": 104899,
+            "parser_rejects": 0,
+            "repeated_observation_ids": 0,
+            "selected_records": 5068,
+            "source_system": "JMA_BULLETIN",
+            "unique_revisions_added": 5068
+          }
+        ]
+      },
+      "trino_check_count": 36,
+      "tables": {
+        "event_current": {
+          "snapshot_id": "256225373155344923",
+          "count": 8446
+        },
+        "event_source_bridge": {
+          "snapshot_id": "9146162567763471159",
+          "count": 8446
+        },
+        "dim_date": {
+          "snapshot_id": "1040868894901641154",
+          "count": 61
+        },
+        "dim_region": {
+          "snapshot_id": "6565839677962975389",
+          "count": 1
+        },
+        "dim_magnitude_band": {
+          "snapshot_id": "748461901206900126",
+          "count": 7
+        },
+        "dim_depth_band": {
+          "snapshot_id": "5504966866471802979",
+          "count": 5
+        }
+      }
+    },
+    {
+      "operation_id": "orc07-2e9083dc187980e62dd54e27f471faf277fab76b",
+      "context_sha256": "9742199066d7996208e65d811b2b3865b1c4cf20888a4220b5ae5ac4a1486088",
+      "target_months": [
+        "1997-10"
+      ],
+      "affected_months": [
+        "1997-10"
+      ],
+      "commit_sha256": "50be3863cd0925c4155b52d3b665021f1ca5a6fcd1c26198eabb9259904fa747",
+      "publication_id": "pub_50be3863cd0925c4155b52d3b665021f1ca5a6fcd1c26198eabb9259904fa747",
+      "engine": "TRINO",
+      "verify_status": "PASSED",
+      "published": true,
+      "reconciliation": {
+        "balanced": true,
+        "canonical": 5371,
+        "canonical_by_month": {
+          "1997-10": 5371
+        },
+        "current": 5371,
+        "explicit_empty_months": [],
+        "history": 0,
+        "input_unique_revisions": 13817,
+        "links": 0,
+        "memberships": 5371,
+        "output_revisions": 5371,
+        "repeated_input_observation_ids": 0,
+        "revisions_outside_affected_months": 8446,
+        "selected_input_records": 13817,
+        "sources": [
+          {
+            "full_bronze_records": 39951,
+            "manifest_uri": "s3://japan-earthquake/bronze/jma/year=1997/catalog_release=release-v1/ingest_date=2026-10-21/run_id=qa03-runtime-2bf249ede8a84947afb22c48beb77e07-h199701/attempt=01/manifest.json",
+            "outside_temporal_selection": 36635,
+            "parser_rejects": 0,
+            "repeated_observation_ids": 0,
+            "selected_records": 3316,
+            "source_system": "JMA_BULLETIN",
+            "unique_revisions_added": 3316
+          },
+          {
+            "full_bronze_records": 16284,
+            "manifest_uri": "s3://japan-earthquake/bronze/jma/year=1997/catalog_release=release-v1/ingest_date=2026-10-21/run_id=qa03-runtime-2bf249ede8a84947afb22c48beb77e07-h199710/attempt=01/manifest.json",
+            "outside_temporal_selection": 10851,
+            "parser_rejects": 0,
+            "repeated_observation_ids": 0,
+            "selected_records": 5433,
+            "source_system": "JMA_BULLETIN",
+            "unique_revisions_added": 5433
+          },
+          {
+            "full_bronze_records": 109967,
+            "manifest_uri": "s3://japan-earthquake/bronze/jma/year=2000/catalog_release=release-v1/ingest_date=2026-10-21/run_id=qa03-runtime-2bf249ede8a84947afb22c48beb77e07-h2000/attempt=01/manifest.json",
+            "outside_temporal_selection": 104899,
+            "parser_rejects": 0,
+            "repeated_observation_ids": 0,
+            "selected_records": 5068,
+            "source_system": "JMA_BULLETIN",
+            "unique_revisions_added": 5068
+          }
+        ]
+      },
+      "trino_check_count": 36,
+      "tables": {
+        "event_current": {
+          "snapshot_id": "815962435796577354",
+          "count": 13817
+        },
+        "event_source_bridge": {
+          "snapshot_id": "2828256022959677545",
+          "count": 13817
+        },
+        "dim_date": {
+          "snapshot_id": "4996138546569102479",
+          "count": 92
+        },
+        "dim_region": {
+          "snapshot_id": "738834797987560478",
+          "count": 1
+        },
+        "dim_magnitude_band": {
+          "snapshot_id": "5995725498379704691",
+          "count": 7
+        },
+        "dim_depth_band": {
+          "snapshot_id": "7839090790281864854",
+          "count": 5
+        }
+      }
+    },
+    {
+      "operation_id": "orc07-b058429c266c76125718bdd3ed2cff76a49eb5fd",
+      "context_sha256": "6a7f95711cbe4211d47df03a5a860fd8dd321b5b5bae7aa6b018a0199d92b599",
+      "target_months": [
+        "2000-01"
+      ],
+      "affected_months": [
+        "2000-01"
+      ],
+      "commit_sha256": "113fda8aa27df52f75fc8964adcf2aa8fd88bfc04e374da49172cf01f7e0e430",
+      "publication_id": "pub_113fda8aa27df52f75fc8964adcf2aa8fd88bfc04e374da49172cf01f7e0e430",
+      "engine": "TRINO",
+      "verify_status": "PASSED",
+      "published": true,
+      "reconciliation": {
+        "balanced": true,
+        "canonical": 5418,
+        "canonical_by_month": {
+          "2000-01": 5418
+        },
+        "current": 5418,
+        "explicit_empty_months": [],
+        "history": 0,
+        "input_unique_revisions": 19235,
+        "links": 0,
+        "memberships": 5418,
+        "output_revisions": 5418,
+        "repeated_input_observation_ids": 0,
+        "revisions_outside_affected_months": 13817,
+        "selected_input_records": 19235,
+        "sources": [
+          {
+            "full_bronze_records": 39951,
+            "manifest_uri": "s3://japan-earthquake/bronze/jma/year=1997/catalog_release=release-v1/ingest_date=2026-10-21/run_id=qa03-runtime-2bf249ede8a84947afb22c48beb77e07-h199701/attempt=01/manifest.json",
+            "outside_temporal_selection": 36635,
+            "parser_rejects": 0,
+            "repeated_observation_ids": 0,
+            "selected_records": 3316,
+            "source_system": "JMA_BULLETIN",
+            "unique_revisions_added": 3316
+          },
+          {
+            "full_bronze_records": 16284,
+            "manifest_uri": "s3://japan-earthquake/bronze/jma/year=1997/catalog_release=release-v1/ingest_date=2026-10-21/run_id=qa03-runtime-2bf249ede8a84947afb22c48beb77e07-h199710/attempt=01/manifest.json",
+            "outside_temporal_selection": 10851,
+            "parser_rejects": 0,
+            "repeated_observation_ids": 0,
+            "selected_records": 5433,
+            "source_system": "JMA_BULLETIN",
+            "unique_revisions_added": 5433
+          },
+          {
+            "full_bronze_records": 109967,
+            "manifest_uri": "s3://japan-earthquake/bronze/jma/year=2000/catalog_release=release-v1/ingest_date=2026-10-21/run_id=qa03-runtime-2bf249ede8a84947afb22c48beb77e07-h2000/attempt=01/manifest.json",
+            "outside_temporal_selection": 99481,
+            "parser_rejects": 0,
+            "repeated_observation_ids": 0,
+            "selected_records": 10486,
+            "source_system": "JMA_BULLETIN",
+            "unique_revisions_added": 10486
+          }
+        ]
+      },
+      "trino_check_count": 36,
+      "tables": {
+        "event_current": {
+          "snapshot_id": "7693591668585940360",
+          "count": 19235
+        },
+        "event_source_bridge": {
+          "snapshot_id": "6747464219624246086",
+          "count": 19235
+        },
+        "dim_date": {
+          "snapshot_id": "4098616723459853428",
+          "count": 123
+        },
+        "dim_region": {
+          "snapshot_id": "3515965909997123404",
+          "count": 1
+        },
+        "dim_magnitude_band": {
+          "snapshot_id": "6547615556773975364",
+          "count": 7
+        },
+        "dim_depth_band": {
+          "snapshot_id": "5720464854158319846",
+          "count": 5
+        }
+      }
+    },
+    {
+      "operation_id": "orc07-108a2f946eeb28ec52ddd87551b08a5f6c8f9e44",
+      "context_sha256": "3132d05d93c173d366a2f6c49cab6859a2122adf67f0c3c802534721496dff19",
+      "target_months": [
+        "2023-09"
+      ],
+      "affected_months": [
+        "2023-09"
+      ],
+      "commit_sha256": "28cc91491211bebbf3e0b500191a629e0eb5573b68c2efee41a9c6e1d010087c",
+      "publication_id": "pub_28cc91491211bebbf3e0b500191a629e0eb5573b68c2efee41a9c6e1d010087c",
+      "engine": "TRINO",
+      "verify_status": "PASSED",
+      "published": true,
+      "reconciliation": {
+        "balanced": true,
+        "canonical": 22390,
+        "canonical_by_month": {
+          "2023-09": 22390
+        },
+        "current": 22499,
+        "explicit_empty_months": [],
+        "history": 0,
+        "input_unique_revisions": 41734,
+        "links": 177,
+        "memberships": 22499,
+        "output_revisions": 22499,
+        "repeated_input_observation_ids": 0,
+        "revisions_outside_affected_months": 19235,
+        "selected_input_records": 41734,
+        "sources": [
+          {
+            "full_bronze_records": 39951,
+            "manifest_uri": "s3://japan-earthquake/bronze/jma/year=1997/catalog_release=release-v1/ingest_date=2026-10-21/run_id=qa03-runtime-2bf249ede8a84947afb22c48beb77e07-h199701/attempt=01/manifest.json",
+            "outside_temporal_selection": 36635,
+            "parser_rejects": 0,
+            "repeated_observation_ids": 0,
+            "selected_records": 3316,
+            "source_system": "JMA_BULLETIN",
+            "unique_revisions_added": 3316
+          },
+          {
+            "full_bronze_records": 16284,
+            "manifest_uri": "s3://japan-earthquake/bronze/jma/year=1997/catalog_release=release-v1/ingest_date=2026-10-21/run_id=qa03-runtime-2bf249ede8a84947afb22c48beb77e07-h199710/attempt=01/manifest.json",
+            "outside_temporal_selection": 10851,
+            "parser_rejects": 0,
+            "repeated_observation_ids": 0,
+            "selected_records": 5433,
+            "source_system": "JMA_BULLETIN",
+            "unique_revisions_added": 5433
+          },
+          {
+            "full_bronze_records": 109967,
+            "manifest_uri": "s3://japan-earthquake/bronze/jma/year=2000/catalog_release=release-v1/ingest_date=2026-10-21/run_id=qa03-runtime-2bf249ede8a84947afb22c48beb77e07-h2000/attempt=01/manifest.json",
+            "outside_temporal_selection": 99481,
+            "parser_rejects": 0,
+            "repeated_observation_ids": 0,
+            "selected_records": 10486,
+            "source_system": "JMA_BULLETIN",
+            "unique_revisions_added": 10486
+          },
+          {
+            "full_bronze_records": 257020,
+            "manifest_uri": "s3://japan-earthquake/bronze/jma/year=2023/catalog_release=release-v1/ingest_date=2026-10-21/run_id=qa03-runtime-2bf249ede8a84947afb22c48beb77e07-h2023/attempt=01/manifest.json",
+            "outside_temporal_selection": 234669,
+            "parser_rejects": 0,
+            "repeated_observation_ids": 0,
+            "selected_records": 22351,
+            "source_system": "JMA_BULLETIN",
+            "unique_revisions_added": 22351
+          },
+          {
+            "full_bronze_records": 148,
+            "manifest_uri": "s3://japan-earthquake/bronze/usgs/ingest_date=2026-10-21/run_id=qa03-runtime-2bf249ede8a84947afb22c48beb77e07-public-usgs/attempt=01/manifest.json",
+            "outside_temporal_selection": 0,
+            "parser_rejects": 0,
+            "repeated_observation_ids": 0,
+            "selected_records": 148,
+            "source_system": "USGS",
+            "unique_revisions_added": 148
+          }
+        ]
+      },
+      "trino_check_count": 36,
+      "tables": {
+        "event_current": {
+          "snapshot_id": "8103494218654036265",
+          "count": 41625
+        },
+        "event_source_bridge": {
+          "snapshot_id": "8269292108985066653",
+          "count": 41734
+        },
+        "dim_date": {
+          "snapshot_id": "6593393805869490654",
+          "count": 154
+        },
+        "dim_region": {
+          "snapshot_id": "5008430265135517307",
+          "count": 1
+        },
+        "dim_magnitude_band": {
+          "snapshot_id": "3668051651564229555",
+          "count": 7
+        },
+        "dim_depth_band": {
+          "snapshot_id": "5448634631655734147",
+          "count": 5
+        }
+      }
+    },
+    {
+      "operation_id": "orc07-2353ff2bf2f47fd9bf6e8dece35d2739e5d8f60f",
+      "context_sha256": "7d3195a0568144f88c2e637be5a53bcd0c80f6777acfc444f16dc44465780e33",
+      "target_months": [
+        "1997-09"
+      ],
+      "affected_months": [
+        "1997-09"
+      ],
+      "commit_sha256": "3bc02ed4e1fee293af73767c2fd8d31045307bf28d91b03bc1db2544565a914c",
+      "publication_id": "pub_3bc02ed4e1fee293af73767c2fd8d31045307bf28d91b03bc1db2544565a914c",
+      "engine": "TRINO",
+      "verify_status": "PASSED",
+      "published": true,
+      "reconciliation": {
+        "balanced": true,
+        "canonical": 3378,
+        "canonical_by_month": {
+          "1997-09": 3378
+        },
+        "current": 3378,
+        "explicit_empty_months": [],
+        "history": 0,
+        "input_unique_revisions": 41734,
+        "links": 0,
+        "memberships": 3378,
+        "output_revisions": 3378,
+        "repeated_input_observation_ids": 0,
+        "revisions_outside_affected_months": 38356,
+        "selected_input_records": 41734,
+        "sources": [
+          {
+            "full_bronze_records": 16284,
+            "manifest_uri": "s3://japan-earthquake/bronze/jma/year=1997/catalog_release=release-v1/ingest_date=2026-10-21/run_id=qa03-runtime-2bf249ede8a84947afb22c48beb77e07-h199710/attempt=01/manifest.json",
+            "outside_temporal_selection": 10851,
+            "parser_rejects": 0,
+            "repeated_observation_ids": 0,
+            "selected_records": 5433,
+            "source_system": "JMA_BULLETIN",
+            "unique_revisions_added": 5433
+          },
+          {
+            "full_bronze_records": 39951,
+            "manifest_uri": "s3://japan-earthquake/bronze/jma/year=1997/catalog_release=release-v2/ingest_date=2026-10-21/run_id=qa03-runtime-2bf249ede8a84947afb22c48beb77e07-changed/attempt=01/manifest.json",
+            "outside_temporal_selection": 36635,
+            "parser_rejects": 0,
+            "repeated_observation_ids": 0,
+            "selected_records": 3316,
+            "source_system": "JMA_BULLETIN",
+            "unique_revisions_added": 3316
+          },
+          {
+            "full_bronze_records": 109967,
+            "manifest_uri": "s3://japan-earthquake/bronze/jma/year=2000/catalog_release=release-v1/ingest_date=2026-10-21/run_id=qa03-runtime-2bf249ede8a84947afb22c48beb77e07-h2000/attempt=01/manifest.json",
+            "outside_temporal_selection": 99481,
+            "parser_rejects": 0,
+            "repeated_observation_ids": 0,
+            "selected_records": 10486,
+            "source_system": "JMA_BULLETIN",
+            "unique_revisions_added": 10486
+          },
+          {
+            "full_bronze_records": 257020,
+            "manifest_uri": "s3://japan-earthquake/bronze/jma/year=2023/catalog_release=release-v1/ingest_date=2026-10-21/run_id=qa03-runtime-2bf249ede8a84947afb22c48beb77e07-h2023/attempt=01/manifest.json",
+            "outside_temporal_selection": 234669,
+            "parser_rejects": 0,
+            "repeated_observation_ids": 0,
+            "selected_records": 22351,
+            "source_system": "JMA_BULLETIN",
+            "unique_revisions_added": 22351
+          },
+          {
+            "full_bronze_records": 148,
+            "manifest_uri": "s3://japan-earthquake/bronze/usgs/ingest_date=2026-10-21/run_id=qa03-runtime-2bf249ede8a84947afb22c48beb77e07-public-usgs/attempt=01/manifest.json",
+            "outside_temporal_selection": 0,
+            "parser_rejects": 0,
+            "repeated_observation_ids": 0,
+            "selected_records": 148,
+            "source_system": "USGS",
+            "unique_revisions_added": 148
+          }
+        ]
+      },
+      "trino_check_count": 36,
+      "tables": {
+        "event_current": {
+          "snapshot_id": "5148454550118777185",
+          "count": 41625
+        },
+        "event_source_bridge": {
+          "snapshot_id": "4885261737998908264",
+          "count": 41734
+        },
+        "dim_date": {
+          "snapshot_id": "7347203877092064849",
+          "count": 154
+        },
+        "dim_region": {
+          "snapshot_id": "7179337068901334461",
+          "count": 1
+        },
+        "dim_magnitude_band": {
+          "snapshot_id": "1687224497100669801",
+          "count": 7
+        },
+        "dim_depth_band": {
+          "snapshot_id": "3999017116720711688",
+          "count": 5
+        }
+      }
+    }
+  ],
+  "source_fingerprint": "38b59297c8dabe23c6f21d52a3acbfe341e424c121e0d33faa09af7906d3ae03",
+  "runner_jar_sha256": "78f57b1d920dfcecd6a4ac67c2d8ec4b2b31a2bed5f6118f50b69ecba7f34b7d",
+  "independent_trino_readback": {
+    "publications": 6,
+    "distinct_publications": 6,
+    "passed_publications": 6,
+    "physical_events": 41625,
+    "serving_eligible": 41358,
+    "serving_events": 41358,
+    "bridge_rows": 41734,
+    "not_natural": 262,
+    "outside_roi": 258,
+    "physical_by_month": {
+      "1997-09": 3378,
+      "1997-10": 5371,
+      "2000-01": 5418,
+      "2000-02": 5068,
+      "2023-09": 22390
+    },
+    "serving_by_month": {
+      "1997-09": 3280,
+      "1997-10": 5316,
+      "2000-01": 5351,
+      "2000-02": 5030,
+      "2023-09": 22381
+    }
+  }
+}
