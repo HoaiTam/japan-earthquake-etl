@@ -839,8 +839,8 @@ def prepare_report(matrix_path: str | Path, output_json: str | Path, output_mark
         "runtime_request_contract": RUNTIME_REQUEST_VERSION,
         "runtime_report_contract": RUNTIME_REPORT_VERSION,
         "evidence_scope": "offline fixture and control-plane contract only",
-        "runtime_dependencies": {"ORC-05": "Done", "ORC-07": "Done", "MLI-03": "In Progress",
-                                 "PR-79": "merged; runtime acceptance remains incomplete"},
+        "runtime_dependencies": {"ORC-05": "Done", "ORC-07": "Done", "MLI-03": "Done",
+                                 "acceptance": "REAL_COMPONENTS_AVAILABLE_QA04_RUNTIME_REQUIRED"},
         "cases": [
             {"case_id": item["case_id"], "status": "PENDING_RUNTIME", "fault_stage": item["fault_stage"],
              "reason_code": item["reason_code"], "scope": item["scope"]}
@@ -850,8 +850,8 @@ def prepare_report(matrix_path: str | Path, output_json: str | Path, output_mark
     _atomic_json(Path(output_json), report)
     lines = ["# QA-04 prepared evidence", "", "Status: `PREPARED`",
              "", f"Runtime request: `{RUNTIME_REQUEST_VERSION}`; runtime report: `{RUNTIME_REPORT_VERSION}`.",
-             "", "ORC-07 is Done; runtime evidence remains pending until MLI-03 is Done.",
-             "PR #79 is merged; MLI-03 MinIO/Catalog/Trino runtime acceptance remains incomplete.",
+             "", "ORC-07 and MLI-03 are Done; this template is still PREPARED, not runtime acceptance.",
+             "QA-04 requires its own fault/recovery evidence on real storage.",
              "", "| Case | Fault | Status |", "|---|---|---|"]
     lines.extend(f"| `{item['case_id']}` | `{item['reason_code']}` | `PENDING_RUNTIME` |" for item in report["cases"])
     Path(output_markdown).parent.mkdir(parents=True, exist_ok=True)

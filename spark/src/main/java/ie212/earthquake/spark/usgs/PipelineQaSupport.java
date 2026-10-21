@@ -30,7 +30,7 @@ public final class PipelineQaSupport implements AutoCloseable {
     public final Path fixtures=Path.of("/opt/pipeline/qa-fixtures");
     public PipelineQaSupport(JsonNode request,Path root) throws Exception {
         this.root=root; namespace=text(request,"namespace");
-        require(namespace.matches("[a-z][a-z0-9_]*\\.qa0[23]_[a-f0-9]{32}"),"ISOLATED_PIPELINE_QA_REQUIRED");
+        require(namespace.matches("[a-z][a-z0-9_]*\\.qa0[234]_[a-f0-9]{32}"),"ISOLATED_PIPELINE_QA_REQUIRED");
         var owner=request.path("lease_owner");
         lease=()->{try {
             var live=JSON.readTree(Files.readAllBytes(Path.of(Objects.requireNonNull(System.getenv("SOURCE_GUARD_ROOT")),"owner.json")));
@@ -67,9 +67,12 @@ public final class PipelineQaSupport implements AutoCloseable {
     }
     public ObjectNode payload() throws Exception {return (ObjectNode)JSON.readTree(Files.readAllBytes(fixtures.resolve("usgs/success.geojson")));}
     public ObjectNode jma(String run,JmaArchiveEntry entry,byte[] raw,String release) throws Exception {
+        return jma(run,entry,raw,release,1);
+    }
+    public ObjectNode jma(String run,JmaArchiveEntry entry,byte[] raw,String release,int attempt) throws Exception {
         lease.run();
         var written=new JmaBronzeWriter(bronze).write(new JmaBronzeWriteRequest(entry,raw,sha(raw),raw.length,release,
-            new JmaHttpMetadata(200,"application/zip",(long)raw.length,null,null,entry.sourceUrl()),run,1,
+            new JmaHttpMetadata(200,"application/zip",(long)raw.length,null,null,entry.sourceUrl()),run,attempt,
             LocalDate.ofInstant(now,ZoneOffset.UTC),now,true,run,60000,null));
         require(written.ready(),"QA_JMA_BRONZE_REJECTED");
         var pin=JSON.createObjectNode(); pin.put("source_system","JMA_BULLETIN"); pin.put("manifest_uri",bronze.uriForKey(written.manifestKey()));

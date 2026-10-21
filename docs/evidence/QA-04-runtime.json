@@ -1,0 +1,1027 @@
+{
+  "acceptance": {
+    "capacity": {
+      "child_peak_rss_mb": 1396.9140625,
+      "duration_seconds": 381.8859980500001,
+      "profile": "local[1], driver heap 768m, container limit 2GiB"
+    },
+    "lease_release": {
+      "dag_id": "pipeline_qa_acceptance",
+      "run_id": "qa04-runtime-9504f2f71b884df0abb78ce50d4e7490",
+      "status": "RELEASED"
+    },
+    "namespace": "iceberg.qa04_848e9b920dbe4e98962e872c898cb5d1",
+    "report_path": "/opt/pipeline/staging/qa-04/qa04-runtime-9504f2f71b884df0abb78ce50d4e7490/runtime-report.json",
+    "report_sha256": "83b1ac4b90d599b40c6d9906ff6b3139914eb3100b7f62783ff7aa4525e00c1c",
+    "run_id": "qa04-runtime-9504f2f71b884df0abb78ce50d4e7490",
+    "status": "PASS",
+    "summary": {
+      "case_count": 10,
+      "failed": 0,
+      "passed": 10,
+      "pending_runtime": 0
+    },
+    "task": "QA-04"
+  },
+  "base_commit": "b383452800550230399235c0c0c1ac2ffac3f5cb",
+  "branch": "test/qa-04-runtime-acceptance",
+  "cases": [
+    {
+      "case_id": "fetch_timeout",
+      "fault": {
+        "baseline_snapshots": {
+          "dim_date": "4014054555255946308",
+          "dim_depth_band": "5029731672366291576",
+          "dim_magnitude_band": "2795761757060007553",
+          "dim_region": "2824312010834196195",
+          "event_current": "4745287967437198508",
+          "event_source_bridge": "9001395858993954560"
+        },
+        "candidate_publication_id": "pub_043055f40722a7fe00dc15a91932549e005f057797d29c105ccfa67dd18af0b7",
+        "case_id": "fetch_timeout",
+        "commit_receipt_present_at_failure": false,
+        "context_sha256": "a54006aac4028cda370e88b7c6d6b09c707416120162ed6f3e75f143a1bab61e",
+        "dataset_gate_reason": "DS_GOLD_NOT_PUBLISHED",
+        "downstream_blocked": true,
+        "fault_stage": "FETCH",
+        "fetch": {
+          "reason": "HttpTimeoutException",
+          "recovery_http_status": 200,
+          "recovery_sha256": "9b9080536bf4012aa41ffd654ebe39b12e435d60026dce7d5aa481f3971eb0f4",
+          "request_count": 2,
+          "same_request": true
+        },
+        "operation_id": "orc07-a86bab5706b1515dff8be1990fc307c867299a12",
+        "partial_snapshots": {
+          "dim_date": "4014054555255946308",
+          "dim_depth_band": "5029731672366291576",
+          "dim_magnitude_band": "2795761757060007553",
+          "dim_region": "2824312010834196195",
+          "event_current": "4745287967437198508",
+          "event_source_bridge": "9001395858993954560"
+        },
+        "publication_rows_before_recovery": 0,
+        "published_before_recovery": false,
+        "reason_code": "FETCH_TIMEOUT"
+      },
+      "outside_scope_unchanged": true,
+      "recovery_operation_id": "orc07-a86bab5706b1515dff8be1990fc307c867299a12",
+      "status": "PASS"
+    },
+    {
+      "case_id": "archive_invalid",
+      "fault": {
+        "baseline_snapshots": {
+          "dim_date": "4384851912081401315",
+          "dim_depth_band": "706740236152132875",
+          "dim_magnitude_band": "5404197590149662739",
+          "dim_region": "2963288646736631354",
+          "event_current": "4314210247580972272",
+          "event_source_bridge": "496678399878598038"
+        },
+        "candidate_publication_id": "pub_1833d376424ddc2dce5b1a391fac195426ec13d9008fbb3cad5bb047de73c77d",
+        "case_id": "archive_invalid",
+        "commit_receipt_present_at_failure": false,
+        "context_sha256": "1797a4431333c175e087dab9e96df9278ff189f8dbf37bcda0ce436cde165c8c",
+        "dataset_gate_reason": "DS_GOLD_NOT_PUBLISHED",
+        "downstream_blocked": true,
+        "fault_stage": "ARCHIVE",
+        "operation_id": "orc07-b1f577f4d6d43af16137b3b9e37bea5a9a2577a5",
+        "partial_snapshots": {
+          "dim_date": "4384851912081401315",
+          "dim_depth_band": "706740236152132875",
+          "dim_magnitude_band": "5404197590149662739",
+          "dim_region": "2963288646736631354",
+          "event_current": "4314210247580972272",
+          "event_source_bridge": "496678399878598038"
+        },
+        "publication_rows_before_recovery": 0,
+        "published_before_recovery": false,
+        "reason_code": "JMA_ARCHIVE_CHECKSUM_INVALID",
+        "rejected_attempt": 1,
+        "rejected_before_ready": true,
+        "verified_attempt": 2
+      },
+      "outside_scope_unchanged": true,
+      "recovery_operation_id": "orc07-b1f577f4d6d43af16137b3b9e37bea5a9a2577a5",
+      "status": "PASS"
+    },
+    {
+      "case_id": "silver_failure",
+      "fault": {
+        "baseline_snapshots": {
+          "dim_date": "8568956625763415084",
+          "dim_depth_band": "1574921729246030432",
+          "dim_magnitude_band": "1352533076719385707",
+          "dim_region": "833292291024246794",
+          "event_current": "3447007506201709011",
+          "event_source_bridge": "4008011566972007074"
+        },
+        "candidate_publication_id": "pub_4dc38de84c6ef593a8b0ec4cc676e33a5c8c3a5be9480806a34bb74f2398c6d1",
+        "case_id": "silver_failure",
+        "commit_receipt_present_at_failure": false,
+        "context_sha256": "1f301d5c0545f23c765de0ba7ff85e078aa79f1cac8f04613c1fa56a831ba8bd",
+        "dataset_gate_reason": "DS_GOLD_NOT_PUBLISHED",
+        "downstream_blocked": true,
+        "fault_stage": "SILVER",
+        "operation_id": "orc07-e46aafa8c92fe65dee6209d2e08d8c13c73a09a2",
+        "partial_snapshots": {
+          "dim_date": "8568956625763415084",
+          "dim_depth_band": "1574921729246030432",
+          "dim_magnitude_band": "1352533076719385707",
+          "dim_region": "833292291024246794",
+          "event_current": "3447007506201709011",
+          "event_source_bridge": "4008011566972007074"
+        },
+        "publication_rows_before_recovery": 0,
+        "published_before_recovery": false,
+        "reason_code": "SILVER_QUALITY_FAILED"
+      },
+      "outside_scope_unchanged": true,
+      "recovery_operation_id": "orc07-e46aafa8c92fe65dee6209d2e08d8c13c73a09a2",
+      "status": "PASS"
+    },
+    {
+      "case_id": "gold_commit_partial",
+      "fault": {
+        "baseline_snapshots": {
+          "dim_date": "5260530752293390196",
+          "dim_depth_band": "618615683685305414",
+          "dim_magnitude_band": "6557598339684574620",
+          "dim_region": "7784135037228148580",
+          "event_current": "7240265134071831443",
+          "event_source_bridge": "3922493935794440439"
+        },
+        "candidate_publication_id": "pub_0052914314938ab0ff9b1fa145823ac3cbfa3568ac6c20f6f1a9d3b564cefdf3",
+        "case_id": "gold_commit_partial",
+        "commit_receipt_present_at_failure": false,
+        "context_sha256": "221d1fe425ef98efa2411cd2ec6c2fdc796d7b7a9455d41bbfc07f0061217a55",
+        "dataset_gate_reason": "DS_GOLD_NOT_PUBLISHED",
+        "downstream_blocked": true,
+        "failed_phase": "gold",
+        "fault_stage": "GOLD",
+        "operation_id": "orc07-cd036d6db8e4d04cdcc7f288142c9ef6792515b3",
+        "partial_snapshots": {
+          "dim_date": "5260530752293390196",
+          "dim_depth_band": "618615683685305414",
+          "dim_magnitude_band": "6557598339684574620",
+          "dim_region": "7784135037228148580",
+          "event_current": "857456584522434781",
+          "event_source_bridge": "3922493935794440439"
+        },
+        "publication_rows_before_recovery": 0,
+        "published_before_recovery": false,
+        "reason_code": "GOLD_COMMIT_PARTIAL"
+      },
+      "outside_scope_unchanged": true,
+      "recovery_operation_id": "orc07-cd036d6db8e4d04cdcc7f288142c9ef6792515b3",
+      "status": "PASS"
+    },
+    {
+      "case_id": "gold_commit_receipt_lost",
+      "fault": {
+        "baseline_snapshots": {
+          "dim_date": "6684642404159113254",
+          "dim_depth_band": "5842900933096489746",
+          "dim_magnitude_band": "6997538144244623964",
+          "dim_region": "6872916100597544131",
+          "event_current": "857456584522434781",
+          "event_source_bridge": "4712566733475744107"
+        },
+        "candidate_publication_id": "pub_cbd6c4fcfc5fade708dc6bcfa4304519355a011dd8b4ae390b196414b348f304",
+        "case_id": "gold_commit_receipt_lost",
+        "commit_receipt_present_at_failure": false,
+        "context_sha256": "92e8fb5b48c1ac32b9847897b958300016b973506dd2091cb0fe8d380e57e8bb",
+        "dataset_gate_reason": "DS_GOLD_NOT_PUBLISHED",
+        "downstream_blocked": true,
+        "failed_phase": "gold",
+        "fault_stage": "GOLD",
+        "operation_id": "orc07-6dd01c70aa404054e94d2d6d8335893a24670940",
+        "partial_snapshots": {
+          "dim_date": "974377652365431200",
+          "dim_depth_band": "1331656817185065770",
+          "dim_magnitude_band": "5649785261783994849",
+          "dim_region": "2559682746857116616",
+          "event_current": "2890669741995855453",
+          "event_source_bridge": "934814058412244401"
+        },
+        "publication_rows_before_recovery": 0,
+        "published_before_recovery": false,
+        "reason_code": "GOLD_RECEIPT_LOST"
+      },
+      "outside_scope_unchanged": true,
+      "recovery_operation_id": "orc07-6dd01c70aa404054e94d2d6d8335893a24670940",
+      "status": "PASS"
+    },
+    {
+      "case_id": "trino_verify_failure",
+      "fault": {
+        "baseline_snapshots": {
+          "dim_date": "974377652365431200",
+          "dim_depth_band": "1331656817185065770",
+          "dim_magnitude_band": "5649785261783994849",
+          "dim_region": "2559682746857116616",
+          "event_current": "2890669741995855453",
+          "event_source_bridge": "934814058412244401"
+        },
+        "candidate_publication_id": "pub_d4471c8e76c62a020fd26eb49fdeb8a3005c584e3c1f4c59af0bdab7685b8fcb",
+        "case_id": "trino_verify_failure",
+        "commit_receipt_present_at_failure": true,
+        "context_sha256": "08084f772a6b08af4ccd66077632dad0d0fea7a34c280ece5ca6d39e8156ee9a",
+        "dataset_gate_reason": "DS_GOLD_NOT_PUBLISHED",
+        "downstream_blocked": true,
+        "failed_phase": "verify",
+        "fault_stage": "TRINO",
+        "operation_id": "orc07-e405100181195f9fd290aecc9dc87416026e76fa",
+        "partial_snapshots": {
+          "dim_date": "1228631670287628425",
+          "dim_depth_band": "1309797690858752349",
+          "dim_magnitude_band": "6843793071463813670",
+          "dim_region": "3445778499802956790",
+          "event_current": "6514163541110789937",
+          "event_source_bridge": "6264040382275602833"
+        },
+        "publication_rows_before_recovery": 0,
+        "published_before_recovery": false,
+        "reason_code": "TRINO_VERIFY_FAILED"
+      },
+      "outside_scope_unchanged": true,
+      "recovery_operation_id": "orc07-e405100181195f9fd290aecc9dc87416026e76fa",
+      "status": "PASS"
+    },
+    {
+      "case_id": "publication_metadata_failure",
+      "fault": {
+        "baseline_snapshots": {
+          "dim_date": "1228631670287628425",
+          "dim_depth_band": "1309797690858752349",
+          "dim_magnitude_band": "6843793071463813670",
+          "dim_region": "3445778499802956790",
+          "event_current": "6514163541110789937",
+          "event_source_bridge": "6264040382275602833"
+        },
+        "candidate_publication_id": "pub_c8c4341fef91a63b8999c1679c58cf4a8e08444f7baa2d466fdd0ea32d55cfa9",
+        "case_id": "publication_metadata_failure",
+        "commit_receipt_present_at_failure": true,
+        "context_sha256": "f87b4968720ecd33e4fa31102dabb5e65840afa8a1c22ce1081b71889d607fcb",
+        "dataset_gate_reason": "DS_GOLD_NOT_PUBLISHED",
+        "downstream_blocked": true,
+        "failed_phase": "publish",
+        "fault_stage": "PUBLICATION",
+        "operation_id": "orc07-d2949183b1d90e15f50abc49e0620c3d4d1bda0b",
+        "partial_snapshots": {
+          "dim_date": "1460521985083261179",
+          "dim_depth_band": "965392530398787570",
+          "dim_magnitude_band": "2929331792511510603",
+          "dim_region": "437960778694457231",
+          "event_current": "3918278485758471430",
+          "event_source_bridge": "1851445813652963878"
+        },
+        "publication_rows_before_recovery": 0,
+        "published_before_recovery": false,
+        "reason_code": "PUBLICATION_READBACK_FAILED"
+      },
+      "outside_scope_unchanged": true,
+      "recovery_operation_id": "orc07-d2949183b1d90e15f50abc49e0620c3d4d1bda0b",
+      "status": "PASS"
+    },
+    {
+      "case_id": "ml_bundle_invalid",
+      "downstream_blocked": true,
+      "outside_scope_unchanged": true,
+      "recovery_status": "RECOVERED",
+      "status": "PASS"
+    },
+    {
+      "case_id": "ml_import_partial",
+      "downstream_blocked": true,
+      "outside_scope_unchanged": true,
+      "recovery_status": "RECOVERED",
+      "status": "PASS"
+    },
+    {
+      "case_id": "lease_timeout_contender",
+      "child_exit_code": -15,
+      "contender_blocked": true,
+      "controlled_child_has_no_io": true,
+      "foreign_release": "NOT_OWNER",
+      "owner_held_after_quiescence": {
+        "dag_id": "pipeline_qa_acceptance",
+        "run_id": "qa04-runtime-9504f2f71b884df0abb78ce50d4e7490"
+      },
+      "quiescent": true,
+      "reason_code": "TIMEOUT_LEASE_RETAINED",
+      "release_deferred_to_final_acceptance": true,
+      "status": "PASS",
+      "timeout_observed": true,
+      "writer_alive_at_timeout": true
+    }
+  ],
+  "completed_at_utc": "2026-10-21T07:50:50.024Z",
+  "controller_sha256_at_export": "60af487f255e792d9e596bd998e7532e6b67119d91a6632cf0933661b5e5cfe9",
+  "execution": {
+    "capacity": {
+      "child_peak_rss_mb": 1396.9140625,
+      "duration_seconds": 381.8859980500001,
+      "profile": "local[1], driver heap 768m, container limit 2GiB"
+    },
+    "exit_code": 0,
+    "job_class": "ie212.earthquake.spark.usgs.FailureRecoveryAcceptanceJob",
+    "request_sha256": "4c89530816cb926dc8990b27cd7eeafca04779b78ad65fc97e9f8d809eebfb0b"
+  },
+  "global_lease_free_at_capture": true,
+  "gold_after_ml": {
+    "dim_date": "1460521985083261179",
+    "dim_depth_band": "965392530398787570",
+    "dim_magnitude_band": "2929331792511510603",
+    "dim_region": "437960778694457231",
+    "event_current": "3918278485758471430",
+    "event_source_bridge": "1851445813652963878"
+  },
+  "gold_before_ml": {
+    "dim_date": "1460521985083261179",
+    "dim_depth_band": "965392530398787570",
+    "dim_magnitude_band": "2929331792511510603",
+    "dim_region": "437960778694457231",
+    "event_current": "3918278485758471430",
+    "event_source_bridge": "1851445813652963878"
+  },
+  "independent_trino_readback": {
+    "bridge_count": [
+      [
+        4
+      ]
+    ],
+    "event_by_month": [
+      [
+        "1997-09",
+        1
+      ],
+      [
+        "2023-08",
+        1
+      ],
+      [
+        "2023-09",
+        1
+      ]
+    ],
+    "ml_physical_counts": {
+      "experiment_run": 3,
+      "sequence_membership": 6,
+      "sequence_summary": 3
+    },
+    "ml_pinned_candidates": {
+      "exp_outside": {
+        "counts": {
+          "experiment_run": 1,
+          "sequence_membership": 2,
+          "sequence_summary": 1
+        },
+        "pins": {
+          "experiment_run": "8403194908865704950",
+          "sequence_membership": "2604878507589295569",
+          "sequence_summary": "661427848385474531"
+        }
+      },
+      "exp_partial": {
+        "counts": {
+          "experiment_run": 1,
+          "sequence_membership": 2,
+          "sequence_summary": 1
+        },
+        "pins": {
+          "experiment_run": "5393352546898815498",
+          "sequence_membership": "8211978147790782929",
+          "sequence_summary": "4727270251040790574"
+        }
+      },
+      "exp_recovered": {
+        "counts": {
+          "experiment_run": 1,
+          "sequence_membership": 2,
+          "sequence_summary": 1
+        },
+        "pins": {
+          "experiment_run": "2021850112707798070",
+          "sequence_membership": "346026840533194881",
+          "sequence_summary": "913440653468202951"
+        }
+      }
+    },
+    "ml_registry": [
+      [
+        "exp_outside",
+        "CANDIDATE",
+        1
+      ],
+      [
+        "exp_partial",
+        "CANDIDATE",
+        1
+      ],
+      [
+        "exp_recovered",
+        "CANDIDATE",
+        1
+      ]
+    ],
+    "publications": [
+      [
+        8,
+        8,
+        8
+      ]
+    ],
+    "serving_count": [
+      [
+        3
+      ]
+    ]
+  },
+  "matrix_sha256": "ae066bfaa3cc787d7625c561e143987722fbed0331628791868203959dbd4af0",
+  "ml": {
+    "baseline": {
+      "dataset_id": "ds_fixture",
+      "experiment_run_id": "exp_outside",
+      "experiment_snapshot_id": "8403194908865704950",
+      "experiment_status": "CANDIDATE",
+      "membership_snapshot_id": "2604878507589295569",
+      "namespace": "iceberg.qa04_ml_848e9b920dbe4e98962e872c898cb5d1",
+      "readback": {
+        "experiment_run": 1,
+        "sequence_membership": 2,
+        "sequence_summary": 1
+      },
+      "result_bundle_sha256": "0cdae7545e54464e059677439d0af84ecae51085df495ea414d284ac3cb67388",
+      "summary_snapshot_id": "661427848385474531"
+    },
+    "final_snapshots": {
+      "experiment_run": "5393352546898815498",
+      "sequence_membership": "8211978147790782929",
+      "sequence_summary": "4727270251040790574"
+    },
+    "input_snapshots": {
+      "candidate_event": "1674514111784272867",
+      "dataset_registry": "1265753264652012693",
+      "mainshock_event": "591136919656037411"
+    },
+    "ml_bundle_invalid": {
+      "recovery": {
+        "dataset_id": "ds_fixture",
+        "experiment_run_id": "exp_recovered",
+        "experiment_snapshot_id": "2021850112707798070",
+        "experiment_status": "CANDIDATE",
+        "membership_snapshot_id": "346026840533194881",
+        "namespace": "iceberg.qa04_ml_848e9b920dbe4e98962e872c898cb5d1",
+        "readback": {
+          "experiment_run": 1,
+          "sequence_membership": 2,
+          "sequence_summary": 1
+        },
+        "result_bundle_sha256": "d1b79bb8364bb7c606902ca6f2a397474aed0a14b71ba2cb586e7b1cf5cb53c1",
+        "summary_snapshot_id": "913440653468202951"
+      },
+      "rejections": [
+        {
+          "candidate_rows": 0,
+          "experiment_run_id": "exp_bad_checksum",
+          "journal_status": "REJECTED",
+          "reason": "IMP_CHECKSUM_MISMATCH",
+          "snapshots_after": {
+            "experiment_run": "8403194908865704950",
+            "sequence_membership": "2604878507589295569",
+            "sequence_summary": "661427848385474531"
+          },
+          "snapshots_before": {
+            "experiment_run": "8403194908865704950",
+            "sequence_membership": "2604878507589295569",
+            "sequence_summary": "661427848385474531"
+          }
+        },
+        {
+          "candidate_rows": 0,
+          "experiment_run_id": "exp_bad_schema",
+          "journal_status": "REJECTED",
+          "reason": "IMP_SCHEMA_MISMATCH",
+          "snapshots_after": {
+            "experiment_run": "8403194908865704950",
+            "sequence_membership": "2604878507589295569",
+            "sequence_summary": "661427848385474531"
+          },
+          "snapshots_before": {
+            "experiment_run": "8403194908865704950",
+            "sequence_membership": "2604878507589295569",
+            "sequence_summary": "661427848385474531"
+          }
+        }
+      ]
+    },
+    "ml_import_partial": {
+      "candidate_journal_matches_recovery": true,
+      "candidate_rows_before_recovery": 0,
+      "fault_journal_status": "IMPORT_VALIDATING",
+      "membership_snapshot_before_recovery": "8211978147790782929",
+      "recovery": {
+        "dataset_id": "ds_fixture",
+        "experiment_run_id": "exp_partial",
+        "experiment_snapshot_id": "5393352546898815498",
+        "experiment_status": "CANDIDATE",
+        "membership_snapshot_id": "8211978147790782929",
+        "namespace": "iceberg.qa04_ml_848e9b920dbe4e98962e872c898cb5d1",
+        "readback": {
+          "experiment_run": 1,
+          "sequence_membership": 2,
+          "sequence_summary": 1
+        },
+        "result_bundle_sha256": "f71f35942c4c49d5c837da1f51f5b2bafb4231e7da6a760dff6e5e97cea1793a",
+        "summary_snapshot_id": "4727270251040790574"
+      }
+    },
+    "namespace": "iceberg.qa04_ml_848e9b920dbe4e98962e872c898cb5d1",
+    "old_snapshots_readable": true,
+    "outside_after_sha256": "8af211e8f3e3944233c90d524f9f5f345461d29381efab77aa923c8103bb5065",
+    "outside_before_sha256": "8af211e8f3e3944233c90d524f9f5f345461d29381efab77aa923c8103bb5065",
+    "outside_experiment_run_id": "exp_outside",
+    "scientific_approval": false,
+    "synthetic_component_qa": true
+  },
+  "publications": [
+    {
+      "operation_id": "orc07-cc3bc29d3d0a5a2e9ee8e4e7649fd1011e07d789",
+      "phase_artifact_sha256": {
+        "bronze": "3565b4b144c65db4691139cd6891a9d939e11c6b1087b85ff3c7caa37570ee27",
+        "gold": "564193fa10a42cd83d3f1e28133a58692b690599223d5ffab1d618923f41dd8f",
+        "publish": "2b828eb5a705ffb8dc3563e3aa430fa9c0d69adc8bddfa2bfa839b3fbd9862d1",
+        "readiness": "dc5048bd8a11572fb605a596e0458994bfec56e9f58f3de55ae7d1d48b4ee43c",
+        "silver": "f0f72e24f9339f0221d5e36f31dcc556e2bde4228be9003731ea614209edfcdf",
+        "verify": "d7558219f8364a537ceed84d7f4781f00217b617fe704420f5428016350ac8bb"
+      },
+      "publication_id": "pub_73eeef781d9a4df21297e0adb26e8e4020640f5346f4d31eae38c55e7825b8ed",
+      "reconciliation": {
+        "balanced": true,
+        "canonical": 1,
+        "current": 1,
+        "history": 0,
+        "input_unique_revisions": 3,
+        "links": 0,
+        "memberships": 1,
+        "output_revisions": 1,
+        "repeated_input_observation_ids": 0,
+        "revisions_outside_affected_months": 2,
+        "selected_input_records": 3
+      },
+      "tables": {
+        "dim_date": {
+          "count": 1,
+          "snapshot_id": "4014054555255946308"
+        },
+        "dim_depth_band": {
+          "count": 5,
+          "snapshot_id": "5029731672366291576"
+        },
+        "dim_magnitude_band": {
+          "count": 7,
+          "snapshot_id": "2795761757060007553"
+        },
+        "dim_region": {
+          "count": 1,
+          "snapshot_id": "2824312010834196195"
+        },
+        "event_current": {
+          "count": 1,
+          "snapshot_id": "4745287967437198508"
+        },
+        "event_source_bridge": {
+          "count": 1,
+          "snapshot_id": "9001395858993954560"
+        }
+      },
+      "target_months": [
+        "2023-08"
+      ],
+      "trino_check_count": 36,
+      "verify_status": "PASSED"
+    },
+    {
+      "operation_id": "orc07-a86bab5706b1515dff8be1990fc307c867299a12",
+      "phase_artifact_sha256": {
+        "bronze": "56381166cae1ddc9cbe40132402a8d6c8480d545f2bd188de0d3097eae76fb47",
+        "gold": "774634ec9ebe1e193a5df9d0603165a51cba9cd74d45493b53917ce90dccd212",
+        "publish": "6b4f119d3b149cbc52ddb6bb49fba8beaba7b54bb6718d651575e41ff94a6231",
+        "readiness": "3e4a64ffb20b76c33194de5c157d10c7ea558adc9400ca5054ed85c7a0e74ec3",
+        "silver": "2da3bd9cc93e6b61c06eb204edc861d6e3d21330bafe1fb17822c24d94a3d3d5",
+        "verify": "dc7e8cd9c76b1c38b9f37d3d6c8f6f1fa025dffc08e616a301f9599d36863cb3"
+      },
+      "publication_id": "pub_8ce604c42ccd53e3ea50b5e85a229db89992cdb788c39e873541287bbdaf3e9a",
+      "reconciliation": {
+        "balanced": true,
+        "canonical": 1,
+        "current": 2,
+        "history": 0,
+        "input_unique_revisions": 3,
+        "links": 1,
+        "memberships": 2,
+        "output_revisions": 2,
+        "repeated_input_observation_ids": 0,
+        "revisions_outside_affected_months": 1,
+        "selected_input_records": 3
+      },
+      "tables": {
+        "dim_date": {
+          "count": 2,
+          "snapshot_id": "4384851912081401315"
+        },
+        "dim_depth_band": {
+          "count": 5,
+          "snapshot_id": "706740236152132875"
+        },
+        "dim_magnitude_band": {
+          "count": 7,
+          "snapshot_id": "5404197590149662739"
+        },
+        "dim_region": {
+          "count": 1,
+          "snapshot_id": "2963288646736631354"
+        },
+        "event_current": {
+          "count": 2,
+          "snapshot_id": "4314210247580972272"
+        },
+        "event_source_bridge": {
+          "count": 3,
+          "snapshot_id": "496678399878598038"
+        }
+      },
+      "target_months": [
+        "2023-09"
+      ],
+      "trino_check_count": 36,
+      "verify_status": "PASSED"
+    },
+    {
+      "operation_id": "orc07-b1f577f4d6d43af16137b3b9e37bea5a9a2577a5",
+      "phase_artifact_sha256": {
+        "bronze": "119b6dca52ac13b6caf392c80089e0e346ac2f295556ae633b47c7b5025251f4",
+        "gold": "af5079372030bc058caf9625446e15fbee6e43bda77b6a93244663b19f3f6ff5",
+        "publish": "52f9d3d37cc1a085c35c9217d3099bb57bbb541e56f6da13570190e7c5527529",
+        "readiness": "7a6e95dca3f574a9b6687581b2be55fb448cb79f75525f20fee1de826e901176",
+        "silver": "ef2be24b549c81971e01d1fefbaf26b7ec00c41d995152f89b5de9cc397acd35",
+        "verify": "e9cad1c39dd3763361011842b1640bfcff8078497cc514e0413bd682979779fa"
+      },
+      "publication_id": "pub_04d5dbad7b2cac97b448fc2423efef1c841512889d5c3ab2253c4fb76467a2ad",
+      "reconciliation": {
+        "balanced": true,
+        "canonical": 1,
+        "current": 1,
+        "history": 0,
+        "input_unique_revisions": 4,
+        "links": 0,
+        "memberships": 1,
+        "output_revisions": 1,
+        "repeated_input_observation_ids": 0,
+        "revisions_outside_affected_months": 3,
+        "selected_input_records": 4
+      },
+      "tables": {
+        "dim_date": {
+          "count": 3,
+          "snapshot_id": "8568956625763415084"
+        },
+        "dim_depth_band": {
+          "count": 5,
+          "snapshot_id": "1574921729246030432"
+        },
+        "dim_magnitude_band": {
+          "count": 7,
+          "snapshot_id": "1352533076719385707"
+        },
+        "dim_region": {
+          "count": 1,
+          "snapshot_id": "833292291024246794"
+        },
+        "event_current": {
+          "count": 3,
+          "snapshot_id": "3447007506201709011"
+        },
+        "event_source_bridge": {
+          "count": 4,
+          "snapshot_id": "4008011566972007074"
+        }
+      },
+      "target_months": [
+        "1997-09"
+      ],
+      "trino_check_count": 36,
+      "verify_status": "PASSED"
+    },
+    {
+      "operation_id": "orc07-e46aafa8c92fe65dee6209d2e08d8c13c73a09a2",
+      "phase_artifact_sha256": {
+        "bronze": "56381166cae1ddc9cbe40132402a8d6c8480d545f2bd188de0d3097eae76fb47",
+        "gold": "6e49656890bacaa2f35d08bc581ac9f0a0ee6a8f3b47b1fe7fd5b00deb1c0053",
+        "publish": "962e462ff4166a08dc3797b19453d16c89df2dc399d908f0fc5068c416c37471",
+        "readiness": "3e4a64ffb20b76c33194de5c157d10c7ea558adc9400ca5054ed85c7a0e74ec3",
+        "silver": "6228ed06e49dd1ec30244392be30bcbb449f1cae7e945da22398722d1163fa93",
+        "verify": "721f22e26a436304114391d64c9b353b7f23a22c604be51e1e43359f2de13570"
+      },
+      "publication_id": "pub_f48a86898ca9c46275474091548ff03bff729e3dfc4cbecb0ac6b1968fdd3639",
+      "reconciliation": {
+        "balanced": true,
+        "canonical": 1,
+        "current": 2,
+        "history": 0,
+        "input_unique_revisions": 4,
+        "links": 1,
+        "memberships": 2,
+        "output_revisions": 2,
+        "repeated_input_observation_ids": 0,
+        "revisions_outside_affected_months": 2,
+        "selected_input_records": 4
+      },
+      "tables": {
+        "dim_date": {
+          "count": 3,
+          "snapshot_id": "5260530752293390196"
+        },
+        "dim_depth_band": {
+          "count": 5,
+          "snapshot_id": "618615683685305414"
+        },
+        "dim_magnitude_band": {
+          "count": 7,
+          "snapshot_id": "6557598339684574620"
+        },
+        "dim_region": {
+          "count": 1,
+          "snapshot_id": "7784135037228148580"
+        },
+        "event_current": {
+          "count": 3,
+          "snapshot_id": "7240265134071831443"
+        },
+        "event_source_bridge": {
+          "count": 4,
+          "snapshot_id": "3922493935794440439"
+        }
+      },
+      "target_months": [
+        "2023-09"
+      ],
+      "trino_check_count": 36,
+      "verify_status": "PASSED"
+    },
+    {
+      "operation_id": "orc07-cd036d6db8e4d04cdcc7f288142c9ef6792515b3",
+      "phase_artifact_sha256": {
+        "bronze": "56381166cae1ddc9cbe40132402a8d6c8480d545f2bd188de0d3097eae76fb47",
+        "gold": "ff00ef0f097093de065eb8e1cd3bbdeff7c01644c9a8173383f397a1776bc185",
+        "publish": "c04878ca801933021a2647456377fc2371ac7791a41f73eeba092c2ac10a9cdc",
+        "readiness": "3e4a64ffb20b76c33194de5c157d10c7ea558adc9400ca5054ed85c7a0e74ec3",
+        "silver": "c4dee4d8faf2ec0edb492a9b55bfeb2c5bc20b5f1306701ab4a681c8118f81a6",
+        "verify": "e1aba9966886ae2c0322f30175e76ee99a2537ef8b8e69b34e7dabe8d6fec3ec"
+      },
+      "publication_id": "pub_cee12d9442ffb81ec5a65b9f77b4c781ead138d18b59aac0afdd836eccf88789",
+      "reconciliation": {
+        "balanced": true,
+        "canonical": 1,
+        "current": 2,
+        "history": 0,
+        "input_unique_revisions": 4,
+        "links": 1,
+        "memberships": 2,
+        "output_revisions": 2,
+        "repeated_input_observation_ids": 0,
+        "revisions_outside_affected_months": 2,
+        "selected_input_records": 4
+      },
+      "tables": {
+        "dim_date": {
+          "count": 3,
+          "snapshot_id": "6684642404159113254"
+        },
+        "dim_depth_band": {
+          "count": 5,
+          "snapshot_id": "5842900933096489746"
+        },
+        "dim_magnitude_band": {
+          "count": 7,
+          "snapshot_id": "6997538144244623964"
+        },
+        "dim_region": {
+          "count": 1,
+          "snapshot_id": "6872916100597544131"
+        },
+        "event_current": {
+          "count": 3,
+          "snapshot_id": "857456584522434781"
+        },
+        "event_source_bridge": {
+          "count": 4,
+          "snapshot_id": "4712566733475744107"
+        }
+      },
+      "target_months": [
+        "2023-09"
+      ],
+      "trino_check_count": 36,
+      "verify_status": "PASSED"
+    },
+    {
+      "operation_id": "orc07-6dd01c70aa404054e94d2d6d8335893a24670940",
+      "phase_artifact_sha256": {
+        "bronze": "56381166cae1ddc9cbe40132402a8d6c8480d545f2bd188de0d3097eae76fb47",
+        "gold": "86293cfdc9fa9951afdfed4ca4a5d85c7b5bf89b3ba626a47b9270a6af1b9808",
+        "publish": "e4316d2c38f1bb4d033939ee85a83a9f6ec82410fb46d24238ac37846bd7d593",
+        "readiness": "3e4a64ffb20b76c33194de5c157d10c7ea558adc9400ca5054ed85c7a0e74ec3",
+        "silver": "cff33a2d042505aad3d80b7dc3ad47c534a11ed9a02dee43d5e5194efbaea74f",
+        "verify": "cef742998b8e34f8e37d9a8dd29eac1d6e036dff8e02ef264098907a32b76579"
+      },
+      "publication_id": "pub_25cacacb0b5552df2cd9e62a4e79e4f1e5b1977182dc31b18af48d723425688d",
+      "reconciliation": {
+        "balanced": true,
+        "canonical": 1,
+        "current": 2,
+        "history": 0,
+        "input_unique_revisions": 4,
+        "links": 1,
+        "memberships": 2,
+        "output_revisions": 2,
+        "repeated_input_observation_ids": 0,
+        "revisions_outside_affected_months": 2,
+        "selected_input_records": 4
+      },
+      "tables": {
+        "dim_date": {
+          "count": 3,
+          "snapshot_id": "974377652365431200"
+        },
+        "dim_depth_band": {
+          "count": 5,
+          "snapshot_id": "1331656817185065770"
+        },
+        "dim_magnitude_band": {
+          "count": 7,
+          "snapshot_id": "5649785261783994849"
+        },
+        "dim_region": {
+          "count": 1,
+          "snapshot_id": "2559682746857116616"
+        },
+        "event_current": {
+          "count": 3,
+          "snapshot_id": "2890669741995855453"
+        },
+        "event_source_bridge": {
+          "count": 4,
+          "snapshot_id": "934814058412244401"
+        }
+      },
+      "target_months": [
+        "2023-09"
+      ],
+      "trino_check_count": 36,
+      "verify_status": "PASSED"
+    },
+    {
+      "operation_id": "orc07-e405100181195f9fd290aecc9dc87416026e76fa",
+      "phase_artifact_sha256": {
+        "bronze": "56381166cae1ddc9cbe40132402a8d6c8480d545f2bd188de0d3097eae76fb47",
+        "gold": "f59634cd8097f3c5669e85800538fbde0d9fd18f145bfbde62f7dabd761e3d33",
+        "publish": "5a7f720b1cef031eb28fcb0cfe22812a5499aa291e32e7ec2fda11b3bafd89bf",
+        "readiness": "3e4a64ffb20b76c33194de5c157d10c7ea558adc9400ca5054ed85c7a0e74ec3",
+        "silver": "e5e34c4759b51ef22ba463c3e90bcc9c7d2f8a96db8a71c21e65484ed0db5a4a",
+        "verify": "6ba05a907ab5136aeb710581f3ebdc952e35b7c57c5ca0473ad08a67cd630d44"
+      },
+      "publication_id": "pub_d4471c8e76c62a020fd26eb49fdeb8a3005c584e3c1f4c59af0bdab7685b8fcb",
+      "reconciliation": {
+        "balanced": true,
+        "canonical": 1,
+        "current": 2,
+        "history": 0,
+        "input_unique_revisions": 4,
+        "links": 1,
+        "memberships": 2,
+        "output_revisions": 2,
+        "repeated_input_observation_ids": 0,
+        "revisions_outside_affected_months": 2,
+        "selected_input_records": 4
+      },
+      "tables": {
+        "dim_date": {
+          "count": 3,
+          "snapshot_id": "1228631670287628425"
+        },
+        "dim_depth_band": {
+          "count": 5,
+          "snapshot_id": "1309797690858752349"
+        },
+        "dim_magnitude_band": {
+          "count": 7,
+          "snapshot_id": "6843793071463813670"
+        },
+        "dim_region": {
+          "count": 1,
+          "snapshot_id": "3445778499802956790"
+        },
+        "event_current": {
+          "count": 3,
+          "snapshot_id": "6514163541110789937"
+        },
+        "event_source_bridge": {
+          "count": 4,
+          "snapshot_id": "6264040382275602833"
+        }
+      },
+      "target_months": [
+        "2023-09"
+      ],
+      "trino_check_count": 36,
+      "verify_status": "PASSED"
+    },
+    {
+      "operation_id": "orc07-d2949183b1d90e15f50abc49e0620c3d4d1bda0b",
+      "phase_artifact_sha256": {
+        "bronze": "56381166cae1ddc9cbe40132402a8d6c8480d545f2bd188de0d3097eae76fb47",
+        "gold": "9a9611611b686a191df7758f541ecd3e39166280e179e49cd169edad4177c594",
+        "publish": "bf81f0363584b1b65786066287d1c24d93ea2a3ac3bcfbc16cc9605557a13e1b",
+        "readiness": "3e4a64ffb20b76c33194de5c157d10c7ea558adc9400ca5054ed85c7a0e74ec3",
+        "silver": "31ff572f9e764a1d0c218034a29f43e4d0ab6a3726b2b416a46334f2438327f1",
+        "verify": "e1470ca9e381b5c9448ceeb12e6bce569c1add9e5bcb5b098a33c53e2c28bec2"
+      },
+      "publication_id": "pub_c8c4341fef91a63b8999c1679c58cf4a8e08444f7baa2d466fdd0ea32d55cfa9",
+      "reconciliation": {
+        "balanced": true,
+        "canonical": 1,
+        "current": 2,
+        "history": 0,
+        "input_unique_revisions": 4,
+        "links": 1,
+        "memberships": 2,
+        "output_revisions": 2,
+        "repeated_input_observation_ids": 0,
+        "revisions_outside_affected_months": 2,
+        "selected_input_records": 4
+      },
+      "tables": {
+        "dim_date": {
+          "count": 3,
+          "snapshot_id": "1460521985083261179"
+        },
+        "dim_depth_band": {
+          "count": 5,
+          "snapshot_id": "965392530398787570"
+        },
+        "dim_magnitude_band": {
+          "count": 7,
+          "snapshot_id": "2929331792511510603"
+        },
+        "dim_region": {
+          "count": 1,
+          "snapshot_id": "437960778694457231"
+        },
+        "event_current": {
+          "count": 3,
+          "snapshot_id": "3918278485758471430"
+        },
+        "event_source_bridge": {
+          "count": 4,
+          "snapshot_id": "1851445813652963878"
+        }
+      },
+      "target_months": [
+        "2023-09"
+      ],
+      "trino_check_count": 36,
+      "verify_status": "PASSED"
+    }
+  ],
+  "research_ready": false,
+  "retention": {
+    "after_sha256": "f17777137d6b3de988f9594022733b04cfa9a8f9551cddd1b587b6db056edd0b",
+    "before_sha256": "f17777137d6b3de988f9594022733b04cfa9a8f9551cddd1b587b6db056edd0b",
+    "outside_month": "2023-08"
+  },
+  "runner_jar_sha256": "a230e9613f017e945840cc53bd90a82070278249693594e86637c3246d18a88d",
+  "runtime_root": "/opt/pipeline/staging/qa-04/qa04-runtime-9504f2f71b884df0abb78ce50d4e7490",
+  "schema_version": "qa04-runtime-summary-v1",
+  "scientific_approval": false,
+  "source_fingerprint": "b1cdeabaab65e7cbe296b4a97fd982c3ce828d4297288d33a00f986f085ccbe2",
+  "status": "PASS",
+  "synthetic_fixture": true,
+  "task_id": "QA-04",
+  "prior_failed_run": {
+    "run_id": "qa04-runtime-0f253c8d9175412fab3a6dd67df91547",
+    "namespace": "iceberg.qa04_1d616ee85bfd4c908b7f02ebf127110c",
+    "ml_namespace": "iceberg.qa04_ml_1d616ee85bfd4c908b7f02ebf127110c",
+    "status": "FAILED_LEASE_RETAINED",
+    "reason": "QA04_ML_UNEXPECTED_REJECTION: schema fixture had wrong experiment identity",
+    "gold_publications_reconciled": 8,
+    "ml_candidates_reconciled": [
+      "exp_outside"
+    ],
+    "process_and_remote_queries_quiescent_before_release": true,
+    "exact_owner_operator_release": "RELEASED",
+    "artifacts_preserved": true
+  }
+}

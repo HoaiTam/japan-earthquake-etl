@@ -175,7 +175,8 @@ khoa học. EXP-02 local report PASSED mới cho Colab pilot với cùng code/by
 Official Colab research vẫn chờ MLD-05 EXPORTED.
 
 - [QA-04 — Test failure và recovery theo tầng](./tasks/QA-04.md):
-  dời nghiệm thu toàn tầng sang tuần 6, owner ThanhTris/4h theo phân công hiện tại.
+  dời nghiệm thu toàn tầng sang tuần 6, owner ThanhTris/4h theo phân công hiện tại;
+  đã Done với [runtime acceptance 10/10 ngày 21/10/2026](../evidence/QA-04_RUNTIME_ACCEPTANCE.md).
 - [EXP-03 — HDBSCAN adaptive và multi-sequence](./tasks/EXP-03.md),
   [EXP-04 — Scientific evaluation](./tasks/EXP-04.md),
   [EXP-05 — Out-of-period extension](./tasks/EXP-05.md):
@@ -211,7 +212,9 @@ thức, cập nhật plan/metadata/index và planning checks/tests cùng PR.
 - [x] QA-03 historical backfill: archive public đại diện, resume/changed-release/resource/retention 6/6,
       sáu publication và Trino readback đạt ngày 21/10/2026; xem [nghiệm thu/capacity](../evidence/QA-03_RUNTIME_ACCEPTANCE.md).
       Coverage bounded, không chứng minh toàn kỳ 40 năm hoặc research-ready.
-- [ ] QA-04 hoàn tất nghiệm thu failure/recovery theo từng tầng; vẫn giữ scope tuần 6.
+- [x] QA-04 hoàn tất nghiệm thu failure/recovery 10/10, tám Gold publication và
+      ML CANDIDATE pinned readback; [evidence](../evidence/QA-04_RUNTIME_ACCEPTANCE.md).
+      Vẫn giữ roster/effort/scope tuần 6; synthetic QA không thay official ML E2E.
 - [ ] MLD-04/05 count/grain/feature/checksum/lifecycle đúng; research coverage không bị nói quá.
 - [ ] DAT-02 pilot pins/schema/count/checksum/coverage và development-only flags đúng;
       Jupyter inspection run-all đạt, không official lifecycle/import.

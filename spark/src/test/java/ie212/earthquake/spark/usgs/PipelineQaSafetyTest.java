@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 
 class PipelineQaSafetyTest {
     @Test void acceptanceCannotTargetProductionNamespacesBeforeLeaseOrSparkAccess() {
-        for(String name:new String[]{"iceberg.gold","iceberg.ml","iceberg.qa03_old","iceberg.qa04_"+"a".repeat(32),"iceberg.qa02_old","iceberg.qa02_"+"a".repeat(33),"iceberg.qa02_"+"g".repeat(32)}) {
+        for(String name:new String[]{"iceberg.gold","iceberg.ml","iceberg.qa03_old","iceberg.qa04_old","iceberg.qa02_old","iceberg.qa02_"+"a".repeat(33),"iceberg.qa02_"+"g".repeat(32)}) {
             var request=JSON.createObjectNode().put("namespace",name);
             assertEquals("ISOLATED_PIPELINE_QA_REQUIRED",assertThrows(java.io.IOException.class,
                 ()->new PipelineQaSupport(request,Path.of("unused"))).getMessage());
@@ -16,6 +16,7 @@ class PipelineQaSafetyTest {
     @Test void fixedJobsRejectMissingRequestsWithoutCreatingAnyState() {
         assertThrows(java.io.IOException.class,()->RerunRevisionAcceptanceJob.main(new String[0]));
         assertThrows(java.io.IOException.class,()->HistoricalBackfillAcceptanceJob.main(new String[0]));
+        assertThrows(java.io.IOException.class,()->FailureRecoveryAcceptanceJob.main(new String[0]));
     }
     @Test void controlledMagnitudeRevisionUsesExactlyTheDocumentedColumns() throws Exception {
         String row=java.nio.file.Files.readAllLines(FullMonthFixture.repo().resolve("tests/fixtures/jma/fixed-width/success.hyp")).get(0);
