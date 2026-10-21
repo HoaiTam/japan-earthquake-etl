@@ -3,8 +3,10 @@
 ## 1. Phạm vi
 
 DOC-01 cập nhật 19/10/2026: đây là contract/graph/runner boundary đã triển khai,
-**chưa là evidence live official export**. MLI-02 In Progress, MLD-05 Ready;
+**chưa là evidence live official build DAG**. MLI-02 In Progress;
 mock export không ghi registry official hoặc mở Colab handoff.
+MLD-05 có [export CLI và handoff](./MLD-05_FEATURE_EXPORT.md); MLI-02 còn phải
+nối step adapter và nghiệm thu live, không lấy mock/offline evidence thay thế.
 Hướng dẫn notebook thực thi: [onboarding](./DOC-01_TEAM_ONBOARDING.md).
 Hai request bên dưới là ví dụ schema/pins tại mốc thiết kế, không được trigger
 nguyên mẫu nếu chưa resolve Published input/coverage thực tế.
@@ -122,9 +124,16 @@ Khi hoàn tất bước `mark_dataset_exported`, thư mục đích chứa layout
 
 ### Kiểm tra tính toàn vẹn (Checksum Verification)
 
-Layout được thiết kế tránh tham chiếu hash vòng (non-circular):
+Layout mock/runner boundary trước MLD-05 được thiết kế tránh tham chiếu hash vòng (non-circular):
 - `checksums.sha256` chứa SHA-256 của các file part dữ liệu (`features-part-*.parquet`).
 - `dataset_manifest.json` ghi nhận `export_manifest_sha256` (hash của file `checksums.sha256`) và được verify độc lập qua `dataset_manifest_sha256`.
+
+Handoff MLD-05 mới: export-checksums.sha256 index parts, manifest tham chiếu
+data-only index đó; public checksums.sha256 index cả manifest/data-only index/
+parts để EXP-01 OFFICIAL loader verify. Khi tích hợp real adapter, dùng nguyên
+bundle và receipt của MLD-05, không viết lại manifest/parts hoặc áp mock layout
+lên bundle mới. Trusted registry pin snapshot EXPORTED và candidate lineage
+thật; xem [contract export](../specs/FEATURE_EXPORT.md).
 
 Operator có thể đối soát checksum cục bộ trước khi bàn giao:
 

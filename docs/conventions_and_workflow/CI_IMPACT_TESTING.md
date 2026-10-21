@@ -45,7 +45,7 @@ nhóm từ allowlist cố định; không đưa filename hoặc lệnh Maven và
 |---|---|---|---|
 | README, docs Markdown ngoài specs/contracts | Không chạy | Không chạy | Không chạy |
 | Notebook/loader DAT-02, tests/test_pilot_*.py | Không chạy | Không chạy | Tất cả pilot tests |
-| FeatureScalingConfig, SpacetimeFeatureEngine, LocalFeatureJob, PilotExportJob, WindowArtifactInput hoặc bốn test tương ứng | Bốn lớp feature/export/cross-JVM tests | Không chạy | Tất cả pilot tests |
+| FeatureScalingConfig, SpacetimeFeatureEngine, LocalFeatureJob, PilotExportJob, WindowArtifactInput hoặc bốn test tương ứng | Bốn lớp feature/cross-JVM + hai lớp consumer MLD-05 export | Không chạy | Tất cả pilot tests |
 | Ba config feature/pilot đã pin hoặc bốn script local ML/stage/inspection/pack | Nhóm feature như trên | Không chạy | Tất cả pilot tests |
 | Java ML khác, gồm identity/audit/Mc/window hoặc test ML mới | Toàn bộ package ML | Tất cả Airflow tests | Tất cả pilot tests |
 | Sáu leaf DAG skeleton/source wrappers hoặc airflow/tests/test_*.py | Không chạy | Tất cả Airflow tests | Không chạy |

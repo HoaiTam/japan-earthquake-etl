@@ -30,7 +30,7 @@ class DockerDouble:
         for _, _, clients, _ in runtime.COMPONENTS.values():
             names.update(clients)
         names.update(runtime.BUILD_SERVICES)
-        qa_clients = ("spark-gold-qa", "gold-verification-qa", "dataset-manifest-qa", "gold-input-audit-qa", "mainshock-window-qa", "mli-03-import-results", "qa-02-rerun-revision", "qa-03-jma-historical-backfill", "qa-04-failure-recovery")
+        qa_clients = ("spark-gold-qa", "gold-verification-qa", "dataset-manifest-qa", "gold-input-audit-qa", "mainshock-window-qa", "mli-03-import-results", "mld05-feature-export", "qa-02-rerun-revision", "qa-03-jma-historical-backfill", "qa-04-failure-recovery")
         names.update(qa_clients)
         for name in sorted(names):
             if name.startswith("airflow-") and name not in ("airflow-postgres", "airflow-init") or name in ("usgs-live-smoke", "jma-live-qa", "source-readiness-qa"):
@@ -134,6 +134,11 @@ class DockerRuntimeTests(unittest.TestCase):
 
     def context(self, timeout=20):
         return runtime.Runtime(self.root, self.env, timeout)
+
+    def test_mld05_preflight_accepts_only_prepared_client_without_lifecycle(self):
+        self.artifacts()
+        self.context().check("ml", client="mld05-feature-export")
+        self.assertFalse(any(token in ("up", "build", "pull", "run") for command in self.docker.commands for token in command))
 
     def artifacts(self):
         receipt = {"source_sha256": runtime.source_sha(self.root), "files": {}}

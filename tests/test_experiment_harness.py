@@ -322,6 +322,16 @@ class ExperimentHarnessTest(unittest.TestCase):
         self.assertEqual(bundle["bundle_id"], self.ds_id)
         self.assertEqual(bundle["features_table"].num_rows, 2)
 
+    def test_official_dataset_id_directory_does_not_infer_hive_partition_columns(self):
+        root = self.official_dir / "dataset_id=ds_fixture"
+        root.mkdir()
+        ds_id = create_official_fixture(root)
+        bundle = harness.load_feature_bundle(root, mode=harness.MODE_OFFICIAL)
+        table = bundle["features_table"]
+        self.assertEqual(table.num_rows, 2)
+        self.assertEqual(table["dataset_id"].type, pa.string())
+        self.assertEqual(set(table["dataset_id"].to_pylist()), {ds_id})
+
     def test_official_dataset_not_exported_is_rejected(self):
         manifest_path = self.official_dir / "dataset_manifest.json"
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))

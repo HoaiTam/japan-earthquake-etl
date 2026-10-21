@@ -107,4 +107,18 @@ class RealEtlAdapterTest {
         assertThrows(Exception.class,()->adapter.execute("gold",context,monthly,work));
         assertTrue(writer.baselines().values().stream().allMatch(id->id==0));
     }
+    @Test void cumulativeCoverageVerificationReads225MonthsButStillRejectsChangedProof() throws Exception {
+        var all=JSON.createArrayNode();
+        for(var m=java.time.YearMonth.of(2000,1);m.isBefore(java.time.YearMonth.of(2018,10));m=m.plusMonths(1)) all.add(m.toString());
+        var pin=JSON.createObjectNode().put("source_system","JMA_BULLETIN").put("manifest_uri","file:///fixture/history.json");
+        var input=new FullMonthBronzeReader.Input(pin,JSON.createObjectNode(),new byte[0],
+            java.time.Instant.parse("1999-01-01T00:00:00Z"),java.time.Instant.parse("2019-01-01T00:00:00Z"));
+        var inputs=List.of(input); var registry=JSON.createObjectNode(); registry.set("complete_months",all);
+        registry.set("coverage",FullMonthStateResolver.coverage(inputs,registryMonths(all)));
+        assertDoesNotThrow(()->RealEtlAdapter.verifyRegistryCoverage(inputs,registry));
+        assertThrows(IOException.class,()->months(all)); // affected write bound remains 24
+        ((ObjectNode)registry.path("coverage").get(1)).put("coverage","INCOMPLETE");
+        assertEquals("FULL_MONTH_COVERAGE_CHANGED",assertThrows(IOException.class,
+            ()->RealEtlAdapter.verifyRegistryCoverage(inputs,registry)).getMessage());
+    }
 }

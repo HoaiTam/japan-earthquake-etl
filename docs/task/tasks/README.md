@@ -152,7 +152,7 @@ fixture/inventory; assignee `HoaiTam`, reviewer `unassigned`. Xem
 | [MLD-02](./MLD-02.md) - Audit Gold và xác định magnitude of completeness | 4 | Input audit and completeness | Core | P0 | 7h | Done |
 | [MLD-03](./MLD-03.md) - Chọn mainshock và tạo candidate windows | 4 | Mainshock and candidate windows | Core | P0 | 7h | Done |
 | [MLD-04](./MLD-04.md) - Tạo và scale feature không-thời gian 4-D | 5 | Spacetime features | Core | P0 | 6h | Done |
-| [MLD-05](./MLD-05.md) - Validate feature snapshot và export Parquet bundle | 5 | Feature validation and export | Core | P0 | 5h | Ready |
+| [MLD-05](./MLD-05.md) - Validate feature snapshot và export Parquet bundle | 5 | Feature validation and export | Core | P0 | 5h | Done |
 
 ## H - Experiment
 

@@ -41,7 +41,14 @@ public final class FullMonthContract {
         return node;
     }
     public static Set<String> months(JsonNode node) throws IOException {
-        require(node.isArray() && !node.isEmpty() && node.size() <= 24, "BOUNDED_EXACT_MONTHS_REQUIRED");
+        return monthSet(node, 24, "BOUNDED_EXACT_MONTHS_REQUIRED");
+    }
+    /** Cumulative read-only coverage may span 40 years; each affected write stays <=24 months. */
+    public static Set<String> registryMonths(JsonNode node) throws IOException {
+        return monthSet(node, 480, "BOUNDED_REGISTRY_MONTHS_REQUIRED");
+    }
+    private static Set<String> monthSet(JsonNode node, int limit, String reason) throws IOException {
+        require(node.isArray() && !node.isEmpty() && node.size() <= limit, reason);
         var out = new TreeSet<String>();
         for (var value : node) {
             require(value.isTextual() && value.asText().matches("[12][0-9]{3}-(0[1-9]|1[0-2])"), "UTC_MONTH_REQUIRED");
