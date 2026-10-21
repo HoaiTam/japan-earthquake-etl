@@ -4,9 +4,9 @@
   "inventory_sha256": "61dc2c73f1bb9cee48fba851cbb941cc62c893201c36db583cdd55ae19f8199a",
   "halo_seconds": 16,
   "dependency_gate": {
-    "ORC-07": "Ready",
+    "ORC-07": "Done",
     "JMA-05": "Done",
-    "acceptance": "PENDING_REAL_ADAPTERS"
+    "acceptance": "REAL_ADAPTERS_AVAILABLE_RUNTIME_REQUIRED"
   },
   "input_pins": {
     "timezone": "UTC",

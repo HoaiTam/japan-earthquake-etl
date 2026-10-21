@@ -74,13 +74,16 @@ COMPONENT_SMOKES := smoke-minio smoke-airflow smoke-spark smoke-query smoke-usgs
 .PHONY: check-docs test-docs
 .PHONY: test-mli-import smoke-mli-import smoke-mli-import-acceptance smoke-mli-import-dag up-ml
 .PHONY: test-qa-04 smoke-qa-04
-.PHONY: test-qa-acceptance smoke-qa-acceptance
+.PHONY: test-qa-acceptance smoke-qa-acceptance prepare-qa-history
 
-test-qa-acceptance: ## QA-02 fixed-runner safety/report/lease tests; offline, không Docker
+prepare-qa-history: ## QA-03: tải/reuse 4 archive JMA và 1 USGS capture có pin; không Docker/ETL
+	@python3 scripts/prepare-qa-history.py
+
+test-qa-acceptance: ## QA-02/QA-03 fixed-runner safety/report/lease tests; offline, không Docker
 	@python3 -m unittest discover -s airflow/tests -p 'test_pipeline_qa_acceptance.py'
 	@./mvnw --batch-mode --no-transfer-progress -pl spark -am test -Dtest=PipelineQaSafetyTest -Dsurefire.failIfNoSpecifiedTests=false
 
-smoke-qa-acceptance: check-config-local ## QA-02 Bronze → Published acceptance; không build/start/init
+smoke-qa-acceptance: check-config-local ## QA-02/QA-03 Bronze → Published acceptance; không build/start/init
 	@$(RUNTIME_CHECK) --component ml --client pipeline-qa-acceptance
 	@$(COMPOSE) --profile ml run --rm --no-deps --pull never -e PIPELINE_QA_TASK="$(PIPELINE_QA_TASK)" pipeline-qa-acceptance
 

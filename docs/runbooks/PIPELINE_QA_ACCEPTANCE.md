@@ -1,20 +1,21 @@
-# QA-02 — Nghiệm thu rerun và revision trên storage thật
+# QA-02 / QA-03 — Nghiệm thu trên storage thật
 
 ## Mục đích và ranh giới
 
-Runner cố định `pipeline_qa_acceptance.py --task QA-02` gọi Java/Spark qua
+Runner cố định `pipeline_qa_acceptance.py --task QA-02|QA-03` gọi Java/Spark qua
 production Bronze writers → ORC-07 sáu phase → Gold Iceberg → Trino Published.
 Python chỉ quản lý request, lease, checksum và kiểm tra receipt; xử lý record,
 đọc/ghi Parquet và bảng Iceberg đều nằm trong Java.
 
-Input **tổng hợp, nhỏ và xác định được**, không gọi USGS/JMA qua mạng.
+QA-02 dùng input **tổng hợp, nhỏ và xác định được**, không gọi USGS/JMA qua mạng.
 MinIO, REST Catalog, Iceberg và Trino là service thật. Đây là kiểm thử hành vi
 revision/rerun, không phải bằng chứng đã tải đầy đủ catalog lịch sử.
 
-Bản này chỉ hỗ trợ QA-02. [QA-03 — Historical backfill](../task/tasks/QA-03.md)
-còn cần nghiệm thu archive public, resume và coverage;
+Bản này hỗ trợ thêm QA-03 bằng archive public đã tải/pin ở bước chuẩn bị riêng;
+chi tiết tại [QA-03 runbook](./QA-03_JMA_HISTORICAL_BACKFILL.md).
 [QA-04 — Failure/recovery](../task/tasks/QA-04.md) còn cần nghiệm thu các lỗi
-ETL/ML và phục hồi. Không dùng kết quả QA-02 để đánh dấu hai task đó Done.
+ETL/ML và phục hồi, chưa được hỗ trợ bởi fixed runner này.
+Không dùng kết quả của một task để đánh dấu task khác Done.
 
 ## Chuẩn bị riêng
 
@@ -57,9 +58,10 @@ regression nằm trong bước build.
 Smoke chỉ preflight read-only rồi chạy one-off client với
 `--no-deps --pull never`; không build/pull/start/init và không trigger/clear
 Airflow DagRun. Mỗi lần tạo namespace `<catalog>.qa02_<32 hex>` riêng,
-request/matrix checksum và operation identity riêng.
+request/matrix checksum và operation identity riêng. QA-03 dùng namespace
+`<catalog>.qa03_<32 hex>`; không ghi Gold production hoặc namespace ML.
 
-## Tám tình huống và điều kiện đạt
+## QA-02: tám tình huống và điều kiện đạt
 
 | Case | Kiểm tra trên output thật |
 |---|---|
@@ -78,7 +80,7 @@ count, identity, uniqueness, required fields, provenance, UTC/JST, dimensions,
 source counts và outside scope. Blocker phải có actual=expected=0;
 không chấp nhận cờ PASS đơn lẻ, report PREPARED hay snapshot `latest`.
 
-## Nhận biết thành công và đọc evidence
+## QA-02: nhận biết thành công và đọc evidence
 
 Terminal cuối phải có `"task": "QA-02"`, `"status": "PASS"`,
 summary 8 passed / 0 failed / 0 pending và lease_release.status=RELEASED.
@@ -108,7 +110,9 @@ quiescence, người vận hành mới release đúng owner theo
 [ORC-05 — Recovery/concurrency](../task/tasks/ORC-05.md).
 Failed evidence phải giữ để điều tra. Không có automatic stale takeover.
 
-Runner hiện không có chế độ resume giữa chừng. Không chạy lại Java bằng request
+Fixed suite runner hiện không có chế độ resume giữa các process. QA-03 kiểm tra
+retry cùng operation sau một IOException có kiểm soát, không giả làm crash JVM.
+Không chạy lại Java bằng request
 cũ trên namespace đã ghi dở: baseline và Bronze timestamp có thể đã thay đổi.
 Nếu hạ tầng bị dừng, chỉ sau khi xác nhận writer/query đã quiescent và đúng
 owner, người vận hành mới ghi nhận abort, release đúng lease rồi chạy smoke
