@@ -18,13 +18,15 @@ from resource_pilot import java_identity
 from source_run_guard import lease
 import qa_02_rerun_revision as qa02
 import qa_03_jma_historical_backfill as qa03
+import qa_04_storage_acceptance as qa04
 import real_etl_runtime as etl
 
 STAGING = Path("/opt/pipeline/staging")
 CAPTURES = Path("/opt/pipeline/qa-history-captures")
 INVENTORY = Path("/opt/pipeline/config/jma/hypocenter_archives_v1.csv")
 JOBS = {"QA-02": "ie212.earthquake.spark.usgs.RerunRevisionAcceptanceJob",
-        "QA-03": "ie212.earthquake.spark.usgs.HistoricalBackfillAcceptanceJob"}
+        "QA-03": "ie212.earthquake.spark.usgs.HistoricalBackfillAcceptanceJob",
+        "QA-04": "ie212.earthquake.spark.usgs.FailureRecoveryAcceptanceJob"}
 HISTORY_FILES = {"h199701.zip", "h199710.zip", "h2000.zip", "h2023.zip", "usgs-2023-09.geojson"}
 GOLD_BLOCKER_CHECKS = {
     "required_fields", "bridge_lineage", "source_counts", "primary_provenance",
@@ -65,7 +67,17 @@ def validate_publication(record, namespace, root):
         raise RuntimeError("PIPELINE_QA_PUBLICATION_INVALID")
     checks = publication.get("checks", {})
     required_checks = set(GOLD_BLOCKER_CHECKS) | {kind + ":" + name for name in etl.TABLES for kind in ("count", "identity")}
-    commit_sha = hashlib.sha256(json.dumps(commit, separators=(",", ":"), ensure_ascii=False).encode()).hexdigest()
+    # GoldPublisher hashes Jackson's ordered commit bytes, while RealEtlAdapter
+    # canonicalizes phase artifacts and Python sorts the final QA-04 report.
+    # The per-operation Java evidence preserves the original commit field order.
+    # Bind its content to BOTH the report and receipt-verified phase artifact.
+    original_path = root / context["operation_id"] / "acceptance.json"
+    if original_path.is_symlink() or not original_path.is_file() or original_path.stat().st_size > 4 * 1024 * 1024:
+        raise RuntimeError("PIPELINE_QA_ORIGINAL_COMMIT_MISSING")
+    original = json.loads(original_path.read_text()).get("commit")
+    if original != commit or original != artifacts["gold"]:
+        raise RuntimeError("PIPELINE_QA_ORIGINAL_COMMIT_CHANGED")
+    commit_sha = hashlib.sha256(json.dumps(original, separators=(",", ":"), ensure_ascii=False).encode()).hexdigest()
     if (not required_checks <= set(checks) or commit.get("published") is not False
             or publication.get("bundle_sha256") != commit_sha
             or publication.get("publication_id") != "pub_" + commit_sha):
@@ -238,6 +250,8 @@ def validate(task, request, report):
                     raise RuntimeError("QA02_EVIDENCE_SNAPSHOT_PINS_CHANGED")
     elif task == "QA-03":
         validate_history(request, report)
+    elif task == "QA-04":
+        qa04.validate(request, report, validate_publication)
     else:
         raise ValueError("UNSUPPORTED_PIPELINE_QA_TASK")
 
@@ -251,11 +265,11 @@ def run(task, environment=None):
     owner = {"dag_id": "pipeline_qa_acceptance", "run_id": run_id}
     root = STAGING / task.lower() / run_id
     namespace = env["ICEBERG_CATALOG_NAME"] + "." + tag + "_" + uuid.uuid4().hex
-    matrix_name = {"QA-02": "qa_02_rerun_revision_matrix.json", "QA-03": "qa_03_jma_historical_matrix.json"}[task]
+    matrix_name = {"QA-02": "qa_02_rerun_revision_matrix.json", "QA-03": "qa_03_jma_historical_matrix.json", "QA-04": "qa_04_failure_recovery_matrix.json"}[task]
     matrix = json.loads((Path(__file__).parent / "fixtures" / matrix_name).read_text())
-    matrix["input_pins"]["namespace"] = namespace
+    matrix.setdefault("input_pins", {})["namespace"] = namespace
     _atomic_json(root / "matrix.json", matrix)
-    request = {"task_id": task, "request_version": "qa-02-runtime-v1" if task == "QA-02" else "qa03-fixed-request-v1", "run_id": run_id,
+    request = {"task_id": task, "request_version": {"QA-02": "qa-02-runtime-v1", "QA-03": "qa03-fixed-request-v1", "QA-04": "qa04-fixed-request-v1"}[task], "run_id": run_id,
                "operation_id": run_id, "namespace": namespace, "lease_owner": owner,
                "matrix_path": str(root / "matrix.json"),
                "matrix_sha256": hashlib.sha256((root / "matrix.json").read_bytes()).hexdigest(),
@@ -305,7 +319,15 @@ def run(task, environment=None):
             unknown = True
             _atomic_json(root / "failure.json", {"status": "FAILED_LEASE_RETAINED", "exit_code": process.returncode})
             raise RuntimeError("PIPELINE_QA_FAILED_CHECK_SCOPED_PRIVATE_LOG")
-        report = json.loads((root / "runtime-report.json").read_text())
+        if task == "QA-04":
+            try:
+                report = qa04.finish_java(root, owner, env)
+                _atomic_json(root / "runtime-report.json", report)
+            except qa04.ProcessOutcomeUnknown:
+                unknown = True
+                raise
+        else:
+            report = json.loads((root / "runtime-report.json").read_text())
         try:
             validate(task, request, report)
         except Exception:

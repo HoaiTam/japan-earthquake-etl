@@ -37,8 +37,8 @@ class PipelineAcceptanceTest(unittest.TestCase):
             self.assertEqual(json.loads((root / "guard/owner.json").read_text()), foreign)
 
     def test_only_delivered_tasks_are_available(self):
-        self.assertEqual(set(qa.JOBS), {"QA-02", "QA-03"})
-        for task in ("QA-01", "QA-04"):
+        self.assertEqual(set(qa.JOBS), {"QA-02", "QA-03", "QA-04"})
+        for task in ("QA-01", "QA-05"):
             with self.subTest(task=task), patch.object(qa, "lease") as lease:
                 with self.assertRaisesRegex(ValueError, "UNSUPPORTED"):
                     qa.run(task, {})
@@ -201,6 +201,7 @@ class PublicationGuardTest(unittest.TestCase):
     def repin(self):
         digest = qa.hashlib.sha256(json.dumps(self.record["commit"], separators=(",", ":"), ensure_ascii=False).encode()).hexdigest()
         self.record["publication"].update(bundle_sha256=digest, publication_id="pub_" + digest)
+        (self.root / self.operation / "acceptance.json").write_text(json.dumps(self.record))
         for phase, field in (("silver", "silver"), ("gold", "commit"), ("publish", "publication")):
             artifact = self.record[field]
             (self.root / self.operation / (phase + ".json")).write_text(json.dumps(artifact))
@@ -215,6 +216,22 @@ class PublicationGuardTest(unittest.TestCase):
 
     def test_six_exact_snapshots_and_all_trino_checks_are_accepted(self):
         self.check()
+
+    def test_persisted_sorted_report_uses_receipt_bound_original_commit_order(self):
+        self.record = json.loads(json.dumps(self.record, sort_keys=True))
+        self.check()
+
+    def test_original_commit_evidence_is_required(self):
+        (self.root / self.operation / "acceptance.json").unlink()
+        with self.assertRaisesRegex(RuntimeError, "ORIGINAL_COMMIT_MISSING"):
+            self.check()
+
+    def test_original_commit_cannot_drift_from_receipt_artifact(self):
+        original = copy.deepcopy(self.record)
+        original["commit"]["status"] = "FORGED"
+        (self.root / self.operation / "acceptance.json").write_text(json.dumps(original))
+        with self.assertRaisesRegex(RuntimeError, "ORIGINAL_COMMIT_CHANGED"):
+            self.check()
 
     def test_missing_phase_is_rejected(self):
         self.record["receipts"].pop()

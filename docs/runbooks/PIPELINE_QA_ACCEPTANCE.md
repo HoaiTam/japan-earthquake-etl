@@ -1,8 +1,8 @@
-# QA-02 / QA-03 — Nghiệm thu trên storage thật
+# QA-02 / QA-03 / QA-04 — Nghiệm thu trên storage thật
 
 ## Mục đích và ranh giới
 
-Runner cố định `pipeline_qa_acceptance.py --task QA-02|QA-03` gọi Java/Spark qua
+Runner cố định `pipeline_qa_acceptance.py --task QA-02|QA-03|QA-04` gọi Java/Spark qua
 production Bronze writers → ORC-07 sáu phase → Gold Iceberg → Trino Published.
 Python chỉ quản lý request, lease, checksum và kiểm tra receipt; xử lý record,
 đọc/ghi Parquet và bảng Iceberg đều nằm trong Java.
@@ -13,8 +13,9 @@ revision/rerun, không phải bằng chứng đã tải đầy đủ catalog l�
 
 Bản này hỗ trợ thêm QA-03 bằng archive public đã tải/pin ở bước chuẩn bị riêng;
 chi tiết tại [QA-03 runbook](./QA-03_JMA_HISTORICAL_BACKFILL.md).
-[QA-04 — Failure/recovery](../task/tasks/QA-04.md) còn cần nghiệm thu các lỗi
-ETL/ML và phục hồi, chưa được hỗ trợ bởi fixed runner này.
+[QA-04 — Failure/recovery](./QA-04_FAILURE_RECOVERY.md) bổ sung controlled
+faults ETL/ML trên namespace riêng và child-timeout/contender trên lease thật.
+Không kill service/JVM hoặc gọi fault fixture là sự cố hạ tầng production.
 Không dùng kết quả của một task để đánh dấu task khác Done.
 
 ## Chuẩn bị riêng
@@ -52,7 +53,7 @@ make smoke-qa-acceptance PIPELINE_QA_TASK=QA-02
 ```
 
 Hai lệnh đầu không cần Docker hoặc gọi nguồn. Java safety test chỉ kiểm tra
-argument/namespace/fixture columns, không khởi tạo Spark. Full Java 17
+argument/namespace/fixture columns và Parquet bundle đổi experiment ID, không khởi tạo Spark. Full Java 17
 regression nằm trong bước build.
 
 Smoke chỉ preflight read-only rồi chạy one-off client với
@@ -60,6 +61,8 @@ Smoke chỉ preflight read-only rồi chạy one-off client với
 Airflow DagRun. Mỗi lần tạo namespace `<catalog>.qa02_<32 hex>` riêng,
 request/matrix checksum và operation identity riêng. QA-03 dùng namespace
 `<catalog>.qa03_<32 hex>`; không ghi Gold production hoặc namespace ML.
+QA-04 dùng `<catalog>.qa04_<32 hex>` cho ETL và
+`<catalog>.qa04_ml_<32 hex>` cho ML component fixture; không ghi production `gold`/`ml`.
 
 ## QA-02: tám tình huống và điều kiện đạt
 

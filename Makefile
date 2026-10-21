@@ -79,11 +79,12 @@ COMPONENT_SMOKES := smoke-minio smoke-airflow smoke-spark smoke-query smoke-usgs
 prepare-qa-history: ## QA-03: tải/reuse 4 archive JMA và 1 USGS capture có pin; không Docker/ETL
 	@python3 scripts/prepare-qa-history.py
 
-test-qa-acceptance: ## QA-02/QA-03 fixed-runner safety/report/lease tests; offline, không Docker
+test-qa-acceptance: ## QA-02/03/04 fixed-runner safety/report/lease tests; offline, không Docker
 	@python3 -m unittest discover -s airflow/tests -p 'test_pipeline_qa_acceptance.py'
-	@./mvnw --batch-mode --no-transfer-progress -pl spark -am test -Dtest=PipelineQaSafetyTest -Dsurefire.failIfNoSpecifiedTests=false
+	@python3 -m unittest discover -s airflow/tests -p 'test_qa_04_storage_acceptance.py'
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am test -Dtest=PipelineQaSafetyTest,Qa04MlRecoveryAcceptanceTest -Dsurefire.failIfNoSpecifiedTests=false
 
-smoke-qa-acceptance: check-config-local ## QA-02/QA-03 Bronze → Published acceptance; không build/start/init
+smoke-qa-acceptance: check-config-local ## QA-02/03/04 storage acceptance; không build/start/init
 	@$(RUNTIME_CHECK) --component ml --client pipeline-qa-acceptance
 	@$(COMPOSE) --profile ml run --rm --no-deps --pull never -e PIPELINE_QA_TASK="$(PIPELINE_QA_TASK)" pipeline-qa-acceptance
 
@@ -314,7 +315,7 @@ smoke-gold-storage: check-config-local ## GLD-03 six QA Iceberg snapshots, chưa
 	@$(RUNTIME_CHECK) --component gold
 	@$(COMPOSE) --profile gold run --rm --no-deps --pull never spark-gold-qa
 
-test-qa-04: ## QA-04 bounded failure/recovery matrix và component gates offline
+test-qa-04: test-qa-acceptance ## QA-04 fixed-runner + bounded matrix/component gates offline; Java17
 	@python3 -m unittest discover -s airflow/tests -p 'test_qa_04_failure_recovery.py'
 	@python3 -m unittest discover -s airflow/tests -p 'test_recovery*.py'
 	@./mvnw --batch-mode --no-transfer-progress -pl spark -am \

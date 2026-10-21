@@ -4,8 +4,8 @@ Status: `PREPARED`
 
 Runtime request: `qa-04-runtime-v1`; runtime report: `qa-04-report-v1`.
 
-ORC-07 is Done; runtime evidence remains pending until MLI-03 is Done.
-PR #79 is merged; MLI-03 MinIO/Catalog/Trino runtime acceptance remains incomplete.
+ORC-07 and MLI-03 are Done; this template is still PREPARED, not runtime acceptance.
+QA-04 requires its own fault/recovery evidence on real storage.
 
 | Case | Fault | Status |
 |---|---|---|

@@ -1,98 +1,140 @@
 # QA-04 — Failure và recovery theo tầng
 
-QA-04 dùng ma trận bounded trong
-`airflow/dags/fixtures/qa_04_failure_recovery_matrix.json`. Offline runner ghi
-state/report vào thư mục được chỉ định, không gọi nguồn thật và không ghi
-lakehouse. ORC-07 đã nghiệm thu real adapters đến Gold Published; runtime QA-04
-chỉ được bật trong namespace riêng sau khi MLI-03 hoàn tất acceptance runtime.
+## Làm gì và dùng để làm gì
 
-## Offline checks
+Fixed runner kiểm tra 10 case của qa_04_failure_recovery_matrix.json trên
+MinIO/REST Catalog/Iceberg/Trino thật. Input nhỏ, tổng hợp; Java thực hiện
+ETL/Parquet/ML import, Python chỉ quản lý process, metadata, receipts và lease.
+Không thay nghiệm thu scheduled Airflow của QA-01 hoặc official ML E2E của MLQ-01.
+
+Hard dependencies ORC-05, ORC-07 và MLI-03 đã Done.
+Runner tạo namespace mới <catalog>.qa04_<32hex> cho ETL và
+<catalog>.qa04_ml_<32hex> cho ML; không ghi production gold/ml.
+EXPORTED trong ML QA là synthetic component fixture, không phải DAT-02 pilot
+được promote hoặc official dataset do MLD-05 export.
+
+## Chuẩn bị và chạy
+
+Từ repo root, .env hợp lệ, Docker Desktop đang chạy:
 
 ```bash
-python3 -m unittest discover -s airflow/tests -p 'test_qa_04_failure_recovery.py'
+make docker-build
+make up-ml WAIT_TIMEOUT=600
+```
+
+Đây là bước chuẩn bị riêng khi image/JAR/config chưa đúng fingerprint.
+Không chạy build/start/init trong smoke. Nếu artifact đã được chuẩn bị và
+init đã hoàn tất cùng cấu hình, chỉ cần MinIO/Catalog/Trino healthy theo
+[runbook chung](./PIPELINE_QA_ACCEPTANCE.md); không cần Airflow/Spark standalone.
+
+Dùng Java 17 cho các test Java/Spark, không coi lỗi host JDK mới là lỗi pipeline:
+
+```bash
 make test-qa-04
+make smoke-qa-acceptance PIPELINE_QA_TASK=QA-04
 ```
 
-Tạo report chuẩn bị trước khi runtime:
+test-qa-04 gồm fixed-runner guards, matrix/recovery control tests và Java
+component gates. Smoke chỉ preflight rồi chạy one-off --no-deps --pull never;
+không build/pull/start/init, không clear/mark-success/trigger DagRun.
+PipelineQaSupport giữ whole-run exact-owner source lease qua cả ETL và ML.
 
-```bash
-python3 airflow/dags/qa_04_failure_recovery.py prepare \
-  --json docs/evidence/QA-04-prepared.json \
-  --markdown docs/evidence/QA-04-prepared.md
-```
+Thành công phải có task=QA-04, status=PASS, summary 10 passed / 0 failed /
+0 pending và lease_release.status=RELEASED. Chỉ publication rời hoặc
+JAVA_PASSED_LEASE_PENDING chưa đủ; acceptance.json được ghi cuối sau validation
+và release đúng owner. Không fallback sang fixture/external command khi lỗi.
 
-Chạy một case offline để kiểm tra state/recovery bằng fixture:
+## Mười tình huống và recovery boundary
 
-```bash
-python3 airflow/dags/qa_04_failure_recovery.py offline \
-  --case gold_commit_partial --root staging/qa-04
-```
+| Case | Fault được thực thi | Recovery và bằng chứng |
+|---|---|---|
+| fetch_timeout | UsgsHttpClient gọi HTTP loopback có delay, timeout thật; không giả API public bị outage | Cùng request/window nhận 200 và cùng fixture bytes; sau đó exact Bronze → Published. |
+| archive_invalid | JmaBronzeWriter từ chối SHA sai, attempt 1 không Ready | Cùng run/release, attempt 2 đúng checksum được verify; xử lý đúng 1997-09 và support archive halo. |
+| silver_failure | SilverBundlePublisher chặn quality_passed=false trước publish | Reuse verified Bronze; chạy production resolver/quality cùng scope rồi Published. |
+| gold_commit_partial | QA seam gây lỗi khi đã có bảng đầu commit và còn bảng chưa commit | Reconcile operation fingerprint; các snapshot đã commit giữ nguyên, chỉ hoàn tất bảng thiếu. |
+| gold_commit_receipt_lost | Sáu bảng đã commit; QA store gây lỗi trước khi ghi durable commit receipt | Khôi phục receipt bằng snapshot identity/readback; không xóa receipt hoặc reappend sáu bảng. |
+| trino_verify_failure | QA SQL wrapper gây lỗi trước query verify | Retry verify trên cùng committed bundle bằng Trino thật; không commit lại. |
+| publication_metadata_failure | QA SQL wrapper lỗi trước INSERT publication status | Retry cùng bundle; không có row Published cho operation lỗi, views tạm vẫn gated. Không mô phỏng mất ACK sau INSERT. |
+| ml_bundle_invalid | Hai lỗi tách biệt: checksum sai và _SUCCESS.schema_version sai; IDs còn đúng | Canonical journals REJECTED, không CANDIDATE/result writes; bundle hợp lệ dùng experiment ID mới. Physical Parquet schema có component tests riêng. |
+| ml_import_partial | Writer test seam lỗi sau membership commit | IMPORT_VALIDATING, không CANDIDATE; retry cùng fingerprint reuse membership snapshot, Trino verify rồi CANDIDATE 2/1/1. |
+| lease_timeout_contender | Python child no-I/O còn sống khi wait timeout; contender thật bị global lease chặn, foreign release NOT_OWNER | Chỉ terminate child do chính QA tạo, xác nhận quiescence; giữ owner đến final validation/release. Không kill JVM/service hoặc giả đã quiesce remote writer. |
 
-Output phải có `status=PASS`, `outside_scope_unchanged=true`, fault reason
-đúng matrix và recovery dùng đúng scope. Report không chứa payload, secret,
-credential hoặc exception text không được kiểm soát.
+Mọi ETL case đều gọi DatasetManifestWriter thật trên publication chưa có:
+phải DS_GOLD_NOT_PUBLISHED và chưa tạo dataset_manifest. Đây là kiểm tra gate,
+không chạy official build/export. Baseline đã Published vẫn được phục vụ;
+published_before_recovery=false nói về operation đang lỗi, không nói cả namespace.
 
-## Runtime gate
+## Retention, snapshots và counts
 
-Runtime request dùng contract `qa-04-runtime-v1`, pin SHA-256 của matrix,
-`run_id`/`operation_id`, namespace `iceberg.qa04_<id>`, scope canonical theo
-case, exact input/artifact checksums, baseline snapshot receipts và report path
-mới trong `/opt/pipeline/staging/qa-04`. Tháng ETL phải khớp window UTC tháng
-đầy đủ; case ML phải pin experiment run ID. Baseline table chưa tồn tại được
-ghi rõ `state=ABSENT`; kết quả recovery `ml_import_partial` bắt buộc có snapshot
-`PRESENT` cho `sequence_membership`, `sequence_summary` và `experiment_run`,
-khớp chính xác với readback. URI wildcard hoặc có credential bị từ chối.
+Baseline Gold tháng 08/2023 có dữ liệu dương. Recovery của mỗi case đối chiếu
+toàn nội dung partition ngoài scope (giữ cả multiplicity), đọc lại snapshots
+cũ và chạy Trino outside/current/bridge checks của production publication.
 
-Runner executable chỉ lấy từ `QA_04_RUNTIME_COMMAND`; request phải pin đúng một
-artifact `qa04-runtime-runner` bằng đường dẫn tuyệt đối và SHA-256. Controller
-đối chiếu command với đường dẫn này và xác minh bytes runner trước khi gọi.
-Controller pin bytes của request trước khi gọi runner và kiểm tra request/matrix
-không đổi sau execution. Report và từng evidence phải mang runner SHA-256 đã
-pin. Runner trả contract `qa-04-report-v1`; mỗi case phải gắn evidence
-JSON đã stage, checksum, fault/recovery identity, snapshots/counts và readback.
-Partition evidence ngoài scope phải hợp lệ, giữ nguyên trước/sau và nằm ngoài
-write scope: tháng UTC với case ETL, experiment run ID khác với case ML.
-Report offline (`mode=offline_control`), receipt thiếu hoặc report ghi sẵn
-không thể thành runtime PASS. Gold cases cần sáu snapshot và GLD-04 Trino
-publication receipt cho `event_current`, `event_source_bridge`, `dim_date`,
-`dim_region`, `dim_magnitude_band` và `dim_depth_band`; ML cases cần MLI-03
-journal/publication evidence.
+ML có baseline exp_outside đã CANDIDATE 2 memberships / 1 summary / 1 registry
+row trong cùng namespace. So sánh toàn bộ nội dung ba bảng cho experiment đó
+trước/sau, giữ duplicate multiplicity, và đọc lại pinned serving bundle.
+Các lỗi checksum/schema không đổi snapshot; partial import có raw rows nhưng
+consumer chỉ đọc CANDIDATE registry + exact result pins, không raw latest.
 
-```bash
-make smoke-qa-04 \
-  QA_04_REQUEST=/opt/pipeline/staging/qa-04/request.json \
-  QA_04_RUNTIME_COMMAND='/opt/pipeline/bin/qa04-runtime-runner'
-```
+Python hậu kiểm đủ tám Gold publication (baseline + bảy recovery), sáu phase
+receipts, artifact SHA, exact six-table bundles, balanced Silver, Trino gates,
+fault/recovery context, partial snapshots và ML journals/receipt metadata.
+ML faults phải giữ nguyên Gold baselines. Một cờ PASS hoặc report offline không đủ.
 
-Lệnh preflight `ml` kiểm MinIO/Catalog/Trino, image Spark QA, JAR và mounts;
-sau đó gọi service `qa-04-failure-recovery`. Nó không build, pull, start, init
-hoặc đổi credential. Runtime dừng với `QA04_RUNTIME_DEPENDENCY_PENDING` khi
-ORC-07 hoặc MLI-03 chưa nghiệm thu xong. ORC-07 đã `Done`; PR #79 đã merge,
-nhưng MLI-03 vẫn `In Progress` do còn thiếu acceptance MinIO/Catalog/Trino.
+GoldPublisher dùng SHA của commit bytes có thứ tự khóa gốc; phase artifact
+được canonicalize và final report có thể sort keys. Hậu kiểm phải giữ
+<operation>/acceptance.json nguyên bản Java, đối chiếu commit với phase
+artifact đã pin receipt và final report rồi mới tính publication SHA.
+Không sort/rewrite evidence đó để làm khớp SHA.
 
-## Recovery rules
+## Evidence và hai giao diện
 
-- Giữ nguyên `run_id`, operation identity, UTC window, input checksum và scope
-  khi retry; không chọn `latest` hoặc wildcard.
-- Fetch/archive/Silver lỗi thì dừng downstream. Reuse exact verified Bronze và
-  chạy lại cùng scope sau khi nguyên nhân đã được xử lý.
-- Gold partial commit hoặc mất receipt phải reconcile operation/fingerprint;
-  chỉ ghi bảng còn thiếu hoặc receipt bị mất. Không replay commit mù.
-- Trino verify lỗi chỉ retry query trên cùng snapshot bundle; publication vẫn
-  bị chặn cho tới khi readback đạt.
-- ML bundle lỗi ghi `REJECTED`; không sửa rồi tái sử dụng experiment run ID.
-  Partial import cùng fingerprint chỉ được resume sau khi schema/checksum và
-  exact snapshot readback đạt.
-- Timeout/interruption giữ whole-run lease và persisted state. Contender tiếp
-  tục bị chặn cho tới khi writer/query được xác nhận đã quiescent; controller
-  assert exact owner và chỉ ghi `lease_released=true` sau receipt `RELEASED`.
-  Không xóa lease, bucket, volume, warehouse hoặc metadata để làm recovery xanh.
+Event bắt đầu in root /opt/pipeline/staging/qa-04/qa04-runtime-<uuid>/:
 
-## Runtime evidence
+- request.json, matrix.json: namespace/operation identity và checksum.
+- <operation>/: sáu phase artifacts và publication acceptance.
+- <case>-fault.json: stage/reason, context, baselines, partial pins, dataset gate.
+- ml/: synthetic bundles, trusted registry pins, production import journals và
+  ml-evidence.json. Không đưa Parquet/raw bundles hoặc private log vào Git.
+- java-report.json: evidence Java nguyên bản, chờ lease case.
+- lease-timeout-evidence.json: contender/quiescence của child do QA tạo.
+- runtime-report.json: qa04-storage-acceptance-v1, đủ 10 case.
+- execution.json, lease-release.json, acceptance.json: JVM exit/capacity,
+  exact-owner release và final acceptance. Raw logs mode 0600.
 
-Mỗi case phải ghi fault stage/reason, downstream calls, lease state, snapshots,
-counts trước/sau, logical keys ngoài scope và report/query readback. Evidence
-fixture chỉ chứng minh control-plane/component behavior. QA-04 chỉ chuyển Done
-sau khi recovery runtime dùng real Bronze → Silver → Gold → Trino/Published;
-ML import cần evidence MinIO/Catalog/Trino của MLI-03. ORC-07 đã hoàn tất
-phần ETL.
+Fixed request dùng qa04-fixed-request-v1. Nó khác **external runner API** cũ
+qa-04-runtime-v1 / qa-04-report-v1 của qa_04_failure_recovery.py và
+make smoke-qa-04. External API vẫn giữ nguyên runner executable SHA pin,
+request SHA, snapshot/readback/evidence guards; không hạ validator để nhận
+fixed storage report. External deployment mặc định fail closed, operator phải
+đặt ORC_07_STATUS=Done và MLI_03_STATUS=Done khi đã nghiệm thu thật.
+Dùng smoke-qa-acceptance PIPELINE_QA_TASK=QA-04 cho implementation ở đây.
+
+make test-qa-04 có thể tái tạo PREPARED evidence và offline_control PASS.
+Các trạng thái đó không phải storage runtime acceptance.
+
+[Nghiệm thu runtime 21/10/2026](../evidence/QA-04_RUNTIME_ACCEPTANCE.md):
+10/10 cases và Trino readback độc lập; capsule không chứa raw data/secret.
+
+## Khi có lỗi thật
+
+Nonzero/timeout Java giữ lease: JVM exit không chứng minh query remote đã dừng.
+Không auto stale takeover, reset namespace, xóa bucket/volume/warehouse/metadata.
+Operator phải kiểm tra exact owner, container/JVM và query Trino đã quiescent,
+reconcile partial outputs rồi lưu abort/release evidence; release bằng API lease
+đúng identity, không rm owner.json hoặc release owner của run khác.
+Chạy suite mới trên namespace mới sau abort; không replay toàn suite bằng request
+cũ có baseline đã đổi. Retry trong cùng case/operation đã được fixed runner pin.
+
+## Giới hạn / handoff
+
+Controlled exceptions/hooks không thay full chaos testing hoặc sự cố mạng thật.
+Không dùng capacity fixture nhỏ để bảo đảm toàn catalog 40 năm.
+[QA-05 — Profile dữ liệu lịch sử và tài nguyên local](../task/tasks/QA-05.md)
+còn profiling mở rộng; full production chaos/outage acceptance chưa có task riêng.
+[MLD-05 — Validate feature snapshot/export](../task/tasks/MLD-05.md),
+[MLI-02 — Build ML dataset DAG](../task/tasks/MLI-02.md) và
+[MLQ-01 — E2E Gold snapshot đến ML report](../task/tasks/MLQ-01.md)
+còn official export/whole-flow acceptance; QA-04 không tự hoàn tất các task đó.
+[SEC-01 — Review secret và bề mặt truy cập](../task/tasks/SEC-01.md)
+còn findings/coverage riêng. Reviewer độc lập vẫn được khuyến nghị, không tự ghi approval.
