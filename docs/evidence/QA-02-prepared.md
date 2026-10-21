@@ -2,9 +2,9 @@
 
 Status: **PREPARED**
 
-Matrix SHA-256: `cb4e1a6d80c873d6348e5ace76f6979315db5b361a889cb9020b4d3a8960f67f`
+Matrix SHA-256: `3f98cac860dfd78f4367ce6fa370382e229cc015bb89b0a656696ba050b595d7`
 
-Runtime acceptance is pending ORC-07 real adapters. Synthetic cases are a test plan, not a pass.
+ORC-07 is Done. This is a PREPARED template, not a runtime pass; see PIPELINE_QA_ACCEPTANCE.md.
 
 | Case | Category | Operation | Status |
 |---|---|---|---|

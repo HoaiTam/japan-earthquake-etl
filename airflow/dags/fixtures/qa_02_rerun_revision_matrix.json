@@ -2,8 +2,8 @@
   "task_id": "QA-02",
   "matrix_version": "qa-02-v1",
   "dependency_gate": {
-    "ORC-07": "Ready",
-    "acceptance": "PENDING_REAL_ADAPTERS"
+    "ORC-07": "Done",
+    "acceptance": "FIXED_RUNTIME_AVAILABLE"
   },
   "input_pins": {
     "timezone": "UTC",

@@ -89,15 +89,15 @@
     }
   ],
   "dependency_gate": {
-    "ORC-07": "Ready",
-    "acceptance": "PENDING_REAL_ADAPTERS"
+    "ORC-07": "Done",
+    "acceptance": "FIXED_RUNTIME_AVAILABLE"
   },
   "input_pins": {
     "namespace": "qa-02-rerun-revision",
     "synthetic_fixture": true,
     "timezone": "UTC"
   },
-  "matrix_sha256": "cb4e1a6d80c873d6348e5ace76f6979315db5b361a889cb9020b4d3a8960f67f",
+  "matrix_sha256": "3f98cac860dfd78f4367ce6fa370382e229cc015bb89b0a656696ba050b595d7",
   "next_gate": "Run through ORC-07 real adapters in a QA namespace, then attach before/after reconciliation.",
   "report_version": "qa-02-report-v2",
   "runtime_complete": false,
