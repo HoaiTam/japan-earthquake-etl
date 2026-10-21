@@ -147,7 +147,7 @@ def write_preparation(matrix_path: str | Path, json_path: str | Path, markdown_p
     json_target.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     lines = ["# QA-02 - Rerun, duplicate and late revision", "", f"Status: **{report['status']}**", "",
              f"Matrix SHA-256: `{report['matrix_sha256']}`", "",
-             "Runtime acceptance is pending ORC-07 real adapters. Synthetic cases are a test plan, not a pass.", "",
+             "ORC-07 is Done. This is a PREPARED template, not a runtime pass; see PIPELINE_QA_ACCEPTANCE.md.", "",
              "| Case | Category | Operation | Status |", "|---|---|---|---|"]
     lines.extend(f"| {case['case_id']} | {case['category']} | `{case['operation_id']}` | {case['status']} |" for case in report["cases"])
     lines.extend(["", "## Reconciliation to record", "", "- logical keys and current/history rows", "- canonical count and source overlap", "- partition contents and exact snapshot IDs", "- KPI before/after and retained old snapshots", ""])

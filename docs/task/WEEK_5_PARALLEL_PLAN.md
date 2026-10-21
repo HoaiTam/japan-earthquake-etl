@@ -206,8 +206,10 @@ thức, cập nhật plan/metadata/index và planning checks/tests cùng PR.
       `published=false`, replay identical và partial-commit resume bảo toàn snapshots.
 - [ ] QA-01 nghiệm thu E2E scheduled deployment độc lập, traces/counts/publication;
       không dùng bounded adapter acceptance thay cho QA-01.
-- [ ] QA-02/03 có rerun/revision/resume evidence, không mất dữ liệu ngoài scope;
-      QA-04 ghi rõ kế hoạch nghiệm thu recovery tuần 6.
+- [x] QA-02 có runtime rerun/revision/retention evidence 8/8, sáu publication
+      và Trino readback đạt ngày 21/10/2026; xem [nghiệm thu](../evidence/QA-02_RUNTIME_ACCEPTANCE.md).
+- [ ] QA-03 hoàn tất historical backfill/resume/changed-release evidence và coverage.
+- [ ] QA-04 hoàn tất nghiệm thu failure/recovery theo từng tầng; vẫn giữ scope tuần 6.
 - [ ] MLD-04/05 count/grain/feature/checksum/lifecycle đúng; research coverage không bị nói quá.
 - [ ] DAT-02 pilot pins/schema/count/checksum/coverage và development-only flags đúng;
       Jupyter inspection run-all đạt, không official lifecycle/import.

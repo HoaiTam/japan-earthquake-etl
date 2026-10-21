@@ -1,5 +1,11 @@
 # QA-02 - Rerun, duplicate and late revision
 
+ORC-07 đã Done. Runner nghiệm thu cố định cho tám case đã có tại
+[Pipeline QA acceptance](./PIPELINE_QA_ACCEPTANCE.md); dùng
+`make smoke-qa-acceptance PIPELINE_QA_TASK=QA-02` sau bước chuẩn bị riêng.
+CLI/external runner bên dưới vẫn là giao diện hỗ trợ adapter riêng; prepared
+report là template, không phải trạng thái nghiệm thu của task.
+
 ## Chuẩn bị fixture
 
 Ma trận tổng hợp tại

@@ -39,6 +39,8 @@ QA_04_REQUEST ?=
 QA_04_RUNTIME_COMMAND ?=
 QA_04_STAGING_ROOT ?= /opt/pipeline/staging/qa-04
 QA_01_RUN_ID ?=
+PIPELINE_QA_TASK ?= QA-02
+unexport PIPELINE_QA_TASK
 
 COMPOSE = docker compose --env-file "$(ENV_FILE)" -f "$(COMPOSE_FILE)"
 RUNTIME_ENV = ENV_FILE="$(ENV_FILE)" COMPOSE_FILE="$(COMPOSE_FILE)"
@@ -72,6 +74,16 @@ COMPONENT_SMOKES := smoke-minio smoke-airflow smoke-spark smoke-query smoke-usgs
 .PHONY: check-docs test-docs
 .PHONY: test-mli-import smoke-mli-import smoke-mli-import-acceptance smoke-mli-import-dag up-ml
 .PHONY: test-qa-04 smoke-qa-04
+.PHONY: test-qa-acceptance smoke-qa-acceptance
+
+test-qa-acceptance: ## QA-02 fixed-runner safety/report/lease tests; offline, không Docker
+	@python3 -m unittest discover -s airflow/tests -p 'test_pipeline_qa_acceptance.py'
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am test -Dtest=PipelineQaSafetyTest -Dsurefire.failIfNoSpecifiedTests=false
+
+smoke-qa-acceptance: check-config-local ## QA-02 Bronze → Published acceptance; không build/start/init
+	@$(RUNTIME_CHECK) --component ml --client pipeline-qa-acceptance
+	@$(COMPOSE) --profile ml run --rm --no-deps --pull never -e PIPELINE_QA_TASK="$(PIPELINE_QA_TASK)" pipeline-qa-acceptance
+
 .PHONY: test-ml-window smoke-ml-window resume-ml-window
 .PHONY: prepare-ml-local stage-ml-windows test-ml-feature ml-features-local ml-pilot-local pilot-env test-pilot inspect-pilot jupyter-pilot
 .PHONY: pack-pilot test-exp01 inspect-exp01 jupyter-exp01

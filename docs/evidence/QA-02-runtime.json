@@ -1,0 +1,488 @@
+{
+  "schema_version": "qa02-runtime-summary-v1",
+  "task_id": "QA-02",
+  "status": "PASS",
+  "source_fingerprint": "e9aed615f99ec3af15ac01837459afdd552dc9d2d8a6cdb2a4b4cb3e2f67cb45",
+  "runner_jar_sha256": "d5158109b7f9c9878f38acc982b1a5a177ed035f969763589a075f904ed62114",
+  "independent_trino_readback": {
+    "publications": 6,
+    "distinct_publications": 6,
+    "passed_publications": 6,
+    "serving_events": 4
+  },
+  "branch": "test/qa-02-runtime-acceptance",
+  "base_commit": "257cc20396908a8bf7f4e08f45b82c32c32db92b",
+  "input": "synthetic fixtures; real MinIO, REST Catalog, Iceberg and Trino",
+  "source_fetch_performed": false,
+  "completed_at_utc": "2026-10-21T04:06:52.455913336Z",
+  "runtime_root": "/opt/pipeline/staging/qa-02/qa02-runtime-1868715b4bb34f5a84b568c3cf64c1b6",
+  "matrix_sha256": "5ffecdeeca619a1a5dba36f36e476727af2c50cf029aee15131ae93e507fd95a",
+  "acceptance": {
+    "capacity": {
+      "child_peak_rss_mb": 1348.25,
+      "duration_seconds": 267.39954170400006,
+      "profile": "local[1], driver heap 768m, container limit 2GiB"
+    },
+    "lease_release": {
+      "dag_id": "pipeline_qa_acceptance",
+      "run_id": "qa02-runtime-1868715b4bb34f5a84b568c3cf64c1b6",
+      "status": "RELEASED"
+    },
+    "namespace": "iceberg.qa02_ecd3eb5e306d413abde624109ed4323a",
+    "report_path": "/opt/pipeline/staging/qa-02/qa02-runtime-1868715b4bb34f5a84b568c3cf64c1b6/runtime-report.json",
+    "report_sha256": "fd7d8deb2c2bf0b62b96dd89f629f2e98514c4a105ff32e7eb200657ddb8a72d",
+    "run_id": "qa02-runtime-1868715b4bb34f5a84b568c3cf64c1b6",
+    "status": "PASS",
+    "summary": {
+      "case_count": 8,
+      "failed": 0,
+      "passed": 8,
+      "pending_runtime": 0
+    },
+    "task": "QA-02"
+  },
+  "execution": {
+    "exit_code": 0,
+    "job_class": "ie212.earthquake.spark.usgs.RerunRevisionAcceptanceJob",
+    "request_sha256": "10afe06dcb57d0ddaddcca163febd6dc443b4eb115c251d154500b6bd60a3ffa"
+  },
+  "global_lease_free_at_capture": true,
+  "operations": [
+    {
+      "operation_id": "orc07-5db79447e85ba0a367e442d59396918f3812a4d8",
+      "context_sha256": "1ee9c3e987d40a8bda559bcd25c3e6c399af60ced2758710e88a53f5a545e48c",
+      "commit_sha256": "c82abb0189bb7eceb5edd64b21a792f2a7850e5a220af6e8742e3e6c423b9756",
+      "publication_id": "pub_c82abb0189bb7eceb5edd64b21a792f2a7850e5a220af6e8742e3e6c423b9756",
+      "engine": "TRINO",
+      "verify_status": "PASSED",
+      "published": true,
+      "affected_months": [
+        "2023-08",
+        "2023-09",
+        "2023-10"
+      ],
+      "tables": {
+        "event_current": {
+          "snapshot_id": "383627323526882626",
+          "count": 3
+        },
+        "event_source_bridge": {
+          "snapshot_id": "3788521541909588517",
+          "count": 4
+        },
+        "dim_date": {
+          "snapshot_id": "5401335400539760200",
+          "count": 4
+        },
+        "dim_region": {
+          "snapshot_id": "8570786049699517904",
+          "count": 1
+        },
+        "dim_magnitude_band": {
+          "snapshot_id": "3894222037316181582",
+          "count": 7
+        },
+        "dim_depth_band": {
+          "snapshot_id": "7645224967283304277",
+          "count": 5
+        }
+      },
+      "trino_checks": 36,
+      "all_trino_checks_matched": true,
+      "silver_counts": {
+        "balanced": true,
+        "canonical": 3,
+        "current": 4,
+        "history": 0,
+        "input_unique_revisions": 4,
+        "links": 1,
+        "memberships": 4,
+        "output_revisions": 4,
+        "repeated_input_observation_ids": 0,
+        "revisions_outside_affected_months": 0,
+        "selected_input_records": 4
+      }
+    },
+    {
+      "operation_id": "orc07-853f11dda0a2a8e6df9c82d51f9871ae846b07b2",
+      "context_sha256": "eea1a96e9fa9f6c20b79f49cce25188ac3651b1762cb94bc2c398cb91767cfce",
+      "commit_sha256": "8a725126860e3d8ae33028640f9fa8b8906839a342f049e8a09e63815bf76dde",
+      "publication_id": "pub_8a725126860e3d8ae33028640f9fa8b8906839a342f049e8a09e63815bf76dde",
+      "engine": "TRINO",
+      "verify_status": "PASSED",
+      "published": true,
+      "affected_months": [
+        "2023-09"
+      ],
+      "tables": {
+        "event_current": {
+          "snapshot_id": "5856406515081663878",
+          "count": 3
+        },
+        "event_source_bridge": {
+          "snapshot_id": "7324625199129839473",
+          "count": 4
+        },
+        "dim_date": {
+          "snapshot_id": "6827131159027010013",
+          "count": 4
+        },
+        "dim_region": {
+          "snapshot_id": "4518344083651931270",
+          "count": 1
+        },
+        "dim_magnitude_band": {
+          "snapshot_id": "5829170996273480487",
+          "count": 7
+        },
+        "dim_depth_band": {
+          "snapshot_id": "5502676404433829669",
+          "count": 5
+        }
+      },
+      "trino_checks": 36,
+      "all_trino_checks_matched": true,
+      "silver_counts": {
+        "balanced": true,
+        "canonical": 2,
+        "current": 3,
+        "history": 0,
+        "input_unique_revisions": 4,
+        "links": 1,
+        "memberships": 3,
+        "output_revisions": 3,
+        "repeated_input_observation_ids": 3,
+        "revisions_outside_affected_months": 1,
+        "selected_input_records": 7
+      }
+    },
+    {
+      "operation_id": "orc07-b66f66609b98a54162e7d082096d515a2616d479",
+      "context_sha256": "a096e3cb9e997e192a68b3e7bdaf6125b683df58f9dfb03126e6a651a7f8a638",
+      "commit_sha256": "577efd28076fd65c5a86619c55958dfbbeaf4d72e6322798549a0e2d3863dada",
+      "publication_id": "pub_577efd28076fd65c5a86619c55958dfbbeaf4d72e6322798549a0e2d3863dada",
+      "engine": "TRINO",
+      "verify_status": "PASSED",
+      "published": true,
+      "affected_months": [
+        "2023-09"
+      ],
+      "tables": {
+        "event_current": {
+          "snapshot_id": "9213117470398678796",
+          "count": 3
+        },
+        "event_source_bridge": {
+          "snapshot_id": "5407277398105804394",
+          "count": 4
+        },
+        "dim_date": {
+          "snapshot_id": "6975188196928719688",
+          "count": 4
+        },
+        "dim_region": {
+          "snapshot_id": "6700553643909455486",
+          "count": 1
+        },
+        "dim_magnitude_band": {
+          "snapshot_id": "5088096002544684563",
+          "count": 7
+        },
+        "dim_depth_band": {
+          "snapshot_id": "6931472396717030346",
+          "count": 5
+        }
+      },
+      "trino_checks": 36,
+      "all_trino_checks_matched": true,
+      "silver_counts": {
+        "balanced": true,
+        "canonical": 2,
+        "current": 3,
+        "history": 1,
+        "input_unique_revisions": 5,
+        "links": 1,
+        "memberships": 3,
+        "output_revisions": 4,
+        "repeated_input_observation_ids": 3,
+        "revisions_outside_affected_months": 1,
+        "selected_input_records": 8
+      }
+    },
+    {
+      "operation_id": "orc07-580226e89d44722362192dd20ad9f544dc6a9ea4",
+      "context_sha256": "e777313cde178e0927651f05f9087c7f80e48b299e043f7bf2e5e6a5f2011253",
+      "commit_sha256": "a556e58c4a1a58b96ff16ae6c309d122641906cb46737ae9a5b5429760726448",
+      "publication_id": "pub_a556e58c4a1a58b96ff16ae6c309d122641906cb46737ae9a5b5429760726448",
+      "engine": "TRINO",
+      "verify_status": "PASSED",
+      "published": true,
+      "affected_months": [
+        "2023-09"
+      ],
+      "tables": {
+        "event_current": {
+          "snapshot_id": "8718911713508407878",
+          "count": 3
+        },
+        "event_source_bridge": {
+          "snapshot_id": "7320335110851516584",
+          "count": 4
+        },
+        "dim_date": {
+          "snapshot_id": "2227173895350286757",
+          "count": 4
+        },
+        "dim_region": {
+          "snapshot_id": "4628211415954576876",
+          "count": 1
+        },
+        "dim_magnitude_band": {
+          "snapshot_id": "3594309328037150043",
+          "count": 7
+        },
+        "dim_depth_band": {
+          "snapshot_id": "3927105017029980806",
+          "count": 5
+        }
+      },
+      "trino_checks": 36,
+      "all_trino_checks_matched": true,
+      "silver_counts": {
+        "balanced": true,
+        "canonical": 2,
+        "current": 3,
+        "history": 1,
+        "input_unique_revisions": 5,
+        "links": 1,
+        "memberships": 3,
+        "output_revisions": 4,
+        "repeated_input_observation_ids": 3,
+        "revisions_outside_affected_months": 1,
+        "selected_input_records": 8
+      }
+    },
+    {
+      "operation_id": "orc07-266b84462b40c84e7caf8856efc79ae6c5213e6e",
+      "context_sha256": "947a792846299238e6066dd7fc16b697eccc48e9f0384fa8109dbd65b3229352",
+      "commit_sha256": "8b8736f2bd8bfc3b70e1e8aba096524dc8b793aab1875af4033070de41d3bef8",
+      "publication_id": "pub_8b8736f2bd8bfc3b70e1e8aba096524dc8b793aab1875af4033070de41d3bef8",
+      "engine": "TRINO",
+      "verify_status": "PASSED",
+      "published": true,
+      "affected_months": [
+        "2023-09",
+        "2023-10"
+      ],
+      "tables": {
+        "event_current": {
+          "snapshot_id": "9184955254019068598",
+          "count": 3
+        },
+        "event_source_bridge": {
+          "snapshot_id": "5128457091649579151",
+          "count": 4
+        },
+        "dim_date": {
+          "snapshot_id": "8164311696766072296",
+          "count": 4
+        },
+        "dim_region": {
+          "snapshot_id": "460680624333167928",
+          "count": 1
+        },
+        "dim_magnitude_band": {
+          "snapshot_id": "3168460191696185854",
+          "count": 7
+        },
+        "dim_depth_band": {
+          "snapshot_id": "604067131623884387",
+          "count": 5
+        }
+      },
+      "trino_checks": 36,
+      "all_trino_checks_matched": true,
+      "silver_counts": {
+        "balanced": true,
+        "canonical": 2,
+        "current": 3,
+        "history": 2,
+        "input_unique_revisions": 6,
+        "links": 1,
+        "memberships": 3,
+        "output_revisions": 5,
+        "repeated_input_observation_ids": 3,
+        "revisions_outside_affected_months": 1,
+        "selected_input_records": 9
+      }
+    },
+    {
+      "operation_id": "orc07-05c6937d84d4fff343cd9522867df66b079204e4",
+      "context_sha256": "fab47a44bb4fe9eb6e74e413b3d5ceb651f5b276c2a19a19465629d9def0b073",
+      "commit_sha256": "d8864e31e7b3c91cf323fe5adbf305c56ea807d1b70666945bad2deba13c425f",
+      "publication_id": "pub_d8864e31e7b3c91cf323fe5adbf305c56ea807d1b70666945bad2deba13c425f",
+      "engine": "TRINO",
+      "verify_status": "PASSED",
+      "published": true,
+      "affected_months": [
+        "2023-09",
+        "2023-10"
+      ],
+      "tables": {
+        "event_current": {
+          "snapshot_id": "2434103711737542775",
+          "count": 4
+        },
+        "event_source_bridge": {
+          "snapshot_id": "7426660475099005053",
+          "count": 4
+        },
+        "dim_date": {
+          "snapshot_id": "9199975374863433327",
+          "count": 5
+        },
+        "dim_region": {
+          "snapshot_id": "6006340804206776738",
+          "count": 1
+        },
+        "dim_magnitude_band": {
+          "snapshot_id": "48890515531257650",
+          "count": 7
+        },
+        "dim_depth_band": {
+          "snapshot_id": "961315195849371497",
+          "count": 5
+        }
+      },
+      "trino_checks": 36,
+      "all_trino_checks_matched": true,
+      "silver_counts": {
+        "balanced": true,
+        "canonical": 3,
+        "current": 3,
+        "history": 2,
+        "input_unique_revisions": 6,
+        "links": 0,
+        "memberships": 3,
+        "output_revisions": 5,
+        "repeated_input_observation_ids": 3,
+        "revisions_outside_affected_months": 1,
+        "selected_input_records": 9
+      }
+    }
+  ],
+  "cases": [
+    {
+      "case_id": "rerun_same_input",
+      "status": "PASS",
+      "operation_id": "qa02-rerun-001",
+      "before_operation": "orc07-5db79447e85ba0a367e442d59396918f3812a4d8",
+      "after_operation": "orc07-5db79447e85ba0a367e442d59396918f3812a4d8",
+      "evidence_file": "rerun_same_input-evidence.json",
+      "evidence_sha256": "10e47fc03b3676d6dd87067579fbc3872b9ef4bee8a268ce425c1336e5790c9d",
+      "assertions": {
+        "logical_keys": "unchanged",
+        "canonical_count": "unchanged",
+        "snapshots": "same_or_equivalent"
+      }
+    },
+    {
+      "case_id": "duplicate_same_source",
+      "status": "PASS",
+      "operation_id": "qa02-duplicate-001",
+      "before_operation": "orc07-5db79447e85ba0a367e442d59396918f3812a4d8",
+      "after_operation": "orc07-853f11dda0a2a8e6df9c82d51f9871ae846b07b2",
+      "evidence_file": "duplicate_same_source-evidence.json",
+      "evidence_sha256": "8024e5b7b82b0b7d5118ee1e8a7c9448257216436a000f55ee14abf82beefa46",
+      "assertions": {
+        "logical_keys": "one_current_row",
+        "current": "one_current_row",
+        "canonical_count": "unchanged",
+        "history": "retained"
+      }
+    },
+    {
+      "case_id": "usgs_late_revision",
+      "status": "PASS",
+      "operation_id": "qa02-usgs-revision-001",
+      "before_operation": "orc07-853f11dda0a2a8e6df9c82d51f9871ae846b07b2",
+      "after_operation": "orc07-b66f66609b98a54162e7d082096d515a2616d479",
+      "evidence_file": "usgs_late_revision-evidence.json",
+      "evidence_sha256": "0b960317eef660e504aef37b22c0da039203fe9d0ad1c12d88abdbed38d721af",
+      "assertions": {
+        "logical_keys": "same_key_new_revision",
+        "current": "new_revision",
+        "history": "old_revision_retained"
+      }
+    },
+    {
+      "case_id": "jma_release_replacement",
+      "status": "PASS",
+      "operation_id": "qa02-jma-release-001",
+      "before_operation": "orc07-b66f66609b98a54162e7d082096d515a2616d479",
+      "after_operation": "orc07-580226e89d44722362192dd20ad9f544dc6a9ea4",
+      "evidence_file": "jma_release_replacement-evidence.json",
+      "evidence_sha256": "1b21e8129e38913560b97b58005f410ea7c6a414e85bf19ea0acfb8050d36051",
+      "assertions": {
+        "release": "new_catalog_release",
+        "current": "replacement",
+        "old_release": "auditable"
+      }
+    },
+    {
+      "case_id": "overlap_usgs_jma",
+      "status": "PASS",
+      "operation_id": "qa02-overlap-001",
+      "before_operation": "orc07-b66f66609b98a54162e7d082096d515a2616d479",
+      "after_operation": "orc07-580226e89d44722362192dd20ad9f544dc6a9ea4",
+      "evidence_file": "overlap_usgs_jma-evidence.json",
+      "evidence_sha256": "e828e275200e4ce67c637c4fa0fcae7459b56c056d7808879e14ce66fef641c3",
+      "assertions": {
+        "canonical_count": "no_double_count",
+        "lineage": "both_sources_retained"
+      }
+    },
+    {
+      "case_id": "event_moves_month",
+      "status": "PASS",
+      "operation_id": "qa02-month-move-001",
+      "before_operation": "orc07-580226e89d44722362192dd20ad9f544dc6a9ea4",
+      "after_operation": "orc07-266b84462b40c84e7caf8856efc79ae6c5213e6e",
+      "evidence_file": "event_moves_month-evidence.json",
+      "evidence_sha256": "bd58e81ad9aff602ca1f50a36e421fc50b64dea5ccdb04d0498094dac8440fdf",
+      "assertions": {
+        "old_partition": "superseded",
+        "new_partition": "current",
+        "history": "retained"
+      }
+    },
+    {
+      "case_id": "jma_record_withdrawn",
+      "status": "PASS",
+      "operation_id": "qa02-withdraw-001",
+      "before_operation": "orc07-266b84462b40c84e7caf8856efc79ae6c5213e6e",
+      "after_operation": "orc07-05c6937d84d4fff343cd9522867df66b079204e4",
+      "evidence_file": "jma_record_withdrawn-evidence.json",
+      "evidence_sha256": "50d205a9fd25b37ed17796da2cc8279ad379e08d23f179eb6e48323e220e46df",
+      "assertions": {
+        "current": "withdrawn_or_superseded",
+        "history": "retained",
+        "canonical_count": "reconciled"
+      }
+    },
+    {
+      "case_id": "retention_outside_scope",
+      "status": "PASS",
+      "operation_id": "qa02-retention-001",
+      "before_operation": "orc07-5db79447e85ba0a367e442d59396918f3812a4d8",
+      "after_operation": "orc07-05c6937d84d4fff343cd9522867df66b079204e4",
+      "evidence_file": "retention_outside_scope-evidence.json",
+      "evidence_sha256": "f17718c99a17c3f92cb43dc774a73f56b0be5abaaaa90bf5d52c8073933d8497",
+      "assertions": {
+        "scope": "outside_scope_is_not_modified",
+        "snapshots": "old_snapshot_readable"
+      }
+    }
+  ],
+  "snapshot_id_representation": "decimal string to preserve signed 64-bit identity"
+}

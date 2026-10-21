@@ -863,6 +863,18 @@ services:
       - ./compose/airflow/mli-import-runner.sh:/opt/pipeline/bin/mli-import-runner:ro
       - ./spark/src/test/resources/ml/results:/opt/pipeline/ml-result-fixtures:ro
 
+  pipeline-qa-acceptance:
+    extends: {service: gold-verification-qa}
+    profiles: [ml]
+    command:
+      - |
+        exec python3 /opt/airflow/dags/pipeline_qa_acceptance.py --task "$${PIPELINE_QA_TASK}"
+    environment:
+      PIPELINE_QA_TASK: ${PIPELINE_QA_TASK:-QA-02}
+    volumes:
+      - ./tests/fixtures:/opt/pipeline/qa-fixtures:ro
+      - ./config/jma/hypocenter_archives_v1.csv:/opt/pipeline/config/jma/hypocenter_archives_v1.csv:ro
+
   qa-02-rerun-revision:
     extends: {service: spark-gold-qa}
     profiles: [ml]
