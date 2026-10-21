@@ -304,7 +304,10 @@ def load_feature_bundle(bundle_dir: Union[str, Path], mode: str = MODE_DEVELOPME
         for fp in feature_parts:
             require(fp.name in checksum_entries, f"EXP_MISSING_FEATURE_PARQUET_CHECKSUM:{fp.name}")
 
-        tables = [pq.read_table(p) for p in feature_parts]
+        # Read each indexed file, not a Hive dataset inferred from dataset_id=...
+        # ancestors. Otherwise Arrow adds a dictionary partition ID over the
+        # string ID physically stored by Spark and fails schema merging.
+        tables = [pq.ParquetFile(p).read() for p in feature_parts]
         features_table = pa.concat_tables(tables)
 
         # Validate required columns according to MLD-05 contract

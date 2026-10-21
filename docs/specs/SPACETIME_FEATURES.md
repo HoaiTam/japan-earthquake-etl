@@ -56,6 +56,7 @@ chỉ SELECT; không gọi DatasetManifestWriter.build vì phương thức đó 
 - [DAT-02 — Tạo dataset pilot nhỏ để test trên Jupyter](../task/tasks/DAT-02.md)
   bổ sung selection/coverage/manifest/checksums và notebook inspection riêng.
 - [MLD-05 — Validate feature snapshot và export Parquet bundle](../task/tasks/MLD-05.md)
-  sở hữu official validation/export và coverage nghiên cứu đầy đủ.
+  sở hữu [official validation/snapshot/export](./FEATURE_EXPORT.md) và coverage
+  gate; LocalFeatureJob/DAT-02 không tự nâng parent thành EXPORTED.
 - [EXP-02 — Chạy Window, DBSCAN và HDBSCAN global](../task/tasks/EXP-02.md)
   sở hữu fit/đánh giá; task này không fit hoặc tune thuật toán.

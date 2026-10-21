@@ -123,8 +123,11 @@ public final class RealEtlAdapter {
         require(digest(request).equals(text(receipt,"request_sha256")) && "COMPLETE_MONTHS".equals(receipt.path("scope_completeness").asText()),"FULL_MONTH_PROOF_REQUIRED");
         var reader=new FullMonthBronzeReader(bronze,inventory); var inputs=new ArrayList<FullMonthBronzeReader.Input>();
         for(var pin:registry.path("active_inputs")) { lease.run(); inputs.add(reader.read(pin,utc(request,"source_cutoff_utc"))); }
-        require(FullMonthStateResolver.coverage(inputs,months(registry.path("complete_months"))).equals(registry.path("coverage")),"FULL_MONTH_COVERAGE_CHANGED");
+        verifyRegistryCoverage(inputs,registry);
         return receipt;
+    }
+    static void verifyRegistryCoverage(List<FullMonthBronzeReader.Input> inputs,JsonNode registry) throws IOException {
+        require(FullMonthStateResolver.coverage(inputs,registryMonths(registry.path("complete_months"))).equals(registry.path("coverage")),"FULL_MONTH_COVERAGE_CHANGED");
     }
     private ObjectNode snapshotIds(JsonNode tables) throws IOException {
         var out=JSON.createObjectNode();

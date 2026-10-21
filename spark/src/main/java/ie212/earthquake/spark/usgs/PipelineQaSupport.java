@@ -30,7 +30,7 @@ public final class PipelineQaSupport implements AutoCloseable {
     public final Path fixtures=Path.of("/opt/pipeline/qa-fixtures");
     public PipelineQaSupport(JsonNode request,Path root) throws Exception {
         this.root=root; namespace=text(request,"namespace");
-        require(namespace.matches("[a-z][a-z0-9_]*\\.qa0[234]_[a-f0-9]{32}"),"ISOLATED_PIPELINE_QA_REQUIRED");
+        require(namespace.matches("[a-z][a-z0-9_]*\\.(?:qa0[234]|mld05_qa)_[a-f0-9]{32}"),"ISOLATED_PIPELINE_QA_REQUIRED");
         var owner=request.path("lease_owner");
         lease=()->{try {
             var live=JSON.readTree(Files.readAllBytes(Path.of(Objects.requireNonNull(System.getenv("SOURCE_GUARD_ROOT")),"owner.json")));
@@ -143,7 +143,7 @@ public final class PipelineQaSupport implements AutoCloseable {
         String op=text(record,"operation_id"); var registry=JSON.readTree(silver.read(FullMonthStateResolver.root(op)+"/registry.json"));
         var reader=new FullMonthBronzeReader(bronze,inventory); var inputs=new ArrayList<FullMonthBronzeReader.Input>();
         for(var pin:registry.path("active_inputs")) inputs.add(reader.read(pin,now));
-        return reader.parse(inputs,months(registry.path("complete_months")));
+        return reader.parse(inputs,registryMonths(registry.path("complete_months")));
     }
     public void oldReadable(JsonNode commit) throws Exception {
         for(var name:GoldIcebergWriter.TABLES) {

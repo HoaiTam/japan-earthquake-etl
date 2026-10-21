@@ -24,7 +24,7 @@ class ImpactPolicyTest(unittest.TestCase):
     def test_feature_change_includes_exporter_and_independent_jvm_consumers(self):
         result = self.choose("spark/src/main/java/ie212/earthquake/spark/ml/SpacetimeFeatureEngine.java")
         self.assertEqual(result["java"], "selected"); self.assertEqual(result["airflow"], "none"); self.assertEqual(result["pilot"], "full")
-        self.assertEqual({name.rsplit(".", 1)[-1] for name in result["java_tests"]}, impact.FEATURE_TESTS)
+        self.assertEqual({name.rsplit(".", 1)[-1] for name in result["java_tests"]}, impact.FEATURE_CONSUMER_TESTS)
     def test_window_or_dataset_contract_changes_expand_to_all_ml_and_control_plane(self):
         for name in ["MainshockWindowEngine", "DatasetManifestWriter", "NewMlProducer"]:
             with self.subTest(name=name):
@@ -65,9 +65,9 @@ class ImpactPolicyTest(unittest.TestCase):
     def test_new_ml_tests_follow_all_default_surefire_naming_patterns(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary); folder = root / impact.JAVA_ROOT / "ml"; folder.mkdir(parents=True)
-            for name in impact.FEATURE_TESTS | {"TestNew", "NewTests", "NewTestCase"}: (folder / (name + ".java")).touch()
+            for name in impact.FEATURE_CONSUMER_TESTS | {"TestNew", "NewTests", "NewTestCase"}: (folder / (name + ".java")).touch()
             result = impact.classify([("A", "spark/src/test/java/ie212/earthquake/spark/ml/NewTests.java")], root)
-            self.assertEqual(len(result["java_tests"]), 7)
+            self.assertEqual(len(result["java_tests"]), len(impact.FEATURE_CONSUMER_TESTS) + 3)
     def test_only_fixed_modes_are_emitted_to_actions_output(self):
         with tempfile.TemporaryDirectory() as root:
             output, summary = Path(root) / "output", Path(root) / "summary"

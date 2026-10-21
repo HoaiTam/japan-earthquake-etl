@@ -877,6 +877,16 @@ services:
       - ./staging/qa-history-captures:/opt/pipeline/qa-history-captures:ro
       - ./spark/src/test/resources/ml/results:/opt/pipeline/ml-result-fixtures:ro
 
+  mld05-feature-export:
+    extends: {service: pipeline-qa-acceptance}
+    profiles: [ml]
+    command:
+      - |
+        exec python3 /opt/airflow/dags/feature_export_runtime.py --dataset-id "$${MLD05_DATASET_ID}" --namespace "$${MLD05_NAMESPACE}"
+    environment:
+      MLD05_DATASET_ID: ${MLD05_DATASET_ID:-}
+      MLD05_NAMESPACE: ${MLD05_NAMESPACE:-}
+
   qa-02-rerun-revision:
     extends: {service: spark-gold-qa}
     profiles: [ml]

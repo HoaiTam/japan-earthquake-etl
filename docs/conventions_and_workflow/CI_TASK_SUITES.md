@@ -26,10 +26,11 @@ chạy gì. Nguồn chọn test vẫn là [impact policy](./CI_IMPACT_TESTING.md
 | `Java / mld-01-02-contract-audit` | MLD-01/02 và shared ML | Dataset/result contract, Gold audit, Mc/histogram; ML test mới chưa map cũng vào shared ML |
 | `Java / mld-03-windows` | MLD-03 | Mainshock runtime/window engine/integration/regression/model resolver |
 | `Java / mld-04-features` | MLD-04, Java boundary DAT-02 | Scaling, feature engine, pilot exporter và cross-JVM Parquet |
+| `Java / mld-05-export` | MLD-05 | Receipt-bound coverage, feature quality, pinned Iceberg retry/retention, multi-part export và corruption guards |
 | `Control / source-ingestion` | AFL, USG-04, JMA-04/05 | Smoke/source DAG contracts, ingest/year-backfill runtime và JMA live-QA adapter bằng mock |
 | `Control / orchestration-recovery` | ORC | ETL, source schedule/readiness, backfill, recovery, observability; Python control test chưa map vào đây |
 | `Control / silver-gold-qa` | SLV/GLD QA | Mock adapter tích hợp Silver, Gold storage/publication |
-| `Control / ml-qa` | MLD-01/02/03 | Dataset manifest, Gold input audit và window QA control-plane |
+| `Control / ml-qa` | MLD-01/02/03/05 | Dataset manifest, Gold input audit, window và feature export QA control-plane |
 | `DAT-02 / pilot-handoff` | DAT-02 | Python loader, checksum/schema/grain/coverage và pack bundle bằng synthetic fixture |
 
 Không tuyên bố các check mock này là E2E live, đã ingest thật hoặc đã fit model.
@@ -79,7 +80,7 @@ trên cùng local checkout; `.NOTPARALLEL` trong Make không khóa hai terminal.
 Chia check **không** tự chứng minh được độc lập dependency: USGS/JMA/Silver/Gold
 hoặc helper/schema/build/fixture dùng chung vẫn fallback full như v1. Một sửa
 MLD-03 chạy cả ba nhóm ML + control-plane + pilot; sửa feature leaf chỉ chạy
-MLD-04 + DAT-02; sửa docs thông thường chỉ guards. Chỉ thu hẹp thêm khi có
+MLD-04 + MLD-05 consumer + DAT-02; sửa docs thông thường chỉ guards. Chỉ thu hẹp thêm khi có
 mapping consumer và regression chứng minh; chưa rõ giữ full.
 
 Thêm module/test: cập nhật mapping nếu cần tên nhóm riêng; nếu chưa map,

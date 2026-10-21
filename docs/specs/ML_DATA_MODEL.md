@@ -552,6 +552,20 @@ algorithm/model/package version, membership/summary counts, `COMPLETED`,
 Bundle không chứa Drive token, MinIO/Airflow credential hoặc absolute path cá
 nhân. Notebook output hiển thị trên màn hình không phải artifact contract.
 
+### 11.3. MLD-05 portable export implementation
+
+[Feature export](./FEATURE_EXPORT.md) thêm export-checksums.sha256 (data-only
+index) bên cạnh public checksums.sha256 index cả manifest và parts. Manifest
+tham chiếu SHA của data-only index; export receipt pin SHA manifest/public index
+để notebook verify mà không tạo vòng hash. Không đổi key/grain/lifecycle.
+
+Physical dataset_manifest thêm nullable mainshock_snapshot_id,
+candidate_snapshot_id và export_identity_sha256; bắt buộc từ VALIDATED trong
+implementation MLD-05. Trusted handoff sau EXPORTED pin thêm registry snapshot
+chứa chính row EXPORTED và actual candidate lineage. Pins trong JSON handoff
+được serialize dưới dạng chuỗi decimal để giữ nguyên bigint, không chuyển qua
+JavaScript floating-point. Portable manifest không phải snapshot tự tham chiếu.
+
 ## 12. Quality và publication gate
 
 ### 12.1. Dataset build gate

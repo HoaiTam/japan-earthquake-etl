@@ -74,7 +74,25 @@ COMPONENT_SMOKES := smoke-minio smoke-airflow smoke-spark smoke-query smoke-usgs
 .PHONY: check-docs test-docs
 .PHONY: test-mli-import smoke-mli-import smoke-mli-import-acceptance smoke-mli-import-dag up-ml
 .PHONY: test-qa-04 smoke-qa-04
-.PHONY: test-qa-acceptance smoke-qa-acceptance prepare-qa-history
+.PHONY: test-qa-acceptance smoke-qa-acceptance prepare-qa-history test-ml-export smoke-ml-export export-ml-dataset verify-ml-export
+
+test-ml-export: ## MLD-05 validation/export/retry/snapshot/coverage tests; JDK17, không Docker
+	@python3 -m unittest discover -s airflow/tests -p 'test_feature_export_runtime.py'
+	@python3 -m unittest discover -s tests -p 'test_ml_export_cli.py'
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am test -Dtest=FeatureExportCoverageTest,FeatureExportBundleTest -Dsurefire.failIfNoSpecifiedTests=false
+
+smoke-ml-export: check-config-local ## MLD-05 synthetic full-period QA trên storage thật; không build/start/init
+	@$(RUNTIME_CHECK) --component ml --client mld05-feature-export
+	@$(COMPOSE) --profile ml run --rm --no-deps --pull never --entrypoint python3 mld05-feature-export /opt/airflow/dags/feature_export_runtime.py --qa
+
+export-ml-dataset: check-config-local ## MLD-05 export exact official dataset; dừng nếu coverage/audit chưa đạt
+	@test -n "$(MLD05_DATASET_ID)" && test -n "$(MLD05_NAMESPACE)" || { echo 'Set MLD05_DATASET_ID and MLD05_NAMESPACE'; exit 2; }
+	@$(RUNTIME_CHECK) --component ml --client mld05-feature-export
+	@$(COMPOSE) --profile ml run --rm --no-deps --pull never -e MLD05_DATASET_ID="$(MLD05_DATASET_ID)" -e MLD05_NAMESPACE="$(MLD05_NAMESPACE)" mld05-feature-export
+
+verify-ml-export: ## MLD-05 verify bundle local/Colab bằng pins và EXP-01 loader; không Docker
+	@test -n "$(MLD05_BUNDLE_PATH)" && test -n "$(MLD05_MANIFEST_SHA256)" && test -n "$(MLD05_CHECKSUMS_SHA256)" || { echo 'Set MLD05_BUNDLE_PATH, MLD05_MANIFEST_SHA256, MLD05_CHECKSUMS_SHA256'; exit 2; }
+	@$(PILOT_PYTHON) scripts/verify-ml-export.py "$(MLD05_BUNDLE_PATH)" --manifest-sha256 "$(MLD05_MANIFEST_SHA256)" --checksums-sha256 "$(MLD05_CHECKSUMS_SHA256)"
 
 prepare-qa-history: ## QA-03: tải/reuse 4 archive JMA và 1 USGS capture có pin; không Docker/ETL
 	@python3 scripts/prepare-qa-history.py
@@ -364,6 +382,7 @@ ci-docs-base: ## Always-on CI guards; pilot tests được chọn riêng theo im
 	@python3 -m unittest discover -s tests -p 'test_real_etl_cli.py'
 	@python3 -m unittest discover -s tests -p 'test_full_month_*.py'
 	@python3 -m unittest discover -s tests -p 'test_qa_01_cli.py'
+	@python3 -m unittest discover -s tests -p 'test_ml_export_cli.py'
 	@$(MAKE) test-security-audit
 	@$(MAKE) test-docker-runtime
 	@$(MAKE) check-config ENV_FILE=/dev/null

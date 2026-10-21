@@ -31,18 +31,19 @@ class SuitePolicyTest(unittest.TestCase):
         self.assertEqual(set(found), {p.name for p in (ROOT / "airflow/tests").glob("test_*.py")})
         self.assertEqual(set(groups), set(impact.AIRFLOW_SUITES))
 
-    def test_feature_leaf_only_materializes_feature_suite_and_python_pilot(self):
+    def test_feature_leaf_materializes_features_export_consumer_and_python_pilot(self):
         result = impact.classify([("M", "spark/src/main/java/ie212/earthquake/spark/ml/SpacetimeFeatureEngine.java")])
         groups = impact.suite_plan(result, "java")
-        self.assertEqual(list(groups), ["mld-04-features"])
+        self.assertEqual(list(groups), ["mld-04-features", "mld-05-export"])
         self.assertEqual({name.rsplit(".", 1)[-1] for name in groups["mld-04-features"]}, impact.FEATURE_TESTS)
+        self.assertEqual({name.rsplit(".", 1)[-1] for name in groups["mld-05-export"]}, impact.EXPORT_TESTS)
         self.assertEqual(impact.suite_plan(result, "airflow"), {})
         self.assertEqual(result["pilot"], "full")
 
     def test_window_contract_includes_all_three_ml_groups_and_control_consumers(self):
         result = impact.classify([("M", "spark/src/main/java/ie212/earthquake/spark/ml/MainshockWindowEngine.java")])
         self.assertEqual(set(impact.suite_plan(result, "java")),
-                         {"mld-01-02-contract-audit", "mld-03-windows", "mld-04-features"})
+                         {"mld-01-02-contract-audit", "mld-03-windows", "mld-04-features", "mld-05-export"})
         self.assertEqual(set(impact.suite_plan(result, "airflow")), set(impact.AIRFLOW_SUITES))
 
     def test_unknown_tests_are_never_lost_and_all_surefire_patterns_are_discovered(self):

@@ -45,7 +45,7 @@ public final class FullMonthStateResolver {
             require(text(request,"namespace").equals(registry.path("namespace").asText())
                     && text(request,"config_version").equals(registry.path("config_version").asText())
                     && !utc(registry,"source_cutoff_utc").isAfter(utc(request,"source_cutoff_utc")), "BASELINE_POLICY_OR_CUTOFF_MISMATCH");
-            registered.addAll(months(registry.path("complete_months")));
+            registered.addAll(registryMonths(registry.path("complete_months")));
             for (var pin:registry.path("active_inputs")) {
                 oldInputs.add(reader.read(pin,utc(request,"source_cutoff_utc")));
                 require(oldInputs.size()<=64 && oldInputs.stream().mapToLong(i->i.raw().length).sum()<=128L*1024*1024,
@@ -96,7 +96,9 @@ public final class FullMonthStateResolver {
         // timestamps before JMA selection so a moved event expands the month automatically.
         var usgsInputs=active.values().stream().filter(i->"USGS".equals(i.pin().path("source_system").asText())).toList();
         for(var observation:reader.parse(usgsInputs,parseMonths)) parseMonths.add(month(observation.eventTimeUtc()));
-        require(parseMonths.size()<=24, "BOUNDED_REBUILD_MONTHS_REQUIRED");
+        // Read history is cumulative; the affected write/closure remains <=24
+        // below. Existing 64-input/128MiB/100k-row guards still bound memory.
+        require(parseMonths.size()<=480, "BOUNDED_READ_HISTORY_MONTHS_REQUIRED");
         var parsed=reader.parseWithReport(new ArrayList<>(active.values()),parseMonths);
         var observations=parsed.observations();
         var oldObservations=oldInputs.isEmpty()?List.<SilverObservation>of():reader.parse(oldInputs,parseMonths);

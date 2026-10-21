@@ -1,6 +1,6 @@
 ---
 task_id: "MLD-05"
-status: "Ready"
+status: "Done"
 week: 5
 block: "G - ML Dataset"
 workstream: "Feature validation and export"
@@ -31,14 +31,16 @@ không sao chép physical files trong Iceberg warehouse.
 - Feature validator và deterministic export job.
 - Export layout/manifest/checksum contract cùng fixture bundle nhỏ.
 - Runbook verify/download/upload và cleanup staging có phạm vi.
+- Đã triển khai FeatureExportJob/Bundle/Coverage và FeatureSnapshotWriter;
+  [cơ chế](../../specs/FEATURE_EXPORT.md), [cách chạy/expected outputs](../../runbooks/MLD-05_FEATURE_EXPORT.md).
 
 ## Tiêu chí hoàn thành
 
-- [ ] Bundle chỉ chứa cột cần cho clustering và lineage.
-- [ ] Checksum/count/schema khớp feature snapshot đã pin.
-- [ ] Rerun cùng dataset không trộn part từ export khác.
-- [ ] Colab có thể verify bundle mà không cần MinIO credential.
-- [ ] Không copy trực tiếp physical files của Iceberg warehouse.
+- [x] Bundle chỉ chứa cột cần cho clustering và lineage.
+- [x] Checksum/count/schema khớp feature snapshot đã pin.
+- [x] Rerun cùng dataset không trộn part từ export khác.
+- [x] Colab có thể verify bundle mà không cần MinIO credential (portable verifier và EXP-01 OFFICIAL loader đã chạy local; không claim Colab fit/parity).
+- [x] Không copy trực tiếp physical files của Iceberg warehouse.
 
 ## Hard dependency
 
@@ -72,17 +74,17 @@ Task này vẫn sở hữu official VALIDATED → EXPORTED bundle/lifecycle. DAT
 
 ## Theo dõi
 
-- **Trạng thái:** Ready
+- **Trạng thái:** Done
 - **Assignee:** rosy179
-- **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Reviewer:** unassigned
+- **Evidence / PR:** Hoàn tất implementation/component acceptance 2026-10-21 trên branch `feat/mld-05-validated-feature-export` từ main `ea4eef4` (PR #93), chưa commit/push. [Runtime acceptance](../../evidence/MLD-05_RUNTIME_ACCEPTANCE.md): 10 real ETL batches trên archive tổng hợp, 225 tháng, partial coverage bị chặn, export 10 rows/2 mainshocks, Trino pins/rerun/loader đạt; research_ready=false, không nâng pilot thật hoặc claim scientific approval. Giữ assignee rosy179, reviewer unassigned.
 - **Kỹ năng phù hợp:** Parquet, checksums, data export, Spark
 
 ## Checklist bàn giao
 
-- [ ] Deliverable và test/evidence tồn tại trong repository.
-- [ ] Acceptance criteria đã được kiểm tra.
-- [ ] Contract/docs đã cập nhật và không chứa secret/build artifact.
+- [x] Deliverable và test/evidence tồn tại trong repository.
+- [x] Acceptance criteria đã được kiểm tra.
+- [x] Contract/docs đã cập nhật và không chứa secret/build artifact.
 - [ ] Reviewer độc lập được khuyến nghị cho P0.
 
 ## Tài liệu liên quan
@@ -91,10 +93,19 @@ Task này vẫn sở hữu official VALIDATED → EXPORTED bundle/lifecycle. DAT
 
 MLD-04 đã có `SpacetimeFeatureEngine`, typed global/adaptive config, gate
 invalid reason/count và Parquet readback. Xem [runbook feature](../../specs/SPACETIME_FEATURES.md).
-Task này sẵn sàng triển khai nhưng chưa Done: local feature snapshot và DAT-02
+Ở mốc handoff 2026-10-15, task này sẵn sàng triển khai nhưng chưa Done: local feature snapshot và DAT-02
 development pilot không phải official VALIDATED/EXPORTED. Không lấy coverage
 PARTIAL của nguồn 14 ngày làm acceptance nghiên cứu; không sửa source BUILDING
 chỉ để mở official experiment. Assignee/reviewer giữ nguyên, chưa có approval.
+
+### Handoff MLD-05 — 2026-10-21
+
+Exporter/validator/snapshot/trusted handoff đã được nghiệm thu component theo
+[evidence](../../evidence/MLD-05_RUNTIME_ACCEPTANCE.md); `Done` không phải bằng
+chứng đã backfill catalog thật toàn kỳ. [MLI-02](./MLI-02.md) còn nối real build
+DAG; [EXP-02](./EXP-02.md) còn official fit/Colab parity;
+[MLQ-01](./MLQ-01.md) còn E2E đến report. Nghiệm thu full research backfill thật
+chưa có task riêng; giữ coverage/lifecycle gates và DAT-02 development-only.
 
 - [Roadmap HDBSCAN](../HDBSCAN_WORKSTREAM.md)
 - [MLD-04](./MLD-04.md)

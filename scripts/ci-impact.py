@@ -14,6 +14,8 @@ ROOT = Path(__file__).resolve().parents[1]
 JAVA_ROOT = "spark/src/test/java/ie212/earthquake/spark/"
 FEATURE_SOURCES = {"FeatureScalingConfig", "SpacetimeFeatureEngine", "LocalFeatureJob", "PilotExportJob", "WindowArtifactInput"}
 FEATURE_TESTS = {"FeatureScalingConfigTest", "SpacetimeFeatureEngineTest", "PilotExportJobTest", "FeatureParquetCrossProcessTest"}
+EXPORT_TESTS = {"FeatureExportCoverageTest", "FeatureExportBundleTest"}
+FEATURE_CONSUMER_TESTS = FEATURE_TESTS | EXPORT_TESTS
 PILOT_SCRIPTS = {"scripts/local-ml.py", "scripts/stage-ml-windows.py", "scripts/inspect-pilot-notebook.py", "scripts/pack-pilot.py"}
 PILOT_CONFIGS = {"config/ml/feature_scaling_global_dev_v1.json", "config/ml/feature_scaling_adaptive_dev_v1.json", "config/ml/dat02_reproduction_v1.json"}
 PILOT_FILES = {"notebooks/pilot_bundle.py", "notebooks/dat_02_inspection.ipynb"}
@@ -41,12 +43,12 @@ LEAF_DAGS = {"airflow/dags/" + name + ".py" for name in
 WINDOW_TESTS = {"MainshockRuntimeTest", "MainshockWindowEngineTest", "MainshockWindowIntegrationTest",
                 "MainshockWindowRegressionTest", "WindowModelResolverTest"}
 JAVA_SUITES = ("foundation-integration", "usgs-bronze", "jma-bronze", "silver", "gold", "orc-06-full-month", "orc-07-real-adapters",
-               "mld-01-02-contract-audit", "mld-03-windows", "mld-04-features")
+               "mld-01-02-contract-audit", "mld-03-windows", "mld-04-features", "mld-05-export")
 AIRFLOW_SUITES = ("source-ingestion", "orchestration-recovery", "silver-gold-qa", "ml-qa")
 SOURCE_TESTS = {"test_smoke_dag_contract", "test_usg_04_dag_contract", "test_usgs_ingest_runtime",
                 "test_jma_backfill_runtime", "test_jma_dag_contract", "test_jma_live_qa"}
 LAKEHOUSE_TESTS = {"test_silver_integration_qa", "test_gold_storage_qa", "test_gold_publication_qa"}
-ML_QA_TESTS = {"test_dataset_manifest_qa", "test_gold_input_audit_qa", "test_mainshock_window_qa"}
+ML_QA_TESTS = {"test_dataset_manifest_qa", "test_gold_input_audit_qa", "test_mainshock_window_qa", "test_feature_export_runtime"}
 
 
 def git(root, *args):
@@ -111,8 +113,8 @@ def classify(changes, root=ROOT):
     if scopes:
         paths = [p for p in sorted((root / JAVA_ROOT / "ml").glob("*.java"))
                  if re.fullmatch(r"(?:Test.*|.*Tests?|.*TestCase)", p.stem)]
-        if "ml" not in scopes: paths = [p for p in paths if p.stem in FEATURE_TESTS]
-        if not paths or not FEATURE_TESTS.issubset({p.stem for p in paths}): return full("missing-selected-test-coverage", len(changes))
+        if "ml" not in scopes: paths = [p for p in paths if p.stem in FEATURE_CONSUMER_TESTS]
+        if not paths or not FEATURE_CONSUMER_TESTS.issubset({p.stem for p in paths}): return full("missing-selected-test-coverage", len(changes))
         for path in paths:
             name = path.relative_to(root / "spark/src/test/java").with_suffix("").as_posix().replace("/", ".")
             if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+", name):
@@ -160,7 +162,7 @@ def inventory(component, root=ROOT):
             if package == "ie212/earthquake/spark/orchestration":
                 group = "orc-07-real-adapters" if path.stem == "RealEtlAdapterTest" else "orc-06-full-month"
             elif package == "ie212/earthquake/spark/ml":
-                group = ("mld-04-features" if path.stem in FEATURE_TESTS else
+                group = ("mld-05-export" if path.stem in EXPORT_TESTS else "mld-04-features" if path.stem in FEATURE_TESTS else
                          "mld-03-windows" if path.stem in WINDOW_TESTS else "mld-01-02-contract-audit")
             elif package in {"ie212/earthquake/spark/" + p for p in ("usgs", "jma", "silver", "gold")}:
                 group = {"usgs": "usgs-bronze", "jma": "jma-bronze", "silver": "silver", "gold": "gold"}[relative.parent.name]

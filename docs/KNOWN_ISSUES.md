@@ -9,11 +9,16 @@ Bổ sung MLI-03 ngày **19/10/2026**, branch `feat/mli-03-runtime-acceptance` t
 main `b92bf2b`: component storage và Airflow DAG.test đã nghiệm thu; các dòng
 khác bên dưới giữ mốc DOC-01, không được coi là đã re-audit toàn dự án.
 
+Bổ sung MLD-05 ngày **21/10/2026**: validator/snapshot/export/trusted handoff
+đã nghiệm thu bằng synthetic full-period component QA và credential-free
+local loader; xem [evidence](./evidence/MLD-05_RUNTIME_ACCEPTANCE.md).
+Không coi đó là full research-data backfill, model run hoặc nghiệm thu build DAG.
+
 | Task / trạng thái tại mốc | Đã có | Còn thiếu / tác động |
 |---|---|---|
 | [QA-01 — Daily E2E](./task/tasks/QA-01.md), In Progress | Collector, offline tests; scheduled run cũ SourcesReady được nhận diện NOT_READY | Deployment ORC-07 mới, eligible request và scheduled run Published + KPI SQL thật; không dùng DAG.test thay cron |
 | [ORC-07 — Real ETL adapters](./task/tasks/ORC-07.md), Done | Bounded real MinIO/Iceberg/Trino/Airflow DAG.test và rerun | Không có nghĩa deployment source-only trên máy đã được cập nhật; xem QA-01 |
-| [MLD-05 — Validate feature snapshot/export](./task/tasks/MLD-05.md), Ready | Contract và feature engine upstream | Official coverage/audit, VALIDATED/EXPORTED bundle; pilot không thay official dataset |
+| [MLD-05 — Validate feature snapshot/export](./task/tasks/MLD-05.md), Done (component, 21/10) | Coverage/audit gate, pinned snapshots, portable export/reuse, trusted handoff và local loader đã kiểm | Catalog thật toàn kỳ chưa nghiệm thu; MLI-02 còn live build DAG, EXP-02 còn official fit/Colab; pilot không thay official dataset |
 | [MLI-02 — Build dataset DAG](./task/tasks/MLI-02.md), In Progress | Graph, exact identity, runner boundary và mock tests | Live Spark/export/registry acceptance sau MLD-05; mock export không mở Colab/official lifecycle |
 | [MLI-03 — Result import](./task/tasks/MLI-03.md), Done | [Synthetic QA trên MinIO/Catalog/Trino + production runner + 9/9 Airflow tasks](./evidence/MLI-03_RUNTIME_ACCEPTANCE.md); rejects/rerun/recovery đạt | Official dataset/model run còn thuộc MLD-05/MLI-02/EXP-02..04; không APPROVED hoặc Gold→ML E2E |
 | [EXP-02 — Baselines](./task/tasks/EXP-02.md), In Progress | Ba baseline per-window, local smoke/gate; DOC-01 đã chạy fresh-kernel pilot thật | Colab parity và official run sau MLD-05; không có kết luận thuật toán nào tốt hơn |
