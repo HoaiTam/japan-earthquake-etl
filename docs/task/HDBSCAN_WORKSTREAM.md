@@ -68,11 +68,16 @@ Trong [kế hoạch tuần 4 mở rộng](./WEEK_4_PARALLEL_PLAN.md), MLD-01..03
 MLI-01 được đưa lên tuần 4: Trang pin snapshot/result contract, ThanhTris audit/
 Mc/window pilot. JMA-05 trong [nhóm mở đường](./WEEK_4_PREP_GROUP.md) bổ sung
 sample reproduction 2000, không tune reproduction bằng sample 2023 extension.
-Kế hoạch tuần 4 ở trên là mốc lịch sử. [Tuần 5](./WEEK_5_PARALLEL_PLAN.md)
-giao MLD-04/05/EXP-01/02 cho rosy179, MLI-02 cho HoaiTam, MLI-03 cho ThanhTris.
+Kế hoạch tuần 4 ở trên là mốc lịch sử. [Tuần 5](./WEEK_5_PARALLEL_PLAN.md),
+đồng bộ 22/10 theo phân công gần nhất, giao MLD-04/05/EXP-01/02/03 và MLI-02
+cho rosy179, MLI-03/QA-02/03/04 cho ThanhTris; HoaiTam giữ ORC-06/07,
+DAT-02/QA-01/DOC-01. Tổng 15 Core task/86h, gồm 11 task giao việc + 4 mở đường;
+không thêm task/effort vào backlog 76 task/386h.
 DAT-02 giao HoaiTam (6h), tạo development bundle nhỏ; EXP-01 local harness
 phụ thuộc DAT-02/CON-03, không đợi official export MLD-05. EXP-02 local smoke
-PASSED trước Colab; official acceptance vẫn chờ MLD-05 EXPORTED. QA-04 dời tuần 6. MLD-01..03 không tự chuyển dataset thành EXPORTED khi feature/
+PASSED trước Colab; official acceptance vẫn cần dataset MLD-05 EXPORTED hợp lệ.
+QA-04 từng dời tuần 6, nay đưa lại tuần 5 và Done với runtime evidence riêng.
+MLD-01..03 không tự chuyển dataset thành EXPORTED khi feature/
 export chưa đạt, và pilot theo vài năm không đại diện toàn research period.
 
 ## 5. Dependency chính
@@ -120,7 +125,7 @@ thay scientific APPROVED hoặc nâng BUILDING thành EXPORTED.
 | `GLD-01/03/04` | `Done` theo task index hiện hành | Gold đã có component snapshot/Trino acceptance; không thay E2E toàn chuỗi |
 | `GLD-02` | `Backlog`, chuyển Stretch | Aggregate dashboard không nằm trên đường găng HDBSCAN |
 | `BI-01..05` | `Backlog`, chuyển Stretch | Power BI là output tùy chọn sau static report |
-| `QA/SEC/DOC/DEMO` | `Backlog/Ready`, scope cập nhật | Phải bao phủ external bundle, import gate và ML reproducibility |
+| `QA/SEC/DOC/DEMO` | Theo task index hiện hành, không suy trạng thái từ bảng tác động này | Phải bao phủ external bundle, import gate và ML reproducibility |
 
 Các task Foundation và USGS Bronze đã hoàn tất vẫn giữ `Done` vì phương án mới
 không làm mất evidence đã kiểm chứng. JMA, Silver, Gold và các khối downstream

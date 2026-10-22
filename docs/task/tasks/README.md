@@ -32,9 +32,11 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
   Capacity tăng tốc là đề xuất, không phải khả năng thực tế đã xác nhận.
 
 Phân công hiện tại: [Kế hoạch tuần 5](../WEEK_5_PARALLEL_PLAN.md),
-19–25/10/2026: HoaiTam 32h, ThanhTris 17h, rosy179 23h — **12 task Core/72h**,
-ORC-06 đã được HoaiTam nhận thay ThanhTris. Giữ 4h nghiệm thu tồn + 20h review
-thì budget thành 40/24/32h; cần replan capacity, không tự coi còn 32h/người.
+19–25/10/2026, đồng bộ 22/10 theo bảng gần nhất: **11 task giao việc/61h +
+4 task mở đường/25h = 15 task Core/86h**; HoaiTam 31h, ThanhTris 21h,
+rosy179 34h. MLI-02 chuyển rosy179; DOC-01/QA-04/EXP-03 về tuần 5.
+ORC-06 giữ HoaiTam. Giữ 4h nghiệm thu tồn + 20h review thì tổng budget tham
+khảo 110h, chưa xác nhận capacity; effort bao gồm task Done, không phải giờ còn lại.
 ORC-06/07 bổ sung implementation full-month state/real adapters, không dồn vào
 QA-01 5h. ORC-02 đã Done sau nghiệm thu live 2026-10-15:
 scheduled/first/rerun/contention, 7 tasks mỗi daily run và pause/lease readback đạt;
@@ -48,7 +50,8 @@ MLD-02/03 giữ assignee rosy179, reviewer HoaiTam; task mới reviewer unassign
 [Kế hoạch tuần 4](../WEEK_4_PARALLEL_PLAN.md) và [nhóm mở đường tuần 4](../WEEK_4_PREP_GROUP.md)
 là mốc lịch sử 89h Core, không cộng lại effort đã làm. BI-02 dời tuần 8.
 DAT-02 mới giao HoaiTam, 6h; Jupyter pilot trước, Colab chỉ sau local gate
-EXP-02 PASSED. QA-04 dời tuần 6 để giữ tải; không giảm scope recovery.
+EXP-02 PASSED. QA-04 từng dời tuần 6 ở mốc cũ, nay đưa lại tuần 5 và đã Done;
+không giảm scope recovery. Tổng backlog/effort giữ nguyên 76 task/386h.
 Ready chỉ khi hard dependencies Done; Backlog được làm fixture/interface trước,
 không dùng mock/pilot chưa đủ coverage làm evidence nghiệm thu thật.
 
@@ -160,7 +163,7 @@ fixture/inventory; assignee `HoaiTam`, reviewer `unassigned`. Xem
 |---|---:|---|---|---|---:|---|
 | [EXP-01](./EXP-01.md) - Tạo Jupyter harness và chuẩn bị chuyển sang Colab | 5 | Jupyter-first harness | Core | P0 | 5h | Done |
 | [EXP-02](./EXP-02.md) - Chạy Window, DBSCAN và HDBSCAN global | 5 | Baseline algorithms | Core | P0 | 7h | In Progress |
-| [EXP-03](./EXP-03.md) - Xây HDBSCAN adaptive và giải quyết multi-sequence | 7 | Adaptive HDBSCAN | Core | P0 | 6h | In Progress |
+| [EXP-03](./EXP-03.md) - Xây HDBSCAN adaptive và giải quyết multi-sequence | 5 | Adaptive HDBSCAN | Core | P0 | 6h | In Progress |
 | [EXP-04](./EXP-04.md) - Đánh giá quality, physical consistency và stability | 7 | Scientific evaluation | Core | P0 | 7h | Backlog |
 | [EXP-05](./EXP-05.md) - Chạy out-of-period extension 2018-2023 | 7 | Out-of-period evaluation | Core | P0 | 5h | Backlog |
 
@@ -188,13 +191,13 @@ fixture/inventory; assignee `HoaiTam`, reviewer `unassigned`. Xem
 
 | Task | Tuần | Workstream | Scope | Priority | Effort | Trạng thái |
 |---|---:|---|---|---|---:|---|
-| [DOC-01](./DOC-01.md) - Cập nhật tài liệu theo từng block | 6 | Documentation | Core | P0 | 4h | Done |
+| [DOC-01](./DOC-01.md) - Cập nhật tài liệu theo từng block | 5 | Documentation | Core | P0 | 4h | Done |
 | [DEMO-01](./DEMO-01.md) - Chuẩn bị dữ liệu và kịch bản demo | 8 | Demo | Core | P0 | 4h | Backlog |
 | [DEMO-02](./DEMO-02.md) - Rehearsal và tạo release candidate | 8 | Release | Core | P0 | 6h | Backlog |
 | [OPS-01](./OPS-01.md) - Smoke test backup và restore metadata | 6 | Backup and restore | Stretch | P2 | 4h | Backlog |
 | [QA-01](./QA-01.md) - Chạy E2E daily đa nguồn | 5 | E2E | Core | P0 | 5h | In Progress |
 | [QA-02](./QA-02.md) - Test rerun, duplicate và late revision | 5 | Idempotency | Core | P0 | 5h | Done |
 | [QA-03](./QA-03.md) - Kiểm thử JMA historical backfill | 5 | Historical backfill | Core | P0 | 5h | Done |
-| [QA-04](./QA-04.md) - Test failure và recovery theo tầng | 6 | Failure recovery | Core | P0 | 4h | Done |
+| [QA-04](./QA-04.md) - Test failure và recovery theo tầng | 5 | Failure recovery | Core | P0 | 4h | Done |
 | [QA-05](./QA-05.md) - Profile dữ liệu lịch sử và tài nguyên local | 8 | Performance | Stretch | P2 | 4h | Backlog |
 | [SEC-01](./SEC-01.md) - Review secret và bề mặt truy cập | 4 | Security | Core | P1 | 4h | Review |

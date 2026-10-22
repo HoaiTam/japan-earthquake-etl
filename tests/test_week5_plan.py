@@ -46,6 +46,10 @@ class Week5PlanTest(unittest.TestCase):
             "docs/task/tasks/DAT-02.md",
             "docs/task/tasks/ORC-06.md",
             "docs/task/tasks/ORC-07.md",
+            "docs/task/tasks/DOC-01.md",
+            "docs/task/tasks/QA-04.md",
+            "docs/task/tasks/EXP-03.md",
+            "docs/task/tasks/MLI-02.md",
             "scripts/check-week-5-plan.sh",
             "tests/test_week5_plan.py",
         )
@@ -67,9 +71,28 @@ class Week5PlanTest(unittest.TestCase):
         self.change("DAT-02", 'assignee: "HoaiTam"', 'assignee: "rosy179"')
         self.rejects("DAT-02 owner")
 
-    def test_recovery_is_scheduled_next_week(self):
-        self.change("QA-04", "week: 6", "week: 5")
-        self.rejects("expected 12 Core week-5 tasks")
+    def test_latest_assignment_weeks_cannot_revert_to_old_plan(self):
+        for task, old_week in (("DOC-01", 6), ("QA-04", 6), ("EXP-03", 7)):
+            with self.subTest(task=task):
+                self.change(task, "week: 5", f"week: {old_week}")
+                self.rejects(f"{task} week must be 5")
+                self.change(task, f"week: {old_week}", "week: 5")
+
+    def test_mli02_owner_tracks_latest_assignment(self):
+        self.change("MLI-02", 'assignee: "rosy179"', 'assignee: "HoaiTam"')
+        self.rejects("MLI-02 owner must be rosy179")
+
+    def test_unassigned_extra_core_task_cannot_enter_week5(self):
+        self.change("MLI-04", "week: 8", "week: 5")
+        self.rejects("expected 15 Core week-5 tasks")
+
+    def test_adaptive_dependency_is_not_removed_by_rescheduling(self):
+        self.change("EXP-03", 'dependencies: ["EXP-02"]', 'dependencies: []')
+        self.rejects("EXP-03 lacks EXP-02 dependency")
+
+    def test_build_dag_keeps_real_export_dependency(self):
+        self.change("MLI-02", ', "MLD-05"]', "]")
+        self.rejects("MLI-02 lacks MLD-05 dependency")
 
     def test_feature_pilot_cycle_rejected(self):
         self.change("MLD-04", 'dependencies: ["MLD-03"]',
@@ -82,7 +105,7 @@ class Week5PlanTest(unittest.TestCase):
 
     def test_effort_drift_fails(self):
         self.change("ORC-06", "effort_hours: 8", "effort_hours: 9")
-        self.rejects("HoaiTam expected 32h")
+        self.rejects("HoaiTam expected 31h")
 
     def test_orc06_owner_tracks_user_takeover(self):
         self.change("ORC-06", 'assignee: "HoaiTam"', 'assignee: "ThanhTris"')

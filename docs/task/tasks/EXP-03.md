@@ -1,7 +1,7 @@
 ---
 task_id: "EXP-03"
 status: "In Progress"
-week: 7
+week: 5
 block: "H - Experiment"
 workstream: "Adaptive HDBSCAN"
 scope: "Core"
@@ -60,18 +60,25 @@ adaptive parameter analysis đang chạy, miễn cùng output contract.
 - **Trạng thái:** In Progress
 - **Assignee:** rosy179
 - **Reviewer:** unassigned
-- **Evidence / PR:** [EXP-03 evidence](../../evidence/EXP-03.md)
+- **Evidence / PR:** [EXP-03 evidence](../../evidence/EXP-03.md), [PR #86](https://github.com/HoaiTam/japan-earthquake-etl/pull/86) đã merge implementation. Đồng bộ tuần 5 ngày 22/10/2026 theo phân công gần nhất. Evidence notebook hiện là isolated_exec/fallback, không thay fresh-kernel acceptance trên input hợp lệ; dependency EXP-02 còn In Progress.
 - **Kỹ năng phù hợp:** HDBSCAN, parameter policies, entity resolution
 
 ## Checklist bàn giao
 
 - [x] Deliverable và test/evidence tồn tại trong repository.
-- [x] Acceptance criteria đã được kiểm tra.
+- [ ] Acceptance toàn task: unit/contract rules đã kiểm; còn reproduction run artifacts và nghiệm thu notebook fresh kernel trên input hợp lệ sau EXP-02.
 - [x] Contract/docs đã cập nhật và không chứa secret/data dump.
-- [x] Reviewer độc lập được khuyến nghị cho P0.
+- [ ] Reviewer độc lập xác nhận (khuyến nghị cho P0); reviewer unassigned, chưa có approval.
+
+## Phân công tuần 5 — đồng bộ 22/10/2026
+
+- Owner rosy179, 6h Core. Lịch ban đầu tuần 7; bảng phân công gần nhất kéo
+  task lên tuần 5, không thêm task/effort hoặc giảm hard dependency.
+- [EXP-02 — Chạy Window, DBSCAN và HDBSCAN global](./EXP-02.md) còn Colab
+  parity/official acceptance. Giữ task này In Progress; fallback report không
+  được dùng để mở Colab gate hoặc tuyên bố adaptive tốt hơn.
 
 ## Tài liệu liên quan
 
 - [Roadmap HDBSCAN](../HDBSCAN_WORKSTREAM.md)
 - [EXP-02](./EXP-02.md)
-

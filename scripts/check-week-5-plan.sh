@@ -23,9 +23,9 @@ lane() {
     done
     [ "$total" -eq "$expected" ] || fail "$owner expected ${expected}h, found ${total}h"
 }
-lane HoaiTam 32 DAT-02 ORC-06 ORC-07 MLI-02 QA-01
-lane ThanhTris 17 MLI-03 QA-02 QA-03
-lane rosy179 23 MLD-04 MLD-05 EXP-01 EXP-02
+lane HoaiTam 31 DAT-02 ORC-06 ORC-07 QA-01 DOC-01
+lane ThanhTris 21 MLI-03 QA-02 QA-03 QA-04
+lane rosy179 34 MLD-04 MLD-05 EXP-01 EXP-02 EXP-03 MLI-02
 count=0
 for file in "$tasks_dir"/*-[0-9][0-9].md; do
     id=${file##*/}; id=${id%.md}
@@ -33,7 +33,7 @@ for file in "$tasks_dir"/*-[0-9][0-9].md; do
         count=$((count + 1))
     fi
 done
-[ "$count" -eq 12 ] || fail "expected 12 Core week-5 tasks, found $count"
+[ "$count" -eq 15 ] || fail "expected 15 Core week-5 tasks, found $count"
 for id in QA-01 QA-02 QA-03 QA-04; do
     grep '^dependencies: ' "$tasks_dir/$id.md" | grep -F '"ORC-07"' >/dev/null ||
         fail "$id lacks real adapter hard gate"
@@ -46,13 +46,17 @@ requires() {
         fail "$1 lacks $2 dependency"
 }
 [ "$(field effort_hours DAT-02)" = 6 ] || fail 'DAT-02 must be 6h'
-[ "$(field week QA-04)" = 6 ] || fail 'QA-04 must be deferred to week 6'
+for id in DOC-01 QA-04 EXP-03; do
+    [ "$(field week "$id")" = 5 ] || fail "$id must follow the current week-5 assignment"
+done
 requires DAT-02 MLD-03
 requires DAT-02 MLD-04
 requires EXP-01 DAT-02
 requires EXP-02 EXP-01
 requires EXP-02 DAT-02
 requires EXP-02 MLD-05
+requires EXP-03 EXP-02
+requires MLI-02 MLD-05
 for id in DAT-02 MLD-04 MLD-05; do
     if grep '^dependencies: ' "$tasks_dir/$id.md" | grep -E '"EXP-0[12]"' >/dev/null; then
         fail "$id creates reverse experiment dependency"
@@ -69,4 +73,4 @@ for id in MLD-02 MLD-03; do
     [ "$(field assignee "$id")" = rosy179 ] || fail "$id owner exception lost"
     [ "$(field reviewer "$id")" = HoaiTam ] || fail "$id reviewer exception lost"
 done
-printf 'Week 5 plan check passed: 12 Core tasks, 72h (32/17/23); ORC-06 accepted by HoaiTam; DAT-02 Jupyter first, Colab gated, QA-04 week 6.\n'
+printf 'Week 5 plan check passed: 15 Core tasks, 86h (31/21/34); 11 weekly tasks + 4 prerequisites; MLI-02 rosy179; DOC-01/QA-04/EXP-03 week 5; Jupyter first, Colab gated.\n'
