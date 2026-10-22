@@ -12,7 +12,7 @@ DOC-01/QA-04/EXP-03 chuyển lịch tuần 5, không đổi scope hoặc accepta
 
 | Task / trạng thái tại 22/10 | Đã có | Còn thiếu / tác động |
 |---|---|---|
-| [QA-01 — Daily E2E](./task/tasks/QA-01.md), In Progress | Collector, offline tests; scheduled run cũ SourcesReady được nhận diện NOT_READY | Deployment ORC-07 mới, eligible request và scheduled run Published + KPI SQL thật; không dùng DAG.test thay cron |
+| [QA-01 — Daily E2E](./task/tasks/QA-01.md), In Progress | Collector/offline tests; scheduled run cũ NOT_READY; thêm thiết kế current-month 22/10 (DESIGN_ONLY) | Implementation v2 + deployment/scheduled run operational 2026 và KPI SQL thật; không dùng planner/DAG.test thay live evidence |
 | [ORC-07 — Real ETL adapters](./task/tasks/ORC-07.md), Done | Bounded real MinIO/Iceberg/Trino/Airflow DAG.test và rerun | Không có nghĩa deployment source-only trên máy đã được cập nhật; xem QA-01 |
 | [MLD-05 — Validate feature snapshot/export](./task/tasks/MLD-05.md), Done (component, 21/10) | Coverage/audit gate, pinned snapshots, portable export/reuse, trusted handoff và local loader đã kiểm | Catalog thật toàn kỳ chưa nghiệm thu; MLI-02 còn live build DAG, EXP-02 còn official fit/Colab; pilot không thay official dataset |
 | [MLI-02 — Build dataset DAG](./task/tasks/MLI-02.md), In Progress; owner rosy179 | Graph, exact identity, runner boundary và mock tests; MLD-05 exporter component đã Done | Nối real exporter/registry và nghiệm thu live build DAG; mock export không mở Colab/official lifecycle |
@@ -30,9 +30,12 @@ DOC-01/QA-04/EXP-03 chuyển lịch tuần 5, không đổi scope hoặc accepta
 
 ## Các giới hạn phải nói rõ khi chạy
 
-- **Chưa có task** chốt current-month/as-of-cutoff và JMA sau 2023. ORC-06/07
-  v1 chỉ complete closed months đủ halo. Không bật daily publication 2026 bằng
-  request historical; vẫn có thể ingest USGS và đạt SourcesReady độc lập.
+- **QA-01 — Daily E2E** đã bổ sung [thiết kế current-month/as-of-cutoff](./specs/CURRENT_MONTH_AS_OF_CUTOFF.md)
+  theo lựa chọn của owner ngày 22/10; policy/planner chỉ DESIGN_ONLY, không
+  triển khai v2. **Chưa có task ID/effort riêng** cho work package runtime v2
+  và JMA sau baseline. ORC-06/07 v1 vẫn chỉ complete closed months đủ halo;
+  không bật daily publication 2026 bằng request historical hoặc nâng
+  operational provisional thành ML-eligible. USGS ingest/SourcesReady vẫn độc lập.
 - **DAT-02 — Development pilot** có 279 candidate rows / 2 mainshock, input JMA
   chỉ khoảng 14 ngày đầu năm 2000. PARTIAL và research_ready=false; không phải
   toàn năm, toàn 40 năm hoặc chứng minh catalog completeness. Counts là grain

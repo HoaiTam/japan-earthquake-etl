@@ -134,9 +134,12 @@ Không unpause tất cả DAG để test.
 
 **Không bật unattended current-2026 real publication với inventory JMA đến
 2023 và historical request**. ORC-06/07 v1 chỉ closed months; chính sách
-current-month/as-of-cutoff/JMA mới chưa có task riêng.
-QA-01 còn scheduled acceptance; MLD-05 còn official export; MLI-02/03 còn live
-handoff/import. Không sửa status/receipt để làm demo xanh.
+[current-month/as-of-cutoff](./specs/CURRENT_MONTH_AS_OF_CUTOFF.md) đã được
+QA-01 thiết kế ngày 22/10 nhưng chỉ DESIGN_ONLY. Implementation v2 và JMA sau
+baseline chưa có task ID/effort riêng; chưa có lệnh live cho policy này.
+QA-01 còn scheduled acceptance; MLD-05 và MLI-03 đã Done ở mức component với
+bounded/synthetic runtime evidence, chưa thay official research dataset/model
+run. MLI-02 còn nối exporter/handoff live. Không sửa status/receipt để làm demo xanh.
 
 ## 6. Chẩn đoán và phục hồi
 

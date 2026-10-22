@@ -8,9 +8,16 @@ Không nối kết quả của các smoke run hoặc namespace khác nhau để 
 nghiệm thu giả. Output là report JSON/Markdown để team kiểm tra input, counts,
 run identity, sáu snapshots và upstream evidence cho MLD-01.
 
+Các lệnh/report trong runbook này là collector historical **`qa-01-v1`**.
+Thiết kế operational v2 bên dưới chưa thay behavior hoặc eligibility của nó.
+
 Trạng thái triển khai: collector và test offline đã có. **Chưa nghiệm thu E2E
 deployment thành công**; xem [evidence ngày 19/10/2026](../evidence/QA-01.md).
 Không thay đổi acceptance criteria để tính ORC-07 `DAG.test` thành scheduled run.
+
+Ngày 22/10/2026, owner chọn bổ sung [thiết kế current-month/as-of-cutoff](../specs/CURRENT_MONTH_AS_OF_CUTOFF.md)
+cho daily 2026. Policy/planner mới chỉ **DESIGN_ONLY**, chưa thay collector v1
+hoặc cho phép chạy/publish current-month. Xem [evidence thiết kế](../evidence/QA-01_CURRENT_MONTH_DESIGN.md).
 
 ## 2. Các thành phần
 
@@ -20,6 +27,7 @@ Không thay đổi acceptance criteria để tính ORC-07 `DAG.test` thành sche
 | `scripts/qa-01.py` | Preflight service healthy; `compose exec` vào scheduler hiện có; lưu report riêng mỗi lần |
 | `make test-qa-01` | Test synthetic identity/receipt/count/SQL/redaction và fail-closed từng phase của ORC-07; không Docker/nguồn thật |
 | `make smoke-qa-01 QA_01_RUN_ID=...` | Read-only collector cho exact scheduled run, **không chạy pipeline** |
+| `current_month_contract.py` + policy `current_month_asof_v1.json` | Planner metadata offline/design-only; không capture, ETL hay publish; tests nằm trong `make test-qa-01` |
 
 Java/Spark vẫn sở hữu parse/transform/dedup/link/commit/publish. Python ở đây
 chỉ đối chiếu metadata và đọc lại KPI qua SQL, không triển khai ETL thay Java.
@@ -51,9 +59,11 @@ bounded có lịch/coverage tương thích được owner chuẩn bị và revie
 Collector không tự sửa timetable, unpause, thay config hoặc tạo historical
 scheduled DagRun bằng SQL.
 
-**Chưa có task** chốt chính sách current-month/as-of-cutoff và JMA sau 2023.
-Nếu muốn daily 2026 thay vì nghiệm thu bounded closed-month thì phải chốt phạm
-vi/contract và giao task riêng; không nằm trong bản vá QA-01 này.
+**QA-01 — Daily E2E** đã bổ sung thiết kế current-month theo lựa chọn của owner,
+nhưng còn thiếu implementation v2 ở source capture/resolver/adapters/publication
+và collector. Chưa có task ID/effort riêng cho work package v2 hoặc mở rộng JMA
+sau baseline. Không bật mode `real` với current-month request theo contract v1;
+không dùng lệnh smoke bên dưới để tuyên bố daily 2026 operational đã nghiệm thu.
 
 ## 4. Chạy và nhận biết kết quả
 
@@ -149,6 +159,11 @@ tầng khi fail và KPI SQL thật. QA-02 — rerun/duplicate/revision, QA-03 �
 backfill/coverage, QA-04 — failure/recovery live là các phạm vi riêng, không
 tuyên bố đã hoàn tất cùng collector này. MLD-05 — export official dataset vẫn
 cần lifecycle EXPORTED; `ml_upstream_eligible` không nâng lifecycle dataset.
+
+Phần mở rộng current-month phải có collector/report v2 riêng. Operational
+PASSED không được tự cấp `ml_upstream_eligible=true` như historical v1; giữ
+`OBSERVED_AS_OF/PROVISIONAL`, ML-ineligible và aliases tách biệt. 17 SQL hiện
+hành là check v1, chưa phải evidence/protocol v2.
 
 Khi gặp lỗi: giữ report/run/log/lease hiện trạng, kiểm tra đúng phase với runbook
 ORC-07. Không clear/mark-success, xóa warehouse, foreign lease hoặc `down -v`.

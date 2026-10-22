@@ -105,10 +105,17 @@ tie-break xác định tại `SLV-06`.
 | Datum | Japanese Geodetic Datum 2000 theo ghi chú của JMA |
 | Tần suất | Initial backfill theo năm; sau đó kiểm tra file mới/thay đổi ít nhất hằng tuần |
 
-Trang JMA hiện công bố file theo năm đến 2023 và có file riêng cho 1984, vì vậy
-`1984–2023` là baseline 40 năm có thể tái lập. Đây là range cố định, không phải
-cửa sổ rolling: khi có năm mới, nhóm có thể append sau review nhưng không được
-tự bỏ năm đầu để vẫn giữ đúng “40 năm”.
+Project pin `1984–2023` làm baseline 40 năm, có file riêng cho 1984. Đây là
+range cố định, không phải giới hạn dữ liệu mới nhất của JMA hoặc cửa sổ rolling.
+Kiểm tra [trang nguồn](https://www.data.jma.go.jp/eqev/data/bulletin/hypo.html)
+ngày 22/10/2026 thấy đã có link năm 2024; inventory project vẫn giữ 2023.
+Nhóm có thể append sau review/release pin nhưng không tự bỏ năm đầu để vẫn
+giữ đúng “40 năm”, và không suy có link năm mới là có daily data năm 2026.
+
+[Thiết kế current-month/as-of-cutoff](./CURRENT_MONTH_AS_OF_CUTOFF.md) của QA-01
+tách operational USGS 2026 (`OBSERVED_AS_OF/PROVISIONAL`) khỏi baseline JMA và
+research completeness. Hiện **DESIGN_ONLY**, không đổi coverage contract hoặc
+historical/official ML gates của v1.
 
 JMA có thể sửa archive cũ. Update history ghi nhận dữ liệu từ tháng 4 đến tháng
 12 năm 2023 được mở rộng vào ngày 15/12/2025. Vì vậy URL/năm không đủ làm

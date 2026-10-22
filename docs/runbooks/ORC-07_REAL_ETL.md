@@ -128,8 +128,10 @@ template zero SHA hoặc file-backed ORC-06 request trực tiếp trên MinIO.
 **Không bật current-2026 unattended daily với inventory JMA tới 2023.**
 ORC-06 v1 chứng nhận closed month đủ halo; hỗ trợ current month cần version
 contract/proof/tests rõ. Nếu chưa có request đủ coverage, để source-only.
-Mở rộng current-month-as-of-cutoff ngoài scope ORC-06/ORC-07 v1 hiện chưa có
-task riêng cho phiên bản mới; không coi bản v1 đã nghiệm thu là hỗ trợ scope đó.
+Mở rộng current-month-as-of-cutoff ngoài scope ORC-06/ORC-07 v1. QA-01 đã bổ
+sung [thiết kế DESIGN_ONLY](../specs/CURRENT_MONTH_AS_OF_CUTOFF.md) ngày 22/10;
+chưa có implementation v2 hoặc task ID/effort triển khai riêng. Không dùng
+policy JSON thiết kế để bật runtime; không coi v1 đã nghiệm thu là hỗ trợ scope đó.
 
 Source lease owner là exact dag/run; operation path là alias hash. Khi thất
 bại, kiểm tra `execution.json`, failure/phase private log, exact Gold journals

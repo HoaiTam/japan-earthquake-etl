@@ -38,7 +38,11 @@ rosy179 34h. MLI-02 chuyển rosy179; DOC-01/QA-04/EXP-03 về tuần 5.
 ORC-06 giữ HoaiTam. Giữ 4h nghiệm thu tồn + 20h review thì tổng budget tham
 khảo 110h, chưa xác nhận capacity; effort bao gồm task Done, không phải giờ còn lại.
 ORC-06/07 bổ sung implementation full-month state/real adapters, không dồn vào
-QA-01 5h. ORC-02 đã Done sau nghiệm thu live 2026-10-15:
+QA-01 5h. QA-01 vẫn In Progress; ngày 22/10 owner chọn bổ sung
+[thiết kế current-month/as-of-cutoff](../../specs/CURRENT_MONTH_AS_OF_CUTOFF.md)
+cho daily 2026, hiện DESIGN_ONLY. Chưa có runtime v2/live acceptance; phần triển
+khai v2 chưa có task ID/effort riêng, không cộng ngầm vào budget 386h.
+ORC-02 đã Done sau nghiệm thu live 2026-10-15:
 scheduled/first/rerun/contention, 7 tasks mỗi daily run và pause/lease readback đạt;
 xem [evidence](../../evidence/ORC-02_LIVE_ACCEPTANCE.md).
 FND-01 đã Done: cold/warm startup, hai foundation smoke và hai USGS live smoke

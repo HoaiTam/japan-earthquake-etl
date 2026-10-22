@@ -60,8 +60,11 @@ Giữ buffer cũ theo người cho ra 39/28/43h. Không tự tăng effort hoặc
 - **MLI-02 — Build dataset DAG:** rosy179 nối real MLD-05 exporter vào runner,
   kiểm DAG/registry/retry/handoff thật. Mock/offline PASS không hoàn tất task.
 - **QA-01 — Daily E2E:** HoaiTam nghiệm thu scheduled deployment có eligible
-  input, counts, six snapshots/publication và KPI SQL. Current-month/as-of-cutoff
-  và JMA sau 2023 chưa có task contract riêng; không lấy request lịch sử giả daily.
+  input, counts, six snapshots/publication và KPI SQL. Ngày 22/10 owner chọn
+  bổ sung [thiết kế current-month/as-of-cutoff](../specs/CURRENT_MONTH_AS_OF_CUTOFF.md)
+  cho daily 2026; policy/planner DESIGN_ONLY, không phải live acceptance.
+  Work package implementation v2 và JMA sau baseline chưa có task ID/effort
+  riêng, không tính nằm trong 5h QA ban đầu; không lấy request lịch sử giả daily.
 - **EXP-02 — Baselines:** local fresh-kernel pilot đã đạt; còn Colab parity và
   official EXPORTED dataset run. Không nâng DAT-02 PARTIAL thành research-ready.
 - **EXP-03 — Adaptive/multi-sequence:** còn reproduction run/fresh-kernel
