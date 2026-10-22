@@ -132,10 +132,11 @@ lượt là `bronze/usgs/...` và `${SILVER_PREFIX}/current-month/...` trong dat
 
 ## 5. Giới hạn và bước tiếp theo
 
-**Cập nhật sau bước 2:** đã có [Gold/publication operational và research/ML
+**Cập nhật sau bước 3:** đã có [Gold/publication operational và research/ML
 consumer guards](./CURRENT_MONTH_GOLD_PUBLICATION.md), có Iceberg local/SQL
-fixture tests; chưa MinIO/Trino live acceptance. **QA-01 — Daily E2E** còn bước
-3 Airflow/collector v2 + scheduled acceptance 2026 thật. Chưa có task ID riêng
+fixture tests; chưa MinIO/Trino live acceptance PASSED. [Daily wiring/collector v2](./CURRENT_MONTH_DAILY.md)
+đã triển khai; **QA-01 — Daily E2E** còn scheduled acceptance 2026 thật, chờ
+23/10 07:15 sau failed resolve 22/10. Chưa có task ID riêng
 cho các work packages đó; component Source/Silver này không
 đổi ORC-06/07 historical v1 hoặc trạng thái Done của các task upstream.
 JMA sau baseline và ID/deletion reprocess ngoài scope cũng chưa có task riêng.

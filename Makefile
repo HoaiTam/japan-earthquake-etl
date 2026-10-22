@@ -146,6 +146,7 @@ test-docs: ## DOC-01 link checker và onboarding command regression; standard li
 
 test-qa-01: ## QA-01 identity/chain/count/SQL guards + ORC-07 blocker tests offline; không Docker
 	@python3 -m unittest discover -s airflow/tests -p 'test_qa_01_*.py'
+	@python3 -m unittest discover -s airflow/tests -p 'test_current_month_runtime.py'
 	@python3 -m unittest discover -s airflow/tests -p 'test_real_etl_runtime.py'
 	@python3 -m unittest discover -s tests -p 'test_qa_01_cli.py'
 	@python3 -m unittest discover -s tests -p 'test_current_month_cli.py'

@@ -42,8 +42,11 @@ QA-01 5h. QA-01 vẫn In Progress; ngày 22/10 owner chọn bổ sung
 [thiết kế current-month/as-of-cutoff](../../specs/CURRENT_MONTH_AS_OF_CUTOFF.md)
 cho daily 2026; planner vẫn DESIGN_ONLY. Source/Silver và Gold/publication
 standalone components đã có trên PR #96; Gold có Iceberg local/SQL fixture
-tests và ML guards, chưa MinIO/Trino live acceptance, cron/collector v2 hoặc
-scheduled acceptance. Work packages còn lại chưa có task ID/effort riêng, không cộng ngầm vào budget 386h.
+tests và ML guards. Daily wiring/collector v2 đã triển khai; scheduled 22/10
+failed ở resolve trước ghi lake, đã sửa SDK enum. Owner giữ lịch 07:15 để chờ
+23/10; chưa MinIO/Trino live/scheduled acceptance PASSED. Xem
+[evidence](../../evidence/QA-01_CURRENT_MONTH_DAILY.md). Work packages còn lại
+chưa có task ID/effort riêng, không cộng ngầm vào budget 386h.
 ORC-02 đã Done sau nghiệm thu live 2026-10-15:
 scheduled/first/rerun/contention, 7 tasks mỗi daily run và pause/lease readback đạt;
 xem [evidence](../../evidence/ORC-02_LIVE_ACCEPTANCE.md).

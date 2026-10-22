@@ -63,5 +63,13 @@ class Qa01CliTest(unittest.TestCase):
         with patch.object(cli, "ROOT", self.root), patch.object(cli, "execute", side_effect=[self.health, Mock(returncode=0, stdout=b"", stderr=b"private")]):
             with self.assertRaisesRegex(RuntimeError, "COLLECTOR_REPORT_MISSING"): cli.collect(RUN, ".env", "compose.yaml")
 
+    def test_operational_v2_requires_provisional_and_false_ml_eligibility(self):
+        report={"task_id":"QA-01","report_version":"qa-01-v2","status":"PASSED","runtime_complete":True,"scheduled_run":True,
+                "run":{"run_id":RUN},"operational_only":True,"ml_upstream_eligible":False,"research_ready":False,
+                "coverage_mode":"OBSERVED_AS_OF","publication_quality":"PROVISIONAL","sql_readback":[{}]*42}
+        self.assertEqual(0,self.invoke(report,0)[0])
+        for change in ({"ml_upstream_eligible":True},{"research_ready":True},{"publication_quality":"OFFICIAL"},{"sql_readback":[]}):
+            with self.assertRaises(RuntimeError):self.invoke({**report,**change},0)
+
 
 if __name__ == "__main__": unittest.main()

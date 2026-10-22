@@ -8,8 +8,9 @@ Không nối kết quả của các smoke run hoặc namespace khác nhau để 
 nghiệm thu giả. Output là report JSON/Markdown để team kiểm tra input, counts,
 run identity, sáu snapshots và upstream evidence cho MLD-01.
 
-Các lệnh/report trong runbook này là collector historical **`qa-01-v1`**.
-Thiết kế operational v2 bên dưới chưa thay behavior hoặc eligibility của nó.
+Các ví dụ historical trong runbook này dùng **`qa-01-v1`**. Đã bổ sung
+[daily operational và collector `qa-01-v2`](./CURRENT_MONTH_DAILY.md), tự chọn
+theo current-month context của exact scheduled run; không đổi eligibility v1.
 
 Trạng thái triển khai: collector và test offline đã có. **Chưa nghiệm thu E2E
 deployment thành công**; xem [evidence ngày 19/10/2026](../evidence/QA-01.md).
@@ -19,10 +20,12 @@ Ngày 22/10/2026, owner chọn bổ sung [thiết kế current-month/as-of-cutof
 cho daily 2026. Policy/planner mới chỉ **DESIGN_ONLY**, chưa thay collector v1
 hoặc cho phép publish current-month. Đã bổ sung [Source/Silver standalone component](./CURRENT_MONTH_SOURCE_SILVER.md)
 và [Gold/publication standalone component](./CURRENT_MONTH_GOLD_PUBLICATION.md)
-theo yêu cầu tiếp theo trên PR #96; không phải daily wiring/scheduled acceptance.
-Gold mới kiểm Iceberg local/SQL fixture, chưa MinIO/Trino live acceptance.
+theo yêu cầu tiếp theo trên PR #96. Daily wiring/collector v2 đã triển khai,
+deploy local; scheduled 22/10 failed ở resolve trước ghi lake, đã vá SDK enum.
+Owner giữ 07:15 để chờ scheduled 23/10; chưa MinIO/Trino live acceptance PASSED.
 Xem [evidence thiết kế](../evidence/QA-01_CURRENT_MONTH_DESIGN.md),
 [Source/Silver](../evidence/QA-01_SOURCE_SILVER.md) và [Gold](../evidence/QA-01_GOLD_PUBLICATION.md).
+Evidence deployment: [daily v2](../evidence/QA-01_CURRENT_MONTH_DAILY.md).
 
 ## 2. Các thành phần
 
@@ -65,8 +68,8 @@ Collector không tự sửa timetable, unpause, thay config hoặc tạo histori
 scheduled DagRun bằng SQL.
 
 **QA-01 — Daily E2E** đã bổ sung thiết kế current-month theo lựa chọn của owner,
-Source/Silver và Gold/publication standalone + consumer guards đã triển khai;
-còn MinIO/Trino live component acceptance và Airflow/collector v2. Chưa có task ID/effort riêng cho work package còn lại hoặc mở rộng JMA
+Source/Silver, Gold/publication, consumer guards và Airflow/collector v2 đã
+triển khai; còn MinIO/Trino live/scheduled acceptance thành công. Chưa có task ID/effort riêng cho work package còn lại hoặc mở rộng JMA
 sau baseline. Không bật mode `real` với current-month request theo contract v1;
 không dùng lệnh smoke bên dưới để tuyên bố daily 2026 operational đã nghiệm thu.
 
@@ -165,10 +168,10 @@ backfill/coverage, QA-04 — failure/recovery live là các phạm vi riêng, kh
 tuyên bố đã hoàn tất cùng collector này. MLD-05 — export official dataset vẫn
 cần lifecycle EXPORTED; `ml_upstream_eligible` không nâng lifecycle dataset.
 
-Phần mở rộng current-month phải có collector/report v2 riêng. Operational
+Phần mở rộng current-month đã có collector/report v2 riêng. Operational
 PASSED không được tự cấp `ml_upstream_eligible=true` như historical v1; giữ
 `OBSERVED_AS_OF/PROVISIONAL`, ML-ineligible và aliases tách biệt. 17 SQL hiện
-hành là check v1, chưa phải evidence/protocol v2.
+hành là check v1; v2 đòi ít nhất 42 SQL readbacks, không dùng evidence v1 thay.
 
 Khi gặp lỗi: giữ report/run/log/lease hiện trạng, kiểm tra đúng phase với runbook
 ORC-07. Không clear/mark-success, xóa warehouse, foreign lease hoặc `down -v`.

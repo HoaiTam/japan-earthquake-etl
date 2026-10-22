@@ -58,6 +58,10 @@ class CurrentMonthGoldTest {
         var s1=silver(request("2026-10-01T00:15:00Z"));var r1=requestGold(s1,null);var p1=run(r1);
         assertTrue(p1.path("published").asBoolean());assertEquals("PROVISIONAL",p1.path("publication_quality").asText());
         assertFalse(p1.path("research_ready").asBoolean(true));assertFalse(p1.path("ml_upstream_eligible").asBoolean(true));
+        int writes=sql.mutations,fetchCount=calls.get();var keys=raw.list("");
+        var audit=CurrentMonthAudit.verify(r1,raw,resolver,sql);
+        assertEquals("PASSED",audit.path("status").asText());assertTrue(audit.path("read_only").asBoolean());
+        assertEquals(p1,audit.path("gold"));assertEquals(writes,sql.mutations);assertEquals(fetchCount,calls.get());assertEquals(keys,raw.list(""));
         int fetched=calls.get(),mutations=sql.mutations;assertEquals(p1,run(r1));assertEquals(fetched,calls.get());assertEquals(mutations,sql.mutations);
         var req2=request("2026-10-05T00:15:00Z");req2.putObject("baseline").set("operation_id",s1.path("operation_id"));
         ((ObjectNode)req2.path("baseline")).set("registry_sha256",s1.path("registry_sha256"));
@@ -130,6 +134,7 @@ class CurrentMonthGoldTest {
                         || q.equals("SELECT count(*) FROM "+plan.namespace()+".earthquake_event_current")) value=plan.count("event_current");
             }
             if(fail && q.contains("latitude NOT BETWEEN")) value=1;
+            if(q.contains(" WHERE coverage_mode<>")) value=0;
             return new GoldPublisher.Result(List.of(),List.of(JSON.createArrayNode().add(value)));
         }
     }

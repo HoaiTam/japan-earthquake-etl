@@ -154,9 +154,10 @@ snapshot với receipt, không chỉ thấy một alias tồn tại là PASS.
 
 ## 6. Giới hạn có tên để theo dõi
 
-- **QA-01 — Daily E2E:** bước 3 Airflow wiring/collector v2, JMA historical
-  readiness và genuine scheduled acceptance 2026 còn thiếu. Component runtime
-  chưa có MinIO/Trino live acceptance trong lần triển khai này; không ghi Done.
+- **QA-01 — Daily E2E:** [bước 3 Airflow wiring/collector v2](./CURRENT_MONTH_DAILY.md)
+  đã triển khai/deploy; scheduled 22/10 failed ở resolve trước ghi lake, đã sửa
+  SDK enum. Còn same-run JMA historical readiness/capture/Gold/Trino acceptance;
+  owner giữ lịch 07:15 chờ 23/10, không ghi Done trước report PASSED.
 - **QA-02 / QA-04:** regression fixture/recovery mới ở component không thay
   live replay/failure evidence cho operational scheduled chain.
 - **ORC-06/ORC-07, GLD-03/GLD-04:** historical v1 giữ nguyên; Done của v1 không
