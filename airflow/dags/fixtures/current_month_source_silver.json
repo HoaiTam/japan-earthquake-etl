@@ -1,0 +1,12 @@
+{
+  "contract_version": "current-month-source-silver-v1",
+  "run_context": {
+    "dag_id": "orc_02_daily_sources",
+    "run_id": "scheduled__2026-10-21T00:15:00Z",
+    "run_type": "scheduled",
+    "data_interval_start": "2026-10-21T00:15:00Z",
+    "data_interval_end": "2026-10-22T00:15:00Z",
+    "conf": {}
+  },
+  "baseline": null
+}

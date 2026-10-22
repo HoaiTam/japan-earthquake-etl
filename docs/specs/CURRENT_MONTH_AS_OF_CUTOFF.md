@@ -6,9 +6,10 @@ Ngày 22/10/2026, HoaiTam chọn thiết kế thêm current-month để phục v
 2026**, thay vì dùng scheduled run lịch sử làm nghiệm thu thay thế. Tài liệu
 này mở rộng phần thiết kế của [QA-01 — Daily E2E](../task/tasks/QA-01.md).
 
-**DESIGN_ONLY, chưa triển khai data-plane/deployment.** Có policy version hóa
-và planner metadata thuần, có unit tests; chưa có ingestion/coverage proof,
-Silver resolver, Gold publication hoặc collector v2 chạy live theo policy này.
+**Cập nhật bước 1/3 ngày 22/10:** đã triển khai [component Source capture và
+Silver](../runbooks/CURRENT_MONTH_SOURCE_SILVER.md) riêng với protocol
+`current-month-source-silver-v1`. Policy planner vẫn `DESIGN_ONLY`; không phải
+nút bật runtime. Chưa có Gold publication, daily wiring hoặc collector v2.
 ORC-06/07 v1 và collector `qa-01-v1` vẫn giữ nguyên gate `COMPLETE_MONTHS`.
 Không đổi một flag trong `.env` để kích hoạt thiết kế này.
 
@@ -128,8 +129,10 @@ biến API thành point-in-time snapshot.
   USGS-only provisional writer. Khi có JMA release mới cần một rebuild có
   policy và proof riêng, không tự promote output operational đang tồn tại.
 
-Phần xử lý ID/deletion/move/halo ở trên là yêu cầu thiết kế, **chưa có runtime
-v2**. Không dùng planner metadata làm bằng chứng chúng đã được xử lý.
+Component Source/Silver đã có guard missing ID, stale revision và move; chỉ
+cho phép move khi cả tháng cũ/mới nằm trong capture. Chưa có automatic ID
+readback/deletion handling hoặc replan ngoài scope. Không dùng planner metadata
+làm bằng chứng các phần còn thiếu đã được xử lý.
 
 ## 6. Protocol, identity và publication gate đề xuất
 
@@ -159,7 +162,7 @@ Official ML consumers phải fail-closed trước provisional policy, kể cả 
 `publication_status=PASSED`. MLD-01/MLD-05/MLI-02 không được coi một boolean
 `ml_upstream_eligible=true` của caller hoặc một alias chưa pin là authorization.
 
-## 7. Đã triển khai trong bản thiết kế này
+## 7. Thiết kế và component đã triển khai
 
 - `config/orchestration/current_month_asof_v1.json`: policy sealed, flags quyền
   publish/research/ML đều false; `release_status=DESIGN_ONLY`.
@@ -168,8 +171,14 @@ Official ML consumers phải fail-closed trước provisional policy, kể cả 
   SHA-256; không đọc credentials, không được import/wire vào daily runtime.
 - `airflow/tests/test_qa_01_current_month_contract.py`: tests deterministic,
   rollover/năm nhuận/seed, scope, invalid metadata và chống nâng policy.
-- `make test-qa-01` tự discover test mới. **Không có lệnh live current-month**
-  ở bản này; không đưa lệnh placeholder vào hướng dẫn vận hành.
+- `make test-qa-01` tự discover planner và host CLI guards.
+- `CurrentMonthCapture` / `CurrentMonthSilverResolver` / `CurrentMonthSourceSilverJob`:
+  component Java/Spark capture nguyên bản, observed coverage, revision/history
+  và Silver Parquet/registry/receipt tách biệt; không Gold hoặc cron mutation.
+- `make test-current-month`, `make prepare-current-month`, `make current-month-local`:
+  tests, explicit host preparation và opt-in source thật → file stores local.
+  Xem [runbook component](../runbooks/CURRENT_MONTH_SOURCE_SILVER.md). Chưa có
+  lệnh live full pipeline/scheduled acceptance cho current-month.
 
 `DESIGN_PLAN_ONLY`, `deployable=false`, `NOT_CAPTURED` và
 `observed_coverage_proven=false` là kết quả mong đợi, không phải lỗi deployment.
@@ -178,13 +187,14 @@ Planner không start Docker, trigger Airflow hay upload MinIO.
 ## 8. Điều kiện triển khai và nghiệm thu còn thiếu
 
 **QA-01 — Daily E2E** vẫn In Progress. Phần thiết kế đã bổ sung; còn cần một
-work package triển khai v2 riêng (**chưa có task ID riêng**, chưa ước lượng
-effort/đổi phân công tuần) trên các boundary hiện hữu:
+work package triển khai v2 còn lại (**chưa có task ID riêng**, chưa ước lượng
+effort/đổi phân công tuần). Owner yêu cầu bước 1 Source/Silver trước trên PR #96;
+component không thay acceptance của các boundary còn lại:
 
 | Boundary/task hiện hữu | Phần cần làm cho v2; không nằm trong Done của v1 |
 |---|---|
-| USG-01..06 / ORC-02 | Bounded monthly capture, new manifest proof, historical-readiness/event-coverage distinction; scheduler selection chính xác |
-| ORC-06 — Full-month resolver | Resolver observed-as-of riêng, month closure/halo/deletion guards và identity; không hạ v1 COMPLETE_MONTHS |
+| USG-01..06 / ORC-02 | Source component đã có chunk/manifest/observed proof; còn daily scheduler wiring và JMA historical readiness thực tế |
+| ORC-06 — Full-month resolver | Observed resolver riêng đã có bounded revision/history/closure guards; chưa automatic deletion/replan; không hạ v1 COMPLETE_MONTHS |
 | ORC-07 — Real adapters / GLD-03..04 | Versioned adapters, isolated operational namespace, commit/SQL/publication quality và aliases |
 | MLD-01 / MLD-05 / MLI-02 | Reject provisional policy ở research/official export boundary; không đổi các task Done chỉ vì design mới |
 | QA-01 — Daily E2E | Collector/report v2: genuine scheduler run, captures, reconciliation và snapshot SQL; PASSED operational vẫn ML-ineligible |

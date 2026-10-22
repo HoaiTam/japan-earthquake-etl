@@ -130,7 +130,9 @@ ORC-06 v1 chứng nhận closed month đủ halo; hỗ trợ current month cần
 contract/proof/tests rõ. Nếu chưa có request đủ coverage, để source-only.
 Mở rộng current-month-as-of-cutoff ngoài scope ORC-06/ORC-07 v1. QA-01 đã bổ
 sung [thiết kế DESIGN_ONLY](../specs/CURRENT_MONTH_AS_OF_CUTOFF.md) ngày 22/10;
-chưa có implementation v2 hoặc task ID/effort triển khai riêng. Không dùng
+sau đó owner yêu cầu [Source/Silver component](./CURRENT_MONTH_SOURCE_SILVER.md)
+standalone trên PR #96. Chưa có Gold/publication/daily wiring v2 hoặc task ID/effort
+triển khai còn lại riêng. Không dùng
 policy JSON thiết kế để bật runtime; không coi v1 đã nghiệm thu là hỗ trợ scope đó.
 
 Source lease owner là exact dag/run; operation path là alias hash. Khi thất

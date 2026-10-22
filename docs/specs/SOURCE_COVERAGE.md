@@ -114,8 +114,9 @@ giữ đúng “40 năm”, và không suy có link năm mới là có daily dat
 
 [Thiết kế current-month/as-of-cutoff](./CURRENT_MONTH_AS_OF_CUTOFF.md) của QA-01
 tách operational USGS 2026 (`OBSERVED_AS_OF/PROVISIONAL`) khỏi baseline JMA và
-research completeness. Hiện **DESIGN_ONLY**, không đổi coverage contract hoặc
-historical/official ML gates của v1.
+research completeness. Planner vẫn **DESIGN_ONLY**; [Source/Silver component](../runbooks/CURRENT_MONTH_SOURCE_SILVER.md)
+có protocol standalone riêng, không đổi coverage contract hoặc historical/
+official ML gates của v1 và chưa nối daily publication.
 
 JMA có thể sửa archive cũ. Update history ghi nhận dữ liệu từ tháng 4 đến tháng
 12 năm 2023 được mở rộng vào ngày 15/12/2025. Vì vậy URL/năm không đủ làm

@@ -40,8 +40,9 @@ khảo 110h, chưa xác nhận capacity; effort bao gồm task Done, không ph�
 ORC-06/07 bổ sung implementation full-month state/real adapters, không dồn vào
 QA-01 5h. QA-01 vẫn In Progress; ngày 22/10 owner chọn bổ sung
 [thiết kế current-month/as-of-cutoff](../../specs/CURRENT_MONTH_AS_OF_CUTOFF.md)
-cho daily 2026, hiện DESIGN_ONLY. Chưa có runtime v2/live acceptance; phần triển
-khai v2 chưa có task ID/effort riêng, không cộng ngầm vào budget 386h.
+cho daily 2026; planner vẫn DESIGN_ONLY. Source/Silver standalone component đã
+có trên PR #96; chưa Gold/publication/cron/collector v2 hoặc live scheduled
+acceptance. Work packages còn lại chưa có task ID/effort riêng, không cộng ngầm vào budget 386h.
 ORC-02 đã Done sau nghiệm thu live 2026-10-15:
 scheduled/first/rerun/contention, 7 tasks mỗi daily run và pause/lease readback đạt;
 xem [evidence](../../evidence/ORC-02_LIVE_ACCEPTANCE.md).

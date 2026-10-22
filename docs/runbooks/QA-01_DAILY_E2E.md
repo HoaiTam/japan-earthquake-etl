@@ -17,7 +17,9 @@ Không thay đổi acceptance criteria để tính ORC-07 `DAG.test` thành sche
 
 Ngày 22/10/2026, owner chọn bổ sung [thiết kế current-month/as-of-cutoff](../specs/CURRENT_MONTH_AS_OF_CUTOFF.md)
 cho daily 2026. Policy/planner mới chỉ **DESIGN_ONLY**, chưa thay collector v1
-hoặc cho phép chạy/publish current-month. Xem [evidence thiết kế](../evidence/QA-01_CURRENT_MONTH_DESIGN.md).
+hoặc cho phép publish current-month. Đã bổ sung [Source/Silver standalone component](./CURRENT_MONTH_SOURCE_SILVER.md)
+theo yêu cầu tiếp theo trên PR #96; không phải daily wiring/scheduled acceptance.
+Xem [evidence thiết kế](../evidence/QA-01_CURRENT_MONTH_DESIGN.md) và [component](../evidence/QA-01_SOURCE_SILVER.md).
 
 ## 2. Các thành phần
 
@@ -60,8 +62,8 @@ Collector không tự sửa timetable, unpause, thay config hoặc tạo histori
 scheduled DagRun bằng SQL.
 
 **QA-01 — Daily E2E** đã bổ sung thiết kế current-month theo lựa chọn của owner,
-nhưng còn thiếu implementation v2 ở source capture/resolver/adapters/publication
-và collector. Chưa có task ID/effort riêng cho work package v2 hoặc mở rộng JMA
+Source capture/resolver standalone đã triển khai; còn thiếu Gold adapters/publication,
+consumer guards và Airflow/collector v2. Chưa có task ID/effort riêng cho work package còn lại hoặc mở rộng JMA
 sau baseline. Không bật mode `real` với current-month request theo contract v1;
 không dùng lệnh smoke bên dưới để tuyên bố daily 2026 operational đã nghiệm thu.
 

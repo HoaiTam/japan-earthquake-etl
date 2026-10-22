@@ -62,8 +62,10 @@ Giữ buffer cũ theo người cho ra 39/28/43h. Không tự tăng effort hoặc
 - **QA-01 — Daily E2E:** HoaiTam nghiệm thu scheduled deployment có eligible
   input, counts, six snapshots/publication và KPI SQL. Ngày 22/10 owner chọn
   bổ sung [thiết kế current-month/as-of-cutoff](../specs/CURRENT_MONTH_AS_OF_CUTOFF.md)
-  cho daily 2026; policy/planner DESIGN_ONLY, không phải live acceptance.
-  Work package implementation v2 và JMA sau baseline chưa có task ID/effort
+  cho daily 2026; policy/planner DESIGN_ONLY. Sau đó owner yêu cầu bước 1
+  [Source/Silver component](../runbooks/CURRENT_MONTH_SOURCE_SILVER.md) trên PR #96;
+  đã có standalone runtime, chưa Gold/cron/collector hoặc scheduled acceptance.
+  Work package implementation còn lại và JMA sau baseline chưa có task ID/effort
   riêng, không tính nằm trong 5h QA ban đầu; không lấy request lịch sử giả daily.
 - **EXP-02 — Baselines:** local fresh-kernel pilot đã đạt; còn Colab parity và
   official EXPORTED dataset run. Không nâng DAT-02 PARTIAL thành research-ready.
