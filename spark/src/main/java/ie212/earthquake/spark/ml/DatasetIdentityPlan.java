@@ -16,6 +16,11 @@ public final class DatasetIdentityPlan {
     private final ObjectNode manifest;
 
     public DatasetIdentityPlan(JsonNode publication, JsonNode config, String run, Instant now) {
+        if(publication!=null) {
+            ie212.earthquake.spark.gold.OperationalGoldPolicy.researchOnly(publication.path("physical_gold_table_name").asText());
+            if(publication.has("operational_policy") || "PROVISIONAL".equals(publication.path("publication_quality").asText()))
+                throw new IllegalArgumentException("PROVISIONAL_GOLD_ML_FORBIDDEN");
+        }
         if (publication == null || !"PASSED".equals(publication.path("verify_status").asText())
                 || !publication.path("gold_snapshot_id").isIntegralNumber()
                 || publication.path("gold_snapshot_id").asLong() <= 0)

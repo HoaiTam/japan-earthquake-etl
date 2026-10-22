@@ -95,6 +95,36 @@ class CurrentMonthCliTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "BOUNDED_REQUEST_REQUIRED"):
             cli.main(["--request",str(self.request)])
 
+    def test_gold_opt_in_runs_prepared_job_without_source_capture_or_docker(self):
+        self.request.write_text(json.dumps({"operation_id":"cm1-" + "a" * 40}))
+        def run(command, **kwargs):
+            self.assertIn("ie212.earthquake.spark.CurrentMonthGoldJob", command)
+            self.assertNotIn("--local", command)
+            self.assertFalse(any("docker" in arg or "mvnw" in arg or "SourceSilverJob" in arg for arg in command))
+            report = {"contract_version":"current-month-gold-v1", "operation_id":"cm1-"+"a"*40, "status":"Published",
+                      "published":True, "research_ready":False, "ml_upstream_eligible":False,
+                      "coverage_mode":"OBSERVED_AS_OF", "publication_quality":"PROVISIONAL",
+                      "publication_uri":"s3://fixture/silver/current-month/publication.json", "event_count":2}
+            kwargs["stdout"].write(json.dumps(report).encode() + b"\n")
+            return subprocess.CompletedProcess(command, 0)
+        with patch.object(cli, "verify_runtime"), patch.object(cli.subprocess, "run", side_effect=run), patch("builtins.print"):
+            cli.main(["--gold","--request",str(self.request)])
+
+    def test_gold_exit_zero_without_exact_readback_ack_is_not_success(self):
+        with patch.object(cli, "verify_runtime"), patch.object(cli.subprocess, "run", return_value=Mock(returncode=0)):
+            with self.assertRaisesRegex(ValueError,"GOLD_READBACK_ACK_REQUIRED"):
+                cli.main(["--gold","--request",str(self.request)])
+
+    def test_gold_readback_ack_cannot_promote_eligibility_or_change_operation(self):
+        log=self.root / "gold.private.log"
+        for override in ({"ml_upstream_eligible":True},{"operation_id":"foreign"},{"publication_quality":"OFFICIAL"}):
+            report={"contract_version":"current-month-gold-v1","operation_id":"expected","status":"Published",
+                    "published":True,"research_ready":False,"ml_upstream_eligible":False,"coverage_mode":"OBSERVED_AS_OF",
+                    "publication_quality":"PROVISIONAL","publication_uri":"s3://fixture/pub","event_count":1,**override}
+            log.write_text(json.dumps(report)+"\n");self.request.write_text(json.dumps({"operation_id":"expected"}))
+            with self.assertRaisesRegex(ValueError,"GOLD_READBACK_ACK_CHANGED"):
+                cli.read_gold_result(log,self.request)
+
 
 if __name__ == "__main__":
     unittest.main()

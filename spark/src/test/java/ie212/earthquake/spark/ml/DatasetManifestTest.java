@@ -122,4 +122,18 @@ class DatasetManifestTest {
         assertEquals("2026-10-11T00:00:00Z", DatasetManifestWriter.records(new GoldPublisher.Result(columns, List.of(row)))
             .get(0).path("observation_cutoff_utc").asText());
     }
+    @Test void renamedOperationalSnapshotIsRejectedBeforeManifestWrites() throws Exception {
+        var c=config("EXTENSION");var sql=new Fake(c) {
+            @Override public GoldPublisher.Result execute(String q) throws Exception {
+                if(q.contains("$snapshots")) {
+                    queries.add(q);
+                    assertTrue(q.contains("element_at(summary,'gold.operational_policy_sha256') IS NULL"));
+                    return new GoldPublisher.Result(List.of(),List.of(JSON.readTree("[0]")));
+                }
+                return super.execute(q);
+            }
+        };
+        assertThrows(Exception.class,()->new DatasetManifestWriter(sql,()->{}).build("iceberg.gold",PUB,"iceberg.ml",c,"run",NOW));
+        assertFalse(sql.queries.stream().anyMatch(q->q.startsWith("CREATE") || q.startsWith("INSERT")));
+    }
 }

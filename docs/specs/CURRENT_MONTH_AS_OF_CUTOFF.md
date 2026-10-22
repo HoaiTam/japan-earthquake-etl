@@ -6,10 +6,12 @@ Ngày 22/10/2026, HoaiTam chọn thiết kế thêm current-month để phục v
 2026**, thay vì dùng scheduled run lịch sử làm nghiệm thu thay thế. Tài liệu
 này mở rộng phần thiết kế của [QA-01 — Daily E2E](../task/tasks/QA-01.md).
 
-**Cập nhật bước 1/3 ngày 22/10:** đã triển khai [component Source capture và
-Silver](../runbooks/CURRENT_MONTH_SOURCE_SILVER.md) riêng với protocol
-`current-month-source-silver-v1`. Policy planner vẫn `DESIGN_ONLY`; không phải
-nút bật runtime. Chưa có Gold publication, daily wiring hoặc collector v2.
+**Cập nhật bước 2/3 ngày 22/10:** đã triển khai [Source capture và
+Silver](../runbooks/CURRENT_MONTH_SOURCE_SILVER.md) với protocol
+`current-month-source-silver-v1` và [Gold/publication operational](../runbooks/CURRENT_MONTH_GOLD_PUBLICATION.md)
+với protocol `current-month-gold-v1`. Gold có Iceberg local/SQL fixture tests;
+chưa MinIO/Trino live acceptance. Policy planner vẫn `DESIGN_ONLY`; không phải
+nút bật runtime. Chưa daily wiring hoặc collector v2.
 ORC-06/07 v1 và collector `qa-01-v1` vẫn giữ nguyên gate `COMPLETE_MONTHS`.
 Không đổi một flag trong `.env` để kích hoạt thiết kế này.
 
@@ -174,11 +176,16 @@ Official ML consumers phải fail-closed trước provisional policy, kể cả 
 - `make test-qa-01` tự discover planner và host CLI guards.
 - `CurrentMonthCapture` / `CurrentMonthSilverResolver` / `CurrentMonthSourceSilverJob`:
   component Java/Spark capture nguyên bản, observed coverage, revision/history
-  và Silver Parquet/registry/receipt tách biệt; không Gold hoặc cron mutation.
+  và Silver Parquet/registry/receipt tách biệt; entrypoint Source/Silver không Gold hoặc cron mutation.
+- `CurrentMonthGold` / `CurrentMonthGoldJob`: verified Silver → affected-month
+  transformation → sáu Iceberg snapshots → Trino → publication provisional;
+  reserved namespace, snapshot policy và fail-closed ML consumers. Không wire cron.
 - `make test-current-month`, `make prepare-current-month`, `make current-month-local`:
   tests, explicit host preparation và opt-in source thật → file stores local.
-  Xem [runbook component](../runbooks/CURRENT_MONTH_SOURCE_SILVER.md). Chưa có
-  lệnh live full pipeline/scheduled acceptance cho current-month.
+  Xem [runbook component](../runbooks/CURRENT_MONTH_SOURCE_SILVER.md).
+- `make test-current-month-gold`, `make current-month-gold`: regression và
+  explicit MinIO/Iceberg/Trino entrypoint có held lease; xem [runbook Gold](../runbooks/CURRENT_MONTH_GOLD_PUBLICATION.md).
+  Chưa có lệnh live full pipeline/scheduled acceptance cho current-month.
 
 `DESIGN_PLAN_ONLY`, `deployable=false`, `NOT_CAPTURED` và
 `observed_coverage_proven=false` là kết quả mong đợi, không phải lỗi deployment.
@@ -188,15 +195,15 @@ Planner không start Docker, trigger Airflow hay upload MinIO.
 
 **QA-01 — Daily E2E** vẫn In Progress. Phần thiết kế đã bổ sung; còn cần một
 work package triển khai v2 còn lại (**chưa có task ID riêng**, chưa ước lượng
-effort/đổi phân công tuần). Owner yêu cầu bước 1 Source/Silver trước trên PR #96;
-component không thay acceptance của các boundary còn lại:
+effort/đổi phân công tuần). Owner yêu cầu bước 1 Source/Silver rồi bước 2
+Gold/publication trên PR #96; component tests không thay acceptance của các boundary còn lại:
 
 | Boundary/task hiện hữu | Phần cần làm cho v2; không nằm trong Done của v1 |
 |---|---|
 | USG-01..06 / ORC-02 | Source component đã có chunk/manifest/observed proof; còn daily scheduler wiring và JMA historical readiness thực tế |
 | ORC-06 — Full-month resolver | Observed resolver riêng đã có bounded revision/history/closure guards; chưa automatic deletion/replan; không hạ v1 COMPLETE_MONTHS |
-| ORC-07 — Real adapters / GLD-03..04 | Versioned adapters, isolated operational namespace, commit/SQL/publication quality và aliases |
-| MLD-01 / MLD-05 / MLI-02 | Reject provisional policy ở research/official export boundary; không đổi các task Done chỉ vì design mới |
+| ORC-07 — Real adapters / GLD-03..04 | Standalone Gold/publication có reserved namespace, commit/SQL quality và aliases; còn MinIO/Trino live acceptance và Airflow adapter wiring |
+| MLD-01 / MLD-05 / MLI-02 | Đã có reserved namespace/persisted snapshot guard ở manifest/pinned consumers; còn live negative acceptance trong v2 chain; không đổi trạng thái Done của v1 |
 | QA-01 — Daily E2E | Collector/report v2: genuine scheduler run, captures, reconciliation và snapshot SQL; PASSED operational vẫn ML-ineligible |
 | QA-02 / QA-04 | Regression bổ sung retry/rollover/moved ID/deletion và fail-before-publish cho policy mới; evidence v1 không chứng minh v2 |
 

@@ -74,7 +74,7 @@ COMPONENT_SMOKES := smoke-minio smoke-airflow smoke-spark smoke-query smoke-usgs
 .PHONY: test-qa-03 smoke-qa-03
 .PHONY: test-qa-02 smoke-qa-02
 .PHONY: test-qa-01 smoke-qa-01
-.PHONY: prepare-current-month test-current-month current-month-local
+.PHONY: prepare-current-month test-current-month test-current-month-gold current-month-local current-month-gold
 
 prepare-current-month: ## QA-01 component: explicit host JAR/classpath preparation, không Docker hoặc source fetch
 	@python3 scripts/local-ml.py prepare
@@ -82,6 +82,14 @@ prepare-current-month: ## QA-01 component: explicit host JAR/classpath preparati
 test-current-month: ## QA-01 Source capture/Silver fixture regressions, không gọi nguồn thật/MinIO
 	@python3 -m unittest discover -s tests -p 'test_current_month_cli.py'
 	@./mvnw --batch-mode --no-transfer-progress -pl spark -am test -Dtest=CurrentMonthCaptureTest,CurrentMonthSilverTest -Dsurefire.failIfNoSpecifiedTests=false
+
+test-current-month-gold: ## QA-01 operational Gold: local Iceberg + SQL protocol fixtures, không Docker/start/source HTTP
+	@python3 -m unittest discover -s tests -p 'test_current_month_cli.py'
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am test -Dtest=CurrentMonthGoldTest,OperationalGoldPolicyTest,GoldPublicationTest,GoldIcebergWriterTest,DatasetManifestTest -Dsurefire.failIfNoSpecifiedTests=false
+
+current-month-gold: ## Opt-in MinIO Silver -> operational Gold/Trino; prebuilt JAR + held lease, không start/pull/build
+	@test -n "$(CURRENT_MONTH_REQUEST)" || { echo 'Set CURRENT_MONTH_REQUEST to an exact Gold request JSON'; exit 2; }
+	@python3 scripts/current-month.py --gold --request "$(CURRENT_MONTH_REQUEST)"
 
 current-month-local: ## Opt-in live USGS -> isolated local Bronze/Silver; không Docker, Gold hoặc scheduler mutation
 	@test -n "$(CURRENT_MONTH_REQUEST)" || { echo 'Set CURRENT_MONTH_REQUEST to an exact request JSON'; exit 2; }

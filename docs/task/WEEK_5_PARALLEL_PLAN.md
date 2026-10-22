@@ -64,7 +64,9 @@ Giữ buffer cũ theo người cho ra 39/28/43h. Không tự tăng effort hoặc
   bổ sung [thiết kế current-month/as-of-cutoff](../specs/CURRENT_MONTH_AS_OF_CUTOFF.md)
   cho daily 2026; policy/planner DESIGN_ONLY. Sau đó owner yêu cầu bước 1
   [Source/Silver component](../runbooks/CURRENT_MONTH_SOURCE_SILVER.md) trên PR #96;
-  đã có standalone runtime, chưa Gold/cron/collector hoặc scheduled acceptance.
+  đã có standalone Source/Silver và [Gold/publication](../runbooks/CURRENT_MONTH_GOLD_PUBLICATION.md)
+  runtime + consumer guards; Gold mới kiểm Iceberg local/SQL fixture, chưa
+  MinIO/Trino live acceptance, cron/collector hoặc scheduled acceptance.
   Work package implementation còn lại và JMA sau baseline chưa có task ID/effort
   riêng, không tính nằm trong 5h QA ban đầu; không lấy request lịch sử giả daily.
 - **EXP-02 — Baselines:** local fresh-kernel pilot đã đạt; còn Colab parity và

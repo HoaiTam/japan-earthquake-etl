@@ -1,5 +1,10 @@
 # QA-01 — Bổ sung thiết kế current-month, 22/10/2026
 
+Mốc này chỉ ghi nhận lần thiết kế ban đầu. Sau đó có [Source/Silver component](./QA-01_SOURCE_SILVER.md)
+và [Gold/publication component](./QA-01_GOLD_PUBLICATION.md); planner vẫn
+DESIGN_ONLY, QA-01 chưa có scheduled v2 acceptance. Các ghi chú “chưa runtime”
+bên dưới là phạm vi tại thời điểm thiết kế, không thay status component hiện tại.
+
 ## Phạm vi và identity
 
 - Base `origin/main` `2f040c4` (PR #95).

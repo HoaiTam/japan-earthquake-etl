@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Explicit local Source capture -> Silver component; no Docker, scheduler, Gold or auto-build."""
+"""Explicit prepared component runner; default local Source/Silver, opt-in MinIO Gold; no Docker or auto-build."""
 import argparse
 import hashlib
 import importlib.util
@@ -77,6 +77,7 @@ def read_receipt(root, request_path):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--request", required=True, type=Path)
+    parser.add_argument("--gold", action="store_true", help="explicit MinIO/Iceberg/Trino publication; requires an existing shared lease")
     parser.add_argument("--root", type=Path, default=ROOT / "staging/current-month-component")
     args = parser.parse_args(argv)
     root = scoped(args.root)
@@ -94,16 +95,56 @@ def main(argv=None):
     command = [str(java), "-Xmx2g", "--add-exports=java.base/sun.nio.ch=ALL-UNNAMED",
                "--add-exports=java.base/sun.util.calendar=ALL-UNNAMED", "--add-exports=java.base/sun.security.action=ALL-UNNAMED",
                "--add-opens=java.base/java.nio=ALL-UNNAMED", "--add-opens=java.base/java.lang.invoke=ALL-UNNAMED",
-               "-cp", str(runtime.JAR) + os.pathsep + runtime.CP.read_text().strip(),
-               "ie212.earthquake.spark.CurrentMonthSourceSilverJob", "--local", str(args.request.absolute()), str(root)]
+               "-cp", str(runtime.JAR) + os.pathsep + runtime.CP.read_text().strip()]
+    if args.gold:
+        command += ["ie212.earthquake.spark.CurrentMonthGoldJob", str(args.request.absolute())]
+    else:
+        command += ["ie212.earthquake.spark.CurrentMonthSourceSilverJob", "--local", str(args.request.absolute()), str(root)]
     with os.fdopen(os.open(log, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), "wb") as output:
         result = subprocess.run(command, cwd=ROOT, env=env, stdout=output, stderr=subprocess.STDOUT, check=False)
     if result.returncode:
         raise ValueError("CURRENT_MONTH_FAILED: retain artifacts; inspect " + str(log))
+    if args.gold:
+        # Only the Java data-plane can write this after exact journal/marker readback.
+        # This is a component acknowledgement, not scheduler/E2E acceptance evidence.
+        report = read_gold_result(log, args.request)
+        print("event=current_month_gold_component_passed private_log=" + str(log))
+        print("status=Published coverage_mode=OBSERVED_AS_OF publication_quality=PROVISIONAL research_ready=false ml_upstream_eligible=false")
+        print("publication_uri=" + report["publication_uri"] + " event_count=" + str(report["event_count"]))
+        return
     receipt, receipt_path = read_receipt(root, args.request)
     print("event=current_month_component_passed evidence_root=" + str(root) + " private_log=" + str(log))
     print("status=ObservedAsOfReady coverage_mode=OBSERVED_AS_OF published=false research_ready=false ml_upstream_eligible=false")
     print("receipt=" + str(receipt_path) + " reconciliation=" + json.dumps(receipt["reconciliation"], sort_keys=True))
+
+
+def read_gold_result(log, request_path):
+    request = json.loads(request_path.read_text())
+    # Bounded tail: never load the full private Spark log, payloads or credential diagnostics.
+    with log.open("rb") as stream:
+        stream.seek(max(0, log.stat().st_size - 1048576))
+        lines = stream.read().splitlines()
+    results = []
+    for line in lines:
+        if not line.startswith(b'{"') or len(line) > 524288:
+            continue
+        try:
+            item = json.loads(line)
+        except (ValueError, UnicodeError):
+            continue
+        if item.get("contract_version") == "current-month-gold-v1":
+            results.append(item)
+    if len(results) != 1:
+        raise ValueError("GOLD_READBACK_ACK_REQUIRED")
+    report = results[0]
+    if (report.get("operation_id") != request.get("operation_id") or report.get("status") != "Published"
+            or report.get("publication_quality") != "PROVISIONAL" or report.get("coverage_mode") != "OBSERVED_AS_OF"
+            or report.get("published") is not True or report.get("research_ready") is not False
+            or report.get("ml_upstream_eligible") is not False or not isinstance(report.get("publication_uri"), str)
+            or not report["publication_uri"].startswith("s3://") or type(report.get("event_count")) is not int
+            or report["event_count"] < 0):
+        raise ValueError("GOLD_READBACK_ACK_CHANGED")
+    return report
 
 
 if __name__ == "__main__":

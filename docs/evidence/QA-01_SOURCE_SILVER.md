@@ -1,5 +1,10 @@
 # QA-01 — Source capture/Silver component, 22/10/2026
 
+Cập nhật tiếp sau mốc evidence này: [bước 2 Gold/publication](./QA-01_GOLD_PUBLICATION.md)
+đã có standalone implementation/tests; chưa MinIO/Trino live hoặc scheduled
+acceptance. Các kết quả source/local bên dưới giữ nguyên, không gán lại thành
+MinIO/Gold proof.
+
 ## Phạm vi
 
 - Tiếp tục đúng branch PR #96 `test/qa-01-scheduled-runtime-acceptance`, base/head
@@ -106,7 +111,7 @@ nguồn hoặc tạo duplicate. Raw/log/staging ignored, không commit vào Git.
 
 ## Giới hạn và phần tiếp theo
 
-**QA-01 — Daily E2E** còn bước 2 Gold/publication operational + consumer guards
+**Tại thời điểm nghiệm thu Source/Silver**, QA-01 còn bước 2 Gold/publication operational + consumer guards
 và bước 3 Airflow/collector/scheduled acceptance thật; chưa có task ID/effort
 riêng cho các work packages này. Không nâng QA-01 Done từ component report.
 
