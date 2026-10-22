@@ -200,8 +200,12 @@ Hai target audit chỉ hỗ trợ `.env`/`compose.yaml` mặc định cho runtim
 ở `staging/sec-01-report.json` hoặc `SECURITY_REPORT=staging/<name>.json`.
 
 Exit 1 là finding/error; 2 là coverage chưa đủ (Make sẽ báo lỗi tương ứng),
-không phải chứng nhận Done. Future notebook/export/import vẫn phải nghiệm thu
-ở DAT-02/EXP-01/MLD-05/MLI-03; scanner hiện không tự chứng nhận gate chưa có.
+không phải chứng nhận Done. `make audit-security-runtime-readonly` không ghi
+S3 QA objects; `SECURITY_HANDOFF_MANIFEST` chọn explicit pin notebook/ZIP/export/result
+để audit cả decoded Parquet/JSON, không tự tìm bundle theo wildcard. Gate này
+chỉ chứng nhận bytes local đã scan, không quyền tài khoản Google Drive/session Colab.
+`SECURITY_DEPLOYMENT_ROOT` chỉ cho phép linked checkout có cùng Git common dir,
+để audit stack hiện hữu mà không checkout lại code đang bind Airflow.
 Chi tiết thao tác và finding hiện tại:
 [SEC-01 checklist](../security/SEC-01-CHECKLIST.md).
 

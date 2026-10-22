@@ -1,5 +1,9 @@
 # SEC-01 — Runtime audit và bản vá security
 
+> Mốc lịch sử sau PR #72. Trạng thái runtime mới nhất xem
+> [audit 22/10/2026](./SEC-01_20261022.md); không dùng findings/deployment hay
+> trạng thái FND-01/ORC-02 bên dưới làm kết luận cho stack hiện tại.
+
 ## Phạm vi / kết luận
 
 - Branch `fix/sec-01-complete-security-audit`, từ main

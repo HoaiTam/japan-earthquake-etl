@@ -3,10 +3,12 @@ import json
 import hashlib
 import re
 import subprocess
+import selectors
+import time
 from pathlib import Path
 
 LIMIT = 2 * 1024 * 1024
-LOG_LIMIT = 64 * 1024 * 1024
+LOG_LIMIT = 512 * 1024 * 1024
 REQUIRED = {"minio", "minio-init", "airflow-postgres", "airflow-init",
             "airflow-api-server", "airflow-scheduler", "airflow-dag-processor",
             "spark-master", "spark-worker", "iceberg-rest", "trino"}
@@ -24,6 +26,56 @@ def call(root, command, timeout=30, input=None):
 
 def environment(container):
     return dict(row.split("=", 1) for row in container.get("Config", {}).get("Env", []) if "=" in row)
+
+
+def scan_container_logs(root, container_id, scan_text, values, limit=LOG_LIMIT, timeout=120):
+    """Scan ALL retained bytes in bounded lines, never retain or echo raw logs.
+
+    No --tail/--since: the larger total budget is not a partial-log exemption.
+    A too-large line, byte budget, timeout or Docker error remains incomplete.
+    """
+    result = {"bytes": 0, "sha256": None, "complete": False, "categories": []}
+    digest = hashlib.sha256(); categories = set(); carry = b""
+    deadline = time.monotonic() + timeout
+    process = subprocess.Popen(["docker", "logs", container_id], cwd=root,
+                               stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    def inspect(data):
+        text = data.decode("utf-8", errors="ignore")
+        categories.update(scan_text(text))
+        if any(value in text for value in values):
+            categories.add("configured_secret_in_log")
+    try:
+        with selectors.DefaultSelector() as selector:
+            selector.register(process.stdout, selectors.EVENT_READ)
+            while True:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise RuntimeError("SEC_RUNTIME_LOG_TIMEOUT")
+                if not selector.select(min(remaining, 1)):
+                    continue
+                data = process.stdout.read1(65536)
+                if not data:
+                    break
+                result["bytes"] += len(data); digest.update(data)
+                if result["bytes"] > limit:
+                    raise RuntimeError("SEC_RUNTIME_LOG_BYTE_GUARD")
+                lines = (carry + data).split(b"\n"); carry = lines.pop()
+                if len(carry) > LIMIT or any(len(line) > LIMIT for line in lines):
+                    raise RuntimeError("SEC_RUNTIME_LOG_LINE_GUARD")
+                for line in lines:
+                    inspect(line)
+            inspect(carry)
+            if process.wait(timeout=max(.01, deadline-time.monotonic())) != 0:
+                raise RuntimeError("SEC_RUNTIME_LOG_COMMAND_FAILED")
+        result["complete"] = True; result["sha256"] = digest.hexdigest()
+    except Exception:
+        result["reason"] = "SEC_RUNTIME_LOG_COVERAGE_INCOMPLETE"
+    finally:
+        if process.poll() is None:
+            process.kill()
+        process.wait(); process.stdout.close()
+    result["categories"] = sorted(categories)
+    return result
 
 def valid_permission_evidence(evidence, context):
     if evidence.get("passed") is not True or not isinstance(evidence.get("checks"), list):
@@ -130,23 +182,19 @@ def audit_runtime(root, scan_text, permissions=False):
             result["findings"].extend(problems); ports.extend(bound)
             # Docker sends many log drivers' records to stderr; capture both privately.
             phase = "retained_logs"
-            logged = subprocess.run(["docker", "logs", container["Id"]], cwd=root, capture_output=True, timeout=30)
-            if logged.returncode or len(logged.stdout) + len(logged.stderr) > LOG_LIMIT:
-                raise RuntimeError("SEC_RUNTIME_LOG_COVERAGE_INCOMPLETE")
-            data = logged.stdout + logged.stderr
-            text = data.decode("utf-8", errors="ignore")
-            categories = set(scan_text(text))
-            if any(value in text for value in values):
-                categories.add("configured_secret_in_log")
-            for category in sorted(categories):
+            logged = scan_container_logs(root, container["Id"], scan_text, values)
+            if not logged["complete"]:
+                result["pending"].append({"scope":"runtime", "location":service,
+                                          "reason":"SEC_RUNTIME_LOG_COVERAGE_INCOMPLETE"})
+            for category in logged["categories"]:
                 result["findings"].append({"scope": "container_logs", "location": service, "category": category})
-            logs.append({"service": service, "bytes": len(data)})
+            logs.append({"service": service, **{k:logged[k] for k in ("bytes","sha256","complete")}})
             if service == "airflow-api-server":
                 pipeline = container["Id"]
         for service in sorted(REQUIRED - seen):
             result["pending"].append({"scope": "runtime", "location": service, "reason": "service_missing"})
         result["coverage"] = {"services": sorted(seen), "deployed_ports": ports, "container_logs": logs,
-                              "log_scope": "all_retained_container_logs_64MiB_per_container_guard"}
+                              "log_scope": "all_retained_streamed_512MiB_per_container_2MiB_line_120s_guard"}
         # Retained-log findings remain blockers, but do not prevent safe scoped
         # permission tests when deployment, role and health checks succeeded.
         deployment_findings = [item for item in result["findings"] if item["scope"] != "container_logs"]

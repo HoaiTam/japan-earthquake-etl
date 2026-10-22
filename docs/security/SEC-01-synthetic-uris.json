@@ -1,4 +1,11 @@
 [
+  {"path":"tests/test_experiment_harness.py (SEC-01 redaction regression)","category":"credential_uri","normalized_sha256":"5f4c570ab092b4ae8dd4f47b5141cd56836e486359614c781127b4890dfab481","reason":"Reviewed fixed dummy URI rejection case and added constructed-token no-echo regression; no actual credential"},
+  {"path":"tests/test_experiment_harness.py (history ae96770)","category":"credential_uri","normalized_sha256":"a26d98b9cbe90ed535eded758f2d9002be8f4b44cec1fff39f9eeb7d45885927","reason":"Reviewed single fixed userinfo URI in assertRaises EXP_UNSAFE_METADATA; deliberately rejected synthetic input, not an external credential"},
+  {"path":"tests/test_experiment_harness.py (history 46b2199)","category":"credential_uri","normalized_sha256":"b0afafb70ea51aad87565662be539b20dd07aaa80efe6334a7e59669c84c68f0","reason":"Same reviewed single dummy URI rejection assertion; exact historical content hash"},
+  {"path":"tests/test_experiment_harness.py (history 738dcee)","category":"credential_uri","normalized_sha256":"78e9cb2a848b7e73a72ffd6c48856ea0be3ab379dc8f7d547d908589f1df8438","reason":"Same reviewed single dummy URI rejection assertion; exact historical content hash"},
+  {"path":"tests/test_experiment_harness.py (history 8bc1950)","category":"credential_uri","normalized_sha256":"b69b768480c444737989d744920a655cb46e8e3f96988b5b1b5fa2bf085f655d","reason":"Same reviewed single dummy URI rejection assertion; exact historical content hash"},
+  {"path":"tests/test_experiment_harness.py (history b8e7ff8)","category":"credential_uri","normalized_sha256":"be5aba78b5db239e11da6a313d83e739dba01155c6458e41c14a60cde33c4330","reason":"Same reviewed single dummy URI rejection assertion; exact historical content hash"},
+  {"path":"tests/test_experiment_harness.py (history f5e7f9c)","category":"credential_uri","normalized_sha256":"76de0a226a9f1ed0d3d114da4aac0ad0b778ad0ee3a268b78f9e7c499d1aa2fd","reason":"Same reviewed single dummy URI rejection assertion; exact historical content hash"},
   {
     "path": "airflow/tests/test_source_readiness_qa.py",
     "category": "credential_uri",

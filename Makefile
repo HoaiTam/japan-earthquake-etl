@@ -20,6 +20,9 @@ RUN_SUMMARY_ROOT ?= staging/run-summary
 RUN_SUMMARY_DAG ?= orc_01_etl_pipeline
 RUN_SUMMARY_RUN_ID ?=
 SECURITY_REPORT ?= staging/sec-01-report.json
+SECURITY_DEPLOYMENT_ROOT ?=
+SECURITY_HANDOFF_MANIFEST ?=
+SECURITY_AUDIT_FLAGS = $(if $(SECURITY_DEPLOYMENT_ROOT),--deployment-root "$(SECURITY_DEPLOYMENT_ROOT)") $(if $(SECURITY_HANDOFF_MANIFEST),--handoff-manifest "$(SECURITY_HANDOFF_MANIFEST)")
 QA_03_MATRIX ?= airflow/dags/fixtures/qa_03_jma_historical_matrix.json
 QA_03_JSON ?= staging/qa-03/qa-03.json
 QA_03_MARKDOWN ?= staging/qa-03/qa-03.md
@@ -352,7 +355,7 @@ smoke-qa-04: check-config-local ## QA-04 runtime recovery trong namespace QA; kh
 		-e MLI_03_STATUS="$${MLI_03_STATUS:-In Progress}" \
 		qa-04-failure-recovery
 
-.PHONY: ci ci-docs ci-java ci-airflow test-ci-workflow test-security-audit audit-security audit-security-runtime
+.PHONY: ci ci-docs ci-java ci-airflow test-ci-workflow test-security-audit audit-security audit-security-runtime audit-security-runtime-readonly
 .PHONY: ci-plan ci-docs-base ci-java-impact ci-airflow-impact ci-pilot-impact ci-suite
 
 ci-suite: ## Chạy nhóm test chức năng/task; đặt CI_COMPONENT=java|airflow và CI_SUITE=<id từ ci-plan>
@@ -408,12 +411,16 @@ test-security-audit: ## SEC-01 offline redaction/role/port/permission/stdin regr
 	@python3 -m unittest discover -s tests -p 'test_security*.py'
 
 audit-security: ## SEC-01 source/history/config scan; exit 2 = còn coverage, không có nghĩa Done
-	@python3 scripts/audit-security.py --output "$(SECURITY_REPORT)"
+	@python3 scripts/audit-security.py --output "$(SECURITY_REPORT)" $(SECURITY_AUDIT_FLAGS)
 
-audit-security-runtime: check-config-local ## SEC-01 security inspection + exact-key permission QA; không build/start/init
+audit-security-runtime-readonly: ## SEC-01 retained logs + pinned ML handoff, không S3 writes/build/start/init
+	@python3 scripts/audit-security.py --output "$(SECURITY_REPORT)" --runtime $(SECURITY_AUDIT_FLAGS)
+
+audit-security-runtime: ## SEC-01 security inspection + exact-key permission QA; không build/start/init
 	@test "$(ENV_FILE)" = .env && test "$(COMPOSE_FILE)" = compose.yaml || \
 		{ echo 'SEC-01 runtime audit only supports the project .env and compose.yaml.' >&2; exit 1; }
-	@python3 scripts/audit-security.py --output "$(SECURITY_REPORT)" --runtime --permission-probes
+	@if test -z "$(SECURITY_DEPLOYMENT_ROOT)"; then ./scripts/check-config.sh --require-local; fi
+	@python3 scripts/audit-security.py --output "$(SECURITY_REPORT)" --runtime --permission-probes $(SECURITY_AUDIT_FLAGS)
 
 test-docker-runtime: ## FND-01 lifecycle/preflight/freshness regression; Docker/HTTP mock, không start service
 	@python3 -m unittest discover -s tests -p 'test_docker_runtime.py' -b

@@ -1,0 +1,213 @@
+{
+  "task_id": "SEC-01",
+  "status": "In Progress",
+  "started_at_utc": "2026-10-22T14:45:15.290255+00:00",
+  "completed_at_utc": "2026-10-22T14:45:45.444490+00:00",
+  "auditor_base_commit": "2f040c48c570acd303faaea5e1ae786b195ec7e4",
+  "deployment_git_head": "b93456e1bf3f77e1852bb91b38b806f7c042123e",
+  "findings": [],
+  "pending": [
+    {
+      "scope": "runtime",
+      "location": "spark-master",
+      "reason": "service_not_ready"
+    },
+    {
+      "scope": "runtime",
+      "location": "spark-worker",
+      "reason": "service_not_ready"
+    },
+    {
+      "scope": "runtime",
+      "reason": "permission_probe_not_run"
+    }
+  ],
+  "can_mark_done": false,
+  "coverage": {
+    "worktree_files": 742,
+    "reachable_git_blobs": 2227,
+    "local_log_files": 19,
+    "local_config_strength_and_roles": true,
+    "declared_ports": [
+      {
+        "service": "airflow-api-server",
+        "target": 8080,
+        "host_ip": "127.0.0.1"
+      },
+      {
+        "service": "minio",
+        "target": 9001,
+        "host_ip": "127.0.0.1"
+      },
+      {
+        "service": "spark-master",
+        "target": 8080,
+        "host_ip": "127.0.0.1"
+      },
+      {
+        "service": "trino",
+        "target": 8080,
+        "host_ip": "127.0.0.1"
+      }
+    ],
+    "runtime": {
+      "services": [
+        "airflow-api-server",
+        "airflow-dag-processor",
+        "airflow-init",
+        "airflow-postgres",
+        "airflow-scheduler",
+        "iceberg-rest",
+        "minio",
+        "minio-init",
+        "spark-master",
+        "spark-worker",
+        "trino"
+      ],
+      "deployed_ports": [
+        {
+          "service": "airflow-api-server",
+          "target": 8080,
+          "host_ip": "127.0.0.1",
+          "published": "8080"
+        },
+        {
+          "service": "minio",
+          "target": 9001,
+          "host_ip": "127.0.0.1",
+          "published": "9001"
+        },
+        {
+          "service": "spark-master",
+          "target": 8080,
+          "host_ip": "127.0.0.1",
+          "published": "8082"
+        },
+        {
+          "service": "trino",
+          "target": 8080,
+          "host_ip": "127.0.0.1",
+          "published": "8081"
+        }
+      ],
+      "container_logs": [
+        {
+          "service": "airflow-api-server",
+          "bytes": 7616,
+          "sha256": "c1d656f8ca07960887db141145b7b99d36979972f2a6e7ea28b922420389214d",
+          "complete": true
+        },
+        {
+          "service": "airflow-dag-processor",
+          "bytes": 3761268,
+          "sha256": "c3dce0f90b4e108fe6318c08ae9f69179cac5b6b1f001d0230ff6fe8f55d6a8b",
+          "complete": true
+        },
+        {
+          "service": "airflow-init",
+          "bytes": 2981,
+          "sha256": "39c5004a7b16b83ffe2c38fd420a802a8fd7937598f8b323cf4bc0a7204e67d1",
+          "complete": true
+        },
+        {
+          "service": "airflow-postgres",
+          "bytes": 214869,
+          "sha256": "3fc720aba332e190aaf5e0c8e688f01891d98d6cfabdeaa579f891333a8cd6e3",
+          "complete": true
+        },
+        {
+          "service": "airflow-scheduler",
+          "bytes": 31760,
+          "sha256": "5a3d5d1f1029f5f2061c628f605fbead7e18a7615f39eacf497d48ed63ba23b8",
+          "complete": true
+        },
+        {
+          "service": "iceberg-rest",
+          "bytes": 86662612,
+          "sha256": "dcb5e5e85359adb573b4044fa80b0b4510d3a316da5c9a5a0f84496cd1316005",
+          "complete": true
+        },
+        {
+          "service": "minio",
+          "bytes": 321,
+          "sha256": "dda168173bc943bb9ce553879db9d5086514f4acc36b5c8010173fa181bfea31",
+          "complete": true
+        },
+        {
+          "service": "minio-init",
+          "bytes": 83,
+          "sha256": "667ea2a12139b32a5dae56b1b3a3d4f68ce5b84c67299f8f039a446a0484ac15",
+          "complete": true
+        },
+        {
+          "service": "spark-master",
+          "bytes": 33362,
+          "sha256": "12692542e5b09bdf6d925c1e490bf77cd3bd0ead7e241e239729c5eaa612af18",
+          "complete": true
+        },
+        {
+          "service": "spark-worker",
+          "bytes": 39536,
+          "sha256": "51617d5eb1c26d8d7dfc56c7ae42e032062a0fc12c3c0926984ac1f75fdc2fe6",
+          "complete": true
+        },
+        {
+          "service": "trino",
+          "bytes": 14387623,
+          "sha256": "02cf8210d2f711fd7dca7deed255d127d6f3b3df324de96a371d5d8efc4d8ada",
+          "complete": true
+        }
+      ],
+      "log_scope": "all_retained_streamed_512MiB_per_container_2MiB_line_120s_guard"
+    },
+    "ml_handoff": {
+      "version": "sec-01-handoff-v1",
+      "passed": true,
+      "scope": "explicit_local_handoff_bytes_not_remote_account_or_scientific_approval",
+      "manifest_sha256": "1f982a76a180ae28a3027fa61085d5e8a60db32c5eac5b2ed59209e935b48e1f",
+      "artifacts": [
+        {
+          "task_id": "DAT-02",
+          "kind": "pilot_zip",
+          "sha256": "b53cd7bfdc3768c3fd0ee0bcc5e037ef1c9c9b007d0df900ec223c8dc139bc3e",
+          "file_count": 5
+        },
+        {
+          "task_id": "EXP-01",
+          "kind": "notebook",
+          "sha256": "a73f1f5f8c7f319f642ba7f46a516c88837913662989cc61db7babf9fdb0c311",
+          "file_count": 1
+        },
+        {
+          "task_id": "EXP-01",
+          "kind": "result_bundle",
+          "sha256": "7accbb86c5e72126713833cfa3dc76c64af2f8bb366b3d91cf5924dd2e47ebd9",
+          "file_count": 7
+        },
+        {
+          "task_id": "MLD-05",
+          "kind": "dataset_bundle",
+          "sha256": "c8f358d538389bebc7065072dcae6dda2a8a9d36feb8e43be7cc95128e0afcd4",
+          "file_count": 4
+        },
+        {
+          "task_id": "MLI-03",
+          "kind": "result_bundle",
+          "sha256": "4f986d1933784381916502720e2119c32a69043588823ac5556d64ae3fb4e7d6",
+          "file_count": 6
+        }
+      ]
+    }
+  },
+  "permission_probes": {
+    "executed": false,
+    "reason": "owner_deferred_until_after_QA_01_scheduled_run_on_2026_10_23",
+    "new_objects": 0
+  },
+  "scope_notes": [
+    "Read-only security audit; source worktree differs from deployed checkout, same Git common directory verified.",
+    "No service start/restart/build/pull/init, log deletion, IAM or credential change.",
+    "MLI-03 bundle is a copy of actual QA valid result; synthetic acceptance content, not trained/scientifically approved output.",
+    "Local handoff bytes only; no external Drive sharing permissions or Colab account/session certification."
+  ]
+}

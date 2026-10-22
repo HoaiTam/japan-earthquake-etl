@@ -1,6 +1,6 @@
 ---
 task_id: "SEC-01"
-status: "Review"
+status: "In Progress"
 week: 4
 block: "K - QA & Release"
 workstream: "Security"
@@ -60,7 +60,9 @@ Kiểm tra env, Git history, logs, default credentials, exposed ports, DSN, Driv
 - **Làm gì / có gì:** Scanner source/history/log redacted; kiểm tra config local, env/role và port thật của 11 services; probe quyền MinIO với key UUID riêng; đổi bootstrap/smoke sang stdin cho password; chặn catalog bootstrap INFO của Trino.
 - **Dùng để làm gì:** Có report an toàn để chia sẻ, xác định finding thật và phân biệt code fix với cấu hình đã deploy. Không build/start/init trong các lệnh audit/test.
 - **Đã nghiệm thu:** Source/history không còn finding chưa triage trong phạm vi scanner; CFG local đạt; 4 port loopback đúng; root credential không nằm ở consumer; 15 permission checks thật đạt. Hai object QA Silver/warehouse đã được xóa đúng key, Bronze QA giữ lại vì DeleteObject bị cấm.
-- **Còn chặn Done:** Trino hiện giữ log chứa pipeline access-key identifier, cấu hình logging mới chưa deploy. Không thấy password/secret key trong các dòng khớp; không tự xóa log/rotate/restart để làm xanh audit. Chưa nghiệm thu notebook/export/import thực tế của DAT-02/EXP-01/MLD-05/MLI-03; không đổi acceptance để bỏ qua phần này.
+- **Cập nhật 22/10/2026:** Trino đã mount logging fix read-only; đã đọc đủ retained logs của 11 containers bằng streaming, không dùng tail/since hoặc xóa log. Current scan source/history/logs không có finding chưa triage. Các URI test chỉ được triage sau review exact content/hash, không exempt key/token/credential thật.
+- **Handoff local:** gate `sec-01-handoff-v1` đã kiểm 5 artifacts/23 files thật của DAT-02/EXP-01/MLD-05/MLI-03, gồm ZIP, notebook, exported dataset và results; checksum/marker/decoded Parquet scan đạt. Đây không là nghiệm thu tài khoản/permission Google Drive hoặc session Colab ngoài project.
+- **Còn chặn Done:** Spark master/worker đang dừng; fresh permission probes chưa chạy. Owner chọn giữ stack và chờ QA-01 scheduled 23/10 07:15 rồi mới nghiệm thu SEC-01. Không reuse 15 probe checks lịch sử làm evidence hiện tại, không tự start Spark/restart Airflow hoặc đổi lịch QA-01. Owner xác nhận chưa dùng Colab/Drive, chỉ Jupyter local; acceptance Colab giữ chưa xác nhận, không tự tick từ local handoff scan.
 - **Cách chạy / đọc kết quả:** [Checklist SEC-01](../../security/SEC-01-CHECKLIST.md), [evidence runtime](../../evidence/SEC-01_RUNTIME.md). Exit 1 là findings/error; 2 là coverage chưa đủ, không được coi là Done.
 
 Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trước khi toàn bộ upstream chạy thật. Chỉ được chuyển sang `Done` khi hard dependency đã đạt và acceptance criteria được kiểm tra trên output phù hợp.
@@ -80,10 +82,10 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Theo dõi
 
-- **Trạng thái:** Review
+- **Trạng thái:** In Progress
 - **Assignee:** HoaiTam
-- **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** [runtime audit và findings hiện tại](../../evidence/SEC-01_RUNTIME.md); [checklist](../../security/SEC-01-CHECKLIST.md); [PR #67](https://github.com/HoaiTam/japan-earthquake-etl/pull/67) và [PR #56](https://github.com/HoaiTam/japan-earthquake-etl/pull/56) là mốc lịch sử, không chứng nhận runtime hiện tại. Bản vá local chưa commit/push/mở PR.
+- **Reviewer:** unassigned — chưa có approval độc lập
+- **Evidence / PR:** [Audit 22/10 và kế hoạch nghiệm thu](../../evidence/SEC-01_20261022.md), [report redacted](../../evidence/SEC-01-20261022.json); [checklist](../../security/SEC-01-CHECKLIST.md). [Runtime audit trước đây](../../evidence/SEC-01_RUNTIME.md), PR #67/#56 là mốc lịch sử. Bản vá ở branch `fix/sec-01-ml-handoff-audit`, worktree riêng từ main `2f040c4`, không đổi checkout đang bind PR #96. Chưa commit/push/mở PR.
 - **Kỹ năng phù hợp:** Security, Docker, Git
 
 ## Checklist bàn giao
@@ -96,7 +98,8 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 - [ ] P0/P1 có reviewer khác assignee xác nhận.
 
 Reviewer độc lập được khuyến nghị, không phải blocker Done theo AGENTS.md.
-Hai acceptance còn thiếu phía trên là blocker thực tế; không ghi approval giả.
+Acceptance runtime/permission mới và Colab boundary còn thiếu là blocker thực tế;
+local artifact scan không chứng nhận remote account. Không ghi approval giả.
 
 ## Tài liệu liên quan
 
