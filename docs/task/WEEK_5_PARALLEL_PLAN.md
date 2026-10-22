@@ -1,5 +1,89 @@
 # Tuần 5 — ETL thật và Jupyter pilot trước Colab
 
+## Phân công hiện hành — đồng bộ 22/10/2026
+
+Áp dụng cho **19–25/10/2026**, theo bảng phân công gần nhất HoaiTam gửi.
+Phần này thay roster/capacity ở các mục lịch sử 1–6 bên dưới. Không sửa lại
+evidence của các lần nghiệm thu cũ hoặc coi merge/CI là scientific approval.
+
+### Bảng 11 task giao việc trong tuần
+
+| Người làm | Task | Làm gì / output | Effort | Trạng thái tại 22/10 |
+|---|---|---|---:|---|
+| HoaiTam | [ORC-07](./tasks/ORC-07.md) | Nối real ETL adapters đến Gold Published | 8h | Done |
+| HoaiTam | [QA-01](./tasks/QA-01.md) | Nghiệm thu daily scheduled E2E và đối soát từng tầng | 5h | In Progress |
+| HoaiTam | [DOC-01](./tasks/DOC-01.md) | Đồng bộ kiến trúc, runbook, Jupyter → Colab và task tracking | 4h | Done |
+| ThanhTris | [MLI-03](./tasks/MLI-03.md) | Validate/import kết quả ML, không nhận development pilot | 7h | Done |
+| ThanhTris | [QA-02](./tasks/QA-02.md) | Rerun, duplicate và late revision | 5h | Done |
+| ThanhTris | [QA-03](./tasks/QA-03.md) | Historical backfill và báo coverage có phạm vi | 5h | Done |
+| ThanhTris | [QA-04](./tasks/QA-04.md) | Failure/recovery các tầng ETL và ML import | 4h | Done |
+| rosy179 | [EXP-01](./tasks/EXP-01.md) | Jupyter harness, loader/writer và môi trường chung | 5h | Done |
+| rosy179 | [EXP-02](./tasks/EXP-02.md) | Window/DBSCAN/HDBSCAN global; local trước Colab | 7h | In Progress |
+| rosy179 | [MLI-02](./tasks/MLI-02.md) | Build dataset DAG đến validated export bundle | 5h | In Progress |
+| rosy179 | [EXP-03](./tasks/EXP-03.md) | Adaptive HDBSCAN và multi-sequence resolution | 6h | In Progress |
+
+Tổng bảng trên **11 task/61h**, phân bổ **17/21/23h**. MLI-02 chuyển từ
+HoaiTam sang rosy179; DOC-01/QA-04/EXP-03 được kéo từ tuần 6/6/7 về tuần 5.
+Chỉ đổi lịch/owner, giữ nguyên effort, scope, acceptance và hard dependencies.
+Owner/branch trong evidence trước ngày đồng bộ là thông tin lịch sử, không
+phải owner hiện hành. Reviewer unassigned không được tự tick approval.
+
+### Bốn task mở đường — không đếm lại vào bảng 11 task
+
+| Task | Owner hiện hành | Effort | Trạng thái / handoff |
+|---|---|---:|---|
+| [ORC-06](./tasks/ORC-06.md) | HoaiTam | 8h | Done — full-month state/coverage cho ORC-07 |
+| [DAT-02](./tasks/DAT-02.md) | HoaiTam | 6h | Done — development-only Jupyter pilot |
+| [MLD-04](./tasks/MLD-04.md) | rosy179 | 6h | Done — shared feature 4-D |
+| [MLD-05](./tasks/MLD-05.md) | rosy179 | 5h | Done — component validation/export; không chứng minh catalog thật toàn kỳ |
+
+Nhóm mở đường **4 task/25h**. Ownership giữ theo task hiện hành, không đổi
+assignee chỉ vì người điều phối đã hỗ trợ triển khai. Tính đủ metadata tuần 5:
+
+| Assignee | Bảng giao việc | Mở đường | Tổng effort task |
+|---|---:|---:|---:|
+| HoaiTam | 17h | 14h | **31h** |
+| ThanhTris | 21h | 0h | **21h** |
+| rosy179 | 23h | 11h | **34h** |
+| Tổng | 61h | 25h | **86h / 15 task Core** |
+
+Không phải 15 task mới hoặc 86h còn lại: các task Done giữ effort kế hoạch
+để truy vết, không giao làm lại. Tổng backlog vẫn **76 task/386h**. Lịch mới
+dịch 14h từ tuần 6/7 về tuần 5; tuần 6 còn 4h, tuần 7 còn 16h theo metadata.
+Giữ budget tồn 4h + review/tích hợp 20h của kế hoạch cũ thì tổng tham khảo là
+**110h**, không còn 96h/32h mỗi người; chưa phải capacity đã được xác nhận.
+Giữ buffer cũ theo người cho ra 39/28/43h. Không tự tăng effort hoặc giảm gate
+để ép vào budget; điều phối phải cân bằng remaining work thực tế.
+
+### Các gate còn thiếu và thứ tự tiếp tục
+
+- **MLI-02 — Build dataset DAG:** rosy179 nối real MLD-05 exporter vào runner,
+  kiểm DAG/registry/retry/handoff thật. Mock/offline PASS không hoàn tất task.
+- **QA-01 — Daily E2E:** HoaiTam nghiệm thu scheduled deployment có eligible
+  input, counts, six snapshots/publication và KPI SQL. Current-month/as-of-cutoff
+  và JMA sau 2023 chưa có task contract riêng; không lấy request lịch sử giả daily.
+- **EXP-02 — Baselines:** local fresh-kernel pilot đã đạt; còn Colab parity và
+  official EXPORTED dataset run. Không nâng DAT-02 PARTIAL thành research-ready.
+- **EXP-03 — Adaptive/multi-sequence:** còn reproduction run/fresh-kernel
+  evidence và dependency EXP-02; isolated_exec/fallback không mở Colab gate.
+- **SEC-01 — Review bảo mật:** vẫn Review, owner HoaiTam; không thuộc 15 task
+  Core tuần 5 và không được nhận Done từ bản docs sync này.
+- Các task đã Done dùng [task index](./tasks/README.md) và evidence riêng để
+  đọc phạm vi. QA-02/03/04 là runtime acceptance có giới hạn; MLD-05 là synthetic
+  component QA + credential-free loader, không thay official ML whole-flow.
+
+Checks: `make check-week-5-plan check-task-status test-week-5-plan check-docs`;
+[biên bản đồng bộ](../evidence/DOC-01_TRACKING_SYNC.md).
+Planning check phải giữ 15 task/86h và owner 31/21/34; không đổi state để làm
+planning test xanh. Xem [known issues hiện hành](../KNOWN_ISSUES.md).
+
+## Lịch sử kế hoạch — các mục 1–6 tại mốc 14–16/10/2026
+
+Các số 12 task/72h, owner MLI-02 HoaiTam và lịch QA-04 tuần 6/DOC-01 tuần 6/
+EXP-03 tuần 7 bên dưới được giữ để truy vết mốc cũ, **không còn là phân công
+hiện hành**. Phần đồng bộ 22/10 ở trên có ưu tiên; trạng thái/evidence chính
+thức vẫn nằm trong từng file task. Không sửa artifact nghiệm thu lịch sử.
+
 ## 1. Mốc lập kế hoạch và mục tiêu
 
 - Lập ngày **2026-10-14**, từ `origin/main` **4d3ac3d**, PR #71 đã merge.

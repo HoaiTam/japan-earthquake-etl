@@ -7,7 +7,7 @@ workstream: "Dataset build orchestration"
 scope: "Core"
 priority: "P0"
 effort_hours: 5
-assignee: "HoaiTam"
+assignee: "rosy179"
 reviewer: "unassigned"
 dependencies: ["ORC-01", "MLD-05"]
 ---
@@ -62,7 +62,7 @@ khi các Spark jobs được tích hợp thật.
 
 ## Phân công tuần 5
 
-- **Owner / effort:** HoaiTam, 5h Core; [kế hoạch và handoff](../WEEK_5_PARALLEL_PLAN.md).
+- **Owner / effort:** rosy179, 5h Core theo bảng phân công gần nhất; đồng bộ ngày 22/10/2026 trong [kế hoạch và handoff](../WEEK_5_PARALLEL_PLAN.md). HoaiTam là owner mốc cũ trong offline evidence; không sửa tác giả/lịch sử của evidence đó.
 - **Làm gì / có gì:** DAG pin/audit/Mc/window/feature/export, validate config/lifecycle, retry identity và run summary; Colab handoff thủ công.
 - **Dùng để làm gì / output:** Một build DAG riêng với daily ETL; bundle sẵn sàng chỉ sau export verify, không giả Colab là job service.
 - **Bắt đầu ngay / gate:** Graph/runner mocks làm ngay; Done sau MLD-05, Gold Published và lifecycle gates thật. Chưa có feature/export thì không đánh dấu DATASET_EXPORTED.
@@ -71,15 +71,15 @@ khi các Spark jobs được tích hợp thật.
 ## Theo dõi
 
 - **Trạng thái:** In Progress
-- **Assignee:** HoaiTam
-- **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** [Offline Acceptance](../../evidence/MLI-02_OFFLINE_ACCEPTANCE.md)
+- **Assignee:** rosy179
+- **Reviewer:** unassigned; chưa có approval độc lập
+- **Evidence / PR:** [Offline Acceptance](../../evidence/MLI-02_OFFLINE_ACCEPTANCE.md), [PR #85](https://github.com/HoaiTam/japan-earthquake-etl/pull/85) đã merge phần control-plane. Owner hiện tại rosy179; còn real exporter/registry/build-DAG acceptance sau MLD-05, không nhận offline checks là nghiệm thu toàn task.
 - **Kỹ năng phù hợp:** Airflow, orchestration, idempotency
 
 ## Checklist bàn giao
 
 - [x] Deliverable và test/evidence tồn tại trong repository.
-- [x] Acceptance criteria đã được kiểm tra.
+- [ ] Acceptance toàn task: offline guards đã kiểm; còn tích hợp real MLD-05 exporter và nghiệm thu live build DAG/registry/handoff.
 - [x] Contract/docs đã cập nhật và không chứa secret/data dump.
 - [ ] Reviewer độc lập được khuyến nghị cho P0.
 

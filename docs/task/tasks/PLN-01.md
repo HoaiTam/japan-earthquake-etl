@@ -81,6 +81,11 @@ Có thể bắt đầu ngay. Chốt output contract hoặc fixture nhỏ trướ
 
 ## Điều chỉnh phân công tuần 5 — 2026-10-14
 
+Các mục ngày 14/10 bên dưới là lịch sử. Phân công hiện hành đã được
+[đồng bộ 22/10](../WEEK_5_PARALLEL_PLAN.md): MLI-02 giao rosy179,
+DOC-01/QA-04/EXP-03 về tuần 5; tổng 15 Core/86h (31/21/34), backlog vẫn
+76 task/386h. Không thay scope/KPI/DoD hoặc evidence tại thời điểm lập kế hoạch.
+
 - Branch `docs/pln-01-week-5-parallel-plan` từ `origin/main` `4d3ac3d`
   (PR #71). Assignee cập nhật HoaiTam; reviewer unassigned, chưa có approval.
 - [Kế hoạch tuần 5](../WEEK_5_PARALLEL_PLAN.md): 12 Core/70h, chia

@@ -1,7 +1,7 @@
 ---
 task_id: "DOC-01"
 status: "Done"
-week: 6
+week: 5
 block: "K - QA & Release"
 workstream: "Documentation"
 scope: "Core"
@@ -16,7 +16,8 @@ dependencies: []
 
 ## Mục đích
 
-Dùng để tài liệu được cập nhật liên tục theo PR; final review ở tuần 6 nhưng có thể làm song song từ đầu.
+Dùng để tài liệu được cập nhật liên tục theo PR. Lịch ban đầu final review ở
+tuần 6; phân công gần nhất đưa task vào tuần 5 (19–25/10/2026).
 
 ## Phạm vi công việc
 
@@ -82,7 +83,7 @@ Bổ sung runbook DAT-02 → EXP-01/02 Jupyter → local PASSED → Colab với 
 - **Trạng thái:** Done
 - **Assignee:** HoaiTam
 - **Reviewer:** unassigned; chưa có approval độc lập
-- **Evidence / PR:** [DOC-01 evidence](../../evidence/DOC-01.md), [reproduction metadata](../../evidence/DOC-01-reproduction.json). Chưa mở PR.
+- **Evidence / PR:** [DOC-01 evidence](../../evidence/DOC-01.md), [reproduction metadata](../../evidence/DOC-01-reproduction.json), [PR #89](https://github.com/HoaiTam/japan-earthquake-etl/pull/89) đã merge. [Đồng bộ 22/10/2026](../../evidence/DOC-01_TRACKING_SYNC.md) trên `docs/doc-01-sync-task-tracking` từ main `3e8625e`: lịch/owner/checklists/known issues; không chạy lại nghiệm thu runtime và không ghi reviewer approval.
 - **Kỹ năng phù hợp:** Technical writing, architecture
 
 ## Checklist bàn giao

@@ -334,17 +334,21 @@ DOC-01 final reproduction vẫn cần evidence đúng scope; không suy pilot th
 [Kế hoạch tuần 5](./WEEK_5_PARALLEL_PLAN.md), 19–25/10/2026, thay lịch tuần 4
 ở trên (mốc lịch sử). Ba assignee mới dùng account GitHub, không suy ánh xạ tên Trang.
 
-- HoaiTam: DAT-02/ORC-06/ORC-07/MLI-02/QA-01, 32h — full-month state, nối ETL, build DAG và nghiệm thu.
-- ThanhTris: MLI-03/QA-02/QA-03, 17h — import/revision/history; ORC-06 chuyển HoaiTam ngày 2026-10-15.
-- rosy179: MLD-04/MLD-05/EXP-01/EXP-02, 23h — feature/export và ba baseline.
+- HoaiTam: DAT-02/ORC-06/ORC-07/QA-01/DOC-01, **31h** — state, nối ETL, nghiệm thu và docs.
+- ThanhTris: MLI-03/QA-02/QA-03/QA-04, **21h** — import/revision/history/recovery.
+- rosy179: MLD-04/MLD-05/EXP-01/EXP-02/EXP-03/MLI-02, **34h** — feature/export, baseline/adaptive và build DAG.
 
-72h Core + 4h budget tồn + 20h review/tích hợp = 96h đề xuất; sau chuyển ORC-06,
-buffer cũ cho ra 40/24/32h, cần replan capacity. Full-month resolver
+Đồng bộ ngày 22/10/2026 theo bảng gần nhất: 11 task giao việc/61h + 4 task
+mở đường/25h = **15 task Core/86h**. MLI-02 chuyển rosy179; DOC-01/QA-04/EXP-03
+về tuần 5, effort toàn backlog vẫn 386h. Giữ 4h budget tồn + 20h review/tích hợp
+cho ra 110h tham khảo, buffer cũ theo người thành 39/28/43h, cần replan capacity.
+Đây là effort kế hoạch, không phải remaining work hoặc cam kết tải. Full-month resolver
 và real adapters được giao ORC-06/07 riêng để QA-01 chỉ nghiệm thu. Mọi nhóm viết
 fixtures/interface từ ngày đầu; real integration giữ các hard gates. Không đổi
 status carryover hoặc nâng pilot thành research-ready bằng một kế hoạch giao việc.
 
-DAT-02 6h thêm cho HoaiTam; QA-04 dời tuần 6, không giảm recovery scope.
+DAT-02 6h giữ HoaiTam; QA-04 từng dời tuần 6, nay đưa lại tuần 5 và Done,
+không giảm recovery scope. Evidence cũ giữ owner/lịch tại thời điểm chạy.
 [Workflow Jupyter pilot](../specs/JUPYTER_PILOT_WORKFLOW.md) khóa bundle riêng:
 MLD-04 → DAT-02 → EXP-01/02 local PASSED → Colab. MLD-05 vẫn official export;
 MLI-03 không chờ pilot để viết importer và không accept pilot vào serving.
