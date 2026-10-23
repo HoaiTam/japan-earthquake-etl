@@ -2,9 +2,11 @@
 from copy import deepcopy
 from enum import Enum
 import json
+import subprocess
 from pathlib import Path
 import sys
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -124,6 +126,48 @@ class CurrentMonthRuntimeTest(unittest.TestCase):
     def test_unknown_or_incomplete_result_cannot_release_lease(self):
         with self.assertRaises(RuntimeError):r.release({"context":self.plan["current_month"],"summary":{}},self.env)
         self.assertEqual("HELD",lease("assert",self.identity,self.env)["status"])
+
+    def test_phase_attempt_logs_do_not_overwrite_prior_attempt_or_legacy_log(self):
+        legacy=self.folder / "capture.stderr.private";legacy.write_bytes(b"original failure evidence")
+        def success(command,**kwargs):
+            kwargs["stdout"].write(b'{"ok":true}');kwargs["stderr"].write(b"private output")
+            self.assertFalse(kwargs["shell"])
+            return SimpleNamespace(returncode=0)
+        with patch.object(r.subprocess,"run",side_effect=success):
+            for _ in range(2):
+                self.assertEqual({"ok":True},r._invoke_command("capture",["runner"],self.folder,self.env,5))
+        self.assertEqual(b"original failure evidence",legacy.read_bytes())
+        attempts=list((self.folder / "phase-attempts").iterdir());self.assertEqual(2,len(attempts))
+        for attempt in attempts:
+            self.assertEqual(0o700,attempt.stat().st_mode & 0o777)
+            for name in ("stdout.private","stderr.private"):
+                self.assertEqual(0o600,(attempt/name).stat().st_mode & 0o777)
+            self.assertEqual("RETURNED_JSON",r.read(attempt/"outcome.json")["state"])
+
+    def test_phase_timeout_has_redacted_reason_and_keeps_exact_lease(self):
+        error=subprocess.TimeoutExpired(["runner","sensitive-argument"],5,output=b"private output",stderr=b"private error")
+        with patch.object(r.subprocess,"run",side_effect=error),self.assertRaisesRegex(RuntimeError,"^ASOF_PHASE_TIMEOUT_LEASE_RETAINED$"):
+            r._invoke_command("capture",["runner"],self.folder,self.env,5)
+        outcome=r.read(next((self.folder/"phase-attempts").glob("capture-*/outcome.json")))
+        self.assertEqual({"phase":"capture","state":"FAILED_LEASE_RETAINED",
+                          "reason":"ASOF_PHASE_TIMEOUT_LEASE_RETAINED","timeout_seconds":5},outcome)
+        self.assertEqual("HELD",lease("assert",self.identity,self.env)["status"])
+        self.assertFalse((self.folder/"execution.json").exists())
+
+    def test_phase_nonzero_invalid_json_and_output_guard_never_echo_payload(self):
+        for body,code,reason in ((b"sensitive output",2,"NONZERO"),(b"private malformed output",0,"INVALID_JSON"),
+                                 (b"x"*1048577,0,"OUTPUT_GUARD"),(b'{"x":1,"x":2}',0,"INVALID_JSON")):
+            def result(command,**kwargs):
+                kwargs["stdout"].write(body);return SimpleNamespace(returncode=code)
+            with self.subTest(reason=reason),patch.object(r.subprocess,"run",side_effect=result),self.assertRaisesRegex(RuntimeError,"^ASOF_PHASE_"+reason+"_LEASE_RETAINED$"):
+                r._invoke_command("capture",["runner"],self.folder,self.env,5)
+            self.assertEqual("HELD",lease("assert",self.identity,self.env)["status"])
+
+    def test_phase_log_symlink_is_rejected_before_process(self):
+        (self.folder/"phase-attempts").symlink_to(self.root,target_is_directory=True)
+        with patch.object(r.subprocess,"run") as process,self.assertRaisesRegex(RuntimeError,"UNSAFE_DAILY_ROOT"):
+            r._invoke_command("capture",["runner"],self.folder,self.env,5)
+        process.assert_not_called()
 
 
 if __name__ == "__main__":unittest.main()

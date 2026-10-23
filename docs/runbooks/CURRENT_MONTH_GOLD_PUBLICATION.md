@@ -8,8 +8,9 @@
 snapshot bằng Trino rồi mới công bố **operational provisional**.
 
 Không đổi cron, không bật planner `DESIGN_ONLY`, không hạ gate
-`COMPLETE_MONTHS` của historical v1. [QA-01](../task/tasks/QA-01.md) vẫn In Progress:
-component tests không thay MinIO/Trino live acceptance hoặc scheduled E2E.
+`COMPLETE_MONTHS` của historical v1. [QA-01](../task/tasks/QA-01.md) đã Done cho
+operational v2 sau [live scheduled recovery acceptance 23/10](../evidence/QA-01_CURRENT_MONTH_ACCEPTANCE.md).
+Component tests không tự thay live acceptance; output vẫn research/ML-ineligible.
 
 | Thành phần | Có gì / dùng để làm gì |
 |---|---|
@@ -155,9 +156,10 @@ snapshot với receipt, không chỉ thấy một alias tồn tại là PASS.
 ## 6. Giới hạn có tên để theo dõi
 
 - **QA-01 — Daily E2E:** [bước 3 Airflow wiring/collector v2](./CURRENT_MONTH_DAILY.md)
-  đã triển khai/deploy; scheduled 22/10 failed ở resolve trước ghi lake, đã sửa
-  SDK enum. Còn same-run JMA historical readiness/capture/Gold/Trino acceptance;
-  owner giữ lịch 07:15 chờ 23/10, không ghi Done trước report PASSED.
+  đã có same-run JMA historical readiness/capture/Gold/Trino acceptance ngày 23/10,
+  8/8 tasks và collector PASSED sau owner-authorized recovery. Default Make
+  image preflight vẫn bị stale-image gate chặn; [evidence](../evidence/QA-01_CURRENT_MONTH_ACCEPTANCE.md)
+  chỉ chứng nhận explicit readonly prebuilt deployment, không first-attempt SLA.
 - **QA-02 / QA-04:** regression fixture/recovery mới ở component không thay
   live replay/failure evidence cho operational scheduled chain.
 - **ORC-06/ORC-07, GLD-03/GLD-04:** historical v1 giữ nguyên; Done của v1 không

@@ -1,6 +1,52 @@
 # QA-01 — Daily v2 deployment, 22/10/2026
 
-## Kết luận hiện tại
+**Cập nhật hiện hành 23/10:** [scheduled recovery acceptance](./QA-01_CURRENT_MONTH_ACCEPTANCE.md)
+đã PASSED, 8/8 task và 42 SQL; QA-01 Done cho operational v2. Mốc 22/10 và
+capture failure attempt1 bên dưới giữ làm lịch sử, không giả first-attempt SLA.
+
+## Cập nhật recovery được owner duyệt ngày 23/10/2026
+
+Scheduled `scheduled__2026-10-23T00:15:00+00:00`, operation
+`cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa`, đã failed tại capture lần đầu;
+ba task resolve/acquire/JMA success, downstream chưa chạy. Capture bắt đầu
+00:39:25Z, task kết thúc 01:40:13Z; máy macOS liên tục sleep/dark-wake trong
+khung 07:39–08:40 local. Request đang chờ bị gián đoạn rồi tiếp tục lúc wake;
+phase không hoàn tất trong giới hạn 1800 giây. Không kết luận HTTP 200 hoặc
+partial objects là source-ready. Năm part receipts còn nguyên, chưa selection
+hoặc `_SUCCESS` tại lúc kiểm tra trước recovery.
+
+Owner đã chọn **phục hồi chính scheduled run này để nghiệm thu hôm nay**,
+thay lựa chọn cũ giữ nguyên failed run 23/10. Không tạo manual run, không đổi
+cron 07:15 hoặc sửa nhãn/type/interval/cutoff/pins. Run 22/10 vẫn failed, không
+clear nó. Sau xác nhận active DagRuns=0, scheduler không còn Java writer và
+Spark master activeapps=0, dùng Airflow `SerializedDAG.clear` chính thức với
+exact `run_id`, chỉ năm task `usgs_bronze`, `sources_ready`, `real_etl`,
+`release_source_lease`, `completion_gate`. Dry-run xác nhận đúng năm rows trước
+clear. CLI preview theo logical_date trả rỗng nên không dựa vào date filter
+để chọn run. Ba upstream success giữ nguyên; lease cùng owner vẫn held, không
+release/takeover. Unpause cùng daily để scheduler tiếp tục run đã clear.
+
+Log capture cũ giữ nguyên SHA-256
+`6350f99f799b693dccae18ebb8abc08c10deff1677492454706f1f731ae7e7cd`.
+Bản vá Python lưu mỗi phase attempt trong thư mục private mới
+`phase-attempts/<phase>-<random>/`, không overwrite log cũ. Timeout/nonzero/
+invalid JSON/output guard có outcome reason code, không echo argv/payload.
+`RETURNED_JSON` chỉ là kết quả subprocess, không thay success receipt/ETL gate.
+Không tự retry hoặc giải phóng lease trên timeout; phải kiểm writer trước recovery.
+Runner JAR và context pins giữ nguyên; Python runtime được bind mount và kiểm
+SHA tại deployment. Dùng `caffeinate -i -t 7200` tạm thời chống idle sleep cho
+phiên nghiệm thu; không thay setting macOS vĩnh viễn, không ngăn mọi lid-close.
+
+Kiểm thử bản vá: `make test-qa-01` **75 tests PASS**;
+`TMPDIR=/private/tmp make ci-airflow` **450 tests PASS**. Lần chạy full suite
+bằng TMPDIR mặc định của macOS fail ở path guards QA-03/QA-04 do ancestor
+symlink; chạy lại trên canonical `/private/tmp` đạt, không sửa guard để né lỗi.
+Kết quả actual task/collector recovery: **8/8 success và qa-01-v2 PASSED**;
+xem [acceptance/pins/SQL](./QA-01_CURRENT_MONTH_ACCEPTANCE.md). Không suy Done
+chỉ từ clear hoặc tests; default Make cached-image preflight vẫn chưa đạt,
+deployment explicit có [mount/file hash proof riêng](./QA-01_DEPLOYMENT_20261023.json).
+
+## Kết luận tại mốc 22/10 (lịch sử)
 
 **In Progress — chưa nghiệm thu E2E thành công.** Bước 3 implementation đã có:
 cùng daily DAG tám task, runtime riêng, Java phase bridge, read-only collector

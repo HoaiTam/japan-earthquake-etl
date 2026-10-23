@@ -9,10 +9,12 @@ này mở rộng phần thiết kế của [QA-01 — Daily E2E](../task/tasks/Q
 **Cập nhật bước 3/3 ngày 22/10:** đã triển khai [Source capture và
 Silver](../runbooks/CURRENT_MONTH_SOURCE_SILVER.md) với protocol
 `current-month-source-silver-v1` và [Gold/publication operational](../runbooks/CURRENT_MONTH_GOLD_PUBLICATION.md)
-với protocol `current-month-gold-v1`. Gold có Iceberg local/SQL fixture tests;
-chưa MinIO/Trino live acceptance thành công. [Daily runtime và collector v2](../runbooks/CURRENT_MONTH_DAILY.md)
-đã triển khai/deploy local, cùng DAG 8 task. Scheduled 22/10 failed ở resolve;
-đã sửa SDK enum, giữ lịch 07:15 chờ 23/10 theo owner. Policy planner vẫn
+với protocol `current-month-gold-v1`. Gold có Iceberg local/SQL fixture tests.
+Ngày 23/10 [daily runtime/collector v2](../runbooks/CURRENT_MONTH_DAILY.md) đã
+[nghiệm thu scheduled recovery PASSED](../evidence/QA-01_CURRENT_MONTH_ACCEPTANCE.md),
+8/8 tasks/six snapshots/42 SQL trên explicit readonly prebuilt deployment.
+Run 22/10 giữ failed; run 23/10 được owner cho phục hồi sau host sleep. Cron vẫn
+07:15, không manual/fake state; default Make image preflight chưa đạt. Policy planner vẫn
 `DESIGN_ONLY`; không phải nút bật runtime.
 ORC-06/07 v1 và collector `qa-01-v1` vẫn giữ nguyên gate `COMPLETE_MONTHS`.
 Không đổi một flag trong `.env` để kích hoạt thiết kế này.
@@ -22,7 +24,7 @@ Hai sản phẩm phải được phân biệt:
 | Sản phẩm | Nguồn và coverage | Được dùng để làm gì? |
 |---|---|---|
 | Historical/research v1 | Exact JMA/USGS releases theo [SOURCE_COVERAGE](./SOURCE_COVERAGE.md), complete closed-month và halo đã kiểm | Gold lịch sử; ML còn phải qua MLD-01..05 và lifecycle export |
-| Operational v2 đề xuất | USGS đến event cutoff; JMA chỉ readiness baseline lịch sử; `OBSERVED_AS_OF`, `PROVISIONAL` | Theo dõi dữ liệu cập nhật hằng ngày; **không** tự đủ điều kiện research/official ML |
+| Operational v2 | USGS đến event cutoff; JMA chỉ readiness baseline lịch sử; `OBSERVED_AS_OF`, `PROVISIONAL` | Theo dõi dữ liệu cập nhật hằng ngày; **không** tự đủ điều kiện research/official ML |
 
 `Published` trong thiết kế operational chỉ có nghĩa snapshot đã commit và SQL
 verify đúng **phạm vi provisional đã khai báo**, không có nghĩa catalog đầy đủ
@@ -194,26 +196,28 @@ Official ML consumers phải fail-closed trước provisional policy, kể cả 
 - `make test-current-month-gold`, `make current-month-gold`: regression và
   explicit MinIO/Iceberg/Trino entrypoint có held lease; xem [runbook Gold](../runbooks/CURRENT_MONTH_GOLD_PUBLICATION.md).
   `make smoke-qa-01 QA_01_RUN_ID=...` tự chọn v2 khi có current-month context của
-  exact run; không chạy pipeline. Chưa có scheduled acceptance PASSED.
+  exact run; không chạy pipeline. Scheduled recovery 23/10 đã PASSED theo evidence
+  riêng; Make preflight cached-image không được ghi PASS thay explicit deploy proof.
 
 `DESIGN_PLAN_ONLY`, `deployable=false`, `NOT_CAPTURED` và
 `observed_coverage_proven=false` là kết quả mong đợi, không phải lỗi deployment.
 Planner không start Docker, trigger Airflow hay upload MinIO.
 
-## 8. Điều kiện triển khai và nghiệm thu còn thiếu
+## 8. Nghiệm thu operational và ranh giới còn lại
 
-**QA-01 — Daily E2E** vẫn In Progress. Phần thiết kế đã bổ sung; còn cần một
-work package triển khai v2 còn lại (**chưa có task ID riêng**, chưa ước lượng
-effort/đổi phân công tuần). Ba bước implementation đã có trên PR #96;
-component tests không thay acceptance của các boundary còn lại:
+**QA-01 — Daily E2E** Done cho operational v2 sau scheduled recovery 23/10 do
+owner duyệt. [Evidence](../evidence/QA-01_CURRENT_MONTH_ACCEPTANCE.md) pin actual
+run, counts, source/Silver SHA, six snapshots và 42 SQL. Implementation mở rộng
+không tự đổi effort 5h/budget tuần; component tests không thay proof runtime.
+Các giới hạn ngoài acceptance đã chạy giữ rõ dưới đây:
 
 | Boundary/task hiện hữu | Phần cần làm cho v2; không nằm trong Done của v1 |
 |---|---|
-| USG-01..06 / ORC-02 | Chunk/manifest/observed proof và daily wiring đã có; còn scheduled capture/JMA historical readiness thực tế cùng run v2 thành công |
+| USG-01..06 / ORC-02 | Chunk/manifest/observed proof và scheduled capture/JMA historical readiness đạt trên run recovery 23/10; không tuyên bố JMA 2026 coverage |
 | ORC-06 — Full-month resolver | Observed resolver riêng đã có bounded revision/history/closure guards; chưa automatic deletion/replan; không hạ v1 COMPLETE_MONTHS |
-| ORC-07 — Real adapters / GLD-03..04 | Gold/publication và Airflow wiring đã có reserved namespace, commit/SQL quality và aliases; còn MinIO/Trino live acceptance |
+| ORC-07 — Real adapters / GLD-03..04 | Gold/publication và Airflow wiring đã có reserved namespace, commit/SQL quality và aliases; MinIO/Trino same-run acceptance 23/10 đạt |
 | MLD-01 / MLD-05 / MLI-02 | Đã có reserved namespace/persisted snapshot guard ở manifest/pinned consumers; còn live negative acceptance trong v2 chain; không đổi trạng thái Done của v1 |
-| QA-01 — Daily E2E | Collector/report v2 đã có; chờ scheduled 23/10 07:15 sau failed resolve 22/10. PASSED operational vẫn ML-ineligible |
+| QA-01 — Daily E2E | Scheduled recovery 23/10 và collector v2 PASSED; explicit prebuilt deployment, không first-attempt/on-time SLA/default image freshness. Output vẫn ML-ineligible |
 | QA-02 / QA-04 | Regression bổ sung retry/rollover/moved ID/deletion và fail-before-publish cho policy mới; evidence v1 không chứng minh v2 |
 
 Live acceptance sau implementation phải có scheduler tạo run tại deployment
@@ -221,7 +225,9 @@ thật; đủ tám task, same-run chain, exact captures, reconciliation, sáu sn
 publication quality và KPI readback. Không dùng manual/DAG.test, sửa DB/state,
 run lịch sử hoặc namespace khác thay thế. Cần test thiếu bootstrap, missing ID,
 request quá giới hạn, đổi cutoff/pins khi retry, thiếu halo và SQL blocker đều
-dừng đúng tầng, không publish. Chưa có các bằng chứng này thì QA-01 chưa Done.
+dừng đúng tầng, không publish. Current-month guard cases dùng offline regression,
+capture failed→downstream blocked/lease retained có runtime evidence; không
+nhận mọi fault case đã inject live hoặc mọi ngày tương lai đều được chứng nhận.
 
 ## Nguồn tham khảo
 

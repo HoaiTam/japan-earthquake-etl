@@ -6,7 +6,8 @@
 `current-month-source-silver-v1` triển khai capture USGS → Bronze → Silver
 operational. Nó không nối vào cron, không ghi Gold/Iceberg, không Published và
 không cấp official ML eligibility. [QA-01 — Daily E2E](../task/tasks/QA-01.md)
-vẫn In Progress. [Thiết kế](../specs/CURRENT_MONTH_AS_OF_CUTOFF.md) giữ guard
+đã Done cho operational v2 sau [nghiệm thu scheduled recovery 23/10](../evidence/QA-01_CURRENT_MONTH_ACCEPTANCE.md).
+Standalone component này vẫn không tự nối cron/Gold. [Thiết kế](../specs/CURRENT_MONTH_AS_OF_CUTOFF.md) giữ guard
 historical v1; policy planner `DESIGN_ONLY` không phải nút bật component này.
 
 | Thành phần | Chức năng |
@@ -134,10 +135,11 @@ lượt là `bronze/usgs/...` và `${SILVER_PREFIX}/current-month/...` trong dat
 
 **Cập nhật sau bước 3:** đã có [Gold/publication operational và research/ML
 consumer guards](./CURRENT_MONTH_GOLD_PUBLICATION.md), có Iceberg local/SQL
-fixture tests; chưa MinIO/Trino live acceptance PASSED. [Daily wiring/collector v2](./CURRENT_MONTH_DAILY.md)
-đã triển khai; **QA-01 — Daily E2E** còn scheduled acceptance 2026 thật, chờ
-23/10 07:15 sau failed resolve 22/10. Chưa có task ID riêng
-cho các work packages đó; component Source/Silver này không
+fixture tests; [daily wiring/collector v2](./CURRENT_MONTH_DAILY.md) đã có
+[MinIO → Gold → Trino scheduled acceptance 23/10](../evidence/QA-01_CURRENT_MONTH_ACCEPTANCE.md)
+sau recovery được owner duyệt. **QA-01 — Daily E2E** Done cho explicit prebuilt
+operational deployment, không first-attempt SLA/default image preflight hoặc ML eligibility.
+Component Source/Silver này không
 đổi ORC-06/07 historical v1 hoặc trạng thái Done của các task upstream.
 JMA sau baseline và ID/deletion reprocess ngoài scope cũng chưa có task riêng.
 Không restore marker/state giả, xóa warehouse hoặc release lease khác owner.

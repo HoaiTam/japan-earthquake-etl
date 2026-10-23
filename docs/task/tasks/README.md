@@ -38,14 +38,15 @@ rosy179 34h. MLI-02 chuyển rosy179; DOC-01/QA-04/EXP-03 về tuần 5.
 ORC-06 giữ HoaiTam. Giữ 4h nghiệm thu tồn + 20h review thì tổng budget tham
 khảo 110h, chưa xác nhận capacity; effort bao gồm task Done, không phải giờ còn lại.
 ORC-06/07 bổ sung implementation full-month state/real adapters, không dồn vào
-QA-01 5h. QA-01 vẫn In Progress; ngày 22/10 owner chọn bổ sung
+QA-01 5h. QA-01 **Done cho operational current-month v2**; ngày 22/10 owner chọn bổ sung
 [thiết kế current-month/as-of-cutoff](../../specs/CURRENT_MONTH_AS_OF_CUTOFF.md)
 cho daily 2026; planner vẫn DESIGN_ONLY. Source/Silver và Gold/publication
 standalone components đã có trên PR #96; Gold có Iceberg local/SQL fixture
-tests và ML guards. Daily wiring/collector v2 đã triển khai; scheduled 22/10
-failed ở resolve trước ghi lake, đã sửa SDK enum. Owner giữ lịch 07:15 để chờ
-23/10; chưa MinIO/Trino live/scheduled acceptance PASSED. Xem
-[evidence](../../evidence/QA-01_CURRENT_MONTH_DAILY.md). Work packages còn lại
+tests và ML guards. Scheduled 23/10 sau owner-authorized recovery đạt 8/8 task,
+collector v2 PASSED, 58 events/six snapshots/42 SQL. Giữ PROVISIONAL/OBSERVED_AS_OF,
+research/ML flags false; daily đã pause. Không chứng nhận default cached-image
+preflight hoặc first-attempt/on-time SLA. Xem
+[evidence](../../evidence/QA-01_CURRENT_MONTH_ACCEPTANCE.md). Work packages ngoài scope
 chưa có task ID/effort riêng, không cộng ngầm vào budget 386h.
 ORC-02 đã Done sau nghiệm thu live 2026-10-15:
 scheduled/first/rerun/contention, 7 tasks mỗi daily run và pause/lease readback đạt;
@@ -204,7 +205,7 @@ fixture/inventory; assignee `HoaiTam`, reviewer `unassigned`. Xem
 | [DEMO-01](./DEMO-01.md) - Chuẩn bị dữ liệu và kịch bản demo | 8 | Demo | Core | P0 | 4h | Backlog |
 | [DEMO-02](./DEMO-02.md) - Rehearsal và tạo release candidate | 8 | Release | Core | P0 | 6h | Backlog |
 | [OPS-01](./OPS-01.md) - Smoke test backup và restore metadata | 6 | Backup and restore | Stretch | P2 | 4h | Backlog |
-| [QA-01](./QA-01.md) - Chạy E2E daily đa nguồn | 5 | E2E | Core | P0 | 5h | In Progress |
+| [QA-01](./QA-01.md) - Chạy E2E daily đa nguồn | 5 | E2E | Core | P0 | 5h | Done |
 | [QA-02](./QA-02.md) - Test rerun, duplicate và late revision | 5 | Idempotency | Core | P0 | 5h | Done |
 | [QA-03](./QA-03.md) - Kiểm thử JMA historical backfill | 5 | Historical backfill | Core | P0 | 5h | Done |
 | [QA-04](./QA-04.md) - Test failure và recovery theo tầng | 5 | Failure recovery | Core | P0 | 4h | Done |

@@ -12,8 +12,10 @@ Các ví dụ historical trong runbook này dùng **`qa-01-v1`**. Đã bổ sung
 [daily operational và collector `qa-01-v2`](./CURRENT_MONTH_DAILY.md), tự chọn
 theo current-month context của exact scheduled run; không đổi eligibility v1.
 
-Trạng thái triển khai: collector và test offline đã có. **Chưa nghiệm thu E2E
-deployment thành công**; xem [evidence ngày 19/10/2026](../evidence/QA-01.md).
+Trạng thái hiện tại: **QA-01 Done cho operational v2** sau [scheduled recovery
+acceptance 23/10](../evidence/QA-01_CURRENT_MONTH_ACCEPTANCE.md), 8/8 tasks và
+collector v2 PASSED trên explicit readonly prebuilt deployment. V1 NOT_READY
+ở [evidence ngày 19/10/2026](../evidence/QA-01.md) giữ nguyên lịch sử.
 Không thay đổi acceptance criteria để tính ORC-07 `DAG.test` thành scheduled run.
 
 Ngày 22/10/2026, owner chọn bổ sung [thiết kế current-month/as-of-cutoff](../specs/CURRENT_MONTH_AS_OF_CUTOFF.md)
@@ -22,7 +24,8 @@ hoặc cho phép publish current-month. Đã bổ sung [Source/Silver standalone
 và [Gold/publication standalone component](./CURRENT_MONTH_GOLD_PUBLICATION.md)
 theo yêu cầu tiếp theo trên PR #96. Daily wiring/collector v2 đã triển khai,
 deploy local; scheduled 22/10 failed ở resolve trước ghi lake, đã vá SDK enum.
-Owner giữ 07:15 để chờ scheduled 23/10; chưa MinIO/Trino live acceptance PASSED.
+Ngày 23/10 owner cho phục hồi exact scheduled run sau host sleep, giữ cron
+07:15/context/lease và upstream success; MinIO/Trino live collector v2 PASSED.
 Xem [evidence thiết kế](../evidence/QA-01_CURRENT_MONTH_DESIGN.md),
 [Source/Silver](../evidence/QA-01_SOURCE_SILVER.md) và [Gold](../evidence/QA-01_GOLD_PUBLICATION.md).
 Evidence deployment: [daily v2](../evidence/QA-01_CURRENT_MONTH_DAILY.md).
@@ -69,9 +72,10 @@ scheduled DagRun bằng SQL.
 
 **QA-01 — Daily E2E** đã bổ sung thiết kế current-month theo lựa chọn của owner,
 Source/Silver, Gold/publication, consumer guards và Airflow/collector v2 đã
-triển khai; còn MinIO/Trino live/scheduled acceptance thành công. Chưa có task ID/effort riêng cho work package còn lại hoặc mở rộng JMA
-sau baseline. Không bật mode `real` với current-month request theo contract v1;
-không dùng lệnh smoke bên dưới để tuyên bố daily 2026 operational đã nghiệm thu.
+triển khai và có MinIO/Trino scheduled recovery acceptance thành công ngày 23/10.
+Chưa có task riêng mở rộng JMA sau baseline/deletion/replan vượt budget.
+Không bật mode `real` với current-month request theo contract v1; ví dụ historical
+bên dưới vẫn dùng v1, không thay bằng chứng v2.
 
 ## 4. Chạy và nhận biết kết quả
 
@@ -103,6 +107,11 @@ python3 scripts/qa-01.py --run-id 'scheduled__2026-10-15T00:15:00+00:00'
 Run lịch sử này dự kiến `NOT_READY` vì có 7 task và chỉ đạt SourcesReady.
 `IMAGE_UNPREPARED_OR_STALE_RUN_MAKE_DOCKER_BUILD` từ Make nghĩa là cần chuẩn bị
 image riêng trước nghiệm thu; smoke **không tự thực hiện** việc build đó.
+
+Run v2 23/10 có diagnostic collector PASSED và [explicit readonly mount/JAR/DAG
+hash proof](../evidence/QA-01_DEPLOYMENT_20261023.json) riêng cho deployment
+override hiện có; không ghi default Make stale-image gate thành PASS. Trước
+migration về fresh/default image cần chuẩn bị và nghiệm thu lifecycle riêng.
 
 Để nghiệm thu run khác, thay giá trị `QA_01_RUN_ID` bằng ID thực tế từ UI.
 Không dùng một ID ví dụ chưa tồn tại. Mỗi lần collector tạo thư mục riêng
@@ -162,8 +171,9 @@ collector thêm chống ghép run, sửa SHA/snapshot, thiếu full month, count
 parser reject, blocker SQL và KPI drift. Đây là **synthetic regression**, không
 ghi là fault injection live.
 
-Để QA-01 Done còn cần scheduled deployment acceptance PASSED, evidence đúng
-tầng khi fail và KPI SQL thật. QA-02 — rerun/duplicate/revision, QA-03 — historical
+QA-01 đã có scheduled operational recovery acceptance PASSED ngày 23/10,
+evidence đúng tầng khi fail và KPI SQL thật. Không nhận first-attempt/on-time SLA
+hoặc v1 historical/research acceptance từ v2. QA-02 — rerun/duplicate/revision, QA-03 — historical
 backfill/coverage, QA-04 — failure/recovery live là các phạm vi riêng, không
 tuyên bố đã hoàn tất cùng collector này. MLD-05 — export official dataset vẫn
 cần lifecycle EXPORTED; `ml_upstream_eligible` không nâng lifecycle dataset.

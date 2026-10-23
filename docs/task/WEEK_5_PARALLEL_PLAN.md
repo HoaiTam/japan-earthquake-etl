@@ -11,7 +11,7 @@ evidence của các lần nghiệm thu cũ hoặc coi merge/CI là scientific ap
 | Người làm | Task | Làm gì / output | Effort | Trạng thái tại 22/10 |
 |---|---|---|---:|---|
 | HoaiTam | [ORC-07](./tasks/ORC-07.md) | Nối real ETL adapters đến Gold Published | 8h | Done |
-| HoaiTam | [QA-01](./tasks/QA-01.md) | Nghiệm thu daily scheduled E2E và đối soát từng tầng | 5h | In Progress |
+| HoaiTam | [QA-01](./tasks/QA-01.md) | Nghiệm thu daily scheduled E2E và đối soát từng tầng | 5h | Done |
 | HoaiTam | [DOC-01](./tasks/DOC-01.md) | Đồng bộ kiến trúc, runbook, Jupyter → Colab và task tracking | 4h | Done |
 | ThanhTris | [MLI-03](./tasks/MLI-03.md) | Validate/import kết quả ML, không nhận development pilot | 7h | Done |
 | ThanhTris | [QA-02](./tasks/QA-02.md) | Rerun, duplicate và late revision | 5h | Done |
@@ -59,16 +59,14 @@ Giữ buffer cũ theo người cho ra 39/28/43h. Không tự tăng effort hoặc
 
 - **MLI-02 — Build dataset DAG:** rosy179 nối real MLD-05 exporter vào runner,
   kiểm DAG/registry/retry/handoff thật. Mock/offline PASS không hoàn tất task.
-- **QA-01 — Daily E2E:** HoaiTam nghiệm thu scheduled deployment có eligible
-  input, counts, six snapshots/publication và KPI SQL. Ngày 22/10 owner chọn
-  bổ sung [thiết kế current-month/as-of-cutoff](../specs/CURRENT_MONTH_AS_OF_CUTOFF.md)
-  cho daily 2026; policy/planner DESIGN_ONLY. Sau đó owner yêu cầu bước 1
-  [Source/Silver component](../runbooks/CURRENT_MONTH_SOURCE_SILVER.md) trên PR #96;
-  đã có standalone Source/Silver và [Gold/publication](../runbooks/CURRENT_MONTH_GOLD_PUBLICATION.md)
-  runtime + consumer guards; Gold mới kiểm Iceberg local/SQL fixture, chưa
-  MinIO/Trino live acceptance, cron/collector hoặc scheduled acceptance.
-  Work package implementation còn lại và JMA sau baseline chưa có task ID/effort
-  riêng, không tính nằm trong 5h QA ban đầu; không lấy request lịch sử giả daily.
+- **QA-01 — Daily E2E:** **Done cho operational v2** sau [scheduled recovery
+  acceptance 23/10](../evidence/QA-01_CURRENT_MONTH_ACCEPTANCE.md): 8/8 tasks,
+  58 events/six snapshots/42 SQL. Owner cho clear capture/downstream đúng run
+  sau sleep failure; không manual/fake scheduled hoặc first-attempt SLA.
+  Published vẫn PROVISIONAL/OBSERVED_AS_OF, research/ML-ineligible. Default Make
+  cached-image preflight chưa đạt, explicit deployment có mount/file SHA proof.
+  Phần thiết kế/implementation mở rộng không tự cộng vào effort 5h/budget tuần;
+  JMA sau baseline/deletion/replan vượt budget chưa có task riêng.
 - **EXP-02 — Baselines:** local fresh-kernel pilot đã đạt; còn Colab parity và
   official EXPORTED dataset run. Không nâng DAT-02 PARTIAL thành research-ready.
 - **EXP-03 — Adaptive/multi-sequence:** còn reproduction run/fresh-kernel
@@ -193,8 +191,9 @@ file-backed full-month QA 09/2023, xem [evidence](../evidence/ORC-06.md).
 ORC-07 Done sau bounded daily/manual production DAGs qua DAG.test:
 MinIO → full-month Silver → sáu Gold snapshots → actual Trino → Published;
 same-operation replay và owned partial-commit recovery đạt.
-Xem [evidence](../evidence/ORC-07.md). QA-01 vẫn cần nghiệm thu scheduled
-deployment độc lập; không suy QA-01/02/03/04 Done từ adapter acceptance.
+Xem [evidence](../evidence/ORC-07.md). QA-01 đã có [scheduled acceptance riêng
+ngày 23/10](../evidence/QA-01_CURRENT_MONTH_ACCEPTANCE.md); không suy QA-01/02/03/04
+Done từ adapter acceptance.
 Tháng đang mở không được ORC-06 v1 chứng nhận COMPLETE_MONTHS.
 
 ## 3. Nhóm HoaiTam làm trước — không chặn mọi người viết code
@@ -296,8 +295,9 @@ thức, cập nhật plan/metadata/index và planning checks/tests cùng PR.
 - [x] ORC-07 có bounded daily/manual Airflow DAG.test → exact Bronze → Silver →
       đủ Gold snapshots → Trino report → publication cùng identity; mock
       `published=false`, replay identical và partial-commit resume bảo toàn snapshots.
-- [ ] QA-01 nghiệm thu E2E scheduled deployment độc lập, traces/counts/publication;
-      không dùng bounded adapter acceptance thay cho QA-01.
+- [x] QA-01 nghiệm thu scheduled operational v2 độc lập ngày 23/10 sau recovery
+      được owner duyệt: 8/8 success, SHA/count/publication/42 SQL PASSED; không
+      thay bằng bounded adapter acceptance hoặc nâng thành research-ready.
 - [x] QA-02 có runtime rerun/revision/retention evidence 8/8, sáu publication
       và Trino readback đạt ngày 21/10/2026; xem [nghiệm thu](../evidence/QA-02_RUNTIME_ACCEPTANCE.md).
 - [x] QA-03 historical backfill: archive public đại diện, resume/changed-release/resource/retention 6/6,

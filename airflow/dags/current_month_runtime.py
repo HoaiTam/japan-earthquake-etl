@@ -9,8 +9,9 @@ import os
 from pathlib import Path
 import re
 import subprocess
+import tempfile
 
-from etl_pipeline_runtime import _json_bytes, _unique_json_object
+from etl_pipeline_runtime import EtlContractError, _json_bytes, _unique_json_object
 from jma_backfill_runtime import _atomic_json, _ready
 from source_run_guard import lease
 
@@ -148,13 +149,47 @@ def invoke(phase, path, folder, environment):
     command += [str(path)] if phase == "gold" else [phase, str(path)]
     timeout = int(environment.get("CURRENT_MONTH_PHASE_TIMEOUT_SECONDS", "1800"))
     require(1 <= timeout <= 7200, "BOUNDED_TIMEOUT_REQUIRED")
-    folder.mkdir(parents=True, exist_ok=True)
-    with (folder / (phase+".stdout.private")).open("w+b") as out, (folder / (phase+".stderr.private")).open("wb") as err:
+    return _invoke_command(phase, command, folder, environment, timeout)
+
+
+def _invoke_command(phase, command, folder, environment, timeout):
+    """Keep every attempt's private logs; a failed phase never releases its lease.
+
+    A timeout is not proof that every descendant/external writer is quiescent.
+    Recovery still requires the operator checks, not automatic task replay.
+    """
+    require(phase in {"capture", "silver", "gold", "audit"}, "PHASE_REQUIRED")
+    require(not any(p.is_symlink() for p in (folder, *folder.parents)), "UNSAFE_DAILY_ROOT")
+    attempts = folder / "phase-attempts"
+    require(not attempts.is_symlink(), "UNSAFE_DAILY_ROOT")
+    attempts.mkdir(parents=True, exist_ok=True)
+    attempt = Path(tempfile.mkdtemp(prefix=phase+"-", dir=attempts))
+    with (attempt / "stdout.private").open("w+b") as out, (attempt / "stderr.private").open("wb") as err:
         os.chmod(out.name,0o600);os.chmod(err.name,0o600)
-        result = subprocess.run(command, cwd="/opt/pipeline", env=dict(environment), stdout=out, stderr=err,
-                                timeout=timeout, check=False, shell=False)
-        require(result.returncode == 0 and out.tell() <= 1048576, "PHASE_FAILED_LEASE_RETAINED")
-        out.seek(0);return json.load(out, object_pairs_hook=_unique_json_object)
+        try:
+            result = subprocess.run(command, cwd="/opt/pipeline", env=dict(environment), stdout=out, stderr=err,
+                                    timeout=timeout, check=False, shell=False)
+        except subprocess.TimeoutExpired:
+            immutable(attempt / "outcome.json", {"phase":phase,"state":"FAILED_LEASE_RETAINED",
+                                                 "reason":"ASOF_PHASE_TIMEOUT_LEASE_RETAINED","timeout_seconds":timeout})
+            raise RuntimeError("ASOF_PHASE_TIMEOUT_LEASE_RETAINED") from None
+        except BaseException:
+            immutable(attempt / "outcome.json", {"phase":phase,"state":"FAILED_LEASE_RETAINED",
+                                                 "reason":"ASOF_PHASE_INTERRUPTED_LEASE_RETAINED"})
+            raise
+        reason = "ASOF_PHASE_NONZERO_LEASE_RETAINED" if result.returncode != 0 else (
+            "ASOF_PHASE_OUTPUT_GUARD_LEASE_RETAINED" if out.tell() > 1048576 else None)
+        if reason is not None:
+            immutable(attempt / "outcome.json", {"phase":phase,"state":"FAILED_LEASE_RETAINED","reason":reason})
+            raise RuntimeError(reason)
+        try:
+            out.seek(0); value = json.load(out, object_pairs_hook=_unique_json_object)
+        except (ValueError, UnicodeError, EtlContractError):
+            immutable(attempt / "outcome.json", {"phase":phase,"state":"FAILED_LEASE_RETAINED",
+                                                 "reason":"ASOF_PHASE_INVALID_JSON_LEASE_RETAINED"})
+            raise RuntimeError("ASOF_PHASE_INVALID_JSON_LEASE_RETAINED") from None
+        immutable(attempt / "outcome.json", {"phase":phase,"state":"RETURNED_JSON"})
+        return value
 
 
 def capture(plan, environment=None):

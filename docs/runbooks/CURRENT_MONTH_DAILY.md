@@ -4,9 +4,11 @@
 
 Bước 3 của PR #96 nối Source/Silver và Gold vào **cùng** DAG
 `orc_02_daily_sources`, không tạo thêm daily owner. Implementation và tests đã
-có; deployment local ngày 22/10/2026 chưa nghiệm thu thành công. Owner chọn
-giữ lịch **07:15 Asia/Ho_Chi_Minh**, chờ lần scheduled 23/10, không clear run
-22/10 đã failed. [QA-01](../task/tasks/QA-01.md) vẫn In Progress.
+có; [nghiệm thu local ngày 23/10/2026](../evidence/QA-01_CURRENT_MONTH_ACCEPTANCE.md)
+đạt **8/8 success và collector v2 PASSED** sau recovery được owner duyệt cho
+chính run scheduled 23/10. Run 22/10 vẫn failed. Cron giữ **07:15 Asia/Ho_Chi_Minh**,
+daily hiện paused, lease đã release đúng workflow. [QA-01](../task/tasks/QA-01.md)
+Done cho operational v2, không phải first-attempt/on-time SLA hoặc official ML.
 
 Đây là operational USGS-only. JMA chỉ chứng nhận baseline historical readiness,
 không cung cấp observation current-month. Output `Published` vẫn
@@ -38,6 +40,10 @@ Flow giữ nguyên tám task:
   Chỉ receipts/marker/summary COMPLETE mới advance published head và release.
   Lỗi/timeout giữ lease để chẩn đoán. Completion là strict sole leaf; cleanup
   không thể che upstream failure thành run xanh.
+- Mỗi Java phase có private logs riêng trong `phase-attempts/<phase>-<random>/`,
+  directory 0700/streams 0600; timeout/nonzero/invalid JSON có `outcome.json`
+  reason code, không overwrite log attempt cũ. `RETURNED_JSON` không thay receipt
+  hoặc COMPLETE gate. Timeout không chứng minh mọi writer đã dừng và không tự retry.
 
 ## Cấu hình và chuẩn bị explicit
 
@@ -88,7 +94,11 @@ image chưa tương thích, diagnostic read-only có thể chạy:
 python3 scripts/qa-01.py --run-id 'scheduled__2026-10-23T00:15:00+00:00'
 ```
 
-Diagnostic không thay preflight deployment. Collector tự chọn `qa-01-v2` khi
+Diagnostic không thay **default image/config preflight**. Phiên 23/10 dùng
+explicit readonly prebuilt override có [mount/file SHA proof riêng](../evidence/QA-01_DEPLOYMENT_20261023.json);
+Make smoke vẫn bị stale-image gate chặn trước collector, không giả Make PASS
+hoặc sửa image label. Trước bỏ override cần chuẩn bị và nghiệm thu image/lifecycle
+riêng (FND-01), không build trong smoke. Collector tự chọn `qa-01-v2` khi
 exact operation có current-month context; v1 vẫn giữ COMPLETE_MONTHS.
 
 Chỉ thành công khi:
@@ -111,8 +121,10 @@ JMA manifest readback theo exact URI/SHA.
 
 ## Giới hạn và xử lý lỗi
 
-- **QA-01 — Daily E2E:** chưa scheduled v2 PASSED; 22/10 failed ở resolve trước
-  lease/capture. Chờ 23/10 07:15. Khi run nghiệm thu kết thúc success hoặc failed,
+- **QA-01 — Daily E2E:** scheduled 23/10 đã PASSED sau recovery được owner duyệt;
+  22/10 vẫn failed. [Evidence](../evidence/QA-01_CURRENT_MONTH_ACCEPTANCE.md) ghi
+  phạm vi explicit prebuilt deployment và default-image preflight chưa đạt.
+  Khi run nghiệm thu kết thúc success hoặc failed,
   kiểm tra không active run rồi pause DAG về trạng thái ban đầu; failure giữ
   lease/artifacts. Tests/SDK probe không thay runtime acceptance.
 - **QA-02 / QA-04:** component fixtures không thay live operational replay/failure
@@ -125,3 +137,9 @@ JMA manifest readback theo exact URI/SHA.
 Nếu fail: giữ log/run/lease, đọc exact phase private log. Không xóa warehouse,
 bucket/volume, sửa DB/task state, clear/mark-success hoặc release foreign owner.
 Nếu lỡ lịch: báo thiếu evidence, không tạo manual rồi đổi nhãn scheduled.
+
+Recovery chỉ khi owner cho phép và đã kiểm exact owner/no active writer. Phiên
+23/10 dùng API Airflow clear chính thức với exact run_id cho capture + downstream,
+giữ upstream success và pins; không sửa state bằng SQL hoặc mark-success. Laptop
+phải thức qua cửa sổ nghiệm thu (có thể dùng `caffeinate -i -t 7200` tạm thời
+trên macOS); đóng nắp có thể vẫn làm sleep. Không lấy recovery thành SLA đúng giờ.
