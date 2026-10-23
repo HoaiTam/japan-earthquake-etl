@@ -53,6 +53,7 @@ approval. Power BI là Stretch; Trino/static report là Core.
 | Hiểu các thành phần và cách chúng kết nối | [Kiến trúc hệ thống](./SYSTEM_ARCHITECTURE.md) |
 | Hiểu một lần chạy ETL hằng ngày | [Luồng ETL hằng ngày](./flows/DAILY_ETL_PIPELINE.md) |
 | Nghiệm thu một scheduled daily run, counts/snapshots/Trino; phân biệt NOT_READY và Passed | [QA-01 daily E2E](./runbooks/QA-01_DAILY_E2E.md) |
+| Current-month operational: Source/Silver và Gold provisional tách historical; chưa scheduled acceptance | [Source/Silver](./runbooks/CURRENT_MONTH_SOURCE_SILVER.md), [Gold/publication](./runbooks/CURRENT_MONTH_GOLD_PUBLICATION.md) |
 | Chạy bù, chạy lại hoặc xử lý lỗi | [Backfill và phục hồi](./flows/BACKFILL_AND_RECOVERY.md) |
 | Xác định quy tắc kiểm tra dữ liệu | [Chất lượng dữ liệu](./DATA_QUALITY_AND_OBSERVABILITY.md) |
 | Thiết kế báo cáo Power BI | [Đặc tả dashboard](./ANALYTICS_DASHBOARD.md) |

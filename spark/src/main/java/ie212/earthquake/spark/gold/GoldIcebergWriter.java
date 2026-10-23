@@ -26,12 +26,19 @@ public final class GoldIcebergWriter {
     private final String namespace;
     private final SilverObjectStore journal;
     private final Runnable assertLease;
+    private final JsonNode operationalPolicy;
 
     public GoldIcebergWriter(SparkSession spark, String namespace, SilverObjectStore journal, Runnable assertLease) {
+        this(spark,namespace,journal,assertLease,null);
+    }
+    public GoldIcebergWriter(SparkSession spark, String namespace, SilverObjectStore journal, Runnable assertLease, JsonNode policy) {
         if (namespace == null || !namespace.matches("[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*"))
             throw new IllegalArgumentException("SAFE_GOLD_NAMESPACE_REQUIRED");
         this.spark = Objects.requireNonNull(spark); this.namespace = namespace;
         this.journal = Objects.requireNonNull(journal); this.assertLease = Objects.requireNonNull(assertLease);
+        if(policy==null) OperationalGoldPolicy.researchOnly(namespace);
+        else OperationalGoldPolicy.validate(namespace,policy);
+        this.operationalPolicy=policy==null ? null : policy.deepCopy();
         if (!"UTC".equals(spark.conf().get("spark.sql.session.timeZone")))
             throw new IllegalArgumentException("UTC_SESSION_REQUIRED");
     }
@@ -62,6 +69,7 @@ public final class GoldIcebergWriter {
         ObjectNode identity = JSON.createObjectNode();
         identity.put("commit_version", "gld-03-v1"); identity.put("namespace", namespace);
         identity.set("scope", scopeJson(scope));
+        if(operationalPolicy!=null) identity.set("operational_policy",operationalPolicy);
         var fingerprints = identity.putObject("data");
         for (var entry : inputs.entrySet()) {
             var info = fingerprints.putObject(entry.getKey());
@@ -88,6 +96,7 @@ public final class GoldIcebergWriter {
         receipt.put("identity_sha256", identitySha); receipt.put("namespace", namespace);
         receipt.set("scope", scopeJson(scope)); receipt.put("status", "COMMITTED");
         receipt.put("published", false); var committed = receipt.putObject("tables");
+        if(operationalPolicy!=null) OperationalGoldPolicy.attach(receipt,operationalPolicy);
         for (var entry : inputs.entrySet()) {
             assertLease.run(); String name = entry.getKey(), tableName = namespace + "." + name;
             Dataset<Row> incoming = entry.getValue();
@@ -100,9 +109,11 @@ public final class GoldIcebergWriter {
                 String partition = name.equals("event_current") ? " PARTITIONED BY (months(event_time_utc))"
                     : name.equals("event_source_bridge") ? " PARTITIONED BY (event_month_utc)" : "";
                 spark.sql("CREATE TABLE "+tableName+" ("+columns+") USING iceberg"+partition+
-                    " TBLPROPERTIES ('format-version'='2', 'write.format.default'='parquet')");
+                    " TBLPROPERTIES ('format-version'='2', 'write.format.default'='parquet'"
+                    +(operationalPolicy==null ? "" : ", 'gold.data_policy'='"+OperationalGoldPolicy.VERSION+"'")+ ")");
             }
             Table table = Spark3Util.loadIcebergTable(spark, tableName); table.refresh();
+            checkTablePolicy(table);
             Snapshot done = findOperation(table, scope.context().runId(), identitySha);
             long current = table.currentSnapshot() == null ? 0 : table.currentSnapshot().snapshotId();
             if (done == null) {
@@ -125,11 +136,13 @@ public final class GoldIcebergWriter {
                 long expected = previous.filter(not(predicate)).count() + replacement.count();
                 String contentSha = fingerprint(previous.filter(not(predicate)).unionByName(replacement));
                 // Iceberg rejects files partly outside an overwrite filter; month-aligned predicates prevent broad overwrite.
-                replacement.writeTo(tableName).option("snapshot-property.gold.operation_id", scope.context().runId())
+                var write=replacement.writeTo(tableName).option("snapshot-property.gold.operation_id", scope.context().runId())
                         .option("snapshot-property.gold.identity_sha256", identitySha)
                         .option("snapshot-property.gold.baseline_snapshot", Long.toString(current))
                         .option("snapshot-property.gold.expected_count", Long.toString(expected))
-                        .option("snapshot-property.gold.content_sha256", contentSha).overwrite(predicate);
+                        .option("snapshot-property.gold.content_sha256", contentSha);
+                if(operationalPolicy!=null) write=write.option("snapshot-property."+OperationalGoldPolicy.PROPERTY,OperationalGoldPolicy.sha(operationalPolicy));
+                write.overwrite(predicate);
                 table.refresh(); done = findOperation(table, scope.context().runId(), identitySha);
                 if (done == null) throw new IOException("COMMIT_OUTCOME_UNKNOWN");
                 afterTable.accept(name);
@@ -151,6 +164,7 @@ public final class GoldIcebergWriter {
     }
 
     private JsonNode verify(JsonNode receipt, GoldCommitScope scope, String sha) throws Exception {
+        if(operationalPolicy!=null && !operationalPolicy.equals(receipt.path("operational_policy"))) throw new IOException("ASOF_GOLD_POLICY_CHANGED");
         if (!receipt.path("identity_sha256").asText().equals(sha) || receipt.path("published").asBoolean(true)
                 || !"COMMITTED".equals(receipt.path("status").asText())
                 || !receipt.path("namespace").asText().equals(namespace)
@@ -158,10 +172,13 @@ public final class GoldIcebergWriter {
         for (String name : TABLES) {
             JsonNode pin = receipt.path("tables").path(name); String tableName = namespace + "." + name;
             Table table = Spark3Util.loadIcebergTable(spark, tableName); table.refresh();
+            checkTablePolicy(table);
             Snapshot snapshot = table.snapshot(pin.path("snapshot_id").asLong());
             if (snapshot == null || !scope.context().runId().equals(snapshot.summary().get("gold.operation_id"))
                     || !sha.equals(snapshot.summary().get("gold.identity_sha256"))
                     || !tableName.equals(pin.path("table").asText())) throw new IOException("SNAPSHOT_IDENTITY_MISMATCH");
+            if(operationalPolicy!=null && !OperationalGoldPolicy.sha(operationalPolicy).equals(snapshot.summary().get(OperationalGoldPolicy.PROPERTY)))
+                throw new IOException("ASOF_SNAPSHOT_POLICY_CHANGED");
             Dataset<Row> data = spark.read().format("iceberg").option("snapshot-id", Long.toString(snapshot.snapshotId())).load(tableName);
             if (data.count() != pin.path("count").asLong(-1)) throw new IOException("SNAPSHOT_READBACK_COUNT_MISMATCH");
             String key = name.equals("event_current") ? "canonical_event_id" : name.equals("event_source_bridge")
@@ -171,6 +188,11 @@ public final class GoldIcebergWriter {
                 throw new IOException("SNAPSHOT_CONTENT_READBACK_MISMATCH");
         }
         return receipt;
+    }
+    private void checkTablePolicy(Table table) throws IOException {
+        String actual=table.properties().get("gold.data_policy");
+        if(operationalPolicy==null ? actual!=null : !OperationalGoldPolicy.VERSION.equals(actual))
+            throw new IOException("ASOF_TABLE_POLICY_CONFLICT");
     }
 
     private LinkedHashMap<String, Dataset<Row>> inputs(GoldTransformationResult result) {

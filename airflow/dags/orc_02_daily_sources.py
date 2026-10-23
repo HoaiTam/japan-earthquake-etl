@@ -8,11 +8,13 @@ from airflow.timetables.interval import CronDataIntervalTimetable
 
 from source_run_guard import lease, owner
 import real_etl_runtime as real_etl
+import current_month_runtime as current_month
 from source_schedule_runtime import ingest_usgs, profile, ready_summary, refresh_jma, resolve_daily
 from run_observability import (dag_failure_summary, observe, source_context, source_details,
                                unresolved_context)
 
 PROFILE = profile()
+current_month.enabled()  # Parse-time mutual-exclusion guard; no network or writes.
 
 
 @dag(
@@ -30,7 +32,7 @@ def daily_sources():
     def resolve():
         ctx = get_current_context()
         return observe(unresolved_context(ctx, "orc_02_daily_sources"), "resolve",
-                       lambda: resolve_daily(ctx),
+                       lambda: current_month.attach(resolve_daily(ctx), ctx) if current_month.enabled() else resolve_daily(ctx),
                        lambda result: {"resolved_context_sha256": source_context(result)["context_sha256"]},
                        attempt=ctx["ti"].try_number)
 
@@ -54,22 +56,24 @@ def daily_sources():
     def usgs_ready(plan, jma):
         def operation():
             lease("assert", owner(get_current_context()))
-            return ingest_usgs(plan)
+            return current_month.capture(plan) if current_month.enabled() else ingest_usgs(plan)
         return observe(source_context(plan), "bronze", operation,
-                       lambda result: source_details("USGS", [result], plan["usgs"]),
+                       lambda result: {} if current_month.enabled() else source_details("USGS", [result], plan["usgs"]),
                        attempt=get_current_context()["ti"].try_number)
 
     @task(task_id="sources_ready", retries=0)
     def summarize(plan, jma, usgs):
-        return observe(source_context(plan), "verify", lambda: ready_summary(plan, jma, usgs),
+        return observe(source_context(plan), "verify", lambda: current_month.sources(plan,jma,usgs) if current_month.enabled() else ready_summary(plan, jma, usgs),
                        lambda result: {})
 
     @task(task_id="real_etl", retries=0)
     def publish(plan, summary):
-        return real_etl.daily(plan, summary)
+        return current_month.execute(plan,summary) if current_month.enabled() else real_etl.daily(plan, summary)
 
     @task(task_id="release_source_lease", trigger_rule="all_done", retries=0)
     def release(result):
+        if current_month.enabled():
+            return current_month.release(result)
         if real_etl.enabled():
             return real_etl.release(result["context"], result["summary"])
         return lease("release", owner(get_current_context()))
@@ -79,7 +83,7 @@ def daily_sources():
         def operation():
             if summary["status"] != "SourcesReady" or released["status"] != "RELEASED":
                 raise RuntimeError("source completion gate failed")
-            if real_etl.enabled():
+            if real_etl.enabled() or current_month.enabled():
                 real_etl.require(result["summary"]["published"] is True, "REAL_COMPLETION_REQUIRED")
                 return result["summary"]
             return {"status": "SourcesReady", "published": False}

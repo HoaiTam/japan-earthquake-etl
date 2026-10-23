@@ -125,4 +125,17 @@ class GoldIcebergWriterTest {
         var band = spark.createDataFrame(List.of(RowFactory.create("UNKNOWN")), new StructType().add("band_code", "string", false));
         return new GoldTransformationResult(e, e, b, d, r, band, band, 1, 1, 1);
     }
+    @Test void operationalPartialCommitResumesAndCannotDowngradePolicy() throws Exception {
+        String ns="lake."+OperationalGoldPolicy.SCHEMA;var journal=new FileSilverObjectStore(root.resolve("operational-journal"));
+        assertThrows(Exception.class,()->new GoldIcebergWriter(spark,ns,journal,()->{}));
+        var writer=new GoldIcebergWriter(spark,ns,journal,()->{},OperationalGoldPolicyTest.policy());
+        var scope=scope("operational-partial",List.of("2023-01"),zero());var input=data("op","2023-01-02T00:00:00Z",4);
+        assertThrows(IllegalStateException.class,()->writer.commit(input,scope,n->{throw new IllegalStateException("INJECTED");}));
+        var table=org.apache.iceberg.spark.Spark3Util.loadIcebergTable(spark,ns+".event_current");
+        long before=table.currentSnapshot().snapshotId();var receipt=writer.commit(input,scope);table.refresh();
+        assertEquals(before,table.currentSnapshot().snapshotId());assertEquals("PROVISIONAL",receipt.path("publication_quality").asText());
+        assertEquals(OperationalGoldPolicy.sha(OperationalGoldPolicyTest.policy()),table.currentSnapshot().summary().get(OperationalGoldPolicy.PROPERTY));
+        var changed=OperationalGoldPolicyTest.policy().put("registry_sha256","d".repeat(64));
+        assertThrows(Exception.class,()->new GoldIcebergWriter(spark,ns,journal,()->{},changed).commit(input,scope));
+    }
 }

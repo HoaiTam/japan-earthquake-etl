@@ -1,0 +1,66 @@
+{
+  "version": "qa-01-deployment-proof-v1",
+  "passed": true,
+  "scope": "explicit_prebuilt_readonly_override_not_default_image_freshness",
+  "default_make_preflight_passed": false,
+  "docker_desktop_host_mnt_translation_verified_with_file_hashes": true,
+  "services": [
+    {
+      "service": "airflow-api-server",
+      "healthy": true,
+      "exact_project_checkout": true,
+      "read_only_mounts_verified": true,
+      "mode": "operational",
+      "code_version": "7e95eb49d4523010403470bb7a15a1e441fd5689",
+      "runner_sha256": "cd30d98d09808d1ca617b866c57bcff00bd0aef1f70cefe3fd806146e00aa51d",
+      "mounted_file_hashes": {
+        "/opt/airflow/dags/current_month_runtime.py": "22491fe7103ab88e9e09addbe806c113024cedddfda746def1f02340bfc9167d",
+        "/opt/airflow/dags/qa_01_current_month.py": "9d301643a5e6e57394cf751ad3269abfea112ed4d34e6567e9f239af91459aac",
+        "/opt/airflow/dags/qa_01_daily_e2e.py": "7d980b3e7e51c49d683e17b5fbc1a48a176d221952e1e4057c3c5b3b8ad9dce0",
+        "/opt/airflow/dags/orc_02_daily_sources.py": "8df8a07c5e87ebbc4d498386c88ab095ef102e4de3f54ffd3072a3ff7a4af3be",
+        "/opt/spark/jobs/japan-earthquake-etl-runner.jar": "cd30d98d09808d1ca617b866c57bcff00bd0aef1f70cefe3fd806146e00aa51d",
+        "/opt/pipeline/lib/usgs-ingest-runner.jar": "cd30d98d09808d1ca617b866c57bcff00bd0aef1f70cefe3fd806146e00aa51d",
+        "/opt/spark/jobs/iceberg/iceberg-aws-bundle-1.10.1.jar": "86bf20892ea5b4c17688f19b075399885f6aa5303f6b2dc9f491e76ceef9633b",
+        "/opt/spark/jobs/iceberg/iceberg-spark-runtime-3.5_2.12-1.10.1.jar": "39ea09e6c03550a300b9d9ab498949836d2d434e441da4c12a943a086e396940"
+      }
+    },
+    {
+      "service": "airflow-scheduler",
+      "healthy": true,
+      "exact_project_checkout": true,
+      "read_only_mounts_verified": true,
+      "mode": "operational",
+      "code_version": "7e95eb49d4523010403470bb7a15a1e441fd5689",
+      "runner_sha256": "cd30d98d09808d1ca617b866c57bcff00bd0aef1f70cefe3fd806146e00aa51d",
+      "mounted_file_hashes": {
+        "/opt/airflow/dags/current_month_runtime.py": "22491fe7103ab88e9e09addbe806c113024cedddfda746def1f02340bfc9167d",
+        "/opt/airflow/dags/qa_01_current_month.py": "9d301643a5e6e57394cf751ad3269abfea112ed4d34e6567e9f239af91459aac",
+        "/opt/airflow/dags/qa_01_daily_e2e.py": "7d980b3e7e51c49d683e17b5fbc1a48a176d221952e1e4057c3c5b3b8ad9dce0",
+        "/opt/airflow/dags/orc_02_daily_sources.py": "8df8a07c5e87ebbc4d498386c88ab095ef102e4de3f54ffd3072a3ff7a4af3be",
+        "/opt/spark/jobs/japan-earthquake-etl-runner.jar": "cd30d98d09808d1ca617b866c57bcff00bd0aef1f70cefe3fd806146e00aa51d",
+        "/opt/pipeline/lib/usgs-ingest-runner.jar": "cd30d98d09808d1ca617b866c57bcff00bd0aef1f70cefe3fd806146e00aa51d",
+        "/opt/spark/jobs/iceberg/iceberg-aws-bundle-1.10.1.jar": "86bf20892ea5b4c17688f19b075399885f6aa5303f6b2dc9f491e76ceef9633b",
+        "/opt/spark/jobs/iceberg/iceberg-spark-runtime-3.5_2.12-1.10.1.jar": "39ea09e6c03550a300b9d9ab498949836d2d434e441da4c12a943a086e396940"
+      }
+    },
+    {
+      "service": "airflow-dag-processor",
+      "healthy": true,
+      "exact_project_checkout": true,
+      "read_only_mounts_verified": true,
+      "mode": "operational",
+      "code_version": "7e95eb49d4523010403470bb7a15a1e441fd5689",
+      "runner_sha256": "cd30d98d09808d1ca617b866c57bcff00bd0aef1f70cefe3fd806146e00aa51d",
+      "mounted_file_hashes": {
+        "/opt/airflow/dags/current_month_runtime.py": "22491fe7103ab88e9e09addbe806c113024cedddfda746def1f02340bfc9167d",
+        "/opt/airflow/dags/qa_01_current_month.py": "9d301643a5e6e57394cf751ad3269abfea112ed4d34e6567e9f239af91459aac",
+        "/opt/airflow/dags/qa_01_daily_e2e.py": "7d980b3e7e51c49d683e17b5fbc1a48a176d221952e1e4057c3c5b3b8ad9dce0",
+        "/opt/airflow/dags/orc_02_daily_sources.py": "8df8a07c5e87ebbc4d498386c88ab095ef102e4de3f54ffd3072a3ff7a4af3be",
+        "/opt/spark/jobs/japan-earthquake-etl-runner.jar": "cd30d98d09808d1ca617b866c57bcff00bd0aef1f70cefe3fd806146e00aa51d",
+        "/opt/pipeline/lib/usgs-ingest-runner.jar": "cd30d98d09808d1ca617b866c57bcff00bd0aef1f70cefe3fd806146e00aa51d",
+        "/opt/spark/jobs/iceberg/iceberg-aws-bundle-1.10.1.jar": "86bf20892ea5b4c17688f19b075399885f6aa5303f6b2dc9f491e76ceef9633b",
+        "/opt/spark/jobs/iceberg/iceberg-spark-runtime-3.5_2.12-1.10.1.jar": "39ea09e6c03550a300b9d9ab498949836d2d434e441da4c12a943a086e396940"
+      }
+    }
+  ]
+}

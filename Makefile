@@ -42,6 +42,9 @@ QA_04_REQUEST ?=
 QA_04_RUNTIME_COMMAND ?=
 QA_04_STAGING_ROOT ?= /opt/pipeline/staging/qa-04
 QA_01_RUN_ID ?=
+CURRENT_MONTH_REQUEST ?=
+CURRENT_MONTH_ROOT ?= staging/current-month-component
+unexport CURRENT_MONTH_REQUEST CURRENT_MONTH_ROOT
 PIPELINE_QA_TASK ?= QA-02
 unexport PIPELINE_QA_TASK
 
@@ -74,6 +77,26 @@ COMPONENT_SMOKES := smoke-minio smoke-airflow smoke-spark smoke-query smoke-usgs
 .PHONY: test-qa-03 smoke-qa-03
 .PHONY: test-qa-02 smoke-qa-02
 .PHONY: test-qa-01 smoke-qa-01
+.PHONY: prepare-current-month test-current-month test-current-month-gold current-month-local current-month-gold
+
+prepare-current-month: ## QA-01 component: explicit host JAR/classpath preparation, không Docker hoặc source fetch
+	@python3 scripts/local-ml.py prepare
+
+test-current-month: ## QA-01 Source capture/Silver fixture regressions, không gọi nguồn thật/MinIO
+	@python3 -m unittest discover -s tests -p 'test_current_month_cli.py'
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am test -Dtest=CurrentMonthCaptureTest,CurrentMonthSilverTest -Dsurefire.failIfNoSpecifiedTests=false
+
+test-current-month-gold: ## QA-01 operational Gold: local Iceberg + SQL protocol fixtures, không Docker/start/source HTTP
+	@python3 -m unittest discover -s tests -p 'test_current_month_cli.py'
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am test -Dtest=CurrentMonthGoldTest,OperationalGoldPolicyTest,GoldPublicationTest,GoldIcebergWriterTest,DatasetManifestTest -Dsurefire.failIfNoSpecifiedTests=false
+
+current-month-gold: ## Opt-in MinIO Silver -> operational Gold/Trino; prebuilt JAR + held lease, không start/pull/build
+	@test -n "$(CURRENT_MONTH_REQUEST)" || { echo 'Set CURRENT_MONTH_REQUEST to an exact Gold request JSON'; exit 2; }
+	@python3 scripts/current-month.py --gold --request "$(CURRENT_MONTH_REQUEST)"
+
+current-month-local: ## Opt-in live USGS -> isolated local Bronze/Silver; không Docker, Gold hoặc scheduler mutation
+	@test -n "$(CURRENT_MONTH_REQUEST)" || { echo 'Set CURRENT_MONTH_REQUEST to an exact request JSON'; exit 2; }
+	@python3 scripts/current-month.py --request "$(CURRENT_MONTH_REQUEST)" --root "$(CURRENT_MONTH_ROOT)"
 .PHONY: check-docs test-docs
 .PHONY: test-mli-import smoke-mli-import smoke-mli-import-acceptance smoke-mli-import-dag up-ml
 .PHONY: test-qa-04 smoke-qa-04
@@ -126,8 +149,10 @@ test-docs: ## DOC-01 link checker và onboarding command regression; standard li
 
 test-qa-01: ## QA-01 identity/chain/count/SQL guards + ORC-07 blocker tests offline; không Docker
 	@python3 -m unittest discover -s airflow/tests -p 'test_qa_01_*.py'
+	@python3 -m unittest discover -s airflow/tests -p 'test_current_month_runtime.py'
 	@python3 -m unittest discover -s airflow/tests -p 'test_real_etl_runtime.py'
 	@python3 -m unittest discover -s tests -p 'test_qa_01_cli.py'
+	@python3 -m unittest discover -s tests -p 'test_current_month_cli.py'
 
 smoke-qa-01: check-config-local ## QA-01 read-only evidence của scheduled run exact; không build/start/trigger ETL
 	@$(RUNTIME_CHECK) --component observability
@@ -385,6 +410,7 @@ ci-docs-base: ## Always-on CI guards; pilot tests được chọn riêng theo im
 	@python3 -m unittest discover -s tests -p 'test_real_etl_cli.py'
 	@python3 -m unittest discover -s tests -p 'test_full_month_*.py'
 	@python3 -m unittest discover -s tests -p 'test_qa_01_cli.py'
+	@python3 -m unittest discover -s tests -p 'test_current_month_cli.py'
 	@python3 -m unittest discover -s tests -p 'test_ml_export_cli.py'
 	@$(MAKE) test-security-audit
 	@$(MAKE) test-docker-runtime

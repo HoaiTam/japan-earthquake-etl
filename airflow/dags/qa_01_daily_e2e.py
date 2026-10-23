@@ -262,11 +262,18 @@ def collect(run_id, environment=None):
     with create_session() as session:
         row = session.query(DagRun).filter_by(dag_id=DAG, run_id=run_id).one_or_none()
         require(row is not None, "RUN_NOT_FOUND")
-        run = {"dag_id": DAG, "run_id": run_id, "run_type": str(row.run_type), "state": str(row.state),
+        run = {"dag_id": DAG, "run_id": run_id, "run_type": str(getattr(row.run_type,"value",row.run_type)), "state": str(getattr(row.state,"value",row.state)),
                "data_interval_start": row.data_interval_start.isoformat() if row.data_interval_start else "",
                "data_interval_end": row.data_interval_end.isoformat() if row.data_interval_end else "",
                "tasks": {r.task_id: str(r.state) for r in session.query(TaskInstance).filter_by(dag_id=DAG, run_id=run_id).all()}}
+        actual_conf = getattr(row,"conf",None)
     validate_schedule(run)
+    import current_month_runtime as current_month
+    op2 = "cm1-" + hashlib.sha256((DAG+"|"+run_id).encode()).hexdigest()[:40]
+    if (current_month.root(env) / op2 / "context.json").is_file():
+        import qa_01_current_month
+        run["conf"] = actual_conf or {}
+        return qa_01_current_month.collect(run,env)
     # A seven-task SourcesReady run predates ORC-07. Keep its actual task set;
     # do not backfill a fictional successful real_etl TaskInstance.
     legacy = set(run["tasks"]) == TASKS - {"real_etl"} and run["state"] == "success" \
@@ -316,6 +323,6 @@ if __name__ == "__main__":
     except Exception as error:
         reason = str(error)
         report = {"task_id": "QA-01", "report_version": "qa-01-v1", "status": "FAILED", "runtime_complete": False,
-                  "reason": reason if re.fullmatch(r"QA01_[A-Z0-9_]+", reason) else "QA01_COLLECTION_FAILED", "ml_upstream_eligible": False}
+                  "reason": reason if re.fullmatch(r"(?:QA01_|QA01V2_|ASOF_)[A-Z0-9_]+", reason) else "QA01_COLLECTION_FAILED", "ml_upstream_eligible": False}
     print("QA01_REPORT=" + json.dumps(report, sort_keys=True, allow_nan=False))
     raise SystemExit(0 if report["status"] == "PASSED" else 1)

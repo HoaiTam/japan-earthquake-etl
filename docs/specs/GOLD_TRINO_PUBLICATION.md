@@ -1,5 +1,11 @@
 # GLD-04 — Trino verification và publication
 
+[Gold current-month operational](../runbooks/CURRENT_MONTH_GOLD_PUBLICATION.md)
+dùng explicit publisher mode, reserved namespace/journals/status/views và thêm
+snapshot policy/cutoff/coverage SQL blockers. Published vẫn PROVISIONAL,
+research/ML-ineligible. Historical publisher mặc định từ chối operational pins;
+không thay schema/alias historical bằng provisional schema.
+
 ORC-07 dùng `GoldPublisher.verify` làm phase Trino **read-only**, rồi mới gọi
 `publish` ở phase publication. Cả hai query exact committed snapshots; không
 coi verify receipt như bằng chứng đã INSERT PASSED hoặc update serving alias.

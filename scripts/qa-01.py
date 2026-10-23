@@ -33,7 +33,7 @@ def collect(run_id, env_file, compose_file):
     folder = ROOT / "staging/qa-01" / (datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:12])
     folder.mkdir(mode=0o700, parents=True)
     result = execute(compose + ["exec", "-T", "airflow-scheduler", "python",
-                     "/opt/airflow/dags/qa_01_daily_e2e.py", "--run-id", run_id])
+                     "/opt/airflow/dags/qa_01_daily_e2e.py", "--run-id", run_id], timeout=1800)
     require(len(result.stdout) <= 2 * 1024 * 1024 and len(result.stderr) <= 2 * 1024 * 1024, "OUTPUT_LIMIT")
     private = folder / "collector.private.log"
     with private.open("xb") as output:
@@ -42,12 +42,16 @@ def collect(run_id, env_file, compose_file):
     reports = [line.removeprefix(b"QA01_REPORT=") for line in result.stdout.splitlines() if line.startswith(b"QA01_REPORT=")]
     require(len(reports) == 1, "COLLECTOR_REPORT_MISSING")
     report = json.loads(reports[0])
-    require(report.get("task_id") == "QA-01" and report.get("report_version") == "qa-01-v1"
+    require(report.get("task_id") == "QA-01" and report.get("report_version") in {"qa-01-v1","qa-01-v2"}
             and report.get("status") in {"PASSED", "NOT_READY", "FAILED"}, "REPORT_INVALID")
     if report["status"] == "PASSED":
+        v2 = report["report_version"] == "qa-01-v2"
         require(result.returncode == 0 and report.get("runtime_complete") is True
                 and report.get("scheduled_run") is True and report.get("run", {}).get("run_id") == run_id
-                and report.get("ml_upstream_eligible") is True and len(report.get("sql_readback", [])) == 17, "REPORT_INVALID")
+                and (report.get("ml_upstream_eligible") is False and report.get("research_ready") is False
+                     and report.get("publication_quality") == "PROVISIONAL" and report.get("coverage_mode") == "OBSERVED_AS_OF"
+                     and report.get("operational_only") is True and len(report.get("sql_readback",[])) >= 42 if v2 else
+                     report.get("ml_upstream_eligible") is True and len(report.get("sql_readback", [])) == 17), "REPORT_INVALID")
     else:
         require(result.returncode != 0 and report.get("runtime_complete") is False, "REPORT_EXIT_MISMATCH")
     report["collected_at_utc"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")

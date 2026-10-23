@@ -20,6 +20,7 @@ public final class DatasetManifestWriter {
     public JsonNode build(String goldNamespace, String publicationId, String mlNamespace, JsonNode config,
                           String run, Instant now) throws Exception {
         namespace(goldNamespace); namespace(mlNamespace);
+        ie212.earthquake.spark.gold.OperationalGoldPolicy.researchOnly(goldNamespace);
         if (!goldNamespace.split("\\.")[0].equals(mlNamespace.split("\\.")[0]) || goldNamespace.equals(mlNamespace)
                 || publicationId == null || !publicationId.matches("pub_[a-f0-9]{64}"))
             throw new IllegalArgumentException("DS_EXACT_PUBLICATION_REQUIRED");
@@ -47,7 +48,8 @@ public final class DatasetManifestWriter {
         if (!row.path("snapshot_id").isIntegralNumber() || snapshot != bundle.path("event_current").path("snapshot_id").asLong())
             throw new IOException("DS_PUBLICATION_PIN_CONFLICT");
         lease.run();
-        var available = sql.execute("SELECT count(*) FROM " + goldNamespace + ".\"event_current$snapshots\" WHERE snapshot_id=" + snapshot);
+        var available = sql.execute("SELECT count(*) FROM " + goldNamespace + ".\"event_current$snapshots\" WHERE snapshot_id=" + snapshot
+            +ie212.earthquake.spark.gold.OperationalGoldPolicy.researchSnapshotPredicate());
         if (available.rows().size() != 1 || available.rows().get(0).get(0).asLong(-1) != 1)
             throw new IOException("DS_PINNED_SNAPSHOT_UNAVAILABLE");
         var publication = JSON.createObjectNode();
@@ -77,6 +79,7 @@ public final class DatasetManifestWriter {
     }
     public static String pinnedGoldSql(JsonNode manifest) {
         String table = manifest.path("physical_gold_table_name").asText();
+        ie212.earthquake.spark.gold.OperationalGoldPolicy.researchOnly(table);
         if (!table.matches("[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*\\.event_current")
                 || manifest.path("gold_snapshot_id").asLong() <= 0) throw new IllegalArgumentException("DS_INVALID_PIN");
         return "SELECT * FROM " + table + " FOR VERSION AS OF " + manifest.path("gold_snapshot_id").asLong();

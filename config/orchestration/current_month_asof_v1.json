@@ -1,0 +1,19 @@
+{
+  "policy_version": "current-month-asof-v1",
+  "release_status": "DESIGN_ONLY",
+  "coverage_mode": "OBSERVED_AS_OF",
+  "publication_quality": "PROVISIONAL",
+  "source_policy": "USGS_OPERATIONAL_WITH_JMA_HISTORICAL_BASELINE",
+  "required_event_sources": ["USGS"],
+  "jma_role": "HISTORICAL_READINESS_ONLY",
+  "jma_inventory_end_year": 2023,
+  "usgs_seed_start_utc": "2023-01-01T00:00:00Z",
+  "revision_window_days": 3,
+  "max_affected_months": 2,
+  "max_rows": 100000,
+  "bootstrap_strategy": "REFETCH_AFFECTED_MONTHS_TO_EVENT_CUTOFF",
+  "absence_is_tombstone": false,
+  "research_ready": false,
+  "publication_allowed": false,
+  "ml_upstream_eligible": false
+}

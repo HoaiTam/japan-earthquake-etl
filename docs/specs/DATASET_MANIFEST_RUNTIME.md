@@ -10,6 +10,11 @@ trong Java; Python QA chỉ quản lý request, subprocess và shared run lease.
   `ml_namespace`; không chọn publication mới nhất.
 - Resolve đúng một dòng `publication_status`, yêu cầu `PASSED`, bundle đủ sáu
   bảng và fact snapshot khớp bundle. Snapshot đã expire bị reject.
+- Reserved namespace `operational_current_month` bị từ chối trước mọi SQL/write;
+  exact event snapshot phải không có `gold.operational_policy_sha256`. Guard
+  persisted này chặn cả metadata đổi tên/eligibility override. Xem
+  [operational boundary](../runbooks/CURRENT_MONTH_GOLD_PUBLICATION.md); PASSED
+  provisional không phải authorization cho official dataset/export.
 - `gold_table_name` lưu logical serving name; `physical_gold_table_name` lưu
   bảng Iceberg có snapshot (`event_current`). Không time travel trên view.
 - Identity canonical gồm snapshot, logical/physical table, publication/bundle

@@ -1,5 +1,10 @@
 # GLD-03 — Gold Iceberg commit
 
+Historical v1 giữ nguyên `COMPLETE_MONTHS`. Extension operational dùng
+[component current-month riêng](../runbooks/CURRENT_MONTH_GOLD_PUBLICATION.md),
+reserved namespace và persisted policy; legacy writer từ chối namespace đó.
+Không dùng overload operational để gọi provisional input là full-month research.
+
 ## Input và phạm vi
 
 `GoldCommitJob` đọc exact Silver run và bundle SHA qua `SilverBundlePublisher.verify`.

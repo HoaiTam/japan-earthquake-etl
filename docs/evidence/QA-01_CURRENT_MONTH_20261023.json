@@ -1,0 +1,1176 @@
+{
+  "code_version": "7e95eb49d4523010403470bb7a15a1e441fd5689",
+  "collected_at_utc": "2026-10-23T10:23:47.426506Z",
+  "collector_sha256": "7d980b3e7e51c49d683e17b5fbc1a48a176d221952e1e4057c3c5b3b8ad9dce0",
+  "context_sha256": "b0509a113bf7f8d0735852b415c4247a65c7bfa30b8da4400c10281b97854471",
+  "coverage_mode": "OBSERVED_AS_OF",
+  "event_cutoff_utc": "2026-10-23T00:00:00Z",
+  "jma_historical_readiness": [
+    {
+      "attempt": 1,
+      "bronze_status": "BronzeReady",
+      "catalog_release": "jma-lm-20160819T034813Z-sha256-c2ce3fd9f8fc",
+      "config_version": "1",
+      "download_reused": true,
+      "download_status": "REUSED",
+      "http_head_attempts": 1,
+      "ingest_invoked": false,
+      "manifest_key": "bronze/jma/year=1997/catalog_release=jma-lm-20160819T034813Z-sha256-c2ce3fd9f8fc/ingest_date=2026-10-07/run_id=jma-922316b2ad88fa07587948c310215600-1997-jan-sep/attempt=01/manifest.json",
+      "manifest_sha256": "e14b46526a37c470eef3016320169a5791700cd61010a8efb487aceacb3a5d51",
+      "manifest_uri": "s3://japan-earthquake/bronze/jma/year=1997/catalog_release=jma-lm-20160819T034813Z-sha256-c2ce3fd9f8fc/ingest_date=2026-10-07/run_id=jma-922316b2ad88fa07587948c310215600-1997-jan-sep/attempt=01/manifest.json",
+      "processing_date": "2026-10-23",
+      "publication_reused": true,
+      "raw_object_key": "bronze/jma/year=1997/catalog_release=jma-lm-20160819T034813Z-sha256-c2ce3fd9f8fc/ingest_date=2026-10-07/run_id=jma-922316b2ad88fa07587948c310215600-1997-jan-sep/attempt=01/archive.zip",
+      "raw_object_uri": "s3://japan-earthquake/bronze/jma/year=1997/catalog_release=jma-lm-20160819T034813Z-sha256-c2ce3fd9f8fc/ingest_date=2026-10-07/run_id=jma-922316b2ad88fa07587948c310215600-1997-jan-sep/attempt=01/archive.zip",
+      "readiness_decision": "UNCHANGED",
+      "record_count_estimate": 39951,
+      "run_id": "scheduled__2026-10-23T00:15:00+00:00",
+      "segment": "jan-sep",
+      "sha256": "c2ce3fd9f8fc023a6463086324b1ed29b53ae2c55d021998a0c3210e162172dd",
+      "status": "BronzeReady",
+      "verified": true,
+      "year": 1997
+    },
+    {
+      "attempt": 1,
+      "bronze_status": "BronzeReady",
+      "catalog_release": "jma-lm-20160819T034925Z-sha256-25349273dfc4",
+      "config_version": "1",
+      "download_reused": true,
+      "download_status": "REUSED",
+      "http_head_attempts": 2,
+      "ingest_invoked": false,
+      "manifest_key": "bronze/jma/year=1997/catalog_release=jma-lm-20160819T034925Z-sha256-25349273dfc4/ingest_date=2026-10-07/run_id=jma-922316b2ad88fa07587948c310215600-1997-oct-dec/attempt=01/manifest.json",
+      "manifest_sha256": "eddc63154542870adf9596014c778c589dc64ed3d2802f9d28025f689a2dab0e",
+      "manifest_uri": "s3://japan-earthquake/bronze/jma/year=1997/catalog_release=jma-lm-20160819T034925Z-sha256-25349273dfc4/ingest_date=2026-10-07/run_id=jma-922316b2ad88fa07587948c310215600-1997-oct-dec/attempt=01/manifest.json",
+      "processing_date": "2026-10-23",
+      "publication_reused": true,
+      "raw_object_key": "bronze/jma/year=1997/catalog_release=jma-lm-20160819T034925Z-sha256-25349273dfc4/ingest_date=2026-10-07/run_id=jma-922316b2ad88fa07587948c310215600-1997-oct-dec/attempt=01/archive.zip",
+      "raw_object_uri": "s3://japan-earthquake/bronze/jma/year=1997/catalog_release=jma-lm-20160819T034925Z-sha256-25349273dfc4/ingest_date=2026-10-07/run_id=jma-922316b2ad88fa07587948c310215600-1997-oct-dec/attempt=01/archive.zip",
+      "readiness_decision": "UNCHANGED",
+      "record_count_estimate": 16284,
+      "run_id": "scheduled__2026-10-23T00:15:00+00:00",
+      "segment": "oct-dec",
+      "sha256": "25349273dfc4ce50ed24ee555c881bd64af5662d400be2d7fbd0d6044d4caead",
+      "status": "BronzeReady",
+      "verified": true,
+      "year": 1997
+    },
+    {
+      "attempt": 1,
+      "bronze_status": "BronzeReady",
+      "catalog_release": "jma-lm-20160819T034819Z-sha256-268441420d9c",
+      "config_version": "1",
+      "download_reused": true,
+      "download_status": "REUSED",
+      "http_head_attempts": 1,
+      "ingest_invoked": false,
+      "manifest_key": "bronze/jma/year=2000/catalog_release=jma-lm-20160819T034819Z-sha256-268441420d9c/ingest_date=2026-10-07/run_id=jma-922316b2ad88fa07587948c310215600-2000-full-year/attempt=01/manifest.json",
+      "manifest_sha256": "0c54b3c664833819099926b1a773647c71e6819abecdb8a321d82211b95fb615",
+      "manifest_uri": "s3://japan-earthquake/bronze/jma/year=2000/catalog_release=jma-lm-20160819T034819Z-sha256-268441420d9c/ingest_date=2026-10-07/run_id=jma-922316b2ad88fa07587948c310215600-2000-full-year/attempt=01/manifest.json",
+      "processing_date": "2026-10-23",
+      "publication_reused": true,
+      "raw_object_key": "bronze/jma/year=2000/catalog_release=jma-lm-20160819T034819Z-sha256-268441420d9c/ingest_date=2026-10-07/run_id=jma-922316b2ad88fa07587948c310215600-2000-full-year/attempt=01/archive.zip",
+      "raw_object_uri": "s3://japan-earthquake/bronze/jma/year=2000/catalog_release=jma-lm-20160819T034819Z-sha256-268441420d9c/ingest_date=2026-10-07/run_id=jma-922316b2ad88fa07587948c310215600-2000-full-year/attempt=01/archive.zip",
+      "readiness_decision": "UNCHANGED",
+      "record_count_estimate": 109967,
+      "run_id": "scheduled__2026-10-23T00:15:00+00:00",
+      "segment": "full-year",
+      "sha256": "268441420d9c90b1cb96f42934aefdb107a4d12c5947adafbfeb24af597d15c2",
+      "status": "BronzeReady",
+      "verified": true,
+      "year": 2000
+    },
+    {
+      "attempt": 1,
+      "bronze_status": "BronzeReady",
+      "catalog_release": "jma-lm-20251210T014153Z-sha256-e5ced2bf7275",
+      "config_version": "1",
+      "download_reused": true,
+      "download_status": "REUSED",
+      "http_head_attempts": 1,
+      "ingest_invoked": false,
+      "manifest_key": "bronze/jma/year=2023/catalog_release=jma-lm-20251210T014153Z-sha256-e5ced2bf7275/ingest_date=2026-10-07/run_id=jma-922316b2ad88fa07587948c310215600-2023-full-year/attempt=01/manifest.json",
+      "manifest_sha256": "977defa4f2a1d4a2ba41a211ac0419419ca812d010522da4ef4d95c95f3582db",
+      "manifest_uri": "s3://japan-earthquake/bronze/jma/year=2023/catalog_release=jma-lm-20251210T014153Z-sha256-e5ced2bf7275/ingest_date=2026-10-07/run_id=jma-922316b2ad88fa07587948c310215600-2023-full-year/attempt=01/manifest.json",
+      "processing_date": "2026-10-23",
+      "publication_reused": true,
+      "raw_object_key": "bronze/jma/year=2023/catalog_release=jma-lm-20251210T014153Z-sha256-e5ced2bf7275/ingest_date=2026-10-07/run_id=jma-922316b2ad88fa07587948c310215600-2023-full-year/attempt=01/archive.zip",
+      "raw_object_uri": "s3://japan-earthquake/bronze/jma/year=2023/catalog_release=jma-lm-20251210T014153Z-sha256-e5ced2bf7275/ingest_date=2026-10-07/run_id=jma-922316b2ad88fa07587948c310215600-2023-full-year/attempt=01/archive.zip",
+      "readiness_decision": "UNCHANGED",
+      "record_count_estimate": 257020,
+      "run_id": "scheduled__2026-10-23T00:15:00+00:00",
+      "segment": "full-year",
+      "sha256": "e5ced2bf7275825ba75405b071bb54e9d4c2a5eb55aa6bc9b8d670de1f58b98f",
+      "status": "BronzeReady",
+      "verified": true,
+      "year": 2023
+    }
+  ],
+  "jma_role": "HISTORICAL_READINESS_ONLY",
+  "ml_upstream_eligible": false,
+  "natural_roi_event_count": 58,
+  "observation_cutoff_utc": "2026-10-23T10:04:47.429744461Z",
+  "official_ml_dataset_exported": false,
+  "operation_id": "cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa",
+  "operational_only": true,
+  "profile": {
+    "audit_weekday": 6,
+    "cron": "15 7 * * *",
+    "max_active_runs": 1,
+    "mode": "multi-source",
+    "profile_version": "orc-02-v1",
+    "timezone": "Asia/Ho_Chi_Minh",
+    "years": [
+      1997,
+      2000,
+      2023
+    ]
+  },
+  "publication_id": "pub_744bb52905e31c0a7d59250333c50178048156fc3992ab87a47865e9cdab132f",
+  "publication_quality": "PROVISIONAL",
+  "publication_uri": "s3://japan-earthquake/silver/current-month/gold-verification/cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa/publication.json",
+  "report_version": "qa-01-v2",
+  "required_event_sources": [
+    "USGS"
+  ],
+  "research_ready": false,
+  "run": {
+    "conf": {},
+    "dag_id": "orc_02_daily_sources",
+    "data_interval_end": "2026-10-23T00:15:00+00:00",
+    "data_interval_start": "2026-10-22T00:15:00+00:00",
+    "run_id": "scheduled__2026-10-23T00:15:00+00:00",
+    "run_type": "scheduled",
+    "state": "success",
+    "tasks": {
+      "acquire_source_lease": "success",
+      "completion_gate": "success",
+      "jma_readiness": "success",
+      "real_etl": "success",
+      "release_source_lease": "success",
+      "resolve_daily": "success",
+      "sources_ready": "success",
+      "usgs_bronze": "success"
+    }
+  },
+  "runner_sha256": "cd30d98d09808d1ca617b866c57bcff00bd0aef1f70cefe3fd806146e00aa51d",
+  "runtime_complete": true,
+  "scheduled_run": true,
+  "silver_counts": {
+    "balanced": true,
+    "baseline_unique_revisions": 0,
+    "capture_records": 58,
+    "capture_repeated_ids": 0,
+    "capture_unique_revisions": 58,
+    "current": 58,
+    "history": 0,
+    "links": 0,
+    "memberships": 58,
+    "output_revisions": 58,
+    "parser_rejects": 0,
+    "quality_rejects": 0,
+    "reused_revision_ids": 0
+  },
+  "sql_readback": [
+    {
+      "actual": 58,
+      "expected": 58,
+      "sql": "SELECT count(*) FROM iceberg.operational_current_month.event_current FOR VERSION AS OF 1543775439517699343"
+    },
+    {
+      "actual": 1,
+      "expected": 1,
+      "sql": "SELECT count(*) FROM iceberg.operational_current_month.\"event_current$snapshots\" WHERE snapshot_id=1543775439517699343 AND summary['gold.operation_id']='cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa' AND summary['gold.identity_sha256']='3591717656ababcbe0419caeb72e19e058e987d780bd4cb5ea5f7a26b002fd49'"
+    },
+    {
+      "actual": 58,
+      "expected": 58,
+      "sql": "SELECT count(*) FROM iceberg.operational_current_month.event_source_bridge FOR VERSION AS OF 6717303813908221083"
+    },
+    {
+      "actual": 1,
+      "expected": 1,
+      "sql": "SELECT count(*) FROM iceberg.operational_current_month.\"event_source_bridge$snapshots\" WHERE snapshot_id=6717303813908221083 AND summary['gold.operation_id']='cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa' AND summary['gold.identity_sha256']='3591717656ababcbe0419caeb72e19e058e987d780bd4cb5ea5f7a26b002fd49'"
+    },
+    {
+      "actual": 22,
+      "expected": 22,
+      "sql": "SELECT count(*) FROM iceberg.operational_current_month.dim_date FOR VERSION AS OF 8242784952305021235"
+    },
+    {
+      "actual": 1,
+      "expected": 1,
+      "sql": "SELECT count(*) FROM iceberg.operational_current_month.\"dim_date$snapshots\" WHERE snapshot_id=8242784952305021235 AND summary['gold.operation_id']='cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa' AND summary['gold.identity_sha256']='3591717656ababcbe0419caeb72e19e058e987d780bd4cb5ea5f7a26b002fd49'"
+    },
+    {
+      "actual": 1,
+      "expected": 1,
+      "sql": "SELECT count(*) FROM iceberg.operational_current_month.dim_region FOR VERSION AS OF 4948724480068210812"
+    },
+    {
+      "actual": 1,
+      "expected": 1,
+      "sql": "SELECT count(*) FROM iceberg.operational_current_month.\"dim_region$snapshots\" WHERE snapshot_id=4948724480068210812 AND summary['gold.operation_id']='cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa' AND summary['gold.identity_sha256']='3591717656ababcbe0419caeb72e19e058e987d780bd4cb5ea5f7a26b002fd49'"
+    },
+    {
+      "actual": 7,
+      "expected": 7,
+      "sql": "SELECT count(*) FROM iceberg.operational_current_month.dim_magnitude_band FOR VERSION AS OF 3514905636761141744"
+    },
+    {
+      "actual": 1,
+      "expected": 1,
+      "sql": "SELECT count(*) FROM iceberg.operational_current_month.\"dim_magnitude_band$snapshots\" WHERE snapshot_id=3514905636761141744 AND summary['gold.operation_id']='cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa' AND summary['gold.identity_sha256']='3591717656ababcbe0419caeb72e19e058e987d780bd4cb5ea5f7a26b002fd49'"
+    },
+    {
+      "actual": 5,
+      "expected": 5,
+      "sql": "SELECT count(*) FROM iceberg.operational_current_month.dim_depth_band FOR VERSION AS OF 9052112578348555548"
+    },
+    {
+      "actual": 1,
+      "expected": 1,
+      "sql": "SELECT count(*) FROM iceberg.operational_current_month.\"dim_depth_band$snapshots\" WHERE snapshot_id=9052112578348555548 AND summary['gold.operation_id']='cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa' AND summary['gold.identity_sha256']='3591717656ababcbe0419caeb72e19e058e987d780bd4cb5ea5f7a26b002fd49'"
+    },
+    {
+      "actual": 0,
+      "expected": 0,
+      "sql": "SELECT count(*)-count(DISTINCT canonical_event_id) FROM iceberg.operational_current_month.event_current FOR VERSION AS OF 1543775439517699343"
+    },
+    {
+      "actual": 0,
+      "expected": 0,
+      "sql": "SELECT count(*)-count(DISTINCT source_observation_id) FROM iceberg.operational_current_month.event_source_bridge FOR VERSION AS OF 6717303813908221083"
+    },
+    {
+      "actual": 0,
+      "expected": 0,
+      "sql": "SELECT count(*)-count(DISTINCT date_key) FROM iceberg.operational_current_month.dim_date FOR VERSION AS OF 8242784952305021235"
+    },
+    {
+      "actual": 0,
+      "expected": 0,
+      "sql": "SELECT count(*)-count(DISTINCT region_key) FROM iceberg.operational_current_month.dim_region FOR VERSION AS OF 4948724480068210812"
+    },
+    {
+      "actual": 0,
+      "expected": 0,
+      "sql": "SELECT count(*)-count(DISTINCT band_code) FROM iceberg.operational_current_month.dim_magnitude_band FOR VERSION AS OF 3514905636761141744"
+    },
+    {
+      "actual": 0,
+      "expected": 0,
+      "sql": "SELECT count(*)-count(DISTINCT band_code) FROM iceberg.operational_current_month.dim_depth_band FOR VERSION AS OF 9052112578348555548"
+    },
+    {
+      "actual": 0,
+      "expected": 0,
+      "sql": "SELECT count(*) FROM iceberg.operational_current_month.event_current FOR VERSION AS OF 1543775439517699343 WHERE schema_version IS NULL OR canonical_event_id IS NULL OR primary_observation_id IS NULL OR canonical_source_system IS NULL OR event_time_utc IS NULL OR event_time_jst IS NULL OR event_date_utc IS NULL OR event_date_jst IS NULL OR event_date_key_utc IS NULL OR event_date_key_jst IS NULL OR latitude IS NULL OR longitude IS NULL OR event_type_code IS NULL OR is_natural_earthquake IS NULL OR is_in_study_area IS NULL OR region_key IS NULL OR region_name IS NULL OR region_category IS NULL OR magnitude_band_code IS NULL OR depth_band_code IS NULL OR source_count IS NULL OR has_usgs IS NULL OR has_jma IS NULL OR source_coverage_code IS NULL OR link_status IS NULL OR quality_status IS NULL OR canonical_model_version IS NULL OR gold_run_id IS NULL OR record_updated_at_utc IS NULL OR latitude NOT BETWEEN -90 AND 90 OR longitude NOT BETWEEN -180 AND 180 OR NOT is_finite(latitude) OR NOT is_finite(longitude) OR (magnitude IS NOT NULL AND NOT is_finite(magnitude)) OR (depth_km IS NOT NULL AND NOT is_finite(depth_km)) OR schema_version <> '1.0' OR source_count NOT IN (1,2) OR quality_status NOT IN ('VALID','WARNING') OR canonical_source_system NOT IN ('USGS','JMA_BULLETIN') OR region_category NOT IN ('PREFECTURE','OFFSHORE','UNKNOWN') OR source_coverage_code <> CASE WHEN has_usgs AND has_jma THEN 'USGS_JMA' WHEN has_usgs THEN 'USGS_ONLY' ELSE 'JMA_ONLY' END OR (has_jma AND (catalog_era IS NULL OR catalog_era NOT IN ('LEGACY','UNIFIED'))) OR (NOT has_jma AND catalog_era IS NOT NULL) OR is_natural_earthquake <> (event_type_code = 'EARTHQUAKE')"
+    },
+    {
+      "actual": 0,
+      "expected": 0,
+      "sql": "SELECT count(*) FROM iceberg.operational_current_month.event_source_bridge FOR VERSION AS OF 6717303813908221083 b LEFT JOIN iceberg.operational_current_month.event_current FOR VERSION AS OF 1543775439517699343 e ON b.canonical_event_id=e.canonical_event_id WHERE e.canonical_event_id IS NULL OR b.source_system NOT IN ('USGS','JMA_BULLETIN') OR b.source_system IS NULL OR b.source_record_key IS NULL OR b.raw_object_uri IS NULL OR NOT starts_with(b.raw_object_uri,'s3://') OR b.bronze_manifest_id IS NULL OR b.is_primary IS NULL OR (b.source_system='JMA_BULLETIN' AND b.catalog_release IS NULL) OR b.event_month_utc <> format_datetime(e.event_time_utc,'yyyy-MM')"
+    },
+    {
+      "actual": 0,
+      "expected": 0,
+      "sql": "SELECT count(*) FROM iceberg.operational_current_month.event_current FOR VERSION AS OF 1543775439517699343 e LEFT JOIN (SELECT canonical_event_id,count(*) n,count_if(is_primary) p,count_if(source_system='USGS') u,count_if(source_system='JMA_BULLETIN') j FROM iceberg.operational_current_month.event_source_bridge FOR VERSION AS OF 6717303813908221083 GROUP BY canonical_event_id) b ON e.canonical_event_id=b.canonical_event_id WHERE b.n IS NULL OR b.n<>e.source_count OR b.p<>1 OR b.u>1 OR b.j>1 OR e.has_usgs<>(b.u>0) OR e.has_jma<>(b.j>0)"
+    },
+    {
+      "actual": 0,
+      "expected": 0,
+      "sql": "SELECT count(*) FROM iceberg.operational_current_month.event_current FOR VERSION AS OF 1543775439517699343 e LEFT JOIN iceberg.operational_current_month.event_source_bridge FOR VERSION AS OF 6717303813908221083 b ON e.canonical_event_id=b.canonical_event_id AND b.is_primary WHERE b.source_observation_id IS NULL OR b.source_observation_id<>e.primary_observation_id OR b.source_system<>e.canonical_source_system"
+    },
+    {
+      "actual": 0,
+      "expected": 0,
+      "sql": "SELECT count(*) FROM iceberg.operational_current_month.event_current FOR VERSION AS OF 1543775439517699343 WHERE event_time_jst<>CAST(event_time_utc AT TIME ZONE 'Asia/Tokyo' AS timestamp(6)) OR event_date_utc<>CAST(event_time_utc AT TIME ZONE 'UTC' AS date) OR event_date_jst<>CAST(event_time_jst AS date) OR event_date_key_utc<>CAST(format_datetime(event_time_utc AT TIME ZONE 'UTC','yyyyMMdd') AS integer) OR event_date_key_jst<>CAST(format_datetime(event_time_jst,'yyyyMMdd') AS integer) OR (canonical_source_system='JMA_BULLETIN' AND catalog_era<>CASE WHEN event_time_jst<TIMESTAMP '1997-10-01 00:00:00' THEN 'LEGACY' ELSE 'UNIFIED' END)"
+    },
+    {
+      "actual": 0,
+      "expected": 0,
+      "sql": "SELECT count(*) FROM iceberg.operational_current_month.event_current FOR VERSION AS OF 1543775439517699343 e LEFT JOIN iceberg.operational_current_month.dim_date FOR VERSION AS OF 8242784952305021235 d ON e.event_date_key_utc=d.date_key LEFT JOIN iceberg.operational_current_month.dim_date FOR VERSION AS OF 8242784952305021235 j ON e.event_date_key_jst=j.date_key LEFT JOIN iceberg.operational_current_month.dim_region FOR VERSION AS OF 4948724480068210812 r ON e.region_key=r.region_key LEFT JOIN iceberg.operational_current_month.dim_magnitude_band FOR VERSION AS OF 3514905636761141744 m ON e.magnitude_band_code=m.band_code LEFT JOIN iceberg.operational_current_month.dim_depth_band FOR VERSION AS OF 9052112578348555548 b ON e.depth_band_code=b.band_code WHERE d.date_key IS NULL OR j.date_key IS NULL OR r.region_key IS NULL OR m.band_code IS NULL OR b.band_code IS NULL OR d.calendar_date<>e.event_date_utc OR j.calendar_date<>e.event_date_jst OR r.region_name<>e.region_name OR r.region_category<>e.region_category"
+    },
+    {
+      "actual": 0,
+      "expected": 0,
+      "sql": "SELECT abs((SELECT coalesce(sum(source_count),0) FROM iceberg.operational_current_month.event_current FOR VERSION AS OF 1543775439517699343)-(SELECT count(*) FROM iceberg.operational_current_month.event_source_bridge FOR VERSION AS OF 6717303813908221083))"
+    },
+    {
+      "actual": 0,
+      "expected": 0,
+      "sql": "SELECT count(*) FROM iceberg.operational_current_month.event_current FOR VERSION AS OF 1543775439517699343 WHERE gold_run_id='cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa' AND format_datetime(event_time_utc AT TIME ZONE 'UTC','yyyy-MM') NOT IN ('2026-10')"
+    },
+    {
+      "actual": 1,
+      "expected": 1,
+      "sql": "SELECT count(*) FROM iceberg.operational_current_month.\"event_current$snapshots\" WHERE snapshot_id=1543775439517699343 AND summary['gold.operational_policy_sha256']='e720728534d8402859f89be03297ba0ab0aff5b8401af1e20bc921b69e1d1592'"
+    },
+    {
+      "actual": 1,
+      "expected": 1,
+      "sql": "SELECT count(*) FROM iceberg.operational_current_month.\"event_source_bridge$snapshots\" WHERE snapshot_id=6717303813908221083 AND summary['gold.operational_policy_sha256']='e720728534d8402859f89be03297ba0ab0aff5b8401af1e20bc921b69e1d1592'"
+    },
+    {
+      "actual": 1,
+      "expected": 1,
+      "sql": "SELECT count(*) FROM iceberg.operational_current_month.\"dim_date$snapshots\" WHERE snapshot_id=8242784952305021235 AND summary['gold.operational_policy_sha256']='e720728534d8402859f89be03297ba0ab0aff5b8401af1e20bc921b69e1d1592'"
+    },
+    {
+      "actual": 1,
+      "expected": 1,
+      "sql": "SELECT count(*) FROM iceberg.operational_current_month.\"dim_region$snapshots\" WHERE snapshot_id=4948724480068210812 AND summary['gold.operational_policy_sha256']='e720728534d8402859f89be03297ba0ab0aff5b8401af1e20bc921b69e1d1592'"
+    },
+    {
+      "actual": 1,
+      "expected": 1,
+      "sql": "SELECT count(*) FROM iceberg.operational_current_month.\"dim_magnitude_band$snapshots\" WHERE snapshot_id=3514905636761141744 AND summary['gold.operational_policy_sha256']='e720728534d8402859f89be03297ba0ab0aff5b8401af1e20bc921b69e1d1592'"
+    },
+    {
+      "actual": 1,
+      "expected": 1,
+      "sql": "SELECT count(*) FROM iceberg.operational_current_month.\"dim_depth_band$snapshots\" WHERE snapshot_id=9052112578348555548 AND summary['gold.operational_policy_sha256']='e720728534d8402859f89be03297ba0ab0aff5b8401af1e20bc921b69e1d1592'"
+    },
+    {
+      "actual": 0,
+      "expected": 0,
+      "sql": "SELECT count(*) FROM iceberg.operational_current_month.event_current FOR VERSION AS OF 1543775439517699343 WHERE canonical_source_system<>'USGS' OR NOT has_usgs OR has_jma OR source_count<>1 OR NOT is_in_study_area OR event_time_utc>=from_iso8601_timestamp('2026-10-23T00:00:00Z')"
+    },
+    {
+      "actual": 0,
+      "expected": 0,
+      "sql": "SELECT count(*) FROM iceberg.operational_current_month.event_current FOR VERSION AS OF 1543775439517699343 WHERE NOT ((event_time_utc>=from_iso8601_timestamp('2026-10-01T00:00:00Z') AND event_time_utc<from_iso8601_timestamp('2026-10-23T00:00:00Z')))"
+    },
+    {
+      "actual": 0,
+      "expected": 0,
+      "sql": "SELECT 0"
+    },
+    {
+      "actual": 0,
+      "expected": 0,
+      "sql": "SELECT 0"
+    },
+    {
+      "actual": 58,
+      "expected": 58,
+      "sql": "SELECT count(*) FROM iceberg.operational_current_month.event_current FOR VERSION AS OF 1543775439517699343"
+    },
+    {
+      "actual": 58,
+      "expected": 58,
+      "sql": "SELECT count(*) FROM iceberg.operational_current_month.event_source_bridge FOR VERSION AS OF 6717303813908221083"
+    },
+    {
+      "actual": 58,
+      "expected": 58,
+      "sql": "SELECT count(*) FROM iceberg.operational_current_month.event_current FOR VERSION AS OF 1543775439517699343 WHERE is_natural_earthquake AND is_in_study_area"
+    },
+    {
+      "actual": 1,
+      "expected": 1,
+      "sql": "SELECT count(*) FROM iceberg.operational_current_month.publication_status WHERE publication_id='pub_744bb52905e31c0a7d59250333c50178048156fc3992ab87a47865e9cdab132f' AND gold_run_id='cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa' AND snapshot_id=1543775439517699343 AND verify_status='PASSED' AND bundle_sha256='744bb52905e31c0a7d59250333c50178048156fc3992ab87a47865e9cdab132f' AND event_count=58 AND coverage_mode='OBSERVED_AS_OF' AND publication_quality='PROVISIONAL' AND NOT research_ready AND NOT ml_upstream_eligible AND operational_policy_json='{\"contract_version\":\"current-month-gold-v1\",\"coverage_mode\":\"OBSERVED_AS_OF\",\"publication_quality\":\"PROVISIONAL\",\"source_policy\":\"USGS_OPERATIONAL_WITH_JMA_HISTORICAL_BASELINE\",\"required_event_sources\":[\"USGS\"],\"jma_role\":\"HISTORICAL_READINESS_ONLY\",\"research_ready\":false,\"ml_upstream_eligible\":false,\"registry_sha256\":\"60d4b81a22278a9c59e89891c4ec0c9c8f7664c01966f6b04a15ec1228427c35\",\"silver_receipt_sha256\":\"70700b63d804a7b996fe7491c940a5f09c67867f7111a1f2da2f80c8c1b28fa3\",\"event_cutoff_utc\":\"2026-10-23T00:00:00Z\",\"observation_cutoff_utc\":\"2026-10-23T10:04:47.429744461Z\",\"month_coverage\":{\"2026-10\":{\"event_end_utc_exclusive\":\"2026-10-23T00:00:00Z\",\"event_start_utc\":\"2026-10-01T00:00:00Z\",\"observation_cutoff_utc\":\"2026-10-23T10:04:47.429744461Z\",\"operation_id\":\"cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa\",\"selection_sha256\":\"d6c4bc4c06ea9cf326783d859b7fbca26fd197627be985156a18dfecd4979e11\"}}}' AND (SELECT count(*) FROM iceberg.operational_current_month.publication_status WHERE publication_id='pub_744bb52905e31c0a7d59250333c50178048156fc3992ab87a47865e9cdab132f')=1"
+    },
+    {
+      "actual": 58,
+      "expected": 58,
+      "sql": "SELECT count(*) FROM iceberg.operational_current_month.v_744bb52905e31c0a7d592503_earthquake_event_current"
+    },
+    {
+      "actual": 0,
+      "expected": 0,
+      "sql": "SELECT count(*) FROM iceberg.operational_current_month.v_744bb52905e31c0a7d592503_earthquake_event_current WHERE coverage_mode<>'OBSERVED_AS_OF' OR publication_quality<>'PROVISIONAL' OR research_ready OR ml_upstream_eligible"
+    }
+  ],
+  "status": "PASSED",
+  "task_id": "QA-01",
+  "evidence_scope": "actual_scheduled_run_operator_authorized_recovery_not_uninterrupted_first_attempt",
+  "snapshot_bundle": {
+    "dim_date": {
+      "committed_at_utc": "2026-10-23T10:07:10.120Z",
+      "count": 22,
+      "snapshot_id": "8242784952305021235",
+      "table": "iceberg.operational_current_month.dim_date"
+    },
+    "dim_depth_band": {
+      "committed_at_utc": "2026-10-23T10:07:21.705Z",
+      "count": 5,
+      "snapshot_id": "9052112578348555548",
+      "table": "iceberg.operational_current_month.dim_depth_band"
+    },
+    "dim_magnitude_band": {
+      "committed_at_utc": "2026-10-23T10:07:19.009Z",
+      "count": 7,
+      "snapshot_id": "3514905636761141744",
+      "table": "iceberg.operational_current_month.dim_magnitude_band"
+    },
+    "dim_region": {
+      "committed_at_utc": "2026-10-23T10:07:16.622Z",
+      "count": 1,
+      "snapshot_id": "4948724480068210812",
+      "table": "iceberg.operational_current_month.dim_region"
+    },
+    "event_current": {
+      "committed_at_utc": "2026-10-23T10:06:57.783Z",
+      "count": 58,
+      "snapshot_id": "1543775439517699343",
+      "table": "iceberg.operational_current_month.event_current"
+    },
+    "event_source_bridge": {
+      "committed_at_utc": "2026-10-23T10:07:01.832Z",
+      "count": 58,
+      "snapshot_id": "6717303813908221083",
+      "table": "iceberg.operational_current_month.event_source_bridge"
+    }
+  },
+  "source_selection": {
+    "capture_started_at_utc": "2026-10-23T00:39:29.847821887Z",
+    "contract_version": "current-month-source-silver-v1",
+    "coverage_mode": "OBSERVED_AS_OF",
+    "event_cutoff_utc": "2026-10-23T00:00:00Z",
+    "jma_role": "HISTORICAL_READINESS_ONLY",
+    "ml_upstream_eligible": false,
+    "observation_cutoff_utc": "2026-10-23T10:04:47.429744461Z",
+    "operation_id": "cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa",
+    "parts": [
+      {
+        "capture_completed_at_utc": "2026-10-23T01:40:07.500955751Z",
+        "capture_started_at_utc": "2026-10-23T00:39:29.894505012Z",
+        "pin": {
+          "count_after": {
+            "count": 5,
+            "http_status": 200,
+            "raw_uri": "s3://japan-earthquake/bronze/usgs/current-month/cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa/counts/1524e0c014aa50d0d57001f16a9ae856ae94ce6d82741c5c20f2bb1c766a6f0d-after.txt",
+            "request_url": "https://earthquake.usgs.gov/fdsnws/event/1/count?endtime=2026-10-01T23%3A59%3A59.999Z&eventtype=earthquake&format=text&maxlatitude=50.0&maxlongitude=155.0&minlatitude=20.0&minlongitude=120.0&orderby=time-asc&starttime=2026-10-01T00%3A00%3A00Z",
+            "sha256": "ef2d127de37b942baad06145e54b0c619a1f22327b2ebbcfbec78f5564afe39d"
+          },
+          "count_before": {
+            "count": 5,
+            "http_status": 200,
+            "raw_uri": "s3://japan-earthquake/bronze/usgs/current-month/cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa/counts/1524e0c014aa50d0d57001f16a9ae856ae94ce6d82741c5c20f2bb1c766a6f0d-before.txt",
+            "request_url": "https://earthquake.usgs.gov/fdsnws/event/1/count?endtime=2026-10-01T23%3A59%3A59.999Z&eventtype=earthquake&format=text&maxlatitude=50.0&maxlongitude=155.0&minlatitude=20.0&minlongitude=120.0&orderby=time-asc&starttime=2026-10-01T00%3A00%3A00Z",
+            "sha256": "ef2d127de37b942baad06145e54b0c619a1f22327b2ebbcfbec78f5564afe39d"
+          },
+          "manifest_sha256": "ac6e13f9d64cb4e88339d9ab617f717e08b1b65c78e1a53c9b47f0591c7abc83",
+          "manifest_uri": "s3://japan-earthquake/bronze/usgs/ingest_date=2026-10-23/run_id=cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa-1524e0c014aa50d0d570/attempt=01/manifest.json",
+          "sha256": "fde33a093152e6144f7ba865891ac106c035c937ee373ae06322eff6f25681d9",
+          "source_system": "USGS",
+          "window_end_utc": "2026-10-02T00:00:00Z",
+          "window_start_utc": "2026-10-01T00:00:00Z"
+        },
+        "saturated": false,
+        "window_end_utc": "2026-10-02T00:00:00Z",
+        "window_start_utc": "2026-10-01T00:00:00Z"
+      },
+      {
+        "capture_completed_at_utc": "2026-10-23T01:40:08.828989876Z",
+        "capture_started_at_utc": "2026-10-23T01:40:07.627141501Z",
+        "pin": {
+          "count_after": {
+            "count": 2,
+            "http_status": 200,
+            "raw_uri": "s3://japan-earthquake/bronze/usgs/current-month/cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa/counts/73f45cf0f8c189e0c42d066db2b9e24c116437a550214f0da3712f2bed923ca5-after.txt",
+            "request_url": "https://earthquake.usgs.gov/fdsnws/event/1/count?endtime=2026-10-02T23%3A59%3A59.999Z&eventtype=earthquake&format=text&maxlatitude=50.0&maxlongitude=155.0&minlatitude=20.0&minlongitude=120.0&orderby=time-asc&starttime=2026-10-02T00%3A00%3A00Z",
+            "sha256": "d4735e3a265e16eee03f59718b9b5d03019c07d8b6c51f90da3a666eec13ab35"
+          },
+          "count_before": {
+            "count": 2,
+            "http_status": 200,
+            "raw_uri": "s3://japan-earthquake/bronze/usgs/current-month/cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa/counts/73f45cf0f8c189e0c42d066db2b9e24c116437a550214f0da3712f2bed923ca5-before.txt",
+            "request_url": "https://earthquake.usgs.gov/fdsnws/event/1/count?endtime=2026-10-02T23%3A59%3A59.999Z&eventtype=earthquake&format=text&maxlatitude=50.0&maxlongitude=155.0&minlatitude=20.0&minlongitude=120.0&orderby=time-asc&starttime=2026-10-02T00%3A00%3A00Z",
+            "sha256": "d4735e3a265e16eee03f59718b9b5d03019c07d8b6c51f90da3a666eec13ab35"
+          },
+          "manifest_sha256": "47b979ac2c44feb94491e678627fb2c4a54b4e2c4815bed7279274b1216a877e",
+          "manifest_uri": "s3://japan-earthquake/bronze/usgs/ingest_date=2026-10-23/run_id=cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa-73f45cf0f8c189e0c42d/attempt=01/manifest.json",
+          "sha256": "6d665435718bb7a10d5463832c77bb0b9d95475b45a416ca0ac0755f7f49e836",
+          "source_system": "USGS",
+          "window_end_utc": "2026-10-03T00:00:00Z",
+          "window_start_utc": "2026-10-02T00:00:00Z"
+        },
+        "saturated": false,
+        "window_end_utc": "2026-10-03T00:00:00Z",
+        "window_start_utc": "2026-10-02T00:00:00Z"
+      },
+      {
+        "capture_completed_at_utc": "2026-10-23T01:40:10.318981752Z",
+        "capture_started_at_utc": "2026-10-23T01:40:08.903951126Z",
+        "pin": {
+          "count_after": {
+            "count": 3,
+            "http_status": 200,
+            "raw_uri": "s3://japan-earthquake/bronze/usgs/current-month/cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa/counts/972e3fc545108f14c928eb8005ae8f751902b42f442db1a4a7fd2d0f7c694f8d-after.txt",
+            "request_url": "https://earthquake.usgs.gov/fdsnws/event/1/count?endtime=2026-10-03T23%3A59%3A59.999Z&eventtype=earthquake&format=text&maxlatitude=50.0&maxlongitude=155.0&minlatitude=20.0&minlongitude=120.0&orderby=time-asc&starttime=2026-10-03T00%3A00%3A00Z",
+            "sha256": "4e07408562bedb8b60ce05c1decfe3ad16b72230967de01f640b7e4729b49fce"
+          },
+          "count_before": {
+            "count": 3,
+            "http_status": 200,
+            "raw_uri": "s3://japan-earthquake/bronze/usgs/current-month/cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa/counts/972e3fc545108f14c928eb8005ae8f751902b42f442db1a4a7fd2d0f7c694f8d-before.txt",
+            "request_url": "https://earthquake.usgs.gov/fdsnws/event/1/count?endtime=2026-10-03T23%3A59%3A59.999Z&eventtype=earthquake&format=text&maxlatitude=50.0&maxlongitude=155.0&minlatitude=20.0&minlongitude=120.0&orderby=time-asc&starttime=2026-10-03T00%3A00%3A00Z",
+            "sha256": "4e07408562bedb8b60ce05c1decfe3ad16b72230967de01f640b7e4729b49fce"
+          },
+          "manifest_sha256": "bf21cd24824ecf8e79316407f5fad960ea00ef23d4d65e4c379acd64419663c7",
+          "manifest_uri": "s3://japan-earthquake/bronze/usgs/ingest_date=2026-10-23/run_id=cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa-972e3fc545108f14c928/attempt=01/manifest.json",
+          "sha256": "a33a39847057515cd974aec5dfc9512ac3b930cb02515b93295783c587577403",
+          "source_system": "USGS",
+          "window_end_utc": "2026-10-04T00:00:00Z",
+          "window_start_utc": "2026-10-03T00:00:00Z"
+        },
+        "saturated": false,
+        "window_end_utc": "2026-10-04T00:00:00Z",
+        "window_start_utc": "2026-10-03T00:00:00Z"
+      },
+      {
+        "capture_completed_at_utc": "2026-10-23T01:40:15.537279796Z",
+        "capture_started_at_utc": "2026-10-23T01:40:10.471708127Z",
+        "pin": {
+          "count_after": {
+            "count": 3,
+            "http_status": 200,
+            "raw_uri": "s3://japan-earthquake/bronze/usgs/current-month/cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa/counts/bc0a2a2b0e25fefad2877c641f72a574bba9f4effd942af088cd433c7fc7c155-after.txt",
+            "request_url": "https://earthquake.usgs.gov/fdsnws/event/1/count?endtime=2026-10-04T23%3A59%3A59.999Z&eventtype=earthquake&format=text&maxlatitude=50.0&maxlongitude=155.0&minlatitude=20.0&minlongitude=120.0&orderby=time-asc&starttime=2026-10-04T00%3A00%3A00Z",
+            "sha256": "4e07408562bedb8b60ce05c1decfe3ad16b72230967de01f640b7e4729b49fce"
+          },
+          "count_before": {
+            "count": 3,
+            "http_status": 200,
+            "raw_uri": "s3://japan-earthquake/bronze/usgs/current-month/cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa/counts/bc0a2a2b0e25fefad2877c641f72a574bba9f4effd942af088cd433c7fc7c155-before.txt",
+            "request_url": "https://earthquake.usgs.gov/fdsnws/event/1/count?endtime=2026-10-04T23%3A59%3A59.999Z&eventtype=earthquake&format=text&maxlatitude=50.0&maxlongitude=155.0&minlatitude=20.0&minlongitude=120.0&orderby=time-asc&starttime=2026-10-04T00%3A00%3A00Z",
+            "sha256": "4e07408562bedb8b60ce05c1decfe3ad16b72230967de01f640b7e4729b49fce"
+          },
+          "manifest_sha256": "05afb1bc105bdca0547a458f96142f1adab13455d095f7e8e77bcd483f4f4c80",
+          "manifest_uri": "s3://japan-earthquake/bronze/usgs/ingest_date=2026-10-23/run_id=cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa-bc0a2a2b0e25fefad287/attempt=01/manifest.json",
+          "sha256": "204406dfb8331e464b5563fb87106ed5e1e0f69a1c8f901427cf74f5875bf426",
+          "source_system": "USGS",
+          "window_end_utc": "2026-10-05T00:00:00Z",
+          "window_start_utc": "2026-10-04T00:00:00Z"
+        },
+        "saturated": false,
+        "window_end_utc": "2026-10-05T00:00:00Z",
+        "window_start_utc": "2026-10-04T00:00:00Z"
+      },
+      {
+        "capture_completed_at_utc": "2026-10-23T01:40:17.016069963Z",
+        "capture_started_at_utc": "2026-10-23T01:40:15.677392838Z",
+        "pin": {
+          "count_after": {
+            "count": 5,
+            "http_status": 200,
+            "raw_uri": "s3://japan-earthquake/bronze/usgs/current-month/cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa/counts/65416a4689ac108811b774c9aaa87e03cd14fe78b66aa623596b0899f35dbf64-after.txt",
+            "request_url": "https://earthquake.usgs.gov/fdsnws/event/1/count?endtime=2026-10-05T23%3A59%3A59.999Z&eventtype=earthquake&format=text&maxlatitude=50.0&maxlongitude=155.0&minlatitude=20.0&minlongitude=120.0&orderby=time-asc&starttime=2026-10-05T00%3A00%3A00Z",
+            "sha256": "ef2d127de37b942baad06145e54b0c619a1f22327b2ebbcfbec78f5564afe39d"
+          },
+          "count_before": {
+            "count": 5,
+            "http_status": 200,
+            "raw_uri": "s3://japan-earthquake/bronze/usgs/current-month/cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa/counts/65416a4689ac108811b774c9aaa87e03cd14fe78b66aa623596b0899f35dbf64-before.txt",
+            "request_url": "https://earthquake.usgs.gov/fdsnws/event/1/count?endtime=2026-10-05T23%3A59%3A59.999Z&eventtype=earthquake&format=text&maxlatitude=50.0&maxlongitude=155.0&minlatitude=20.0&minlongitude=120.0&orderby=time-asc&starttime=2026-10-05T00%3A00%3A00Z",
+            "sha256": "ef2d127de37b942baad06145e54b0c619a1f22327b2ebbcfbec78f5564afe39d"
+          },
+          "manifest_sha256": "fb28f55d499d10826bf2074d219f0686b53ffe02080c41084d0d7503b311d967",
+          "manifest_uri": "s3://japan-earthquake/bronze/usgs/ingest_date=2026-10-23/run_id=cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa-65416a4689ac108811b7/attempt=01/manifest.json",
+          "sha256": "929199b9d4c38aa46f5594d9721c7f9a9aca7d81c96cb6831a3e24881706ab98",
+          "source_system": "USGS",
+          "window_end_utc": "2026-10-06T00:00:00Z",
+          "window_start_utc": "2026-10-05T00:00:00Z"
+        },
+        "saturated": false,
+        "window_end_utc": "2026-10-06T00:00:00Z",
+        "window_start_utc": "2026-10-05T00:00:00Z"
+      },
+      {
+        "capture_completed_at_utc": "2026-10-23T10:04:18.925391629Z",
+        "capture_started_at_utc": "2026-10-23T10:04:16.349862503Z",
+        "pin": {
+          "count_after": {
+            "count": 5,
+            "http_status": 200,
+            "raw_uri": "s3://japan-earthquake/bronze/usgs/current-month/cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa/counts/14104afcc549fd2ec9ec54277a831d231cbd3fb7ddd1ca74bd60abe663ef3cd9-after.txt",
+            "request_url": "https://earthquake.usgs.gov/fdsnws/event/1/count?endtime=2026-10-06T23%3A59%3A59.999Z&eventtype=earthquake&format=text&maxlatitude=50.0&maxlongitude=155.0&minlatitude=20.0&minlongitude=120.0&orderby=time-asc&starttime=2026-10-06T00%3A00%3A00Z",
+            "sha256": "ef2d127de37b942baad06145e54b0c619a1f22327b2ebbcfbec78f5564afe39d"
+          },
+          "count_before": {
+            "count": 5,
+            "http_status": 200,
+            "raw_uri": "s3://japan-earthquake/bronze/usgs/current-month/cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa/counts/14104afcc549fd2ec9ec54277a831d231cbd3fb7ddd1ca74bd60abe663ef3cd9-before.txt",
+            "request_url": "https://earthquake.usgs.gov/fdsnws/event/1/count?endtime=2026-10-06T23%3A59%3A59.999Z&eventtype=earthquake&format=text&maxlatitude=50.0&maxlongitude=155.0&minlatitude=20.0&minlongitude=120.0&orderby=time-asc&starttime=2026-10-06T00%3A00%3A00Z",
+            "sha256": "ef2d127de37b942baad06145e54b0c619a1f22327b2ebbcfbec78f5564afe39d"
+          },
+          "manifest_sha256": "e15a4e04113e9b109f4ee36c25fb59580dab0030b9c4a055c5e95c6b1049847b",
+          "manifest_uri": "s3://japan-earthquake/bronze/usgs/ingest_date=2026-10-23/run_id=cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa-14104afcc549fd2ec9ec/attempt=01/manifest.json",
+          "sha256": "2fa8cda2acfaf70e0ab99937e316eded1be0d6d9a70709ad2da356c12422f602",
+          "source_system": "USGS",
+          "window_end_utc": "2026-10-07T00:00:00Z",
+          "window_start_utc": "2026-10-06T00:00:00Z"
+        },
+        "saturated": false,
+        "window_end_utc": "2026-10-07T00:00:00Z",
+        "window_start_utc": "2026-10-06T00:00:00Z"
+      },
+      {
+        "capture_completed_at_utc": "2026-10-23T10:04:20.971631796Z",
+        "capture_started_at_utc": "2026-10-23T10:04:18.979886837Z",
+        "pin": {
+          "count_after": {
+            "count": 7,
+            "http_status": 200,
+            "raw_uri": "s3://japan-earthquake/bronze/usgs/current-month/cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa/counts/767e1f0e1a2b3955522cda7207365ad61b8829e9b9e62d8e59edcce2f55f3b44-after.txt",
+            "request_url": "https://earthquake.usgs.gov/fdsnws/event/1/count?endtime=2026-10-07T23%3A59%3A59.999Z&eventtype=earthquake&format=text&maxlatitude=50.0&maxlongitude=155.0&minlatitude=20.0&minlongitude=120.0&orderby=time-asc&starttime=2026-10-07T00%3A00%3A00Z",
+            "sha256": "7902699be42c8a8e46fbbb4501726517e86b22c56a189f7625a6da49081b2451"
+          },
+          "count_before": {
+            "count": 7,
+            "http_status": 200,
+            "raw_uri": "s3://japan-earthquake/bronze/usgs/current-month/cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa/counts/767e1f0e1a2b3955522cda7207365ad61b8829e9b9e62d8e59edcce2f55f3b44-before.txt",
+            "request_url": "https://earthquake.usgs.gov/fdsnws/event/1/count?endtime=2026-10-07T23%3A59%3A59.999Z&eventtype=earthquake&format=text&maxlatitude=50.0&maxlongitude=155.0&minlatitude=20.0&minlongitude=120.0&orderby=time-asc&starttime=2026-10-07T00%3A00%3A00Z",
+            "sha256": "7902699be42c8a8e46fbbb4501726517e86b22c56a189f7625a6da49081b2451"
+          },
+          "manifest_sha256": "1634e7d3d9fd212c147ef97426597cdb526b7a5aaf054fc6c4456b12eea591fa",
+          "manifest_uri": "s3://japan-earthquake/bronze/usgs/ingest_date=2026-10-23/run_id=cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa-767e1f0e1a2b3955522c/attempt=01/manifest.json",
+          "sha256": "d2998834bc9cc90ef83f9f5be8bbda3cbf5b8fe7239cd0948a6a540139a819f5",
+          "source_system": "USGS",
+          "window_end_utc": "2026-10-08T00:00:00Z",
+          "window_start_utc": "2026-10-07T00:00:00Z"
+        },
+        "saturated": false,
+        "window_end_utc": "2026-10-08T00:00:00Z",
+        "window_start_utc": "2026-10-07T00:00:00Z"
+      },
+      {
+        "capture_completed_at_utc": "2026-10-23T10:04:22.737688631Z",
+        "capture_started_at_utc": "2026-10-23T10:04:21.029666296Z",
+        "pin": {
+          "count_after": {
+            "count": 3,
+            "http_status": 200,
+            "raw_uri": "s3://japan-earthquake/bronze/usgs/current-month/cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa/counts/bd2d2027821da135ef7aed061dce0f2ae4d98ed01e378625f6c52444ed6c77df-after.txt",
+            "request_url": "https://earthquake.usgs.gov/fdsnws/event/1/count?endtime=2026-10-08T23%3A59%3A59.999Z&eventtype=earthquake&format=text&maxlatitude=50.0&maxlongitude=155.0&minlatitude=20.0&minlongitude=120.0&orderby=time-asc&starttime=2026-10-08T00%3A00%3A00Z",
+            "sha256": "4e07408562bedb8b60ce05c1decfe3ad16b72230967de01f640b7e4729b49fce"
+          },
+          "count_before": {
+            "count": 3,
+            "http_status": 200,
+            "raw_uri": "s3://japan-earthquake/bronze/usgs/current-month/cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa/counts/bd2d2027821da135ef7aed061dce0f2ae4d98ed01e378625f6c52444ed6c77df-before.txt",
+            "request_url": "https://earthquake.usgs.gov/fdsnws/event/1/count?endtime=2026-10-08T23%3A59%3A59.999Z&eventtype=earthquake&format=text&maxlatitude=50.0&maxlongitude=155.0&minlatitude=20.0&minlongitude=120.0&orderby=time-asc&starttime=2026-10-08T00%3A00%3A00Z",
+            "sha256": "4e07408562bedb8b60ce05c1decfe3ad16b72230967de01f640b7e4729b49fce"
+          },
+          "manifest_sha256": "c38973fd759ba20343cabe8102e122a9edc9ee24219fbd13ef5c3a94daf39f2d",
+          "manifest_uri": "s3://japan-earthquake/bronze/usgs/ingest_date=2026-10-23/run_id=cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa-bd2d2027821da135ef7a/attempt=01/manifest.json",
+          "sha256": "a923b3c43d1feb59442a8abac95809ed2bd38e155fe62cc12b9ec4643941b139",
+          "source_system": "USGS",
+          "window_end_utc": "2026-10-09T00:00:00Z",
+          "window_start_utc": "2026-10-08T00:00:00Z"
+        },
+        "saturated": false,
+        "window_end_utc": "2026-10-09T00:00:00Z",
+        "window_start_utc": "2026-10-08T00:00:00Z"
+      },
+      {
+        "capture_completed_at_utc": "2026-10-23T10:04:24.488666090Z",
+        "capture_started_at_utc": "2026-10-23T10:04:22.802920339Z",
+        "pin": {
+          "count_after": {
+            "count": 3,
+            "http_status": 200,
+            "raw_uri": "s3://japan-earthquake/bronze/usgs/current-month/cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa/counts/b581528788713cd4ede0acf108572a6b7b6744bb9b395ba796a2b314fd69a083-after.txt",
+            "request_url": "https://earthquake.usgs.gov/fdsnws/event/1/count?endtime=2026-10-09T23%3A59%3A59.999Z&eventtype=earthquake&format=text&maxlatitude=50.0&maxlongitude=155.0&minlatitude=20.0&minlongitude=120.0&orderby=time-asc&starttime=2026-10-09T00%3A00%3A00Z",
+            "sha256": "4e07408562bedb8b60ce05c1decfe3ad16b72230967de01f640b7e4729b49fce"
+          },
+          "count_before": {
+            "count": 3,
+            "http_status": 200,
+            "raw_uri": "s3://japan-earthquake/bronze/usgs/current-month/cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa/counts/b581528788713cd4ede0acf108572a6b7b6744bb9b395ba796a2b314fd69a083-before.txt",
+            "request_url": "https://earthquake.usgs.gov/fdsnws/event/1/count?endtime=2026-10-09T23%3A59%3A59.999Z&eventtype=earthquake&format=text&maxlatitude=50.0&maxlongitude=155.0&minlatitude=20.0&minlongitude=120.0&orderby=time-asc&starttime=2026-10-09T00%3A00%3A00Z",
+            "sha256": "4e07408562bedb8b60ce05c1decfe3ad16b72230967de01f640b7e4729b49fce"
+          },
+          "manifest_sha256": "3b44d4e6e348b50deafbfa84d810c873bfd98ce347c9e135218cb8afc7459e4e",
+          "manifest_uri": "s3://japan-earthquake/bronze/usgs/ingest_date=2026-10-23/run_id=cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa-b581528788713cd4ede0/attempt=01/manifest.json",
+          "sha256": "d3bbb712b3dfbb6a6d5c4ef54b3535970e2898b1094bd46a0ad49b24f7da0438",
+          "source_system": "USGS",
+          "window_end_utc": "2026-10-10T00:00:00Z",
+          "window_start_utc": "2026-10-09T00:00:00Z"
+        },
+        "saturated": false,
+        "window_end_utc": "2026-10-10T00:00:00Z",
+        "window_start_utc": "2026-10-09T00:00:00Z"
+      },
+      {
+        "capture_completed_at_utc": "2026-10-23T10:04:26.292498257Z",
+        "capture_started_at_utc": "2026-10-23T10:04:24.553244548Z",
+        "pin": {
+          "count_after": {
+            "count": 0,
+            "http_status": 200,
+            "raw_uri": "s3://japan-earthquake/bronze/usgs/current-month/cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa/counts/3488c5d52be9bb2389e4063a7e8d5bee5af1abc0d8d57581634c92058eed49d7-after.txt",
+            "request_url": "https://earthquake.usgs.gov/fdsnws/event/1/count?endtime=2026-10-10T23%3A59%3A59.999Z&eventtype=earthquake&format=text&maxlatitude=50.0&maxlongitude=155.0&minlatitude=20.0&minlongitude=120.0&orderby=time-asc&starttime=2026-10-10T00%3A00%3A00Z",
+            "sha256": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9"
+          },
+          "count_before": {
+            "count": 0,
+            "http_status": 200,
+            "raw_uri": "s3://japan-earthquake/bronze/usgs/current-month/cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa/counts/3488c5d52be9bb2389e4063a7e8d5bee5af1abc0d8d57581634c92058eed49d7-before.txt",
+            "request_url": "https://earthquake.usgs.gov/fdsnws/event/1/count?endtime=2026-10-10T23%3A59%3A59.999Z&eventtype=earthquake&format=text&maxlatitude=50.0&maxlongitude=155.0&minlatitude=20.0&minlongitude=120.0&orderby=time-asc&starttime=2026-10-10T00%3A00%3A00Z",
+            "sha256": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9"
+          },
+          "manifest_sha256": "e76a0b9a64d30ebd1772a274b87245f37bb8614fba77ca7c47283aa0f4b02edc",
+          "manifest_uri": "s3://japan-earthquake/bronze/usgs/ingest_date=2026-10-23/run_id=cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa-3488c5d52be9bb2389e4/attempt=01/manifest.json",
+          "sha256": "3b6ddbe2c04735f173714a403e6064599a28bfbe98557b15aa48a18e57c8c6a5",
+          "source_system": "USGS",
+          "window_end_utc": "2026-10-11T00:00:00Z",
+          "window_start_utc": "2026-10-10T00:00:00Z"
+        },
+        "saturated": false,
+        "window_end_utc": "2026-10-11T00:00:00Z",
+        "window_start_utc": "2026-10-10T00:00:00Z"
+      },
+      {
+        "capture_completed_at_utc": "2026-10-23T10:04:27.969274091Z",
+        "capture_started_at_utc": "2026-10-23T10:04:26.426073257Z",
+        "pin": {
+          "count_after": {
+            "count": 5,
+            "http_status": 200,
+            "raw_uri": "s3://japan-earthquake/bronze/usgs/current-month/cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa/counts/127a51b434cf43379ac28016a44f7db19f7e15913ff9a4bdbd5547bf492e4770-after.txt",
+            "request_url": "https://earthquake.usgs.gov/fdsnws/event/1/count?endtime=2026-10-11T23%3A59%3A59.999Z&eventtype=earthquake&format=text&maxlatitude=50.0&maxlongitude=155.0&minlatitude=20.0&minlongitude=120.0&orderby=time-asc&starttime=2026-10-11T00%3A00%3A00Z",
+            "sha256": "ef2d127de37b942baad06145e54b0c619a1f22327b2ebbcfbec78f5564afe39d"
+          },
+          "count_before": {
+            "count": 5,
+            "http_status": 200,
+            "raw_uri": "s3://japan-earthquake/bronze/usgs/current-month/cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa/counts/127a51b434cf43379ac28016a44f7db19f7e15913ff9a4bdbd5547bf492e4770-before.txt",
+            "request_url": "https://earthquake.usgs.gov/fdsnws/event/1/count?endtime=2026-10-11T23%3A59%3A59.999Z&eventtype=earthquake&format=text&maxlatitude=50.0&maxlongitude=155.0&minlatitude=20.0&minlongitude=120.0&orderby=time-asc&starttime=2026-10-11T00%3A00%3A00Z",
+            "sha256": "ef2d127de37b942baad06145e54b0c619a1f22327b2ebbcfbec78f5564afe39d"
+          },
+          "manifest_sha256": "2f0e689926e67bb4c8758f8363c263017189d03dcd548c165fbd22f323cbb258",
+          "manifest_uri": "s3://japan-earthquake/bronze/usgs/ingest_date=2026-10-23/run_id=cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa-127a51b434cf43379ac2/attempt=01/manifest.json",
+          "sha256": "842858f29cbb5b4b3ed2565ac81705d4727e8341617fd837077508edc935225c",
+          "source_system": "USGS",
+          "window_end_utc": "2026-10-12T00:00:00Z",
+          "window_start_utc": "2026-10-11T00:00:00Z"
+        },
+        "saturated": false,
+        "window_end_utc": "2026-10-12T00:00:00Z",
+        "window_start_utc": "2026-10-11T00:00:00Z"
+      },
+      {
+        "capture_completed_at_utc": "2026-10-23T10:04:29.744484342Z",
+        "capture_started_at_utc": "2026-10-23T10:04:28.042231425Z",
+        "pin": {
+          "count_after": {
+            "count": 4,
+            "http_status": 200,
+            "raw_uri": "s3://japan-earthquake/bronze/usgs/current-month/cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa/counts/f89d4a5a764eb4d4d572c4d46fb1c90197c50d246982ace69202bc8399cac353-after.txt",
+            "request_url": "https://earthquake.usgs.gov/fdsnws/event/1/count?endtime=2026-10-12T23%3A59%3A59.999Z&eventtype=earthquake&format=text&maxlatitude=50.0&maxlongitude=155.0&minlatitude=20.0&minlongitude=120.0&orderby=time-asc&starttime=2026-10-12T00%3A00%3A00Z",
+            "sha256": "4b227777d4dd1fc61c6f884f48641d02b4d121d3fd328cb08b5531fcacdabf8a"
+          },
+          "count_before": {
+            "count": 4,
+            "http_status": 200,
+            "raw_uri": "s3://japan-earthquake/bronze/usgs/current-month/cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa/counts/f89d4a5a764eb4d4d572c4d46fb1c90197c50d246982ace69202bc8399cac353-before.txt",
+            "request_url": "https://earthquake.usgs.gov/fdsnws/event/1/count?endtime=2026-10-12T23%3A59%3A59.999Z&eventtype=earthquake&format=text&maxlatitude=50.0&maxlongitude=155.0&minlatitude=20.0&minlongitude=120.0&orderby=time-asc&starttime=2026-10-12T00%3A00%3A00Z",
+            "sha256": "4b227777d4dd1fc61c6f884f48641d02b4d121d3fd328cb08b5531fcacdabf8a"
+          },
+          "manifest_sha256": "95d6ba437944ef125c1dc2bbfb44b472cf47a68c2c8b402896e60f1500310bbc",
+          "manifest_uri": "s3://japan-earthquake/bronze/usgs/ingest_date=2026-10-23/run_id=cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa-f89d4a5a764eb4d4d572/attempt=01/manifest.json",
+          "sha256": "13e5e89e1c26685de9c465d34f5073a7213f8b810e9c89d02ba45e86a37aa484",
+          "source_system": "USGS",
+          "window_end_utc": "2026-10-13T00:00:00Z",
+          "window_start_utc": "2026-10-12T00:00:00Z"
+        },
+        "saturated": false,
+        "window_end_utc": "2026-10-13T00:00:00Z",
+        "window_start_utc": "2026-10-12T00:00:00Z"
+      },
+      {
+        "capture_completed_at_utc": "2026-10-23T10:04:31.525232343Z",
+        "capture_started_at_utc": "2026-10-23T10:04:29.826807134Z",
+        "pin": {
+          "count_after": {
+            "count": 1,
+            "http_status": 200,
+            "raw_uri": "s3://japan-earthquake/bronze/usgs/current-month/cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa/counts/abde031366b4a7ba75ea2078320a6e15cc906da36b6e9266e4dfb16e669695cc-after.txt",
+            "request_url": "https://earthquake.usgs.gov/fdsnws/event/1/count?endtime=2026-10-13T23%3A59%3A59.999Z&eventtype=earthquake&format=text&maxlatitude=50.0&maxlongitude=155.0&minlatitude=20.0&minlongitude=120.0&orderby=time-asc&starttime=2026-10-13T00%3A00%3A00Z",
+            "sha256": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b"
+          },
+          "count_before": {
+            "count": 1,
+            "http_status": 200,
+            "raw_uri": "s3://japan-earthquake/bronze/usgs/current-month/cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa/counts/abde031366b4a7ba75ea2078320a6e15cc906da36b6e9266e4dfb16e669695cc-before.txt",
+            "request_url": "https://earthquake.usgs.gov/fdsnws/event/1/count?endtime=2026-10-13T23%3A59%3A59.999Z&eventtype=earthquake&format=text&maxlatitude=50.0&maxlongitude=155.0&minlatitude=20.0&minlongitude=120.0&orderby=time-asc&starttime=2026-10-13T00%3A00%3A00Z",
+            "sha256": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b"
+          },
+          "manifest_sha256": "3defe1b8f9aaaa7350e5be90ddf58679571361665f1023e029fd4c9fd413b18c",
+          "manifest_uri": "s3://japan-earthquake/bronze/usgs/ingest_date=2026-10-23/run_id=cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa-abde031366b4a7ba75ea/attempt=01/manifest.json",
+          "sha256": "5d182001e7a5f76aabc8caa2d49c14e5dceda45146a821d5f671fa383cb76b57",
+          "source_system": "USGS",
+          "window_end_utc": "2026-10-14T00:00:00Z",
+          "window_start_utc": "2026-10-13T00:00:00Z"
+        },
+        "saturated": false,
+        "window_end_utc": "2026-10-14T00:00:00Z",
+        "window_start_utc": "2026-10-13T00:00:00Z"
+      },
+      {
+        "capture_completed_at_utc": "2026-10-23T10:04:33.176467052Z",
+        "capture_started_at_utc": "2026-10-23T10:04:31.658556885Z",
+        "pin": {
+          "count_after": {
+            "count": 1,
+            "http_status": 200,
+            "raw_uri": "s3://japan-earthquake/bronze/usgs/current-month/cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa/counts/cc680114748246741510cc74efde288839a29d0bf1a7e96d61e28faf76407ee1-after.txt",
+            "request_url": "https://earthquake.usgs.gov/fdsnws/event/1/count?endtime=2026-10-14T23%3A59%3A59.999Z&eventtype=earthquake&format=text&maxlatitude=50.0&maxlongitude=155.0&minlatitude=20.0&minlongitude=120.0&orderby=time-asc&starttime=2026-10-14T00%3A00%3A00Z",
+            "sha256": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b"
+          },
+          "count_before": {
+            "count": 1,
+            "http_status": 200,
+            "raw_uri": "s3://japan-earthquake/bronze/usgs/current-month/cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa/counts/cc680114748246741510cc74efde288839a29d0bf1a7e96d61e28faf76407ee1-before.txt",
+            "request_url": "https://earthquake.usgs.gov/fdsnws/event/1/count?endtime=2026-10-14T23%3A59%3A59.999Z&eventtype=earthquake&format=text&maxlatitude=50.0&maxlongitude=155.0&minlatitude=20.0&minlongitude=120.0&orderby=time-asc&starttime=2026-10-14T00%3A00%3A00Z",
+            "sha256": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b"
+          },
+          "manifest_sha256": "524c06e29d0fa4468f2ec1456f884e8571bafc19e92b891b5fcbe27cb082b03c",
+          "manifest_uri": "s3://japan-earthquake/bronze/usgs/ingest_date=2026-10-23/run_id=cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa-cc680114748246741510/attempt=01/manifest.json",
+          "sha256": "6bf0af6447d76755d12abc9c82817007633278b44670c8fede6af30fb3ce6ba9",
+          "source_system": "USGS",
+          "window_end_utc": "2026-10-15T00:00:00Z",
+          "window_start_utc": "2026-10-14T00:00:00Z"
+        },
+        "saturated": false,
+        "window_end_utc": "2026-10-15T00:00:00Z",
+        "window_start_utc": "2026-10-14T00:00:00Z"
+      },
+      {
+        "capture_completed_at_utc": "2026-10-23T10:04:34.942346595Z",
+        "capture_started_at_utc": "2026-10-23T10:04:33.234597969Z",
+        "pin": {
+          "count_after": {
+            "count": 1,
+            "http_status": 200,
+            "raw_uri": "s3://japan-earthquake/bronze/usgs/current-month/cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa/counts/988c5758657bd10d047ddd5a90289a8355b38ffcd0ee545cade908f001f43da8-after.txt",
+            "request_url": "https://earthquake.usgs.gov/fdsnws/event/1/count?endtime=2026-10-15T23%3A59%3A59.999Z&eventtype=earthquake&format=text&maxlatitude=50.0&maxlongitude=155.0&minlatitude=20.0&minlongitude=120.0&orderby=time-asc&starttime=2026-10-15T00%3A00%3A00Z",
+            "sha256": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b"
+          },
+          "count_before": {
+            "count": 1,
+            "http_status": 200,
+            "raw_uri": "s3://japan-earthquake/bronze/usgs/current-month/cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa/counts/988c5758657bd10d047ddd5a90289a8355b38ffcd0ee545cade908f001f43da8-before.txt",
+            "request_url": "https://earthquake.usgs.gov/fdsnws/event/1/count?endtime=2026-10-15T23%3A59%3A59.999Z&eventtype=earthquake&format=text&maxlatitude=50.0&maxlongitude=155.0&minlatitude=20.0&minlongitude=120.0&orderby=time-asc&starttime=2026-10-15T00%3A00%3A00Z",
+            "sha256": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b"
+          },
+          "manifest_sha256": "76f353ae630cb4e851fcf7dc2419ee830a69e5dc55ab83df5b6d2eeac20ffe01",
+          "manifest_uri": "s3://japan-earthquake/bronze/usgs/ingest_date=2026-10-23/run_id=cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa-988c5758657bd10d047d/attempt=01/manifest.json",
+          "sha256": "4787ed6e796532403e35a3b4ee0d42482dd038d7440e9a777fb6e58628b4ff26",
+          "source_system": "USGS",
+          "window_end_utc": "2026-10-16T00:00:00Z",
+          "window_start_utc": "2026-10-15T00:00:00Z"
+        },
+        "saturated": false,
+        "window_end_utc": "2026-10-16T00:00:00Z",
+        "window_start_utc": "2026-10-15T00:00:00Z"
+      },
+      {
+        "capture_completed_at_utc": "2026-10-23T10:04:36.688353971Z",
+        "capture_started_at_utc": "2026-10-23T10:04:34.988771636Z",
+        "pin": {
+          "count_after": {
+            "count": 1,
+            "http_status": 200,
+            "raw_uri": "s3://japan-earthquake/bronze/usgs/current-month/cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa/counts/e96ef781572d3fbc46d27854af37ceeb3c0134262a76ea6558a230f5e658e0fa-after.txt",
+            "request_url": "https://earthquake.usgs.gov/fdsnws/event/1/count?endtime=2026-10-16T23%3A59%3A59.999Z&eventtype=earthquake&format=text&maxlatitude=50.0&maxlongitude=155.0&minlatitude=20.0&minlongitude=120.0&orderby=time-asc&starttime=2026-10-16T00%3A00%3A00Z",
+            "sha256": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b"
+          },
+          "count_before": {
+            "count": 1,
+            "http_status": 200,
+            "raw_uri": "s3://japan-earthquake/bronze/usgs/current-month/cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa/counts/e96ef781572d3fbc46d27854af37ceeb3c0134262a76ea6558a230f5e658e0fa-before.txt",
+            "request_url": "https://earthquake.usgs.gov/fdsnws/event/1/count?endtime=2026-10-16T23%3A59%3A59.999Z&eventtype=earthquake&format=text&maxlatitude=50.0&maxlongitude=155.0&minlatitude=20.0&minlongitude=120.0&orderby=time-asc&starttime=2026-10-16T00%3A00%3A00Z",
+            "sha256": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b"
+          },
+          "manifest_sha256": "f998245be0de5ce7dbccbf992cab1789196228799a38cc84a4042d542a0f4619",
+          "manifest_uri": "s3://japan-earthquake/bronze/usgs/ingest_date=2026-10-23/run_id=cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa-e96ef781572d3fbc46d2/attempt=01/manifest.json",
+          "sha256": "78deeab8f6edd0e37414cd46e499ffd60eae191f7480a07a28f997056c12a365",
+          "source_system": "USGS",
+          "window_end_utc": "2026-10-17T00:00:00Z",
+          "window_start_utc": "2026-10-16T00:00:00Z"
+        },
+        "saturated": false,
+        "window_end_utc": "2026-10-17T00:00:00Z",
+        "window_start_utc": "2026-10-16T00:00:00Z"
+      },
+      {
+        "capture_completed_at_utc": "2026-10-23T10:04:38.419819971Z",
+        "capture_started_at_utc": "2026-10-23T10:04:36.753166096Z",
+        "pin": {
+          "count_after": {
+            "count": 1,
+            "http_status": 200,
+            "raw_uri": "s3://japan-earthquake/bronze/usgs/current-month/cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa/counts/36263e6160dde80e710338e1b47f838c783d8193b60b6a125df4099d6fee660c-after.txt",
+            "request_url": "https://earthquake.usgs.gov/fdsnws/event/1/count?endtime=2026-10-17T23%3A59%3A59.999Z&eventtype=earthquake&format=text&maxlatitude=50.0&maxlongitude=155.0&minlatitude=20.0&minlongitude=120.0&orderby=time-asc&starttime=2026-10-17T00%3A00%3A00Z",
+            "sha256": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b"
+          },
+          "count_before": {
+            "count": 1,
+            "http_status": 200,
+            "raw_uri": "s3://japan-earthquake/bronze/usgs/current-month/cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa/counts/36263e6160dde80e710338e1b47f838c783d8193b60b6a125df4099d6fee660c-before.txt",
+            "request_url": "https://earthquake.usgs.gov/fdsnws/event/1/count?endtime=2026-10-17T23%3A59%3A59.999Z&eventtype=earthquake&format=text&maxlatitude=50.0&maxlongitude=155.0&minlatitude=20.0&minlongitude=120.0&orderby=time-asc&starttime=2026-10-17T00%3A00%3A00Z",
+            "sha256": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b"
+          },
+          "manifest_sha256": "6a53cbc68621ed7a94bb9580358a5b45168a43650d99b8bc0ac29136cb0024a6",
+          "manifest_uri": "s3://japan-earthquake/bronze/usgs/ingest_date=2026-10-23/run_id=cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa-36263e6160dde80e7103/attempt=01/manifest.json",
+          "sha256": "0cfb427d8131a6d7c074ba696156a5c5fb6d9274687adc810961fab4d2e11685",
+          "source_system": "USGS",
+          "window_end_utc": "2026-10-18T00:00:00Z",
+          "window_start_utc": "2026-10-17T00:00:00Z"
+        },
+        "saturated": false,
+        "window_end_utc": "2026-10-18T00:00:00Z",
+        "window_start_utc": "2026-10-17T00:00:00Z"
+      },
+      {
+        "capture_completed_at_utc": "2026-10-23T10:04:40.127078750Z",
+        "capture_started_at_utc": "2026-10-23T10:04:38.455513138Z",
+        "pin": {
+          "count_after": {
+            "count": 0,
+            "http_status": 200,
+            "raw_uri": "s3://japan-earthquake/bronze/usgs/current-month/cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa/counts/d38acd939d6232776bed4835d8e4b80310e87ab17a196481be523c69b444c813-after.txt",
+            "request_url": "https://earthquake.usgs.gov/fdsnws/event/1/count?endtime=2026-10-18T23%3A59%3A59.999Z&eventtype=earthquake&format=text&maxlatitude=50.0&maxlongitude=155.0&minlatitude=20.0&minlongitude=120.0&orderby=time-asc&starttime=2026-10-18T00%3A00%3A00Z",
+            "sha256": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9"
+          },
+          "count_before": {
+            "count": 0,
+            "http_status": 200,
+            "raw_uri": "s3://japan-earthquake/bronze/usgs/current-month/cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa/counts/d38acd939d6232776bed4835d8e4b80310e87ab17a196481be523c69b444c813-before.txt",
+            "request_url": "https://earthquake.usgs.gov/fdsnws/event/1/count?endtime=2026-10-18T23%3A59%3A59.999Z&eventtype=earthquake&format=text&maxlatitude=50.0&maxlongitude=155.0&minlatitude=20.0&minlongitude=120.0&orderby=time-asc&starttime=2026-10-18T00%3A00%3A00Z",
+            "sha256": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9"
+          },
+          "manifest_sha256": "88801eb9ca38d28dc7a3c8198eb6cfeee6f164d6346a99e59e719b3790fb82bc",
+          "manifest_uri": "s3://japan-earthquake/bronze/usgs/ingest_date=2026-10-23/run_id=cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa-d38acd939d6232776bed/attempt=01/manifest.json",
+          "sha256": "a5c2142d0ed3ff3bc040b72e01152e2847573a5fb374b4798e4fa644f4de4b01",
+          "source_system": "USGS",
+          "window_end_utc": "2026-10-19T00:00:00Z",
+          "window_start_utc": "2026-10-18T00:00:00Z"
+        },
+        "saturated": false,
+        "window_end_utc": "2026-10-19T00:00:00Z",
+        "window_start_utc": "2026-10-18T00:00:00Z"
+      },
+      {
+        "capture_completed_at_utc": "2026-10-23T10:04:41.916226667Z",
+        "capture_started_at_utc": "2026-10-23T10:04:40.239678666Z",
+        "pin": {
+          "count_after": {
+            "count": 2,
+            "http_status": 200,
+            "raw_uri": "s3://japan-earthquake/bronze/usgs/current-month/cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa/counts/19b52183b2f19ddd96e8b8cbbb84dddb3666b0c953e768ab54e11d0342259fd1-after.txt",
+            "request_url": "https://earthquake.usgs.gov/fdsnws/event/1/count?endtime=2026-10-19T23%3A59%3A59.999Z&eventtype=earthquake&format=text&maxlatitude=50.0&maxlongitude=155.0&minlatitude=20.0&minlongitude=120.0&orderby=time-asc&starttime=2026-10-19T00%3A00%3A00Z",
+            "sha256": "d4735e3a265e16eee03f59718b9b5d03019c07d8b6c51f90da3a666eec13ab35"
+          },
+          "count_before": {
+            "count": 2,
+            "http_status": 200,
+            "raw_uri": "s3://japan-earthquake/bronze/usgs/current-month/cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa/counts/19b52183b2f19ddd96e8b8cbbb84dddb3666b0c953e768ab54e11d0342259fd1-before.txt",
+            "request_url": "https://earthquake.usgs.gov/fdsnws/event/1/count?endtime=2026-10-19T23%3A59%3A59.999Z&eventtype=earthquake&format=text&maxlatitude=50.0&maxlongitude=155.0&minlatitude=20.0&minlongitude=120.0&orderby=time-asc&starttime=2026-10-19T00%3A00%3A00Z",
+            "sha256": "d4735e3a265e16eee03f59718b9b5d03019c07d8b6c51f90da3a666eec13ab35"
+          },
+          "manifest_sha256": "9f20529dafc53cae52cae3a9abe06b225d8a837c68c71151e7675ebd7676725b",
+          "manifest_uri": "s3://japan-earthquake/bronze/usgs/ingest_date=2026-10-23/run_id=cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa-19b52183b2f19ddd96e8/attempt=01/manifest.json",
+          "sha256": "9614111f62661bbf0645c8c3f63080ecb9374f5c4f77171c1b6c445a95e3a950",
+          "source_system": "USGS",
+          "window_end_utc": "2026-10-20T00:00:00Z",
+          "window_start_utc": "2026-10-19T00:00:00Z"
+        },
+        "saturated": false,
+        "window_end_utc": "2026-10-20T00:00:00Z",
+        "window_start_utc": "2026-10-19T00:00:00Z"
+      },
+      {
+        "capture_completed_at_utc": "2026-10-23T10:04:43.454857710Z",
+        "capture_started_at_utc": "2026-10-23T10:04:41.963040417Z",
+        "pin": {
+          "count_after": {
+            "count": 1,
+            "http_status": 200,
+            "raw_uri": "s3://japan-earthquake/bronze/usgs/current-month/cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa/counts/da5bbd99dffb1ae8159a5f135ff348bbad762dd63fcc500f38c7633e3b0ff33d-after.txt",
+            "request_url": "https://earthquake.usgs.gov/fdsnws/event/1/count?endtime=2026-10-20T23%3A59%3A59.999Z&eventtype=earthquake&format=text&maxlatitude=50.0&maxlongitude=155.0&minlatitude=20.0&minlongitude=120.0&orderby=time-asc&starttime=2026-10-20T00%3A00%3A00Z",
+            "sha256": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b"
+          },
+          "count_before": {
+            "count": 1,
+            "http_status": 200,
+            "raw_uri": "s3://japan-earthquake/bronze/usgs/current-month/cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa/counts/da5bbd99dffb1ae8159a5f135ff348bbad762dd63fcc500f38c7633e3b0ff33d-before.txt",
+            "request_url": "https://earthquake.usgs.gov/fdsnws/event/1/count?endtime=2026-10-20T23%3A59%3A59.999Z&eventtype=earthquake&format=text&maxlatitude=50.0&maxlongitude=155.0&minlatitude=20.0&minlongitude=120.0&orderby=time-asc&starttime=2026-10-20T00%3A00%3A00Z",
+            "sha256": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b"
+          },
+          "manifest_sha256": "d9af8d899ca9dbc6049862229a4e9852117bdb37183ee94a3cdc00cc0a89411f",
+          "manifest_uri": "s3://japan-earthquake/bronze/usgs/ingest_date=2026-10-23/run_id=cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa-da5bbd99dffb1ae8159a/attempt=01/manifest.json",
+          "sha256": "b5dee8dc61f1845b6a7ec932a2d9f3acca7ea8353b02c40350c8cbd82b86ff05",
+          "source_system": "USGS",
+          "window_end_utc": "2026-10-21T00:00:00Z",
+          "window_start_utc": "2026-10-20T00:00:00Z"
+        },
+        "saturated": false,
+        "window_end_utc": "2026-10-21T00:00:00Z",
+        "window_start_utc": "2026-10-20T00:00:00Z"
+      },
+      {
+        "capture_completed_at_utc": "2026-10-23T10:04:45.421539044Z",
+        "capture_started_at_utc": "2026-10-23T10:04:43.513198335Z",
+        "pin": {
+          "count_after": {
+            "count": 3,
+            "http_status": 200,
+            "raw_uri": "s3://japan-earthquake/bronze/usgs/current-month/cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa/counts/57766ecc717b454015d654013ca075fcc02945f700dd03b91413c5cf0f8e4d7e-after.txt",
+            "request_url": "https://earthquake.usgs.gov/fdsnws/event/1/count?endtime=2026-10-21T23%3A59%3A59.999Z&eventtype=earthquake&format=text&maxlatitude=50.0&maxlongitude=155.0&minlatitude=20.0&minlongitude=120.0&orderby=time-asc&starttime=2026-10-21T00%3A00%3A00Z",
+            "sha256": "4e07408562bedb8b60ce05c1decfe3ad16b72230967de01f640b7e4729b49fce"
+          },
+          "count_before": {
+            "count": 3,
+            "http_status": 200,
+            "raw_uri": "s3://japan-earthquake/bronze/usgs/current-month/cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa/counts/57766ecc717b454015d654013ca075fcc02945f700dd03b91413c5cf0f8e4d7e-before.txt",
+            "request_url": "https://earthquake.usgs.gov/fdsnws/event/1/count?endtime=2026-10-21T23%3A59%3A59.999Z&eventtype=earthquake&format=text&maxlatitude=50.0&maxlongitude=155.0&minlatitude=20.0&minlongitude=120.0&orderby=time-asc&starttime=2026-10-21T00%3A00%3A00Z",
+            "sha256": "4e07408562bedb8b60ce05c1decfe3ad16b72230967de01f640b7e4729b49fce"
+          },
+          "manifest_sha256": "d944503908a1daa50c45075b2de0d6549437e4f340719e723c2fdd164093f2c8",
+          "manifest_uri": "s3://japan-earthquake/bronze/usgs/ingest_date=2026-10-23/run_id=cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa-57766ecc717b454015d6/attempt=01/manifest.json",
+          "sha256": "e04472f84f1a3a20a6a767f9938894e72664127079108d4270c06aa1bb51139d",
+          "source_system": "USGS",
+          "window_end_utc": "2026-10-22T00:00:00Z",
+          "window_start_utc": "2026-10-21T00:00:00Z"
+        },
+        "saturated": false,
+        "window_end_utc": "2026-10-22T00:00:00Z",
+        "window_start_utc": "2026-10-21T00:00:00Z"
+      },
+      {
+        "capture_completed_at_utc": "2026-10-23T10:04:47.429744461Z",
+        "capture_started_at_utc": "2026-10-23T10:04:45.466510835Z",
+        "pin": {
+          "count_after": {
+            "count": 2,
+            "http_status": 200,
+            "raw_uri": "s3://japan-earthquake/bronze/usgs/current-month/cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa/counts/4ae291c7515de0226e78e3b2cff75f25459a99f3d4bcef3c51b6eb9eb1486006-after.txt",
+            "request_url": "https://earthquake.usgs.gov/fdsnws/event/1/count?endtime=2026-10-22T23%3A59%3A59.999Z&eventtype=earthquake&format=text&maxlatitude=50.0&maxlongitude=155.0&minlatitude=20.0&minlongitude=120.0&orderby=time-asc&starttime=2026-10-22T00%3A00%3A00Z",
+            "sha256": "d4735e3a265e16eee03f59718b9b5d03019c07d8b6c51f90da3a666eec13ab35"
+          },
+          "count_before": {
+            "count": 2,
+            "http_status": 200,
+            "raw_uri": "s3://japan-earthquake/bronze/usgs/current-month/cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa/counts/4ae291c7515de0226e78e3b2cff75f25459a99f3d4bcef3c51b6eb9eb1486006-before.txt",
+            "request_url": "https://earthquake.usgs.gov/fdsnws/event/1/count?endtime=2026-10-22T23%3A59%3A59.999Z&eventtype=earthquake&format=text&maxlatitude=50.0&maxlongitude=155.0&minlatitude=20.0&minlongitude=120.0&orderby=time-asc&starttime=2026-10-22T00%3A00%3A00Z",
+            "sha256": "d4735e3a265e16eee03f59718b9b5d03019c07d8b6c51f90da3a666eec13ab35"
+          },
+          "manifest_sha256": "3acbb279f7191fb3e779587919cae32a7ba23d7e5e02ad37a3c1d067c7f0a500",
+          "manifest_uri": "s3://japan-earthquake/bronze/usgs/ingest_date=2026-10-23/run_id=cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa-4ae291c7515de0226e78/attempt=01/manifest.json",
+          "sha256": "751d3e811bc81d2931d86ae0f703a2b3157bd177555c15551cca69b693871d5c",
+          "source_system": "USGS",
+          "window_end_utc": "2026-10-23T00:00:00Z",
+          "window_start_utc": "2026-10-22T00:00:00Z"
+        },
+        "saturated": false,
+        "window_end_utc": "2026-10-23T00:00:00Z",
+        "window_start_utc": "2026-10-22T00:00:00Z"
+      }
+    ],
+    "publication_quality": "PROVISIONAL",
+    "published": false,
+    "request_sha256": "72347b08a789597c04064d01615918d148df67da8abc9dc73f013c145e65b0d7",
+    "required_event_sources": [
+      "USGS"
+    ],
+    "research_ready": false,
+    "source_policy": "USGS_OPERATIONAL_WITH_JMA_HISTORICAL_BASELINE",
+    "status": "ObservedCaptureReady"
+  },
+  "source_request": {
+    "baseline": null,
+    "contract_version": "current-month-source-silver-v1",
+    "run_context": {
+      "conf": {},
+      "dag_id": "orc_02_daily_sources",
+      "data_interval_end": "2026-10-23T00:15:00Z",
+      "data_interval_start": "2026-10-22T00:15:00Z",
+      "run_id": "scheduled__2026-10-23T00:15:00+00:00",
+      "run_type": "scheduled"
+    }
+  },
+  "source_policy": "USGS_OPERATIONAL_WITH_JMA_HISTORICAL_BASELINE",
+  "operational_policy": {
+    "contract_version": "current-month-gold-v1",
+    "coverage_mode": "OBSERVED_AS_OF",
+    "event_cutoff_utc": "2026-10-23T00:00:00Z",
+    "jma_role": "HISTORICAL_READINESS_ONLY",
+    "ml_upstream_eligible": false,
+    "month_coverage": {
+      "2026-10": {
+        "event_end_utc_exclusive": "2026-10-23T00:00:00Z",
+        "event_start_utc": "2026-10-01T00:00:00Z",
+        "observation_cutoff_utc": "2026-10-23T10:04:47.429744461Z",
+        "operation_id": "cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa",
+        "selection_sha256": "d6c4bc4c06ea9cf326783d859b7fbca26fd197627be985156a18dfecd4979e11"
+      }
+    },
+    "observation_cutoff_utc": "2026-10-23T10:04:47.429744461Z",
+    "publication_quality": "PROVISIONAL",
+    "registry_sha256": "60d4b81a22278a9c59e89891c4ec0c9c8f7664c01966f6b04a15ec1228427c35",
+    "required_event_sources": [
+      "USGS"
+    ],
+    "research_ready": false,
+    "silver_receipt_sha256": "70700b63d804a7b996fe7491c940a5f09c67867f7111a1f2da2f80c8c1b28fa3",
+    "source_policy": "USGS_OPERATIONAL_WITH_JMA_HISTORICAL_BASELINE"
+  },
+  "gold_request": {
+    "baseline_publication": null,
+    "code_version": "7e95eb49d4523010403470bb7a15a1e441fd5689",
+    "contract_version": "current-month-gold-v1",
+    "namespace": "iceberg.operational_current_month",
+    "operation_id": "cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa",
+    "registry_sha256": "60d4b81a22278a9c59e89891c4ec0c9c8f7664c01966f6b04a15ec1228427c35"
+  },
+  "silver_receipt": {
+    "affected_months": [
+      "2026-10"
+    ],
+    "contract_version": "current-month-source-silver-v1",
+    "coverage_mode": "OBSERVED_AS_OF",
+    "event_cutoff_utc": "2026-10-23T00:00:00Z",
+    "jma_role": "HISTORICAL_READINESS_ONLY",
+    "ml_upstream_eligible": false,
+    "observation_cutoff_utc": "2026-10-23T10:04:47.429744461Z",
+    "operation_id": "cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa",
+    "publication_quality": "PROVISIONAL",
+    "published": false,
+    "reconciliation": {
+      "balanced": true,
+      "baseline_unique_revisions": 0,
+      "capture_records": 58,
+      "capture_repeated_ids": 0,
+      "capture_unique_revisions": 58,
+      "current": 58,
+      "history": 0,
+      "links": 0,
+      "memberships": 58,
+      "output_revisions": 58,
+      "parser_rejects": 0,
+      "quality_rejects": 0,
+      "reused_revision_ids": 0
+    },
+    "registry_sha256": "60d4b81a22278a9c59e89891c4ec0c9c8f7664c01966f6b04a15ec1228427c35",
+    "registry_uri": "s3://japan-earthquake/silver/current-month/state/cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa/registry.json",
+    "request_sha256": "72347b08a789597c04064d01615918d148df67da8abc9dc73f013c145e65b0d7",
+    "required_event_sources": [
+      "USGS"
+    ],
+    "research_ready": false,
+    "silver_bundle_sha256": "c94e0c9e51c8b681c0384b5ded7d85b861eb8fe39346bf5e26bfbaabef68754f",
+    "silver_bundle_uri": "s3://japan-earthquake/silver/current-month/bundles/cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa/manifest.json",
+    "source_policy": "USGS_OPERATIONAL_WITH_JMA_HISTORICAL_BASELINE",
+    "status": "ObservedAsOfReady"
+  },
+  "audit_status": "PASSED",
+  "audit_read_only": true,
+  "full_report_sha256": "4dc36a80876d0adc6403b3c283b7581f89e2d4bb2baeea504430bcff81927649"
+}

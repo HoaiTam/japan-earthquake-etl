@@ -5,14 +5,17 @@ phân công gần nhất. Bảng dưới phản ánh trạng thái task/evidence
 phải runtime re-audit ngày 22/10. [Task index](./task/tasks/README.md) và từng
 file task là nguồn chính; merge/CI xanh không thay live/scientific acceptance.
 
+Cập nhật riêng QA-01 ngày **23/10/2026**: operational v2 đã có scheduled recovery
+acceptance PASSED; các dòng task khác vẫn theo mốc/evidence riêng của branch này.
+
 Mốc DOC-01 gốc 19/10, MLI-03 acceptance 19/10, QA-02/03/04 và MLD-05 acceptance
 21/10 được giữ trong evidence riêng. Bản đồng bộ này không sửa logs, counts,
 pins, reviewer hoặc approval của các lần chạy đó. MLI-02 chuyển owner rosy179;
 DOC-01/QA-04/EXP-03 chuyển lịch tuần 5, không đổi scope hoặc acceptance.
 
-| Task / trạng thái tại 22/10 | Đã có | Còn thiếu / tác động |
+| Task / trạng thái (QA-01 cập nhật 23/10) | Đã có | Còn thiếu / tác động |
 |---|---|---|
-| [QA-01 — Daily E2E](./task/tasks/QA-01.md), In Progress | Collector, offline tests; scheduled run cũ SourcesReady được nhận diện NOT_READY | Deployment ORC-07 mới, eligible request và scheduled run Published + KPI SQL thật; không dùng DAG.test thay cron |
+| [QA-01 — Daily E2E](./task/tasks/QA-01.md), Done — operational v2 | [Scheduled recovery acceptance 23/10](./evidence/QA-01_CURRENT_MONTH_ACCEPTANCE.md): 8/8 tasks, 58 events, six snapshots và 42 SQL readbacks PASSED | Explicit readonly prebuilt deployment; default cached-image Make preflight chưa đạt. Không first-attempt/on-time SLA hoặc official ML/research eligibility; daily hiện paused |
 | [ORC-07 — Real ETL adapters](./task/tasks/ORC-07.md), Done | Bounded real MinIO/Iceberg/Trino/Airflow DAG.test và rerun | Không có nghĩa deployment source-only trên máy đã được cập nhật; xem QA-01 |
 | [MLD-05 — Validate feature snapshot/export](./task/tasks/MLD-05.md), Done (component, 21/10) | Coverage/audit gate, pinned snapshots, portable export/reuse, trusted handoff và local loader đã kiểm | Catalog thật toàn kỳ chưa nghiệm thu; MLI-02 còn live build DAG, EXP-02 còn official fit/Colab; pilot không thay official dataset |
 | [MLI-02 — Build dataset DAG](./task/tasks/MLI-02.md), In Progress; owner rosy179 | Graph, exact identity, runner boundary và mock tests; MLD-05 exporter component đã Done | Nối real exporter/registry và nghiệm thu live build DAG; mock export không mở Colab/official lifecycle |
@@ -30,9 +33,17 @@ DOC-01/QA-04/EXP-03 chuyển lịch tuần 5, không đổi scope hoặc accepta
 
 ## Các giới hạn phải nói rõ khi chạy
 
-- **Chưa có task** chốt current-month/as-of-cutoff và JMA sau 2023. ORC-06/07
-  v1 chỉ complete closed months đủ halo. Không bật daily publication 2026 bằng
-  request historical; vẫn có thể ingest USGS và đạt SourcesReady độc lập.
+- **QA-01 — Daily E2E** đã bổ sung [thiết kế current-month/as-of-cutoff](./specs/CURRENT_MONTH_AS_OF_CUTOFF.md)
+  theo lựa chọn của owner ngày 22/10; policy/planner giữ DESIGN_ONLY. Owner đã
+  yêu cầu làm tiếp Source/Silver trên PR #96; [component standalone](./runbooks/CURRENT_MONTH_SOURCE_SILVER.md)
+  và [Gold/publication component](./runbooks/CURRENT_MONTH_GOLD_PUBLICATION.md)
+  đã nối cùng daily owner và nghiệm thu MinIO/Trino thật ngày 23/10 sau owner
+  cho recovery exact scheduled run. [Evidence](./evidence/QA-01_CURRENT_MONTH_ACCEPTANCE.md)
+  ghi default Make stale-image gate, explicit mount/file SHA proof và lịch sử
+  failed attempts; không bỏ freshness guard hoặc fake state. **Chưa có task riêng**
+  cho JMA sau baseline/deletion/replan vượt budget. ORC-06/07 v1 vẫn chỉ complete closed months đủ halo;
+  không bật daily publication 2026 bằng request historical hoặc nâng
+  operational provisional thành ML-eligible. USGS ingest/SourcesReady vẫn độc lập.
 - **DAT-02 — Development pilot** có 279 candidate rows / 2 mainshock, input JMA
   chỉ khoảng 14 ngày đầu năm 2000. PARTIAL và research_ready=false; không phải
   toàn năm, toàn 40 năm hoặc chứng minh catalog completeness. Counts là grain

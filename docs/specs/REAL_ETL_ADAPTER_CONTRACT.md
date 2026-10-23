@@ -107,7 +107,12 @@ pull/start/init. QA image riêng không thay tag/restart các services đang ch�
   hiện tới 2023: không bật unattended current-2026 publication bằng request
   historical và không giả delta chứng minh coverage. Cần version hóa policy/
   proof và tests trước khi hỗ trợ current-month-as-of-cutoff; đó là mở rộng
-  ngoài ORC-06/ORC-07 v1, hiện chưa có task riêng cho phiên bản mới.
+  ngoài ORC-06/ORC-07 v1. [QA-01 — Daily E2E](../task/tasks/QA-01.md) đã bổ sung
+  [thiết kế ngày 22/10](./CURRENT_MONTH_AS_OF_CUTOFF.md). Source/Silver component
+  và [Gold/publication operational component](../runbooks/CURRENT_MONTH_GOLD_PUBLICATION.md)
+  riêng đã có; Gold mới kiểm Iceberg local/SQL fixtures, chưa MinIO/Trino live
+  acceptance hoặc daily wiring v2, chưa có task ID/effort riêng cho phần còn lại. Không wire
+  policy mới vào v1 hoặc coi operational Published là research/ML-eligible.
 - ORC-07 QA dùng public full-month 09/2023, actual MinIO/Iceberg/Trino và
   production daily/manual DAGs qua `DAG.test`. Đây không phải scheduled cron
   acceptance hoặc research-period coverage; không clear existing logical dates.

@@ -96,9 +96,12 @@ Colab hoặc chờ experiment. Static report là Core, Power BI refresh là Stre
 ## 7. Giới hạn và recovery
 
 ORC-06/07 v1 chỉ hỗ trợ closed months đủ proof/halo, JMA inventory đến 2023.
-Current-month/as-of-cutoff/JMA sau 2023 **chưa có task riêng**; không bật real
-daily 2026 bằng historical request để bypass coverage.
-QA-01 còn scheduled acceptance; QA-02/03/04 còn matrices rerun/history/recovery
-live. [Known issues](../KNOWN_ISSUES.md) dẫn đúng task.
+QA-01 bổ sung [thiết kế current-month/as-of-cutoff](../specs/CURRENT_MONTH_AS_OF_CUTOFF.md)
+ngày 22/10, planner giữ DESIGN_ONLY; [Source/Silver component standalone](../runbooks/CURRENT_MONTH_SOURCE_SILVER.md)
+đã có nhưng chưa nối cron/Gold. Work packages còn lại/JMA sau baseline chưa có
+task ID/effort riêng. Không bật real daily 2026 bằng historical request để bypass
+coverage. QA-01 còn scheduled acceptance; QA-02/03/04 đã Done theo bounded
+runtime evidence v1, không chứng nhận policy current-month v2.
+[Known issues](../KNOWN_ISSUES.md) dẫn đúng task.
 Fail/timeout giữ evidence/lease; không clear/mark-success/retry write mù.
 Xem [backfill/recovery](./BACKFILL_AND_RECOVERY.md).
