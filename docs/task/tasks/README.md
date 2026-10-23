@@ -43,11 +43,11 @@ scheduled/first/rerun/contention, 7 tasks mỗi daily run và pause/lease readba
 xem [evidence](../../evidence/ORC-02_LIVE_ACCEPTANCE.md).
 FND-01 đã Done: cold/warm startup, hai foundation smoke và hai USGS live smoke
 đạt; [evidence](../../evidence/FND-01_LIVE_ACCEPTANCE.md).
-SEC-01 hiện In Progress, owner HoaiTam: audit 22/10 đọc đủ retained logs và 5
-local handoff artifacts, không finding chưa triage. Spark master/worker đang dừng,
-fresh permission probes và Colab boundary acceptance chưa đủ; owner chọn chờ
-QA-01 scheduled 23/10 07:15 rồi mới nghiệm thu. Xem
-[evidence SEC-01](../../evidence/SEC-01_20261022.md), không coi merge PR cũ là Done.
+SEC-01 **Done trong phạm vi Docker/Jupyter local** owner duyệt ngày 23/10:
+audit source/history/logs/config/runtime và 5 handoff artifacts đạt, fresh 15
+permission checks đạt, findings=0/pending=0. Colab/Drive chưa triển khai, chưa
+chứng nhận; phải mở lại SEC-01 trước migration. Xem
+[evidence SEC-01](../../evidence/SEC-01_LOCAL_ACCEPTANCE_20261023.md).
 MLD-02/03 giữ assignee rosy179, reviewer HoaiTam; task mới reviewer unassigned.
 [Kế hoạch tuần 4](../WEEK_4_PARALLEL_PLAN.md) và [nhóm mở đường tuần 4](../WEEK_4_PREP_GROUP.md)
 là mốc lịch sử 89h Core, không cộng lại effort đã làm. BI-02 dời tuần 8.
@@ -202,4 +202,4 @@ fixture/inventory; assignee `HoaiTam`, reviewer `unassigned`. Xem
 | [QA-03](./QA-03.md) - Kiểm thử JMA historical backfill | 5 | Historical backfill | Core | P0 | 5h | Done |
 | [QA-04](./QA-04.md) - Test failure và recovery theo tầng | 5 | Failure recovery | Core | P0 | 4h | Done |
 | [QA-05](./QA-05.md) - Profile dữ liệu lịch sử và tài nguyên local | 8 | Performance | Stretch | P2 | 4h | Backlog |
-| [SEC-01](./SEC-01.md) - Review secret và bề mặt truy cập | 4 | Security | Core | P1 | 4h | In Progress |
+| [SEC-01](./SEC-01.md) - Review secret và bề mặt truy cập | 4 | Security | Core | P1 | 4h | Done |

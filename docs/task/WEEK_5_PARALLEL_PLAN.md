@@ -66,8 +66,10 @@ Giữ buffer cũ theo người cho ra 39/28/43h. Không tự tăng effort hoặc
   official EXPORTED dataset run. Không nâng DAT-02 PARTIAL thành research-ready.
 - **EXP-03 — Adaptive/multi-sequence:** còn reproduction run/fresh-kernel
   evidence và dependency EXP-02; isolated_exec/fallback không mở Colab gate.
-- **SEC-01 — Review bảo mật:** vẫn Review, owner HoaiTam; không thuộc 15 task
-  Core tuần 5 và không được nhận Done từ bản docs sync này.
+- **SEC-01 — Review bảo mật:** Done cho Docker/Jupyter local owner duyệt ngày
+  23/10, có [runtime/15 permission checks/handoff evidence riêng](../evidence/SEC-01_LOCAL_ACCEPTANCE_20261023.md),
+  không nhận Done từ docs sync hoặc QA-01. Colab/Drive chưa triển khai, mở lại
+  SEC-01 trước migration; không thuộc 15 task Core tuần 5.
 - Các task đã Done dùng [task index](./tasks/README.md) và evidence riêng để
   đọc phạm vi. QA-02/03/04 là runtime acceptance có giới hạn; MLD-05 là synthetic
   component QA + credential-free loader, không thay official ML whole-flow.
@@ -202,9 +204,11 @@ Tháng đang mở không được ORC-06 v1 chứng nhận COMPLETE_MONTHS.
    đạt và pause/lease được xác nhận lại. Không cần clear run lỗi vì current
    interval chưa có failed run trước test. [Evidence](../evidence/ORC-02_LIVE_ACCEPTANCE.md).
 3. [SEC-01 — Review secret và bề mặt truy cập](./tasks/SEC-01.md):
-   HoaiTam đã bổ sung audit live/prefix permission evidence, docs **Review**:
-   còn retained-log re-audit sau logging deploy và actual notebook/export/import
-   gate. Xem [evidence](../evidence/SEC-01_RUNTIME.md); merge #67 không chứng minh Done.
+   **Done — local** sau audit 23/10: source/history/retained logs/runtime và
+   actual pinned notebook/export/result đạt, fresh 15 permission checks đạt.
+   Xem [evidence](../evidence/SEC-01_LOCAL_ACCEPTANCE_20261023.md); không chứng nhận
+   Colab/Drive chưa triển khai, phải mở lại SEC-01 trước migration. QA-01 failed
+   và source lease được giữ nguyên, không lấy SEC-01 thay E2E acceptance.
 4. Chốt exact source manifests/SHA, baseline Gold snapshots, namespace QA,
    fixture feature/result và resource slots trong biên bản handoff.
 5. DAT-02 chọn fixed mainshock IDs/input pins/coverage, khóa pilot manifest/layout

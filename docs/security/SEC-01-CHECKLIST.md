@@ -1,8 +1,15 @@
 # SEC-01 — Review secret và bề mặt truy cập
 
-Owner hiện tại: **HoaiTam**. Status: **In Progress**. Reviewer: **unassigned**.
+Owner hiện tại: **HoaiTam**. Status: **Done — local**. Reviewer: **unassigned**.
 Trang/Windows và [report static cũ](../evidence/SEC-01-static.json) là mốc lịch
 sử, không chứng nhận runtime máy hiện tại. ORC-05 đã Done.
+
+**Scope owner duyệt 23/10/2026:** nghiệm thu Docker/Jupyter local và explicit
+pinned handoff hiện có. Colab/Drive chưa triển khai, không áp dụng ở mốc local,
+không ghi remote PASS. Trước migration phải mở lại **SEC-01 — Review secret và
+bề mặt truy cập** ở `Needs Update` để audit đúng session/env, exported bytes và
+Drive sharing permissions; chưa có task cloud-security riêng. Scope này không
+thay hoặc bỏ source/history/log/runtime/permission gates.
 
 ## 1. Làm gì và dùng để làm gì
 
@@ -113,20 +120,23 @@ smokes hiện có vẫn giữ docker-runtime preflight/freshness, không đượ
 | Current source + reachable Git history | Không còn finding chưa triage trong phạm vi scanner |
 | .env ignore/sample/default/strength/roles | CFG local PASS; không lưu values |
 | Deployed env/role/ports | 11 services, 4 loopback bindings; root không ở consumer |
-| Retained Docker logs | 22/10 đọc đủ 11 containers, không finding hiện tại; finding/log scope lịch sử giữ riêng |
-| MinIO expected allow/deny + cleanup | 15 checks lịch sử đạt; fresh probes chờ sau QA-01 23/10, không reuse làm current PASS |
+| Retained Docker logs | 23/10 đọc đủ 11 containers, 108.706.568 bytes, không finding chưa triage; lịch sử giữ riêng |
+| MinIO expected allow/deny + cleanup | Fresh 15 checks ngày 23/10 đạt; đúng hai probe Silver/warehouse cleanup, Bronze QA giữ lại theo policy |
 | MinIO stdin changes | Offline regression PASS, đối chiếu pinned upstream; chưa bootstrap mới trên IAM thật |
 | Trino logging fix | Đã mount đúng source/read-only, không cần restart trong audit này |
 | Actual notebook/export/import local | PASS: 5 artifacts/23 files của DAT-02/EXP-01/MLD-05/MLI-03; không chứng nhận remote Google account hoặc scientific approval |
-| Current full runtime | Spark master/worker đang dừng; owner yêu cầu chờ QA-01 ngày mai, không đổi health gate |
+| Current full runtime | 23/10 start đúng hai Spark containers cũ theo owner; 9 runtime services healthy và 2 init exited/0; không build/pull/init |
+| Phạm vi cloud | Không áp dụng tại mốc local được owner duyệt; chưa triển khai/chưa chứng nhận Colab/Drive, phải mở lại SEC-01 trước migration |
 
-[evidence 22/10](../evidence/SEC-01_20261022.md),
-[report redacted mới](../evidence/SEC-01-20261022.json).
+[Nghiệm thu local 23/10](../evidence/SEC-01_LOCAL_ACCEPTANCE_20261023.md),
+[report redacted hiện tại](../evidence/SEC-01-20261023.json).
+[Evidence 22/10](../evidence/SEC-01_20261022.md) và report tương ứng giữ làm lịch sử.
 [Evidence cũ](../evidence/SEC-01_RUNTIME.md) giữ làm mốc lịch sử, không ghi đè.
 
-**SEC-01 — Review secret và bề mặt truy cập:** sau QA-01 scheduled 23/10/2026
-07:15 kết thúc, xác nhận không active run/foreign lease rồi mới nghiệm thu
-runtime/permissions; lần hiện tại không start Spark. Không truncate/delete log,
+**SEC-01 — Review secret và bề mặt truy cập:** QA-01 scheduled 23/10 đã failed,
+không còn active run; daily đã pause trước audit. Lease QA-01 giữ nguyên, probe
+keys độc lập không acquire/takeover/release source lease. SEC-01 không đòi QA-01
+PASS; hard dependency ORC-05 đã Done. Không truncate/delete log,
 dùng tail/since che finding hoặc exempt
 credential. Access-key identifier không phải secret key nhưng vẫn sensitive theo
 contract. Nếu logs từng chia sẻ ra ngoài, đánh giá rotate có phối hợp; không
@@ -137,8 +147,9 @@ khóa môi trường thí nghiệm**, **MLD-05 — Validate feature snapshot và
 Parquet bundle**, **MLI-03 — Validate/import kết quả và commit bảng ML Iceberg**:
 kiểm tra actual notebook/pilot/export/result bundle, account-path và quyền/credential
 handoff khi artifacts đổi. Owner xác nhận 22/10 chưa dùng Colab/Drive, chỉ
-Jupyter local. Bytes local đã scan không chứng minh remote Colab env/Drive
-sharing permissions; không tick acceptance cloud trước triển khai. Khi chuyển lên cloud, chỉ audit đúng project/
+Jupyter local. Owner duyệt scope local ngày 23/10. Bytes local đã scan không
+chứng minh remote Colab env/Drive sharing permissions; không tick remote PASS.
+Khi chuyển lên cloud, mở lại SEC-01 `Needs Update`, chỉ audit đúng project/
 session được cho phép; không tự truy cập account khác hoặc coi thiếu file là PASS.
 
 ## 6. Hardening và nguồn
@@ -201,6 +212,7 @@ make audit-security-runtime-readonly \
 ```
 
 Manifest staging không có trên máy mới: phải chọn actual artifacts và tạo pin
-mới, không copy một report PASSED thay cho file thật. Sau owner cho nghiệm thu,
-stack healthy và QA-01 không còn active, target `audit-security-runtime` thêm
-exact-key permission probes; không chạy nó trong thời gian chờ đã được yêu cầu.
+mới, không copy một report PASSED thay cho file thật. Nghiệm thu local 23/10 dùng
+cùng pins và target `audit-security-runtime` theo evidence mới; không lặp QA writes
+theo lịch. Trước mỗi lần chạy lại cần xác nhận scope/services và sự cho phép
+probe writes; target không tự start services hoặc sửa source lease.

@@ -209,6 +209,13 @@ chỉ chứng nhận bytes local đã scan, không quyền tài khoản Google D
 Chi tiết thao tác và finding hiện tại:
 [SEC-01 checklist](../security/SEC-01-CHECKLIST.md).
 
+Mốc [SEC-01 local 23/10/2026](../evidence/SEC-01_LOCAL_ACCEPTANCE_20261023.md)
+đã được owner duyệt phạm vi Docker/Jupyter local: đầy đủ runtime, retained logs,
+fresh permission probes và explicit handoff bytes. Colab/Drive chưa triển khai,
+không áp dụng ở mốc này và không được chứng nhận remote PASS. Trước migration
+phải mở lại SEC-01 `Needs Update` để kiểm session/env, bundle và quyền sharing
+thật; không suy local Done thành quyền đưa credential lên notebook/cloud.
+
 MinIO bootstrap/smoke dùng JSON stdin cho alias và stdin cho user password,
 config tmpfs private; `--user` policy selector vẫn chứa access-key identifier.
 Trino bind `trino/log.properties` read-only, chặn catalog bootstrap INFO vốn in
