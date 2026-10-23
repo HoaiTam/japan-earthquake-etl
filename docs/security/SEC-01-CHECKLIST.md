@@ -1,8 +1,15 @@
 # SEC-01 — Review secret và bề mặt truy cập
 
-Owner hiện tại: **HoaiTam**. Status: **Review**. Reviewer: **unassigned**.
+Owner hiện tại: **HoaiTam**. Status: **Done — local**. Reviewer: **unassigned**.
 Trang/Windows và [report static cũ](../evidence/SEC-01-static.json) là mốc lịch
 sử, không chứng nhận runtime máy hiện tại. ORC-05 đã Done.
+
+**Scope owner duyệt 23/10/2026:** nghiệm thu Docker/Jupyter local và explicit
+pinned handoff hiện có. Colab/Drive chưa triển khai, không áp dụng ở mốc local,
+không ghi remote PASS. Trước migration phải mở lại **SEC-01 — Review secret và
+bề mặt truy cập** ở `Needs Update` để audit đúng session/env, exported bytes và
+Drive sharing permissions; chưa có task cloud-security riêng. Scope này không
+thay hoặc bỏ source/history/log/runtime/permission gates.
 
 ## 1. Làm gì và dùng để làm gì
 
@@ -33,13 +40,14 @@ review, checksum SHA-256 normalized CRLF/LF chính xác; token/key/exact credent
 không exempt. Fixture thay đổi phải review lại. .metals/ là cache IDE bị Git
 ignore, không bị xóa; không tuyên bố cả ổ đĩa local đã được audit.
 
-Guard file/blob/local log: 2 MiB; container logs: 64 MiB mỗi container, timeout
-30s. Vượt guard/timeout là coverage pending, không skip để Done. Reflogs,
+Guard file/blob/local log: 2 MiB. Container logs streaming toàn retained
+stdout/stderr: 512 MiB/container, line 2 MiB, timeout 120s; không giữ raw log
+trong report/disk. Vượt guard/timeout là coverage pending, không skip để Done. Reflogs,
 unreachable objects, external Drive/accounts, named-volume files không phát ra
 Docker logs, máy khác và arbitrary local files nằm ngoài phạm vi.
 .ipynb, notebook/experiment/export/pilot/result paths hiện có trong phạm vi
 worktree/log được thêm account-path/token-query patterns; ignored bundle không
-tự được chứng nhận.
+tự được chứng nhận. Handoff chỉ scan explicit pinned artifacts theo mục 7.
 
 Compose khai báo dùng .env.example resolve placeholders để kiểm tra kiểu port;
 runtime dùng .env thật, giữ resolved config trong memory. Không in resolved
@@ -80,10 +88,15 @@ Từ repository root:
 
     make test-security-audit
     make audit-security SECURITY_REPORT=staging/sec-01-static-current.json
+    make audit-security-runtime-readonly SECURITY_REPORT=staging/sec-01-readonly.json
     make audit-security-runtime SECURITY_REPORT=staging/sec-01-runtime-current.json
 
 Unit tests không Docker/network. Static cần Compose CLI; runtime cần .env local
-hợp lệ và stack đã start, chỉ hỗ trợ .env/compose.yaml mặc định. Không target
+hợp lệ và stack đã start, chỉ hỗ trợ .env/compose.yaml mặc định. Readonly target
+không chạy S3 permission probes. `SECURITY_HANDOFF_MANIFEST` trỏ tới input ở mục
+7; thiếu nó vẫn pending. `SECURITY_DEPLOYMENT_ROOT` chỉ nhận explicit linked
+checkout cùng Git common dir, không repo khác; credential/config và Docker
+working-dir labels vẫn đối chiếu checkout đang deployed. Không target
 nào tự build/pull/start/init. Đọc findings, pending, coverage.runtime.permissions,
 coverage.current_baseline_passed, can_mark_done trong report.
 
@@ -94,9 +107,11 @@ smokes hiện có vẫn giữ docker-runtime preflight/freshness, không đượ
 
 - Exit **1**: findings/error; Make báo lỗi. Đọc category/service, không in raw logs.
 - Exit **2**: coverage/acceptance chưa đủ; Make báo lỗi. Static sạch không là Done.
-- Exit **0** dành cho đầy đủ gate, không findings/pending. Actual ML handoff gate
-  hiện luôn pending, chưa có triển khai/nghiệm thu; không hứa code hiện tại sẽ
-  tự chuyển Done khi một file notebook mới xuất hiện.
+- Exit **0** dành cho đầy đủ gate, không findings/pending. Handoff gate local đã
+  triển khai, chỉ đạt khi đủ roles/files/checksum và scan bytes thật. File
+  notebook mới tự xuất hiện hoặc task downstream Done không là authorization.
+  `can_mark_done` của scanner vẫn phải đối chiếu acceptance remote Colab/Drive
+  nếu đã dùng, không lấy local scope làm chứng nhận account/session khác.
 
 ## 5. Checklist hiện tại / còn lại
 
@@ -105,18 +120,24 @@ smokes hiện có vẫn giữ docker-runtime preflight/freshness, không đượ
 | Current source + reachable Git history | Không còn finding chưa triage trong phạm vi scanner |
 | .env ignore/sample/default/strength/roles | CFG local PASS; không lưu values |
 | Deployed env/role/ports | 11 services, 4 loopback bindings; root không ở consumer |
-| Retained Docker logs | FAIL: Trino catalog bootstrap in access-key identifier; không thấy secret key/password trong các dòng khớp |
-| MinIO expected allow/deny + cleanup | PASS: 15 checks thật, giữ Bronze QA; hai mutable QA keys đã xóa |
+| Retained Docker logs | 23/10 đọc đủ 11 containers, 108.706.568 bytes, không finding chưa triage; lịch sử giữ riêng |
+| MinIO expected allow/deny + cleanup | Fresh 15 checks ngày 23/10 đạt; đúng hai probe Silver/warehouse cleanup, Bronze QA giữ lại theo policy |
 | MinIO stdin changes | Offline regression PASS, đối chiếu pinned upstream; chưa bootstrap mới trên IAM thật |
-| Trino logging fix | Code/static tests có; container hiện tại chưa deploy |
-| Actual notebook/export/import | Pending DAT-02/EXP-01/MLD-05/MLI-03; không chứng nhận artifacts tương lai |
+| Trino logging fix | Đã mount đúng source/read-only, không cần restart trong audit này |
+| Actual notebook/export/import local | PASS: 5 artifacts/23 files của DAT-02/EXP-01/MLD-05/MLI-03; không chứng nhận remote Google account hoặc scientific approval |
+| Current full runtime | 23/10 start đúng hai Spark containers cũ theo owner; 9 runtime services healthy và 2 init exited/0; không build/pull/init |
+| Phạm vi cloud | Không áp dụng tại mốc local được owner duyệt; chưa triển khai/chưa chứng nhận Colab/Drive, phải mở lại SEC-01 trước migration |
 
-[evidence runtime](../evidence/SEC-01_RUNTIME.md),
-[report redacted](../evidence/SEC-01-runtime.json).
+[Nghiệm thu local 23/10](../evidence/SEC-01_LOCAL_ACCEPTANCE_20261023.md),
+[report redacted hiện tại](../evidence/SEC-01-20261023.json).
+[Evidence 22/10](../evidence/SEC-01_20261022.md) và report tương ứng giữ làm lịch sử.
+[Evidence cũ](../evidence/SEC-01_RUNTIME.md) giữ làm mốc lịch sử, không ghi đè.
 
-**SEC-01 — Review secret và bề mặt truy cập:** cần maintenance window deploy
-logging fix, kiểm tra startup/query/logs mới; operator quyết định xử lý retained
-log finding. Không truncate/delete log, dùng tail/since che finding hoặc exempt
+**SEC-01 — Review secret và bề mặt truy cập:** QA-01 scheduled 23/10 đã failed,
+không còn active run; daily đã pause trước audit. Lease QA-01 giữ nguyên, probe
+keys độc lập không acquire/takeover/release source lease. SEC-01 không đòi QA-01
+PASS; hard dependency ORC-05 đã Done. Không truncate/delete log,
+dùng tail/since che finding hoặc exempt
 credential. Access-key identifier không phải secret key nhưng vẫn sensitive theo
 contract. Nếu logs từng chia sẻ ra ngoài, đánh giá rotate có phối hợp; không
 đổi .env/IAM một consumer riêng lẻ để làm xanh audit.
@@ -125,8 +146,11 @@ contract. Nếu logs từng chia sẻ ra ngoài, đánh giá rotate có phối h
 khóa môi trường thí nghiệm**, **MLD-05 — Validate feature snapshot và export
 Parquet bundle**, **MLI-03 — Validate/import kết quả và commit bảng ML Iceberg**:
 kiểm tra actual notebook/pilot/export/result bundle, account-path và quyền/credential
-handoff khi artifacts tồn tại. SEC-01 giữ acceptance này chưa đạt; fixture/không
-có file không chứng minh không leak.
+handoff khi artifacts đổi. Owner xác nhận 22/10 chưa dùng Colab/Drive, chỉ
+Jupyter local. Owner duyệt scope local ngày 23/10. Bytes local đã scan không
+chứng minh remote Colab env/Drive sharing permissions; không tick remote PASS.
+Khi chuyển lên cloud, mở lại SEC-01 `Needs Update`, chỉ audit đúng project/
+session được cho phép; không tự truy cập account khác hoặc coi thiếu file là PASS.
 
 ## 6. Hardening và nguồn
 
@@ -143,3 +167,52 @@ Chỉ io.trino.bootstrap.catalog=WARN, không tắt warning/error hay query/runt
 loggers; không bảo đảm future query/exception không leak. Full CVE/SBOM/supply-chain
 certification của MinIO/Go/Alpine/Trino không nằm trong review này; production
 assessment chưa có task riêng.
+
+## 7. Pinned ML handoff protocol
+
+`scripts/security_handoff.py` không thực thi notebook, pickle/model artifacts,
+ETL hoặc cloud API. Input JSON (duplicate keys bị từ chối) có đúng hai keys:
+`version="sec-01-handoff-v1"`, `artifacts` (5–32 items). Mỗi item có đúng
+`task_id`, `kind`, `path`, `sha256`; path relative trong deployment checkout,
+không traversal/symlink. Phải đủ năm role pairs:
+
+| task_id | kind | Kiểm tra layout |
+|---|---|---|
+| DAT-02 | pilot_zip | DEVELOPMENT_PILOT/research false, coverage/mainshocks/features và exact checksum file |
+| EXP-01 | notebook | `.ipynb` nbformat 4, cells không rỗng; scan source/output/metadata |
+| EXP-01 | result_bundle | Pilot hoặc official completion marker, required artifacts và exact checksums |
+| MLD-05 | dataset_bundle | EXPORTED manifest, export-checksums, features và enclosing checksums |
+| MLI-03 | result_bundle | Official `_SUCCESS.json` COMPLETED, không nhận pilot marker, exact required artifacts/checksums |
+
+ZIP/notebook pin SHA-256 bytes. Directory pin SHA-256 của canonical JSON
+filename→file SHA, sorted keys, separators `(',', ':')` UTF-8; helper
+`security_handoff.files_for(path,kind)` trả files/pin mà không ghi dữ liệu.
+Không nhận success=true do caller tự điền. Marker/manifest được hash trong pin;
+optional `checksums.sha256` của result phải khớp inner marker checksum map.
+
+Guard: 256 files/directories, 32 MiB/file, tổng decoded/file bytes 128 MiB,
+Parquet ≤100.000 rows và 256 columns; row-group declared uncompressed size được
+kiểm trước decode. ZIP không extract: chặn duplicate names, traversal, symlinks,
+encrypted entries và budget. JSON/string/Parquet values/footer được scan sau
+decode (không chỉ grep compressed bytes). Thiếu PyArrow hoặc không đọc được file
+thì pending; không tự cài thư viện. Dùng môi trường lock của EXP-01/DOC-01.
+
+Report chỉ có artifact index, category và hashes/counts; tên file được hash
+trong proof để không echo filename chứa credential. Audit trên local snapshot
+trong trusted operator boundary, không là cam kết chống arbitrary hostile local
+filesystem race hoặc chứng nhận toàn bộ ổ đĩa/cloud.
+
+Phiên 22/10 ở worktree riêng dùng manifest ignored có sẵn:
+
+```bash
+make audit-security-runtime-readonly \
+  SECURITY_DEPLOYMENT_ROOT=../japan-earthquake-etl \
+  SECURITY_HANDOFF_MANIFEST=staging/sec01-handoff-20261022.json \
+  SECURITY_REPORT=staging/sec01-full-readonly-20261022.json
+```
+
+Manifest staging không có trên máy mới: phải chọn actual artifacts và tạo pin
+mới, không copy một report PASSED thay cho file thật. Nghiệm thu local 23/10 dùng
+cùng pins và target `audit-security-runtime` theo evidence mới; không lặp QA writes
+theo lịch. Trước mỗi lần chạy lại cần xác nhận scope/services và sự cho phép
+probe writes; target không tự start services hoặc sửa source lease.

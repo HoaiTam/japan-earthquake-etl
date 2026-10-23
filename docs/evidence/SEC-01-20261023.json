@@ -1,0 +1,304 @@
+{
+  "task_id": "SEC-01",
+  "status": "Done",
+  "acceptance_scope": "owner_approved_local_Docker_Jupyter_only_2026_10_23",
+  "cloud": {
+    "deployed": false,
+    "certified": false,
+    "reopen_task_before_migration": "SEC-01"
+  },
+  "schema_version": "1.1",
+  "started_at_utc": "2026-10-23T07:38:02.475963+00:00",
+  "coverage": {
+    "deployment_git_head": "b93456e1bf3f77e1852bb91b38b806f7c042123e",
+    "worktree_files": 744,
+    "reachable_git_blobs": 2243,
+    "git_head": "3d2250db4dabe5642832113a33d2b6a900e737a7",
+    "local_log_files": 19,
+    "declared_ports": [
+      {
+        "service": "airflow-api-server",
+        "target": 8080,
+        "host_ip": "127.0.0.1"
+      },
+      {
+        "service": "minio",
+        "target": 9001,
+        "host_ip": "127.0.0.1"
+      },
+      {
+        "service": "spark-master",
+        "target": 8080,
+        "host_ip": "127.0.0.1"
+      },
+      {
+        "service": "trino",
+        "target": 8080,
+        "host_ip": "127.0.0.1"
+      }
+    ],
+    "local_config_strength_and_roles": true,
+    "runtime": {
+      "services": [
+        "airflow-api-server",
+        "airflow-dag-processor",
+        "airflow-init",
+        "airflow-postgres",
+        "airflow-scheduler",
+        "iceberg-rest",
+        "minio",
+        "minio-init",
+        "spark-master",
+        "spark-worker",
+        "trino"
+      ],
+      "deployed_ports": [
+        {
+          "service": "airflow-api-server",
+          "target": 8080,
+          "host_ip": "127.0.0.1",
+          "published": "8080"
+        },
+        {
+          "service": "minio",
+          "target": 9001,
+          "host_ip": "127.0.0.1",
+          "published": "9001"
+        },
+        {
+          "service": "spark-master",
+          "target": 8080,
+          "host_ip": "127.0.0.1",
+          "published": "8082"
+        },
+        {
+          "service": "trino",
+          "target": 8080,
+          "host_ip": "127.0.0.1",
+          "published": "8081"
+        }
+      ],
+      "container_logs": [
+        {
+          "service": "airflow-api-server",
+          "bytes": 35796,
+          "sha256": "13be2b40d558061abb43bfe4d242cb503374fe20794cb9e9928de52ef63eb82a",
+          "complete": true
+        },
+        {
+          "service": "airflow-dag-processor",
+          "bytes": 7183003,
+          "sha256": "80b2f0794c4fdc1bbecba3b9afbf5278b8461703935461b1587b41cee0f7f6a8",
+          "complete": true
+        },
+        {
+          "service": "airflow-init",
+          "bytes": 2981,
+          "sha256": "39c5004a7b16b83ffe2c38fd420a802a8fd7937598f8b323cf4bc0a7204e67d1",
+          "complete": true
+        },
+        {
+          "service": "airflow-postgres",
+          "bytes": 227373,
+          "sha256": "05f572dc9591d3b8cfa5071e6042d8aca1df31682a2808d4c230f9c9d9c77abb",
+          "complete": true
+        },
+        {
+          "service": "airflow-scheduler",
+          "bytes": 120443,
+          "sha256": "a4cef49db60b8206b021bfc8b1e4ed2c47ef17c05e5f97263365c12fee598849",
+          "complete": true
+        },
+        {
+          "service": "iceberg-rest",
+          "bytes": 86662612,
+          "sha256": "dcb5e5e85359adb573b4044fa80b0b4510d3a316da5c9a5a0f84496cd1316005",
+          "complete": true
+        },
+        {
+          "service": "minio",
+          "bytes": 321,
+          "sha256": "dda168173bc943bb9ce553879db9d5086514f4acc36b5c8010173fa181bfea31",
+          "complete": true
+        },
+        {
+          "service": "minio-init",
+          "bytes": 83,
+          "sha256": "667ea2a12139b32a5dae56b1b3a3d4f68ce5b84c67299f8f039a446a0484ac15",
+          "complete": true
+        },
+        {
+          "service": "spark-master",
+          "bytes": 35075,
+          "sha256": "d7047219df493986d57e6084167a521d8617c4fa6f5886603995688f6cfe4479",
+          "complete": true
+        },
+        {
+          "service": "spark-worker",
+          "bytes": 44778,
+          "sha256": "1cf5beef89b37c4ea4d652f03376b6a8f4236bf0a6dc56ac71849622067cd5a4",
+          "complete": true
+        },
+        {
+          "service": "trino",
+          "bytes": 14394103,
+          "sha256": "5d6cdfd639d40fd3994c339a19951e67919e287234412f75c86cb0d84f2af9c5",
+          "complete": true
+        }
+      ],
+      "log_scope": "all_retained_streamed_512MiB_per_container_2MiB_line_120s_guard",
+      "permissions": {
+        "checks": [
+          {
+            "check": "pipeline_read_bronze",
+            "passed": true
+          },
+          {
+            "check": "pipeline_list_bronze",
+            "passed": true
+          },
+          {
+            "check": "pipeline_read_silver",
+            "passed": true
+          },
+          {
+            "check": "pipeline_list_silver",
+            "passed": true
+          },
+          {
+            "check": "pipeline_read_warehouse",
+            "passed": true
+          },
+          {
+            "check": "pipeline_list_warehouse",
+            "passed": true
+          },
+          {
+            "check": "bronze_delete_denied",
+            "passed": true
+          },
+          {
+            "check": "bronze_still_readable",
+            "passed": true
+          },
+          {
+            "check": "anonymous_read_denied",
+            "passed": true
+          },
+          {
+            "check": "anonymous_list_denied",
+            "passed": true
+          },
+          {
+            "check": "outside_prefix_read_denied",
+            "passed": true
+          },
+          {
+            "check": "outside_prefix_list_denied",
+            "passed": true
+          },
+          {
+            "check": "outside_prefix_write_denied",
+            "passed": true
+          },
+          {
+            "check": "mutable_probe_cleanup",
+            "passed": true
+          },
+          {
+            "check": "mutable_probe_cleanup",
+            "passed": true
+          }
+        ],
+        "created_keys": [
+          "bronze/_security/sec-01-133fde88e0684edfb55fa43fd0699d12/probe.txt",
+          "silver/_security/sec-01-133fde88e0684edfb55fa43fd0699d12/probe.txt",
+          "warehouse/_security/sec-01-133fde88e0684edfb55fa43fd0699d12/probe.txt"
+        ],
+        "passed": true,
+        "payload_sha256": "9b7d28093029a73cb6c21fcadd84a9df3b9ca30e3ab77c23823a07c4ce6100ca",
+        "retained_keys": [
+          "bronze/_security/sec-01-133fde88e0684edfb55fa43fd0699d12/probe.txt"
+        ]
+      }
+    },
+    "current_baseline_passed": true,
+    "ml_handoff": {
+      "version": "sec-01-handoff-v1",
+      "passed": true,
+      "findings": [],
+      "pending": [],
+      "artifacts": [
+        {
+          "task_id": "DAT-02",
+          "kind": "pilot_zip",
+          "sha256": "b53cd7bfdc3768c3fd0ee0bcc5e037ef1c9c9b007d0df900ec223c8dc139bc3e",
+          "file_count": 5
+        },
+        {
+          "task_id": "EXP-01",
+          "kind": "notebook",
+          "sha256": "a73f1f5f8c7f319f642ba7f46a516c88837913662989cc61db7babf9fdb0c311",
+          "file_count": 1
+        },
+        {
+          "task_id": "EXP-01",
+          "kind": "result_bundle",
+          "sha256": "7accbb86c5e72126713833cfa3dc76c64af2f8bb366b3d91cf5924dd2e47ebd9",
+          "file_count": 7
+        },
+        {
+          "task_id": "MLD-05",
+          "kind": "dataset_bundle",
+          "sha256": "c8f358d538389bebc7065072dcae6dda2a8a9d36feb8e43be7cc95128e0afcd4",
+          "file_count": 4
+        },
+        {
+          "task_id": "MLI-03",
+          "kind": "result_bundle",
+          "sha256": "4f986d1933784381916502720e2119c32a69043588823ac5556d64ae3fb4e7d6",
+          "file_count": 6
+        }
+      ],
+      "manifest_sha256": "1f982a76a180ae28a3027fa61085d5e8a60db32c5eac5b2ed59209e935b48e1f",
+      "scope": "explicit_local_handoff_bytes_not_remote_account_or_scientific_approval"
+    },
+    "pattern_policy": "high_confidence_tokens_keys_and_credential_URIs_not_complete_secret_detection"
+  },
+  "findings": [],
+  "pending": [],
+  "deferred": [
+    {
+      "task_id": "DAT-02",
+      "reason": "re_audit_when_handoff_bytes_or_remote_permissions_change"
+    },
+    {
+      "task_id": "EXP-01",
+      "reason": "re_audit_when_handoff_bytes_or_remote_permissions_change"
+    },
+    {
+      "task_id": "MLD-05",
+      "reason": "re_audit_when_handoff_bytes_or_remote_permissions_change"
+    },
+    {
+      "task_id": "MLI-03",
+      "reason": "re_audit_when_handoff_bytes_or_remote_permissions_change"
+    }
+  ],
+  "can_mark_done": true,
+  "completed_at_utc": "2026-10-23T07:38:33.864249+00:00",
+  "runtime_safety": {
+    "daily_paused": true,
+    "active_runs_before_and_after": 0,
+    "qa01_run_id": "scheduled__2026-10-23T00:15:00+00:00",
+    "qa01_state": "failed",
+    "source_lease_retained": true,
+    "source_lease_sha256": "a0416eda1133685335f12d980cdf0ec1f6f05b5e4d514eb9662911b0baff41e7",
+    "started_existing_services": [
+      "spark-master",
+      "spark-worker"
+    ],
+    "build_pull_init": false,
+    "credentials_or_IAM_changed": false
+  }
+}

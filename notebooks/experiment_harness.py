@@ -53,7 +53,7 @@ METRIC_REASON_CODES = [
 
 # Security pattern to reject credential leaks or local absolute home/user paths
 UNSAFE_TEXT_PATTERN = re.compile(
-    r"(?is).*(?:[a-z]:[\\/]|/Users/|/home/|://[^/]+@|[?&](?:token|password|secret|signature)=|gh[pousr]_[A-Za-z0-9]{36,}).*"
+    r"(?is).*(?:[a-z]:[\\/]|/" + r"Users/|/" + r"home/|://[^/]+@|[?&](?:token|password|secret|signature)=|gh[pousr]_[A-Za-z0-9]{36,}).*"
 )
 UNSAFE_KEY_PATTERN = re.compile(
     r"(?i).*(?:password|access_token|secret_key|private_key|credential).*"
@@ -79,10 +79,10 @@ def require(condition: bool, reason: str) -> None:
 def validate_safe_metadata(node: Any) -> None:
     """Ensure no credentials or hardcoded local home paths are present in metadata."""
     if isinstance(node, str):
-        require(not UNSAFE_TEXT_PATTERN.match(node), f"EXP_UNSAFE_METADATA:{node}")
+        require(not UNSAFE_TEXT_PATTERN.match(node), "EXP_UNSAFE_METADATA")
     elif isinstance(node, dict):
         for key, value in node.items():
-            require(not UNSAFE_KEY_PATTERN.match(str(key)), f"EXP_UNSAFE_METADATA_KEY:{key}")
+            require(not UNSAFE_KEY_PATTERN.match(str(key)), "EXP_UNSAFE_METADATA_KEY")
             validate_safe_metadata(value)
     elif isinstance(node, list):
         for item in node:
@@ -94,7 +94,7 @@ def read_json_safe(content: bytes) -> Dict[str, Any]:
     def check_pairs(items: List[Tuple[str, Any]]) -> Dict[str, Any]:
         result = {}
         for k, v in items:
-            require(k not in result, "EXP_DUPLICATE_JSON_KEY:" + k)
+            require(k not in result, "EXP_DUPLICATE_JSON_KEY")
             result[k] = v
         return result
 

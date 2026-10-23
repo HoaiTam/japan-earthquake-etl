@@ -108,7 +108,7 @@ Thêm acceptance case reject DAT-02 DEVELOPMENT_PILOT/pilot_result_manifest và 
 - Membership/summary/experiment: 2/1/1 rows, exact result snapshots không đổi qua rerun/journal mới và production Python → shell → Java → Trino.
 - `smoke-mli-import-dag`: fresh DagRun `manual__2026-10-19T16:50:52.703206+00:00`, 9/9 tasks success, completion COMPLETE, lease release đúng DagRun owner; không clear/mark-success hoặc giả scheduled run.
 - Sửa smoke dùng đúng preflighted service/JAR; request CLI không làm đổi shared init config hash. Retry vẫn qua Trino exact count/lineage; metadata giữ import operation ID thay vì lấy experiment ID.
-- Audit source/history còn 7 pattern flags ngoài bản vá và 3 coverage items thuộc [SEC-01 — Security review](./SEC-01.md); không coi task này là security approval. Reviewer độc lập vẫn khuyến nghị nhưng không chặn Done theo AGENTS.md.
+- Tại mốc nghiệm thu MLI-03, audit source/history còn 7 pattern flags và 3 coverage items thuộc SEC-01; không coi MLI-03 là security approval. Cập nhật 23/10: [SEC-01 — Security review](./SEC-01.md) đã có [acceptance local riêng](../../evidence/SEC-01_LOCAL_ACCEPTANCE_20261023.md), không chứng nhận Colab/Drive chưa triển khai. Reviewer độc lập vẫn khuyến nghị nhưng không chặn Done theo AGENTS.md.
 
 ## Giới hạn downstream
 

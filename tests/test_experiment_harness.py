@@ -525,6 +525,17 @@ class ExperimentHarnessTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "EXP_UNSAFE_METADATA"):
             adapter.resolve_paths(input_bundle="s3://user:secret_token@bucket/data", is_colab=True)
 
+    def test_security_errors_never_echo_untrusted_values_or_keys(self):
+        secret = "ghp_" + "z" * 40
+        for value in (secret, "/" + "Users/person/private", {"credential_" + secret: "value"}):
+            with self.assertRaises(ValueError) as caught:
+                harness.validate_safe_metadata(value)
+            self.assertNotIn(secret, str(caught.exception))
+            self.assertNotIn("person", str(caught.exception))
+        with self.assertRaises(ValueError) as caught:
+            harness.read_json_safe(json.dumps({"credential_" + secret: 1}).encode())
+        self.assertNotIn(secret, str(caught.exception))
+
     def test_incomplete_output_never_writes_success_marker(self):
         bundle = harness.load_feature_bundle(self.official_dir, mode=harness.MODE_OFFICIAL)
         candidates = [

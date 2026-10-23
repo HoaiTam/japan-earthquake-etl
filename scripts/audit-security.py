@@ -8,6 +8,10 @@ import re
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import security_handoff
 
 PATTERNS = {
     "aws_access_key": re.compile(r"AKIA[0-9A-Z]{16}"),
@@ -103,11 +107,30 @@ def git(root, *args):
     return result.stdout
 
 
-def audit(root, include_history=True, runtime=False, permissions=False):
+def deployment_root(source, deployment):
+    """An explicit sibling worktree is allowed; unrelated projects never are."""
+    if any(p.is_symlink() for p in (deployment,*deployment.parents)):
+        raise RuntimeError("SEC_RUNTIME_UNRELATED_CHECKOUT")
+    source = source.resolve(); deployment = deployment.resolve()
+    a = git(source,"rev-parse","--path-format=absolute","--git-common-dir").decode().strip()
+    b = git(deployment,"rev-parse","--path-format=absolute","--git-common-dir").decode().strip()
+    if not a or a != b or any(p.is_symlink() for p in (deployment,*deployment.parents)):
+        raise RuntimeError("SEC_RUNTIME_UNRELATED_CHECKOUT")
+    return deployment
+
+
+def audit(root, include_history=True, runtime=False, permissions=False, deployed_root=None, handoff=None):
     root = root.resolve()
+    deployed = deployment_root(root,Path(deployed_root)) if deployed_root else root
+    if handoff is not None:
+        candidate = Path(handoff)
+        if (any(p.is_symlink() for p in (candidate,*candidate.parents))
+                or not any(base in candidate.resolve().parents for base in (root,deployed))):
+            raise RuntimeError("SEC_HANDOFF_MANIFEST_OUTSIDE_PROJECT")
     report = {"schema_version": "1.1", "started_at_utc": datetime.now(timezone.utc).isoformat(),
               "coverage": {}, "findings": [], "triaged_synthetic_fixtures": [], "pending": [], "deferred": [], "can_mark_done": False}
-    secrets = configured_secrets(root)
+    report["coverage"]["deployment_git_head"] = git(deployed,"rev-parse","HEAD").decode().strip()
+    secrets = configured_secrets(deployed)
     allow_path = root / "docs/security/SEC-01-synthetic-uris.json"
     allowlist = json.loads(allow_path.read_text(encoding="utf-8")) if allow_path.is_file() else []
     def record(scope, location, categories, data=None):
@@ -136,14 +159,15 @@ def audit(root, include_history=True, runtime=False, permissions=False):
         record("worktree", name, scan_text(data.decode("utf-8", errors="ignore"), ml=is_ml_artifact(name)), data)
         current += 1
     report["coverage"]["worktree_files"] = current
-    env = root / ".env"
-    if git(root, "ls-files", ".env").strip():
-        record("config", ".env", ["tracked_local_env"])
-    ignored = subprocess.run(["git", "-C", str(root), "check-ignore", "-q", ".env"], capture_output=True).returncode == 0
-    if not ignored:
-        record("config", ".env", ["local_env_not_ignored"])
+    env = deployed / ".env"
+    for checkout in {root,deployed}:
+        if git(checkout, "ls-files", ".env").strip():
+            record("config", ".env", ["tracked_local_env"])
+        ignored = subprocess.run(["git", "-C", str(checkout), "check-ignore", "-q", ".env"], capture_output=True).returncode == 0
+        if not ignored:
+            record("config", ".env", ["local_env_not_ignored"])
     if env.exists():
-        if env.is_symlink() or env.resolve().parent != root:
+        if env.is_symlink() or env.resolve().parent != deployed:
             record("config", ".env", ["unsafe_audit_path"])
         elif env.stat().st_size > MAX_BYTES:
             report["pending"].append({"scope": "config", "location": ".env", "reason": "file_size_guard"})
@@ -181,14 +205,14 @@ def audit(root, include_history=True, runtime=False, permissions=False):
     else:
         report["pending"].append({"scope": "history", "reason": "history_not_requested"})
     log_count = 0
-    for directory in (root / "airflow/logs", root / "staging"):
+    for directory in (deployed / "airflow/logs", deployed / "staging"):
         if not directory.exists():
             continue
         for path in directory.rglob("*.log"):
-            if "m2" in path.relative_to(root).parts:
+            if "m2" in path.relative_to(deployed).parts:
                 continue
-            name = path.relative_to(root).as_posix()
-            if path.is_symlink() or root not in path.resolve().parents:
+            name = path.relative_to(deployed).as_posix()
+            if path.is_symlink() or deployed not in path.resolve().parents:
                 record("logs", name, ["unsafe_audit_path"]); continue
             if path.stat().st_size > MAX_BYTES:
                 report["pending"].append({"scope": "logs", "location": name, "reason": "file_size_guard"}); continue
@@ -214,8 +238,8 @@ def audit(root, include_history=True, runtime=False, permissions=False):
     except (OSError, subprocess.TimeoutExpired, ValueError):
         report["pending"].append({"scope": "compose", "reason": "compose_cli_unavailable"})
     if runtime and env.is_file() and not env.is_symlink() and env.stat().st_size <= MAX_BYTES:
-        checked = subprocess.run([str(root / "scripts/check-config.sh"), "--require-local"],
-                                 cwd=root, capture_output=True, timeout=30)
+        checked = subprocess.run([str(deployed / "scripts/check-config.sh"), "--require-local"],
+                                 cwd=deployed, capture_output=True, timeout=30)
         if checked.returncode:
             report["findings"].append({"scope": "config", "category": "local_config_validation_failed"})
         else:
@@ -225,7 +249,7 @@ def audit(root, include_history=True, runtime=False, permissions=False):
         module_spec = importlib.util.spec_from_file_location("sec_runtime", root / "scripts/security-runtime.py")
         module = importlib.util.module_from_spec(module_spec)
         module_spec.loader.exec_module(module)
-        measured = module.audit_runtime(root, scan_text, permissions=(permissions and checked.returncode == 0
+        measured = module.audit_runtime(deployed, scan_text, permissions=(permissions and checked.returncode == 0
                                         and not report["findings"] and not report["pending"]))
         report["findings"].extend(measured["findings"])
         report["pending"].extend(measured["pending"])
@@ -235,14 +259,15 @@ def audit(root, include_history=True, runtime=False, permissions=False):
                                   if runtime else "live_runtime_audit_not_requested"})
     # Current artifacts are scanned; absence is downstream work, not certification
     # of notebooks/exports that do not yet exist.
-    report["deferred"] = [{"task_id": task, "reason": "re_audit_new_artifacts_when_implemented"}
-                          for task in ("DAT-02", "EXP-01", "MLD-05", "MLI-03")]
     report["coverage"]["current_baseline_passed"] = runtime and permissions and not report["findings"] and not report["pending"]
-    # Original SEC-01 acceptance includes the actual notebook/export/import
-    # handoff. A clean current stack cannot certify absent downstream artifacts.
-    report["pending"].append({"scope": "ml_handoff", "reason": "actual_notebook_export_import_acceptance_not_verified",
-                              "task_ids": ["DAT-02", "EXP-01", "MLD-05", "MLI-03"]})
-    report["can_mark_done"] = runtime and permissions and not report["findings"] and not report["pending"]
+    handoff_report = security_handoff.audit(deployed,handoff,scan_text,secrets)
+    report["coverage"]["ml_handoff"] = handoff_report
+    report["findings"].extend(handoff_report["findings"])
+    report["pending"].extend(handoff_report["pending"])
+    report["deferred"] = [{"task_id":task,"reason":"re_audit_when_handoff_bytes_or_remote_permissions_change"}
+                          for task in ("DAT-02","EXP-01","MLD-05","MLI-03")]
+    report["can_mark_done"] = (runtime and permissions and handoff_report["passed"] is True
+                                and not report["findings"] and not report["pending"])
     report["coverage"]["pattern_policy"] = "high_confidence_tokens_keys_and_credential_URIs_not_complete_secret_detection"
     report["completed_at_utc"] = datetime.now(timezone.utc).isoformat()
     return report
@@ -253,6 +278,8 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--runtime", action="store_true", help="inspect deployed ports, roles and retained container logs")
     parser.add_argument("--permission-probes", action="store_true", help="opt-in exact-key QA writes; requires --runtime")
+    parser.add_argument("--deployment-root", type=Path, help="explicit linked checkout owning the deployed Compose project")
+    parser.add_argument("--handoff-manifest", type=Path, help="pinned explicit local notebook/pilot/export/result artifacts")
     args = parser.parse_args()
     if args.permission_probes and not args.runtime:
         parser.error("--permission-probes requires --runtime")
@@ -261,7 +288,8 @@ def main():
     if root not in target.parents or args.output.is_symlink():
         parser.error("output must stay inside project and not be a symlink")
     try:
-        report = audit(root, runtime=args.runtime, permissions=args.permission_probes)
+        report = audit(root, runtime=args.runtime, permissions=args.permission_probes,
+                       deployed_root=args.deployment_root, handoff=args.handoff_manifest)
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(json.dumps(report, indent=2, ensure_ascii=False)+"\n", encoding="utf-8")
     except Exception:

@@ -22,6 +22,37 @@ audit = load("sec_audit_test", "scripts/audit-security.py")
 
 
 class RuntimeSecurityTest(unittest.TestCase):
+    def streamed(self, code, **kwargs):
+        original = subprocess.Popen
+        with patch.object(runtime.subprocess,"Popen",side_effect=lambda *a,**k:
+                          original([sys.executable,"-c",code],**k)):
+            return runtime.scan_container_logs(ROOT,"synthetic-container",audit.scan_text,
+                                               ["synthetic-private-value"],**kwargs)
+
+    def test_streamed_retained_logs_scan_both_streams_and_boundary_without_echo(self):
+        result=self.streamed("import os; os.write(1,b'x'*65530); os.write(1,b'synthetic-private-value\\n'); os.write(2,b'end\\n')")
+        self.assertTrue(result["complete"])
+        self.assertEqual(["configured_secret_in_log"],result["categories"])
+        self.assertNotIn("synthetic-private-value",repr(result))
+
+    def test_streamed_log_budget_line_and_command_errors_remain_incomplete(self):
+        for code,kwargs in (("print('x'*50)",{"limit":10}),
+                            ("import os; os.write(1,b'x'*100000)",{}),
+                            ("raise SystemExit(2)",{})):
+            with self.subTest(code=code),patch.object(runtime,"LIMIT",100):
+                self.assertFalse(self.streamed(code,**kwargs)["complete"])
+
+    def test_streamed_logs_never_use_tail_or_since(self):
+        source=Path(runtime.__file__).read_text()
+        self.assertIn('["docker", "logs", container_id]',source)
+        result=self.streamed("print('safe')")
+        self.assertEqual(hashlib.sha256(b"safe\n").hexdigest(),result["sha256"])
+
+    def test_unrelated_deployment_checkout_rejected_before_audit(self):
+        with patch.object(audit,"git",side_effect=[b"/git/a",b"/git/b"]):
+            with self.assertRaisesRegex(RuntimeError,"UNRELATED_CHECKOUT"):
+                audit.deployment_root(ROOT,ROOT)
+
     def fixture(self):
         expected = {"ports": [{"target": 8080, "host_ip": "127.0.0.1", "published": "8080"}],
                     "environment": {"MINIO_SECRET_KEY": "synthetic-pipeline-secret"}}
