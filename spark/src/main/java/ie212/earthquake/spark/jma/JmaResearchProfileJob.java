@@ -43,6 +43,10 @@ public final class JmaResearchProfileJob {
                 "dat03-profile", "profile-not-a-catalog-release", null, null, member, Instant.EPOCH);
         var parser = new JmaFixedWidthParser();
         Map<String, Long> counts = new TreeMap<>(), months = new TreeMap<>(), reasons = new TreeMap<>();
+        var diagnostics = JSON.createArrayNode();
+        var depthEncodings = JSON.createArrayNode();
+        // Metadata only; fail explicitly instead of silently truncating diagnostic identities.
+        final int diagnosticLimit = 4096;
         Instant first = null, last = null;
         int lineNumber = 0;
         long memberBytes;
@@ -56,6 +60,12 @@ public final class JmaResearchProfileJob {
                 if (parsed.rejectedCount() != 0) {
                     add(counts, "parser_rejected");
                     parsed.rejects().forEach(r -> r.rejectReasonCodes().forEach(reason -> add(reasons, reason)));
+                    if (diagnostics.size() >= diagnosticLimit) throw new IOException("PROFILE_REJECT_DIAGNOSTIC_LIMIT");
+                    var reject = parsed.rejects().get(0);
+                    var diagnostic = diagnostics.addObject();
+                    diagnostic.put("physical_line", lineNumber);
+                    diagnostic.put("record_sha256", reject.rawRecordHash());
+                    diagnostic.set("reasons", JSON.valueToTree(reject.rejectReasonCodes()));
                     continue;
                 }
                 add(counts, "parser_accepted");
@@ -65,6 +75,16 @@ public final class JmaResearchProfileJob {
                 if (last == null || time.isAfter(last)) last = time;
                 add(months, YearMonth.from(time.atZone(ZoneOffset.UTC)).toString());
                 if (!row.qualityFlags().isEmpty()) add(counts, "parser_warning_rows");
+                if (row.qualityFlags().contains(JmaFixedWidthParser.DEPTH_BLANK_ENCODING_WARNING)) {
+                    if (depthEncodings.size() >= diagnosticLimit) throw new IOException("PROFILE_DEPTH_DIAGNOSTIC_LIMIT");
+                    var diagnostic = depthEncodings.addObject();
+                    diagnostic.put("physical_line", lineNumber);
+                    diagnostic.put("record_sha256", row.rawRecordHash());
+                    diagnostic.put("native_depth_token", line.substring(44, 49));
+                    diagnostic.put("location_precision", line.substring(59, 60));
+                    diagnostic.put("depth_km", row.depthKm());
+                    diagnostic.put("event_time_utc", time.toString());
+                }
                 if (row.depthKm() == null) add(counts, "missing_depth");
                 if (row.magnitude() == null) add(counts, "missing_magnitude");
                 // This is before quality/dedup/canonical/Mc/window gates, NOT final research eligibility.
@@ -86,7 +106,7 @@ public final class JmaResearchProfileJob {
                 "parser_warning_rows", "missing_depth", "missing_magnitude",
                 "pre_mc_research_filter_rows", "pre_window_mainshock_rows"}) counts.putIfAbsent(name, 0L);
         var result = JSON.createObjectNode();
-        result.put("profile_version", "dat03-local-archive-v1");
+        result.put("profile_version", "dat03-local-archive-v2");
         result.put("profile_kind", "ENGINEERING_ONLY_NOT_COVERAGE_PROOF");
         result.put("source_system", "JMA_BULLETIN"); result.put("member", member);
         result.put("archive_sha256", expectedSha256); result.put("archive_bytes", bytes.length);
@@ -96,6 +116,8 @@ public final class JmaResearchProfileJob {
         result.put("source_authenticity_verified", false); result.put("coverage_verified", false);
         result.set("counts", JSON.valueToTree(counts)); result.set("accepted_rows_by_utc_month", JSON.valueToTree(months));
         result.set("parser_rejection_reason_counts", JSON.valueToTree(reasons));
+        result.set("rejected_record_diagnostics", diagnostics);
+        result.set("depth_blank_encoding_observations", depthEncodings);
         if (first == null) { result.putNull("first_accepted_event_utc"); result.putNull("last_accepted_event_utc"); }
         else { result.put("first_accepted_event_utc", first.toString()); result.put("last_accepted_event_utc", last.toString()); }
         result.put("counts_reconciled", counts.get("physical_records") == counts.get("parser_accepted") + counts.get("parser_rejected"));

@@ -1,0 +1,30 @@
+{
+  "profile_version" : "dat03-reader-replay-v1",
+  "profile_kind" : "ENGINEERING_ONLY_NOT_RESOLVER_ACCEPTANCE",
+  "archive_sha256" : "30980319b7fb72101c508e16b44a9e1ad124f4a94a9c31b0260df1df6745729b",
+  "archive_bytes" : 7955061,
+  "native_year" : 2011,
+  "member" : "h2011",
+  "physical_records" : 309527,
+  "max_selected_revisions_per_operation" : 100000,
+  "research_ready" : false,
+  "coverage_verified" : false,
+  "gold_published" : false,
+  "full_resolver_verified" : false,
+  "source_authenticity_verified" : false,
+  "single_month_operations" : [ {
+    "month" : "2011-03",
+    "selected_input_records" : 56015,
+    "unique_revisions" : 56015,
+    "elapsed_ms" : 2489,
+    "status" : "PASSED"
+  }, {
+    "month" : "2011-04",
+    "selected_input_records" : 57044,
+    "unique_revisions" : 57044,
+    "elapsed_ms" : 1656,
+    "status" : "PASSED"
+  } ],
+  "combined_scope_status" : "BLOCKED_BY_UNCHANGED_ROW_GUARD",
+  "combined_reason" : "BOUNDED_MONTHLY_ROW_LIMIT"
+}

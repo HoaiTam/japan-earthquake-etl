@@ -3,7 +3,15 @@
 Bộ fixture `CON-04` cung cấp input nhỏ, xác định và chạy hoàn toàn offline cho
 USGS Bronze, JMA Bronze, parser Silver, quality, dedup/revision, source linking
 và Gold. Payload dưới `usgs/` và `jma/` đều là **synthetic**, không sao chép
-event thật và không chứa credential hay endpoint riêng tư. Thư mục
+event thật và không chứa credential hay endpoint riêng tư.
+
+Ngoại lệ metadata DAT-03: `jma/depth-blank-2016-v1.json` chỉ giữ 18 locator,
+record hash, token depth và expected value từ archive thật đã pin; không giữ
+raw record. Parser test chèn token vào row synthetic, không gọi mạng. File này
+không thuộc 25 raw fixtures/SHA256SUMS của CON-04 và không được build script
+tạo lại từ dữ liệu giả. [Evidence diễn giải](../../docs/evidence/DAT-03_RESEARCH_PROFILE_ACCEPTANCE.md)
+phân biệt regression metadata với source coverage.
+
 `real-samples/` chỉ giữ catalog metadata `DAT-01`; raw sample thật nằm trong
 MinIO/staging và không được commit.
 

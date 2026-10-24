@@ -20,6 +20,30 @@ public final class FullMonthBronzeReader {
     private final List<JmaArchiveEntry> inventory;
     public FullMonthBronzeReader(BronzeObjectStore store, List<JmaArchiveEntry> inventory) { this.store = store; this.inventory = List.copyOf(inventory); }
 
+    /** Full validation still happens now, but a registry does not retain every archive's raw bytes. */
+    public Input descriptor(JsonNode pin, Instant cutoff) throws IOException {
+        var verified=read(pin,cutoff);
+        return new Input(verified.pin(),verified.manifest(),null,verified.start(),verified.end());
+    }
+    private Input materialize(Input input) throws IOException {
+        if(input.raw()!=null) return input;
+        var fresh=read(input.pin(),utc(input.manifest(),"retrieved_at_utc"));
+        require(fresh.manifest().equals(input.manifest()),"MANIFEST_DESCRIPTOR_CHANGED");
+        return fresh;
+    }
+    public Set<String> changedDescriptorMonths(Input prior,Input incoming) throws IOException {
+        // Keep one raw archive at a time, rather than materializing the whole registry.
+        var before=recordMonths(materialize(prior));
+        var after=recordMonths(materialize(incoming)); var changed=new TreeSet<String>();
+        before.forEach((hash,month)->{ if(!after.containsKey(hash)) changed.add(month); });
+        after.forEach((hash,month)->{ if(!before.containsKey(hash)) changed.add(month); });
+        return changed;
+    }
+    static boolean intersects(Input input,Set<String> scope) {
+        return scope.stream().anyMatch(m->input.start().isBefore(end(m).plusSeconds(HALO_SECONDS))
+                && input.end().isAfter(start(m).minusSeconds(HALO_SECONDS)));
+    }
+
     /** Whole native archive record comparison, not a guessed cross-release JMA event key. */
     public static Set<String> changedJmaMonths(Input prior,Input incoming) throws IOException {
         var before=recordMonths(prior); var after=recordMonths(incoming); var changed=new TreeSet<String>();
@@ -113,11 +137,16 @@ public final class FullMonthBronzeReader {
         var observations = new TreeMap<String,SilverObservation>();
         var sources=JSON.createArrayNode(); int selectedRows=0;
         var parser = new JmaFixedWidthParser();
-        for (Input input : inputs) {
+        for (Input descriptor : inputs) {
+            // Descriptor pins were fully verified, including CRC/count, even when not selected.
+            boolean outside=descriptor.raw()==null && "JMA_BULLETIN".equals(descriptor.pin().path("source_system").asText()) && !intersects(descriptor,scope);
+            Input input=outside?descriptor:materialize(descriptor);
             int selected=0, uniqueBefore=observations.size();
             JsonNode m=input.manifest(); String uri=text(m,"raw_object_uri"), hash=text(m,"sha256"), ingest=text(m,"run_id"), id=text(m,"manifest_id");
             Instant processed=utc(m,"retrieved_at_utc");
-            if ("USGS".equals(m.path("source_system").asText())) {
+            if (outside) {
+                // No observations from an unrelated archive can affect this temporal graph.
+            } else if ("USGS".equals(m.path("source_system").asText())) {
                 var result = new UsgsGeoJsonParser().parse(input.raw(),new UsgsParseContext(id,uri,hash,ingest,processed));
                 require(result.rejects().isEmpty(), "USGS_PARSER_REJECTS_BLOCKED");
                 selected=result.observations().size();

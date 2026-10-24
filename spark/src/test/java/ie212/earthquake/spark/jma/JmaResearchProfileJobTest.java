@@ -32,6 +32,8 @@ class JmaResearchProfileJobTest {
         assertEquals(1, result.path("counts").path("pre_mc_research_filter_rows").asLong());
         assertEquals(0, result.path("counts").path("pre_window_mainshock_rows").asLong());
         assertTrue(result.path("counts_reconciled").asBoolean());
+        assertEquals("dat03-local-archive-v2", result.path("profile_version").asText());
+        assertTrue(result.path("rejected_record_diagnostics").isEmpty());
         for (String flag : new String[]{"coverage_verified", "research_ready", "gold_published", "source_authenticity_verified"}) {
             assertFalse(result.path(flag).asBoolean());
         }
@@ -48,6 +50,22 @@ class JmaResearchProfileJobTest {
         assertEquals(1, result.path("counts").path("parser_rejected").asLong());
         assertEquals(1, result.path("parser_rejection_reason_counts").path("INVALID_LATITUDE").asLong());
         assertTrue(result.path("counts_reconciled").asBoolean());
+        var diagnostic = result.path("rejected_record_diagnostics").get(0);
+        assertEquals(1, diagnostic.path("physical_line").asInt());
+        assertEquals(SourceKeyGenerator.sha256(java.util.Arrays.copyOf(records, 96)), diagnostic.path("record_sha256").asText());
+    }
+    @Test void depthNormalizationReportsExactLocatorHashAndValueWithoutRawRow() throws Exception {
+        byte[] records = fixture();
+        System.arraycopy("  0 4".getBytes(StandardCharsets.US_ASCII), 0, records, 44, 5);
+        records[59] = '1';
+        var result = profile(zip(records));
+        assertEquals(0, result.path("counts").path("parser_rejected").asInt());
+        var encoding = result.path("depth_blank_encoding_observations").get(0);
+        assertEquals(1, encoding.path("physical_line").asInt());
+        assertEquals("  0 4", encoding.path("native_depth_token").asText());
+        assertEquals(0.04, encoding.path("depth_km").asDouble());
+        assertEquals(SourceKeyGenerator.sha256(java.util.Arrays.copyOf(records, 96)), encoding.path("record_sha256").asText());
+        assertFalse(encoding.has("raw_record"));
     }
     @Test void expectedHashAndMemberAreRequired() throws Exception {
         Path path = zip(fixture());

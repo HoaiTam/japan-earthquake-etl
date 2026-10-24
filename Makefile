@@ -144,7 +144,10 @@ smoke-qa-acceptance: check-config-local ## QA-02/03/04 storage acceptance; khôn
 .PHONY: test-ml-window smoke-ml-window resume-ml-window
 .PHONY: prepare-ml-local stage-ml-windows test-ml-feature ml-features-local ml-pilot-local pilot-env test-pilot inspect-pilot jupyter-pilot
 .PHONY: pack-pilot test-exp01 inspect-exp01 jupyter-exp01
-.PHONY: pack-team-pilot test-team-pilot profile-jma-research profile-jma-replay
+.PHONY: pack-team-pilot test-team-pilot profile-jma-research profile-jma-replay test-research-profile plan-research-profiles capture-research-profiles profile-research-archives
+RESEARCH_PROFILE_ROOT ?= staging/dat03-research-profile-20261024
+RESEARCH_PROFILE_YEARS ?=
+RESEARCH_PROFILE_ARGS = --root "$(RESEARCH_PROFILE_ROOT)" $(if $(RESEARCH_PROFILE_YEARS),--years "$(RESEARCH_PROFILE_YEARS)",)
 TEAM_PILOT_ZIP ?= staging/shared-datasets/jma-development-pilot-team.zip
 JMA_PROFILE_ARCHIVE ?=
 JMA_PROFILE_MEMBER ?=
@@ -167,6 +170,18 @@ profile-jma-research: ## DAT-03 profile ZIP local bằng Java parser; cần JAR 
 profile-jma-replay: ## DAT-03 đo reader theo tháng từ ZIP local; không BronzeReady/coverage/Gold writes
 	@test -n "$(JMA_PROFILE_ARCHIVE)" -a -n "$(JMA_PROFILE_MEMBER)" -a -n "$(JMA_PROFILE_SHA256)" -a -n "$(JMA_PROFILE_YEAR)" -a -n "$(JMA_PROFILE_MONTHS)" -a -n "$(JMA_PROFILE_OUTPUT)" || { echo 'JMA_PROFILE_ARCHIVE/MEMBER/SHA256/YEAR/MONTHS/OUTPUT are required'; exit 1; }
 	@java -Xmx768m -cp spark/target/japan-earthquake-etl-runner.jar ie212.earthquake.spark.jma.JmaResearchReplayProfileJob "$(JMA_PROFILE_ARCHIVE)" "$(JMA_PROFILE_MEMBER)" "$(JMA_PROFILE_SHA256)" "$(JMA_PROFILE_YEAR)" "$(JMA_PROFILE_MONTHS)" "$(JMA_PROFILE_OUTPUT)"
+
+test-research-profile: ## DAT-03 kiểm capture/profile control plane bằng mock, không Docker/mạng
+	@python3 -m unittest discover -s tests -p 'test_research_profiles.py'
+
+plan-research-profiles: ## DAT-03 xem 25 archive/bytes; offline, không tạo file
+	@python3 scripts/profile-research-archives.py plan $(RESEARCH_PROFILE_ARGS)
+
+capture-research-profiles: ## DAT-03 EXPLICIT network capture 2000–2024 vào staging, không Bronze/deployment
+	@python3 scripts/profile-research-archives.py capture $(RESEARCH_PROFILE_ARGS)
+
+profile-research-archives: ## DAT-03 profile tuần tự ZIP đã pin bằng JAR có sẵn, không tự build/download
+	@python3 scripts/profile-research-archives.py profile $(RESEARCH_PROFILE_ARGS)
 .PHONY: prepare-full-month test-full-month qa-full-month-live full-month-local
 FULL_MONTH_ROOT ?= staging/orc06-full-month
 FULL_MONTH_REQUEST ?=
@@ -612,7 +627,7 @@ config: check-config-local ## Validate toàn bộ Compose profile; không in sec
 
 test: test-contracts test-java test-airflow ## Toàn bộ contract và unit test; không cần Docker daemon/nguồn thật
 
-test-contracts: $(CONTRACT_CHECKS) check-week-5-plan test-week-5-plan check-java-build-inputs ## Kiểm tra docs, contract, fixture và catalog mẫu; không cần mạng
+test-contracts: $(CONTRACT_CHECKS) check-week-5-plan test-week-5-plan check-java-build-inputs test-research-profile ## Kiểm tra docs, contract, fixture và catalog mẫu; không cần mạng
 
 check-java-build-inputs: ## Kiểm tra đầu vào Maven trong Docker và regression test; không cần Docker/JDK/env
 	@./scripts/check-java-build-inputs.sh

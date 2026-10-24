@@ -8,7 +8,8 @@ push hoặc mở PR. Đây là PR giai đoạn chuẩn bị, không tuyên bố 
 Đợt 1 đã được owner commit `49d1784` và push lên
 [PR #99](https://github.com/HoaiTam/japan-earthquake-etl/pull/99).
 **Đợt tiếp tục hiện tại dùng Git commands/PR description ở
-[Đợt 2](#đợt-2--scoped-replay-và-strict-split).** Các mục tương ứng ngay dưới
+[Đợt 3](#đợt-3--depth-parser-và-profile-25-archive).** HEAD hiện tại `6356a44`;
+chưa tự commit/push các thay đổi local. Các mục tương ứng ngay dưới
 đây giữ như lịch sử bàn giao đợt 1, không phải yêu cầu tạo PR mới.
 
 ## File gửi nhóm
@@ -90,6 +91,9 @@ Bắt đầu DAT-03: chuẩn bị catalog nghiên cứu thật và bàn giao dat
 
 ## Đợt 2 — Scoped replay và strict-split
 
+Mốc trước bước 1/2; dùng Đợt 3 cho bàn giao mới nhất. Các giới hạn depth/
+archive boundary bên dưới giữ là lịch sử trước parser v1.2 và capture 2024.
+
 Vẫn branch/PR #99, không branch/PR mới, chưa tự commit/push. Pilot ZIP/pins
 đợt 1 không đổi. [Evidence kỹ thuật](../evidence/DAT-03_TECHNICAL_PROGRESS.md)
 và [task DAT-03](../task/tasks/DAT-03.md) liệt kê các gate chưa đạt.
@@ -159,4 +163,89 @@ Tiếp tục DAT-03: chuẩn bị dữ liệu nghiên cứu thật và dataset d
 - DAT-03: xử lý depth-token encoding 2016 có căn cứ và regression/version; profile/capacity các năm còn lại; nguồn biên 2024 JST; collection/sharding có full-assignment proof; backfill 225+63 tháng, real Gold/Trino/MLI-02 export và ba máy handoff vẫn chưa đạt. Exporter vẫn cap 128 mainshock/100k feature rows, không gọi opt-in v2 là đã giải quyết mọi scale.
 - ThanhTris và rosy179 chưa gửi verifier receipt; không giả xác nhận từ ba máy. Reviewer unassigned, chưa có approval.
 - EXP-02/03 official experiment, EXP-04/05 evaluation và MLI-04/MLQ-01 report/E2E vẫn là gates riêng. SEC-01 Done local, cloud/Colab/Drive cần mở lại acceptance trước migration.
+```
+
+## Đợt 3 — Depth parser và profile 25 archive
+
+Tiếp tục trên branch/PR #99, HEAD `6356a44`, không branch/PR mới. Bao gồm phần
+scoped replay/strict split còn local của Đợt 2 và bản vá/profile bước 1/2 mới.
+DAT-03 **In Progress**, assignee HoaiTam, reviewer unassigned; kit pilot/pins
+không đổi. [Kết quả](../evidence/DAT-03_RESEARCH_PROFILE_ACCEPTANCE.md) và
+[lệnh profile/rollout](./DAT-03_RESEARCH_PROFILING.md) phân biệt rõ engineering
+acceptance với các gate research còn thiếu.
+
+### Git commands để cập nhật PR #99
+
+Review cả diff đang có từ Đợt 2 trước stage. Các directory source/test dưới đây
+chỉ thuộc DAT-03; không stage staging/raw/ZIP/log/.env hoặc warehouse.
+
+```bash
+cd /Users/hoaitam/Desktop/Learn/23521394/HK1-Nam-4/IE212/japan-earthquake-etl-mli-02
+git status --short --branch
+git diff --check
+git diff
+git add -- Makefile scripts/profile-research-archives.py tests/test_research_profiles.py \
+  config/jma/research_boundary_archives_v1.csv \
+  tests/fixtures/README.md tests/fixtures/jma/depth-blank-2016-v1.json \
+  airflow/dags/real_etl_runtime.py airflow/tests/test_real_etl_runtime.py \
+  spark/src/main/java/ie212/earthquake/spark/jma/JmaResearchProfileJob.java \
+  spark/src/main/java/ie212/earthquake/spark/jma/JmaResearchReplayProfileJob.java \
+  spark/src/main/java/ie212/earthquake/spark/silver/JmaFixedWidthParser.java \
+  spark/src/main/java/ie212/earthquake/spark/orchestration \
+  spark/src/main/java/ie212/earthquake/spark/ml \
+  spark/src/test/java/ie212/earthquake/spark/jma \
+  spark/src/test/java/ie212/earthquake/spark/silver/JmaFixedWidthParserTest.java \
+  spark/src/test/java/ie212/earthquake/spark/orchestration/FullMonthStateResolverTest.java \
+  spark/src/test/java/ie212/earthquake/spark/ml \
+  docs/KNOWN_ISSUES.md docs/task/tasks/DAT-03.md docs/task/tasks/README.md \
+  docs/specs/JMA_SILVER_PARSER.md docs/specs/JMA_ARCHIVE_INVENTORY.md docs/specs/SOURCE_COVERAGE.md \
+  docs/specs/FULL_MONTH_STATE_CONTRACT.md docs/specs/FEATURE_EXPORT.md \
+  docs/runbooks/DAT-03_SHARED_DATASET.md docs/runbooks/DAT-03_BRANCH_HANDOFF.md \
+  docs/runbooks/DAT-03_RESEARCH_PROFILING.md \
+  docs/evidence/DAT-03_PROGRESS.md docs/evidence/DAT-03_TECHNICAL_PROGRESS.md \
+  docs/evidence/DAT-03_JMA_2011_REPLAY_PROFILE.json docs/evidence/DAT-03_JMA_2016_PROFILE.json \
+  docs/evidence/DAT-03_JMA_2016_PROFILE_V12.json docs/evidence/DAT-03_JMA_2016_REPLAY_V12.json \
+  docs/evidence/DAT-03_JMA_2024_BOUNDARY_REPLAY.json \
+  docs/evidence/DAT-03_RESEARCH_ARCHIVE_PROFILES.json docs/evidence/DAT-03_RESEARCH_PROFILE_ACCEPTANCE.md
+git diff --cached --stat
+git diff --cached --check
+git commit -m "feat(data): validate research archive profiles and replay policies"
+git push origin feat/dat-03-research-dataset-handoff
+```
+
+### Mô tả PR #99 mới nhất để copy
+
+```markdown
+## Mục tiêu
+
+Tiếp tục DAT-03: chuẩn bị catalog nghiên cứu thật và dataset đồng nhất cho nhóm. Hoàn thành bước sửa depth parser và profile/plan archive; task vẫn In Progress.
+
+## Thay đổi chính
+
+- Giữ pilot JMA thật 279 rows/2 mainshock, external SHA/verifier/loader; vẫn DEVELOPMENT_ONLY/PARTIAL, không thay research release.
+- Scoped resolver orc-06-v2 và strict-split opt-in có version/lineage/exclusion proof; giữ default và resource guards, không clip window.
+- Parser slv-03-v1.2 xử lý hẹp depth-free token BN/BZ cùng giá trị; giữ đủ 18 record năm 2016, thêm warning và fixture locator/hash/token; không đoán token mơ hồ hoặc sửa Bronze.
+- Capture/profile tuần tự 25 archive JMA 2000–2024 bằng exact HTTP/SHA/release. Overlay 2024 chỉ nguồn biên UTC/halo, baseline v1 và ML periods không đổi.
+- Thêm Make targets, capture/profile control plane và offline regression; summary chỉ metadata. Lập rollout từng UTC month, dừng khi closure vượt cap.
+
+## Kết quả và kiểm thử
+
+- 4.793.337 physical/accepted, 0 parser rejects, 18 warning rows. Năm 2016 trước sửa có 18 rejects; exact ZIP SHA giữ nguyên.
+- 25 ZIP tổng 128.784.513 bytes; scan 50,938s, heap 512 MiB/process, max RSS 258,53 MiB. Không phải benchmark Spark/Gold/export hoặc ETA full ETL.
+- h2024 có 186 accepted rows thuộc 2023-12 UTC, shared reader probe giữ đủ 186; chưa là source completeness proof. Reader probe 2016 có halo đạt; gộp peak 2011 vẫn bị guard 100k chặn.
+- 90 Java tests (88 scoped regression + 2 inventory), 12 Python capture/evidence và 41 CI policy tests PASS; docs/contracts/status/source-example secret hygiene/diff checks và build local đạt. Không full Java suite, runtime credential audit hoặc remote CI.
+- Không thay Docker/deployment/runner đang chạy, cron/DAG/lease/credentials; không lake writes, fit model hoặc upload cloud.
+
+## Docs
+
+- DAT-03 task/index, shared-dataset/profile/branch runbooks và known issues.
+- JMA parser/inventory/source coverage, scoped replay và feature/export contracts.
+- Before/after 2016, 25-archive pins/counts/measurement và evidence kế hoạch rollout.
+
+## Giới hạn / phần còn lại
+
+- DAT-03: nối inventory overlay/source proofs vào runtime, đo capacity Spark/lake/export; collection/sharding có full-mainshock assignment/global Mc proof; full 225+63-month Gold/Trino → MLI-02 research export và ba máy handoff vẫn chưa đạt.
+- Exporter vẫn cap 128 mainshock/100k feature rows. Không suy profile 0 rejects thành research_ready/coverage/Gold Published; các cờ vẫn false.
+- ThanhTris/rosy179 chưa gửi receipt; reviewer unassigned, không có approval giả.
+- EXP-02/03 official experiment, EXP-04/05 scientific evaluation, MLI-04/MLQ-01 report/E2E là gates riêng. SEC-01 local-only, mở lại trước Drive/Colab migration.
 ```

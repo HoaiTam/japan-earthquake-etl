@@ -6,6 +6,10 @@ DAT-03 **In Progress**, owner HoaiTam, reviewer unassigned. Hiện phát hành
 **pilot JMA thật để dùng trước** theo lựa chọn owner; chưa có research release
 toàn kỳ. Bộ synthetic EXPORTED của MLD-05/MLI-02 không được gửi như research data.
 
+Cập nhật kỹ thuật mới nhất: [bước 1/2](../evidence/DAT-03_RESEARCH_PROFILE_ACCEPTANCE.md)
+và [runbook profile/rollout](./DAT-03_RESEARCH_PROFILING.md). Đã sửa depth parser
+v1.2 và profile đủ25 archive; chưa full Gold/export/handoff nghiên cứu.
+
 File gửi nhóm trên máy chuẩn bị:
 `staging/shared-datasets/jma-development-pilot-team.zip` trong checkout DAT-03.
 Đây là đường dẫn local, không phải URL public; người dùng gửi ZIP và pins qua
@@ -95,8 +99,9 @@ make profile-jma-research JMA_PROFILE_ARCHIVE="$ARCHIVE" JMA_PROFILE_MEMBER="$ME
 3. **Coverage/boundaries:** reproduction 225 tháng [2000-01-01,2018-10-01),
    extension 63 tháng [2018-10-01,2024-01-01), UTC. Archive JMA theo JST cần cả
    input biên/halo16s; năm 2023 kết thúc 2023-12-31T15:00Z, nên extension UTC
-   còn cần nguồn đầu 2024 JST (baseline/inventory hiện chỉ đến 2023, phải đổi
-   contract có version trước capture). Owner chốt **strict split**: opt-in
+   còn cần nguồn đầu 2024 JST. Baseline v1 giữ đến 2023; overlay version
+   `dat03-boundary-1.0` đã khóa/capture/profile h2024, chưa nối runtime.
+   Owner chốt **strict split**: opt-in
    `filter_config.window_coverage_policy` = `dat03-strict-split-v1` để loại window
    thiếu coverage, báo từng ID, required interval và reason; không clip hoặc
    mượn extension cho reproduction. Không field policy thì exporter vẫn fail
@@ -112,23 +117,21 @@ make profile-jma-research JMA_PROFILE_ARCHIVE="$ARCHIVE" JMA_PROFILE_MEMBER="$ME
    mở lại SEC-01 trước migration. EXP-02/03 tiếp tục local pilot trong lúc chờ;
    không làm mất status Done component của MLD-05/MLI-02.
 
-Đã profile h2000/h2011/h2023, bổ sung h2016:
-**313.487 physical / 313.469 accepted / 18 INVALID_NUMBER rejects**. Chẩn đoán
-khoanh depth 45–49 có blank nội bộ; chưa diễn giải hoặc bỏ các dòng này.
-Đọc [evidence kỹ thuật](../evidence/DAT-03_TECHNICAL_PROGRESS.md) trước rollout;
-profile aggregate thành công không có nghĩa source/quality acceptance đã đạt.
+Đã profile đủ **25 archive2000–2024**: 4.793.337 physical/accepted, 0 parser
+rejects. Parser v1.2 sửa đúng18 depth tokens2016, warning/line/hash còn nguyên;
+không bỏ records. Bản2016 cũ có18 rejects được giữ để so sánh, không sửa lịch sử.
+Đọc [evidence bước 1/2](../evidence/DAT-03_RESEARCH_PROFILE_ACCEPTANCE.md) trước
+rollout; profile thành công không có nghĩa source/quality acceptance đã đạt.
 
 Reader probe thực trên 2011 cho tháng 3/4 riêng đạt 56.015/57.044 unique
 revisions (bao gồm halo), gộp bị guard 100k chặn; `make profile-jma-replay`
 không tạo BronzeReady hoặc Gold. Ví dụ lặp lại và pins ở evidence kỹ thuật.
 
-Inventory 24 ZIP năm 2000–2023 ước tính
-120.587.487 bytes nén (~115 MiB), chưa tính archive biên 2024/USGS và warehouse.
-Chưa ước lượng thời gian full backfill/fit từ ba archive profile; số đo vài
-giây chỉ là parser scan local, không gồm download/Spark joins/Gold/Trino/export.
-Disk còn khoảng 13 GiB ở mốc đầu phiên, khoảng 10 GiB ở preflight tiếp theo;
-cần đo lại trước batch, không xóa data
-hoặc Docker volume để lấy chỗ. Estimate task 16h là ban đầu và phải replan.
+Actual25 ZIP gồm biên2024 có128.784.513 compressed bytes (~122,82 MiB), chưa
+tính USGS/warehouse/export. Scan tuần tự25 archive50,938s, heap512 MiB/process,
+peak RSS~258,53 MiB; không dùng làm ETA full Spark/Gold/Trino/fit. Staging mới
+~131 MiB, disk còn~9,8 GiB sau capture. Đo thêm growth từng tầng trước rollout;
+không xóa data/volume hoặc tăng cap mù. Estimate16h ban đầu phải replan từ E2E.
 
 ## Evidence và giới hạn
 

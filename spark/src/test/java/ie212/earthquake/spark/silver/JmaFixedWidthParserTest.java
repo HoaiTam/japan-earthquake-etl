@@ -372,7 +372,7 @@ class JmaFixedWidthParserTest {
         assertEquals(-(66 + 28.62 / 60), obs.longitude(), 1e-10);
         assertEquals(SourceKeyGenerator.sha256(row), obs.rawRecordHash());
         assertEquals(SourceKeyGenerator.jmaRecordKeyFromLine(new String(row, StandardCharsets.US_ASCII)), obs.sourceRecordKey());
-        assertEquals("slv-03-v1.1", obs.parserVersion()); assertFalse(obs.isInStudyArea());
+        assertEquals(JmaFixedWidthParser.PARSER_VERSION, obs.parserVersion()); assertFalse(obs.isInStudyArea());
         row = put(row, 22, 28, "- 03000");
         assertEquals(-0.5, one(row).latitude(), 1e-10);
         row = put(row, 22, 28, "+ 10858");
@@ -387,6 +387,55 @@ class JmaFixedWidthParserTest {
             var result = parser.parse(row, context(row, "release-v1"));
             assertEquals(0, result.validCount());
             assertTrue(result.rejects().get(0).rejectReasonCodes().contains("INVALID_NUMBER"));
+        }
+    }
+
+    @Test
+    void depthFreeBlankHundredthsAreAcceptedOnlyWhenBnAndBzAgree() throws Exception {
+        for (int digit = 0; digit <= 9; digit++) {
+            byte[] row = put(put(firstRecord(), 45, 49, "  0 " + digit), 60, 60, "1");
+            var obs = one(row);
+            assertEquals(digit / 100.0, obs.depthKm());
+            assertEquals("slv-03-v1.2", obs.parserVersion());
+            assertEquals("WARNING", obs.qualityStatus());
+            assertTrue(obs.qualityFlags().contains(JmaFixedWidthParser.DEPTH_BLANK_ENCODING_WARNING));
+            assertEquals(SourceKeyGenerator.sha256(row), obs.rawRecordHash());
+            assertEquals(SourceKeyGenerator.jmaRecordKeyFromLine(new String(row, StandardCharsets.US_ASCII)), obs.sourceRecordKey());
+            assertTrue(SilverLineage.of(obs).verifyRawRecord(row));
+        }
+    }
+
+    @Test
+    void ambiguousDepthBlanksOrWrongPrecisionStillReject() throws Exception {
+        for (String token : List.of("  1 4", " 10 4", " 0 40", "  0 ?")) {
+            byte[] row = put(put(firstRecord(), 45, 49, token), 60, 60, "1");
+            var result = parser.parse(row, context(row, "release-v1"));
+            assertEquals(1, result.rejectedCount(), token);
+            assertTrue(result.rejects().get(0).rejectReasonCodes().contains("INVALID_NUMBER"));
+        }
+        for (String precision : List.of(" ", "2", "3", "M", "9")) {
+            byte[] row = put(put(firstRecord(), 45, 49, "  0 4"), 60, 60, precision);
+            assertEquals(1, parser.parse(row, context(row, "release-v1")).rejectedCount(), precision);
+        }
+        // Do not relax identical internal blanks in any other numeric field.
+        byte[] row = put(firstRecord(), 18, 21, " 0 4");
+        assertEquals(1, parser.parse(row, context(row, "release-v1")).rejectedCount());
+    }
+
+    @Test
+    void allEighteenPinned2016DepthTokensHaveOfflineRegressionExpectations() throws Exception {
+        var fixture = new ObjectMapper().readTree(Files.readAllBytes(repositoryRoot()
+                .resolve("tests/fixtures/jma/depth-blank-2016-v1.json")));
+        assertEquals("2c438d8189fd9e76ac0b05c0587c7a8ee2611e6ecbf21d5a5bca7887dab360da", fixture.path("archive_sha256").asText());
+        assertEquals(18, fixture.path("records").size());
+        var locators = new java.util.HashSet<Integer>();
+        var hashes = new java.util.HashSet<String>();
+        for (var record : fixture.path("records")) {
+            assertTrue(locators.add(record.path("physical_line").asInt()));
+            assertTrue(hashes.add(record.path("record_sha256").asText()));
+            byte[] row = put(put(firstRecord(), 45, 49, record.path("native_depth_token").asText()),
+                    60, 60, record.path("location_precision").asText());
+            assertEquals(record.path("expected_depth_km").asDouble(), one(row).depthKm());
         }
     }
 

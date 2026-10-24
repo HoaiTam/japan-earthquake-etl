@@ -1,0 +1,191 @@
+{
+  "accepted_rows_by_utc_month": {
+    "2015-12": 153,
+    "2016-01": 10626,
+    "2016-02": 9464,
+    "2016-03": 10007,
+    "2016-04": 42821,
+    "2016-05": 39307,
+    "2016-06": 28669,
+    "2016-07": 27428,
+    "2016-08": 25829,
+    "2016-09": 23995,
+    "2016-10": 32940,
+    "2016-11": 32088,
+    "2016-12": 30160
+  },
+  "archive_bytes": 8221979,
+  "archive_sha256": "2c438d8189fd9e76ac0b05c0587c7a8ee2611e6ecbf21d5a5bca7887dab360da",
+  "counts": {
+    "missing_depth": 0,
+    "missing_magnitude": 5834,
+    "parser_accepted": 313487,
+    "parser_rejected": 0,
+    "parser_warning_rows": 18,
+    "physical_records": 313487,
+    "pre_mc_research_filter_rows": 307518,
+    "pre_window_mainshock_rows": 9
+  },
+  "counts_reconciled": true,
+  "coverage_verified": false,
+  "depth_blank_encoding_observations": [
+    {
+      "depth_km": 0.04,
+      "event_time_utc": "2016-04-18T02:49:24.820Z",
+      "location_precision": "1",
+      "native_depth_token": "  0 4",
+      "physical_line": 48748,
+      "record_sha256": "0b60a6e394e4eba3def8fc33ddfae5914c95343de8c039935afae9799f7a66e3"
+    },
+    {
+      "depth_km": 0.07,
+      "event_time_utc": "2016-04-19T07:17:50.690Z",
+      "location_precision": "1",
+      "native_depth_token": "  0 7",
+      "physical_line": 51517,
+      "record_sha256": "b7c9dfc208ac402fce2c49a1da5fa5c7490459404463da602fa2d9c1c921d0fc"
+    },
+    {
+      "depth_km": 0.08,
+      "event_time_utc": "2016-04-19T07:40:27.960Z",
+      "location_precision": "1",
+      "native_depth_token": "  0 8",
+      "physical_line": 51547,
+      "record_sha256": "eb9e63431e2b5783e3da2aa7fcd44521311705fc8b673da52d1449e9044c6f5b"
+    },
+    {
+      "depth_km": 0.08,
+      "event_time_utc": "2016-04-20T00:48:07.660Z",
+      "location_precision": "1",
+      "native_depth_token": "  0 8",
+      "physical_line": 53169,
+      "record_sha256": "0f6531671a6e6841d7e96d8457bdf1396a2d4b65eb7d28f9d4edcc7a4e27b50e"
+    },
+    {
+      "depth_km": 0.05,
+      "event_time_utc": "2016-04-21T12:39:41.870Z",
+      "location_precision": "1",
+      "native_depth_token": "  0 5",
+      "physical_line": 56315,
+      "record_sha256": "84690c5dc42519bb33d61d67fd4ca55be7c7f17777fb5292a834738b12b3ff69"
+    },
+    {
+      "depth_km": 0.05,
+      "event_time_utc": "2016-04-21T12:54:36.340Z",
+      "location_precision": "1",
+      "native_depth_token": "  0 5",
+      "physical_line": 56334,
+      "record_sha256": "10217a4a3f0eba8a2d5fc721c9b726f77ffccc8877e9572f6148c019d8e547ca"
+    },
+    {
+      "depth_km": 0.08,
+      "event_time_utc": "2016-04-23T08:48:13.340Z",
+      "location_precision": "1",
+      "native_depth_token": "  0 8",
+      "physical_line": 59815,
+      "record_sha256": "8bb44c17941de80fe360565c917236438c73efd394afef1d648d809d86ce50fe"
+    },
+    {
+      "depth_km": 0.02,
+      "event_time_utc": "2016-04-27T06:26:56.780Z",
+      "location_precision": "1",
+      "native_depth_token": "  0 2",
+      "physical_line": 67095,
+      "record_sha256": "8ffa144b5a4fd19922314449b0cd6af59430b4119beb543af36e9af1bdaad78a"
+    },
+    {
+      "depth_km": 0.06,
+      "event_time_utc": "2016-04-29T10:52:48.510Z",
+      "location_precision": "1",
+      "native_depth_token": "  0 6",
+      "physical_line": 70323,
+      "record_sha256": "b821b1e76d28ff49e1aa2a9bbfafeed64687ea5f85fecd56214782ac482daabf"
+    },
+    {
+      "depth_km": 0.03,
+      "event_time_utc": "2016-04-29T17:00:11.050Z",
+      "location_precision": "1",
+      "native_depth_token": "  0 3",
+      "physical_line": 70818,
+      "record_sha256": "4f9f1df71414979aec73941537fe8bdd84b3a4e1cf7d9cd7738a168dc5fc8fee"
+    },
+    {
+      "depth_km": 0.06,
+      "event_time_utc": "2016-05-06T19:10:28.480Z",
+      "location_precision": "1",
+      "native_depth_token": "  0 6",
+      "physical_line": 81649,
+      "record_sha256": "93277be042abffbdf44f80495cdf96bfad123357b45f3a9ee7e8417771b599ed"
+    },
+    {
+      "depth_km": 0.09,
+      "event_time_utc": "2016-05-07T11:11:58.390Z",
+      "location_precision": "1",
+      "native_depth_token": "  0 9",
+      "physical_line": 82582,
+      "record_sha256": "e031facb40c73a788387326008f73aa90d59fd34be1ee84625cf4f59b1d8555b"
+    },
+    {
+      "depth_km": 0.07,
+      "event_time_utc": "2016-05-11T12:48:06.930Z",
+      "location_precision": "1",
+      "native_depth_token": "  0 7",
+      "physical_line": 87718,
+      "record_sha256": "d8519c494c1b4483ed389d68490bd041acd34ead2e9d2fe3f6fb9b4f320f8c24"
+    },
+    {
+      "depth_km": 0.09,
+      "event_time_utc": "2016-05-13T11:18:30.430Z",
+      "location_precision": "1",
+      "native_depth_token": "  0 9",
+      "physical_line": 90069,
+      "record_sha256": "9806c8be6e6fdae9414b5244ce81fc04b76fb35347529889285d0d27cdc55fd0"
+    },
+    {
+      "depth_km": 0.08,
+      "event_time_utc": "2016-05-13T18:02:34.620Z",
+      "location_precision": "1",
+      "native_depth_token": "  0 8",
+      "physical_line": 90502,
+      "record_sha256": "58e570c8ce507e76d4fc08e6eb7b513ba3d7607916c71d7515344acd77d5e857"
+    },
+    {
+      "depth_km": 0.08,
+      "event_time_utc": "2016-06-29T03:03:55.170Z",
+      "location_precision": "1",
+      "native_depth_token": "  0 8",
+      "physical_line": 139439,
+      "record_sha256": "b8cef7fe1281f8993cbd104aea37726e816fa01a63262e0edc62896c32b29aa8"
+    },
+    {
+      "depth_km": 0.08,
+      "event_time_utc": "2016-07-01T22:18:28.010Z",
+      "location_precision": "1",
+      "native_depth_token": "  0 8",
+      "physical_line": 141981,
+      "record_sha256": "9811459cb36288b6a015bf6df819ed2a3dc0af9ca515920a2454917b6801980c"
+    },
+    {
+      "depth_km": 0.08,
+      "event_time_utc": "2016-07-16T14:12:55.200Z",
+      "location_precision": "1",
+      "native_depth_token": "  0 8",
+      "physical_line": 153900,
+      "record_sha256": "d0f00e50c2b4c37b7f22f298108db16eace61d12aaddcf8a0c4012dd9aa2124f"
+    }
+  ],
+  "first_accepted_event_utc": "2015-12-31T15:03:42.550Z",
+  "gold_published": false,
+  "last_accepted_event_utc": "2016-12-31T14:59:57.170Z",
+  "member": "h2016",
+  "member_bytes": 30408239,
+  "parser_rejection_reason_counts": {},
+  "parser_version": "slv-03-v1.2",
+  "profile_kind": "ENGINEERING_ONLY_NOT_COVERAGE_PROOF",
+  "profile_version": "dat03-local-archive-v2",
+  "rejected_record_diagnostics": [],
+  "research_ready": false,
+  "source_authenticity_verified": false,
+  "source_system": "JMA_BULLETIN",
+  "structural_validation": "PASSED"
+}

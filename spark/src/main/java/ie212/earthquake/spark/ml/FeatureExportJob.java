@@ -79,7 +79,7 @@ public final class FeatureExportJob {
             lease.run(); var audit = GoldInputAuditJob.runPinnedAudit(spark, original, GoldAuditConfig.fromManifest(original, run, "audit-report.json"), Instant.now());
             audit.assertReconciled(); require(audit.completenessResult().isReliable() && Double.isFinite(audit.mcApplied()), "DS_EXPORT_MC_UNRELIABLE");
             var windows = new MainshockWindowEngine().execute(audit.auditedEvents(), MainshockWindowJob.selectionConfig(original),
-                MainshockWindowJob.windowConfig(original), audit.mcApplied(), id, Instant.parse(original.path("created_at_utc").asText()));
+                MainshockWindowJob.windowConfig(original), audit.mcApplied(), id, Instant.parse(original.path("created_at_utc").asText()),WindowCoveragePolicy.fromManifest(original));
             windows.assertInvariants();
             var main = windows.mainshockSnapshot().cache();
             var features = new SpacetimeFeatureEngine().execute(main, windows.candidateSnapshot(), scaling); features.assertValid();
@@ -93,9 +93,11 @@ public final class FeatureExportJob {
                     require(!t.minusNanos(Math.round(row.getDouble(1) * 3_600_000_000.0) * 1000).isBefore(start)
                         && t.plusNanos(Math.round(row.getDouble(2) * 3_600_000_000.0) * 1000).isBefore(end), "DS_EXPORT_WINDOW_COVERAGE_INCOMPLETE");
                 }
-                String identity = digest(JSON.createObjectNode().put("dataset_id", id).put("identity_payload_sha256", original.path("identity_payload_sha256").asText())
+                var exportIdentity=JSON.createObjectNode().put("dataset_id", id).put("identity_payload_sha256", original.path("identity_payload_sha256").asText())
                     .put("scaling_sha256", digest(filter.path("feature_scaling_config"))).put("coverage_sha256", digest(coverage))
-                    .put("feature_content_sha256", quality.path("feature_content_sha256").asText()).put("feature_schema_sha256", quality.path("feature_schema_sha256").asText()));
+                    .put("feature_content_sha256", quality.path("feature_content_sha256").asText()).put("feature_schema_sha256", quality.path("feature_schema_sha256").asText());
+                if(!windows.windowCoverageReport().isEmpty()) exportIdentity.put("window_coverage_sha256",digest(windows.windowCoverageReport()));
+                String identity=digest(exportIdentity);
                 long mainPin = FeatureSnapshotWriter.commit(main, ns + ".mainshock_candidate_snapshot", id, identity, lease);
                 long candidatePin = FeatureSnapshotWriter.commit(selected, ns + ".sequence_candidate_snapshot", id, identity, lease);
                 verifyPin(sql, ns + ".mainshock_candidate_snapshot", mainPin, id, identity, main.count());
@@ -122,6 +124,7 @@ public final class FeatureExportJob {
                 validated.set("feature_schema", quality.path("feature_schema")); validated.set("vector_columns", JSON.valueToTree(SpacetimeFeatureEngine.VECTOR));
                 validated.set("coverage", coverage); validated.set("scaling_config", filter.path("feature_scaling_config"));
                 validated.set("feature_content_sha256", quality.path("feature_content_sha256"));
+                if(!windows.windowCoverageReport().isEmpty()) validated.set("window_coverage",windows.windowCoverageReport().deepCopy());
                 validated.put("export_artifact_uri", "ml-export/dataset_id=" + id + "/");
                 var candidates = validated.putArray("candidates");
                 var pinned = FeatureSnapshotWriter.read(spark, ns + ".sequence_candidate_snapshot", candidatePin, id);

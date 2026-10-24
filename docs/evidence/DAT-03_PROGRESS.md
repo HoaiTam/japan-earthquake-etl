@@ -2,13 +2,19 @@
 
 Branch `feat/dat-03-research-dataset-handoff` từ origin/main `bc0ce9e` (#98).
 Assignee HoaiTam, reviewer unassigned. **In Progress**. Phần pilot/profile đã
-được owner commit `49d1784`, push lên [PR #99](https://github.com/HoaiTam/japan-earthquake-etl/pull/99).
+được owner commit, HEAD khi tiếp tục `6356a44`, trên [PR #99](https://github.com/HoaiTam/japan-earthquake-etl/pull/99).
 Phần kỹ thuật tiếp theo ở working tree, chưa tự commit/push.
 Owner chọn gửi pilot thật dùng trước trong lúc chuẩn bị full research catalog.
 Owner xác nhận hai thành viên chưa chạy verifier và yêu cầu tiếp tục kỹ thuật;
 chốt strict split, loại window thiếu PRE/POST coverage và báo chi tiết từng mainshock.
 
 ## Cập nhật kỹ thuật tiếp theo
+
+[Kết quả mới nhất bước 1/2](./DAT-03_RESEARCH_PROFILE_ACCEPTANCE.md): parser
+v1.2 sửa đúng 18 token có fixture/hash và warning; đủ 25 archive2000–2024,
+4.793.337 accepted/0 parser rejects, có RSS/timing/source pins và nguồn biên
+2024. Kế hoạch batch từng tháng đã ghi; chưa full ETL capacity hoặc research
+acceptance. Những profile/runner số đo dưới đây giữ là lịch sử trước đợt này.
 
 [Evidence scoped replay / strict-split / resource](./DAT-03_TECHNICAL_PROGRESS.md)
 ghi chi tiết implementation, 60 test nhóm mới/consumer, reader probe 2011 thật
@@ -21,9 +27,10 @@ giai đoạn pilot/profile đầu, không phải thông báo mọi gate mới đ
   report hash trong export identity; default legacy không thay.
 - [2011 reader probe](./DAT-03_JMA_2011_REPLAY_PROFILE.json) cho thấy tháng 3/4
   riêng đạt 56.015/57.044 rows (có halo), gộp bị guard 100k chặn như thiết kế.
-- [2016 profile](./DAT-03_JMA_2016_PROFILE.json): 313.487 physical, 18 rejects
-  `INVALID_NUMBER` ở depth. Chưa diễn giải blank nội bộ hoặc sửa parser. Không
-  bỏ dòng để rollout; đây là blocker DAT-03 trước full research backfill.
+- [2016 profile cũ](./DAT-03_JMA_2016_PROFILE.json): 313.487 physical, 18 rejects
+  `INVALID_NUMBER` ở depth; giữ làm baseline trước sửa. Bản
+  [v1.2](./DAT-03_JMA_2016_PROFILE_V12.json) giữ đủ 313.487 accepted, 0 rejects,
+  18 warning rows, archive SHA không đổi. Không sửa evidence cũ thành PASS.
 - Chưa có research collection/sharding, full 225+63 months, real research
   MLI-02 export hoặc receipt hai máy thành viên. Pilot kit/pins vẫn nguyên.
 
@@ -92,9 +99,10 @@ Kết quả có rows tháng 12 UTC năm trước vì native JST; không gọi l�
 
 ## Chưa hoàn tất / next work DAT-03
 
-- Đã profile thêm 2011; còn đo Spark/joins/memory/disk và ước lượng lại effort.
-- Scoped replay/strict-split đã có code/test; còn real runtime/resource,
-  depth token 2016, source UTC/JST biên và collection/sharding theo DAT-03.
+- Đủ archive profiles/biên và parser depth fix; còn đo Spark/joins/lake/export
+  memory/disk/ETA và ước lượng lại effort từ actual E2E.
+- Scoped replay/strict-split có code/test; còn real runtime/source proofs,
+  overlay inventory 2024 trong runtime và collection/sharding theo DAT-03.
 - Backfill thật 225 + 63 tháng; Gold coverage/quality/Trino và real MLI-02 export.
 - Release nghiên cứu và đủ receipt ba máy. Estimate 16h ban đầu, không SLA.
 - EXP-02/03 official fit/evidence, EXP-04/05 scientific evaluation, MLI-04/MLQ-01

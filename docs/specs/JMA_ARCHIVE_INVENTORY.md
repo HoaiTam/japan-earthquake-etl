@@ -38,6 +38,25 @@ Baseline là dải cố định, không phải rolling window. Khi JMA xuất b�
 việc append cần một thay đổi inventory được review; không tự bỏ năm 1984 để
 duy trì con số “40 năm”.
 
+### DAT-03: inventory bổ sung nguồn biên, không đổi baseline
+
+[research_boundary_archives_v1.csv](../../config/jma/research_boundary_archives_v1.csv)
+version `dat03-boundary-1.0` khóa **riêng h2024.zip**, member h2024, native năm
+JST 2024. URL có trên index chính thức; HEAD/GET ngày 24/10/2026: HTTP200,
+8.197.026 bytes, Last-Modified `2026-09-03T01:45:34Z`. SHA/release và profile
+trong [evidence DAT-03](../evidence/DAT-03_RESEARCH_ARCHIVE_PROFILES.json).
+
+V1 40 năm/41 archive giữ nguyên bytes/default. Overlay là input **tường minh**
+cho DAT-03 để phủ `[2023-12-31T15:00Z,2024-01-01T00:00Z)` và source-link halo,
+không đưa event ngoài split vào ML. Capture ZIP nguyên bản; không cắt ZIP
+trước Bronze hoặc scrape HTML thành rows. Profile phát hiện 186 accepted rows
+của h2024 thuộc 2023-12 UTC; đó không phải completeness/Gold proof.
+
+Control plane profile đọc cả hai inventory, nhưng deployment/ingest/resolver
+vẫn mặc định **chỉ v1**: chưa nối overlay vào runtime và chưa BronzeReady cho
+captures mới. DAT-03 phải pin combined inventory/source receipts rõ ràng ở
+actual rollout; không dùng h2023 thay nguồn biên hoặc nâng cờ complete tự khai.
+
 ## 2. Inventory máy đọc được
 
 File chuẩn là

@@ -112,6 +112,13 @@ ngày 22/10/2026 thấy đã có link năm 2024; inventory project vẫn giữ 2
 Nhóm có thể append sau review/release pin nhưng không tự bỏ năm đầu để vẫn
 giữ đúng “40 năm”, và không suy có link năm mới là có daily data năm 2026.
 
+DAT-03 có overlay tường minh
+[research_boundary_archives_v1.csv](../../config/jma/research_boundary_archives_v1.csv)
+cho h2024, version `dat03-boundary-1.0`, chỉ phục vụ biên/halo của EXTENSION
+UTC kết thúc `2024-01-01T00:00Z`. [Inventory contract](./JMA_ARCHIVE_INVENTORY.md)
+giữ nguyên v1/baseline; không kéo dài ML split hoặc đổi default deployment.
+Capture/profile local không thay BronzeReady/COMPLETE_MONTHS hay Gold Published.
+
 [Thiết kế current-month/as-of-cutoff](./CURRENT_MONTH_AS_OF_CUTOFF.md) của QA-01
 tách operational USGS 2026 (`OBSERVED_AS_OF/PROVISIONAL`) khỏi baseline JMA và
 research completeness. Planner vẫn **DESIGN_ONLY**; [Source/Silver component](../runbooks/CURRENT_MONTH_SOURCE_SILVER.md)

@@ -24,15 +24,46 @@ MLI-02 đã được nghiệm thu live. DAT-02 giữ development-only lifecycle 
 4. Audit thực sự trên pinned Gold, Mc reliable/finite; filters, window,
    selection và feature_scaling_config nằm trong identity filter_config_json.
    Hai version feature/scaling phải khớp manifest. Không đổi scale sau dataset_id.
-5. Không clip window ở biên period rồi nhận COMPLETE. Window vượt period
-   dừng DS_EXPORT_WINDOW_COVERAGE_INCOMPLETE; chính sách mở rộng cần task/contract
-   riêng nếu muốn cho phép đọc candidates ngoài period.
+5. Không clip window ở biên period rồi nhận COMPLETE. Không cấu hình policy
+   mới thì giữ legacy: window vượt period dừng DS_EXPORT_WINDOW_COVERAGE_INCOMPLETE.
+   DAT-03 có opt-in strict-split, loại window có giải trình như phần dưới;
+   không cho phép đọc candidates ngoài period.
 6. Shared engine kiểm ID/grain, mainshock presence/zero-self, role, raw units,
    Mc, finite feature/scale, per-window resource limits và count reconciliation.
    So feature đã tính với kết quả recompute; không silently drop invalid rows.
 
 V1 bounded: tối đa 100.000 feature rows/dataset và 128 mainshock. Vượt giới hạn
 dừng, không sample/truncate. Đây không là benchmark hay cam kết xử lý toàn catalog.
+
+## DAT-03 — Strict split và loại window thiếu coverage
+
+Owner chốt ngày 24/10/2026: thêm `filter_config.window_coverage_policy` bằng
+`dat03-strict-split-v1`. Field này tham gia dataset identity, không tái sử dụng
+dataset ID/export của legacy. Giá trị sai/null/boolean bị reject, không fallback.
+Không sửa các window-model version hoặc thông số/caps đã pin của reproduction.
+
+- Chọn mainshock theo audit/Mc/selection cũ, tính **nguyên** PRE/POST bằng shared
+  resolver. Chỉ giữ mainshock có `window_start >= period_start` và
+  `window_end < period_end_exclusive`. Window endpoints inclusive, nên POST
+  đúng period end vẫn thiếu coverage; equality ở start và end-1µs hợp lệ.
+- Loại **cửa sổ**, không xóa event khỏi Gold/audited candidate corpus. Event bị
+  loại làm mainshock vẫn có thể là PRE/POST candidate của window hoàn chỉnh khác.
+  Không mượn extension cho reproduction hoặc cắt ngắn duration để pass.
+- `window_coverage` chứa policy/split/period, eligible/included/excluded counts,
+  `reason_counts` và từng `mainshock_event_id`, event time, required start/end,
+  reason `PRE_OUTSIDE_SPLIT`, `POST_OUTSIDE_SPLIT` hoặc `PRE_AND_POST_OUTSIDE_SPLIT`.
+  Counts phải reconcile, IDs unique, lý do phải khớp biên thời gian thật.
+  Report metadata tối đa 4096 exclusions, vượt thì fail, không truncate.
+- MLD-03 report/readback, MLI-02 window/feature phases và MLD-05 recompute dùng
+  cùng policy. MLI-02 receipt chỉ mang count/hash bounded; bundle/trusted manifest
+  mang chi tiết. SHA report tham gia export identity; verifier kiểm semantics,
+  period/count và identity nên xóa report rồi rehash files không hợp lệ.
+- Tất cả window bị loại → report rõ included=0; official export vẫn bị guard
+  nonempty chặn, không tạo self window hoặc EXPORTED rỗng cho qua.
+- Đây không là missing-source repair: coverage đầy đủ 225/63 tháng vẫn bắt
+  buộc trước build. Không biến PARTIAL pilot thành research data. DAT-03 còn
+  thiết kế/triển khai collection/sharding và full-period runtime; cap 128/100k
+  của mỗi export **chưa** được mở rộng.
 
 ## Snapshot và lifecycle
 

@@ -16,6 +16,10 @@ public final class FullMonthContract {
     public static final ObjectMapper JSON = new ObjectMapper().enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION)
             .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
     public static final String VERSION = "orc-06-v1";
+    /** Opt-in bounded replay: verify every pin, retain descriptors, parse only affected JMA months. */
+    public static final String SCOPED_VERSION = "orc-06-v2";
+    public static boolean supportedVersion(String version) { return Set.of(VERSION, SCOPED_VERSION).contains(version); }
+    public static boolean scopedReplay(JsonNode request) { return SCOPED_VERSION.equals(request.path("resolver_version").asText()); }
     public static final Instant USGS_START = Instant.parse("2023-01-01T00:00:00Z");
     public static final int MAX_ROWS = 100_000;
     public static final long HALO_SECONDS = (long)Math.ceil(SilverLinkConfig.DEFAULT_MAX_TIME_DELTA_SECONDS);
@@ -88,7 +92,7 @@ public final class FullMonthContract {
         return key;
     }
     public static void validate(JsonNode request) throws IOException {
-        require(request.isObject() && VERSION.equals(request.path("resolver_version").asText()), "RESOLVER_VERSION_REQUIRED");
+        require(request.isObject() && supportedVersion(request.path("resolver_version").asText()), "RESOLVER_VERSION_REQUIRED");
         var allowed = Set.of("resolver_version", "run_id", "dag_id", "processed_at_utc", "source_cutoff_utc",
                 "target_months", "namespace", "config_version", "code_version", "baseline_snapshots", "baseline", "bronze_inputs");
         var fields = request.fieldNames(); while (fields.hasNext()) require(allowed.contains(fields.next()), "UNKNOWN_REQUEST_FIELD");

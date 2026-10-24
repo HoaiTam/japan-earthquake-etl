@@ -140,4 +140,33 @@ class FeatureExportBundleTest {
         assertEquals(2,exported.path("parts").size());
         assertEquals(10001,FeatureExportBundle.verify(spark,temporary.resolve("dataset_id="+ID)).path("feature_row_count").asInt());
     }
+    @Test void strictExclusionReportIsBoundToExportIdentityAndCannotBeDroppedAfterRehash() throws Exception {
+        var m=manifest().put("identity_payload_sha256",SHA).put("dataset_split","REPRODUCTION")
+                .put("period_start_utc",MainshockSelectionConfig.REPRODUCTION_START.toString())
+                .put("period_end_utc_exclusive",MainshockSelectionConfig.REPRODUCTION_END.toString());
+        var filter=FeatureExportBundle.JSON.createObjectNode().put("window_coverage_policy",WindowCoveragePolicy.STRICT);
+        var scalingJson=FeatureExportBundle.JSON.createObjectNode().put("feature_version",scaling.featureVersion())
+                .put("scaling_config_version",scaling.scalingConfigVersion()).put("mode",scaling.mode()).put("space_scale_km",scaling.spaceScaleKm())
+                .put("depth_scale_km",scaling.depthScaleKm()).put("time_scale_hours",scaling.timeScaleHours())
+                .put("max_candidates_per_window",scaling.maxCandidatesPerWindow()).put("coordinate_tolerance_km",scaling.coordinateToleranceKm())
+                .put("time_tolerance_hours",scaling.timeToleranceHours());
+        filter.set("feature_scaling_config",scalingJson); m.put("filter_config_json",filter.toString());
+        var report=FeatureExportBundle.JSON.createObjectNode().put("policy_version",WindowCoveragePolicy.STRICT)
+                .put("dataset_split","REPRODUCTION").put("period_start_utc",MainshockSelectionConfig.REPRODUCTION_START.toString())
+                .put("period_end_utc_exclusive",MainshockSelectionConfig.REPRODUCTION_END.toString()).put("eligible_mainshock_count",1)
+                .put("included_mainshock_count",1).put("excluded_mainshock_count",0).put("windows_clipped",false).put("cross_split_data_used",false);
+        report.putArray("excluded_mainshocks"); report.putObject("reason_counts"); m.set("window_coverage",report); m.putArray("coverage");
+        var identity=FeatureExportBundle.JSON.createObjectNode();
+        for(String key:List.of("dataset_id","identity_payload_sha256","feature_content_sha256","feature_schema_sha256")) identity.set(key,m.path(key));
+        identity.put("scaling_sha256",FeatureExportBundle.digest(filter.path("feature_scaling_config")))
+                .put("coverage_sha256",FeatureExportBundle.digest(m.path("coverage"))).put("window_coverage_sha256",FeatureExportBundle.digest(report));
+        m.put("export_identity_sha256",FeatureExportBundle.digest(identity));
+        FeatureExportBundle.materialize(features,m,temporary); Path dir=temporary.resolve("dataset_id="+ID);
+        var changed=(ObjectNode)FeatureExportBundle.JSON.readTree(Files.readAllBytes(dir.resolve("dataset_manifest.json")));
+        changed.remove("window_coverage"); Files.write(dir.resolve("dataset_manifest.json"),FeatureExportBundle.bytes(changed));
+        var index=FeatureExportBundle.index(dir.resolve("checksums.sha256")); index.put("dataset_manifest.json",WindowArtifactInput.sha(dir.resolve("dataset_manifest.json")));
+        var text=new StringBuilder(); index.forEach((name,hash)->text.append(hash).append("  ").append(name).append('\n'));
+        Files.writeString(dir.resolve("checksums.sha256"),text);
+        assertThrows(IllegalArgumentException.class,()->FeatureExportBundle.verify(spark,dir));
+    }
 }

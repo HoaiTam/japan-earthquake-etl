@@ -73,6 +73,10 @@ EXP-02 PASSED. QA-04 từng dời tuần 6 ở mốc cũ, nay đưa lại tuần
 không giảm scope recovery. Ngày 24/10 thêm DAT-03, 16h estimate ban đầu ở tuần 6:
 77 task/402h, không cộng lại vào budget tuần 5. DAT-03 còn In Progress cho
 catalog thật và receipts ba người; pilot dùng ngay không thay research acceptance.
+DAT-03 bước 1/2 ngày 24/10: parser v1.2 giữ đủ 18 depth records; profile 25
+archive có 4.793.337 accepted/0 parser rejects, overlay 2024 chỉ nguồn biên.
+[Evidence](../../evidence/DAT-03_RESEARCH_PROFILE_ACCEPTANCE.md) không thay
+full Spark/Gold/Trino/MLI export hoặc capacity acceptance; task vẫn In Progress.
 Ready chỉ khi hard dependencies Done; Backlog được làm fixture/interface trước,
 không dùng mock/pilot chưa đủ coverage làm evidence nghiệm thu thật.
 

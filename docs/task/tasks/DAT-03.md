@@ -58,10 +58,15 @@ PARTIAL thay full research data.
 
 - [x] Giai đoạn dùng trước: kit pilot thật đã verify/giải nén độc lập trên máy owner;
   giữ PARTIAL/development-only, chờ hai người nhận tự gửi receipt.
-- [x] Profile đầu vào h2000/h2011/h2023 bằng shared Java parser; metadata evidence đã lưu.
-  Bổ sung h2016: 18 depth token rejects; [evidence kỹ thuật](../../evidence/DAT-03_TECHNICAL_PROGRESS.md)
-  và reader probe 2011 đã lưu, không coi là source/quality gate full catalog.
-- [ ] Profile archive thật, ước lượng dung lượng/runtime và chốt rollout an toàn.
+- [x] Profile đủ 25 archive h2000–h2024 bằng shared Java parser v1.2, pin SHA/
+  headers/release và metadata: 4.793.337 accepted, 0 parser rejects, 18 warnings.
+  [Bước 1/2](../../evidence/DAT-03_RESEARCH_PROFILE_ACCEPTANCE.md) xử lý đủ 18
+  depth tokens năm 2016 có fixture/version; profile không là quality/source gate.
+- [x] Đo compressed/member bytes, parser runtime/peak RSS và lập
+  [kế hoạch batch/UTC boundary](../../runbooks/DAT-03_RESEARCH_PROFILING.md).
+  Overlay 2024 đã capture/profile, không đổi default baseline hoặc ML split.
+- [ ] Đo capacity/ETA thực của Spark/joins/lake/export và duyệt rollout full kỳ;
+  chưa suy 51 giây parser scan hoặc ~9,8 GiB disk trống thành budget full ETL.
 - [ ] Resource/boundary policies được kiểm trên dữ liệu thật; không silent sampling.
   Đã triển khai opt-in resolver `orc-06-v2` và `dat03-strict-split-v1` trong nhánh
   PR #99; regression/reader profile không thay full-period runtime acceptance.
@@ -99,8 +104,9 @@ release đủ gate. Không tạo dependency ngược từ DAT-03 sang EXP-02.
 - **Reviewer:** unassigned
 - **Evidence / PR:** [DAT-03 progress](../../evidence/DAT-03_PROGRESS.md). Branch
   `feat/dat-03-research-dataset-handoff` từ main `bc0ce9e` (PR #98).
-  [PR #99](https://github.com/HoaiTam/japan-earthquake-etl/pull/99), commit phần
-  pilot/profile `49d1784`; phần kỹ thuật tiếp theo đang sửa local, chưa push.
+  [PR #99](https://github.com/HoaiTam/japan-earthquake-etl/pull/99), HEAD khi
+  tiếp tục `6356a44` (pilot/profile); scoped replay/strict split và bước 1/2
+  parser/archive preparation tiếp theo đang sửa local, chưa tự commit/push.
   Chưa có reviewer approval, full research hoặc ba máy acceptance. ThanhTris và
   rosy179 chưa chạy verifier theo xác nhận owner; tiếp tục phần kỹ thuật độc lập.
 
@@ -109,4 +115,6 @@ release đủ gate. Không tạo dependency ngược từ DAT-03 sang EXP-02.
 - [Source coverage](../../specs/SOURCE_COVERAGE.md), [baseline](../../specs/MVP_SCOPE_KPI_AND_DOD.md).
 - [Full-month state](../../specs/FULL_MONTH_STATE_CONTRACT.md), [feature/export](../../specs/FEATURE_EXPORT.md).
 - [MLI-02](../../runbooks/MLI-02_DATASET_BUILD.md), [DAT-02](./DAT-02.md).
+- [Profile/rollout](../../runbooks/DAT-03_RESEARCH_PROFILING.md),
+  [kết quả bước 1/2](../../evidence/DAT-03_RESEARCH_PROFILE_ACCEPTANCE.md).
 - [SEC-01](./SEC-01.md), [EXP-02](./EXP-02.md), [EXP-03](./EXP-03.md).

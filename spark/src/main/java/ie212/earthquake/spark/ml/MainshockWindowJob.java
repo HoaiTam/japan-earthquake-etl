@@ -57,14 +57,14 @@ public final class MainshockWindowJob {
             var audit = GoldInputAuditJob.runPinnedAudit(spark, manifest, GoldAuditConfig.fromManifest(manifest, run, "audit-report.json"), Instant.now());
             validateHandoff(manifest, handoff, audit);
             var result = run(audit.auditedEvents(), selection, window, audit.mcApplied(), manifest.path("dataset_id").asText(),
-                Instant.parse(request.path("created_at_utc").asText()), root.resolve("windows").toString());
+                Instant.parse(request.path("created_at_utc").asText()), root.resolve("windows").toString(),WindowCoveragePolicy.fromManifest(manifest));
             var main = spark.read().parquet(root.resolve("windows/mainshock_candidate_snapshot.parquet").toString());
             var candidates = spark.read().parquet(root.resolve("windows/sequence_candidate_snapshot.parquet").toString());
             // Validate READBACK content, not only lazy in-memory outputs or file counts.
             var readback = new MainshockWindowResult(main, candidates, result.mainshockCount(), result.totalCandidateRowCount(),
                 result.distinctCandidateEventCount(), result.candidatesPerWindow(), result.nestedMainshocksPerWindow(),
                 result.resourceGuardStatusPerWindow(), result.flaggedWindowCount(), result.rejectedWindowCount(), result.datasetId(),
-                selection, window, result.mcApplied(), result.createdAtUtc());
+                selection, window, result.mcApplied(), result.createdAtUtc()).withCoverage(result.windowCoverageReport());
             readback.assertInvariants();
             String mainSha = fingerprint(main), candidateSha = fingerprint(candidates);
             if (!mainSha.equals(fingerprint(result.mainshockSnapshot())) || !candidateSha.equals(fingerprint(result.candidateSnapshot())))
@@ -168,6 +168,10 @@ public final class MainshockWindowJob {
             Instant createdAtUtc,
             String outputDir
     ) throws IOException {
+        return run(auditedEvents,selectionConfig,windowConfig,mcValue,datasetId,createdAtUtc,outputDir,WindowCoveragePolicy.LEGACY);
+    }
+    public static MainshockWindowResult run(Dataset<Row> auditedEvents,MainshockSelectionConfig selectionConfig,
+            WindowModelConfig windowConfig,double mcValue,String datasetId,Instant createdAtUtc,String outputDir,String coveragePolicy) throws IOException {
         File out = outputDir == null || outputDir.isBlank() ? null : new File(outputDir);
         if (out != null) {
             Files.createDirectories(out.toPath());
@@ -177,7 +181,7 @@ public final class MainshockWindowJob {
         }
         MainshockWindowEngine engine = new MainshockWindowEngine();
         MainshockWindowResult result = engine.execute(
-                auditedEvents, selectionConfig, windowConfig, mcValue, datasetId, createdAtUtc
+                auditedEvents, selectionConfig, windowConfig, mcValue, datasetId, createdAtUtc,coveragePolicy
         );
 
         // Verify all invariants programmatically

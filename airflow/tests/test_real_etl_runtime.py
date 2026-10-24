@@ -39,6 +39,18 @@ class RealEtlRuntimeTest(unittest.TestCase):
         if phase == "publish": receipt.update(published=True, publication_id="pub_" + "b" * 64, publication_status="Published")
         return receipt
 
+    def test_scoped_resolver_is_explicit_and_unknown_versions_still_fail(self):
+        context = deepcopy(self.context)
+        self.assertEqual("orc-06-v1", context["resolver_request"]["resolver_version"])
+        for version in ("orc-06-v2", "orc-06-v3", ["orc-06-v2"]):
+            context["resolver_request"]["resolver_version"] = version
+            context["context_sha256"] = runtime.digest({k: v for k, v in context.items() if k != "context_sha256"})
+            if version == "orc-06-v2":
+                runtime.validate_context(context)
+            else:
+                with self.assertRaisesRegex(RuntimeError, "EXACT_RESOLVER_FIELDS_REQUIRED"):
+                    runtime.validate_context(context)
+
     def test_complete_chain_persists_every_phase_then_releases_only_exact_owner(self):
         with patch.object(runtime, "invoke", side_effect=self.result) as child:
             summary = runtime.execute(self.context, self.env)
