@@ -24,6 +24,34 @@ public final class DatasetManifestWriter {
         if (!goldNamespace.split("\\.")[0].equals(mlNamespace.split("\\.")[0]) || goldNamespace.equals(mlNamespace)
                 || publicationId == null || !publicationId.matches("pub_[a-f0-9]{64}"))
             throw new IllegalArgumentException("DS_EXACT_PUBLICATION_REQUIRED");
+        var publication = resolvePublication(goldNamespace, publicationId);
+        var plan = new DatasetIdentityPlan(publication, config, run, now);
+        var manifest = plan.manifest(); String table = mlNamespace + ".dataset_manifest";
+        lease.run(); sql.execute("CREATE SCHEMA IF NOT EXISTS " + mlNamespace);
+        lease.run(); sql.execute("CREATE TABLE IF NOT EXISTS " + table + " (" + ddl() + ") WITH (format='PARQUET',format_version=2)");
+        var existing = records(sql.execute("SELECT * FROM " + table + " WHERE dataset_id=" + quote(manifest.path("dataset_id").asText())));
+        if (existing.size() > 1) throw new IOException("DS_DUPLICATE_IDENTITY");
+        if (existing.isEmpty()) {
+            var columns = new ArrayList<String>(); var values = new ArrayList<String>();
+            manifest.fields().forEachRemaining(field -> {
+                columns.add(field.getKey()); JsonNode value = field.getValue();
+                values.add(value.isIntegralNumber() ? value.asText() : field.getKey().endsWith("_utc")
+                    || field.getKey().equals("period_end_utc_exclusive") ? "from_iso8601_timestamp(" + quote(value.asText()) + ")" : quote(value.asText()));
+            });
+            lease.run(); sql.execute("INSERT INTO " + table + " (" + String.join(",", columns) + ") VALUES (" + String.join(",", values) + ")");
+            existing = records(sql.execute("SELECT * FROM " + table + " WHERE dataset_id=" + quote(manifest.path("dataset_id").asText())));
+        }
+        if (existing.size() != 1) throw new IOException("DS_MANIFEST_READBACK_FAILED");
+        plan.assertRerun(existing.get(0));
+        return existing.get(0); // Preserve original run/timestamps and advanced lifecycle on rerun.
+    }
+
+    /** Read-only publication/physical-snapshot gate, also used before a build DAG creates its manifest. */
+    public ObjectNode resolvePublication(String goldNamespace, String publicationId) throws Exception {
+        namespace(goldNamespace);
+        ie212.earthquake.spark.gold.OperationalGoldPolicy.researchOnly(goldNamespace);
+        if (publicationId == null || !publicationId.matches("pub_[a-f0-9]{64}"))
+            throw new IllegalArgumentException("DS_EXACT_PUBLICATION_REQUIRED");
         lease.run();
         var rows = records(sql.execute("SELECT snapshot_id,gold_table_name,physical_gold_table_name,publication_id,"
             + "verify_status,bundle_sha256,snapshot_bundle_json FROM " + goldNamespace
@@ -57,25 +85,7 @@ public final class DatasetManifestWriter {
         publication.set("gold_table_name", row.path("gold_table_name"));
         publication.set("physical_gold_table_name", row.path("physical_gold_table_name"));
         publication.put("gold_publication_id", publicationId); publication.set("publication_bundle_sha256", row.path("bundle_sha256"));
-        var plan = new DatasetIdentityPlan(publication, config, run, now);
-        var manifest = plan.manifest(); String table = mlNamespace + ".dataset_manifest";
-        lease.run(); sql.execute("CREATE SCHEMA IF NOT EXISTS " + mlNamespace);
-        lease.run(); sql.execute("CREATE TABLE IF NOT EXISTS " + table + " (" + ddl() + ") WITH (format='PARQUET',format_version=2)");
-        var existing = records(sql.execute("SELECT * FROM " + table + " WHERE dataset_id=" + quote(manifest.path("dataset_id").asText())));
-        if (existing.size() > 1) throw new IOException("DS_DUPLICATE_IDENTITY");
-        if (existing.isEmpty()) {
-            var columns = new ArrayList<String>(); var values = new ArrayList<String>();
-            manifest.fields().forEachRemaining(field -> {
-                columns.add(field.getKey()); JsonNode value = field.getValue();
-                values.add(value.isIntegralNumber() ? value.asText() : field.getKey().endsWith("_utc")
-                    || field.getKey().equals("period_end_utc_exclusive") ? "from_iso8601_timestamp(" + quote(value.asText()) + ")" : quote(value.asText()));
-            });
-            lease.run(); sql.execute("INSERT INTO " + table + " (" + String.join(",", columns) + ") VALUES (" + String.join(",", values) + ")");
-            existing = records(sql.execute("SELECT * FROM " + table + " WHERE dataset_id=" + quote(manifest.path("dataset_id").asText())));
-        }
-        if (existing.size() != 1) throw new IOException("DS_MANIFEST_READBACK_FAILED");
-        plan.assertRerun(existing.get(0));
-        return existing.get(0); // Preserve original run/timestamps and advanced lifecycle on rerun.
+        return publication;
     }
     public static String pinnedGoldSql(JsonNode manifest) {
         String table = manifest.path("physical_gold_table_name").asText();

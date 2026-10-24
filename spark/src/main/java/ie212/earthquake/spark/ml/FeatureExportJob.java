@@ -49,6 +49,15 @@ public final class FeatureExportJob {
     }
     public static ObjectNode export(SparkSession spark, GoldPublisher.Sql sql, SilverObjectStore store,
             String ns, String id, String run, Path output, Path registry, Runnable lease) throws Exception {
+        return execute(spark, sql, store, ns, id, run, output, registry, lease, false);
+    }
+    /** Validate and commit feature pins, but do not materialize a bundle or mark EXPORTED. */
+    public static ObjectNode prepare(SparkSession spark, GoldPublisher.Sql sql, SilverObjectStore store,
+            String ns, String id, String run, Path output, Path registry, Runnable lease) throws Exception {
+        return execute(spark, sql, store, ns, id, run, output, registry, lease, true);
+    }
+    private static ObjectNode execute(SparkSession spark, GoldPublisher.Sql sql, SilverObjectStore store,
+            String ns, String id, String run, Path output, Path registry, Runnable lease, boolean validateOnly) throws Exception {
         require(ns.matches("[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*") && id.matches("ds_[a-f0-9]{64}")
             && run.matches("[A-Za-z0-9][A-Za-z0-9_-]{0,127}"), "DS_EXPORT_EXACT_REQUEST_REQUIRED");
         lease.run(); JsonNode original = manifest(sql, ns, id); DatasetManifestWriter.pinnedGoldSql(original);
@@ -106,6 +115,10 @@ public final class FeatureExportJob {
                 var validated = (ObjectNode)manifest(sql, ns, id).deepCopy();
                 require(identity.equals(validated.path("export_identity_sha256").asText()) && validated.path("candidate_snapshot_id").asLong() == candidatePin
                     && validated.path("mainshock_snapshot_id").asLong() == mainPin, "DS_EXPORT_VALIDATED_PIN_CONFLICT");
+                if (validateOnly) return JSON.createObjectNode().put("status", "FEATURE_SNAPSHOT_VALIDATED").put("dataset_id", id)
+                    .put("feature_row_count", selected.count()).put("candidate_row_count", selected.count()).put("mainshock_count", main.count())
+                    .put("mainshock_snapshot_id", Long.toString(mainPin)).put("candidate_snapshot_id", Long.toString(candidatePin))
+                    .put("invalid_feature_count", 0).put("quality_gate_status", "PASSED").put("exported", false);
                 validated.set("feature_schema", quality.path("feature_schema")); validated.set("vector_columns", JSON.valueToTree(SpacetimeFeatureEngine.VECTOR));
                 validated.set("coverage", coverage); validated.set("scaling_config", filter.path("feature_scaling_config"));
                 validated.set("feature_content_sha256", quality.path("feature_content_sha256"));
@@ -151,8 +164,9 @@ public final class FeatureExportJob {
         Path indexDir = safeRoot(trustedRoot.resolve("exports").resolve(id));
         immutable(indexDir.resolve("export-checksums.sha256"), Files.readAllBytes(target.resolve("export-checksums.sha256")));
         immutable(trustedRoot.resolve(id + ".json"), bytes(trusted));
-        return JSON.createObjectNode().put("task", "MLD-05").put("status", "DATASET_EXPORTED").put("dataset_id", id)
+        return JSON.createObjectNode().put("task", "MLD-05").put("status", validateOnly ? "FEATURE_SNAPSHOT_VALIDATED" : "DATASET_EXPORTED").put("dataset_id", id)
             .put("feature_row_count", current.path("feature_row_count").asLong()).put("mainshock_count", current.path("mainshock_count").asLong())
+            .put("candidate_row_count", current.path("feature_row_count").asLong()).put("invalid_feature_count", 0).put("quality_gate_status", "PASSED")
             .put("registry_snapshot_id", Long.toString(registryPin)).put("candidate_snapshot_id", Long.toString(candidatePin)).put("mainshock_snapshot_id", Long.toString(mainPin))
             .put("dataset_manifest_ref", id + ".json").put("dataset_manifest_sha256", WindowArtifactInput.sha(trustedRoot.resolve(id + ".json")))
             .put("bundle_manifest_sha256", WindowArtifactInput.sha(target.resolve("dataset_manifest.json")))

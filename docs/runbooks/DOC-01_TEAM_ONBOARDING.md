@@ -164,8 +164,9 @@ colab_migration_allowed=true, đúng bundle fingerprint và đủ ba algorithms.
    tolerance numerical/label permutation. Lưu report môi trường riêng.
 
 Không chuyển .env, keys, warehouse, private logs hoặc Maven cache; không ghi
-trực tiếp MinIO/Iceberg từ notebook. **EXP-02 — Colab parity/official run** và
-**MLD-05 — official export** còn thiếu ở mốc này, không bypass bằng đổi tên marker.
+trực tiếp MinIO/Iceberg từ notebook. MLD-05/MLI-02 đã có technical component
+acceptance; catalog thật toàn kỳ chưa có task nghiệm thu riêng. **EXP-02 —
+Colab parity/official run** vẫn chưa hoàn tất; không bypass bằng đổi tên marker.
 
 ## 8. Official build/import và lifecycle
 
@@ -176,6 +177,11 @@ thật trước official result _SUCCESS.json. Import technical pass mới CANDI
 APPROVED cần scientific review. Pilot marker không được rename thành _SUCCESS.
 Static report Core còn [MLI-04](../task/tasks/MLI-04.md), toàn trình ML còn
 [MLQ-01](../task/tasks/MLQ-01.md); Power BI chỉ Stretch.
+
+Cập nhật 24/10: [MLI-02 real build DAG](../evidence/MLI-02_RUNTIME_ACCEPTANCE.md)
+đã nghiệm thu technical component first/rerun/reject/local loader, không còn
+chỉ mock boundary. QA là synthetic 225 tháng; catalog thật toàn kỳ chưa có
+task nghiệm thu riêng, EXP-02/03 và MLQ-01 vẫn giữ gates độc lập.
 
 ## 9. Bàn giao và bằng chứng
 

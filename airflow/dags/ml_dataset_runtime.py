@@ -217,6 +217,11 @@ def resolve_run_context(
 ) -> dict[str, Any]:
     """Initialize validated run context, acquire lease, and setup isolated staging paths."""
     env = dict(os.environ if environment is None else environment)
+    if env.get("ML_BUILD_MODE", "real") == "real":
+        from ml_dataset_real import resolve
+        return resolve(raw_context, env, attempt)
+    if env.get("ML_BUILD_MODE") != "legacy-test":
+        raise Mli02Error("MLI02_REAL_MODE_REQUIRED")
     conf = raw_context.get("conf") if "conf" in raw_context else raw_context
     if not isinstance(conf, Mapping):
         raise Mli02Error("DS_INVALID_METADATA")
@@ -416,6 +421,11 @@ def execute_step(
     attempt: int = 1,
 ) -> dict[str, Any]:
     """Execute one phase of the dataset build with strict step transitions and attempt isolation."""
+    if context.get("runtime_protocol") == "mli-02-real-v1":
+        from ml_dataset_real import execute
+        return execute(step_name, context, upstream, dict(os.environ if environment is None else environment), attempt)
+    if (os.environ if environment is None else environment).get("ML_BUILD_MODE") != "legacy-test":
+        raise Mli02Error("MLI02_REAL_CONTEXT_REQUIRED")
     if step_name not in STEPS:
         raise Mli02Error(f"DS_UNKNOWN_STEP:{step_name}")
 
@@ -1481,6 +1491,11 @@ def mark_dataset_exported_summary(
     environment: Mapping[str, str] | None = None,
 ) -> dict[str, Any]:
     """Produce final summary of the dataset build DAG run with fail-closed leaf contract gates."""
+    if context.get("runtime_protocol") == "mli-02-real-v1":
+        from ml_dataset_real import summary
+        return summary(context, final_result, dict(os.environ if environment is None else environment))
+    if (os.environ if environment is None else environment).get("ML_BUILD_MODE") != "legacy-test":
+        raise Mli02Error("MLI02_REAL_CONTEXT_REQUIRED")
     env = dict(os.environ if environment is None else environment)
     owner = context["lease_owner"]
 

@@ -59,6 +59,12 @@ permission checks đạt, findings=0/pending=0. Colab/Drive chưa triển khai, 
 chứng nhận; phải mở lại SEC-01 trước migration. Xem
 [evidence SEC-01](../../evidence/SEC-01_LOCAL_ACCEPTANCE_20261023.md).
 MLD-02/03 giữ assignee rosy179, reviewer HoaiTam; task mới reviewer unassigned.
+MLI-02 **Done technical component 24/10**: real build DAG first/rerun 12/12,
+registry/pins/checksums và local loader đạt trên synthetic fixture đủ 225 tháng;
+negative unpublished input dừng trước lease. Rerun có Docker shutdown/recovery
+ở validate try 2, không first-attempt SLA. Cả daily/MLI DAG đã pause, deployment
+cũ được khôi phục; không mở research/Colab/scientific gates. Xem
+[evidence](../../evidence/MLI-02_RUNTIME_ACCEPTANCE.md).
 [Kế hoạch tuần 4](../WEEK_4_PARALLEL_PLAN.md) và [nhóm mở đường tuần 4](../WEEK_4_PREP_GROUP.md)
 là mốc lịch sử 89h Core, không cộng lại effort đã làm. BI-02 dời tuần 8.
 DAT-02 mới giao HoaiTam, 6h; Jupyter pilot trước, Colab chỉ sau local gate
@@ -184,7 +190,7 @@ fixture/inventory; assignee `HoaiTam`, reviewer `unassigned`. Xem
 | Task | Tuần | Workstream | Scope | Priority | Effort | Trạng thái |
 |---|---:|---|---|---|---:|---|
 | [MLI-01](./MLI-01.md) - Khóa result bundle và experiment lifecycle | 4 | Result bundle contract | Core | P0 | 5h | Done |
-| [MLI-02](./MLI-02.md) - Tạo Airflow DAG build ML dataset | 5 | Dataset build orchestration | Core | P0 | 5h | In Progress |
+| [MLI-02](./MLI-02.md) - Tạo Airflow DAG build ML dataset | 5 | Dataset build orchestration | Core | P0 | 5h | Done |
 | [MLI-03](./MLI-03.md) - Validate/import kết quả và commit bảng ML Iceberg | 5 | Result import and Iceberg publish | Core | P0 | 7h | Done |
 | [MLI-04](./MLI-04.md) - Tạo Trino views và static report cho experiment | 8 | ML serving and report | Core | P0 | 4h | Backlog |
 | [MLQ-01](./MLQ-01.md) - Chạy E2E Gold snapshot đến ML report | 8 | ML end-to-end QA | Core | P0 | 6h | Backlog |
