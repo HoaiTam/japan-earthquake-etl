@@ -1,0 +1,24 @@
+{
+  "release_version": "dat03-team-pilot-v1",
+  "archive_name": "jma-development-pilot-team.zip",
+  "archive_bytes": 55408,
+  "archive_sha256": "f58291b72873e1b26791fef97818fdcf5e2b028a5dfa528885a666d8cdc1b870",
+  "handoff_sha256": "9121d6839f9ef8e5646a06cd0bf870fcde50b65da00c03e7b268760237cddc9a",
+  "pilot_id": "pilot_196b6d4081d347e1c289e331022658fbbe572dd33181ad987900895c1f1b189c",
+  "feature_count": 279,
+  "mainshock_count": 2,
+  "coverage_status": "PARTIAL",
+  "artifact_kind": "DEVELOPMENT_PILOT",
+  "allowed_usage": "DEVELOPMENT_ONLY",
+  "research_ready": false,
+  "scientific_approval": false,
+  "full_catalog_release_available": false,
+  "cloud_uploaded": false,
+  "recipient_status": {
+    "HoaiTam": "VERIFIED_ON_PREPARATION_MACHINE",
+    "ThanhTris": "AWAITING_RECIPIENT_RECEIPT",
+    "rosy179": "AWAITING_RECIPIENT_RECEIPT"
+  },
+  "code_base_commit": "bc0ce9edf4bbe6151bad34601b8dc7f02120a013",
+  "local_changes_uncommitted": true
+}

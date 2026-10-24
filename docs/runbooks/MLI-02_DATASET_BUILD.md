@@ -193,7 +193,7 @@ Colab/Drive chưa triển khai phải mở lại SEC-01 trước migration.
 ## Giới hạn / task tiếp theo
 
 - **MLD-05 — feature/export** đã có component QA đủ temporal scope. Backfill
-  và nghiệm thu **catalog thật toàn kỳ nghiên cứu chưa có task riêng**; không
+  và nghiệm thu **catalog thật toàn kỳ nghiên cứu thuộc DAT-03**, hiện In Progress; không
   lấy synthetic component QA làm bằng chứng thay thế hoặc tự đổi MLD-05 về chưa Done.
 - **EXP-02 — baseline/Colab parity**, **EXP-03 — adaptive scientific gates**:
   không mở gate chỉ vì DAG export thành công.
