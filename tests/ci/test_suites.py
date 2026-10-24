@@ -14,6 +14,14 @@ spec.loader.exec_module(impact)
 
 
 class SuitePolicyTest(unittest.TestCase):
+    def test_team_handoff_runs_python_pilot_without_unrelated_java_or_airflow(self):
+        for path in impact.TEAM_PILOT_FILES:
+            result = impact.classify([("M", path)])
+            self.assertEqual("full", result["pilot"])
+            self.assertEqual("none", result["java"])
+            self.assertEqual("none", result["airflow"])
+        self.assertIn("test_team_pilot.py", (ROOT / "Makefile").read_text())
+
     def test_full_java_inventory_covers_every_discovered_class_once(self):
         groups = impact.suite_plan(impact.full("fixture"), "java")
         found = [name for tests in groups.values() for name in tests]

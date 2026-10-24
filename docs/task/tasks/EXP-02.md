@@ -9,7 +9,7 @@ priority: "P0"
 effort_hours: 7
 assignee: "rosy179"
 reviewer: "unassigned"
-dependencies: ["EXP-01", "DAT-02", "MLD-05"]
+dependencies: ["EXP-01", "DAT-02", "DAT-03", "MLD-05"]
 ---
 
 # EXP-02 - Chạy Window, DBSCAN và HDBSCAN global
@@ -55,7 +55,7 @@ Noise/no productive sequence hợp lệ không bị coi là implementation lỗi
 - [x] Local ba thuật toán cùng pilot_id/checksum; không mutate input.
 - [x] Local smoke report PASSED trước Colab; restart/run-all và cases lỗi/noise/count đạt.
 - [ ] Colab dùng cùng code/bundle/config, đối soát invariants/tolerance; không rewrite model (chờ môi trường Colab sau local gate).
-- [ ] Official run pin EXPORTED dataset; pilot không phát _SUCCESS/RESULT_READY/CANDIDATE (chờ MLD-05 export).
+- [ ] Official run pin EXPORTED dataset; pilot không phát _SUCCESS/RESULT_READY/CANDIDATE (MLD-05 component đã Done; chờ DAT-03 catalog nghiên cứu thật và release đủ gate).
 - [x] HDBSCAN/DBSCAN chạy theo từng mainshock, không fit toàn catalog.
 - [x] Chỉ cluster chứa mainshock được coi là sequence; không chọn cluster gần nhất khi mainshock noise.
 - [x] Membership probability null đúng với thuật toán không cung cấp.
@@ -65,6 +65,8 @@ Noise/no productive sequence hợp lệ không bị coi là implementation lỗi
 
 - [EXP-01](./EXP-01.md)
 - [DAT-02](./DAT-02.md) — local pilot gate.
+- [DAT-03](./DAT-03.md) — catalog thật/release cho final official acceptance;
+  không chặn local development bằng DAT-02, không tạo dependency ngược.
 - [MLD-05](./MLD-05.md) — final official acceptance; không chặn stage local development.
 
 ## Cách làm song song

@@ -19,6 +19,7 @@ FEATURE_CONSUMER_TESTS = FEATURE_TESTS | EXPORT_TESTS
 PILOT_SCRIPTS = {"scripts/local-ml.py", "scripts/stage-ml-windows.py", "scripts/inspect-pilot-notebook.py", "scripts/pack-pilot.py"}
 PILOT_CONFIGS = {"config/ml/feature_scaling_global_dev_v1.json", "config/ml/feature_scaling_adaptive_dev_v1.json", "config/ml/dat02_reproduction_v1.json"}
 PILOT_FILES = {"notebooks/pilot_bundle.py", "notebooks/dat_02_inspection.ipynb"}
+TEAM_PILOT_FILES = {"scripts/pack-team-pilot.py", "scripts/verify-team-pilot.py", "tests/test_team_pilot.py"}
 EXP_FILES = {
     "notebooks/experiment_harness.py",
     "notebooks/baseline_models.py",
@@ -76,6 +77,8 @@ def classify(changes, root=ROOT):
         if path.startswith(("docs/specs/", "docs/contracts/")): return full("shared-contract", len(changes))
         if path in {"README.md", "LICENSE", "LICENSE.md"} or (path.startswith("docs/") and path.endswith(".md")):
             reasons.add("documentation"); continue
+        if path in TEAM_PILOT_FILES:
+            pilot = "full"; reasons.add("team-pilot-handoff"); continue
         if (
             path in PILOT_FILES
             or path in PILOT_SCRIPTS
@@ -232,7 +235,7 @@ def emit(result, output=None, summary=None, root=ROOT):
             file.write("\n| Component | Functional/task suite | Test classes/modules |\n|---|---|---|\n")
             for component, groups in matrices.items():
                 for group, tests in groups.items(): file.write(f"| {component} | {group} | {len(tests)} |\n")
-            if result["pilot"] != "none": file.write("| Python | DAT-02/EXP-01/EXP-02/EXP-03 pilot, baselines & adaptive | test_pilot_*.py, test_experiment_harness.py, test_baseline_algorithms.py, test_adaptive_hdbscan.py |\n")
+            if result["pilot"] != "none": file.write("| Python | DAT-02/EXP-01/EXP-02/EXP-03 pilot, baselines & adaptive + DAT-03 handoff | test_pilot_*.py, test_team_pilot.py, test_experiment_harness.py, test_baseline_algorithms.py, test_adaptive_hdbscan.py |\n")
 
 
 def commands(result, component):

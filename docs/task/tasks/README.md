@@ -22,13 +22,13 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 
 ## Tổng quan
 
-- Tổng số task: **76**.
+- Tổng số task: **77**.
 - Foundation: **9 task `Done`**, FND-01 đã nghiệm thu runtime của lifecycle mới ngày 2026-10-15.
 - Task còn ở trạng thái `Needs Update`: **0**.
-- Core: **68 task**.
+- Core: **69 task**.
 - Stretch: **8 task**.
-- Tổng effort task: **386 giờ**; baseline 364h + ORC-06/07 16h + DAT-02 6h.
-  Trong đó 12h data-readiness trước tuần 3, còn 374h task trong 8 tuần.
+- Tổng effort task: **402 giờ**; baseline 364h + ORC-06/07 16h + DAT-02 6h + DAT-03 16h.
+  Trong đó 12h data-readiness trước tuần 3, còn 390h task trong 8 tuần.
   Capacity tăng tốc là đề xuất, không phải khả năng thực tế đã xác nhận.
 
 Phân công hiện tại: [Kế hoạch tuần 5](../WEEK_5_PARALLEL_PLAN.md),
@@ -46,8 +46,9 @@ tests và ML guards. Scheduled 23/10 sau owner-authorized recovery đạt 8/8 ta
 collector v2 PASSED, 58 events/six snapshots/42 SQL. Giữ PROVISIONAL/OBSERVED_AS_OF,
 research/ML flags false; daily đã pause. Không chứng nhận default cached-image
 preflight hoặc first-attempt/on-time SLA. Xem
-[evidence](../../evidence/QA-01_CURRENT_MONTH_ACCEPTANCE.md). Work packages ngoài scope
-chưa có task ID/effort riêng, không cộng ngầm vào budget 386h.
+[evidence](../../evidence/QA-01_CURRENT_MONTH_ACCEPTANCE.md). Các work packages
+current-month ngoài scope chưa có task ID/effort riêng, không cộng ngầm vào
+budget 402h. Catalog nghiên cứu thật được tách riêng DAT-03 ngày 24/10.
 ORC-02 đã Done sau nghiệm thu live 2026-10-15:
 scheduled/first/rerun/contention, 7 tasks mỗi daily run và pause/lease readback đạt;
 xem [evidence](../../evidence/ORC-02_LIVE_ACCEPTANCE.md).
@@ -69,7 +70,9 @@ cũ được khôi phục; không mở research/Colab/scientific gates. Xem
 là mốc lịch sử 89h Core, không cộng lại effort đã làm. BI-02 dời tuần 8.
 DAT-02 mới giao HoaiTam, 6h; Jupyter pilot trước, Colab chỉ sau local gate
 EXP-02 PASSED. QA-04 từng dời tuần 6 ở mốc cũ, nay đưa lại tuần 5 và đã Done;
-không giảm scope recovery. Tổng backlog/effort giữ nguyên 76 task/386h.
+không giảm scope recovery. Ngày 24/10 thêm DAT-03, 16h estimate ban đầu ở tuần 6:
+77 task/402h, không cộng lại vào budget tuần 5. DAT-03 còn In Progress cho
+catalog thật và receipts ba người; pilot dùng ngay không thay research acceptance.
 Ready chỉ khi hard dependencies Done; Backlog được làm fixture/interface trước,
 không dùng mock/pilot chưa đủ coverage làm evidence nghiệm thu thật.
 
@@ -108,6 +111,7 @@ fixture/inventory; assignee `HoaiTam`, reviewer `unassigned`. Xem
 | [CON-03](./CON-03.md) - Thiết kế mô hình dữ liệu Silver, Gold và ML | 2 | Data model contract | Core | P0 | 6h | Done |
 | [DAT-01](./DAT-01.md) - Chuẩn bị bộ dữ liệu mẫu thật từ USGS và JMA | 3 | Shared real samples | Core | P0 | 3h | Done |
 | [DAT-02](./DAT-02.md) - Tạo dataset pilot nhỏ để test trên Jupyter | 5 | Jupyter development pilot | Core | P0 | 6h | Done |
+| [DAT-03](./DAT-03.md) - Chuẩn bị catalog nghiên cứu thật và bàn giao dataset dùng chung | 6 | Verified research data and team handoff | Core | P0 | 16h | In Progress |
 
 ## B - USGS Bronze
 

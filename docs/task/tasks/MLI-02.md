@@ -94,7 +94,7 @@ khi các Spark jobs được tích hợp thật.
 
 - QA dùng Published historical **synthetic** fixture đủ 225 tháng, không lấy
   PROVISIONAL current-month hoặc DAT-02 pilot làm input official.
-- **Chưa có task riêng** backfill/nghiệm thu catalog thật toàn kỳ nghiên cứu;
+- **DAT-03 — Catalog nghiên cứu thật và handoff** đang In Progress cho backfill/nghiệm thu toàn kỳ;
   MLD-05/MLI-02 component Done không thay bằng chứng dữ liệu nghiên cứu đó.
 - **EXP-02** còn official fit/Colab parity; **EXP-03** còn scientific gates;
   **MLQ-01** còn full ML E2E, **MLI-04** còn report. Không mở Colab ready

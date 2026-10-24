@@ -165,7 +165,7 @@ colab_migration_allowed=true, đúng bundle fingerprint và đủ ba algorithms.
 
 Không chuyển .env, keys, warehouse, private logs hoặc Maven cache; không ghi
 trực tiếp MinIO/Iceberg từ notebook. MLD-05/MLI-02 đã có technical component
-acceptance; catalog thật toàn kỳ chưa có task nghiệm thu riêng. **EXP-02 —
+acceptance; catalog thật toàn kỳ thuộc [DAT-03](../task/tasks/DAT-03.md), đang In Progress. **EXP-02 —
 Colab parity/official run** vẫn chưa hoàn tất; không bypass bằng đổi tên marker.
 
 ## 8. Official build/import và lifecycle
@@ -180,8 +180,12 @@ Static report Core còn [MLI-04](../task/tasks/MLI-04.md), toàn trình ML còn
 
 Cập nhật 24/10: [MLI-02 real build DAG](../evidence/MLI-02_RUNTIME_ACCEPTANCE.md)
 đã nghiệm thu technical component first/rerun/reject/local loader, không còn
-chỉ mock boundary. QA là synthetic 225 tháng; catalog thật toàn kỳ chưa có
-task nghiệm thu riêng, EXP-02/03 và MLQ-01 vẫn giữ gates độc lập.
+chỉ mock boundary. QA là synthetic 225 tháng; catalog thật toàn kỳ thuộc
+[DAT-03](../task/tasks/DAT-03.md), EXP-02/03 và MLQ-01 vẫn giữ gates độc lập.
+
+Bộ pilot dùng ngay cho ba thành viên, verifier/README và pins bất biến ở
+[DAT-03 shared dataset](./DAT-03_SHARED_DATASET.md). Gửi pilot không phải đã
+nghiệm thu research catalog; từng người phải gửi receipt từ máy riêng.
 
 ## 9. Bàn giao và bằng chứng
 

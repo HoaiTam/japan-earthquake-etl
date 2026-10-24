@@ -48,8 +48,10 @@ assignee chỉ vì người điều phối đã hỗ trợ triển khai. Tính �
 | Tổng | 61h | 25h | **86h / 15 task Core** |
 
 Không phải 15 task mới hoặc 86h còn lại: các task Done giữ effort kế hoạch
-để truy vết, không giao làm lại. Tổng backlog vẫn **76 task/386h**. Lịch mới
-dịch 14h từ tuần 6/7 về tuần 5; tuần 6 còn 4h, tuần 7 còn 16h theo metadata.
+để truy vết, không giao làm lại. Tại mốc 22/10 backlog là **76 task/386h**. Ngày
+24/10 thêm [DAT-03](./tasks/DAT-03.md) 16h estimate ở tuần 6: hiện **77 task/402h**,
+không cộng vào 15 task/86h tuần 5. Lịch mới dịch 14h từ tuần 6/7 về tuần 5;
+tuần 6 hiện 20h (4h cũ + 16h DAT-03), tuần 7 giữ 16h theo metadata.
 Giữ budget tồn 4h + review/tích hợp 20h của kế hoạch cũ thì tổng tham khảo là
 **110h**, không còn 96h/32h mỗi người; chưa phải capacity đã được xác nhận.
 Giữ buffer cũ theo người cho ra 39/28/43h. Không tự tăng effort hoặc giảm gate
