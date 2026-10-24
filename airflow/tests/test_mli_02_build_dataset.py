@@ -155,6 +155,7 @@ class Mli02RuntimeControlPlaneTest(unittest.TestCase):
         self.addCleanup(self.temp_dir.cleanup)
         root = Path(self.temp_dir.name)
         self.env = {
+            "ML_BUILD_MODE": "legacy-test",
             "ML_BUILD_STAGING_ROOT": str(root / "staging"),
             "ML_BUILD_EXPORT_ROOT": str(root / "export"),
             "MLI_DATASET_REGISTRY_ROOT": str(root / "registry"),

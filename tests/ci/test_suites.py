@@ -43,7 +43,7 @@ class SuitePolicyTest(unittest.TestCase):
     def test_window_contract_includes_all_three_ml_groups_and_control_consumers(self):
         result = impact.classify([("M", "spark/src/main/java/ie212/earthquake/spark/ml/MainshockWindowEngine.java")])
         self.assertEqual(set(impact.suite_plan(result, "java")),
-                         {"mld-01-02-contract-audit", "mld-03-windows", "mld-04-features", "mld-05-export"})
+                         {"mld-01-02-contract-audit", "mld-03-windows", "mld-04-features", "mld-05-export", "mli-02-build"})
         self.assertEqual(set(impact.suite_plan(result, "airflow")), set(impact.AIRFLOW_SUITES))
 
     def test_unknown_tests_are_never_lost_and_all_surefire_patterns_are_discovered(self):
@@ -59,6 +59,11 @@ class SuitePolicyTest(unittest.TestCase):
             self.assertEqual(len(groups["foundation-integration"]), 4)
             groups = impact.suite_plan(impact.full("fixture"), "airflow", root)
             self.assertEqual(groups, {"orchestration-recovery": ["test_new_runtime.py"]})
+
+    def test_real_build_adapter_is_visible_in_task_suite(self):
+        groups = impact.inventory("java")
+        self.assertEqual(groups["mli-02-build"], ["ie212.earthquake.spark.ml.DatasetBuildJobTest"])
+        self.assertTrue({"test_ml_dataset_real.py", "test_mli_02_build_dataset.py"} <= set(impact.inventory("airflow")["ml-qa"]))
 
     def test_empty_inventory_missing_selector_and_invalid_mode_fail(self):
         with tempfile.TemporaryDirectory() as temporary:

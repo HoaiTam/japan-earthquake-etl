@@ -43,12 +43,13 @@ LEAF_DAGS = {"airflow/dags/" + name + ".py" for name in
 WINDOW_TESTS = {"MainshockRuntimeTest", "MainshockWindowEngineTest", "MainshockWindowIntegrationTest",
                 "MainshockWindowRegressionTest", "WindowModelResolverTest"}
 JAVA_SUITES = ("foundation-integration", "usgs-bronze", "jma-bronze", "silver", "gold", "orc-06-full-month", "orc-07-real-adapters",
-               "mld-01-02-contract-audit", "mld-03-windows", "mld-04-features", "mld-05-export")
+               "mld-01-02-contract-audit", "mld-03-windows", "mld-04-features", "mld-05-export", "mli-02-build")
 AIRFLOW_SUITES = ("source-ingestion", "orchestration-recovery", "silver-gold-qa", "ml-qa")
 SOURCE_TESTS = {"test_smoke_dag_contract", "test_usg_04_dag_contract", "test_usgs_ingest_runtime",
                 "test_jma_backfill_runtime", "test_jma_dag_contract", "test_jma_live_qa"}
 LAKEHOUSE_TESTS = {"test_silver_integration_qa", "test_gold_storage_qa", "test_gold_publication_qa"}
-ML_QA_TESTS = {"test_dataset_manifest_qa", "test_gold_input_audit_qa", "test_mainshock_window_qa", "test_feature_export_runtime"}
+ML_QA_TESTS = {"test_dataset_manifest_qa", "test_gold_input_audit_qa", "test_mainshock_window_qa", "test_feature_export_runtime",
+               "test_mli_02_build_dataset", "test_ml_dataset_real"}
 
 
 def git(root, *args):
@@ -162,7 +163,8 @@ def inventory(component, root=ROOT):
             if package == "ie212/earthquake/spark/orchestration":
                 group = "orc-07-real-adapters" if path.stem == "RealEtlAdapterTest" else "orc-06-full-month"
             elif package == "ie212/earthquake/spark/ml":
-                group = ("mld-05-export" if path.stem in EXPORT_TESTS else "mld-04-features" if path.stem in FEATURE_TESTS else
+                group = ("mli-02-build" if path.stem == "DatasetBuildJobTest" else
+                         "mld-05-export" if path.stem in EXPORT_TESTS else "mld-04-features" if path.stem in FEATURE_TESTS else
                          "mld-03-windows" if path.stem in WINDOW_TESTS else "mld-01-02-contract-audit")
             elif package in {"ie212/earthquake/spark/" + p for p in ("usgs", "jma", "silver", "gold")}:
                 group = {"usgs": "usgs-bronze", "jma": "jma-bronze", "silver": "silver", "gold": "gold"}[relative.parent.name]

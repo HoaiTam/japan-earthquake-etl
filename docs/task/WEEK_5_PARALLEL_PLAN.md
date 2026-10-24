@@ -19,7 +19,7 @@ evidence của các lần nghiệm thu cũ hoặc coi merge/CI là scientific ap
 | ThanhTris | [QA-04](./tasks/QA-04.md) | Failure/recovery các tầng ETL và ML import | 4h | Done |
 | rosy179 | [EXP-01](./tasks/EXP-01.md) | Jupyter harness, loader/writer và môi trường chung | 5h | Done |
 | rosy179 | [EXP-02](./tasks/EXP-02.md) | Window/DBSCAN/HDBSCAN global; local trước Colab | 7h | In Progress |
-| rosy179 | [MLI-02](./tasks/MLI-02.md) | Build dataset DAG đến validated export bundle | 5h | In Progress |
+| rosy179 | [MLI-02](./tasks/MLI-02.md) | Build dataset DAG đến validated export bundle | 5h | Done |
 | rosy179 | [EXP-03](./tasks/EXP-03.md) | Adaptive HDBSCAN và multi-sequence resolution | 6h | In Progress |
 
 Tổng bảng trên **11 task/61h**, phân bổ **17/21/23h**. MLI-02 chuyển từ
@@ -57,8 +57,11 @@ Giữ buffer cũ theo người cho ra 39/28/43h. Không tự tăng effort hoặc
 
 ### Các gate còn thiếu và thứ tự tiếp tục
 
-- **MLI-02 — Build dataset DAG:** rosy179 nối real MLD-05 exporter vào runner,
-  kiểm DAG/registry/retry/handoff thật. Mock/offline PASS không hoàn tất task.
+- **MLI-02 — Build dataset DAG:** **Done technical component 24/10**, owner
+  rosy179, reviewer unassigned. [Real acceptance](../evidence/MLI-02_RUNTIME_ACCEPTANCE.md)
+  first/rerun 12/12, immutable pins/bundle, negative input và local loader đạt;
+  giữ lịch sử Docker shutdown/validate try 2. Synthetic QA không thay research
+  catalog thật hoặc EXP-02/03/MLQ-01 gates; budget và owner không đổi.
 - **QA-01 — Daily E2E:** **Done cho operational v2** sau [scheduled recovery
   acceptance 23/10](../evidence/QA-01_CURRENT_MONTH_ACCEPTANCE.md): 8/8 tasks,
   58 events/six snapshots/42 SQL. Owner cho clear capture/downstream đúng run

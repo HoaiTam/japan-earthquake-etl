@@ -100,6 +100,15 @@ current-month-local: ## Opt-in live USGS -> isolated local Bronze/Silver; không
 .PHONY: check-docs test-docs
 .PHONY: test-mli-import smoke-mli-import smoke-mli-import-acceptance smoke-mli-import-dag up-ml
 .PHONY: test-qa-04 smoke-qa-04
+.PHONY: test-mli-build check-mli-build-runtime
+check-mli-build-runtime: ## Read-only runner pin/module preflight; không build/pull/start/init hoặc lease
+	@$(COMPOSE) exec -T airflow-scheduler python3 -c 'import os; from ml_dataset_real import prepared; prepared(dict(os.environ)); print("MLI-02 real runtime prepared; no build/pull/start/init performed.")'
+
+test-mli-build: ## MLI-02 graph/control-plane/real Java adapter guards; không Docker
+	@python3 -m unittest discover -s airflow/tests -p 'test_mli_02_build_dataset.py'
+	@python3 -m unittest discover -s airflow/tests -p 'test_ml_dataset_real.py'
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am test -Dtest=DatasetBuildJobTest,DatasetManifestTest,FeatureExportCoverageTest,FeatureExportBundleTest -Dsurefire.failIfNoSpecifiedTests=false
+
 .PHONY: test-qa-acceptance smoke-qa-acceptance prepare-qa-history test-ml-export smoke-ml-export export-ml-dataset verify-ml-export
 
 test-ml-export: ## MLD-05 validation/export/retry/snapshot/coverage tests; JDK17, không Docker
