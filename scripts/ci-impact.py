@@ -42,7 +42,7 @@ EXP_CONFIGS = {
 LEAF_DAGS = {"airflow/dags/" + name + ".py" for name in
              ("afl_01_smoke", "usg_04_usgs_ingest", "jma_04_year_backfill", "orc_01_etl_pipeline", "orc_02_daily_sources", "orc_03_backfill")}
 WINDOW_TESTS = {"MainshockRuntimeTest", "MainshockWindowEngineTest", "MainshockWindowIntegrationTest",
-                "MainshockWindowRegressionTest", "WindowModelResolverTest"}
+                "MainshockWindowRegressionTest", "WindowModelResolverTest", "WindowCoveragePolicyTest"}
 JAVA_SUITES = ("foundation-integration", "usgs-bronze", "jma-bronze", "silver", "gold", "orc-06-full-month", "orc-07-real-adapters",
                "mld-01-02-contract-audit", "mld-03-windows", "mld-04-features", "mld-05-export", "mli-02-build")
 AIRFLOW_SUITES = ("source-ingestion", "orchestration-recovery", "silver-gold-qa", "ml-qa")

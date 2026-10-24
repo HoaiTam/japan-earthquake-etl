@@ -89,6 +89,14 @@ publication và config MLD-01/04 thật, không copy pins evidence hoặc chọn
 | Versions | dataset_config_version, audit_rule_version, mc_method_version, window_model_version, feature_version, scaling_config_version, code_version |
 | publication_reference | gold_publication_id, gold_snapshot_id (integer chính xác), gold_table_name, physical_gold_table_name, publication_bundle_sha256, verify_status=PASSED, published=true |
 
+DAT-03 research config opt-in `filter_config.window_coverage_policy` =
+`dat03-strict-split-v1` theo [feature/export contract](../specs/FEATURE_EXPORT.md#dat-03--strict-split-và-loại-window-thiếu-coverage).
+Selection/feature receipts thêm `excluded_mainshock_count` và
+`window_coverage_sha256`; full exclusion details ở `window_coverage` trong
+export/trusted manifest. Đổi policy tạo dataset ID mới; không sửa manifest
+EXPORTED cũ. Default không field vẫn là legacy fail-export, không tự đổi daily
+hoặc synthetic acceptance. Chưa có full-catalog runtime/sharding acceptance DAT-03.
+
 Chi tiết: [ML identity](../specs/ML_DATA_MODEL.md),
 [feature/export](../specs/FEATURE_EXPORT.md), [MLD-05 runbook](./MLD-05_FEATURE_EXPORT.md).
 Không gửi credentials, shell command, output paths, Mc tự chọn hoặc mock_pipeline

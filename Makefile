@@ -144,12 +144,14 @@ smoke-qa-acceptance: check-config-local ## QA-02/03/04 storage acceptance; khôn
 .PHONY: test-ml-window smoke-ml-window resume-ml-window
 .PHONY: prepare-ml-local stage-ml-windows test-ml-feature ml-features-local ml-pilot-local pilot-env test-pilot inspect-pilot jupyter-pilot
 .PHONY: pack-pilot test-exp01 inspect-exp01 jupyter-exp01
-.PHONY: pack-team-pilot test-team-pilot profile-jma-research
+.PHONY: pack-team-pilot test-team-pilot profile-jma-research profile-jma-replay
 TEAM_PILOT_ZIP ?= staging/shared-datasets/jma-development-pilot-team.zip
 JMA_PROFILE_ARCHIVE ?=
 JMA_PROFILE_MEMBER ?=
 JMA_PROFILE_SHA256 ?=
 JMA_PROFILE_OUTPUT ?=
+JMA_PROFILE_YEAR ?=
+JMA_PROFILE_MONTHS ?=
 
 pack-team-pilot: ## DAT-03 kit offline có pilot/loader/README/pins; không Docker hoặc upload
 	@test -n "$(PILOT_BUNDLE)" || { echo 'PILOT_BUNDLE is required'; exit 1; }
@@ -161,6 +163,10 @@ test-team-pilot: ## DAT-03 synthetic package/pin/receipt checks; không Docker, 
 profile-jma-research: ## DAT-03 profile ZIP local bằng Java parser; cần JAR đã build, không source/network/lake writes
 	@test -n "$(JMA_PROFILE_ARCHIVE)" -a -n "$(JMA_PROFILE_MEMBER)" -a -n "$(JMA_PROFILE_SHA256)" -a -n "$(JMA_PROFILE_OUTPUT)" || { echo 'JMA_PROFILE_ARCHIVE/MEMBER/SHA256/OUTPUT are required'; exit 1; }
 	@java -Xmx768m -cp spark/target/japan-earthquake-etl-runner.jar ie212.earthquake.spark.jma.JmaResearchProfileJob "$(JMA_PROFILE_ARCHIVE)" "$(JMA_PROFILE_MEMBER)" "$(JMA_PROFILE_SHA256)" "$(JMA_PROFILE_OUTPUT)"
+
+profile-jma-replay: ## DAT-03 đo reader theo tháng từ ZIP local; không BronzeReady/coverage/Gold writes
+	@test -n "$(JMA_PROFILE_ARCHIVE)" -a -n "$(JMA_PROFILE_MEMBER)" -a -n "$(JMA_PROFILE_SHA256)" -a -n "$(JMA_PROFILE_YEAR)" -a -n "$(JMA_PROFILE_MONTHS)" -a -n "$(JMA_PROFILE_OUTPUT)" || { echo 'JMA_PROFILE_ARCHIVE/MEMBER/SHA256/YEAR/MONTHS/OUTPUT are required'; exit 1; }
+	@java -Xmx768m -cp spark/target/japan-earthquake-etl-runner.jar ie212.earthquake.spark.jma.JmaResearchReplayProfileJob "$(JMA_PROFILE_ARCHIVE)" "$(JMA_PROFILE_MEMBER)" "$(JMA_PROFILE_SHA256)" "$(JMA_PROFILE_YEAR)" "$(JMA_PROFILE_MONTHS)" "$(JMA_PROFILE_OUTPUT)"
 .PHONY: prepare-full-month test-full-month qa-full-month-live full-month-local
 FULL_MONTH_ROOT ?= staging/orc06-full-month
 FULL_MONTH_REQUEST ?=
@@ -286,7 +292,7 @@ export QA_RUN_ID
 test-ml-window: ## MLD-03 bucket physical plan, distributed invariants, microseconds và fail-fast Parquet tests
 	@python3 -m unittest discover -s airflow/tests -p 'test_mainshock_window_qa.py'
 	@./mvnw --batch-mode --no-transfer-progress -pl spark -am \
-		-Dtest=WindowModelResolverTest,MainshockWindowEngineTest,MainshockWindowIntegrationTest,MainshockWindowRegressionTest,MainshockRuntimeTest,JmaMainshockPilotSamplerTest \
+		-Dtest=WindowModelResolverTest,MainshockWindowEngineTest,MainshockWindowIntegrationTest,MainshockWindowRegressionTest,MainshockRuntimeTest,WindowCoveragePolicyTest,JmaMainshockPilotSamplerTest \
 		-Dsurefire.failIfNoSpecifiedTests=false test
 
 smoke-ml-window: check-config-local ## MLD-03 runtime QA; cần docker-build/docker-up, không tự build/start

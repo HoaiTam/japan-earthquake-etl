@@ -83,8 +83,12 @@ make profile-jma-research JMA_PROFILE_ARCHIVE="$ARCHIVE" JMA_PROFILE_MEMBER="$ME
 
 2. **Resource plan:** đo thêm năm đông sự kiện và resource tại từng tầng trước
    khi mở rollout. ORC-06 có 100.000 selected revisions/operation, 64 active pins,
-   128 MiB active raw và 32 MiB/raw; affected writes <=24 tháng. Cumulative registry
+   128 MiB active raw ở v1 và 32 MiB/raw; affected writes <=24 tháng. Cumulative registry
    hỗ trợ 480 tháng, không có nghĩa runtime xử lý được toàn catalog trong RAM.
+   V2 opt-in `orc-06-v2` giữ descriptor sau fresh validation, scoped JMA replay
+   và graph closure lặp; không giữ tổng bytes các năm, không tăng 100k-row cap.
+   Xem [contract v1/v2](../specs/FULL_MONTH_STATE_CONTRACT.md#scoped-replay-v2-dat-03-opt-in).
+   Cần runtime/measurement thật trước khi coi v2 đủ cho full rollout.
    MLD-05 hiện 128 mainshock/100.000 feature rows/dataset. Không tăng limit mù hoặc
    chia nhỏ rồi âm thầm coi từng phần là dataset full-period; shard/identity/
    aggregate proof cần design version và regression tests trước thực thi.
@@ -92,8 +96,12 @@ make profile-jma-research JMA_PROFILE_ARCHIVE="$ARCHIVE" JMA_PROFILE_MEMBER="$ME
    extension 63 tháng [2018-10-01,2024-01-01), UTC. Archive JMA theo JST cần cả
    input biên/halo16s; năm 2023 kết thúc 2023-12-31T15:00Z, nên extension UTC
    còn cần nguồn đầu 2024 JST (baseline/inventory hiện chỉ đến 2023, phải đổi
-   contract có version trước capture). Window ML vượt split đang bị reject,
-   không clip hoặc lén dùng extension để tune reproduction.
+   contract có version trước capture). Owner chốt **strict split**: opt-in
+   `filter_config.window_coverage_policy` = `dat03-strict-split-v1` để loại window
+   thiếu coverage, báo từng ID, required interval và reason; không clip hoặc
+   mượn extension cho reproduction. Không field policy thì exporter vẫn fail
+   cả dataset theo legacy, không âm thầm đổi behavior/pins cũ. Xem
+   [contract](../specs/FEATURE_EXPORT.md).
 4. **Backfill:** nguồn/release/manifest pin → immutable Bronze → full-month
    Silver → Gold quality/commit/Trino; checkpoint/rerun không nhân đôi. Năm 2023
    cần USGS overlap theo CON-01. Daily current-month PROVISIONAL không eligible.
@@ -104,11 +112,22 @@ make profile-jma-research JMA_PROFILE_ARCHIVE="$ARCHIVE" JMA_PROFILE_MEMBER="$ME
    mở lại SEC-01 trước migration. EXP-02/03 tiếp tục local pilot trong lúc chờ;
    không làm mất status Done component của MLD-05/MLI-02.
 
-Đã profile h2000/h2011/h2023; inventory 24 ZIP năm 2000–2023 ước tính
+Đã profile h2000/h2011/h2023, bổ sung h2016:
+**313.487 physical / 313.469 accepted / 18 INVALID_NUMBER rejects**. Chẩn đoán
+khoanh depth 45–49 có blank nội bộ; chưa diễn giải hoặc bỏ các dòng này.
+Đọc [evidence kỹ thuật](../evidence/DAT-03_TECHNICAL_PROGRESS.md) trước rollout;
+profile aggregate thành công không có nghĩa source/quality acceptance đã đạt.
+
+Reader probe thực trên 2011 cho tháng 3/4 riêng đạt 56.015/57.044 unique
+revisions (bao gồm halo), gộp bị guard 100k chặn; `make profile-jma-replay`
+không tạo BronzeReady hoặc Gold. Ví dụ lặp lại và pins ở evidence kỹ thuật.
+
+Inventory 24 ZIP năm 2000–2023 ước tính
 120.587.487 bytes nén (~115 MiB), chưa tính archive biên 2024/USGS và warehouse.
 Chưa ước lượng thời gian full backfill/fit từ ba archive profile; số đo vài
 giây chỉ là parser scan local, không gồm download/Spark joins/Gold/Trino/export.
-Disk còn khoảng 13 GiB ở mốc đầu phiên, cần đo lại trước batch; không xóa data
+Disk còn khoảng 13 GiB ở mốc đầu phiên, khoảng 10 GiB ở preflight tiếp theo;
+cần đo lại trước batch, không xóa data
 hoặc Docker volume để lấy chỗ. Estimate task 16h là ban đầu và phải replan.
 
 ## Evidence và giới hạn

@@ -38,6 +38,8 @@ PARTIAL thay full research data.
    UTC/JST archive boundary và window vượt split. Thay contract/code phải có
    regression/evidence và cập nhật consumer; không dùng scalar resource limit
    của QA nhỏ để cam kết chạy được toàn catalog.
+   Owner chốt 24/10: **giữ split nghiêm ngặt**, loại mainshock nếu nguyên PRE/POST
+   vượt period, ghi rõ từng ID/required interval/reason; không mượn data split khác.
 5. **ML và bàn giao:** chạy MLI-02 từ exact Gold pin, audit/Mc/window/features/
    VALIDATED/EXPORTED, verify local loader và rerun. Release bất biến có bundle,
    code/config versions, README và expected SHA từ trusted receipt. Mỗi người
@@ -57,8 +59,12 @@ PARTIAL thay full research data.
 - [x] Giai đoạn dùng trước: kit pilot thật đã verify/giải nén độc lập trên máy owner;
   giữ PARTIAL/development-only, chờ hai người nhận tự gửi receipt.
 - [x] Profile đầu vào h2000/h2011/h2023 bằng shared Java parser; metadata evidence đã lưu.
+  Bổ sung h2016: 18 depth token rejects; [evidence kỹ thuật](../../evidence/DAT-03_TECHNICAL_PROGRESS.md)
+  và reader probe 2011 đã lưu, không coi là source/quality gate full catalog.
 - [ ] Profile archive thật, ước lượng dung lượng/runtime và chốt rollout an toàn.
 - [ ] Resource/boundary policies được kiểm trên dữ liệu thật; không silent sampling.
+  Đã triển khai opt-in resolver `orc-06-v2` và `dat03-strict-split-v1` trong nhánh
+  PR #99; regression/reader profile không thay full-period runtime acceptance.
 - [ ] Source proof đủ JMA 225 tháng reproduction và 63 tháng extension; xử lý biên
   UTC/JST và source-link halo, không nhận boolean tự khai.
 - [ ] Gold publication/Trino/reconciliation đạt; audit/Mc/exclusion reasons có proof.
@@ -92,8 +98,11 @@ release đủ gate. Không tạo dependency ngược từ DAT-03 sang EXP-02.
 - **Assignee:** HoaiTam
 - **Reviewer:** unassigned
 - **Evidence / PR:** [DAT-03 progress](../../evidence/DAT-03_PROGRESS.md). Branch
-  `feat/dat-03-research-dataset-handoff` từ main `bc0ce9e` (PR #98). Chưa có PR,
-  reviewer approval, full research hoặc ba máy acceptance.
+  `feat/dat-03-research-dataset-handoff` từ main `bc0ce9e` (PR #98).
+  [PR #99](https://github.com/HoaiTam/japan-earthquake-etl/pull/99), commit phần
+  pilot/profile `49d1784`; phần kỹ thuật tiếp theo đang sửa local, chưa push.
+  Chưa có reviewer approval, full research hoặc ba máy acceptance. ThanhTris và
+  rosy179 chưa chạy verifier theo xác nhận owner; tiếp tục phần kỹ thuật độc lập.
 
 ## Tài liệu liên quan
 
