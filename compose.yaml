@@ -986,6 +986,14 @@ services:
         source: ./trino/log.properties
         target: /etc/trino/log.properties
         read_only: true
+      - type: bind
+        source: ./trino/jvm.config
+        target: /etc/trino/jvm.config
+        read_only: true
+      - type: bind
+        source: ./trino/config.properties
+        target: /etc/trino/config.properties
+        read_only: true
 
   trino-smoke:
     <<:

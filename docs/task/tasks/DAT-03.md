@@ -70,12 +70,24 @@ PARTIAL thay full research data.
   tests đạt. Giữ RESEARCH_COLLECTION_PREPARED/BUILDING, không official EXPORTED.
   [Contract](../../specs/RESEARCH_COLLECTION.md),
   [evidence bước 3/4](../../evidence/DAT-03_COLLECTION_BOUNDED_E2E.md).
-- [ ] Bước 4: bounded original-source Bronze/Silver/six Gold/Trino/rerun và
-  số đo capacity thật cho2000-01,2011-04,2016-04,2023-12+h2024/USGS; chỉ tick
-  sau exact report/SQL/SHA chain và own lease release đạt. Hai tháng đầu đã
-  PASSED; tháng2016-04 COMMITTED nhưng verify lỗi EOF khi Trino restart,
-  tháng2023-12 chưa chạy. Owner chọn giữ lỗi/bàn giao trước; giữ own lease,
-  không tự phục hồi/release. Xem evidence bước3/4 để lấy exact run/pins.
+- [x] Bước 4 bounded: original-source Bronze/Silver/six Gold/Trino/rerun và
+  số đo partial/recovery cho2000-01,2011-04,2016-04,2023-12+h2024/USGS đạt.
+  [Khối2](../../evidence/DAT-03_CONTINUATION.md): đủ4cases, receipt/SQL/SHA/
+  retention, report/acceptance và own lease RELEASED;124.969 canonical cộng dồn.
+  Đây không là full-period capacity/rollout acceptance. Giữ failed evidence cũ.
+- [x] Khối 1 phục hồi (25/10): chẩn đoán và read-only preflight cho retained
+  run đạt13/13 metadata queries, input/journal/six pins/own lease/quiescence
+  khớp. [Evidence](../../evidence/DAT-03_RECOVERY_PREFLIGHT.md),
+  [runbook](../../runbooks/DAT-03_RECOVERY.md). Chưa xác định nguyên nhân gốc
+  Trino restart/capacity; không chạy verify/publish, replay ETL hoặc release
+  lease trong khối1. Khối2 được nghiệm thu riêng bên dưới; full-period chưa đạt.
+- [x] Khối 2 (25/10, owner yêu cầu sửa ngay PR #100): continuation có code pin
+  riêng và bytecode compatibility gate; fresh own-lease/current-pin preflight,
+  verify/publish/rerun 2016-04, case2023-12+h2024/USGS và final acceptance/release.
+  Không replay commit2016, không thay original context/JAR/evidence failed.
+  Attempt đầu publish2016 rồi OOM khi verify2023; owner duyệt memory fix và
+  recreate riêng Trino sau lưu log. Checkpoint verify/publish2023/rerun đạt,
+  six pins không đổi, Trino restart0/oom_kill0, own lease release và idle đạt.
 - [ ] Đo capacity/ETA thực của Spark/joins/lake/export và duyệt rollout full kỳ;
   chưa suy 51 giây parser scan hoặc ~9,8 GiB disk trống thành budget full ETL.
 - [ ] Resource/boundary policies được kiểm trên dữ liệu thật; không silent sampling.
@@ -101,6 +113,9 @@ release đủ gate. Không tạo dependency ngược từ DAT-03 sang EXP-02.
 
 - Không build/pull/start/init trong test/handoff; không đổi deployment, cron,
   pause/run, lease hoặc registry production để đóng gói local.
+  Ngoại lệ owner duyệt25/10 cho bounded recovery: giữ run/namespace/cutoff,
+  recreate riêng Trino với cached image sau backup, chỉ release own lease sau
+  acceptance. Controller/test không tự triển khai hoặc retry service.
 - Không xóa dữ liệu; release khác bytes dùng identity/output mới.
 - Không upload cloud/thay ACL/tạo link public. SEC-01 Done local; mở lại phần
   Colab/Drive trước migration. Người dùng tự chọn nơi chia sẻ.
@@ -115,9 +130,13 @@ release đủ gate. Không tạo dependency ngược từ DAT-03 sang EXP-02.
 - **Reviewer:** unassigned
 - **Evidence / PR:** [DAT-03 progress](../../evidence/DAT-03_PROGRESS.md). Branch
   `feat/dat-03-research-dataset-handoff` từ main `bc0ce9e` (PR #98).
-  [PR #99](https://github.com/HoaiTam/japan-earthquake-etl/pull/99), HEAD khi
-  tiếp tục bước3/4 `258710d` (bước1/2 đã được owner commit). Collection/bounded
-  E2E tiếp theo đang sửa local, chưa tự commit/push.
+  [PR #99](https://github.com/HoaiTam/japan-earthquake-etl/pull/99), bước3/4
+  đã được owner commit ở `19073bd`. Ngày25/10 khối 1 tiếp tục trên branch vá
+  `fix/dat-03-trino-recovery` từ đúng commit này (không từ main thiếu DAT-03).
+  Khối 1 đã được owner commit/push ở `1910de8`, [PR #100](https://github.com/HoaiTam/japan-earthquake-etl/pull/100).
+  Theo yêu cầu mới khối 2 sửa tiếp ngay branch/PR này, không tạo branch/PR mới;
+  owner cho phép commit/push trực tiếp sau acceptance. Khối2 đã đạt, không merge
+  hoặc sửa original failed evidence. [Evidence](../../evidence/DAT-03_CONTINUATION.md).
   Chưa có reviewer approval, full research hoặc ba máy acceptance. ThanhTris và
   rosy179 chưa chạy verifier theo xác nhận owner; tiếp tục phần kỹ thuật độc lập.
 

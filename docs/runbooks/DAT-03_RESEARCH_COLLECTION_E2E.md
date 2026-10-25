@@ -91,6 +91,11 @@ retrieval/release/SHA để publish immutable BronzeReady rồi adapter v2 thậ
 
 ## Nhận biết thành công / lỗi
 
+Retained run lỗi ngày24/10: dùng [DAT-03 recovery khối 1](./DAT-03_RECOVERY.md)
+để kiểm tra chỉ đọc; không chạy fresh-run entrypoint lại trên cùng folder.
+Continuation có quyền ghi theo owner request nằm riêng trong
+[DAT-03 khối 2](./DAT-03_CONTINUATION.md); giữ original failed execution nguyên vẹn.
+
 - Mỗi tháng: `event=dat03_e2e_month_passed`, first/rerun giống hệt receipts,
   snapshot IDs và publication; không tạo snapshot mới khi rerun.
 - Silver COMPLETE_MONTHS, affected scope đúng một tháng, reconciliation balanced.
