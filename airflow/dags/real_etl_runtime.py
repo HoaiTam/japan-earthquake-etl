@@ -104,7 +104,8 @@ def validate_context(context):
     request = context["resolver_request"]
     required = {"resolver_version", "run_id", "dag_id", "processed_at_utc", "source_cutoff_utc", "target_months",
                 "namespace", "config_version", "code_version", "baseline_snapshots", "baseline", "bronze_inputs"}
-    require(isinstance(request, dict) and set(request) == required and request["resolver_version"] == "orc-06-v1", "EXACT_RESOLVER_FIELDS_REQUIRED")
+    require(isinstance(request, dict) and set(request) == required and isinstance(request["resolver_version"], str)
+            and request["resolver_version"] in {"orc-06-v1", "orc-06-v2"}, "EXACT_RESOLVER_FIELDS_REQUIRED")
     require(isinstance(request["namespace"], str) and re.fullmatch(r"[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*", request["namespace"]), "EXACT_NAMESPACE_REQUIRED")
     require(set(request["baseline_snapshots"]) == TABLES and all(type(v) is int and 0 <= v <= 9223372036854775807
             for v in request["baseline_snapshots"].values()), "SIX_BASELINES_REQUIRED")

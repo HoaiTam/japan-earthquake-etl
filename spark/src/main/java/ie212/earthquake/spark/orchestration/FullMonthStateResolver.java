@@ -30,6 +30,7 @@ public final class FullMonthStateResolver {
 
     public ObjectNode resolve(SparkSession spark, JsonNode request) throws Exception {
         validate(request); lease.run();
+        boolean scoped=scopedReplay(request); String version=text(request,"resolver_version");
         String run=text(request,"run_id"), requestSha=digest(request), root=root(run);
         Map<String,Long> expected=snapshots(request.path("baseline_snapshots"));
         require(probe.current().equals(expected), "STALE_GOLD_BASELINE");
@@ -42,13 +43,14 @@ public final class FullMonthStateResolver {
         if (!baseline.isNull()) {
             var previous=verify(text(baseline,"run_id"),text(baseline,"registry_sha256"));
             JsonNode registry=JSON.readTree(silver.read(root(text(baseline,"run_id"))+"/registry.json"));
+            require(scoped || VERSION.equals(registry.path("resolver_version").asText()),"RESOLVER_DOWNGRADE_FORBIDDEN");
             require(text(request,"namespace").equals(registry.path("namespace").asText())
                     && text(request,"config_version").equals(registry.path("config_version").asText())
                     && !utc(registry,"source_cutoff_utc").isAfter(utc(request,"source_cutoff_utc")), "BASELINE_POLICY_OR_CUTOFF_MISMATCH");
             registered.addAll(registryMonths(registry.path("complete_months")));
             for (var pin:registry.path("active_inputs")) {
-                oldInputs.add(reader.read(pin,utc(request,"source_cutoff_utc")));
-                require(oldInputs.size()<=64 && oldInputs.stream().mapToLong(i->i.raw().length).sum()<=128L*1024*1024,
+                oldInputs.add(scoped?reader.descriptor(pin,utc(request,"source_cutoff_utc")):reader.read(pin,utc(request,"source_cutoff_utc")));
+                require(oldInputs.size()<=64 && (scoped || retainedBytes(oldInputs)<=128L*1024*1024),
                         "BOUNDED_PARENT_INPUT_BYTES_REQUIRED");
             }
             if (expected.values().stream().anyMatch(id->id!=0)) {
@@ -68,65 +70,81 @@ public final class FullMonthStateResolver {
         var deltaIds=new HashSet<String>(); var seen=new HashSet<String>();
         for(var pin:request.path("bronze_inputs")) {
             String uri=text(pin,"manifest_uri"); require(seen.add(uri), "DUPLICATE_INPUT_PIN");
-            var incoming=reader.read(pin,utc(request,"source_cutoff_utc")); deltaIds.add(text(incoming.manifest(),"manifest_id"));
+            var incoming=scoped?reader.descriptor(pin,utc(request,"source_cutoff_utc")):reader.read(pin,utc(request,"source_cutoff_utc"));
+            deltaIds.add(text(incoming.manifest(),"manifest_id"));
             if(active.containsKey(uri)) require(active.get(uri).pin().equals(pin), "SAME_URI_DIFFERENT_PIN");
             if("JMA_BULLETIN".equals(pin.path("source_system").asText())) {
                 var sameSlot=active.values().stream().filter(i->"JMA_BULLETIN".equals(i.pin().path("source_system").asText())
                         && i.pin().path("year").equals(pin.path("year")) && i.pin().path("segment").equals(pin.path("segment"))).toList();
                 for(var prior:sameSlot) {
                     int order=new JmaReleaseComparator().compare(prior.pin().path("catalog_release").asText(),pin.path("catalog_release").asText());
+                    // Release participates in JMA revision/observation IDs even when record bytes
+                    // did not change. Every touched registered month needs its lineage rebuilt.
+                    if(scoped && !prior.pin().path("catalog_release").equals(pin.path("catalog_release")))
+                        for(String m:registered) if(FullMonthBronzeReader.intersects(incoming,Set.of(m))) affected.add(m);
                     if(!prior.pin().path("sha256").equals(pin.path("sha256"))) {
                         require(order<0, "JMA_RELEASE_IDENTITY_OR_ORDER_CONFLICT");
                         // Compare ALL removed/added native records, including outside requested months.
                         // A moved JMA record changes its key: include both months without guessing identity.
-                        affected.addAll(FullMonthBronzeReader.changedJmaMonths(prior,incoming));
+                        affected.addAll(scoped?reader.changedDescriptorMonths(prior,incoming):FullMonthBronzeReader.changedJmaMonths(prior,incoming));
                     } else require(order<=0, "OLDER_JMA_RELEASE_REJECTED");
                     active.remove(prior.pin().path("manifest_uri").asText());
                 }
+                // A newly introduced native slot must rebuild any already registered month it touches.
+                // Unregistered months are not silently certified just because an annual ZIP contains them.
+                if(scoped && sameSlot.isEmpty()) for(String m:registered)
+                    if(FullMonthBronzeReader.intersects(incoming,Set.of(m))) affected.add(m);
             }
             active.put(uri,incoming);
-            require(active.size()<=64 && active.values().stream().mapToLong(i->i.raw().length).sum()<=128L*1024*1024,
+            require(active.size()<=64 && (scoped || retainedBytes(active.values())<=128L*1024*1024),
                     "BOUNDED_ACTIVE_INPUT_BYTES_REQUIRED");
         }
         require(!active.isEmpty() && active.size()<=64, "BOUNDED_ACTIVE_INPUTS_REQUIRED");
-        require(active.values().stream().mapToLong(i->i.raw().length).sum()<=128L*1024*1024
-                && oldInputs.stream().mapToLong(i->i.raw().length).sum()<=128L*1024*1024, "BOUNDED_TOTAL_INPUT_BYTES_REQUIRED");
-        var parseMonths=new TreeSet<>(registered); parseMonths.addAll(affected);
+        require(scoped || (retainedBytes(active.values())<=128L*1024*1024
+                && retainedBytes(oldInputs)<=128L*1024*1024), "BOUNDED_TOTAL_INPUT_BYTES_REQUIRED");
+        var parseMonths=new TreeSet<String>(); if(!scoped) parseMonths.addAll(registered); parseMonths.addAll(affected);
         // USGS keeps stable source keys when origin time changes. Inspect both old/new
         // timestamps before JMA selection so a moved event expands the month automatically.
         var usgsInputs=active.values().stream().filter(i->"USGS".equals(i.pin().path("source_system").asText())).toList();
-        for(var observation:reader.parse(usgsInputs,parseMonths)) parseMonths.add(month(observation.eventTimeUtc()));
-        // Read history is cumulative; the affected write/closure remains <=24
-        // below. Existing 64-input/128MiB/100k-row guards still bound memory.
+        if(scoped && !baseline.isNull()) {
+            // Stable USGS keys may move arbitrarily far in time: inspect both full old/new USGS sets
+            // BEFORE limiting JMA replay. The same 100k bound applies, never truncate old revisions.
+            var priorUsgs=oldInputs.stream().filter(i->"USGS".equals(i.pin().path("source_system").asText())).toList();
+            var beforeUsgs=new SourceDedupTransformer().deduplicate(reader.parse(priorUsgs,parseMonths));
+            var afterUsgs=new SourceDedupTransformer().deduplicate(reader.parse(usgsInputs,parseMonths));
+            changedMonths(affected,registered,deltaIds,beforeUsgs.currentObservations(),afterUsgs.currentObservations());
+            parseMonths.addAll(affected);
+        } else if(!scoped) for(var observation:reader.parse(usgsInputs,parseMonths)) parseMonths.add(month(observation.eventTimeUtc()));
+        // V1 reads cumulative history with its retained-byte caps. V2 keeps descriptors;
+        // both versions keep the same input/selected-row/affected-write bounds.
         require(parseMonths.size()<=480, "BOUNDED_READ_HISTORY_MONTHS_REQUIRED");
-        var parsed=reader.parseWithReport(new ArrayList<>(active.values()),parseMonths);
+        FullMonthBronzeReader.Parsed parsed;
+        SourceDedupResult before,after;
+        SilverResolutionResult oldLinks,newLinks;
+        Instant processed=utc(request,"processed_at_utc"); var config=SilverLinkConfig.defaultConfig();
+        do {
+            require(!scoped || affected.size()<=24,"BOUNDED_AFFECTED_MONTHS_REQUIRED");
+            if(scoped) { parseMonths.clear(); parseMonths.addAll(affected); }
+            parsed=reader.parseWithReport(new ArrayList<>(active.values()),parseMonths);
+            var observations=parsed.observations();
+            var oldObservations=oldInputs.isEmpty()?List.<SilverObservation>of():reader.parse(oldInputs,parseMonths);
+            before=new SourceDedupTransformer().deduplicate(oldObservations);
+            after=new SourceDedupTransformer().deduplicate(observations);
+            if(!scoped && !baseline.isNull()) changedMonths(affected,registered,deltaIds,before.currentObservations(),after.currentObservations());
+            oldLinks=SilverEntityResolver.resolve(before.currentObservations(),config,processed);
+            newLinks=SilverEntityResolver.resolve(after.currentObservations(),config,processed);
+            var oldMonths=monthsById(before.currentObservations()); var newMonths=monthsById(after.currentObservations());
+            closeBothGraphs(affected,oldMonths,oldLinks.sourceLinks(),newMonths,newLinks.sourceLinks());
+            // Reparse complete newly reached months. All evaluated edges (including rejected and
+            // ambiguous) close the graph, so partial boundary competitors cannot change an accepted pair.
+        } while(scoped && !parseMonths.containsAll(affected));
         var observations=parsed.observations();
-        var oldObservations=oldInputs.isEmpty()?List.<SilverObservation>of():reader.parse(oldInputs,parseMonths);
-        var before=new SourceDedupTransformer().deduplicate(oldObservations);
-        var after=new SourceDedupTransformer().deduplicate(observations);
-        if(!baseline.isNull()) {
-            var oldByKey=currentKeys(before.currentObservations()); var newByKey=currentKeys(after.currentObservations());
-            var keys=new TreeSet<>(oldByKey.keySet()); keys.addAll(newByKey.keySet());
-            for(String k:keys) {
-                var old=oldByKey.get(k); var now=newByKey.get(k);
-                boolean changed=old==null || now==null || !old.sourceObservationId().equals(now.sourceObservationId());
-                if(changed && ((old!=null && registered.contains(month(old.eventTimeUtc())))
-                        || (now!=null && (registered.contains(month(now.eventTimeUtc())) || deltaIds.contains(now.bronzeManifestId()))))) {
-                    if(old!=null) affected.add(month(old.eventTimeUtc())); if(now!=null) affected.add(month(now.eventTimeUtc()));
-                }
-            }
-        }
-        Instant processed=utc(request,"processed_at_utc");
-        var config=SilverLinkConfig.defaultConfig();
-        var oldLinks=SilverEntityResolver.resolve(before.currentObservations(),config,processed);
-        var newLinks=SilverEntityResolver.resolve(after.currentObservations(),config,processed);
-        var oldMonths=monthsById(before.currentObservations()); var newMonths=monthsById(after.currentObservations());
-        closeBothGraphs(affected,oldMonths,oldLinks.sourceLinks(),newMonths,newLinks.sourceLinks());
         // New closure may reach a month whose JMA rows were not parsed. Never certify a partial expansion.
         require(parseMonths.containsAll(affected), "MONTH_EXPANSION_REQUIRES_EXPLICIT_REPLAN");
         require(affected.size()<=24, "BOUNDED_AFFECTED_MONTHS_REQUIRED");
         var coverage=coverage(new ArrayList<>(active.values()),affected);
         var allComplete=new TreeSet<>(registered); allComplete.addAll(affected);
+        require(allComplete.size()<=480,"BOUNDED_REGISTRY_MONTHS_REQUIRED");
         var registryCoverage=coverage(new ArrayList<>(active.values()),allComplete);
         var output=after.allObservations().stream().filter(o->affected.contains(month(o.eventTimeUtc()))).toList();
         var outputIds=new HashSet<String>(); output.forEach(o->outputIds.add(o.sourceObservationId()));
@@ -158,7 +176,7 @@ public final class FullMonthStateResolver {
             monthCounts.put(m,count); if(count==0) emptyMonths.add(m);
         }
         var context=JSON.createObjectNode(); context.put("quality_passed",true); context.put("reconciliation_balanced",true);
-        context.put("resolver_version",VERSION); context.put("request_sha256",requestSha);
+        context.put("resolver_version",version); context.put("request_sha256",requestSha);
         context.set("coverage",coverage); context.set("reconciliation",report);
         context.set("affected_months",JSON.valueToTree(affected)); context.set("link_config",JSON.valueToTree(config));
         lease.run(); require(probe.current().equals(expected), "STALE_GOLD_BASELINE");
@@ -168,13 +186,13 @@ public final class FullMonthStateResolver {
                 integrated.canonicalMemberships(),processed,false),context);
         byte[] bundleBytes=silver.read(SilverBundlePublisher.root(run)+"/manifest.json");
         publisher.verify(run); registered.addAll(affected);
-        var registry=JSON.createObjectNode(); registry.put("resolver_version",VERSION); registry.put("run_id",run);
+        var registry=JSON.createObjectNode(); registry.put("resolver_version",version); registry.put("run_id",run);
         registry.put("namespace",text(request,"namespace")); registry.put("config_version",text(request,"config_version"));
         registry.put("source_cutoff_utc",text(request,"source_cutoff_utc")); registry.put("request_sha256",requestSha);
         registry.set("complete_months",JSON.valueToTree(registered)); registry.set("active_inputs",JSON.valueToTree(active.values().stream().map(FullMonthBronzeReader.Input::pin).toList()));
         registry.set("parent",baseline.deepCopy()); registry.put("silver_bundle_sha256",sha(bundleBytes)); registry.set("coverage",registryCoverage);
         byte[] registryBytes=JSON.writeValueAsBytes(canonical(registry)); immutable(root+"/registry.json",registryBytes);
-        var receipt=JSON.createObjectNode(); receipt.put("resolver_version",VERSION); receipt.put("run_id",run);
+        var receipt=JSON.createObjectNode(); receipt.put("resolver_version",version); receipt.put("run_id",run);
         receipt.put("status","FullMonthReady"); receipt.put("scope_completeness","COMPLETE_MONTHS"); receipt.put("gold_published",false);
         receipt.put("request_sha256",requestSha); receipt.put("registry_uri",silver.uriForKey(root+"/registry.json")); receipt.put("registry_sha256",sha(registryBytes));
         receipt.put("silver_run_id",run); receipt.put("silver_bundle_sha256",sha(bundleBytes));
@@ -191,7 +209,8 @@ public final class FullMonthStateResolver {
         String root=root(run); byte[] bytes=silver.read(root+"/receipt.json");
         require(Arrays.equals(silver.read(root+"/_SUCCESS"),sha(bytes).getBytes(StandardCharsets.US_ASCII)), "FULL_MONTH_MARKER_MISMATCH");
         var receipt=(ObjectNode)JSON.readTree(bytes); byte[] registry=silver.read(root+"/registry.json");
-        require(VERSION.equals(receipt.path("resolver_version").asText()) && run.equals(receipt.path("run_id").asText())
+        require(supportedVersion(receipt.path("resolver_version").asText())
+                && receipt.path("resolver_version").equals(JSON.readTree(registry).path("resolver_version")) && run.equals(receipt.path("run_id").asText())
                 && "FullMonthReady".equals(receipt.path("status").asText()) && sha(registry).equals(registrySha)
                 && registrySha.equals(receipt.path("registry_sha256").asText())
                 && receipt.path("request_sha256").asText().equals(new String(silver.read(root+"/identity.sha256"),StandardCharsets.US_ASCII)), "FULL_MONTH_RECEIPT_PIN_MISMATCH");
@@ -207,6 +226,22 @@ public final class FullMonthStateResolver {
     }
     private static Map<String,SilverObservation> currentKeys(List<SilverObservation> rows) {
         var out=new TreeMap<String,SilverObservation>(); rows.forEach(o->out.put(o.sourceSystem()+":"+o.sourceRecordKey(),o)); return out;
+    }
+    private static long retainedBytes(Collection<FullMonthBronzeReader.Input> inputs) {
+        return inputs.stream().mapToLong(i->i.raw()==null?0:i.raw().length).sum();
+    }
+    private static void changedMonths(Set<String> affected,Set<String> registered,Set<String> deltaIds,
+            List<SilverObservation> before,List<SilverObservation> after) {
+        var oldByKey=currentKeys(before); var newByKey=currentKeys(after);
+        var keys=new TreeSet<>(oldByKey.keySet()); keys.addAll(newByKey.keySet());
+        for(String k:keys) {
+            var old=oldByKey.get(k); var now=newByKey.get(k);
+            boolean changed=old==null || now==null || !old.sourceObservationId().equals(now.sourceObservationId());
+            if(changed && ((old!=null && registered.contains(month(old.eventTimeUtc())))
+                    || (now!=null && (registered.contains(month(now.eventTimeUtc())) || deltaIds.contains(now.bronzeManifestId()))))) {
+                if(old!=null) affected.add(month(old.eventTimeUtc())); if(now!=null) affected.add(month(now.eventTimeUtc()));
+            }
+        }
     }
     private static Map<String,String> monthsById(List<SilverObservation> observations) {
         var byId=new HashMap<String,String>(); observations.forEach(o->byId.put(o.sourceObservationId(),month(o.eventTimeUtc()))); return byId;

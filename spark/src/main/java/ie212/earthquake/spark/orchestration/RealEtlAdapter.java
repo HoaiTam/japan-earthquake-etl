@@ -122,7 +122,9 @@ public final class RealEtlAdapter {
         var receipt=resolver.verify(op,digest(registry));
         require(digest(request).equals(text(receipt,"request_sha256")) && "COMPLETE_MONTHS".equals(receipt.path("scope_completeness").asText()),"FULL_MONTH_PROOF_REQUIRED");
         var reader=new FullMonthBronzeReader(bronze,inventory); var inputs=new ArrayList<FullMonthBronzeReader.Input>();
-        for(var pin:registry.path("active_inputs")) { lease.run(); inputs.add(reader.read(pin,utc(request,"source_cutoff_utc"))); }
+        for(var pin:registry.path("active_inputs")) {
+            lease.run(); inputs.add(scopedReplay(request)?reader.descriptor(pin,utc(request,"source_cutoff_utc")):reader.read(pin,utc(request,"source_cutoff_utc")));
+        }
         verifyRegistryCoverage(inputs,registry);
         return receipt;
     }

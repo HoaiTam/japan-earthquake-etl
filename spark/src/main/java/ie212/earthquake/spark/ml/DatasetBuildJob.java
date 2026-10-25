@@ -105,13 +105,15 @@ public final class DatasetBuildJob {
         var audited = audit.auditedEvents().cache();
         try {
             var windows = new MainshockWindowEngine().execute(audited, MainshockWindowJob.selectionConfig(manifest),
-                MainshockWindowJob.windowConfig(manifest), audit.mcApplied(), id, Instant.parse(manifest.path("created_at_utc").asText()));
+                MainshockWindowJob.windowConfig(manifest), audit.mcApplied(), id, Instant.parse(manifest.path("created_at_utc").asText()),WindowCoveragePolicy.fromManifest(manifest));
             var main = windows.mainshockSnapshot().cache(); var candidatesFrame = windows.candidateSnapshot().cache();
             try {
                 windows.assertInvariants();
                 long mainCount = main.count(), candidates = candidatesFrame.count();
                 require(mainCount > 0 && candidates > 0 && mainCount <= 128 && candidates <= MAX_ROWS, "DS_EXPORT_RESOURCE_LIMIT");
                 out.put("mainshock_count", mainCount).put("candidate_row_count", candidates);
+                if(!windows.windowCoverageReport().isEmpty()) out.put("window_coverage_sha256",digest(windows.windowCoverageReport()))
+                        .put("excluded_mainshock_count",windows.windowCoverageReport().path("excluded_mainshock_count").asLong());
                 if (step.equals("select_mainshocks")) return out.put("status", "MAINSHOCKS_SELECTED");
                 if (step.equals("build_candidate_windows")) return out.put("status", "WINDOWS_BUILT")
                     .put("candidate_content_sha256", MainshockWindowJob.fingerprint(candidatesFrame));

@@ -144,6 +144,69 @@ smoke-qa-acceptance: check-config-local ## QA-02/03/04 storage acceptance; khôn
 .PHONY: test-ml-window smoke-ml-window resume-ml-window
 .PHONY: prepare-ml-local stage-ml-windows test-ml-feature ml-features-local ml-pilot-local pilot-env test-pilot inspect-pilot jupyter-pilot
 .PHONY: pack-pilot test-exp01 inspect-exp01 jupyter-exp01
+.PHONY: pack-team-pilot test-team-pilot profile-jma-research profile-jma-replay test-research-profile plan-research-profiles capture-research-profiles profile-research-archives
+RESEARCH_PROFILE_ROOT ?= staging/dat03-research-profile-20261024
+RESEARCH_PROFILE_YEARS ?=
+RESEARCH_PROFILE_ARGS = --root "$(RESEARCH_PROFILE_ROOT)" $(if $(RESEARCH_PROFILE_YEARS),--years "$(RESEARCH_PROFILE_YEARS)",)
+TEAM_PILOT_ZIP ?= staging/shared-datasets/jma-development-pilot-team.zip
+JMA_PROFILE_ARCHIVE ?=
+JMA_PROFILE_MEMBER ?=
+JMA_PROFILE_SHA256 ?=
+JMA_PROFILE_OUTPUT ?=
+JMA_PROFILE_YEAR ?=
+JMA_PROFILE_MONTHS ?=
+
+pack-team-pilot: ## DAT-03 kit offline có pilot/loader/README/pins; không Docker hoặc upload
+	@test -n "$(PILOT_BUNDLE)" || { echo 'PILOT_BUNDLE is required'; exit 1; }
+	@$(PILOT_PYTHON) scripts/pack-team-pilot.py "$(PILOT_BUNDLE)" "$(TEAM_PILOT_ZIP)"
+
+test-team-pilot: ## DAT-03 synthetic package/pin/receipt checks; không Docker, cần pyarrow
+	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_team_pilot.py'
+
+profile-jma-research: ## DAT-03 profile ZIP local bằng Java parser; cần JAR đã build, không source/network/lake writes
+	@test -n "$(JMA_PROFILE_ARCHIVE)" -a -n "$(JMA_PROFILE_MEMBER)" -a -n "$(JMA_PROFILE_SHA256)" -a -n "$(JMA_PROFILE_OUTPUT)" || { echo 'JMA_PROFILE_ARCHIVE/MEMBER/SHA256/OUTPUT are required'; exit 1; }
+	@java -Xmx768m -cp spark/target/japan-earthquake-etl-runner.jar ie212.earthquake.spark.jma.JmaResearchProfileJob "$(JMA_PROFILE_ARCHIVE)" "$(JMA_PROFILE_MEMBER)" "$(JMA_PROFILE_SHA256)" "$(JMA_PROFILE_OUTPUT)"
+
+profile-jma-replay: ## DAT-03 đo reader theo tháng từ ZIP local; không BronzeReady/coverage/Gold writes
+	@test -n "$(JMA_PROFILE_ARCHIVE)" -a -n "$(JMA_PROFILE_MEMBER)" -a -n "$(JMA_PROFILE_SHA256)" -a -n "$(JMA_PROFILE_YEAR)" -a -n "$(JMA_PROFILE_MONTHS)" -a -n "$(JMA_PROFILE_OUTPUT)" || { echo 'JMA_PROFILE_ARCHIVE/MEMBER/SHA256/YEAR/MONTHS/OUTPUT are required'; exit 1; }
+	@java -Xmx768m -cp spark/target/japan-earthquake-etl-runner.jar ie212.earthquake.spark.jma.JmaResearchReplayProfileJob "$(JMA_PROFILE_ARCHIVE)" "$(JMA_PROFILE_MEMBER)" "$(JMA_PROFILE_SHA256)" "$(JMA_PROFILE_YEAR)" "$(JMA_PROFILE_MONTHS)" "$(JMA_PROFILE_OUTPUT)"
+
+test-research-profile: ## DAT-03 kiểm capture/profile control plane bằng mock, không Docker/mạng
+	@python3 -m unittest discover -s tests -p 'test_research_profiles.py'
+
+plan-research-profiles: ## DAT-03 xem 25 archive/bytes; offline, không tạo file
+	@python3 scripts/profile-research-archives.py plan $(RESEARCH_PROFILE_ARGS)
+
+capture-research-profiles: ## DAT-03 EXPLICIT network capture 2000–2024 vào staging, không Bronze/deployment
+	@python3 scripts/profile-research-archives.py capture $(RESEARCH_PROFILE_ARGS)
+
+profile-research-archives: ## DAT-03 profile tuần tự ZIP đã pin bằng JAR có sẵn, không tự build/download
+	@python3 scripts/profile-research-archives.py profile $(RESEARCH_PROFILE_ARGS)
+
+.PHONY: test-research-e2e capture-research-e2e prepare-research-e2e run-research-e2e verify-research-e2e
+.PHONY: test-research-collection
+RESEARCH_DEPLOYMENT_ROOT ?=
+RESEARCH_E2E_FOLDER ?=
+test-research-collection: ## DAT-03 collection/shared Mc/whole-window Parquet regression; không Docker hoặc nguồn thật
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am test -Dtest=ResearchCollectionPlanTest,ResearchCollectionJobTest -Dsurefire.failIfNoSpecifiedTests=false
+
+test-research-e2e: ## DAT-03 offline metadata/receipt guards, không Docker/mạng
+	@python3 -m unittest discover -s tests -p 'test_research_e2e.py'
+
+capture-research-e2e: ## DAT-03 explicit USGS tháng 12/2023 + halo; chỉ capture local, không lake writes
+	@python3 scripts/research-e2e.py capture-usgs
+
+prepare-research-e2e: ## DAT-03 stage JAR có sẵn + exact captures vào deployment staging riêng; không build/start
+	@test -n "$(RESEARCH_DEPLOYMENT_ROOT)" || { echo 'RESEARCH_DEPLOYMENT_ROOT is required'; exit 1; }
+	@python3 scripts/research-e2e.py prepare --deployment-root "$(RESEARCH_DEPLOYMENT_ROOT)" --profiles "$(RESEARCH_PROFILE_ROOT)"
+
+run-research-e2e: ## DAT-03 explicit real Bronze -> Gold/Trino + rerun trong namespace mới; giữ lease khi lỗi
+	@test -n "$(RESEARCH_DEPLOYMENT_ROOT)" -a -n "$(RESEARCH_E2E_FOLDER)" || { echo 'RESEARCH_DEPLOYMENT_ROOT/E2E_FOLDER are required'; exit 1; }
+	@python3 scripts/research-e2e.py run --deployment-root "$(RESEARCH_DEPLOYMENT_ROOT)" --folder "$(RESEARCH_E2E_FOLDER)"
+
+verify-research-e2e: ## DAT-03 offline read-only exact acceptance/capture/receipt SHA chain
+	@test -n "$(RESEARCH_E2E_FOLDER)" || { echo 'RESEARCH_E2E_FOLDER is required'; exit 1; }
+	@python3 scripts/research-e2e.py verify --folder "$(RESEARCH_E2E_FOLDER)"
 .PHONY: prepare-full-month test-full-month qa-full-month-live full-month-local
 FULL_MONTH_ROOT ?= staging/orc06-full-month
 FULL_MONTH_REQUEST ?=
@@ -219,8 +282,9 @@ pilot-env: ## Chuẩn bị venv notebook riêng một lần; cần Internet, kh�
 	@python3 -m venv staging/venvs/dat02
 	@staging/venvs/dat02/bin/python -m pip install -r notebooks/requirements-pilot.txt
 
-test-pilot: ## Synthetic loader/staging regression; cần pyarrow, không Docker/network/notebook kernel
+test-pilot: ## Pilot/model regression; cần pyarrow/model deps và loopback Jupyter kernel, không Docker/nguồn mạng
 	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_pilot_*.py'
+	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_team_pilot.py'
 	@$(PILOT_PYTHON) -m unittest tests/test_experiment_harness.py
 	@$(PILOT_PYTHON) -m unittest tests/test_baseline_algorithms.py
 	@$(PILOT_PYTHON) -m unittest tests/test_adaptive_hdbscan.py
@@ -268,7 +332,7 @@ export QA_RUN_ID
 test-ml-window: ## MLD-03 bucket physical plan, distributed invariants, microseconds và fail-fast Parquet tests
 	@python3 -m unittest discover -s airflow/tests -p 'test_mainshock_window_qa.py'
 	@./mvnw --batch-mode --no-transfer-progress -pl spark -am \
-		-Dtest=WindowModelResolverTest,MainshockWindowEngineTest,MainshockWindowIntegrationTest,MainshockWindowRegressionTest,MainshockRuntimeTest,JmaMainshockPilotSamplerTest \
+		-Dtest=WindowModelResolverTest,MainshockWindowEngineTest,MainshockWindowIntegrationTest,MainshockWindowRegressionTest,MainshockRuntimeTest,WindowCoveragePolicyTest,JmaMainshockPilotSamplerTest \
 		-Dsurefire.failIfNoSpecifiedTests=false test
 
 smoke-ml-window: check-config-local ## MLD-03 runtime QA; cần docker-build/docker-up, không tự build/start
@@ -421,6 +485,7 @@ ci-docs-base: ## Always-on CI guards; pilot tests được chọn riêng theo im
 	@python3 -m unittest discover -s tests -p 'test_qa_01_cli.py'
 	@python3 -m unittest discover -s tests -p 'test_current_month_cli.py'
 	@python3 -m unittest discover -s tests -p 'test_ml_export_cli.py'
+	@$(MAKE) test-research-e2e
 	@$(MAKE) test-security-audit
 	@$(MAKE) test-docker-runtime
 	@$(MAKE) check-config ENV_FILE=/dev/null
@@ -588,7 +653,7 @@ config: check-config-local ## Validate toàn bộ Compose profile; không in sec
 
 test: test-contracts test-java test-airflow ## Toàn bộ contract và unit test; không cần Docker daemon/nguồn thật
 
-test-contracts: $(CONTRACT_CHECKS) check-week-5-plan test-week-5-plan check-java-build-inputs ## Kiểm tra docs, contract, fixture và catalog mẫu; không cần mạng
+test-contracts: $(CONTRACT_CHECKS) check-week-5-plan test-week-5-plan check-java-build-inputs test-research-profile ## Kiểm tra docs, contract, fixture và catalog mẫu; không cần mạng
 
 check-java-build-inputs: ## Kiểm tra đầu vào Maven trong Docker và regression test; không cần Docker/JDK/env
 	@./scripts/check-java-build-inputs.sh

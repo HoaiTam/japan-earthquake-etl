@@ -14,6 +14,26 @@ spec.loader.exec_module(impact)
 
 
 class SuitePolicyTest(unittest.TestCase):
+    def test_dat03_collection_and_bounded_runtime_have_consumer_suites(self):
+        groups = impact.inventory("java")
+        for name in ("ResearchCollectionPlanTest", "ResearchCollectionJobTest"):
+            self.assertIn("ie212.earthquake.spark.ml." + name, groups["mld-05-export"])
+        self.assertIn("ie212.earthquake.spark.usgs.ResearchBoundedE2EJobTest", groups["orc-07-real-adapters"])
+        self.assertIn("test-research-e2e", (ROOT / "Makefile").read_text().split("ci-docs-base:", 1)[1])
+
+    def test_strict_split_policy_regression_is_visible_in_window_suite_and_local_target(self):
+        groups = impact.inventory("java")
+        self.assertIn("ie212.earthquake.spark.ml.WindowCoveragePolicyTest", groups["mld-03-windows"])
+        self.assertIn("WindowCoveragePolicyTest", (ROOT / "Makefile").read_text())
+
+    def test_team_handoff_runs_python_pilot_without_unrelated_java_or_airflow(self):
+        for path in impact.TEAM_PILOT_FILES:
+            result = impact.classify([("M", path)])
+            self.assertEqual("full", result["pilot"])
+            self.assertEqual("none", result["java"])
+            self.assertEqual("none", result["airflow"])
+        self.assertIn("test_team_pilot.py", (ROOT / "Makefile").read_text())
+
     def test_full_java_inventory_covers_every_discovered_class_once(self):
         groups = impact.suite_plan(impact.full("fixture"), "java")
         found = [name for tests in groups.values() for name in tests]

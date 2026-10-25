@@ -24,7 +24,8 @@ import java.util.zip.ZipFile;
 /** Byte-position JMA parser producing the existing Spark/Parquet Silver 1.0 models. */
 public final class JmaFixedWidthParser {
     public static final String PARSER_NAME = "jma-hypocenter-fixed-width";
-    public static final String PARSER_VERSION = "slv-03-v1.1";
+    public static final String PARSER_VERSION = "slv-03-v1.2";
+    public static final String DEPTH_BLANK_ENCODING_WARNING = "DEPTH_BLANK_ENCODING_BN_BZ_AGREE";
     public static final String SOURCE_SYSTEM = "JMA_BULLETIN";
     private static final ZoneId JST = ZoneId.of("Asia/Tokyo");
     private static final LocalDateTime UNIFIED_START = LocalDateTime.of(1997, 10, 1, 0, 0);
@@ -210,7 +211,7 @@ public final class JmaFixedWidthParser {
         LocalDateTime jst = originTime(line, reasons);
         Double latitude = coordinate(field(line, 22, 24), field(line, 25, 28), 90, "INVALID_LATITUDE", reasons);
         Double longitude = coordinate(field(line, 33, 36), field(line, 37, 40), 180, "INVALID_LONGITUDE", reasons);
-        Double depth = optionalNumber(field(line, 45, 49), 2, reasons);
+        Double depth = depth(field(line, 45, 49), field(line, 60, 60), reasons, warnings);
         Double magnitude1 = magnitude(field(line, 53, 54), reasons);
         Double magnitude2 = magnitude(field(line, 56, 57), reasons);
         Double magnitude = magnitude1 != null ? magnitude1 : magnitude2;
@@ -311,6 +312,18 @@ public final class JmaFixedWidthParser {
             reasons.add("INVALID_NUMBER");
             return null;
         }
+    }
+
+    private static Double depth(String raw, String precision, Set<String> reasons, Set<String> warnings) {
+        // JMA F5.2 depth-free records can contain "  0 4" (observed in pinned h2016).
+        // BN -> "04" / 100; BZ -> "00004" / 100: both yield 0.04 km.
+        // Do NOT generalize to e.g. "  1 4": BN/BZ disagree, or to fixed-depth I3,2X.
+        // JMA does not specify blank-control mode; accept only this unambiguous shape.
+        if ("1".equals(precision) && raw.matches("  0 [0-9]")) {
+            warnings.add(DEPTH_BLANK_ENCODING_WARNING);
+            return (raw.charAt(4) - '0') / 100.0;
+        }
+        return optionalNumber(raw, 2, reasons);
     }
 
     private static Double magnitude(String raw, Set<String> reasons) {

@@ -30,6 +30,10 @@ public final class MainshockWindowEngine {
             String datasetId,
             Instant createdAtUtc
     ) {
+        return execute(auditedEvents,selectionConfig,windowConfig,mcValue,datasetId,createdAtUtc,WindowCoveragePolicy.LEGACY);
+    }
+    public MainshockWindowResult execute(Dataset<Row> auditedEvents,MainshockSelectionConfig selectionConfig,
+            WindowModelConfig windowConfig,double mcValue,String datasetId,Instant createdAtUtc,String coveragePolicy) {
         Objects.requireNonNull(auditedEvents, "auditedEvents");
         Objects.requireNonNull(selectionConfig, "selectionConfig");
         Objects.requireNonNull(windowConfig, "windowConfig");
@@ -69,10 +73,8 @@ public final class MainshockWindowEngine {
 
         Dataset<Row> mainshocksFiltered = auditedEvents.filter(mainshockCondition);
         long mainshockCount = mainshocksFiltered.count();
-
-        if (mainshockCount == 0) {
-            return createEmptyResult(spark, selectionConfig, windowConfig, mcValue, datasetId, createdAtUtc);
-        }
+        if(mainshockCount==0 && WindowCoveragePolicy.LEGACY.equals(coveragePolicy))
+            return createEmptyResult(spark,selectionConfig,windowConfig,mcValue,datasetId,createdAtUtc);
 
         // Register UDFs for window dimensions
         UserDefinedFunction preHoursUdf = udf((Double mag, Double lat) -> windowValue(resolver, mag, lat, Dimension.PRE), DataTypes.DoubleType);
@@ -104,6 +106,11 @@ public final class MainshockWindowEngine {
                 .withColumn("max_lat", col("mainshock_lat").plus(col("delta_lat_deg")))
                 .withColumn("min_lon", col("mainshock_lon").minus(col("delta_lon_deg")))
                 .withColumn("max_lon", col("mainshock_lon").plus(col("delta_lon_deg")));
+
+        var coverage=WindowCoveragePolicy.apply(mainshocksWithWindows,selectionConfig,coveragePolicy);
+        mainshocksWithWindows=coverage.included();
+        if(WindowCoveragePolicy.STRICT.equals(coveragePolicy)) mainshockCount=coverage.report().path("included_mainshock_count").asLong();
+        if(mainshockCount==0) return createEmptyResult(spark,selectionConfig,windowConfig,mcValue,datasetId,createdAtUtc).withCoverage(coverage.report());
 
         // Clip the coarse search to the dataset period, without changing exact window bounds.
         // Each event belongs to exactly one UTC-day / 1-degree latitude / longitude bucket.
@@ -225,7 +232,7 @@ public final class MainshockWindowEngine {
 
         // Nested mainshocks per window (candidates that are also mainshocks, excluding self)
         Map<String, Integer> nestedMainshocksPerWindow = new TreeMap<>();
-        Dataset<Row> selectedIds = mainshocksFiltered.select(col("canonical_event_id").alias("candidate_event_id"));
+        Dataset<Row> selectedIds = mainshocksWithWindows.select(col("mainshock_event_id").alias("candidate_event_id"));
         List<Row> nestedRows = candidateSnapshot
                 .filter(not(col("is_mainshock")))
                 .join(selectedIds, new String[]{"candidate_event_id"}, "left_semi")
@@ -313,7 +320,7 @@ public final class MainshockWindowEngine {
                 createdAtUtc
         );
 
-        return result;
+        return result.withCoverage(coverage.report());
     }
 
     private MainshockWindowResult createEmptyResult(

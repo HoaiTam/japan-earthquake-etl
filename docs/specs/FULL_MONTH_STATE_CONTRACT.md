@@ -1,4 +1,4 @@
-# ORC-06 — Full-month Silver state, version orc-06-v1
+# ORC-06 — Full-month Silver state, versions orc-06-v1/v2
 
 ## Làm gì và dùng để làm gì?
 
@@ -22,7 +22,7 @@ lệnh nghiệm thu. Thay bằng exact pins thật trước khi dùng backend Mi
 
 | Field | Quy tắc / mục đích |
 |---|---|
-| resolver_version | `orc-06-v1`, reject version/field lạ |
+| resolver_version | `orc-06-v1` mặc định cũ; `orc-06-v2` opt-in scoped replay DAT-03; reject version/field lạ |
 | run_id, dag_id | Safe IDs; production cần exact `SOURCE_GUARD_ROOT/owner.json` của cùng dag/run |
 | namespace | Exact `catalog.namespace` của Gold; không tạo table hoặc ghi Gold trong task này |
 | code_version, config_version | Pin phiên bản, tham gia identity; đổi code/config phải dùng đúng identity mới |
@@ -88,17 +88,45 @@ Bronze producer/trusted capture vẫn là boundary của provenance.
 4. Dùng matching/canonical hiện có trên old và new state; đóng cả hai link
    graphs tới fixed point. Bao gồm candidate/rejected/ambiguous links theo
    time threshold, không cắt cạnh/đổi ambiguity chỉ vì khác tháng.
-5. Nếu closure vượt vùng JMA đã parse, reject `MONTH_EXPANSION_REQUIRES_EXPLICIT_REPLAN`:
+5. **V1:** nếu closure vượt vùng JMA đã parse, reject `MONTH_EXPANSION_REQUIRES_EXPLICIT_REPLAN`:
    thêm các tháng cần thiết và coverage vào request mới, không chứng nhận
    snapshot nửa vời. Nếu đủ vùng đã parse nhưng coverage thiếu vẫn fail.
 6. Chỉ output observations/history, links và memberships của affected months.
    Các tháng khác không overwrite. Registry giữ đủ input pins và tính lại
    coverage cho toàn bộ complete months đã tích lũy, không làm mất tháng cũ.
 
-Resource guards: tối đa 24 registered/parsed months, 64 active pins, 32 MiB
-mỗi raw, 128 MiB active raw và 128 MiB parent raw, 100.000 unique selected
-revisions; JMA native record diff tối đa 1.000.000 dòng/archive. Vượt guard
-thì reject, không truncate. Đây là bounded resolver, không benchmark 40 năm.
+Resource guards chung: tối đa 24 **affected write** months/operation, registry
+tích lũy <=480 tháng, 64 active pins, 32 MiB/raw, 100.000 unique selected
+revisions (bao gồm USGS history và JMA temporal halo); JMA native record diff
+tối đa 1.000.000 dòng/archive. Vượt guard reject, không truncate. V1 giữ nguyên
+128 MiB active raw và 128 MiB parent raw, parse lại cả lịch sử đã đăng ký.
+
+### Scoped replay v2 (DAT-03, opt-in)
+
+- Không đổi request shape, key/grain/link/source policy hoặc mặc định v1.
+  Version nằm trong request identity, Silver context, registry và receipt.
+  V2 đọc được parent v1; v1 không được dùng parent v2 (`RESOLVER_DOWNGRADE_FORBIDDEN`).
+- Fresh SHA/structure/CRC/count của **mọi** pin vẫn được kiểm tuần tự. Registry
+  chỉ giữ descriptor, không giữ tổng raw bytes của các năm trong heap. Khi dùng
+  descriptor để parse/diff, đọc lại exact manifest/raw và kiểm pin, không cache
+  unverified bytes hoặc dùng ETag thay SHA. V2 bỏ *aggregate retained-byte* cap
+  của v1, không tăng per-archive/row/input/affected-month caps. Old/new selected
+  observations và diff hash maps vẫn có trong RAM; đây chưa phải distributed resolver.
+- So sánh toàn bộ old/new USGS stable keys trước để nhận cả timestamp chuyển
+  tháng xa. JMA replacement vẫn diff toàn native archive; thay catalog release
+  còn rebuild các registered months liên quan vì release tham gia revision ID,
+  kể cả record bytes không đổi. Native slot mới bảo vệ registered overlap/halo.
+- Parse chi tiết JMA chỉ ở affected months +16s, không mọi registered months.
+  Đóng cả old/new graph bằng **mọi evaluated edge**. Khi graph chạm tháng khác,
+  reparse **toàn tháng mới**, lặp tới fixed point; vượt 24 tháng/100k rows hoặc
+  thiếu coverage thì fail trước identity/Silver output. Không cắt link hay chỉ
+  thêm tên tháng vào receipt mà chưa parse dữ liệu tháng đó.
+- Registry coverage vẫn tính cho **toàn bộ** complete months/pins tích lũy.
+  Reconciliation `sources` giải thích toàn archive/selected/outside scope;
+  bootstrap một tháng không chứng nhận các tháng còn lại của annual ZIP.
+- Whole-year revision có thể vẫn vượt 100k do cần rebuild nhiều tháng; v2
+  **không** giải quyết bằng tăng cap, bỏ revision hoặc overwrite một phần.
+  DAT-03 còn phải đo/replan trường hợp này và nghiệm thu runtime trước rollout.
 
 ## Output và handoff
 
@@ -132,16 +160,13 @@ không chạy lại resolver với baseline cũ để reset state.
 
 ## Giới hạn và task tiếp theo
 
-- [ORC-07 — Kết nối real ETL adapters đến Gold Published](../task/tasks/ORC-07.md):
-  còn wiring real daily/manual adapters, giữ lease xuyên phase và kiểm tra
-  fresh proof trước sáu Gold commits/Trino publication. Task này không tạo
-  DAG mới hoặc tự kích hoạt real ETL.
-- [QA-01 — Chạy E2E daily đa nguồn](../task/tasks/QA-01.md): còn nghiệm thu
-  toàn chuỗi trên MinIO/Airflow/Gold/Trino. File-backed public capture không thay gate đó.
-- [QA-03 — Kiểm thử JMA historical backfill](../task/tasks/QA-03.md): còn
-  coverage/history rollout rộng; một tháng không chứng minh 40 năm.
-- [SEC-01 — Review secret và bề mặt truy cập](../task/tasks/SEC-01.md): runtime
-  và ML handoff gates riêng, không đổi Done từ nghiệm thu metadata ORC-06.
+- [ORC-07 — Real ETL adapters](../task/tasks/ORC-07.md), [QA-01 — Daily E2E](../task/tasks/QA-01.md)
+  và [QA-03 — Historical backfill QA](../task/tasks/QA-03.md) đã Done theo scope
+  component/acceptance riêng, không phải bằng chứng full research catalog v2.
+- [DAT-03 — Catalog nghiên cứu thật](../task/tasks/DAT-03.md) còn rollout 225+63
+  tháng, source biên UTC/JST, resource profile, Gold/Trino/ML export và ba máy handoff.
+- [SEC-01 — Security](../task/tasks/SEC-01.md) Done local; mở lại cloud acceptance
+  trước Colab/Drive. Không suy security approval từ reader/resolver profile.
 
 Nguồn chính thức:
 [USGS query/limit/time semantics](https://earthquake.usgs.gov/fdsnws/event/1/),

@@ -89,6 +89,18 @@ publication và config MLD-01/04 thật, không copy pins evidence hoặc chọn
 | Versions | dataset_config_version, audit_rule_version, mc_method_version, window_model_version, feature_version, scaling_config_version, code_version |
 | publication_reference | gold_publication_id, gold_snapshot_id (integer chính xác), gold_table_name, physical_gold_table_name, publication_bundle_sha256, verify_status=PASSED, published=true |
 
+DAT-03 research config opt-in `filter_config.window_coverage_policy` =
+`dat03-strict-split-v1` theo [feature/export contract](../specs/FEATURE_EXPORT.md#dat-03--strict-split-và-loại-window-thiếu-coverage).
+Selection/feature receipts thêm `excluded_mainshock_count` và
+`window_coverage_sha256`; full exclusion details ở `window_coverage` trong
+export/trusted manifest. Đổi policy tạo dataset ID mới; không sửa manifest
+EXPORTED cũ. Default không field vẫn là legacy fail-export, không tự đổi daily
+hoặc synthetic acceptance. DAT-03 đã thêm
+[collection preparation riêng](../specs/RESEARCH_COLLECTION.md), nhưng parent
+BUILDING/RESEARCH_COLLECTION_PREPARED không thay official EXPORTED. Chưa có
+full-catalog runtime và collection-aware lifecycle/registry/loader/import
+acceptance; thuộc DAT-03 bước5/6, không tự mở MLI-03 gate.
+
 Chi tiết: [ML identity](../specs/ML_DATA_MODEL.md),
 [feature/export](../specs/FEATURE_EXPORT.md), [MLD-05 runbook](./MLD-05_FEATURE_EXPORT.md).
 Không gửi credentials, shell command, output paths, Mc tự chọn hoặc mock_pipeline
@@ -193,7 +205,7 @@ Colab/Drive chưa triển khai phải mở lại SEC-01 trước migration.
 ## Giới hạn / task tiếp theo
 
 - **MLD-05 — feature/export** đã có component QA đủ temporal scope. Backfill
-  và nghiệm thu **catalog thật toàn kỳ nghiên cứu chưa có task riêng**; không
+  và nghiệm thu **catalog thật toàn kỳ nghiên cứu thuộc DAT-03**, hiện In Progress; không
   lấy synthetic component QA làm bằng chứng thay thế hoặc tự đổi MLD-05 về chưa Done.
 - **EXP-02 — baseline/Colab parity**, **EXP-03 — adaptive scientific gates**:
   không mở gate chỉ vì DAG export thành công.

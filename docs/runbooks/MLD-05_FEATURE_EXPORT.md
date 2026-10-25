@@ -164,4 +164,5 @@ Colab có thể chạy cùng script/module + requirements của EXP-01 trên b�
   chỉ có bounded evidence, không chứng minh đã tải toàn kỳ.
   [ORC-03 — Implement backfill và reprocessing](../task/tasks/ORC-03.md) và
   [ORC-06 — Resolve affected months và dựng full-month Silver state](../task/tasks/ORC-06.md)
-  cung cấp execution/state; chưa có task riêng nghiệm thu full research backfill.
+  cung cấp execution/state; [DAT-03 — Catalog thật và handoff](../task/tasks/DAT-03.md)
+  sở hữu full research backfill acceptance, hiện In Progress.

@@ -36,7 +36,12 @@ PostgreSQL trong Compose chỉ lưu metadata của Airflow. Dữ liệu nghiệp
 
 ## 3. Khối A - Hợp đồng dữ liệu
 
-Task: `CON-01..04`, `DAT-01..02`.
+Task: `CON-01..04`, `DAT-01..03`.
+
+DAT-03 thêm ngày 24/10/2026: profile/backfill catalog nghiên cứu thật, kiểm
+coverage/quality/resource, export qua MLI-02 và handoff cùng release cho ba máy.
+Pilot DAT-02 gửi dùng trước không thay research acceptance. Estimate ban đầu
+16h ở tuần 6; backlog hiện 77 task/402h (Core 69/Stretch 8), lịch tuần 5 giữ nguyên.
 
 Làm phần gì:
 
@@ -340,7 +345,8 @@ DOC-01 final reproduction vẫn cần evidence đúng scope; không suy pilot th
 
 Đồng bộ ngày 22/10/2026 theo bảng gần nhất: 11 task giao việc/61h + 4 task
 mở đường/25h = **15 task Core/86h**. MLI-02 chuyển rosy179; DOC-01/QA-04/EXP-03
-về tuần 5, effort toàn backlog vẫn 386h. Giữ 4h budget tồn + 20h review/tích hợp
+về tuần 5, effort tại mốc 22/10 là 386h; DAT-03 thêm 16h tuần 6 ngày 24/10,
+hiện 402h. Giữ 4h budget tồn + 20h review/tích hợp
 cho ra 110h tham khảo, buffer cũ theo người thành 39/28/43h, cần replan capacity.
 Đây là effort kế hoạch, không phải remaining work hoặc cam kết tải. Full-month resolver
 và real adapters được giao ORC-06/07 riêng để QA-01 chỉ nghiệm thu. Mọi nhóm viết

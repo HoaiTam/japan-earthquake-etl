@@ -1,0 +1,33 @@
+{
+  "profile_version": "dat03-reader-replay-v1",
+  "profile_kind": "ENGINEERING_ONLY_NOT_RESOLVER_ACCEPTANCE",
+  "archive_sha256": "2c438d8189fd9e76ac0b05c0587c7a8ee2611e6ecbf21d5a5bca7887dab360da",
+  "archive_bytes": 8221979,
+  "native_year": 2016,
+  "member": "h2016",
+  "physical_records": 313487,
+  "max_selected_revisions_per_operation": 100000,
+  "research_ready": false,
+  "coverage_verified": false,
+  "gold_published": false,
+  "full_resolver_verified": false,
+  "source_authenticity_verified": false,
+  "single_month_operations": [
+    {
+      "month": "2016-04",
+      "selected_input_records": 42821,
+      "unique_revisions": 42821,
+      "elapsed_ms": 9851,
+      "status": "PASSED"
+    },
+    {
+      "month": "2016-05",
+      "selected_input_records": 39308,
+      "unique_revisions": 39308,
+      "elapsed_ms": 2918,
+      "status": "PASSED"
+    }
+  ],
+  "combined_scope_status": "PASSED",
+  "combined_unique_revisions": 82128
+}

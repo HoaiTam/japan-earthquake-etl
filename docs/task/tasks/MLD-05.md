@@ -102,10 +102,10 @@ chỉ để mở official experiment. Assignee/reviewer giữ nguyên, chưa có
 
 Exporter/validator/snapshot/trusted handoff đã được nghiệm thu component theo
 [evidence](../../evidence/MLD-05_RUNTIME_ACCEPTANCE.md); `Done` không phải bằng
-chứng đã backfill catalog thật toàn kỳ. [MLI-02](./MLI-02.md) còn nối real build
-DAG; [EXP-02](./EXP-02.md) còn official fit/Colab parity;
+chứng đã backfill catalog thật toàn kỳ. [MLI-02](./MLI-02.md) đã Done technical
+build DAG ngày 24/10; [EXP-02](./EXP-02.md) còn official fit/Colab parity;
 [MLQ-01](./MLQ-01.md) còn E2E đến report. Nghiệm thu full research backfill thật
-chưa có task riêng; giữ coverage/lifecycle gates và DAT-02 development-only.
+thuộc [DAT-03](./DAT-03.md), In Progress; giữ coverage/lifecycle gates và DAT-02 development-only.
 
 - [Roadmap HDBSCAN](../HDBSCAN_WORKSTREAM.md)
 - [MLD-04](./MLD-04.md)

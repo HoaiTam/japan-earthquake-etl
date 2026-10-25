@@ -1,7 +1,7 @@
 ---
 task_id: "SLV-03"
 parser_name: "jma-hypocenter-fixed-width"
-parser_version: "slv-03-v1.1"
+parser_version: "slv-03-v1.2"
 code_mapping_version: "jma-codes-v1"
 silver_schema_version: "1.0"
 ---
@@ -90,6 +90,17 @@ flowchart LR
 
 Quy tắc numeric:
 
+- `slv-03-v1.2` thêm **chỉ** depth cột 45–49 dạng `  0 [0-9]` khi precision
+  cột 60 là `1` (depth-free F5.2). Ví dụ `  0 4` → **0,04 km**, không 0/0,4 km.
+  JMA không chốt BN/BZ: project đối chiếu hai cách đọc đều ra cùng số cho shape
+  này. Giữ warning `DEPTH_BLANK_ENCODING_BN_BZ_AGREE`, raw token truy ngược bằng
+  locator/hash; không generalize `  1 4`, fixed-depth, hoặc numeric fields khác.
+  Blank toàn field vẫn null; các trailing-blank/signed-degree rules cũ không đổi.
+  [Evidence DAT-03](../evidence/DAT-03_RESEARCH_PROFILE_ACCEPTANCE.md) giữ đủ 18
+  locator/hash/token/expected value, so sánh archive 2016 cùng SHA trước/sau.
+  Đây là cách diễn giải có version của project từ format, không thông báo JMA
+  đã chính thức sửa archive. Bronze/schema/record keys không đổi; normalized
+  output cũ không tự đổi. Reprocess phải pin parser/output mới qua ORC-03/DAT-03.
 - Parser `slv-03-v1.1` đọc đúng signed padding trong **degree I3/I4**: native
   `- 1` → -1 độ, `- 66` → -66 độ, `- 0` vẫn giữ dấu âm cho minutes.
   Đây là lỗi parser phát hiện trên archive 2000 đã pin SHA khi nghiệm thu

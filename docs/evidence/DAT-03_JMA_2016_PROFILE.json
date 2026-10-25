@@ -1,0 +1,46 @@
+{
+  "profile_version" : "dat03-local-archive-v1",
+  "profile_kind" : "ENGINEERING_ONLY_NOT_COVERAGE_PROOF",
+  "source_system" : "JMA_BULLETIN",
+  "member" : "h2016",
+  "archive_sha256" : "2c438d8189fd9e76ac0b05c0587c7a8ee2611e6ecbf21d5a5bca7887dab360da",
+  "archive_bytes" : 8221979,
+  "member_bytes" : 30408239,
+  "structural_validation" : "PASSED",
+  "parser_version" : "slv-03-v1.1",
+  "research_ready" : false,
+  "gold_published" : false,
+  "source_authenticity_verified" : false,
+  "coverage_verified" : false,
+  "counts" : {
+    "missing_depth" : 0,
+    "missing_magnitude" : 5834,
+    "parser_accepted" : 313469,
+    "parser_rejected" : 18,
+    "parser_warning_rows" : 0,
+    "physical_records" : 313487,
+    "pre_mc_research_filter_rows" : 307500,
+    "pre_window_mainshock_rows" : 9
+  },
+  "accepted_rows_by_utc_month" : {
+    "2015-12" : 153,
+    "2016-01" : 10626,
+    "2016-02" : 9464,
+    "2016-03" : 10007,
+    "2016-04" : 42811,
+    "2016-05" : 39302,
+    "2016-06" : 28668,
+    "2016-07" : 27426,
+    "2016-08" : 25829,
+    "2016-09" : 23995,
+    "2016-10" : 32940,
+    "2016-11" : 32088,
+    "2016-12" : 30160
+  },
+  "parser_rejection_reason_counts" : {
+    "INVALID_NUMBER" : 18
+  },
+  "first_accepted_event_utc" : "2015-12-31T15:03:42.550Z",
+  "last_accepted_event_utc" : "2016-12-31T14:59:57.170Z",
+  "counts_reconciled" : true
+}

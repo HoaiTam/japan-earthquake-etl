@@ -9,6 +9,17 @@ Cập nhật riêng QA-01 ngày **23/10/2026**: operational v2 đã có schedule
 acceptance PASSED; các dòng task khác vẫn theo mốc/evidence riêng của branch này.
 Cập nhật MLI-02 ngày **24/10/2026** theo [real acceptance](./evidence/MLI-02_RUNTIME_ACCEPTANCE.md),
 không sửa evidence offline/lịch sử hoặc tự mở scientific gates.
+Cập nhật DAT-03 ngày **24/10/2026**: scoped resolver v2/strict split và pilot có
+tests; [bước 1/2](./evidence/DAT-03_RESEARCH_PROFILE_ACCEPTANCE.md) đã sửa 18 depth
+tokens có version/fixture, profile đủ 25 archive và capture nguồn biên 2024.
+0 parser rejects không thay quality/Gold/coverage acceptance. Task còn In Progress
+cho full capacity/catalog/export và receipts ba máy. Tiếp tục bước3/4 có
+[collection preparation v1 và bounded runtime evidence](./evidence/DAT-03_COLLECTION_BOUNDED_E2E.md);
+prepared collection không official EXPORTED, nghiệm thu bốn tháng không thay
+full225+63-month source/ML proof.
+Bước4 thực tế mới đạt2000-01/2011-04;2016-04 COMMITTED nhưng verify bị EOF khi
+Trino restart,2023-12 chưa chạy. Owner chọn giữ lỗi/bàn giao; own lease còn giữ,
+không tự phục hồi/release hoặc chạy nguồn khác. DAT-03 chưa Done.
 
 Mốc DOC-01 gốc 19/10, MLI-03 acceptance 19/10, QA-02/03/04 và MLD-05 acceptance
 21/10 được giữ trong evidence riêng. Bản đồng bộ này không sửa logs, counts,
@@ -19,9 +30,10 @@ DOC-01/QA-04/EXP-03 chuyển lịch tuần 5, không đổi scope hoặc accepta
 |---|---|---|
 | [QA-01 — Daily E2E](./task/tasks/QA-01.md), Done — operational v2 | [Scheduled recovery acceptance 23/10](./evidence/QA-01_CURRENT_MONTH_ACCEPTANCE.md): 8/8 tasks, 58 events, six snapshots và 42 SQL readbacks PASSED | Explicit readonly prebuilt deployment; default cached-image Make preflight chưa đạt. Không first-attempt/on-time SLA hoặc official ML/research eligibility; daily hiện paused |
 | [ORC-07 — Real ETL adapters](./task/tasks/ORC-07.md), Done | Bounded real MinIO/Iceberg/Trino/Airflow DAG.test và rerun | Không có nghĩa deployment source-only trên máy đã được cập nhật; xem QA-01 |
-| [MLD-05 — Validate feature snapshot/export](./task/tasks/MLD-05.md), Done (component, 21/10) | Coverage/audit gate, pinned snapshots, portable export/reuse, trusted handoff và local loader đã kiểm | Catalog thật toàn kỳ chưa nghiệm thu/chưa có task riêng; MLI-02 technical DAG đã Done, EXP-02 còn official fit/Colab; pilot không thay official dataset |
+| [MLD-05 — Validate feature snapshot/export](./task/tasks/MLD-05.md), Done (component, 21/10) | Coverage/audit gate, pinned snapshots, portable export/reuse, trusted handoff và local loader đã kiểm | Catalog thật toàn kỳ thuộc DAT-03 In Progress; MLI-02 technical DAG đã Done, EXP-02 còn official fit/Colab; pilot không thay official dataset |
 | [MLI-02 — Build dataset DAG](./task/tasks/MLI-02.md), Done technical component 24/10; owner rosy179 | Real Java/Spark + Airflow first/rerun 12/12, registry/pins/12 SQL mỗi run, reject unpublished input và local handoff đạt | Synthetic QA không chứng nhận research catalog thật hoặc fit/Colab. Giữ Docker shutdown/recovery validate try 2; deployment đã restore, daily/MLI paused. Không default cached-image hoặc first-attempt SLA; reviewer unassigned |
-| [MLI-03 — Result import](./task/tasks/MLI-03.md), Done | [Synthetic QA trên MinIO/Catalog/Trino + production runner + 9/9 Airflow tasks](./evidence/MLI-03_RUNTIME_ACCEPTANCE.md); rejects/rerun/recovery đạt | Catalog thật toàn kỳ chưa có task nghiệm thu riêng; EXP-02..04 còn official fit/scientific gates. MLI-02 technical Done không chứng nhận APPROVED hoặc Gold→ML E2E |
+| [MLI-03 — Result import](./task/tasks/MLI-03.md), Done | [Synthetic QA trên MinIO/Catalog/Trino + production runner + 9/9 Airflow tasks](./evidence/MLI-03_RUNTIME_ACCEPTANCE.md); rejects/rerun/recovery đạt | DAT-03 còn catalog thật toàn kỳ; EXP-02..04 còn official fit/scientific gates. MLI-02 technical Done không chứng nhận APPROVED hoặc Gold→ML E2E |
+| [DAT-03 — Catalog thật và team handoff](./task/tasks/DAT-03.md), In Progress | Kit pilot279 rows/2 mainshock; resolverv2/strict-split; parserv1.2/profile25archive/biên2024; collectionv1 preparation và local Spark/Parquet tests; bounded E2E ghi evidence riêng | Còn full-period capacity/source proof, full research Gold/Trino, official collection-aware MLI-02/registry/loader/import và receipts ba máy; gộp peak2011 vẫn chạm cap, pilot vẫn PARTIAL/development-only |
 | [EXP-02 — Baselines](./task/tasks/EXP-02.md), In Progress | Ba baseline per-window, local smoke/gate; DOC-01 đã chạy fresh-kernel pilot thật | Colab parity và official run sau MLD-05; không có kết luận thuật toán nào tốt hơn |
 | [EXP-03 — Adaptive/multi-sequence](./task/tasks/EXP-03.md), In Progress | Implementation/config/tests và notebook | Reproduction run/fresh-kernel evidence còn thiếu; dependency EXP-02 chưa Done. isolated_exec/fallback không thay local gate; reviewer unassigned, không có approval |
 | [EXP-04 — Scientific evaluation](./task/tasks/EXP-04.md), Backlog; [EXP-05 — Extension](./task/tasks/EXP-05.md), Backlog | Contracts/config baseline | DBCV/noise/Omori/stability và extension; không gọi local PASSED là APPROVED |
@@ -63,7 +75,7 @@ DOC-01/QA-04/EXP-03 chuyển lịch tuần 5, không đổi scope hoặc accepta
 - Mainshock noise/no productive sequence là outcome phải giữ, không chọn cluster
   khác để làm đẹp. `failed_windows` do case noise cần đọc reason/counts, không
   đồng nghĩa kernel/pipeline crash hoặc bằng chứng scientific failure.
-- **Chưa có task riêng** nghiệm thu backfill catalog thật toàn kỳ nghiên cứu.
+- **DAT-03 — Catalog nghiên cứu thật và handoff** đang In Progress cho backfill/nghiệm thu toàn kỳ.
   MLD-05 synthetic component QA không tạo bằng chứng thay cho phạm vi này;
   ORC-03/06 là execution/state, QA-03 là bounded backfill acceptance.
 

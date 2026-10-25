@@ -1,0 +1,15 @@
+{
+  "allowed_usage": "DEVELOPMENT_ONLY",
+  "coverage_status": "PARTIAL",
+  "feature_count": 279,
+  "handoff_sha256": "9121d6839f9ef8e5646a06cd0bf870fcde50b65da00c03e7b268760237cddc9a",
+  "mainshock_count": 2,
+  "pilot_id": "pilot_196b6d4081d347e1c289e331022658fbbe572dd33181ad987900895c1f1b189c",
+  "recipient": "HoaiTam",
+  "recipient_self_reported": true,
+  "research_ready": false,
+  "scientific_approval": false,
+  "status": "TEAM_PILOT_VERIFIED",
+  "verified_at_utc": "2026-10-24T07:48:41.370979+00:00",
+  "version": "dat03-team-receipt-v1"
+}

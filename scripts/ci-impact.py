@@ -14,11 +14,12 @@ ROOT = Path(__file__).resolve().parents[1]
 JAVA_ROOT = "spark/src/test/java/ie212/earthquake/spark/"
 FEATURE_SOURCES = {"FeatureScalingConfig", "SpacetimeFeatureEngine", "LocalFeatureJob", "PilotExportJob", "WindowArtifactInput"}
 FEATURE_TESTS = {"FeatureScalingConfigTest", "SpacetimeFeatureEngineTest", "PilotExportJobTest", "FeatureParquetCrossProcessTest"}
-EXPORT_TESTS = {"FeatureExportCoverageTest", "FeatureExportBundleTest"}
+EXPORT_TESTS = {"FeatureExportCoverageTest", "FeatureExportBundleTest", "ResearchCollectionPlanTest", "ResearchCollectionJobTest"}
 FEATURE_CONSUMER_TESTS = FEATURE_TESTS | EXPORT_TESTS
 PILOT_SCRIPTS = {"scripts/local-ml.py", "scripts/stage-ml-windows.py", "scripts/inspect-pilot-notebook.py", "scripts/pack-pilot.py"}
 PILOT_CONFIGS = {"config/ml/feature_scaling_global_dev_v1.json", "config/ml/feature_scaling_adaptive_dev_v1.json", "config/ml/dat02_reproduction_v1.json"}
 PILOT_FILES = {"notebooks/pilot_bundle.py", "notebooks/dat_02_inspection.ipynb"}
+TEAM_PILOT_FILES = {"scripts/pack-team-pilot.py", "scripts/verify-team-pilot.py", "tests/test_team_pilot.py"}
 EXP_FILES = {
     "notebooks/experiment_harness.py",
     "notebooks/baseline_models.py",
@@ -41,7 +42,7 @@ EXP_CONFIGS = {
 LEAF_DAGS = {"airflow/dags/" + name + ".py" for name in
              ("afl_01_smoke", "usg_04_usgs_ingest", "jma_04_year_backfill", "orc_01_etl_pipeline", "orc_02_daily_sources", "orc_03_backfill")}
 WINDOW_TESTS = {"MainshockRuntimeTest", "MainshockWindowEngineTest", "MainshockWindowIntegrationTest",
-                "MainshockWindowRegressionTest", "WindowModelResolverTest"}
+                "MainshockWindowRegressionTest", "WindowModelResolverTest", "WindowCoveragePolicyTest"}
 JAVA_SUITES = ("foundation-integration", "usgs-bronze", "jma-bronze", "silver", "gold", "orc-06-full-month", "orc-07-real-adapters",
                "mld-01-02-contract-audit", "mld-03-windows", "mld-04-features", "mld-05-export", "mli-02-build")
 AIRFLOW_SUITES = ("source-ingestion", "orchestration-recovery", "silver-gold-qa", "ml-qa")
@@ -76,6 +77,8 @@ def classify(changes, root=ROOT):
         if path.startswith(("docs/specs/", "docs/contracts/")): return full("shared-contract", len(changes))
         if path in {"README.md", "LICENSE", "LICENSE.md"} or (path.startswith("docs/") and path.endswith(".md")):
             reasons.add("documentation"); continue
+        if path in TEAM_PILOT_FILES:
+            pilot = "full"; reasons.add("team-pilot-handoff"); continue
         if (
             path in PILOT_FILES
             or path in PILOT_SCRIPTS
@@ -168,6 +171,7 @@ def inventory(component, root=ROOT):
                          "mld-03-windows" if path.stem in WINDOW_TESTS else "mld-01-02-contract-audit")
             elif package in {"ie212/earthquake/spark/" + p for p in ("usgs", "jma", "silver", "gold")}:
                 group = {"usgs": "usgs-bronze", "jma": "jma-bronze", "silver": "silver", "gold": "gold"}[relative.parent.name]
+                if path.stem == "ResearchBoundedE2EJobTest": group = "orc-07-real-adapters"
             groups[group].append(name)
     elif component == "airflow":
         groups = {name: [] for name in AIRFLOW_SUITES}
@@ -232,7 +236,7 @@ def emit(result, output=None, summary=None, root=ROOT):
             file.write("\n| Component | Functional/task suite | Test classes/modules |\n|---|---|---|\n")
             for component, groups in matrices.items():
                 for group, tests in groups.items(): file.write(f"| {component} | {group} | {len(tests)} |\n")
-            if result["pilot"] != "none": file.write("| Python | DAT-02/EXP-01/EXP-02/EXP-03 pilot, baselines & adaptive | test_pilot_*.py, test_experiment_harness.py, test_baseline_algorithms.py, test_adaptive_hdbscan.py |\n")
+            if result["pilot"] != "none": file.write("| Python | DAT-02/EXP-01/EXP-02/EXP-03 pilot, baselines & adaptive + DAT-03 handoff | test_pilot_*.py, test_team_pilot.py, test_experiment_harness.py, test_baseline_algorithms.py, test_adaptive_hdbscan.py |\n")
 
 
 def commands(result, component):

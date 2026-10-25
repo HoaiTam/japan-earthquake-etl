@@ -29,10 +29,23 @@ public record MainshockWindowResult(
         MainshockSelectionConfig selectionConfig,
         WindowModelConfig windowConfig,
         double mcApplied,
-        Instant createdAtUtc
+        Instant createdAtUtc,
+        ObjectNode windowCoverageReport
 ) {
     private static final ObjectMapper CANONICAL_MAPPER = new ObjectMapper()
             .configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
+
+    /** Keep the legacy constructor/API and its report bytes unchanged. */
+    public MainshockWindowResult(Dataset<Row> main,Dataset<Row> candidates,long mains,long rows,long distinct,
+            Map<String,Long> perWindow,Map<String,Integer> nested,Map<String,String> guards,long flagged,long rejected,
+            String id,MainshockSelectionConfig selection,WindowModelConfig model,double mc,Instant at) {
+        this(main,candidates,mains,rows,distinct,perWindow,nested,guards,flagged,rejected,id,selection,model,mc,at,CANONICAL_MAPPER.createObjectNode());
+    }
+    public MainshockWindowResult withCoverage(ObjectNode report) {
+        return new MainshockWindowResult(mainshockSnapshot,candidateSnapshot,mainshockCount,totalCandidateRowCount,distinctCandidateEventCount,
+                candidatesPerWindow,nestedMainshocksPerWindow,resourceGuardStatusPerWindow,flaggedWindowCount,rejectedWindowCount,
+                datasetId,selectionConfig,windowConfig,mcApplied,createdAtUtc,report.deepCopy());
+    }
 
     /**
      * Validates all contract invariants required by CON-03 and MLD-03:
@@ -43,6 +56,19 @@ public record MainshockWindowResult(
      * 5. No silent truncation when exceeding hard limit.
      */
     public void assertInvariants() {
+        if(!windowCoverageReport.isEmpty()) {
+            WindowCoveragePolicy.validateReport(windowCoverageReport,mainshockCount);
+            if(!selectionConfig.datasetSplit().equals(windowCoverageReport.path("dataset_split").asText())
+                    || !selectionConfig.periodStartUtc().toString().equals(windowCoverageReport.path("period_start_utc").asText())
+                    || !selectionConfig.periodEndUtcExclusive().toString().equals(windowCoverageReport.path("period_end_utc_exclusive").asText()))
+                throw new AssertionError("Window coverage report does not match selection period");
+            var excluded=new HashSet<String>(); windowCoverageReport.path("excluded_mainshocks").forEach(r->excluded.add(r.path("mainshock_event_id").asText()));
+            if(!excluded.isEmpty()) reject(mainshockSnapshot.filter(col("mainshock_event_id").isin(excluded.toArray())),"Excluded window was selected");
+            Column a=unix_micros(col("event_time_utc")).minus(round(col("pre_window_hours").multiply(3_600_000_000.0)).cast("long"));
+            Column b=unix_micros(col("event_time_utc")).plus(round(col("post_window_hours").multiply(3_600_000_000.0)).cast("long"));
+            reject(mainshockSnapshot.filter(a.lt(unix_micros(lit(java.sql.Timestamp.from(selectionConfig.periodStartUtc()))))
+                    .or(b.geq(unix_micros(lit(java.sql.Timestamp.from(selectionConfig.periodEndUtcExclusive())))))),"Strict window crosses split");
+        }
         // All row/grain/vector checks stay distributed. Only a boolean/count reaches the driver.
         long mainRows = mainshockSnapshot.count();
         long candidateRows = candidateSnapshot.count();
@@ -110,6 +136,7 @@ public record MainshockWindowResult(
         root.put("flagged_window_count", flaggedWindowCount);
         root.put("rejected_window_count", rejectedWindowCount);
         root.put("mc_applied", mcApplied);
+        if(!windowCoverageReport.isEmpty()) root.set("window_coverage",windowCoverageReport.deepCopy());
 
         root.set("selection_config", selectionConfig.toJsonNode());
         root.set("window_config", windowConfig.toJsonNode());
@@ -143,6 +170,8 @@ public record MainshockWindowResult(
         sb.append("- **Window Model:** `").append(windowConfig.windowModelVersion()).append("` (").append(windowConfig.modelType()).append(")\n");
         sb.append("- **Completeness Threshold (Mc):** `").append(mcApplied).append("`\n");
         sb.append("- **Mainshock Count:** `").append(mainshockCount).append("`\n");
+        if(!windowCoverageReport.isEmpty()) sb.append("- **Strict-split exclusions:** `").append(windowCoverageReport.path("excluded_mainshock_count").asLong())
+                .append("` (IDs, required intervals and reasons in JSON window_coverage.excluded_mainshocks)\n");
         sb.append("- **Total Candidate Rows:** `").append(totalCandidateRowCount).append("`\n");
         sb.append("- **Distinct Candidate Events:** `").append(distinctCandidateEventCount).append("`\n");
         sb.append("- **Flagged/Rejected Windows:** `").append(flaggedWindowCount).append(" FLAGGED, ")

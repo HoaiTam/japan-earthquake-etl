@@ -75,6 +75,14 @@ class DatasetManifestTest {
         c = config("EXTENSION"); c.put("observation_cutoff_utc", NOW.plusSeconds(1).toString());
         assertNotEquals(p.path("dataset_id"), new DatasetIdentityPlan(publication(), c, "run-1", NOW).manifest().path("dataset_id"));
     }
+    @Test void strictWindowPolicyHasItsOwnIdentityAndUnknownPoliciesCannotCreateManifest() {
+        var config=config("REPRODUCTION"); var prior=new DatasetIdentityPlan(publication(),config,"before",NOW).manifest();
+        ((ObjectNode)config.path("filter_config")).put("window_coverage_policy",WindowCoveragePolicy.STRICT);
+        var strict=new DatasetIdentityPlan(publication(),config,"strict",NOW).manifest();
+        assertNotEquals(prior.path("dataset_id"),strict.path("dataset_id"));
+        ((ObjectNode)config.path("filter_config")).put("window_coverage_policy","clip");
+        assertThrows(IllegalArgumentException.class,()->new DatasetIdentityPlan(publication(),config,"bad",NOW));
+    }
     @Test void unpublishedDuplicatePublicationAndExpiredSnapshotCannotWrite() throws Exception {
         for (int caseId = 0; caseId < 4; caseId++) {
             var c = config("EXTENSION"); var sql = new Fake(c);

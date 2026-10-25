@@ -1,0 +1,139 @@
+{
+  "version": "dat03-h2016-depth-regression-v1",
+  "archive_sha256": "2c438d8189fd9e76ac0b05c0587c7a8ee2611e6ecbf21d5a5bca7887dab360da",
+  "member": "h2016",
+  "depth_columns_1based": [
+    45,
+    49
+  ],
+  "native_format": "F5.2",
+  "interpretation": "BN and BZ agree for this exact zero-leading shape; no general internal-blank repair",
+  "records": [
+    {
+      "physical_line": 48748,
+      "native_depth_token": "  0 4",
+      "location_precision": "1",
+      "expected_depth_km": 0.04,
+      "record_sha256": "0b60a6e394e4eba3def8fc33ddfae5914c95343de8c039935afae9799f7a66e3"
+    },
+    {
+      "physical_line": 51517,
+      "native_depth_token": "  0 7",
+      "location_precision": "1",
+      "expected_depth_km": 0.07,
+      "record_sha256": "b7c9dfc208ac402fce2c49a1da5fa5c7490459404463da602fa2d9c1c921d0fc"
+    },
+    {
+      "physical_line": 51547,
+      "native_depth_token": "  0 8",
+      "location_precision": "1",
+      "expected_depth_km": 0.08,
+      "record_sha256": "eb9e63431e2b5783e3da2aa7fcd44521311705fc8b673da52d1449e9044c6f5b"
+    },
+    {
+      "physical_line": 53169,
+      "native_depth_token": "  0 8",
+      "location_precision": "1",
+      "expected_depth_km": 0.08,
+      "record_sha256": "0f6531671a6e6841d7e96d8457bdf1396a2d4b65eb7d28f9d4edcc7a4e27b50e"
+    },
+    {
+      "physical_line": 56315,
+      "native_depth_token": "  0 5",
+      "location_precision": "1",
+      "expected_depth_km": 0.05,
+      "record_sha256": "84690c5dc42519bb33d61d67fd4ca55be7c7f17777fb5292a834738b12b3ff69"
+    },
+    {
+      "physical_line": 56334,
+      "native_depth_token": "  0 5",
+      "location_precision": "1",
+      "expected_depth_km": 0.05,
+      "record_sha256": "10217a4a3f0eba8a2d5fc721c9b726f77ffccc8877e9572f6148c019d8e547ca"
+    },
+    {
+      "physical_line": 59815,
+      "native_depth_token": "  0 8",
+      "location_precision": "1",
+      "expected_depth_km": 0.08,
+      "record_sha256": "8bb44c17941de80fe360565c917236438c73efd394afef1d648d809d86ce50fe"
+    },
+    {
+      "physical_line": 67095,
+      "native_depth_token": "  0 2",
+      "location_precision": "1",
+      "expected_depth_km": 0.02,
+      "record_sha256": "8ffa144b5a4fd19922314449b0cd6af59430b4119beb543af36e9af1bdaad78a"
+    },
+    {
+      "physical_line": 70323,
+      "native_depth_token": "  0 6",
+      "location_precision": "1",
+      "expected_depth_km": 0.06,
+      "record_sha256": "b821b1e76d28ff49e1aa2a9bbfafeed64687ea5f85fecd56214782ac482daabf"
+    },
+    {
+      "physical_line": 70818,
+      "native_depth_token": "  0 3",
+      "location_precision": "1",
+      "expected_depth_km": 0.03,
+      "record_sha256": "4f9f1df71414979aec73941537fe8bdd84b3a4e1cf7d9cd7738a168dc5fc8fee"
+    },
+    {
+      "physical_line": 81649,
+      "native_depth_token": "  0 6",
+      "location_precision": "1",
+      "expected_depth_km": 0.06,
+      "record_sha256": "93277be042abffbdf44f80495cdf96bfad123357b45f3a9ee7e8417771b599ed"
+    },
+    {
+      "physical_line": 82582,
+      "native_depth_token": "  0 9",
+      "location_precision": "1",
+      "expected_depth_km": 0.09,
+      "record_sha256": "e031facb40c73a788387326008f73aa90d59fd34be1ee84625cf4f59b1d8555b"
+    },
+    {
+      "physical_line": 87718,
+      "native_depth_token": "  0 7",
+      "location_precision": "1",
+      "expected_depth_km": 0.07,
+      "record_sha256": "d8519c494c1b4483ed389d68490bd041acd34ead2e9d2fe3f6fb9b4f320f8c24"
+    },
+    {
+      "physical_line": 90069,
+      "native_depth_token": "  0 9",
+      "location_precision": "1",
+      "expected_depth_km": 0.09,
+      "record_sha256": "9806c8be6e6fdae9414b5244ce81fc04b76fb35347529889285d0d27cdc55fd0"
+    },
+    {
+      "physical_line": 90502,
+      "native_depth_token": "  0 8",
+      "location_precision": "1",
+      "expected_depth_km": 0.08,
+      "record_sha256": "58e570c8ce507e76d4fc08e6eb7b513ba3d7607916c71d7515344acd77d5e857"
+    },
+    {
+      "physical_line": 139439,
+      "native_depth_token": "  0 8",
+      "location_precision": "1",
+      "expected_depth_km": 0.08,
+      "record_sha256": "b8cef7fe1281f8993cbd104aea37726e816fa01a63262e0edc62896c32b29aa8"
+    },
+    {
+      "physical_line": 141981,
+      "native_depth_token": "  0 8",
+      "location_precision": "1",
+      "expected_depth_km": 0.08,
+      "record_sha256": "9811459cb36288b6a015bf6df819ed2a3dc0af9ca515920a2454917b6801980c"
+    },
+    {
+      "physical_line": 153900,
+      "native_depth_token": "  0 8",
+      "location_precision": "1",
+      "expected_depth_km": 0.08,
+      "record_sha256": "d0f00e50c2b4c37b7f22f298108db16eace61d12aaddcf8a0c4012dd9aa2124f"
+    }
+  ]
+}

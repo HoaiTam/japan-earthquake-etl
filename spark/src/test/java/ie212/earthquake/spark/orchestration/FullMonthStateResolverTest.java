@@ -65,6 +65,74 @@ class FullMonthStateResolverTest {
         assertEquals(first.path("reconciliation").path("canonical").asLong(),gold.canonicalEventCount());
         assertEquals(first.path("reconciliation").path("current").asLong(),gold.bridgeRowCount());
     }
+    @Test void scopedReplayKeepsHistoryCoverageWithoutParsingUnchangedJmaMonthsAndRejectsDowngrade() throws Exception {
+        var raw=new java.io.ByteArrayOutputStream();
+        try(var zip=new java.util.zip.ZipOutputStream(raw)) {
+            zip.putNextEntry(new java.util.zip.ZipEntry("hypo.dat"));
+            String template=Files.readAllLines(FullMonthFixture.repo().resolve("tests/fixtures/jma/fixed-width/success.hyp")).get(0);
+            for(String date:List.of("2023091509000000","2023101509000000","2023111509000000"))
+                zip.write((template.substring(0,1)+date+template.substring(17)+"\n").getBytes(java.nio.charset.StandardCharsets.ISO_8859_1));
+            zip.closeEntry();
+        }
+        var first=request("scoped-parent","2023-09");
+        first.withArray("bronze_inputs").add(FullMonthFixture.jmaBytes(bronze,raw.toByteArray(),"annual-input","release-v1"));
+        first.withArray("bronze_inputs").add(FullMonthFixture.usgs(bronze,"september-empty","2023-08-31T23:59:44Z","2023-10-01T00:00:16Z",FullMonthFixture.payload("empty")));
+        var parent=resolver.resolve(spark,first);
+        var next=request("scoped-october","2023-10").put("resolver_version",SCOPED_VERSION); baseline(next,parent);
+        next.withArray("bronze_inputs").add(FullMonthFixture.usgs(bronze,"october-empty","2023-09-30T23:59:44Z","2023-11-01T00:00:16Z",FullMonthFixture.payload("empty")));
+        var result=resolver.resolve(spark,next);
+        assertEquals(1,result.path("reconciliation").path("input_unique_revisions").asInt());
+        assertEquals(JSON.readTree("[\"2023-10\"]"),result.path("affected_months"));
+        var context=result.path("gold_request").path("run_context");
+        var goldContext=new GoldRunContext("scoped-october",Instant.parse(context.path("window_start_utc").asText()),
+                Instant.parse(context.path("window_end_utc").asText()),LocalDate.of(2026,10,14),true,"test-v1",List.of(result.path("silver_bundle_uri").asText()));
+        var gold=GoldInputReader.read(spark,silver,"scoped-october",result.path("silver_bundle_sha256").asText(),goldContext,
+                Instant.parse("2026-10-14T00:00:00Z"),temporary.resolve("scoped-gold-readback"));
+        assertEquals(result.path("reconciliation").path("canonical").asLong(),gold.canonicalEventCount());
+        assertEquals(result,resolver.resolve(spark,next));
+        var registry=JSON.readTree(silver.read(FullMonthStateResolver.root("scoped-october")+"/registry.json"));
+        assertEquals(JSON.readTree("[\"2023-09\",\"2023-10\"]"),registry.path("complete_months"));
+        var downgrade=request("downgrade","2023-10"); baseline(downgrade,result);
+        assertEquals("RESOLVER_DOWNGRADE_FORBIDDEN",assertThrows(IOException.class,()->resolver.resolve(spark,downgrade)).getMessage());
+        assertFalse(silver.exists(FullMonthStateResolver.root("downgrade")+"/identity.sha256"));
+    }
+    @Test void descriptorValidatesBytesNowAndAgainOnUseWithoutRetainingRaw() throws Exception {
+        var pin=FullMonthFixture.jma(bronze,"success"); var reader=new FullMonthBronzeReader(bronze,List.of(FullMonthFixture.ENTRY));
+        var descriptor=reader.descriptor(pin,Instant.parse("2026-10-14T00:00:00Z")); assertNull(descriptor.raw());
+        assertFalse(reader.parse(List.of(descriptor),Set.of("2023-09")).isEmpty());
+        Path path=Path.of(java.net.URI.create(descriptor.manifest().path("raw_object_uri").asText())); Files.writeString(path,"corrupt");
+        assertThrows(IOException.class,()->reader.parse(List.of(descriptor),Set.of("2023-09")));
+        assertThrows(IOException.class,()->reader.descriptor(pin,Instant.parse("2026-10-14T00:00:00Z")));
+    }
+    @Test void scopedReplayClosesCrossMonthGraphBeforeCertifyingAndMovedUsgsStillExpandsOldMonth() throws Exception {
+        var r=request("v2-cross","2023-09").put("resolver_version",SCOPED_VERSION);
+        var payload=FullMonthFixture.payload("success"); var props=(ObjectNode)payload.path("features").get(0).path("properties");
+        props.put("time",Instant.parse("2023-09-30T23:59:59Z").toEpochMilli());
+        r.withArray("bronze_inputs").add(FullMonthFixture.usgs(bronze,"v2-cross-usgs","2023-08-31T23:59:44Z","2023-11-01T00:00:16Z",payload));
+        r.withArray("bronze_inputs").add(FullMonthFixture.jmaBytes(bronze,FullMonthFixture.jmaRecordArchive("2023100109000100"),"v2-cross-jma","release-v1"));
+        var first=resolver.resolve(spark,r);
+        assertEquals(JSON.readTree("[\"2023-09\",\"2023-10\"]"),first.path("affected_months"));
+        assertEquals(1,first.path("reconciliation").path("canonical").asInt());
+        var delta=request("v2-move","2023-11").put("resolver_version",SCOPED_VERSION); baseline(delta,first);
+        props.put("time",Instant.parse("2023-11-10T00:00:00Z").toEpochMilli());
+        props.put("updated",Instant.parse("2023-11-11T00:00:00Z").toEpochMilli());
+        delta.withArray("bronze_inputs").add(FullMonthFixture.usgs(bronze,"v2-moved-usgs","2023-10-31T23:59:44Z","2023-12-01T00:00:16Z",payload));
+        var moved=resolver.resolve(spark,delta);
+        assertEquals(JSON.readTree("[\"2023-09\",\"2023-10\",\"2023-11\"]"),moved.path("affected_months"));
+        assertTrue(moved.path("reconciliation").path("balanced").asBoolean());
+    }
+    @Test void scopedNewReleaseRebuildsRegisteredLineageEvenWhenAllRawRecordBytesAreUnchanged() throws Exception {
+        var initial=bootstrap("v2-release-parent","empty","success").put("resolver_version",SCOPED_VERSION);
+        var before=resolver.resolve(spark,initial); var next=request("v2-release-next","2023-10").put("resolver_version",SCOPED_VERSION);
+        baseline(next,before);
+        var raw=Files.readAllBytes(FullMonthFixture.repo().resolve("tests/fixtures/jma/archives/success.zip"));
+        next.withArray("bronze_inputs").add(FullMonthFixture.jmaBytes(bronze,raw,"v2-same-bytes-new-release","release-v2"));
+        next.withArray("bronze_inputs").add(FullMonthFixture.usgs(bronze,"v2-release-october-empty","2023-09-30T23:59:44Z","2023-11-01T00:00:16Z",FullMonthFixture.payload("empty")));
+        var result=resolver.resolve(spark,next);
+        assertEquals(JSON.readTree("[\"2023-09\",\"2023-10\"]"),result.path("affected_months"));
+        assertEquals(before.path("reconciliation").path("current"),result.path("reconciliation").path("current"));
+        assertEquals(before,resolver.verify("v2-release-parent",before.path("registry_sha256").asText()));
+    }
     @Test void deltaKeepsEventsOutsideOverlapAndRemovesOldCurrentWhenEventMovesMonths() throws Exception {
         var payload=FullMonthFixture.payload("success"); var feature=payload.path("features").get(0).deepCopy();
         ((ObjectNode)feature).put("id","keep-outside-overlap"); ((ObjectNode)feature.path("properties")).put("time",Instant.parse("2023-09-20T00:00:00Z").toEpochMilli());

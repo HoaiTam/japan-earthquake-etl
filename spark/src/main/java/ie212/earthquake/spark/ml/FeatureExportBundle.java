@@ -108,6 +108,16 @@ public final class FeatureExportBundle {
         for (var entry : expected.entrySet()) require(WindowArtifactInput.sha(root.resolve(entry.getKey())).equals(entry.getValue()), "DS_EXPORT_CHECKSUM_MISMATCH");
         var manifest = (ObjectNode)JSON.readTree(Files.readAllBytes(root.resolve("dataset_manifest.json")));
         require("mld05-export-v1".equals(manifest.path("export_version").asText()) && "EXPORTED".equals(manifest.path("dataset_status").asText()), "DS_EXPORT_MANIFEST_INVALID");
+        if(WindowCoveragePolicy.STRICT.equals(WindowCoveragePolicy.fromManifest(manifest))) {
+            WindowCoveragePolicy.validateReport(manifest.path("window_coverage"),manifest.path("mainshock_count").asLong(-1));
+            for(String key:List.of("dataset_split","period_start_utc","period_end_utc_exclusive"))
+                require(manifest.path(key).equals(manifest.path("window_coverage").path(key)),"DS_WINDOW_REPORT_PERIOD_MISMATCH");
+            var identity=JSON.createObjectNode();
+            for(String key:List.of("dataset_id","identity_payload_sha256","feature_content_sha256","feature_schema_sha256")) identity.set(key,manifest.path(key));
+            identity.put("scaling_sha256",digest(JSON.readTree(manifest.path("filter_config_json").asText()).path("feature_scaling_config")))
+                    .put("coverage_sha256",digest(manifest.path("coverage"))).put("window_coverage_sha256",digest(manifest.path("window_coverage")));
+            require(digest(identity).equals(manifest.path("export_identity_sha256").asText()),"DS_WINDOW_REPORT_IDENTITY_MISMATCH");
+        }
         require(WindowArtifactInput.sha(root.resolve("export-checksums.sha256")).equals(manifest.path("export_manifest_sha256").asText()), "DS_EXPORT_INDEX_MISMATCH");
         var dataIndex = index(root.resolve("export-checksums.sha256"));
         Set<String> parts = new TreeSet<>();

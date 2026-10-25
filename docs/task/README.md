@@ -14,8 +14,8 @@ handoff/evidence.
 - Nhóm có 3 thành viên.
 - Thời gian thực hiện là 8 tuần.
 - Capacity sơ bộ là 15 giờ/người/tuần, tương đương 360 giờ toàn nhóm trong
-  8 tuần. Baseline cũ 364h; tuần 5 thêm ORC-06/07 16h và DAT-02 6h nên hiện **386h**.
-  12h data-readiness trước tuần 3, còn **374h** task trong 8 tuần; vượt capacity
+  8 tuần. Baseline cũ 364h + ORC-06/07 16h + DAT-02 6h + DAT-03 16h = **402h**.
+  12h data-readiness trước tuần 3, còn **390h** task trong 8 tuần; vượt capacity
   sơ bộ, không coi toàn backlog vừa mức 15h/người.
 - Theo yêu cầu tăng khối lượng, riêng tuần 4 dùng phương án **89h Core + 7h
   review/tích hợp**, khoảng **32h/người**. Đây là tải đề xuất, không phải capacity
@@ -46,19 +46,20 @@ Nếu capacity thực tế khác 15 giờ/người/tuần, nhóm dùng trường
 | 3 | Ba luồng JMA/Silver độc lập | JMA downloader/writer, hai parser, resolver, quality, lineage và Silver writer đạt unit acceptance; integration bằng hai sample nhỏ | 41 giờ task + 4 giờ review |
 | 4 | Nhóm mở đường + ETL/Gold/ML pilot mở rộng | JMA Bronze thật, DAG/run context, SilverReady, Gold Published, pinned dataset/audit/candidate pilot và security evidence | 89 giờ Core + 7 giờ review/tích hợp; GLD-02 Stretch 4h ngoài cam kết |
 | 5 | Nối ETL thật, feature/export, baseline/adaptive, import và docs | Full-month proof, QA/recovery; feature/export/experiment giữ audit/coverage/lifecycle gates | 86h Core + 4h nghiệm thu tồn + 20h review/tích hợp/dự phòng |
-| 6 | Phần tuần 5 chưa đủ gate; chuẩn bị restore/evaluation/report | Không bỏ coverage/quality gate; DOC-01/QA-04 đã chuyển tuần 5 | 4h task gắn tuần 6; remaining work lập riêng sau review tuần 5 |
+| 6 | Catalog thật/handoff DAT-03 và phần tuần 5 chưa đủ gate; restore/evaluation/report | Không bỏ coverage/quality gate; nhận cùng release trên ba máy | 20h task gắn tuần 6 (4h cũ + DAT-03 16h estimate); replan sau profile |
 | 7 | Scientific evaluation và extension | Stability/Omori, out-of-period và coverage đủ trước scientific review | 16h task đang gắn tuần 7; EXP-03 đã chuyển tuần 5 |
 | 8 | ML report/E2E, release và Stretch | Report/import lineage, demo và release evidence; BI không chặn Core | 44h task đang gắn tuần 8, gồm BI-02 đã dời |
 
-Tổng effort gồm Stretch là **386 giờ** = baseline **364h** + ORC-06/07 **16h** + DAT-02 **6h**.
+Tổng effort gồm Stretch là **402 giờ** = baseline **364h** + ORC-06/07 **16h** + DAT-02 **6h** + DAT-03 **16h**.
 Baseline lịch sử còn **352 giờ task** trong 8 tuần sau pre-week; hiện tại
-còn **374 giờ task** trong 8 tuần (386 − 12). “Còn” ở đây là phân bổ lịch,
+còn **390 giờ task** trong 8 tuần (402 − 12). “Còn” ở đây là phân bổ lịch,
 không phải remaining effort của các task đã Done. Giữ tuần 3/4 làm mốc lịch sử.
 Mốc ban đầu tuần 5 là 72h; đồng bộ 22/10 đưa DOC-01 4h, QA-04 4h và EXP-03
 6h từ tuần 6/7 về tuần 5, thành 86h; không cộng thêm effort toàn backlog.
 BI-02 5h vẫn tuần 8. Tổng giờ theo metadata (tách USG-06/JMA-01/DAT-01 ra pre-week):
-45/45/41/93/86/4/16/44h + pre-week 12h
-= 386h. Review/tích hợp là budget dự phòng, không cộng vào effort task.
+45/45/41/93/86/20/16/44h + pre-week 12h
+= 402h. DAT-03 thêm ngày 24/10 có estimate ban đầu 16h ở tuần 6, không sửa lịch
+tuần 5 hoặc xem là capacity đã xác nhận. Review/tích hợp không cộng vào effort task.
 Lịch tuần 6–8 phải chốt lại theo remaining work/coverage sau tuần 5; số giờ
 metadata không đồng nghĩa capacity cam kết. GLD-02, BI-01..05, QA-05 và OPS-01
 vẫn Stretch, không chiếm budget đường găng Core.

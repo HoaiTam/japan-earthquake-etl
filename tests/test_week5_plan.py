@@ -67,6 +67,15 @@ class Week5PlanTest(unittest.TestCase):
         self.change("EXP-02", ', "MLD-05"]', "]")
         self.rejects("EXP-02 lacks MLD-05 dependency")
 
+    def test_official_research_gate_does_not_disappear_after_component_acceptance(self):
+        self.change("EXP-02", ', "DAT-03"', '')
+        self.rejects("EXP-02 lacks DAT-03 dependency")
+
+    def test_research_rollout_cannot_become_upstream_of_its_exporter(self):
+        self.change("MLD-05", 'dependencies: ["MLD-04"]',
+                    'dependencies: ["MLD-04", "DAT-03"]')
+        self.rejects("MLD-05 creates research data dependency cycle")
+
     def test_pilot_owner_is_hoaitam(self):
         self.change("DAT-02", 'assignee: "HoaiTam"', 'assignee: "rosy179"')
         self.rejects("DAT-02 owner")

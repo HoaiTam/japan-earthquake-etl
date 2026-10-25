@@ -54,9 +54,15 @@ requires DAT-02 MLD-04
 requires EXP-01 DAT-02
 requires EXP-02 EXP-01
 requires EXP-02 DAT-02
+requires EXP-02 DAT-03
 requires EXP-02 MLD-05
 requires EXP-03 EXP-02
 requires MLI-02 MLD-05
+for id in MLD-05 MLI-02; do
+    if grep '^dependencies: ' "$tasks_dir/$id.md" | grep -F '"DAT-03"' >/dev/null; then
+        fail "$id creates research data dependency cycle"
+    fi
+done
 for id in DAT-02 MLD-04 MLD-05; do
     if grep '^dependencies: ' "$tasks_dir/$id.md" | grep -E '"EXP-0[12]"' >/dev/null; then
         fail "$id creates reverse experiment dependency"

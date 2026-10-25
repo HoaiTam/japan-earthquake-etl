@@ -4,7 +4,7 @@
 |---|---|
 | Task | `PLN-01` |
 | Trạng thái tài liệu | Baseline HDBSCAN hiện hành |
-| Kế hoạch | 8 tuần, 3 thành viên, 386 giờ task; 12 giờ data-readiness trước tuần 3 và 374 giờ task trong lịch 8 tuần; capacity sơ bộ 360 giờ không đủ toàn backlog |
+| Kế hoạch | 8 tuần, 3 thành viên, 402 giờ task; 12 giờ data-readiness trước tuần 3 và 390 giờ task trong lịch 8 tuần; capacity sơ bộ 360 giờ không đủ toàn backlog |
 | Nguồn backlog | [`docs/task/tasks/README.md`](../task/tasks/README.md) và file riêng của từng task |
 | Roadmap kỹ thuật | [Roadmap HDBSCAN từ Gold đến ML Iceberg](../task/HDBSCAN_WORKSTREAM.md) |
 
@@ -32,6 +32,12 @@ không tăng effort task cũ và không tuyên bố research coverage đã sẵn
 [Jupyter-first workflow](./JUPYTER_PILOT_WORKFLOW.md): DAT-02 development pilot
 → EXP-01/02 local smoke → Colab sau PASSED. Không đổi lifecycle/schema chính thức;
 pilot test-only không thay scientific evaluation hoặc result import acceptance.
+
+Ngày 24/10/2026 thêm [DAT-03](../task/tasks/DAT-03.md), estimate ban đầu 16h
+cho catalog nghiên cứu thật và handoff ba thành viên: **77 task/402h**, Core 69,
+Stretch 8. Không đổi phạm vi thời gian/schema/KPI, không cộng vào kế hoạch tuần 5;
+profile xong phải ước lượng lại resource/remaining work, không cam kết 16h đủ
+full-scale rollout. Pilot gửi trước vẫn development-only.
 
 ## 2. Kết quả MVP bắt buộc
 
