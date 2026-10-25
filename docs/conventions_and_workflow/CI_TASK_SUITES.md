@@ -27,6 +27,7 @@ chạy gì. Nguồn chọn test vẫn là [impact policy](./CI_IMPACT_TESTING.md
 | `Java / mld-03-windows` | MLD-03 | Mainshock runtime/window engine/integration/regression/model resolver |
 | `Java / mld-04-features` | MLD-04, Java boundary DAT-02 | Scaling, feature engine, pilot exporter và cross-JVM Parquet |
 | `Java / mld-05-export` | MLD-05 | Receipt-bound coverage, feature quality, pinned Iceberg retry/retention, multi-part export và corruption guards |
+| `Java / mli-02-build` | MLI-02, DAT-03 | Real dataset build adapter và full-catalog research build gate (`DatasetBuildJobTest`, `ResearchDatasetBuildJobTest`); fixture/pure tests không chứng nhận official export thật |
 | `Control / source-ingestion` | AFL, USG-04, JMA-04/05 | Smoke/source DAG contracts, ingest/year-backfill runtime và JMA live-QA adapter bằng mock |
 | `Control / orchestration-recovery` | ORC | ETL, source schedule/readiness, backfill, recovery, observability; Python control test chưa map vào đây |
 | `Control / silver-gold-qa` | SLV/GLD QA | Mock adapter tích hợp Silver, Gold storage/publication |
