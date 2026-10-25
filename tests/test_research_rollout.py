@@ -52,6 +52,30 @@ class ResearchRolloutTest(unittest.TestCase):
         for value in (True, False, 0, 65, "32", 32.0):
             with self.assertRaises(ValueError): r.capacity_sql(self.report(), value)
 
+    def test_bridge_uses_its_own_snapshot_pins_and_partition_column(self):
+        report = self.report()
+        for case in report["cases"]:
+            commit = case["first"]["commit"]
+            commit["tables"]["event_source_bridge"] = dict(commit["tables"]["event_current"])
+            commit["tables"]["event_source_bridge"]["snapshot_id"] += 10
+            if "scope" in commit:
+                commit["scope"]["baseline_snapshots"]["event_source_bridge"] = 9007199254741003
+        sql, count = r.capacity_sql(report, 43, "f", "event_source_bridge")
+        self.assertEqual(4527126, count)
+        self.assertEqual(4, sql.count(".event_source_bridge FOR VERSION AS OF"))
+        self.assertEqual(4, sql.count("e.event_month_utc <> '2023-12'"))
+        self.assertNotIn("format_datetime", sql)
+        self.assertIn("9007199254741003", sql)
+
+    def test_table_and_total_budget_guards_run_before_docker(self):
+        with patch.object(r.subprocess, "run", side_effect=AssertionError("Docker forbidden")):
+            for value in (True, "600", 599, 3601, 600.0):
+                with self.assertRaisesRegex(ValueError, "TOTAL_QUERY_BUDGET_INVALID"):
+                    r.probe(ROOT, ROOT, 43, total_query_seconds=value)
+            for table in ("dim_date", "event_current;DROP", "", None):
+                with self.assertRaisesRegex(ValueError, "EXACT_CAPACITY_TABLE"):
+                    r.probe(ROOT, ROOT, 43, table=table)
+
     def test_capacity_pins_cannot_be_float_boolean_or_negative(self):
         for value in (9007199254740992.0, True, 0, -1, 9223372036854775808):
             report = self.report(); report["cases"][3]["first"]["commit"]["tables"]["event_current"]["snapshot_id"] = value

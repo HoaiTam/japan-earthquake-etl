@@ -25,10 +25,16 @@ public final class RealEtlAdapter {
     private final GoldIcebergWriter gold;
     private final GoldPublisher publisher;
     private final Runnable lease;
+    private final FullMonthBronzeReader.JmaStructureCache structureCache;
     public RealEtlAdapter(SparkSession spark,BronzeObjectStore bronze,SilverObjectStore silver,
             List<JmaArchiveEntry> inventory,GoldIcebergWriter gold,GoldPublisher publisher,Runnable lease) {
+        this(spark,bronze,silver,inventory,gold,publisher,lease,null);
+    }
+    public RealEtlAdapter(SparkSession spark,BronzeObjectStore bronze,SilverObjectStore silver,
+            List<JmaArchiveEntry> inventory,GoldIcebergWriter gold,GoldPublisher publisher,Runnable lease,
+            FullMonthBronzeReader.JmaStructureCache cache) {
         this.spark=spark; this.bronze=bronze; this.silver=silver; this.inventory=List.copyOf(inventory);
-        this.gold=gold; this.publisher=publisher; this.lease=lease;
+        this.gold=gold; this.publisher=publisher; this.lease=lease;this.structureCache=cache;
     }
     public static String operation(String dag,String run) {
         return "orc07-"+sha((dag+"|"+run).getBytes(StandardCharsets.UTF_8)).substring(0,40);
@@ -65,10 +71,10 @@ public final class RealEtlAdapter {
             artifact(stored);
         }
         JsonNode actual;
-        var resolver=new FullMonthStateResolver(bronze,silver,inventory,gold::baselines,lease);
+        var resolver=new FullMonthStateResolver(bronze,silver,inventory,gold::baselines,lease,structureCache);
         if(index<=1) {
             var result=JSON.createObjectNode(); var inputs=result.putArray("bronze_inputs");
-            var reader=new FullMonthBronzeReader(bronze,inventory);
+            var reader=new FullMonthBronzeReader(bronze,inventory,structureCache);
             for(var pin:request.path("bronze_inputs")) {
                 lease.run(); var input=reader.read(pin,utc(request,"source_cutoff_utc"));
                 var item=inputs.addObject(); item.set("pin",pin); item.put("manifest_id",text(input.manifest(),"manifest_id"));
@@ -121,7 +127,7 @@ public final class RealEtlAdapter {
         String op=text(request,"run_id"); var registry=JSON.readTree(silver.read(FullMonthStateResolver.root(op)+"/registry.json"));
         var receipt=resolver.verify(op,digest(registry));
         require(digest(request).equals(text(receipt,"request_sha256")) && "COMPLETE_MONTHS".equals(receipt.path("scope_completeness").asText()),"FULL_MONTH_PROOF_REQUIRED");
-        var reader=new FullMonthBronzeReader(bronze,inventory); var inputs=new ArrayList<FullMonthBronzeReader.Input>();
+        var reader=new FullMonthBronzeReader(bronze,inventory,structureCache); var inputs=new ArrayList<FullMonthBronzeReader.Input>();
         for(var pin:registry.path("active_inputs")) {
             lease.run(); inputs.add(scopedReplay(request)?reader.descriptor(pin,utc(request,"source_cutoff_utc")):reader.read(pin,utc(request,"source_cutoff_utc")));
         }

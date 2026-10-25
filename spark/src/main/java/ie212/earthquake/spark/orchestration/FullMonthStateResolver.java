@@ -23,7 +23,11 @@ public final class FullMonthStateResolver {
     private final Runnable lease;
     public FullMonthStateResolver(BronzeObjectStore bronze, SilverObjectStore silver, List<JmaArchiveEntry> inventory,
             BaselineProbe probe, Runnable lease) {
-        this.bronze=bronze; this.silver=silver; this.reader=new FullMonthBronzeReader(bronze,inventory);
+        this(bronze,silver,inventory,probe,lease,null);
+    }
+    public FullMonthStateResolver(BronzeObjectStore bronze,SilverObjectStore silver,List<JmaArchiveEntry> inventory,
+            BaselineProbe probe,Runnable lease,FullMonthBronzeReader.JmaStructureCache cache) {
+        this.bronze=bronze; this.silver=silver; this.reader=new FullMonthBronzeReader(bronze,inventory,cache);
         this.probe=probe; this.lease=lease;
     }
     public static String root(String run) { SilverBundlePublisher.root(run); return "full-month/"+run; }

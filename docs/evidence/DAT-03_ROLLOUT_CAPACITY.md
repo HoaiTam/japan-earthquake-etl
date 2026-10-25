@@ -6,6 +6,10 @@ Owner chọn máy hiện tại, <=2h/phiên có checkpoint; cho phép backup và
 **riêng Trino**, cached image, không build/pull/Airflow/MinIO/credential/data.
 [Runbook và cơ chế](../runbooks/DAT-03_RESEARCH_ROLLOUT.md).
 
+**Mốc tiếp theo:** [full-scale probes/catalog controller](./DAT-03_CATALOG_ROLLOUT.md)
+có event/bridge43copies16/16PASS và checkpoint2000-01; đang nghiệm thu rollout.
+Không sửa failures bên dưới thành PASS; chưa full catalog/official ML export.
+
 Cập nhật sau approval bổ sung: [phiên stop4/restore4](./DAT-03_LIGHT_SESSION.md)
 đã hoàn tất,9service healthy/cùng IDs/config; full probe chặn512MB, bucket0–2
 đạt/bucket3timeout,12chưa chạy. Không full capacity hoặc catalog/export. Phần

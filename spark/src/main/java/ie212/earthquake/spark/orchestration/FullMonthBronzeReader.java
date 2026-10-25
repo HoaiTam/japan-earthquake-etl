@@ -18,7 +18,31 @@ public final class FullMonthBronzeReader {
     public record Parsed(List<SilverObservation> observations, ArrayNode sources, int selectedRows) { }
     private final BronzeObjectStore store;
     private final List<JmaArchiveEntry> inventory;
-    public FullMonthBronzeReader(BronzeObjectStore store, List<JmaArchiveEntry> inventory) { this.store = store; this.inventory = List.copyOf(inventory); }
+    private final JmaStructureCache structureCache;
+    public FullMonthBronzeReader(BronzeObjectStore store, List<JmaArchiveEntry> inventory) { this(store,inventory,null); }
+    public FullMonthBronzeReader(BronzeObjectStore store,List<JmaArchiveEntry> inventory,JmaStructureCache cache) {
+        this.store=store;this.inventory=List.copyOf(inventory);this.structureCache=cache;
+    }
+    /** Opt-in JVM-local memo of a pure structural function, never raw bytes or source coverage.
+     * Every read still fetches/re-hashes the actual object and validates its manifest/inventory/cutoff.
+     * No API accepts caller-supplied cache entries. A new JVM/JAR starts empty. */
+    public static final class JmaStructureCache {
+        private final LinkedHashMap<String,JmaArchiveValidationResult> values=new LinkedHashMap<>(16,0.75f,true);
+        private long scans,hits;
+        private synchronized JmaArchiveValidationResult validate(byte[] raw,String rawSha,String member) throws IOException {
+            String key=rawSha+"/"+member;var prior=values.get(key);
+            if(prior!=null){hits++;return prior;}
+            scans++;var result=new JmaArchiveValidator().validate(raw,member);
+            if(result.valid()) {
+                if(values.size()==64)values.remove(values.keySet().iterator().next());
+                values.put(key,result);
+            }
+            return result;
+        }
+        public synchronized long fullScans(){return scans;}
+        public synchronized long hits(){return hits;}
+        public synchronized int entries(){return values.size();}
+    }
 
     /** Full validation still happens now, but a registry does not retain every archive's raw bytes. */
     public Input descriptor(JsonNode pin, Instant cutoff) throws IOException {
@@ -121,7 +145,8 @@ public final class FullMonthBronzeReader {
                     && pin.path("catalog_release").asText().equals(m.path("catalog_release").asText())
                     && pin.path("year").asInt() == interval.path("year").asInt()
                     && pin.path("segment").asText().equals(interval.path("segment").asText()), "JMA_INVENTORY_PIN_MISMATCH");
-            var validated = new JmaArchiveValidator().validate(raw,e.memberName()); require(validated.valid(), "JMA_FULL_ZIP_REQUIRED"); count=validated.recordCount();
+            var validated = structureCache==null?new JmaArchiveValidator().validate(raw,e.memberName()):structureCache.validate(raw,text(pin,"sha256"),e.memberName());
+            require(validated.valid(), "JMA_FULL_ZIP_REQUIRED"); count=validated.recordCount();
             from = OffsetDateTime.parse(e.nativeStartJst()).toInstant(); to = OffsetDateTime.parse(e.nativeEndJst()).toInstant();
         }
         require(from.isBefore(to) && !to.isAfter(cutoff) && !to.isAfter(utc(m,"retrieved_at_utc")) && m.path("record_count_estimate").isIntegralNumber()

@@ -30,6 +30,13 @@ phiên này; chưa kết luận nguyên nhân gốc hoặc tăng timeout để c
 [Phiên giảm tải bổ sung](../evidence/DAT-03_LIGHT_SESSION.md) đã stop/restore
 đúng4container cũ,9service healthy. Full query chạm512MB;3bucket đạt, bucket3
 timeout/12chưa chạy. Chưa đủ capacity/Gold/export, chưa có research ZIP mới.
+Mốc mới sau Docker hoạt động lại: [catalog rollout](../evidence/DAT-03_CATALOG_ROLLOUT.md)
+đã đạt full-scale event/bridge SQL probes, controller có20/288tháng Published
+đến2001-08, các phiên đã acceptance/release own lease. Nhánh
+[official collection](../specs/RESEARCH_COLLECTION_EXPORT.md) có loader từng
+shard/registry/result-scope riêng, vẫn đang nghiệm thu component và chưa có
+actual full-period export. **Vẫn chưa có full research ZIP để gửi nhóm**; không dùng
+source captures hoặc một phần Gold thay bundle đã VALIDATED/EXPORTED.
 
 File gửi nhóm trên máy chuẩn bị:
 `staging/shared-datasets/jma-development-pilot-team.zip` trong checkout DAT-03.

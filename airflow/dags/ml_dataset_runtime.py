@@ -421,7 +421,7 @@ def execute_step(
     attempt: int = 1,
 ) -> dict[str, Any]:
     """Execute one phase of the dataset build with strict step transitions and attempt isolation."""
-    if context.get("runtime_protocol") == "mli-02-real-v1":
+    if context.get("runtime_protocol") in ("mli-02-real-v1", "mli-02-collection-v1"):
         from ml_dataset_real import execute
         return execute(step_name, context, upstream, dict(os.environ if environment is None else environment), attempt)
     if (os.environ if environment is None else environment).get("ML_BUILD_MODE") != "legacy-test":
@@ -1491,7 +1491,7 @@ def mark_dataset_exported_summary(
     environment: Mapping[str, str] | None = None,
 ) -> dict[str, Any]:
     """Produce final summary of the dataset build DAG run with fail-closed leaf contract gates."""
-    if context.get("runtime_protocol") == "mli-02-real-v1":
+    if context.get("runtime_protocol") in ("mli-02-real-v1", "mli-02-collection-v1"):
         from ml_dataset_real import summary
         return summary(context, final_result, dict(os.environ if environment is None else environment))
     if (os.environ if environment is None else environment).get("ML_BUILD_MODE") != "legacy-test":

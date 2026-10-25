@@ -201,6 +201,20 @@ class ResultBundleContractTest {
         assertEquals("RESULT_READY",receipt.nextStatus());
         assertEquals(receipt,VALIDATOR.validate(bundle,context("WINDOW",receipt.bundleSha256())));
     }
+    @Test void collectionResultMustBindTheExactTrustedShardInCheckedConfig() throws Exception {
+        var source=load("success");var scope=new ResultBundleValidator.CollectionScope(ResearchCollectionExportBundle.VERSION,"col_"+"1".repeat(64),"shard_00000");
+        var ctx=new ResultBundleValidator.Context("ds_fixture","EXPORTED","exp_fixture","WINDOW","1",CANDIDATES,null,null,null,scope);
+        assertEquals("IMP_COLLECTION_SCOPE_MISMATCH",assertThrows(IllegalArgumentException.class,()->VALIDATOR.validate(source,ctx)).getMessage());
+        var artifacts=new HashMap<>(source.artifacts());var config=(ObjectNode)JSON.readTree(artifacts.get("experiment_config.json"));
+        config.set("collection_scope",scope.toJson());artifacts.put("experiment_config.json",FeatureExportBundle.bytes(config));
+        var success=(ObjectNode)source.success().deepCopy();((ObjectNode)success.path("checksums")).put("experiment_config.json",ResultBundleContract.sha256(artifacts.get("experiment_config.json")));
+        var bundle=new ResultBundleValidator.DecodedBundle(success,artifacts,source.memberships(),source.summaries(),true);
+        assertEquals("RESULT_READY",VALIDATOR.validate(bundle,ctx).nextStatus());
+        assertEquals("IMP_COLLECTION_SCOPE_MISMATCH",assertThrows(IllegalArgumentException.class,()->VALIDATOR.validate(bundle,context("WINDOW",null))).getMessage());
+        var foreign=new ResultBundleValidator.Context("ds_fixture","EXPORTED","exp_fixture","WINDOW","1",CANDIDATES,null,null,null,
+                new ResultBundleValidator.CollectionScope(ResearchCollectionExportBundle.VERSION,scope.collectionId(),"shard_00001"));
+        assertEquals("IMP_COLLECTION_SCOPE_MISMATCH",assertThrows(IllegalArgumentException.class,()->VALIDATOR.validate(bundle,foreign)).getMessage());
+    }
     @Test void persistedInvalidFixturesReject()throws Exception {
         for(var item:Map.of("checksum","IMP_CHECKSUM_MISMATCH","schema","IMP_SCHEMA_MISMATCH","duplicate","IMP_DUPLICATE_GRAIN","unknown","IMP_UNKNOWN_EVENT_ID").entrySet()) {
             var error=assertThrows(IllegalArgumentException.class,()->VALIDATOR.validate(load(item.getKey()),context("WINDOW",null)));

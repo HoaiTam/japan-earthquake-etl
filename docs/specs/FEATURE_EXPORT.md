@@ -144,5 +144,7 @@ Chi tiết lệnh, expected outputs và recovery ở
 shard giữ parent dataset_id, global pinned Mc, full-mainshock assignment và
 strict split. Đây là **RESEARCH_COLLECTION_PREPARED**, parent BUILDING không đổi,
 không official EXPORTED hoặc input MLI-03. Default 128 mainshock/100k rows của
-exporter chính thức vẫn giữ; DAT-03 còn nối official collection-aware lifecycle/
-registry/loader/import ở bước 6 sau full research rollout.
+exporter mặc định vẫn giữ. [Official collection v1](./RESEARCH_COLLECTION_EXPORT.md)
+là nhánh opt-in riêng cho lifecycle/registry/loader/import theo whole-window
+shard; không promote PREPARED hiện có bằng metadata. Actual full-period export
+và runtime/handoff acceptance vẫn còn trong DAT-03 sau full research rollout.

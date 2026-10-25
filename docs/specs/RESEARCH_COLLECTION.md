@@ -28,6 +28,11 @@ Không tạo EXPORTED giả, không đưa prepared collection vào TrustedDatase
 MLI-03. DAT-03 bước export chính thức sau full research rollout phải nối
 collection-aware MLI-02/registry/loader/import gate bằng version riêng.
 
+[Official collection export v1](./RESEARCH_COLLECTION_EXPORT.md) đã có nhánh
+opt-in riêng; không promote preparation hiện có bằng cách sửa marker/metadata.
+Actual full-period lifecycle/export/runtime và three-machine receipts vẫn là
+acceptance riêng của DAT-03, chưa được chứng nhận bởi component code.
+
 Production entrypoint chỉ nhận namespace/dataset ID/limits/output metadata;
 không nhận events, Mc hoặc cờ completeness từ caller. Unit fixture API là
 component QA, không source/Gold proof. Rerun verify existing exact bytes/pins;

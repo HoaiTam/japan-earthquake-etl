@@ -1,10 +1,16 @@
 # DAT-03 — Chuẩn bị rollout và đo capacity
 
-Trạng thái: **chưa đủ điều kiện chạy full catalog**. Đây là control plane,
+Mốc chuẩn bị trước: **chưa đủ điều kiện chạy full catalog**. Đây là control plane,
 source capture và phép đo có giới hạn; chưa phải controller backfill 288 tháng
 hoặc official collection exporter. [Kết quả thực](../evidence/DAT-03_ROLLOUT_CAPACITY.md).
 Owner chọn máy hiện tại, tối đa **2 giờ/phiên**, có checkpoint. Không coi một
 probe thành công là chấp thuận toàn bộ Spark/Gold/export capacity.
+
+**Cập nhật25/10:** hai full-scale event/bridge probes43copies đã đủ16/16 mỗi
+bảng; catalog controller mới đã có checkpoint2000-01 và đang nghiệm thu phiên
+tiếp tục. [Evidence mới](../evidence/DAT-03_CATALOG_ROLLOUT.md),
+[contract](../specs/RESEARCH_CATALOG_ROLLOUT.md). Không đồng nghĩa288tháng hoặc
+official ML export đã hoàn tất; các phép đo thất bại bên dưới giữ nguyên lịch sử.
 
 ## Thành phần làm gì?
 
@@ -196,11 +202,73 @@ Không dùng compose up, recreate, build/pull/init hoặc thay deployment.
   hỏng; khi bị gián đoạn, đối chiếu before/stop-intent và current IDs trước mọi
   phục hồi. Không chạy toàn session lần nữa trên folder cũ để che lỗi.
 
+## 6. Controller catalog có checkpoint — explicit ETL
+
+Không chạy các lệnh này như unit test/startup hoặc song song với ETL khác.
+Chỉ dùng prebuilt JAR đúng code và hai **full-scale** capacity probe folders
+đã đạt; giữ existing deployment/credential/source bytes.
+
+```bash
+make test-research-catalog
+make prepare-research-catalog RESEARCH_DEPLOYMENT_ROOT="$dat03_deployment_root" RESEARCH_PROFILE_ROOT=staging/dat03-research-profile-20261024 RESEARCH_USGS_ROOT=staging/dat03-usgs-2023-20261025 RESEARCH_EVENT_CAPACITY_PROBE="$dat03_event_probe" RESEARCH_BRIDGE_CAPACITY_PROBE="$dat03_bridge_probe"
+```
+
+Folder mới được in ra là request/pins bất biến. Gán đúng giá trị thực đó cho
+`dat03_catalog_folder`; không lấy namespace/snapshot trong evidence làm input
+cho catalog mới, không chạy lại fresh-run trên catalog đã có runtime.
+
+```bash
+make verify-research-catalog-inputs RESEARCH_CATALOG_FOLDER="$dat03_catalog_folder"
+make run-research-catalog RESEARCH_DEPLOYMENT_ROOT="$dat03_deployment_root" RESEARCH_CATALOG_FOLDER="$dat03_catalog_folder" RESEARCH_CATALOG_MAX_MONTHS=1
+```
+
+Sau checkpoint đầu và fresh idle/lease/health checks đạt, tiếp tục **cùng**
+catalog chỉ khi session trước có acceptance; không resume failed/partial:
+
+```bash
+make resume-research-catalog RESEARCH_DEPLOYMENT_ROOT="$dat03_deployment_root" RESEARCH_CATALOG_FOLDER="$dat03_catalog_folder"
+```
+
+Default Java budget6000s, outer host7200s có reserve/staging allowance; stop
+trước tháng/phase mới khi gần budget. Source cutoff/code không đổi giữa các
+phiên. Success cần result/checkpoint/record chain thật, six pins và lease-release
+receipt; log `month_published` một mình không chứng nhận cả session/full kỳ.
+Host observations là folder mới; runtime đầu không bị overwrite. Xem contract
+cho timeout, partial-month, own lease và independent stored parent readback.
+
+### Continuation tối ưu sau checkpoint sạch
+
+Không dùng khi session cũ còn active hoặc failed. Prepare chỉ pin artifact ở
+host, không đổi runner/deployment/source. Cần prebuilt JAR có batch/cache/
+opt-in fact verifier và bytecode compatibility thật với original runner:
+
+```bash
+make prepare-research-catalog-continuation RESEARCH_DEPLOYMENT_ROOT="$dat03_deployment_root" RESEARCH_CATALOG_FOLDER="$dat03_catalog_folder"
+```
+
+Gán exact folder mới được in cho `dat03_catalog_continuation`; không sửa request
+cũ hoặc overwrite candidate cũ. Sau old session accepted/idle và lease trống,
+nghiệm thu batch đầu bằng limit nhỏ trước khi mở tiếp:
+
+```bash
+make resume-research-catalog RESEARCH_DEPLOYMENT_ROOT="$dat03_deployment_root" RESEARCH_CATALOG_FOLDER="$dat03_catalog_folder" RESEARCH_CATALOG_CONTINUATION_FOLDER="$dat03_catalog_continuation" RESEARCH_CATALOG_MAX_MONTHS=7
+```
+
+Limit7 là số **tháng tối đa**, không bảo đảm một batch; actual next-fit còn phụ
+thuộc profile/prefix/split. Sau acceptance/resource review mới chạy không limit
+nhỏ, vẫn giữ budget/session. Control folder có thể reuse khi exact5files/SHA
+trong volume khớp; không overwrite hoặc retransmit source captures. Nếu code/
+proof drift, chuẩn bị candidate UUID mới, không sửa staged artifact cũ.
+
+Xem contract cho75k-profile/100k-actual guards, JVM-local structural cache và
+exact fact blockers. `EXPLAIN TYPE VALIDATE` chỉ xác nhận cú pháp/kiểu, không
+thay runtime SQL readbacks hoặc full-scale capacity.
+
 ## Giới hạn / bước tiếp theo
 
-- **DAT-03 — Catalog nghiên cứu thật:** chưa đủ capacity, chưa có resumable
-  catalog controller/288 monthly publications hoặc 2h-session enforcement.
-  Chưa có ETA tin cậy từ parser scan/probe; giữ pins/checkpoint cũ.
+- **DAT-03 — Catalog nghiên cứu thật:** controller/session guards và Trino
+  full-scale probes đã có; đang nghiệm thu runtime, chưa288monthly publications
+  hoặc full Spark/lake/export capacity. Chưa có ETA toàn kỳ từ tháng đầu.
 - **DAT-03 — Official collection export:** còn versioned MLI-02 lifecycle/
   registry/loader/import wiring và real full-period export. PREPARED không là
   EXPORTED; không lấy bốn tháng mẫu hoặc 12 response làm full research bundle.

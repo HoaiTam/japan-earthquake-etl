@@ -201,6 +201,9 @@ RESEARCH_ROLLOUT_PLAN ?=
 RESEARCH_CAPACITY_RUNTIME ?=
 RESEARCH_CAPACITY_STRATEGY ?= full
 RESEARCH_CAPACITY_QUERY_SECONDS ?= 90
+RESEARCH_CAPACITY_COPIES ?= 32
+RESEARCH_CAPACITY_TABLE ?= event_current
+RESEARCH_CAPACITY_TOTAL_QUERY_SECONDS ?= 600
 RESEARCH_USGS_ROOT ?= staging/dat03-usgs-2023
 RESEARCH_USGS_REUSE_DECEMBER ?=
 RESEARCH_JAVA ?= java
@@ -214,7 +217,48 @@ plan-research-rollout: ## DAT-03 verify25 original captures/profiles, plan288 mo
 
 probe-research-capacity: ## DAT-03 bounded read-only Trino stress probe, không là coverage/research acceptance
 	@test -n "$(RESEARCH_DEPLOYMENT_ROOT)" -a -n "$(RESEARCH_CAPACITY_RUNTIME)" || { echo 'RESEARCH_DEPLOYMENT_ROOT/CAPACITY_RUNTIME are required'; exit 1; }
-	@python3 scripts/research-rollout.py probe --deployment-root "$(RESEARCH_DEPLOYMENT_ROOT)" --runtime-root "$(RESEARCH_CAPACITY_RUNTIME)" --strategy "$(RESEARCH_CAPACITY_STRATEGY)" --query-seconds "$(RESEARCH_CAPACITY_QUERY_SECONDS)"
+	@python3 scripts/research-rollout.py probe --deployment-root "$(RESEARCH_DEPLOYMENT_ROOT)" --runtime-root "$(RESEARCH_CAPACITY_RUNTIME)" --strategy "$(RESEARCH_CAPACITY_STRATEGY)" --query-seconds "$(RESEARCH_CAPACITY_QUERY_SECONDS)" --copies "$(RESEARCH_CAPACITY_COPIES)" --table "$(RESEARCH_CAPACITY_TABLE)" --total-query-seconds "$(RESEARCH_CAPACITY_TOTAL_QUERY_SECONDS)"
+
+.PHONY: test-research-catalog prepare-research-catalog run-research-catalog resume-research-catalog verify-research-catalog-inputs
+RESEARCH_CATALOG_FOLDER ?=
+RESEARCH_CATALOG_CONTINUATION_FOLDER ?=
+RESEARCH_CATALOG_SECONDS ?= 6000
+RESEARCH_CATALOG_MAX_MONTHS ?= 288
+RESEARCH_EVENT_CAPACITY_PROBE ?=
+RESEARCH_BRIDGE_CAPACITY_PROBE ?=
+RESEARCH_SPARK_PARTITIONS ?= 1
+RESEARCH_SPARK_COPIES ?= 43
+RESEARCH_SPARK_CAPACITY_SECONDS ?= 1200
+.PHONY: test-research-spark-capacity measure-research-spark-capacity
+test-research-spark-capacity: ## DAT-03 owned-child/typed read-only Spark stress guards; không Docker
+	@python3 -m unittest discover -s tests -p 'test_research_spark_capacity.py'
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am test -Dtest=ResearchGoldCapacityJobTest -Dsurefire.failIfNoSpecifiedTests=false
+
+measure-research-spark-capacity: ## DAT-03 read-only full-profile count/unique/writer-fingerprint; không lake/service/lease writes
+	@test -n "$(RESEARCH_DEPLOYMENT_ROOT)" -a -n "$(RESEARCH_CATALOG_FOLDER)" || { echo 'Exact deployment/catalog roots required'; exit 1; }
+	@python3 scripts/research-spark-capacity.py run --deployment-root "$(RESEARCH_DEPLOYMENT_ROOT)" --catalog "$(RESEARCH_CATALOG_FOLDER)" --table "$(RESEARCH_CAPACITY_TABLE)" --copies "$(RESEARCH_SPARK_COPIES)" --shuffle-partitions "$(RESEARCH_SPARK_PARTITIONS)" --seconds "$(RESEARCH_SPARK_CAPACITY_SECONDS)"
+
+test-research-catalog: ## DAT-03 catalog control-plane tests, no Docker/source network
+	@python3 -m unittest discover -s tests -p 'test_research_catalog.py'
+	@python3 -m unittest discover -s tests -p 'test_research_catalog_progress.py'
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am test -Dtest=ResearchCatalogStateTest,ResearchCatalogBatchPlanTest,ResearchCatalogCompatibilityTest,FullMonthJmaCacheTest,GoldFactBucketTest,GoldOutsideBucketTest,GoldVerifiedReuseTest -Dsurefire.failIfNoSpecifiedTests=false
+
+.PHONY: prepare-research-catalog-continuation
+prepare-research-catalog-continuation: ## DAT-03 pin a new compatible batch/cache runner without changing active code or source pins
+	@test -n "$(RESEARCH_DEPLOYMENT_ROOT)" -a -n "$(RESEARCH_CATALOG_FOLDER)" || { echo 'Exact deployment/catalog folder required'; exit 1; }
+	@python3 scripts/research-catalog.py prepare-continuation --deployment-root "$(RESEARCH_DEPLOYMENT_ROOT)" --folder "$(RESEARCH_CATALOG_FOLDER)"
+
+prepare-research-catalog: ## DAT-03 verify source/capacity pins and stage a new isolated catalog; no lake writes
+	@test -n "$(RESEARCH_DEPLOYMENT_ROOT)" -a -n "$(RESEARCH_EVENT_CAPACITY_PROBE)" -a -n "$(RESEARCH_BRIDGE_CAPACITY_PROBE)" || { echo 'Exact deployment and two capacity probe folders are required'; exit 1; }
+	@python3 scripts/research-catalog.py prepare --deployment-root "$(RESEARCH_DEPLOYMENT_ROOT)" --profiles "$(RESEARCH_PROFILE_ROOT)" --usgs "$(RESEARCH_USGS_ROOT)" --event-probe "$(RESEARCH_EVENT_CAPACITY_PROBE)" --bridge-probe "$(RESEARCH_BRIDGE_CAPACITY_PROBE)"
+
+run-research-catalog resume-research-catalog: ## DAT-03 EXPLICIT isolated ETL session; checkpointed, no deployment mutation
+	@test -n "$(RESEARCH_DEPLOYMENT_ROOT)" -a -n "$(RESEARCH_CATALOG_FOLDER)" || { echo 'Exact deployment/catalog folder required'; exit 1; }
+	@python3 scripts/research-catalog.py $(if $(filter resume-research-catalog,$@),resume,run) --deployment-root "$(RESEARCH_DEPLOYMENT_ROOT)" --folder "$(RESEARCH_CATALOG_FOLDER)" --seconds "$(RESEARCH_CATALOG_SECONDS)" --max-months "$(RESEARCH_CATALOG_MAX_MONTHS)" $(if $(RESEARCH_CATALOG_CONTINUATION_FOLDER),--continuation "$(RESEARCH_CATALOG_CONTINUATION_FOLDER)")
+
+verify-research-catalog-inputs: ## DAT-03 read-only local pins/capacity verification; not full catalog acceptance
+	@test -n "$(RESEARCH_CATALOG_FOLDER)" || { echo 'Exact catalog folder required'; exit 1; }
+	@python3 scripts/research-catalog.py verify-inputs --folder "$(RESEARCH_CATALOG_FOLDER)"
 
 test-research-usgs: ## DAT-03 offline capture guards và Java response validation; không network/Docker
 	@python3 -m unittest discover -s tests -p 'test_research_usgs_captures.py'
@@ -252,7 +296,8 @@ measure-research-light-session: ## DAT-03 EXPLICIT approved stop4/probe/restore4
 	@python3 scripts/research-light-session.py --deployment-root "$(RESEARCH_DEPLOYMENT_ROOT)" --runtime-root "$(RESEARCH_CAPACITY_RUNTIME)" --operator-approved-four-container-session
 
 test-research-collection: ## DAT-03 collection/shared Mc/whole-window Parquet regression; không Docker hoặc nguồn thật
-	@./mvnw --batch-mode --no-transfer-progress -pl spark -am test -Dtest=ResearchCollectionPlanTest,ResearchCollectionJobTest -Dsurefire.failIfNoSpecifiedTests=false
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am test -Dtest=ResearchCollectionPlanTest,ResearchCollectionJobTest,ResearchCollectionExportBundleTest,DatasetBuildJobTest,TrustedDatasetResolverTest,ResultBundleContractTest -Dsurefire.failIfNoSpecifiedTests=false
+	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_research_collection_loader.py'
 
 test-research-e2e: ## DAT-03 offline metadata/receipt guards, không Docker/mạng
 	@python3 -m unittest discover -s tests -p 'test_research_e2e.py'
@@ -377,6 +422,7 @@ test-pilot: ## Pilot/model regression; cần pyarrow/model deps và loopback Jup
 	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_pilot_*.py'
 	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_team_pilot.py'
 	@$(PILOT_PYTHON) -m unittest tests/test_experiment_harness.py
+	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_research_collection_loader.py'
 	@$(PILOT_PYTHON) -m unittest tests/test_baseline_algorithms.py
 	@$(PILOT_PYTHON) -m unittest tests/test_adaptive_hdbscan.py
 
@@ -580,6 +626,9 @@ ci-docs-base: ## Always-on CI guards; pilot tests được chọn riêng theo im
 	@$(MAKE) test-research-recovery
 	@$(MAKE) test-research-continuation
 	@$(MAKE) test-research-rollout
+	@python3 -m unittest discover -s tests -p 'test_research_catalog.py'
+	@python3 -m unittest discover -s tests -p 'test_research_catalog_progress.py'
+	@python3 -m unittest discover -s tests -p 'test_research_spark_capacity.py'
 	@python3 -m unittest discover -s tests -p 'test_research_usgs_captures.py'
 	@$(MAKE) test-research-trino-profile
 	@$(MAKE) test-research-light-session

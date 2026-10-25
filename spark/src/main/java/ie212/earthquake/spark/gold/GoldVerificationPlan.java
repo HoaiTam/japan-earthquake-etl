@@ -5,6 +5,7 @@ import java.util.*;
 
 /** Every data query uses a literal committed snapshot; no latest substitution. */
 public final class GoldVerificationPlan {
+    public static final Set<String> BUCKETED_FACT_BLOCKERS=Set.of("unique:event_current","unique:event_source_bridge","bridge_lineage","source_counts","primary_provenance");
     private final JsonNode commit;
     private final String namespace;
     public GoldVerificationPlan(JsonNode commit) {
@@ -133,7 +134,23 @@ public final class GoldVerificationPlan {
     public static String outsideBucketPredicate(String key,String bucket) {
         if(!"canonical_event_id".equals(key) || bucket==null || !bucket.matches("[0-9a-f]"))
             throw new IllegalArgumentException("EXACT_OUTSIDE_BUCKET_REQUIRED");
+        return factBucketPredicate(key,bucket);
+    }
+    private static String factBucketPredicate(String key,String bucket) {
+        if(!Set.of("canonical_event_id","source_observation_id").contains(key) || bucket==null || !bucket.matches("[0-9a-f]"))
+            throw new IllegalArgumentException("EXACT_FACT_BUCKET_REQUIRED");
         return "lower(substr(to_hex(sha256(to_utf8(coalesce("+key+",'')))),1,1))="+quote(bucket);
+    }
+    /** Route both sides of fact joins by canonical key. Uniqueness of bridge
+     * observations uses the observation key instead, so cross-canonical duplicates cannot hide. */
+    public String factBlockerBucket(String name,String bucket) {
+        if(!BUCKETED_FACT_BLOCKERS.contains(name))throw new IllegalArgumentException("EXACT_FACT_BLOCKER_REQUIRED");
+        String query=blockers().get(name);
+        for(String table:List.of("event_current","event_source_bridge")) {
+            String key=name.equals("unique:event_source_bridge")?"source_observation_id":"canonical_event_id";
+            query=query.replace(ref(table),"(SELECT * FROM "+ref(table)+" WHERE "+factBucketPredicate(key,bucket)+")");
+        }
+        return query;
     }
     public static String quote(String value) { return "'"+value.replace("'","''")+"'"; }
 }

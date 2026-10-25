@@ -170,6 +170,7 @@ public final class MlResultImportJob {
             .put("membership_snapshot_id", membership)
             .put("summary_snapshot_id", summary).put("experiment_snapshot_id", experiment);
         if (namespace != null) candidate.put("namespace", namespace);
+        if(context.collectionScope()!=null) candidate.set("collection_scope",context.collectionScope().toJson());
         ObjectNode counts = candidate.putObject("readback"); readback.forEach(counts::put);
         return candidate;
     }

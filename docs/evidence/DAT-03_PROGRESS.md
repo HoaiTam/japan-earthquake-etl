@@ -12,6 +12,17 @@ chốt strict split, loại window thiếu PRE/POST coverage và báo chi tiết
 
 ## Cập nhật kỹ thuật tiếp theo
 
+[Mới nhất — capacity đủ quy mô và catalog controller](./DAT-03_CATALOG_ROLLOUT.md):
+hai SQL probes event/bridge43copies đều16/16PASS với4.527.126rows mỗi phía,
+90s/query/512MB không đổi. Controller đã stage37original captures, chạy thật
+20/288tháng Published đến2001-08. Hai phiên resume đã terminal/acceptance/own
+release; batch cuối7tháng1082,979s,148reported checks dùng chung six pins.
+Source namespace/cutoff giữ nguyên, continuation có code/compatibility pins
+riêng; không đổi deployment. Chưa288tháng/official export, không lấy synthetic
+expansion hoặc checkpoint đầu thay full research acceptance. Code official
+collection opt-in/registry/loader/result-scope đang nghiệm thu component theo
+[contract](../specs/RESEARCH_COLLECTION_EXPORT.md); chưa actual research export.
+
 [Mới nhất — phiên giảm tải theo approval riêng](./DAT-03_LIGHT_SESSION.md):
 đã stop/start đúng4containers cũ,9service healthy,5service giữ nguyên ID/start/
 config; không active run/lease/query. Full stress chạm query-memory512MB;

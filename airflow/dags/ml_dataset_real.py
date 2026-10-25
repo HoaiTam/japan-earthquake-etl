@@ -17,6 +17,7 @@ from resource_pilot import java_identity
 from source_run_guard import lease
 
 VERSION = "mli-02-real-v1"
+COLLECTION_VERSION = "mli-02-collection-v1"
 DAG = "mli_02_build_dataset"
 STEPS = ("wait_gold_published", "resolve_gold_snapshot", "audit_gold_input", "resolve_mc",
          "select_mainshocks", "build_candidate_windows", "build_spacetime_features",
@@ -96,11 +97,37 @@ def roots(env):
             "registry_root": str(safe(env.get("MLI_DATASET_REGISTRY_ROOT", "/opt/pipeline/staging/ml-artifacts")))}
 
 
+def protocol(config):
+    filters = config.get("filter_config", {})
+    if "collection_export" not in filters:
+        return VERSION
+    layout = filters["collection_export"]
+    require(isinstance(layout, dict) and set(layout) == {"version", "layout_limits"}
+            and layout["version"] == "dat03-collection-export-v1"
+            and filters.get("window_coverage_policy") == "dat03-strict-split-v1", "MLI02_COLLECTION_CONFIG_INVALID")
+    limits = layout["layout_limits"]
+    require(isinstance(limits, dict) and set(limits) == {"mainshocks_per_shard", "rows_per_shard", "max_shards"}
+            and all(type(v) is int for v in limits.values()) and 1 <= limits["mainshocks_per_shard"] <= 128
+            and 1 <= limits["rows_per_shard"] <= 100000 and 1 <= limits["max_shards"] <= 64,
+            "MLI02_COLLECTION_CONFIG_INVALID")
+    return COLLECTION_VERSION
+
+
+def runner(env):
+    if "ML_BUILD_RUNNER_JAR" not in env:
+        return JAR
+    path = safe(env["ML_BUILD_RUNNER_JAR"])
+    require(re.fullmatch(r"/opt/pipeline/staging/dat03-ml-export/[a-f0-9]{32}/runner\.jar", str(path)) is not None,
+            "MLI02_EXACT_STAGED_RUNNER_REQUIRED")
+    return path
+
+
 def prepared(env):
     require(env.get("ML_BUILD_MODE", "real") == "real", "MLI02_REAL_MODE_REQUIRED")
     expected = env.get("ML_BUILD_RUNNER_SHA256", "")
     require(re.fullmatch(r"[a-f0-9]{64}", expected) is not None, "MLI02_RUNNER_PIN_REQUIRED")
-    require(JAR.is_file() and sha(JAR) == expected and SPARK.is_file(), "MLI02_RUNNER_NOT_PREPARED")
+    jar = runner(env)
+    require(jar.is_file() and sha(jar) == expected and SPARK.is_file(), "MLI02_RUNNER_NOT_PREPARED")
     jars = sorted(ICEBERG.glob("*.jar"))
     require({p.name for p in jars} == {"iceberg-spark-runtime-3.5_2.12-1.10.1.jar", "iceberg-aws-bundle-1.10.1.jar"}
             and all(p.is_file() for p in jars), "MLI02_ICEBERG_NOT_PREPARED")
@@ -121,7 +148,7 @@ def invoke(request, env):
                "--conf", "spark.driver.host=127.0.0.1", "--conf", "spark.driver.bindAddress=127.0.0.1",
                "--conf", "spark.ui.enabled=false", "--conf", "spark.sql.shuffle.partitions=4",
                "--jars", ",".join(map(str, jars)),
-               "--class", "ie212.earthquake.spark.ml.DatasetBuildJob", str(JAR), str(attempt / "request.json")]
+               "--class", "ie212.earthquake.spark.ml.DatasetBuildJob", str(runner(env)), str(attempt / "request.json")]
     with (attempt / "stdout.private").open("xb") as out, (attempt / "stderr.private").open("xb") as err:
         os.chmod(out.name, 0o600)
         os.chmod(err.name, 0o600)
@@ -151,10 +178,13 @@ def resolve(raw, env, attempt):
     prepared(env)
     paths = roots(env)
     run = "mli02-" + hashlib.sha256((DAG + "|" + raw["run_id"]).encode()).hexdigest()[:40]
-    request = {"contract_version": VERSION, "dag_id": DAG, "run_id": raw["run_id"], "build_run_id": run,
+    version = protocol(config)
+    request = {"contract_version": version, "dag_id": DAG, "run_id": raw["run_id"], "build_run_id": run,
                "config": config, "publication_reference": publication, "ml_namespace": env["ML_BUILD_NAMESPACE"],
                "run_root": str(Path(paths.pop("run_base")) / run), **paths,
                "runner_sha256": env["ML_BUILD_RUNNER_SHA256"]}
+    if "ML_BUILD_RUNNER_JAR" in env:
+        request["runner_path"] = str(runner(env))
     require(len(payload(request)) <= LIMIT - 4096, "MLI02_BOUNDED_METADATA_REQUIRED")
     owner = {"dag_id": DAG, "run_id": raw["run_id"]}
     target = Path(request["run_root"]) / "context.json"
@@ -170,7 +200,7 @@ def resolve(raw, env, attempt):
             and all(plan.get("gold_publication", {}).get(k) == publication[k] for k in (
                 "gold_publication_id", "gold_snapshot_id", "gold_table_name", "physical_gold_table_name", "publication_bundle_sha256")),
             "MLI02_INVALID_PLAN")
-    context = {**request, "plan": plan, "runtime_protocol": VERSION, "dataset_id": plan["dataset_id"],
+    context = {**request, "plan": plan, "runtime_protocol": version, "dataset_id": plan["dataset_id"],
                "lease_owner": owner}
     immutable(target, context)
     return context
@@ -178,11 +208,13 @@ def resolve(raw, env, attempt):
 
 def checked(context, env):
     require(env.get("ML_BUILD_MODE", "real") == "real", "MLI02_REAL_MODE_REQUIRED")
-    require(context.get("runtime_protocol") == VERSION, "MLI02_REAL_CONTEXT_REQUIRED")
+    version = protocol(context.get("config", {}))
+    require(context.get("runtime_protocol") == context.get("contract_version") == version, "MLI02_REAL_CONTEXT_REQUIRED")
     path = safe(context["run_root"])
     require(read(path / "context.json") == context, "MLI02_CONTEXT_CHANGED")
     require(context["ml_namespace"] == env.get("ML_BUILD_NAMESPACE")
-            and context["runner_sha256"] == env.get("ML_BUILD_RUNNER_SHA256"), "MLI02_DEPLOYMENT_CHANGED")
+            and context["runner_sha256"] == env.get("ML_BUILD_RUNNER_SHA256")
+            and context.get("runner_path", str(JAR)) == str(runner(env)), "MLI02_DEPLOYMENT_CHANGED")
     expected = roots(env)
     require(context["export_root"] == expected["export_root"] and context["registry_root"] == expected["registry_root"]
             and path.parent == Path(expected["run_base"]), "MLI02_DEPLOYMENT_CHANGED")
@@ -190,7 +222,7 @@ def checked(context, env):
 
 
 def validate(receipt, context, step):
-    require(receipt.get("contract_version") == VERSION and receipt.get("run_id") == context["run_id"]
+    require(receipt.get("contract_version") == protocol(context.get("config", {})) and receipt.get("run_id") == context["run_id"]
             and receipt.get("step") == step and receipt.get("dataset_id") == context["dataset_id"]
             and receipt.get("identity_payload_sha256") == context["plan"]["identity_payload_sha256"]
             and receipt.get("plan_sha256") == hashlib.sha256(payload(context["plan"])).hexdigest()
@@ -248,17 +280,32 @@ def verify_handoff(context, receipt):
     # candidate lineage. Hash it here without deserializing rows into Python/XCom.
     # Public index covers all portable files, not just an untrusted self-supplied manifest.
     lines = (bundle / "checksums.sha256").read_text().splitlines()
-    require(1 <= len(lines) <= 64, "MLI02_CHECKSUM_INDEX_INVALID")
+    collection = protocol(context.get("config", {})) == COLLECTION_VERSION
+    require(1 <= len(lines) <= (131 if collection else 64), "MLI02_CHECKSUM_INDEX_INVALID")
     names = set()
     for line in lines:
-        match = re.fullmatch(r"([a-f0-9]{64})  ([A-Za-z0-9_.-]+)", line)
+        pattern = r"([a-f0-9]{64})  (dataset_manifest\.json|collection-preparation\.json|export-checksums\.sha256|shard_[0-9]{5}/(?:features|mainshocks)\.parquet)" if collection else r"([a-f0-9]{64})  ([A-Za-z0-9_.-]+)"
+        match = re.fullmatch(pattern, line)
         require(match is not None, "MLI02_CHECKSUM_INDEX_INVALID")
         digest, name = match.groups()
         require(name not in names and safe(bundle / name).is_file() and sha(bundle / name) == digest,
                 "MLI02_BUNDLE_CHANGED")
         names.add(name)
     require({"dataset_manifest.json", "export-checksums.sha256"} <= names, "MLI02_CHECKSUM_INDEX_INVALID")
-    require({p.name for p in bundle.iterdir()} == names | {"checksums.sha256"}, "MLI02_BUNDLE_FILE_SET_CHANGED")
+    if collection:
+        dirs = {n.split("/")[0] for n in names if "/" in n}
+        actual = set()
+        for p in bundle.rglob("*"):
+            safe(p)
+            relative = p.relative_to(bundle).as_posix()
+            if p.is_dir():
+                require(relative in dirs, "MLI02_BUNDLE_FILE_SET_CHANGED")
+            else:
+                require(p.is_file(), "MLI02_BUNDLE_FILE_SET_CHANGED")
+                actual.add(relative)
+        require(actual == names | {"checksums.sha256"}, "MLI02_BUNDLE_FILE_SET_CHANGED")
+    else:
+        require({p.name for p in bundle.iterdir()} == names | {"checksums.sha256"}, "MLI02_BUNDLE_FILE_SET_CHANGED")
 
 
 def summary(context, final, env, *, persist=True):

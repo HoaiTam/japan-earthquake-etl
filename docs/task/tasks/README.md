@@ -73,6 +73,13 @@ EXP-02 PASSED. QA-04 từng dời tuần 6 ở mốc cũ, nay đưa lại tuần
 không giảm scope recovery. Ngày 24/10 thêm DAT-03, 16h estimate ban đầu ở tuần 6:
 77 task/402h, không cộng lại vào budget tuần 5. DAT-03 còn In Progress cho
 catalog thật và receipts ba người; pilot dùng ngay không thay research acceptance.
+[Mới nhất25/10 — DAT-03 catalog](../../evidence/DAT-03_CATALOG_ROLLOUT.md):
+event/bridge probes43copies đủ full-profile upper bound đã16/16 mỗi bảng;
+controller có27/288tháng Published đến2002-03, session v2 exit0/1173,357s/
+own release; source cutoff giữ nguyên. Nhánh official collection
+opt-in đang nghiệm thu component, chưa actual full-period export. Chưa288tháng hoặc official
+collection export/receipts ba máy; DAT-03 vẫn In Progress. Các trial fail bên
+dưới là lịch sử, không phải kết quả full-scale probes mới.
 Sau PR #100 merge, [chuẩn bị rollout DAT-03](../../evidence/DAT-03_ROLLOUT_CAPACITY.md)
 có fresh JMA pins/288-month plan và12 USGS captures; capacity chưa đạt,
 Trino-only trial late healthy; scheduler/DAG processor từng unhealthy rồi tự

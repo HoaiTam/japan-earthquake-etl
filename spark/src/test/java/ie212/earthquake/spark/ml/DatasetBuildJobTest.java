@@ -20,6 +20,18 @@ class DatasetBuildJobTest {
         assertFalse(sql.queries.stream().anyMatch(q -> !q.startsWith("SELECT")));
         assertEquals("ds_" + first.path("identity_payload_sha256").asText(), first.path("dataset_id").asText());
     }
+    @Test void collectionLayoutRequiresExplicitVersionAndParticipatesInDatasetIdentity() throws Exception {
+        var req=request();var before=DatasetBuildJob.execute(req,new DatasetManifestTest.Fake(req.path("config")),null,null,()->{});
+        var filters=(ObjectNode)req.path("config").path("filter_config");filters.put("window_coverage_policy",WindowCoveragePolicy.STRICT);
+        filters.putObject("collection_export").put("version",ResearchCollectionExportBundle.VERSION)
+                .set("layout_limits",ResearchCollectionPlan.Limits.defaults().json());
+        assertThrows(Exception.class,()->DatasetBuildJob.execute(req,new DatasetManifestTest.Fake(req.path("config")),null,null,()->{}));
+        req.put("contract_version",DatasetBuildJob.COLLECTION_VERSION);
+        var after=DatasetBuildJob.execute(req,new DatasetManifestTest.Fake(req.path("config")),null,null,()->{});
+        assertNotEquals(before.path("dataset_id"),after.path("dataset_id"));
+        ((ObjectNode)filters.path("collection_export")).put("version","unknown");
+        assertThrows(Exception.class,()->DatasetBuildJob.execute(req,new DatasetManifestTest.Fake(req.path("config")),null,null,()->{}));
+    }
     @Test void changedPinOrNamespaceCannotWrite() {
         for (int i=0; i<3; i++) {
             var req = request();

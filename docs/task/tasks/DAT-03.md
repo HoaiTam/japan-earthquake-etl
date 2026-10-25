@@ -100,6 +100,15 @@ PARTIAL thay full research data.
   [Phiên giảm tải bổ sung](../../evidence/DAT-03_LIGHT_SESSION.md) đã stop/
   restore đúng4ID,9healthy/5kept unchanged; full query chặn512MB,3bucket đạt/
   bucket3timeout/12chưa chạy. Không nới cap hoặc gọi partial là full acceptance.
+  Mốc mới sau Docker hoạt động lại: event/bridge43copies=4.527.126rows mỗi
+  phía, **16/16 mỗi bảng đạt**,90s/query giữ nguyên; không full Spark capacity.
+  [Catalog rollout](../../evidence/DAT-03_CATALOG_ROLLOUT.md) có checkpoint
+  2000-01 thật, đang chạy phiên tiếp tục, chưa đủ288tháng hoặc official export.
+- [x] Controller kỹ thuật `dat03-catalog-rollout-v1`:37exact original sources,
+  frozen cutoff/code/inventories, phase/month checkpoints và contiguous chain,
+  budgets dưới2h, fail/timeout giữ lease. Tháng đầu2000-01 có68reported checks/
+  six pins, session exit0/release own lease. Không gọi controller hoặc checkpoint
+  đầu là acceptance toàn catalog. [Contract](../../specs/RESEARCH_CATALOG_ROLLOUT.md).
 - [ ] Khối 3 tiếp theo: capacity gate và rollout catalog 225/63 tháng có
   source pins, checkpoint, six-snapshot publication và bounded recovery; chỉ
   tick khi runtime toàn kỳ đạt, không lấy planner hoặc bốn tháng mẫu thay thế.
@@ -165,8 +174,18 @@ release đủ gate. Không tạo dependency ngược từ DAT-03 sang EXP-02.
   đủ capacity. Official export wiring/full rollout chưa triển khai, không
   chứng nhận khối3/4. [Evidence](../../evidence/DAT-03_ROLLOUT_CAPACITY.md),
   [runbook](../../runbooks/DAT-03_RESEARCH_ROLLOUT.md).
+  Theo yêu cầu mới hoàn thiện toàn bộ DAT-03, tiếp tục từ commit0487a83 đã
+  push. Hai SQL probes đủ full-profile upper bound đã đạt; catalog controller
+  mới có first acceptance2000-01 và đang chạy phiên resume cùng pins/cutoff.
+  [Evidence mới](../../evidence/DAT-03_CATALOG_ROLLOUT.md). Chưa full catalog/
+  official collection export hoặc receipts ba máy; không tự commit/push/merge.
   Chưa có reviewer approval, full research hoặc ba máy acceptance. ThanhTris và
   rosy179 chưa chạy verifier theo xác nhận owner; tiếp tục phần kỹ thuật độc lập.
+  Mốc tiếp theo27/288tháng đến2002-03 đã accepted, own lease release. Owner yêu
+  cầu25/10 chạy các đợt khoảng3h/commit, giữ <=2h/phiên và báo mỗi25% catalog
+  (72/144/216/288), không gọi catalog100% là DAT-03 Done. Xem
+  [kế hoạch batch](../../runbooks/DAT-03_BATCH_EXECUTION.md). Được commit theo
+  đợt; chưa có yêu cầu push/merge. Khối3/4/5 vẫn chưa đạt toàn bộ acceptance.
 
 ## Tài liệu liên quan
 

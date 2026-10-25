@@ -18,7 +18,14 @@ public final class GoldPublisher {
     private final Runnable lease;
     private final boolean operational;
     public static final String BUCKETED_OUTSIDE_VERSION="dat03-exact-outside-buckets-v1";
+    public static final String BUCKETED_BLOCKERS_VERSION="dat03-exact-fact-blockers-v1";
     private final boolean bucketedOutside;
+    private final boolean bucketedBlockers;
+    private final boolean reuseVerified;
+    private final java.util.function.LongSupplier monotonic;
+    private ObjectNode verificationCache;
+    private long verifiedAtNanos;
+    public static final String VERIFIED_REUSE_VERSION="dat03-same-process-verified-snapshots-v1";
     public GoldPublisher(Sql sql, SilverObjectStore store, Runnable lease) {
         this(sql,store,lease,false);
     }
@@ -26,15 +33,34 @@ public final class GoldPublisher {
         this(sql,store,lease,operational,false);
     }
     private GoldPublisher(Sql sql,SilverObjectStore store,Runnable lease,boolean operational,boolean bucketedOutside) {
+        this(sql,store,lease,operational,bucketedOutside,false);
+    }
+    private GoldPublisher(Sql sql,SilverObjectStore store,Runnable lease,boolean operational,boolean bucketedOutside,boolean bucketedBlockers) {
+        this(sql,store,lease,operational,bucketedOutside,bucketedBlockers,false,System::nanoTime);
+    }
+    private GoldPublisher(Sql sql,SilverObjectStore store,Runnable lease,boolean operational,boolean bucketedOutside,boolean bucketedBlockers,
+            boolean reuseVerified,java.util.function.LongSupplier monotonic) {
         this.sql=Objects.requireNonNull(sql);this.store=Objects.requireNonNull(store);this.lease=Objects.requireNonNull(lease);
-        this.operational=operational;this.bucketedOutside=bucketedOutside;
+        this.operational=operational;this.bucketedOutside=bucketedOutside;this.bucketedBlockers=bucketedBlockers;
+        this.reuseVerified=reuseVerified;this.monotonic=Objects.requireNonNull(monotonic);
     }
     /** Opt-in only for isolated DAT-03 catalog namespaces; legacy/operational behavior stays unchanged. */
     public static GoldPublisher researchRollout(Sql sql,SilverObjectStore store,Runnable lease) {
         return new GoldPublisher(sql,store,lease,false,true);
     }
+    public static GoldPublisher researchCatalog(Sql sql,SilverObjectStore store,Runnable lease) {
+        return new GoldPublisher(sql,store,lease,false,true,true);
+    }
+    /** Same immutable-snapshot proof in this process only; freshness/publication readbacks always execute. */
+    public static GoldPublisher researchCatalogCheckpointed(Sql sql,SilverObjectStore store,Runnable lease) {
+        return researchCatalogCheckpointed(sql,store,lease,System::nanoTime);
+    }
+    static GoldPublisher researchCatalogCheckpointed(Sql sql,SilverObjectStore store,Runnable lease,java.util.function.LongSupplier monotonic) {
+        return new GoldPublisher(sql,store,lease,false,true,true,true,monotonic);
+    }
     /** Read-only ORC-07 gate: no views, PASSED rows, aliases or publication journals. */
     public JsonNode verify(String goldRun,String namespace,String identity) throws Exception {
+        if(reuseVerified)verificationCache=null;
         lease.run();
         if(goldRun==null || !goldRun.matches("[A-Za-z0-9][A-Za-z0-9_-]{0,127}")) throw new IOException("EXACT_GOLD_RUN_REQUIRED");
         byte[] bytes=store.read("gold-commits/"+goldRun+"/commit.json");
@@ -47,6 +73,7 @@ public final class GoldPublisher {
         report.put("identity_sha256",identity); report.put("bundle_sha256",SilverBundlePublisher.sha(bytes));
         if(operational) OperationalGoldPolicy.attach(report,commit.path("operational_policy"));
         if(bucketedOutside)report.put("outside_scope_strategy",BUCKETED_OUTSIDE_VERSION);
+        if(bucketedBlockers)report.put("fact_blocker_strategy",BUCKETED_BLOCKERS_VERSION);
         report.set("snapshot_bundle",commit.path("tables")); var checks=report.putObject("checks");
         for(String name:GoldIcebergWriter.TABLES) {
             var shape=sql.execute("SELECT * FROM "+plan.ref(name)+" LIMIT 0");
@@ -57,10 +84,12 @@ public final class GoldPublisher {
                     +" AND summary['gold.operation_id']="+quote(goldRun)+" AND summary['gold.identity_sha256']="+quote(identity)
                     +(operational ? "" : OperationalGoldPolicy.researchSnapshotPredicate()),1);
         }
-        for(var query:plan.blockers().entrySet()) checked(checks,query.getKey(),query.getValue(),0);
+        blockers(plan,checks);
         operationalChecks(commit,plan,checks);
         outside(plan,checks);
-        report.put("verify_status","PASSED"); report.put("published",false); return report;
+        report.put("verify_status","PASSED"); report.put("published",false);
+        if(reuseVerified) {verificationCache=report.deepCopy();verifiedAtNanos=monotonic.getAsLong();}
+        return report;
     }
     public JsonNode publish(String goldRun, String expectedNamespace, String expectedIdentity) throws Exception {
         lease.run();
@@ -78,7 +107,15 @@ public final class GoldPublisher {
         report.put("gold_run_id",goldRun);report.put("namespace",namespace);report.set("snapshot_bundle",commit.path("tables"));
         if(operational) OperationalGoldPolicy.attach(report,commit.path("operational_policy"));
         if(bucketedOutside)report.put("outside_scope_strategy",BUCKETED_OUTSIDE_VERSION);
+        if(bucketedBlockers)report.put("fact_blocker_strategy",BUCKETED_BLOCKERS_VERSION);
         var checks=report.putObject("checks");
+        JsonNode reusable=reusable(commit,bundleSha);
+        if(reusable!=null) {
+            checks.setAll((ObjectNode)reusable.path("checks").deepCopy());
+            report.putObject("verification_reuse").put("strategy",VERIFIED_REUSE_VERSION)
+                    .put("source_report_sha256",ie212.earthquake.spark.orchestration.FullMonthContract.digest(reusable))
+                    .put("reused_check_count",checks.size()).put("same_process",true).put("max_age_seconds",300);
+        } else {
         // First verify all exact snapshots. No view/metadata mutation precedes these blockers.
         for(String name:GoldIcebergWriter.TABLES) {
             var shape=sql.execute("SELECT * FROM "+plan.ref(name)+" LIMIT 0");
@@ -89,9 +126,10 @@ public final class GoldPublisher {
                 +" AND summary['gold.operation_id']="+quote(goldRun)+" AND summary['gold.identity_sha256']="+quote(expectedIdentity)
                 +(operational ? "" : OperationalGoldPolicy.researchSnapshotPredicate()),1);
         }
-        for(var query:plan.blockers().entrySet()) checked(checks,query.getKey(),query.getValue(),0);
+        blockers(plan,checks);
         operationalChecks(commit,plan,checks);
         outside(plan,checks);
+        }
         if(store.exists(journal)) {
             JsonNode existing=JSON.readTree(store.read(journal));
             if(!publicationId.equals(existing.path("publication_id").asText()) || !"PASSED".equals(existing.path("verify_status").asText())
@@ -100,6 +138,9 @@ public final class GoldPublisher {
             if(bucketedOutside != existing.has("outside_scope_strategy") || (bucketedOutside
                     && !BUCKETED_OUTSIDE_VERSION.equals(existing.path("outside_scope_strategy").asText())))
                 throw new IOException("PUBLICATION_OUTSIDE_STRATEGY_CHANGED");
+            if(bucketedBlockers!=existing.has("fact_blocker_strategy") || (bucketedBlockers
+                    && !BUCKETED_BLOCKERS_VERSION.equals(existing.path("fact_blocker_strategy").asText())))
+                throw new IOException("PUBLICATION_FACT_STRATEGY_CHANGED");
             requirePublication(namespace,publicationId,bundleSha,plan.snapshot("event_current"),commit);
             return existing; // Never move serving aliases back on a historical rerun.
         }
@@ -146,6 +187,16 @@ public final class GoldPublisher {
         if(!Arrays.equals(bytes,store.read(journal))) throw new IOException("PUBLICATION_READBACK_FAILED");
         return JSON.readTree(bytes);
     }
+    private JsonNode reusable(JsonNode commit,String bundleSha) {
+        if(!reuseVerified || verificationCache==null)return null;
+        long age=monotonic.getAsLong()-verifiedAtNanos;
+        if(age<0 || age>300_000_000_000L || !bundleSha.equals(verificationCache.path("bundle_sha256").asText())
+                || !commit.path("namespace").equals(verificationCache.path("namespace"))
+                || !commit.path("gold_run_id").equals(verificationCache.path("gold_run_id"))
+                || !commit.path("identity_sha256").equals(verificationCache.path("identity_sha256"))
+                || !commit.path("tables").equals(verificationCache.path("snapshot_bundle")))return null;
+        return verificationCache.deepCopy();
+    }
     private void freshness(GoldVerificationPlan plan,ObjectNode checks) throws Exception {
         for(String name:GoldIcebergWriter.TABLES) checked(checks,"current:"+name,
             "SELECT snapshot_id FROM "+plan.metadata(name,"refs")+" WHERE name='main'",plan.snapshot(name));
@@ -177,6 +228,16 @@ public final class GoldPublisher {
             // This is an explicitly derived assertion, not a fabricated SQL readback.
             checks.putObject("outside:"+name).put("kind","EXACT_EXHAUSTIVE_BUCKET_SUM")
                     .put("query_count",16).put("actual",0).put("expected",0);
+        }
+    }
+    private void blockers(GoldVerificationPlan plan,ObjectNode checks) throws Exception {
+        for(var query:plan.blockers().entrySet()) {
+            if(!bucketedBlockers || !GoldVerificationPlan.BUCKETED_FACT_BLOCKERS.contains(query.getKey())) {
+                checked(checks,query.getKey(),query.getValue(),0);continue;
+            }
+            for(char bucket:"0123456789abcdef".toCharArray())
+                checked(checks,query.getKey()+":"+bucket,plan.factBlockerBucket(query.getKey(),String.valueOf(bucket)),0);
+            checks.putObject(query.getKey()).put("kind","EXACT_EXHAUSTIVE_BUCKET_SUM").put("query_count",16).put("actual",0).put("expected",0);
         }
     }
     private void operationalChecks(JsonNode commit,GoldVerificationPlan plan,ObjectNode checks) throws Exception {

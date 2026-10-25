@@ -112,6 +112,8 @@ public final class ResultBundleContract implements ResultBundleValidator {
                     JsonNode metadata=JSON.readTree(bundle.artifacts().get(name)); safe(metadata);
                     if (allowed.contains(name)) require(str(metadata,"dataset_id").equals(context.datasetId()) && str(metadata,"experiment_run_id").equals(context.runId()), "IMP_DATASET_LINEAGE_MISMATCH");
                     if (name.equals("experiment_config.json")) {
+                        if(context.collectionScope()!=null) require(context.collectionScope().toJson().equals(metadata.path("collection_scope")),"IMP_COLLECTION_SCOPE_MISMATCH");
+                        else require(!metadata.has("collection_scope"),"IMP_COLLECTION_SCOPE_MISMATCH");
                         require(str(metadata,"algorithm_name").equals(context.algorithm()) && str(metadata,"model_config_version").equals(context.modelVersion()), "IMP_DATASET_LINEAGE_MISMATCH");
                         for (String field:List.of("algorithm_version","package_version","code_version"))
                             require(metadata.path(field).isTextual() && !str(metadata,field).isBlank() && str(metadata,field).equals(str(success,field)),"IMP_DATASET_LINEAGE_MISMATCH");

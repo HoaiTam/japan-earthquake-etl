@@ -112,22 +112,24 @@ def plan(captures):
             "pending_gates": ["TRINO_FULL_SCALE_CAPACITY", "USGS_FULL_2023_PINS", "288_REAL_MONTH_PUBLICATIONS", "OFFICIAL_COLLECTION_EXPORT"]}
 
 
-def capacity_sql(report, copies, bucket=None):
+def capacity_sql(report, copies, bucket=None, table="event_current"):
     require(type(copies) is int and 1 <= copies <= 64, "ROLLOUT_TYPED_CAPACITY_COPIES")
     require(bucket is None or type(bucket) is str and re.fullmatch(r"[0-9a-f]", bucket), "ROLLOUT_EXACT_CAPACITY_BUCKET")
+    require(table in ("event_current", "event_source_bridge"), "ROLLOUT_EXACT_CAPACITY_TABLE")
     namespace = report["namespace"]
     require(re.fullmatch(r"iceberg\.dat03_e2e_[a-f0-9]{32}", namespace), "ROLLOUT_EXACT_DIAGNOSTIC_NAMESPACE")
     require([c["month"] for c in report["cases"]] == ["2000-01", "2011-04", "2016-04", "2023-12"], "ROLLOUT_DIAGNOSTIC_CASE_SET")
     commit = report["cases"][3]["first"]["commit"]
-    before = commit["scope"]["baseline_snapshots"]["event_current"]; after = commit["tables"]["event_current"]["snapshot_id"]
+    before = commit["scope"]["baseline_snapshots"][table]; after = commit["tables"][table]["snapshot_id"]
     require(all(type(p) is int and 0 < p <= 9223372036854775807 for p in (before, after)), "ROLLOUT_EXACT_DIAGNOSTIC_PINS")
-    prior = report["cases"][2]["first"]["commit"]["tables"]["event_current"]
+    prior = report["cases"][2]["first"]["commit"]["tables"][table]
     require(prior["snapshot_id"] == before and commit["scope"]["affected_months"] == ["2023-12"]
             and type(prior["count"]) is int and 0 < prior["count"] <= 10000000, "ROLLOUT_DIAGNOSTIC_BASELINE_CHANGED")
     def side(snapshot):
-        return (f"SELECT e.*, n.copy_id AS dat03_capacity_copy FROM {namespace}.event_current FOR VERSION AS OF {snapshot} AS e "
+        month = "format_datetime(e.event_time_utc AT TIME ZONE 'UTC','yyyy-MM')" if table == "event_current" else "e.event_month_utc"
+        return (f"SELECT e.*, n.copy_id AS dat03_capacity_copy FROM {namespace}.{table} FOR VERSION AS OF {snapshot} AS e "
                 f"CROSS JOIN UNNEST(sequence(1,{copies})) AS n(copy_id) "
-                "WHERE format_datetime(e.event_time_utc AT TIME ZONE 'UTC','yyyy-MM') <> '2023-12'"
+                f"WHERE {month} <> '2023-12'"
                 + ("" if bucket is None else " AND lower(substr(to_hex(sha256(to_utf8(coalesce(e.canonical_event_id,'')))),1,1))='" + bucket + "'"))
     a, b = side(before), side(after)
     return f"SELECT count(*) AS changed_rows FROM (({a} EXCEPT {b}) UNION ALL ({b} EXCEPT {a})) changes", prior["count"] * copies
@@ -200,25 +202,33 @@ print("ROLLOUT_TRINO_IDLE")
     require(checked.returncode == 0 and checked.stdout.strip() == "ROLLOUT_TRINO_IDLE", "ROLLOUT_TRINO_QUERY_NOT_IDLE")
 
 
-def probe(deployment, runtime, copies, strategy="full", query_seconds=90):
+def probe(deployment, runtime, copies, strategy="full", query_seconds=90, table="event_current", total_query_seconds=600):
     require(strategy in ("full", "buckets-v1"), "ROLLOUT_CAPACITY_STRATEGY_INVALID")
     require(type(query_seconds) is int and 30 <= query_seconds <= 300, "ROLLOUT_QUERY_BUDGET_INVALID")
+    require(table in ("event_current", "event_source_bridge"), "ROLLOUT_EXACT_CAPACITY_TABLE")
+    require(type(total_query_seconds) is int and 600 <= total_query_seconds <= 3600, "ROLLOUT_TOTAL_QUERY_BUDGET_INVALID")
     deployment, runtime = safe(deployment), safe(runtime)
     expected = load(ROOT / "docs/evidence/DAT-03_CONTINUATION.json")
     require(runtime == deployment / "staging/dat03-continuation" / expected["checkpoint_recovery"]["attempt_id"] / "runtime", "ROLLOUT_EXACT_DIAGNOSTIC_ROOT")
     require(profile.sha(runtime / "report.json") == expected["checkpoint_recovery"]["report_sha256"]
             and profile.sha(runtime / "acceptance-recovery.json") == expected["checkpoint_recovery"]["acceptance_sha256"], "ROLLOUT_DIAGNOSTIC_EVIDENCE_CHANGED")
     report = load(runtime / "report.json")
-    queries = [capacity_sql(report, copies, b)[0] for b in ("0123456789abcdef" if strategy == "buckets-v1" else [None])]
-    _, expanded = capacity_sql(report, copies)
+    queries = [capacity_sql(report, copies, b, table)[0] for b in ("0123456789abcdef" if strategy == "buckets-v1" else [None])]
+    _, expanded = capacity_sql(report, copies, table=table)
     before = services(); idle(); trino_queries_idle()
     target = safe(deployment / "staging/dat03-capacity" / uuid.uuid4().hex); target.mkdir(parents=True, mode=0o700)
-    save(target / "request.json", {"version": "dat03-trino-stress-v1", "namespace": report["namespace"], "report_sha256": expected["checkpoint_recovery"]["report_sha256"],
+    # V2 separates the overall sequential measurement window from each query's
+    # unchanged engine limit. It never relaxes a failed query or accepts a prefix.
+    version = "dat03-trino-stress-v1" if table == "event_current" and total_query_seconds == 600 else "dat03-trino-stress-v2"
+    request = {"version": version, "namespace": report["namespace"], "report_sha256": expected["checkpoint_recovery"]["report_sha256"],
                                   "copies": copies, "stress_rows_per_side": expanded, "strategy": strategy,
-                                  "queries": queries, "query_max_run_time_seconds": query_seconds, "total_probe_budget_seconds": 600})
+                                  "queries": queries, "query_max_run_time_seconds": query_seconds, "total_probe_budget_seconds": total_query_seconds}
+    if version.endswith("v2"):
+        request["table"] = table
+    save(target / "request.json", request)
     started = time.monotonic(); results = []; status = "STRESS_PROBE_PASSED"
     for number, query in enumerate(queries):
-        remaining = 600 - (time.monotonic() - started)
+        remaining = total_query_seconds - (time.monotonic() - started)
         if remaining < query_seconds + 40:
             status = "PROBE_BUDGET_EXHAUSTED_NOT_ACCEPTED"; break
         command = ["docker", "exec", "japan-earthquake-etl-trino-1", "trino", "--user", "dat03-capacity-probe", "--output-format", "JSON",
@@ -250,13 +260,15 @@ def probe(deployment, runtime, copies, strategy="full", query_seconds=90):
         pass  # Still emit a failed receipt; never lose the exact query outcome/logs.
     if postflight != "PASSED_UNCHANGED" and status == "STRESS_PROBE_PASSED":
         status = "POSTFLIGHT_FAILED_NOT_ACCEPTED"
-    receipt = {"version": "dat03-trino-stress-v1", "status": status, "strategy": strategy, "queries": results,
+    receipt = {"version": version, "status": status, "strategy": strategy, "queries": results,
                "required_query_count": len(queries), "completed_query_count": len(results),
                "wall_seconds": round(time.monotonic() - started, 3), "stress_rows_per_side": expanded, "copies": copies,
                "request_sha256": profile.sha(target / "request.json"), "services_before": before, "services_after": after,
                "postflight_status": postflight,
                "data_mutations": False, "lease_acquired_or_released": False, "full_capacity_accepted": False,
                "synthetic_expansion_is_not_research_data": True, "research_ready": False}
+    if version.endswith("v2"):
+        receipt["table"] = table
     save(target / "receipt.json", receipt)
     print("event=dat03_capacity_probe status=" + status + " evidence=" + str(target), flush=True)
     return receipt
@@ -268,6 +280,8 @@ def main():
     parser.add_argument("--output", type=Path); parser.add_argument("--deployment-root", type=Path); parser.add_argument("--runtime-root", type=Path)
     parser.add_argument("--copies", type=int, default=32)
     parser.add_argument("--query-seconds", type=int, default=90)
+    parser.add_argument("--table", choices=("event_current", "event_source_bridge"), default="event_current")
+    parser.add_argument("--total-query-seconds", type=int, default=600)
     parser.add_argument("--strategy", choices=("full", "buckets-v1"), default="full"); args = parser.parse_args()
     if args.mode == "plan":
         result = plan(args.captures)
@@ -276,7 +290,7 @@ def main():
         print(json.dumps({"version": result["version"], "batches": len(result["batches"]), "splits": result["splits"], "status": result["status"], "full_capacity_accepted": False}))
     else:
         require(args.deployment_root is not None and args.runtime_root is not None, "ROLLOUT_PROBE_PATHS_REQUIRED")
-        result = probe(args.deployment_root, args.runtime_root, args.copies, args.strategy, args.query_seconds)
+        result = probe(args.deployment_root, args.runtime_root, args.copies, args.strategy, args.query_seconds, args.table, args.total_query_seconds)
         if result["status"] != "STRESS_PROBE_PASSED":
             raise SystemExit(2)
 
