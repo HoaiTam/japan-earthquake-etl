@@ -435,6 +435,30 @@ print("event=dat03_catalog_continuation_staged",flush=True)
 '''
 
 
+CONTINUATION_INSPECT = r'''
+import hashlib,json,re,sys
+from pathlib import Path
+p=Path(sys.argv[1]);files=json.loads(sys.argv[2])
+assert not any(q.is_symlink() for q in (p,*p.parents))
+if not p.exists(): print("MISSING")
+else:
+    expected={f["name"] for f in files}
+    actual={q.name for q in p.iterdir()}
+    assert actual-expected <= {"__pycache__"} and expected<=actual
+    cache=p/"__pycache__"
+    if cache.exists() or cache.is_symlink():
+        assert cache.is_dir() and not cache.is_symlink()
+        stems={Path(n).stem for n in expected if n.endswith(".py")}
+        for entry in cache.iterdir():
+            assert entry.is_file() and not entry.is_symlink() and entry.stat().st_size<=128*1024
+            assert any(re.fullmatch(re.escape(stem)+r"\.cpython-[0-9]{2,3}(?:\.opt-[0-9])?\.pyc",entry.name) for stem in stems)
+    for f in files:
+        q=p/f["name"];assert not q.is_symlink() and q.is_file() and q.stat().st_size==f["bytes"]
+        assert hashlib.file_digest(q.open("rb"),"sha256").hexdigest()==f["sha256"]
+    print("VERIFIED_EXISTING")
+'''
+
+
 def run(deployment, folder, seconds=6000, max_months=288, resume=False, continuation=None):
     deadline = time.monotonic() + 7200
     e.require(type(seconds) is int and 1800 <= seconds <= 6600 and type(max_months) is int and 1 <= max_months <= 288, "CATALOG_SESSION_LIMIT_INVALID")
@@ -461,19 +485,9 @@ def run(deployment, folder, seconds=6000, max_months=288, resume=False, continua
         code_root = e.safe(continuation); code_inside = "/opt/pipeline/staging/dat03-catalog-continuation/" + str(relative); bootstrap_request = "continuation-request.json"
         names = ("runner.jar", "controller.py", "research-e2e.py", "compatibility.json", "continuation-request.json")
         listing = [{"name": name, "bytes": (code_root/name).stat().st_size, "sha256": e.sha(code_root/name)} for name in names]
-        inspect = '''import hashlib,json,sys
-from pathlib import Path
-p=Path(sys.argv[1]);files=json.loads(sys.argv[2])
-assert not any(q.is_symlink() for q in (p,*p.parents))
-if not p.exists(): print("MISSING")
-else:
-    assert {q.name for q in p.iterdir()}=={f["name"] for f in files}
-    for f in files:
-        q=p/f["name"];assert not q.is_symlink() and q.is_file() and q.stat().st_size==f["bytes"]
-        assert hashlib.file_digest(q.open("rb"),"sha256").hexdigest()==f["sha256"]
-    print("VERIFIED_EXISTING")
-'''
-        checked=subprocess.run(["docker","exec",e.CONTAINER,"python3","-c",inspect,code_inside,json.dumps(listing)],check=True,capture_output=True,text=True,timeout=60)
+        # Cache is not an input. Validate its shape, but never load or write it:
+        # -B plus a non-directory cache prefix forces source bytes.
+        checked=subprocess.run(["docker","exec",e.CONTAINER,"python3","-B","-X","pycache_prefix=/dev/null","-c",CONTINUATION_INSPECT,code_inside,json.dumps(listing)],check=True,capture_output=True,text=True,timeout=60)
         e.require(checked.stdout.strip() in ("MISSING","VERIFIED_EXISTING"),"CATALOG_CONTINUATION_STAGE_CHANGED")
         if checked.stdout.strip()=="MISSING":
             with subprocess.Popen(["docker", "exec", "-i", e.CONTAINER, "python3", "-c", CONTINUATION_TRANSFER, code_inside], stdin=subprocess.PIPE) as child:
@@ -495,7 +509,7 @@ sys.path.insert(0,str(p));sys.argv=[str(p/"controller.py"),*sys.argv[6:]]
 runpy.run_path(str(p/"controller.py"),run_name="__main__")
 '''
         pins = extra if extra else request
-        command=["docker", "exec", e.CONTAINER, "python3", "-c", bootstrap, code_inside,
+        command=["docker", "exec", e.CONTAINER, "python3", "-B", "-X", "pycache_prefix=/dev/null", "-c", bootstrap, code_inside,
                  e.sha(code_root/bootstrap_request),pins["controller_sha256"],pins["support_sha256"],bootstrap_request, "worker", "--folder", inside,
                  "--seconds", str(seconds), "--max-months", str(max_months)]
         if extra: command += ["--continuation", code_inside]

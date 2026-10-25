@@ -193,3 +193,17 @@ CI-impact21Python tests PASS. Harness cần loopback; lần sandbox bị chặn 
 rerun cùng test với quyền loopback đạt46/46, không sửa test để né lỗi.
 `make ci-docs-base` PASS; docs248files/2240links0problems, task-status77files
 đồng bộ, git diff whitespace đạt. Các con số fixture không là full research acceptance.
+
+## Resume preflight — interpreter cache, trước mọi ETL
+
+Lần resume sau commit nền d96abde dừng trước acquire/worker: Python trước đó
+tạo `__pycache__/research-e2e.cpython-313.pyc` trong continuation khiến exact
+file-set inspector reject. Read-only check xác nhận lease trống, vẫn27months.
+Không tạo failed Java session, không đổi source/continuation five pinned files.
+
+Host inspector sửa để chỉ chấp nhận directory cache không symlink, <=128KiB/
+file và tên pyc đúng hai source đã pin; mọi extra file khác vẫn reject.
+Worker bootstrap dùng `-B -X pycache_prefix=/dev/null` để không đọc/write cache
+cũ, luôn compile đúng source bytes đã hash. Không xóa cache, không thay runner
+hoặc nới input SHA guard. Hai regression tests kiểm generated cache/foreign
+file/tampered JAR/symlink; resume chỉ sau fresh health/idle/pin checks.

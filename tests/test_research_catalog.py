@@ -4,6 +4,7 @@ import importlib.util
 import json
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 import types
 import zipfile
@@ -197,6 +198,30 @@ class ResearchCatalogTest(unittest.TestCase):
         self.assertIn('len(files)==5',c.CONTINUATION_TRANSFER)
         self.assertNotIn("inputs/",c.CONTINUATION_TRANSFER)
         for word in ("compose", "restart", "extractall", "unlink", "rmtree"):self.assertNotIn(word,c.CONTINUATION_TRANSFER)
+
+
+    def test_existing_continuation_allows_only_ignored_interpreter_cache_not_foreign_files(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp).resolve();names=("runner.jar","controller.py","research-e2e.py","compatibility.json","continuation-request.json")
+            for name in names:(root/name).write_bytes(b"pinned-source")
+            listing=[{"name":name,"bytes":(root/name).stat().st_size,"sha256":c.e.sha(root/name)} for name in names]
+            def inspect():
+                return subprocess.run([sys.executable,"-B","-X","pycache_prefix=/dev/null","-c",c.CONTINUATION_INSPECT,str(root),json.dumps(listing)],capture_output=True,text=True)
+            cache=root/"__pycache__";cache.mkdir();(cache/"research-e2e.cpython-313.pyc").write_bytes(b"ignored-cache-not-executed")
+            checked=inspect();self.assertEqual(0,checked.returncode,checked.stderr);self.assertEqual("VERIFIED_EXISTING",checked.stdout.strip())
+            foreign=root/"unexpected.py";foreign.write_bytes(b"foreign")
+            self.assertNotEqual(0,inspect().returncode);foreign.unlink()
+            bad=cache/"unexpected.pyc";bad.write_bytes(b"foreign")
+            self.assertNotEqual(0,inspect().returncode);bad.unlink()
+            (root/"runner.jar").write_bytes(b"changed")
+            self.assertNotEqual(0,inspect().returncode)
+
+    def test_interpreter_cache_cannot_be_a_symlink(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp).resolve();folder=root/"control";folder.mkdir();cache=root/"other-cache";cache.mkdir()
+            (folder/"__pycache__").symlink_to(cache,target_is_directory=True)
+            checked=subprocess.run([sys.executable,"-B","-c",c.CONTINUATION_INSPECT,str(folder),"[]"],capture_output=True,text=True)
+            self.assertNotEqual(0,checked.returncode)
 
 
 if __name__=="__main__":unittest.main()
