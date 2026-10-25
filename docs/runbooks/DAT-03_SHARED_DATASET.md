@@ -32,7 +32,7 @@ phiên này; chưa kết luận nguyên nhân gốc hoặc tăng timeout để c
 timeout/12chưa chạy. Chưa đủ capacity/Gold/export, chưa có research ZIP mới.
 Mốc mới sau Docker hoạt động lại: [catalog rollout](../evidence/DAT-03_CATALOG_ROLLOUT.md)
 đã đạt full-scale event/bridge SQL và Spark fingerprint probes; controller có
-45/288tháng Published đến2003-09, các phiên đã acceptance/release own lease. Nhánh
+72/288tháng (25%) Published đến2005-12, các phiên đã acceptance/release own lease. Nhánh
 [official collection](../specs/RESEARCH_COLLECTION_EXPORT.md) có loader từng
 shard/registry/result-scope riêng, vẫn đang nghiệm thu component và chưa có
 actual full-period export. [Controller ML](./DAT-03_RESEARCH_ML_EXPORT.md) đã

@@ -16,9 +16,9 @@ chốt strict split, loại window thiếu PRE/POST coverage và báo chi tiết
 [Mới nhất — capacity đủ quy mô và catalog controller](./DAT-03_CATALOG_ROLLOUT.md):
 hai SQL probes event/bridge43copies đều16/16PASS với4.527.126rows mỗi phía,
 90s/query/512MB không đổi. Controller đã stage37original captures, chạy thật
-45/288tháng Published đến2003-09. Phiên mới nhất đã terminal/acceptance/own
-release; thêm18tháng qua3batch trong2460,963s, không timeout/pending. Có
-466.990 canonical/466.990 bridge, [six pins và SHA receipt](./DAT-03_CATALOG_CHECKPOINT_045.json).
+72/288tháng (25%) Published đến2005-12. Phiên mới nhất đã terminal/acceptance/own
+release; thêm9tháng qua2batch trong3097,855s, không timeout/pending. Có
+774.260 canonical/774.260 bridge, [six pins và SHA receipt](./DAT-03_CATALOG_CHECKPOINT_072.json).
 Source namespace/cutoff giữ nguyên, continuation có code/compatibility pins
 riêng; không đổi deployment. Chưa288tháng/official export, không lấy synthetic
 expansion hoặc checkpoint đầu thay full research acceptance. Code official
@@ -26,6 +26,9 @@ collection opt-in/registry/loader/result-scope đang nghiệm thu component theo
 [contract](../specs/RESEARCH_COLLECTION_EXPORT.md); controller ML checkpoint
 có code/tests nhưng chưa actual research export. Báo25%/50%/75%/100% catalog
 tại72/144/216/288 accepted months, không dùng phần trăm này làm DAT-03 Done.
+Mốc25% đã báo owner. Hậu kiểm sau phiên:9service healthy, không Java/DagRun/
+Trino query active và lease trống. Host physical free sau copy5,5GiB; không
+thay bằng logical volume free, không tự xóa dữ liệu để mở phiên tiếp.
 
 [Mới nhất — phiên giảm tải theo approval riêng](./DAT-03_LIGHT_SESSION.md):
 đã stop/start đúng4containers cũ,9service healthy,5service giữ nguyên ID/start/

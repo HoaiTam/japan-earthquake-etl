@@ -253,3 +253,61 @@ execution SHA `11d5d048b173eb6648a15682adcbbd40845d15e1d403f6713e8a39b4f3062106`
 acceptance SHA `4c33c2912fc8b11b721276f066ea9516d1e6e53b85b6f042d8ddff9cbf35fd49`.
 Catalog15,625%; reached_milestones=[]; official_exported/research_ready=false.
 Chưa mốc25%, full288 hoặc official research ZIP/team handoff.
+
+## Đợt chạy tiếp —63/288 accepted
+
+Session `0c09edf220f842b0bbc4cb9fd17847f2` thêm18tháng qua3batch:
+2003-10–2004-03,2004-04–09,2004-10–2005-03. Final contiguous prefix là
+2000-01–2005-03:63/288tháng (21,875%),673.105 canonical/673.105bridge,
+dim_date1.918 (bao gồm Unknown). Source/code compatibility pins, cutoff và
+namespace giữ nguyên; không replay phần đã accepted.
+
+Exit0/timed_out=false,3575,76s, child peak RSS1.444.420KiB, pending=null,
+own lease RELEASED. [Receipt metadata063](./DAT-03_CATALOG_CHECKPOINT_063.json)
+được tạo bằng progress verifier từ exact retained observation
+`runtime-observation-622db2c891ea4f7cbc0c9462d77ce064`.
+Result SHA `4edd87413b8965d40dc777c4b1b7f3a659a507b25ebeac833fa95ab36b22e049`,
+execution SHA `eb2c045cea328f96e65e0221e7c1fbba9a4ca795001d007c90e2fd833a274214`,
+acceptance SHA `3e24d1356d6157123af2e431c31c15b23eede7cbb2723b184de3b145c0da69fb`.
+
+Host observation tách biệt child acceptance: entrypoint SHA
+`51b79b5e4da22da66264bca605cefb916035c4b8922d1a936265131848d5b9ab`,
+host wall3610,937s, physical free10.535.600.128bytes trước và7.963.021.312bytes
+sau phiên. Đây là số đo tại hai thời điểm, chưa xác định nguyên nhân biến động;
+không suy logical VM free thành physical free hoặc xóa dữ liệu để vượt reserve.
+Catalog chưa mốc25%; official_exported/research_ready=false, DAT-03 In Progress.
+
+Revalidation trong lúc phiên tiếp theo active: `make ci-docs-base` lần đầu
+phát hiện assertion inventory MLI-02 cũ chỉ nhận DatasetBuildJobTest, trong
+khi mapping đã thêm ResearchDatasetBuildJobTest. Commit629e6d3 giữ exact
+assertion cho đủ hai classes, không bỏ test hoặc nới gate. Rerun cùng
+`env TMPDIR=/private/tmp make ci-docs-base` PASS, gồm42CI-policy tests;
+docs252files/2265links0problems và task-status77files đồng bộ sau cập nhật063.
+Không chạy thêm Spark fixtures, build hoặc thay active continuation pins.
+
+## Mốc25% —72/288 accepted
+
+Session `33489cff7443484eb7e161b12a3cef4b` thêm9tháng qua2batch:
+2005-04–09 và2005-10–12. Contiguous prefix2000-01–2005-12 đủ72/288tháng;
+774.260 canonical/774.260bridge, dim_date2.193 bao gồm Unknown. Đây là mốc25%
+catalog, đã báo owner sau acceptance; không là25% toàn bộ DAT-03 hoặc full
+research release. Source cutoff,37pins, namespace và compatible runner giữ nguyên.
+
+Exit0/timed_out=false,3097,855s (~51,6phút), child peak RSS1.433.240KiB,
+pending=null, own lease RELEASED. [Receipt metadata072](./DAT-03_CATALOG_CHECKPOINT_072.json)
+được tạo bằng offline progress verifier từ exact retained observation
+`runtime-observation-664e319456294bc8a3cefff416ce1b38`; reached_milestones=[25].
+Result SHA `dc5acbfa07ccd8bd1eb0ce3313a1546137f291a1fcb8f41d9020fcf36b7106f6`,
+execution SHA `252a2ee09b576bde056e3df54534dd46fe889466321fed7c7db1061d7f6c7b83`,
+acceptance SHA `f3c71c1520dd34dadce786a39b602186e4f5bbb3a1c9cf8eaf97358c32c9cd38`.
+
+Host entrypoint SHA vẫn51b79b5e4da22da66264bca605cefb916035c4b8922d1a936265131848d5b9ab;
+host wall3145,947s, physical free7.085.481.984bytes trước và5.927.743.488bytes
+sau copy. Host observation không thay child acceptance. Hậu kiểm read-only lúc
+11:46UTC:9containers healthy,4required services đạt guard, không active
+Java/DagRun/Trino queries và source lease trống. Không restart/build/pull/
+init, đổi cron, xóa artifacts hoặc release lease thủ công trong phiên.
+
+DAT-03 vẫn In Progress: còn216tháng catalog, actual official two-split ML
+export/loader/rerun/immutable research kit và receipts thật từ ba máy.
+Không đưa source archives/Parquet/JAR/private logs vào Git; chưa push/merge.

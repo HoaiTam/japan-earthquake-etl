@@ -7,7 +7,7 @@ Owner chọn máy hiện tại, tối đa **2 giờ/phiên**, có checkpoint. Kh
 probe thành công là chấp thuận toàn bộ Spark/Gold/export capacity.
 
 **Cập nhật25/10:** hai full-scale event/bridge probes43copies đã đủ16/16 mỗi
-bảng; catalog controller đã nghiệm thu45/288tháng đến2003-09, own lease release
+bảng; catalog controller đã nghiệm thu72/288tháng (25%) đến2005-12, own lease release
 sau từng phiên. [Evidence mới](../evidence/DAT-03_CATALOG_ROLLOUT.md),
 [contract](../specs/RESEARCH_CATALOG_ROLLOUT.md). Không đồng nghĩa288tháng hoặc
 official ML export đã hoàn tất; các phép đo thất bại bên dưới giữ nguyên lịch sử.
