@@ -54,6 +54,12 @@ Không mở session khác khi session trước active, thiếu acceptance hoặc
 Nếu failed/timeout/partial, lưu nguyên artifacts/lease, chỉ chẩn đoán read-only;
 recovery có thay đổi trạng thái cần xem xét riêng, không restart/delete để pass.
 
+Owner26/10 cho phép lưu trữ bản sao host cũ để giảm dung lượng: chỉ unlink
+observation đã accepted sau khi tạo ZIP/receipt mới, verify exact file-set và
+từng member SHA, recheck source không đổi. Không xóa runtime/inputs gốc hoặc
+lakehouse; giữ checkpoint mới nhất dạng thư mục. Evidence lịch sử cần restore
+đúng observation trước chạy reporter cũ. [Danh sách đã archive và cách restore](../evidence/DAT-03_OVERNIGHT_20261026.md).
+
 ## Tạo metadata cho commit tiến độ
 
 `scripts/research-catalog-progress.py` đọc exact host observation đã được

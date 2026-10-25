@@ -311,3 +311,20 @@ init, đổi cron, xóa artifacts hoặc release lease thủ công trong phiên.
 DAT-03 vẫn In Progress: còn216tháng catalog, actual official two-split ML
 export/loader/rerun/immutable research kit và receipts thật từ ba máy.
 Không đưa source archives/Parquet/JAR/private logs vào Git; chưa push/merge.
+
+## Tiếp tục26/10 —79/288 accepted
+
+Owner cho phép bật lại9containers cũ và chạy tiếp. Phiên
+`9d0e74bca4a548458d4e2b0e4a723def` thêm7tháng2006-01–07, thành79/288
+(27,431%),843.404canonical/bridge. Exit0/no timeout/no pending,1562,109s,
+own lease RELEASED và postflight idle/healthy đạt. [Metadata079](./DAT-03_CATALOG_CHECKPOINT_079.json)
+được verifier offline tạo từ exact observation
+`runtime-observation-3983ec7e908040df9248c0d02da76eb6`, không lấy JSON tự khai
+thay actual publication. Chưa mốc50%, còn209tháng và toàn bộ gate ML/handoff.
+
+Host wall1593,629s; free6.294.196.224bytes trước/4.030.640.128bytes sau copy,
+không suy nguyên nhân từ delta. Giữ original pins/cutoff/namespace. Archive
+năm host copies cũ và COW byte-identical copies được owner-authorized cleanup;
+không xóa lakehouse/runtime, SHA/receipt/restore path xem
+[evidence26/10](./DAT-03_OVERNIGHT_20261026.md). Fresh preflight/free~4,4GiB
+đạt sau COW trước mở batch2006-08–2007-03; chưa acceptance batch mới.

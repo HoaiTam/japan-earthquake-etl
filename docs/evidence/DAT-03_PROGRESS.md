@@ -13,6 +13,17 @@ chốt strict split, loại window thiếu PRE/POST coverage và báo chi tiết
 
 ## Cập nhật kỹ thuật tiếp theo
 
+[Phiên tiếp tục đêm26/10](./DAT-03_OVERNIGHT_20261026.md): owner cho phép bật
+lại9containers cũ;9healthy và idle/lease preflight đạt. Phiên tiếp theo từ72
+đã accepted79/288 đến2006-07,843.404canonical/bridge, exit0/1562,109s/own
+release. [Metadata079](./DAT-03_CATALOG_CHECKPOINT_079.json). Năm host observations
+cũ13/20/27/45/63 đã lưu ZIP và verify từng file/SHA rồi xóa bản thư mục tương
+ứng; xem bảng archive/receipt và cách restore trong evidence mới. Giữ observation72,
+source inputs và container runtime. Host physical space có lúc xuống dưới4GiB;
+đã COW437byte-identical host copies, hashes/metadata giữ nguyên và reporter079
+đạt lại. Fresh preflight/free~4,4GiB cho phép mở batch2006-08–2007-03;
+không mở phiên mới dưới reserve hoặc đổi guard để chạy tiếp. Chưa mốc50%.
+
 [Mới nhất — capacity đủ quy mô và catalog controller](./DAT-03_CATALOG_ROLLOUT.md):
 hai SQL probes event/bridge43copies đều16/16PASS với4.527.126rows mỗi phía,
 90s/query/512MB không đổi. Controller đã stage37original captures, chạy thật
