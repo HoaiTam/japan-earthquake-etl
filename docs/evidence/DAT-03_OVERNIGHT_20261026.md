@@ -49,10 +49,11 @@ special file, file-set/hash drift và target ngoài allowlist. Không `rm -rf`.
 |f40296b56ddd4427b28fd18cb489df8b|45|475|`43f337111c4675e9917048440faaeb7b9268cbf4883832b5173f2597cd5923b5`|
 |622db2c891ea4f7cbc0c9462d77ce064|63|578|`94fd6052b112eb2d6aca5746ef2a26b048ef47cb36268e7a816e829fa516eb73`|
 
-Archive names là `runtime-observation-<suffix>.zip`; receipts cùng basename
-với đuôi `.receipt.json`. Năm thư mục host gốc đã được xóa **sau verification**;
-bytes vẫn khôi phục được từ ZIP. Không xóa source ZIP gốc, Parquet/Iceberg trên
-MinIO, private logs bên trong archive hoặc bất kỳ runtime/lease nào.
+Archive names giai đoạn này là `runtime-observation-<suffix>.zip`; receipts
+cùng basename với đuôi `.receipt.json`. Năm thư mục host gốc đã được xóa
+**sau verification** rồi được khôi phục đủ bằng COW ở bước dưới. Bảng ZIP SHA
+ghi lịch sử, không là danh sách ZIP còn tồn tại sau bước compaction. Không
+xóa source ZIP gốc, Parquet/Iceberg trên MinIO, log bytes hoặc runtime/lease.
 
 - Original logical bytes1.614.956.451 → ZIP1.124.515.360; giảm490.441.091bytes
   (~468MiB). Không coi đây là số đo physical space recovered của APFS/Docker.
@@ -64,13 +65,12 @@ MinIO, private logs bên trong archive hoặc bất kỳ runtime/lease nào.
 
 ## Đọc lại evidence cũ sau lưu trữ
 
-Các đường dẫn observation trong evidence lịch sử chỉ vị trí **trước lưu trữ**.
-Để chạy lại reporter trên observation cũ, kiểm ZIP SHA theo bảng và receipt,
-giải nén vào thư mục **mới, trống**, kiểm file-set/bytes/SHA/mode theo receipt;
-chỉ khôi phục original path nếu path đó hoàn toàn chưa tồn tại. Không overlay
-runtime hoặc chỉnh JSON cũ. Có thể dùng observation72 còn giữ nguyên để kiểm
-checkpoint mới nhất mà không giải nén các bản trước. Không thay evidence cũ
-thành acceptance của tháng mới.
+Sau bước COW bên dưới, cả năm đường dẫn observation lịch sử đã có lại đủ
+file-set/bytes/SHA/mode và acceptance như trước; chạy reporter trực tiếp với
+exact session ID đã pin, không cần giải nén. Không chọn latest observation
+bằng filesystem mtime vì restore có thể đổi directory mtime; dùng accepted
+prefix/session/proof. Các receipt ZIP vẫn lưu lịch sử nhưng ZIP trung gian
+đã bỏ sau khi restore/report đạt. Không overlay runtime hoặc sửa JSON cũ.
 
 ## Ràng buộc dung lượng và phần còn lại
 
@@ -99,10 +99,72 @@ PASS: clone thật giữ metadata/bytes và independent-write isolation, differe
 bytes bị chặn trước replace. Lần fixture đầu bị Python macOS thiếu os.listxattr;
 đã sửa helper dùng native xattr trước khi chạy trên catalog, không nới xattr guard.
 
+### Hoàn tất compaction các bản quan sát13/20/27/45/63
+
+Các ZIP tạo ở bước đầu chứa phần lớn bytes đã có nguyên vẹn trong observation79.
+Sau verify từng ZIP/SHA/member và receipt, khôi phục original paths **chỉ khi
+chưa tồn tại**.2.045files tạo bằng independent COW từ byte-identical files
+trong observation79; một file host-observation.json riêng481bytes giải nén từ
+ZIP. Đủ2.046files, file-set/size/SHA/mode và toàn bộ progress output của từng
+prefix khớp trước lưu trữ. Không tự gán mtime/xattrs lịch sử vốn ZIP không pin.
+
+Persist/fsync/reload restoration receipt và verify source ZIP/root lần cuối
+rồi chỉ unlink **năm ZIP trung gian do chính phiên này tạo**:1.124.515.360bytes.
+Không xóa các receipt hoặc original source archives. Tất cả log/payload bytes
+vẫn tồn tại tại original paths dưới dạng file độc lập, không hardlink/symlink.
+Nếu restore fail trước acceptance thì giữ cả ZIP và partial folder, không retry
+mù. [Metadata/receipt SHA](./DAT-03_HOST_COMPACTION_20261026.json) ghi đủ năm proof.
+Host physical free sau đó quan sát~5GiB; không cộng logical bytes thành physical
+reclaimed guarantee. Không coi compaction là acceptance ML/research.
+
 Fresh preflight healthy/idle/lease-empty đạt, physical free~4,4GiB. Mở phiên
 tiếp theo cùng pins/cutoff, max-months8 từ frozen plan:2006-08–2007-03,
 74.764profile rows (planning only), budget6000s. Chưa tính thêm tháng trước
 terminal acceptance. Nếu reserve thiếu lại thì dừng tại checkpoint sạch.
+
+### Vòng nối tiếp vận hành
+
+Owner yêu cầu chạy tiếp khi treo máy, không chờ nhắn lại giữa các batch sạch.
+Operational helper ignored `overnight_catalog.py` chờ exact session thứ hai
+`4ebb7eb671e048f4a746bfe90ee8124e` có host copy terminal/accepted; không launch
+ETL khác trong lúc chờ. Có coordinator lock riêng (không là source lease),
+metadata ở `overnight-0bff0c9a92be4312a01a9850821c01be` cùng helper folder.
+
+Mỗi vòng: verify accepted prefix/result/execution/own release → fresh health/
+idle checks → COW duy nhất new completed host observation và đối soát progress
+trước/sau → physical reserve4GiB → gọi **existing** catalog controller cùng
+original pins/cutoff/continuation. Free>=5GiB cho tối đa18tháng, nếu thấp hơn
+thì đúng một next-fit batch<=12tháng/75kprofile; dừng đúng mốc144/216/288 khi
+đến gần. Java vẫn tự kiểm100kactual bound và budgets6000s/phase reserves.
+
+Nonzero/failure/timeout/unknown host outcome dừng vòng, giữ lock/evidence và
+business lease; không retry/clear/cancel/takeover/restart. Thiếu physical
+reserve thì kết thúc sạch, không nới guard. Không dùng directory mtime làm
+proof sau restore; chọn exact accepted session/prefix. Giữ máy thức bằng
+caffeinate trong vòng đời process, không đổi power setting. Năm guard tests
+PASS: exact batch/split, reject boolean/final/negative prefixes, active session
+không được nhận, accepted79 kiểm được, arbitrary session bị từ chối. Đây là
+operational checks, không acceptance của288tháng hoặc official ML export.
+
+Vòng chỉ xử lý catalog; khi đủ288 phải tiếp tục actual official two-split ML
+export/loader/rerun và team handoff của DAT-03, không tự chuyển Done từ loop.
+
+### Phiên thứ hai đã nghiệm thu
+
+`4ebb7eb671e048f4a746bfe90ee8124e` terminal exit0/no timeout/own release:
+thêm8tháng2006-08–2007-03, đạt87/288 (30,208%). [Metadata087](./DAT-03_CATALOG_CHECKPOINT_087.json)
+có918.168canonical/bridge, child2173,924s/peakRSS1.382.972KiB; host2216,371s.
+Postflight healthy/idle/lease-empty, COW exact new observation kiểm lại reporter
+không đổi. Free sau COW5.574.135.808bytes ở event checkpoint của coordinator;
+không dùng phần trăm này làm Done. Vòng đã mở phiên kế từ87/max18tháng/
+6000s. Current lease có thể đã acquire lại bởi phiên kế, không gọi observation
+release cũ là trạng thái lease hiện tại khi job mới đang chạy.
+
+`make ci-docs-base` chạy sau phần cập nhật compaction đã PASS; các log mock
+failure/stop/restore trong test không phải runtime actions. Docs lúc kiểm253
+Markdown/2.281links/0problems, status77task khớp, git diff --check đạt. Metadata
+087/link mới được kiểm lại riêng trước commit tiếp. Không build Java hoặc chạy
+Spark fixtures song song với ETL; các tests Java/component trước giữ evidence cũ.
 
 **DAT-03 — Catalog nghiên cứu/handoff** vẫn In Progress cho full288months,
 official two-split collection export/loader/rerun và receipts ba máy. Xem

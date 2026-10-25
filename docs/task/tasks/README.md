@@ -73,9 +73,9 @@ EXP-02 PASSED. QA-04 từng dời tuần 6 ở mốc cũ, nay đưa lại tuần
 không giảm scope recovery. Ngày 24/10 thêm DAT-03, 16h estimate ban đầu ở tuần 6:
 77 task/402h, không cộng lại vào budget tuần 5. DAT-03 còn In Progress cho
 catalog thật và receipts ba người; pilot dùng ngay không thay research acceptance.
-[Mới nhất25/10 — DAT-03 catalog](../../evidence/DAT-03_CATALOG_ROLLOUT.md):
+[Mới nhất26/10 — DAT-03 catalog](../../evidence/DAT-03_CATALOG_ROLLOUT.md):
 event/bridge probes43copies đủ full-profile upper bound đã16/16 mỗi bảng;
-controller đã nghiệm thu79/288tháng (27,431%) đến2006-07, session v2 exit0/1562,109s/
+controller đã nghiệm thu87/288tháng (30,208%) đến2007-03, session v2 exit0/2173,924s/
 own release, no pending; source cutoff giữ nguyên. [Phiên26/10 và lưu trữ host copies](../../evidence/DAT-03_OVERNIGHT_20261026.md).
 Nhánh official collection
 opt-in đang nghiệm thu component, chưa actual full-period export. Chưa288tháng hoặc official

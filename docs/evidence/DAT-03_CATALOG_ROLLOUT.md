@@ -328,3 +328,20 @@ năm host copies cũ và COW byte-identical copies được owner-authorized cle
 không xóa lakehouse/runtime, SHA/receipt/restore path xem
 [evidence26/10](./DAT-03_OVERNIGHT_20261026.md). Fresh preflight/free~4,4GiB
 đạt sau COW trước mở batch2006-08–2007-03; chưa acceptance batch mới.
+
+## Tiếp tục26/10 —87/288 accepted
+
+Phiên `4ebb7eb671e048f4a746bfe90ee8124e` thêm8tháng2006-08–2007-03,
+contiguous87/288 (30,208%),918.168canonical/bridge, dim_date2.648 gồm Unknown.
+Exit0/no timeout/no pending/own release,2173,924s, peakRSS1.382.972KiB.
+[Metadata087](./DAT-03_CATALOG_CHECKPOINT_087.json) có six pins và SHA từ
+exact observation `runtime-observation-175fb6c2aa634bc3ae8e982fc8827518`.
+
+Host wall2216,371s, free4.671.856.640 trước/5.009.043.456bytes sau; delta có
+concurrent cleanup/OS nên không coi là disk cost của ETL. Postflight health/
+idle đạt; COW new host observation giữ progress trước/sau giống nhau,
+567.711.856duplicate logical bytes, free quan sát4.998.242.304 →5.574.262.784.
+Receipt riêng `cow-receipt-392480090e9543bb96fffdc7ba1a46dd.json` trong
+ignored helper folder. Vòng nối tiếp đã mở phiên kế từ87 với max18tháng và
+budget6000s, nguyên pins/cutoff/namespace. Chưa mốc50%, còn201tháng catalog,
+official ML export và receipts ba máy của DAT-03; không tự push/merge.

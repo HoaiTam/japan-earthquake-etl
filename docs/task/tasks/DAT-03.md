@@ -210,11 +210,16 @@ release đủ gate. Không tạo dependency ngược từ DAT-03 sang EXP-02.
   task vẫn In Progress. Các commit theo đợt đang local, chưa tự push/merge.
   Phiên26/10 từ72 đã accepted79/288 đến2006-07,843.404canonical/bridge,
   exit0/1562,109s/own release, postflight idle/lease trống. Năm host copies cũ
-  đã archive/verify rồi xóa bản thư mục, newest giữ nguyên; COW duplicate host
+  đã archive/verify rồi restore COW đầy đủ tại original paths trước bỏ ZIP
+  trung gian; newest giữ nguyên. COW duplicate host
   copies giữ nguyên bytes/paths/SHA/metadata. [Evidence26/10](../../evidence/DAT-03_OVERNIGHT_20261026.md)
   và [metadata079](../../evidence/DAT-03_CATALOG_CHECKPOINT_079.json). Chưa50%,
   full288 hoặc actual ML export/receipts; giữ In Progress. Fresh preflight/
   physical reserve đạt trước mở batch2006-08–2007-03, không tự nới guard.
+  Batch này sau đó accepted87/288 đến2007-03: thêm8tháng,2173,924s, exit0/no
+  timeout/no pending/own release,918.168canonical/bridge. [Metadata087](../../evidence/DAT-03_CATALOG_CHECKPOINT_087.json).
+  Vòng nối tiếp kiểm health/idle/COW unchanged-progress/reserve rồi mở phiên
+  kế từ87, max18tháng/6000s; không auto recovery hoặc tự chuyển Done.
 
 ## Tài liệu liên quan
 

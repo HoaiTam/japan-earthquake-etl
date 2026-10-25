@@ -58,7 +58,10 @@ Owner26/10 cho phép lưu trữ bản sao host cũ để giảm dung lượng: c
 observation đã accepted sau khi tạo ZIP/receipt mới, verify exact file-set và
 từng member SHA, recheck source không đổi. Không xóa runtime/inputs gốc hoặc
 lakehouse; giữ checkpoint mới nhất dạng thư mục. Evidence lịch sử cần restore
-đúng observation trước chạy reporter cũ. [Danh sách đã archive và cách restore](../evidence/DAT-03_OVERNIGHT_20261026.md).
+đúng observation trước chạy reporter cũ. Năm bản13/20/27/45/63 sau đó đã restore
+COW đủ file-set/SHA/mode/accepted progress tại original paths và bỏ ZIP trung
+gian; có thể dùng reporter trực tiếp với exact session, không suy latest từ
+directory mtime. [Lịch sử lưu trữ và trạng thái hiện tại](../evidence/DAT-03_OVERNIGHT_20261026.md).
 
 ## Tạo metadata cho commit tiến độ
 
