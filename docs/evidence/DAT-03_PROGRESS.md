@@ -1,9 +1,10 @@
-# DAT-03 — Tiến độ thực tế ngày 24/10/2026
+# DAT-03 — Tiến độ thực tế (cập nhật 25/10/2026)
 
 Branch `feat/dat-03-research-dataset-handoff` từ origin/main `bc0ce9e` (#98).
 Assignee HoaiTam, reviewer unassigned. **In Progress**. Phần pilot/profile đã
 được owner commit, HEAD khi tiếp tục bước3/4 `258710d`, trên [PR #99](https://github.com/HoaiTam/japan-earthquake-etl/pull/99).
-Phần kỹ thuật tiếp theo ở working tree, chưa tự commit/push.
+Bước3/4 đã được owner commit ở `19073bd`. Ngày25/10 khối 1 recovery được
+tiếp tục local trên `fix/dat-03-trino-recovery`, chưa tự commit/push.
 Owner chọn gửi pilot thật dùng trước trong lúc chuẩn bị full research catalog.
 Owner xác nhận hai thành viên chưa chạy verifier và yêu cầu tiếp tục kỹ thuật;
 chốt strict split, loại window thiếu PRE/POST coverage và báo chi tiết từng mainshock.
@@ -17,6 +18,13 @@ full catalog/export/ba máy. Các đoạn dưới giữ lịch sử trước đ�
 Bước4 mới đạt2000-01/2011-04;2016-04 đã COMMITTED nhưng Trino restart làm
 verify EOF,2023-12 chưa chạy. Owner chọn giữ lỗi/bàn giao trước; own lease
 còn giữ, không tự phục hồi/release. Source runs khác sẽ bị lease chặn.
+
+Ngày25/10 owner yêu cầu làm lại **khối 1**: chẩn đoán và chuẩn bị read-only
+preflight theo [runbook recovery](../runbooks/DAT-03_RECOVERY.md). Không chạy
+khối 2 verify/publish/rerun, không release lease hoặc đổi failure receipt cũ.
+[Evidence khối 1](./DAT-03_RECOVERY_PREFLIGHT.md): live preflight13/13 metadata
+queries đã đạt lúc08:32 ngày25/10; exact source/context/commit/six pins/own lease
+và quiescence khớp. Chưa root-cause/capacity acceptance, chưa phục hồi phase.
 
 [Kết quả mới nhất bước 1/2](./DAT-03_RESEARCH_PROFILE_ACCEPTANCE.md): parser
 v1.2 sửa đúng 18 token có fixture/hash và warning; đủ 25 archive2000–2024,

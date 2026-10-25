@@ -76,6 +76,12 @@ PARTIAL thay full research data.
   PASSED; tháng2016-04 COMMITTED nhưng verify lỗi EOF khi Trino restart,
   tháng2023-12 chưa chạy. Owner chọn giữ lỗi/bàn giao trước; giữ own lease,
   không tự phục hồi/release. Xem evidence bước3/4 để lấy exact run/pins.
+- [x] Khối 1 phục hồi (25/10): chẩn đoán và read-only preflight cho retained
+  run đạt13/13 metadata queries, input/journal/six pins/own lease/quiescence
+  khớp. [Evidence](../../evidence/DAT-03_RECOVERY_PREFLIGHT.md),
+  [runbook](../../runbooks/DAT-03_RECOVERY.md). Chưa xác định nguyên nhân gốc
+  Trino restart/capacity; không chạy verify/publish, replay ETL hoặc release
+  lease. Khối 2 và bounded/full-period acceptance vẫn chưa đạt.
 - [ ] Đo capacity/ETA thực của Spark/joins/lake/export và duyệt rollout full kỳ;
   chưa suy 51 giây parser scan hoặc ~9,8 GiB disk trống thành budget full ETL.
 - [ ] Resource/boundary policies được kiểm trên dữ liệu thật; không silent sampling.
@@ -115,9 +121,10 @@ release đủ gate. Không tạo dependency ngược từ DAT-03 sang EXP-02.
 - **Reviewer:** unassigned
 - **Evidence / PR:** [DAT-03 progress](../../evidence/DAT-03_PROGRESS.md). Branch
   `feat/dat-03-research-dataset-handoff` từ main `bc0ce9e` (PR #98).
-  [PR #99](https://github.com/HoaiTam/japan-earthquake-etl/pull/99), HEAD khi
-  tiếp tục bước3/4 `258710d` (bước1/2 đã được owner commit). Collection/bounded
-  E2E tiếp theo đang sửa local, chưa tự commit/push.
+  [PR #99](https://github.com/HoaiTam/japan-earthquake-etl/pull/99), bước3/4
+  đã được owner commit ở `19073bd`. Ngày25/10 khối 1 tiếp tục trên branch vá
+  `fix/dat-03-trino-recovery` từ đúng commit này (không từ main thiếu DAT-03).
+  Bản vá local chưa tự commit/push, không đổi deployment hoặc evidence failed.
   Chưa có reviewer approval, full research hoặc ba máy acceptance. ThanhTris và
   rosy179 chưa chạy verifier theo xác nhận owner; tiếp tục phần kỹ thuật độc lập.
 

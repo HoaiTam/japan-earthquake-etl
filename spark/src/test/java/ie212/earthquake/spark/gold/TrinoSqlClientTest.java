@@ -8,6 +8,46 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
 class TrinoSqlClientTest {
+    @Test void lostPostResponseIsUnknownAndNeverResubmitted() throws Exception {
+        var server=HttpServer.create(new InetSocketAddress("127.0.0.1",0),0); var calls=new AtomicInteger();
+        server.createContext("/v1/statement",exchange->{
+            calls.incrementAndGet(); exchange.getRequestBody().readAllBytes();
+            // The server accepted the POST, then vanished before a complete response.
+            exchange.sendResponseHeaders(200,1024);
+            exchange.getResponseBody().write("{".getBytes(StandardCharsets.UTF_8)); exchange.close();
+        });server.start();
+        try {
+            var client=new TrinoSqlClient(URI.create("http://127.0.0.1:"+server.getAddress().getPort()));
+            var error=assertThrows(Exception.class,()->client.execute("INSERT private_payload"));
+            assertEquals("TRINO_QUERY_OUTCOME_UNKNOWN method=POST page=0 query_id=unknown retry=disabled",error.getMessage());
+            assertNull(error.getCause()); assertEquals(1,calls.get());
+        } finally {server.stop(0);}
+    }
+    @Test void lostPageRetainsSafeQueryIdWithoutRestartingPost() throws Exception {
+        var server=HttpServer.create(new InetSocketAddress("127.0.0.1",0),0); var posts=new AtomicInteger(); var gets=new AtomicInteger();
+        String endpoint="http://127.0.0.1:"+server.getAddress().getPort();
+        server.createContext("/v1/statement",exchange->{
+            exchange.getRequestBody().readAllBytes();
+            if("POST".equals(exchange.getRequestMethod())) {
+                posts.incrementAndGet(); byte[] bytes=("{\"id\":\"20261025_010203_00001_abc12\",\"nextUri\":\""+endpoint+"/v1/statement/q/1\"}").getBytes(StandardCharsets.UTF_8);
+                exchange.sendResponseHeaders(200,bytes.length);exchange.getResponseBody().write(bytes);
+            } else {gets.incrementAndGet(); exchange.sendResponseHeaders(200,1024);exchange.getResponseBody().write(123);}
+            exchange.close();
+        });server.start();
+        try {
+            var error=assertThrows(Exception.class,()->new TrinoSqlClient(URI.create(endpoint)).execute("CREATE VIEW private_payload"));
+            assertEquals("TRINO_QUERY_OUTCOME_UNKNOWN method=GET page=1 query_id=20261025_010203_00001_abc12 retry=disabled",error.getMessage());
+            assertEquals(1,posts.get());assertEquals(1,gets.get());
+        } finally {server.stop(0);}
+    }
+    @Test void malformedJsonCannotEchoPayloadInParserException() throws Exception {
+        var server=HttpServer.create(new InetSocketAddress("127.0.0.1",0),0);
+        server.createContext("/v1/statement",exchange->{byte[] bytes="{private_payload".getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200,bytes.length);exchange.getResponseBody().write(bytes);exchange.close();});server.start();
+        try {var error=assertThrows(Exception.class,()->new TrinoSqlClient(URI.create("http://127.0.0.1:"+server.getAddress().getPort())).execute("SELECT private_payload"));
+            assertEquals("TRINO_RESPONSE_INVALID",error.getMessage());assertNull(error.getCause());
+        } finally {server.stop(0);}
+    }
     @Test void statementPagesAndErrorPayloadRedaction() throws Exception {
         var server=HttpServer.create(new InetSocketAddress("127.0.0.1",0),0);var calls=new AtomicInteger();
         String endpoint="http://127.0.0.1:"+server.getAddress().getPort();

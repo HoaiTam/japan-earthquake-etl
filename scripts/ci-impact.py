@@ -171,7 +171,7 @@ def inventory(component, root=ROOT):
                          "mld-03-windows" if path.stem in WINDOW_TESTS else "mld-01-02-contract-audit")
             elif package in {"ie212/earthquake/spark/" + p for p in ("usgs", "jma", "silver", "gold")}:
                 group = {"usgs": "usgs-bronze", "jma": "jma-bronze", "silver": "silver", "gold": "gold"}[relative.parent.name]
-                if path.stem == "ResearchBoundedE2EJobTest": group = "orc-07-real-adapters"
+                if path.stem in {"ResearchBoundedE2EJobTest", "ResearchRecoveryPreflightTest"}: group = "orc-07-real-adapters"
             groups[group].append(name)
     elif component == "airflow":
         groups = {name: [] for name in AIRFLOW_SUITES}

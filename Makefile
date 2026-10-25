@@ -184,14 +184,28 @@ profile-research-archives: ## DAT-03 profile tuần tự ZIP đã pin bằng JAR
 	@python3 scripts/profile-research-archives.py profile $(RESEARCH_PROFILE_ARGS)
 
 .PHONY: test-research-e2e capture-research-e2e prepare-research-e2e run-research-e2e verify-research-e2e
+.PHONY: test-research-recovery prepare-research-recovery check-research-recovery
 .PHONY: test-research-collection
 RESEARCH_DEPLOYMENT_ROOT ?=
 RESEARCH_E2E_FOLDER ?=
+RESEARCH_RECOVERY_FOLDER ?=
+RESEARCH_RETAINED_ROOT ?=
 test-research-collection: ## DAT-03 collection/shared Mc/whole-window Parquet regression; không Docker hoặc nguồn thật
 	@./mvnw --batch-mode --no-transfer-progress -pl spark -am test -Dtest=ResearchCollectionPlanTest,ResearchCollectionJobTest -Dsurefire.failIfNoSpecifiedTests=false
 
 test-research-e2e: ## DAT-03 offline metadata/receipt guards, không Docker/mạng
 	@python3 -m unittest discover -s tests -p 'test_research_e2e.py'
+
+test-research-recovery: ## DAT-03 recovery control-plane regression; không Docker hoặc data writes
+	@python3 -m unittest discover -s tests -p 'test_research_recovery.py'
+
+prepare-research-recovery: ## DAT-03 pin failed run + JAR preflight riêng; không đổi runner cũ
+	@test -n "$(RESEARCH_DEPLOYMENT_ROOT)" -a -n "$(RESEARCH_RETAINED_ROOT)" || { echo 'RESEARCH_DEPLOYMENT_ROOT/RETAINED_ROOT are required'; exit 1; }
+	@python3 scripts/research-recovery.py prepare --deployment-root "$(RESEARCH_DEPLOYMENT_ROOT)" --original-root "$(RESEARCH_RETAINED_ROOT)"
+
+check-research-recovery: ## DAT-03 read-only live recovery preflight; không resume/publish/release
+	@test -n "$(RESEARCH_DEPLOYMENT_ROOT)" -a -n "$(RESEARCH_RECOVERY_FOLDER)" || { echo 'RESEARCH_DEPLOYMENT_ROOT/RECOVERY_FOLDER are required'; exit 1; }
+	@python3 scripts/research-recovery.py check --deployment-root "$(RESEARCH_DEPLOYMENT_ROOT)" --folder "$(RESEARCH_RECOVERY_FOLDER)"
 
 capture-research-e2e: ## DAT-03 explicit USGS tháng 12/2023 + halo; chỉ capture local, không lake writes
 	@python3 scripts/research-e2e.py capture-usgs
@@ -486,6 +500,7 @@ ci-docs-base: ## Always-on CI guards; pilot tests được chọn riêng theo im
 	@python3 -m unittest discover -s tests -p 'test_current_month_cli.py'
 	@python3 -m unittest discover -s tests -p 'test_ml_export_cli.py'
 	@$(MAKE) test-research-e2e
+	@$(MAKE) test-research-recovery
 	@$(MAKE) test-security-audit
 	@$(MAKE) test-docker-runtime
 	@$(MAKE) check-config ENV_FILE=/dev/null
