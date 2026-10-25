@@ -1,0 +1,82 @@
+{
+  "version": "dat03-bounded-e2e-partial-v1",
+  "status": "FAILED_AT_2016_04_VERIFY",
+  "namespace": "iceberg.dat03_e2e_8ca2be1939db4111ae783f6566650fce",
+  "run_id": "dat03-8ca2be1939db4111ae783f6566650fce",
+  "runner_sha256": "ce6b9952ef7dcfcf6f146225e3b03bfdae907b5d6c039a3f3211dcf621d22931",
+  "request_sha256": "eb60f848b5eb6e6b0aa12a95c2f9bc0993d780f00ee502e1d131caead36c3f90",
+  "execution_sha256": "46f3f3848dfcf528b6c11e29d0c359fc9970098f1fe98828c92f79d026a3d079",
+  "execution": {
+    "child_peak_rss_kib": 1367384,
+    "disk_free_bytes_after": 184162836480,
+    "disk_free_bytes_before": 184323600384,
+    "exit_code": 1,
+    "lease_held_at_execution_end": true,
+    "wall_seconds": 2260.17
+  },
+  "research_ready": false,
+  "full_research_catalog": false,
+  "synthetic_data_used": false,
+  "lease_retained": {
+    "dag_id": "dat03_bounded_e2e",
+    "run_id": "dat03-8ca2be1939db4111ae783f6566650fce"
+  },
+  "completed_cases": [
+    {
+      "month": "2000-01",
+      "progress_sha256": "57e20376490c7ab4ea44afed752f24214c38067a021391e4bcf00460207ead70",
+      "publication_id": "pub_b539a697c84c5d59c35fb6e9eb0d5f5199c18542ec3cb0af783f939d2c3d7238",
+      "silver_bundle_sha256": "3021c739e2367519a5eee1709b21fea1b79702cc2b63b2fe7b72983407616d27",
+      "input_unique_revisions": 5418,
+      "canonical": 5418,
+      "outside_affected_months": 0,
+      "published_event_count": 5418,
+      "snapshots": {
+        "event_current": 9185778085834283701,
+        "event_source_bridge": 6544233056212674878,
+        "dim_date": 7731930518022622055,
+        "dim_region": 9154859455818356793,
+        "dim_magnitude_band": 5731490230027260982,
+        "dim_depth_band": 4778516779886215443
+      },
+      "trino_checks": 36,
+      "rerun_identical": true,
+      "retention_verified": true
+    },
+    {
+      "month": "2011-04",
+      "progress_sha256": "dfb19e875b8c043da522be698028dd74564fae8f6ec45b4e82a3e467353ce83c",
+      "publication_id": "pub_c730ab7b98db92c841546f0ca24f2fa5b1933d32041b0787f7d0f2f03a4132e8",
+      "silver_bundle_sha256": "cda4c5b56486ebddce88d9da798c57469bc31259f298c2c0309aba3d348f0171",
+      "input_unique_revisions": 57044,
+      "canonical": 57043,
+      "outside_affected_months": 1,
+      "published_event_count": 62461,
+      "snapshots": {
+        "event_current": 4575222944464940855,
+        "event_source_bridge": 93120569145398376,
+        "dim_date": 5020553310377366497,
+        "dim_region": 5321216361236941186,
+        "dim_magnitude_band": 662226343684538537,
+        "dim_depth_band": 708375368143622156
+      },
+      "trino_checks": 36,
+      "rerun_identical": true,
+      "retention_verified": true
+    }
+  ],
+  "incomplete_case": {
+    "month": "2016-04",
+    "commit_status": "COMMITTED",
+    "published": false,
+    "event_count": 105282,
+    "snapshots": {
+      "dim_date": 8409455261308414012,
+      "dim_depth_band": 7819379100125022206,
+      "dim_magnitude_band": 6658931129792098852,
+      "dim_region": 7042537870734026594,
+      "event_current": 1563218669006267106,
+      "event_source_bridge": 873439904342744267
+    }
+  }
+}

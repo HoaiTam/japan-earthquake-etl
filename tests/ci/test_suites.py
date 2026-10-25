@@ -14,6 +14,13 @@ spec.loader.exec_module(impact)
 
 
 class SuitePolicyTest(unittest.TestCase):
+    def test_dat03_collection_and_bounded_runtime_have_consumer_suites(self):
+        groups = impact.inventory("java")
+        for name in ("ResearchCollectionPlanTest", "ResearchCollectionJobTest"):
+            self.assertIn("ie212.earthquake.spark.ml." + name, groups["mld-05-export"])
+        self.assertIn("ie212.earthquake.spark.usgs.ResearchBoundedE2EJobTest", groups["orc-07-real-adapters"])
+        self.assertIn("test-research-e2e", (ROOT / "Makefile").read_text().split("ci-docs-base:", 1)[1])
+
     def test_strict_split_policy_regression_is_visible_in_window_suite_and_local_target(self):
         groups = impact.inventory("java")
         self.assertIn("ie212.earthquake.spark.ml.WindowCoveragePolicyTest", groups["mld-03-windows"])

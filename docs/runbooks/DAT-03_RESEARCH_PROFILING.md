@@ -89,8 +89,11 @@ affected scope; nếu vượt 100k/24-month guard phải dừng và ghi nguyên 
 không thu nhỏ closure/truncate records để pass. Probe reader gộp 2011-03/04
 đã bị guard chặn; không làm yearly batch mặc định.
 
-Overlay 2024 hiện dùng cho local capture/profile, chưa nối runtime. Trước E2E
-phải version/pin combined inventory và BronzeReady receipts đầy đủ. Không
+Ở mốc bước1/2, overlay2024 chỉ dùng local capture/profile. Bước4 đã thêm
+[runtime opt-in riêng](./DAT-03_RESEARCH_COLLECTION_E2E.md) pin baseline và
+boundary inventory độc lập, dùng combined entries chỉ trong adapter của phiên
+DAT-03; không thay default inventory/deployment. Acceptance biên2023/2024 phải
+đọc exact evidence bước3/4, không suy từ HTTP200 hoặc archive profile. Không
 tự đổi environment của stack hoặc lấy synthetic QA thay source thật. Dữ liệu
 operational PROVISIONAL không làm ML input.
 
@@ -99,9 +102,11 @@ growth từng tầng/peak memory của các E2E trên, lập dự phòng và eff
 rồi mới quyết full rollout. Chưa đo thì không báo ETA và không chạy toàn kỳ.
 Không xóa captures/warehouse/volumes để vượt preflight.
 
-MLD-05 cap128 mainshock/100k feature rows vẫn giữ. DAT-03 tiếp theo cần
-collection/sharding giữ global pinned Mc, full-assignment proof và strict split,
-rồi full225+63-month Gold/Trino → MLI-02 real export. Sau release chính thức,
+MLD-05 cap128 mainshock/100k feature rows vẫn giữ. DAT-03 bước3 đã thêm
+[collection v1 preparation](../specs/RESEARCH_COLLECTION.md) giữ global pinned
+Mc/full-assignment/strict split; chưa production full-catalog prepare hoặc
+official export. Tiếp theo còn full225+63-month Gold/Trino và collection-aware
+MLI-02/registry/loader/import. Sau release chính thức,
 cả ba người phải verify cùng identity trên máy riêng; pilot receipt không thay
 research receipt. EXP-02/03/04/05 và MLI-04/MLQ-01 giữ scope nghiệm thu riêng.
 

@@ -95,7 +95,11 @@ Selection/feature receipts thêm `excluded_mainshock_count` và
 `window_coverage_sha256`; full exclusion details ở `window_coverage` trong
 export/trusted manifest. Đổi policy tạo dataset ID mới; không sửa manifest
 EXPORTED cũ. Default không field vẫn là legacy fail-export, không tự đổi daily
-hoặc synthetic acceptance. Chưa có full-catalog runtime/sharding acceptance DAT-03.
+hoặc synthetic acceptance. DAT-03 đã thêm
+[collection preparation riêng](../specs/RESEARCH_COLLECTION.md), nhưng parent
+BUILDING/RESEARCH_COLLECTION_PREPARED không thay official EXPORTED. Chưa có
+full-catalog runtime và collection-aware lifecycle/registry/loader/import
+acceptance; thuộc DAT-03 bước5/6, không tự mở MLI-03 gate.
 
 Chi tiết: [ML identity](../specs/ML_DATA_MODEL.md),
 [feature/export](../specs/FEATURE_EXPORT.md), [MLD-05 runbook](./MLD-05_FEATURE_EXPORT.md).

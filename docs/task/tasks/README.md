@@ -77,6 +77,12 @@ DAT-03 bước 1/2 ngày 24/10: parser v1.2 giữ đủ 18 depth records; profil
 archive có 4.793.337 accepted/0 parser rejects, overlay 2024 chỉ nguồn biên.
 [Evidence](../../evidence/DAT-03_RESEARCH_PROFILE_ACCEPTANCE.md) không thay
 full Spark/Gold/Trino/MLI export hoặc capacity acceptance; task vẫn In Progress.
+DAT-03 bước3 có [collection preparation v1](../../specs/RESEARCH_COLLECTION.md)
+và local Spark/Parquet tests; bước4 bounded real-source runtime có
+[evidence riêng](../../evidence/DAT-03_COLLECTION_BOUNDED_E2E.md). Không thay
+full225+63-month source proof, official collection export hoặc receipts ba máy.
+Bước4 hiện2/4cases đạt; dừng verify2016-04 khi Trino restart, giữ own lease
+theo lựa chọn owner bàn giao trước; chưa retry/release hoặc nghiệm thu Done.
 Ready chỉ khi hard dependencies Done; Backlog được làm fixture/interface trước,
 không dùng mock/pilot chưa đủ coverage làm evidence nghiệm thu thật.
 

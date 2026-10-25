@@ -9,6 +9,12 @@ toàn kỳ. Bộ synthetic EXPORTED của MLD-05/MLI-02 không được gửi nh
 Cập nhật kỹ thuật mới nhất: [bước 1/2](../evidence/DAT-03_RESEARCH_PROFILE_ACCEPTANCE.md)
 và [runbook profile/rollout](./DAT-03_RESEARCH_PROFILING.md). Đã sửa depth parser
 v1.2 và profile đủ25 archive; chưa full Gold/export/handoff nghiên cứu.
+Tiếp theo [bước3/4](./DAT-03_RESEARCH_COLLECTION_E2E.md) có collection
+preparation riêng và bounded real-source E2E; đây không phải research ZIP để
+gửi nhóm. Pilot dưới đây giữ nguyên bytes/pins và DEVELOPMENT_ONLY/PARTIAL.
+Bước4 mới đạt2/4cases, lỗi verify2016-04 đúng lúc Trino restart; owner chọn
+giữ lỗi/bàn giao, own lease còn giữ. Không chạy capture/ingest khác để lách
+lease; đọc evidence trước mọi runtime tiếp theo.
 
 File gửi nhóm trên máy chuẩn bị:
 `staging/shared-datasets/jma-development-pilot-team.zip` trong checkout DAT-03.
@@ -95,12 +101,16 @@ make profile-jma-research JMA_PROFILE_ARCHIVE="$ARCHIVE" JMA_PROFILE_MEMBER="$ME
    Cần runtime/measurement thật trước khi coi v2 đủ cho full rollout.
    MLD-05 hiện 128 mainshock/100.000 feature rows/dataset. Không tăng limit mù hoặc
    chia nhỏ rồi âm thầm coi từng phần là dataset full-period; shard/identity/
-   aggregate proof cần design version và regression tests trước thực thi.
+   aggregate proof đã có [collection v1 preparation](../specs/RESEARCH_COLLECTION.md)
+   và regression tests; official export/import wiring và full-catalog acceptance
+   vẫn thuộc DAT-03 bước5/6.
 3. **Coverage/boundaries:** reproduction 225 tháng [2000-01-01,2018-10-01),
    extension 63 tháng [2018-10-01,2024-01-01), UTC. Archive JMA theo JST cần cả
    input biên/halo16s; năm 2023 kết thúc 2023-12-31T15:00Z, nên extension UTC
    còn cần nguồn đầu 2024 JST. Baseline v1 giữ đến 2023; overlay version
-   `dat03-boundary-1.0` đã khóa/capture/profile h2024, chưa nối runtime.
+   `dat03-boundary-1.0` đã khóa/capture/profile h2024; bước4 nối opt-in adapter
+   riêng, không đổi default deployment. Đọc exact bounded evidence, không coi
+   capture là research coverage.
    Owner chốt **strict split**: opt-in
    `filter_config.window_coverage_policy` = `dat03-strict-split-v1` để loại window
    thiếu coverage, báo từng ID, required interval và reason; không clip hoặc

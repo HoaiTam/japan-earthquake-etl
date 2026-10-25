@@ -137,3 +137,12 @@ Nghiệm thu actual research data toàn kỳ và model/Colab vẫn là gates ri�
 
 Chi tiết lệnh, expected outputs và recovery ở
 [runbook](../runbooks/MLD-05_FEATURE_EXPORT.md).
+
+## DAT-03 — Collection preparation riêng
+
+[Collection v1](./RESEARCH_COLLECTION.md) cho phép materialize/readback nhiều
+shard giữ parent dataset_id, global pinned Mc, full-mainshock assignment và
+strict split. Đây là **RESEARCH_COLLECTION_PREPARED**, parent BUILDING không đổi,
+không official EXPORTED hoặc input MLI-03. Default 128 mainshock/100k rows của
+exporter chính thức vẫn giữ; DAT-03 còn nối official collection-aware lifecycle/
+registry/loader/import ở bước 6 sau full research rollout.

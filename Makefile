@@ -182,6 +182,31 @@ capture-research-profiles: ## DAT-03 EXPLICIT network capture 2000–2024 vào s
 
 profile-research-archives: ## DAT-03 profile tuần tự ZIP đã pin bằng JAR có sẵn, không tự build/download
 	@python3 scripts/profile-research-archives.py profile $(RESEARCH_PROFILE_ARGS)
+
+.PHONY: test-research-e2e capture-research-e2e prepare-research-e2e run-research-e2e verify-research-e2e
+.PHONY: test-research-collection
+RESEARCH_DEPLOYMENT_ROOT ?=
+RESEARCH_E2E_FOLDER ?=
+test-research-collection: ## DAT-03 collection/shared Mc/whole-window Parquet regression; không Docker hoặc nguồn thật
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am test -Dtest=ResearchCollectionPlanTest,ResearchCollectionJobTest -Dsurefire.failIfNoSpecifiedTests=false
+
+test-research-e2e: ## DAT-03 offline metadata/receipt guards, không Docker/mạng
+	@python3 -m unittest discover -s tests -p 'test_research_e2e.py'
+
+capture-research-e2e: ## DAT-03 explicit USGS tháng 12/2023 + halo; chỉ capture local, không lake writes
+	@python3 scripts/research-e2e.py capture-usgs
+
+prepare-research-e2e: ## DAT-03 stage JAR có sẵn + exact captures vào deployment staging riêng; không build/start
+	@test -n "$(RESEARCH_DEPLOYMENT_ROOT)" || { echo 'RESEARCH_DEPLOYMENT_ROOT is required'; exit 1; }
+	@python3 scripts/research-e2e.py prepare --deployment-root "$(RESEARCH_DEPLOYMENT_ROOT)" --profiles "$(RESEARCH_PROFILE_ROOT)"
+
+run-research-e2e: ## DAT-03 explicit real Bronze -> Gold/Trino + rerun trong namespace mới; giữ lease khi lỗi
+	@test -n "$(RESEARCH_DEPLOYMENT_ROOT)" -a -n "$(RESEARCH_E2E_FOLDER)" || { echo 'RESEARCH_DEPLOYMENT_ROOT/E2E_FOLDER are required'; exit 1; }
+	@python3 scripts/research-e2e.py run --deployment-root "$(RESEARCH_DEPLOYMENT_ROOT)" --folder "$(RESEARCH_E2E_FOLDER)"
+
+verify-research-e2e: ## DAT-03 offline read-only exact acceptance/capture/receipt SHA chain
+	@test -n "$(RESEARCH_E2E_FOLDER)" || { echo 'RESEARCH_E2E_FOLDER is required'; exit 1; }
+	@python3 scripts/research-e2e.py verify --folder "$(RESEARCH_E2E_FOLDER)"
 .PHONY: prepare-full-month test-full-month qa-full-month-live full-month-local
 FULL_MONTH_ROOT ?= staging/orc06-full-month
 FULL_MONTH_REQUEST ?=
@@ -460,6 +485,7 @@ ci-docs-base: ## Always-on CI guards; pilot tests được chọn riêng theo im
 	@python3 -m unittest discover -s tests -p 'test_qa_01_cli.py'
 	@python3 -m unittest discover -s tests -p 'test_current_month_cli.py'
 	@python3 -m unittest discover -s tests -p 'test_ml_export_cli.py'
+	@$(MAKE) test-research-e2e
 	@$(MAKE) test-security-audit
 	@$(MAKE) test-docker-runtime
 	@$(MAKE) check-config ENV_FILE=/dev/null

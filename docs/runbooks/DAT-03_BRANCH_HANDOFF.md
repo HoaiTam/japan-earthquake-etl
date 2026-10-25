@@ -8,7 +8,7 @@ push hoặc mở PR. Đây là PR giai đoạn chuẩn bị, không tuyên bố 
 Đợt 1 đã được owner commit `49d1784` và push lên
 [PR #99](https://github.com/HoaiTam/japan-earthquake-etl/pull/99).
 **Đợt tiếp tục hiện tại dùng Git commands/PR description ở
-[Đợt 3](#đợt-3--depth-parser-và-profile-25-archive).** HEAD hiện tại `6356a44`;
+[Đợt 4](#đợt-4--collection-và-bounded-e2e).** HEAD hiện tại `258710d`;
 chưa tự commit/push các thay đổi local. Các mục tương ứng ngay dưới
 đây giữ như lịch sử bàn giao đợt 1, không phải yêu cầu tạo PR mới.
 
@@ -248,4 +248,74 @@ Tiếp tục DAT-03: chuẩn bị catalog nghiên cứu thật và dataset đồ
 - Exporter vẫn cap 128 mainshock/100k feature rows. Không suy profile 0 rejects thành research_ready/coverage/Gold Published; các cờ vẫn false.
 - ThanhTris/rosy179 chưa gửi receipt; reviewer unassigned, không có approval giả.
 - EXP-02/03 official experiment, EXP-04/05 scientific evaluation, MLI-04/MLQ-01 report/E2E là gates riêng. SEC-01 local-only, mở lại trước Drive/Colab migration.
+```
+
+## Đợt 4 — Collection và bounded E2E
+
+Tiếp tục từ HEAD258710d trên cùng branch/PR #99. Bước3 implementation/test
+đã có; bước4 **partial/failed**, không hoàn thành DAT-03. Owner chọn giữ lỗi
+và bàn giao trước, không phục hồi run, release lease hoặc thay service/config.
+Không tự commit/push/merge. Reviewer unassigned.
+
+[Evidence exact run/pins/counts](../evidence/DAT-03_COLLECTION_BOUNDED_E2E.md),
+[partial receipt](../evidence/DAT-03_BOUNDED_E2E_PARTIAL.json),
+[collection/E2E runbook](./DAT-03_RESEARCH_COLLECTION_E2E.md).
+
+### Git commands
+
+Chỉ stage source/test/docs dưới đây, **không** staging/raw/ZIP/JAR/Parquet/log/
+.env hoặc runtime private evidence. Không tạo branch/PR mới cho lần tiếp tục.
+
+```bash
+cd /Users/hoaitam/Desktop/Learn/23521394/HK1-Nam-4/IE212/japan-earthquake-etl-mli-02
+git status --short --branch
+git diff --check
+git diff
+git add -- Makefile scripts/research-e2e.py scripts/ci-impact.py \
+  tests/test_research_e2e.py tests/ci/test_suites.py \
+  spark/src/main/java/ie212/earthquake/spark/ml/ResearchCollectionPlan.java \
+  spark/src/main/java/ie212/earthquake/spark/ml/ResearchCollectionJob.java \
+  spark/src/main/java/ie212/earthquake/spark/usgs/ResearchBoundedE2EJob.java \
+  spark/src/test/java/ie212/earthquake/spark/ml/ResearchCollectionPlanTest.java \
+  spark/src/test/java/ie212/earthquake/spark/ml/ResearchCollectionJobTest.java \
+  spark/src/test/java/ie212/earthquake/spark/usgs/ResearchBoundedE2EJobTest.java \
+  docs/specs/RESEARCH_COLLECTION.md docs/specs/FEATURE_EXPORT.md \
+  docs/runbooks/DAT-03_RESEARCH_COLLECTION_E2E.md \
+  docs/runbooks/DAT-03_BRANCH_HANDOFF.md docs/runbooks/DAT-03_SHARED_DATASET.md \
+  docs/runbooks/DAT-03_RESEARCH_PROFILING.md docs/runbooks/MLI-02_DATASET_BUILD.md \
+  docs/evidence/DAT-03_COLLECTION_BOUNDED_E2E.md \
+  docs/evidence/DAT-03_BOUNDED_E2E_PARTIAL.json docs/evidence/DAT-03_PROGRESS.md \
+  docs/task/tasks/DAT-03.md docs/task/tasks/README.md docs/KNOWN_ISSUES.md
+git diff --cached --stat
+git diff --cached --check
+git commit -m "feat(data): prepare research collections and bounded runtime checks"
+git push origin feat/dat-03-research-dataset-handoff
+```
+
+### PR #99 description để copy
+
+```markdown
+## Mục tiêu
+
+Tiếp tục DAT-03 bước3/4: collection preparation và bounded real-source E2E. Giữ task In Progress; bước4 chưa nghiệm thu hoàn chỉnh.
+
+## Thay đổi chính
+
+- Thêm collection v1: global pinned Mc/full split coverage, strict-split exclusions, deterministic whole-mainshock sharding, assignment/count/hash proof; Spark Parquet readback/rerun/tamper guards.
+- Giữ parent BUILDING; output RESEARCH_COLLECTION_PREPARED, research_ready=false và official_exported=false. Không tăng cap hoặc đổi official exporter/registry/import gate.
+- Thêm explicit Make/control-plane/Java runner cho bốn tháng đại diện, exact original captures/JAR/inventory, namespace riêng và whole-run lease; không build/start/reset hoặc thay deployment.
+- Verify metadata/SHA chain, six snapshots, Trino actual/expected/SQL pins, rerun/retention; cập nhật CI consumer suites và docs/task/runbook/evidence.
+
+## Kiểm thử / kết quả thực tế
+
+- Scoped Java regression35/35 và Python metadata8/8 PASS; package và ci-docs-base đạt. Lượt sandbox bị chặn socket không tính PASS; lượt fixture loopback được phép đạt, không phục hồi runtime. Không full Java suite hoặc remote CI.
+- Real2000-01 và2011-04 PASSED first/rerun, six snapshots và36 reported Trino checks/publication; SHA chain kiểm độc lập. Tháng2011-04 có57044 input revisions=57043 canonical+1 ngoài affected month/halo.
+- Real2016-04 đã Silver/Gold COMMITTED (cumulative105282 events), nhưng verify lỗi HTTP EOF đúng lúc Trino restart. Chưa Published/rerun acceptance; case2023-12+h2024/USGS chưa chạy ETL.
+- Giữ nguyên artifacts/own lease theo lựa chọn owner; không tự phục hồi, retry, release, restart hoặc xóa dữ liệu. Runtime không còn Java/active DagRun khi bàn giao.
+
+## Docs và giới hạn
+
+- Xem DAT-03_COLLECTION_BOUNDED_E2E.md, DAT-03_BOUNDED_E2E_PARTIAL.json và DAT-03_RESEARCH_COLLECTION_E2E.md để lấy exact pins, failure state, số đo và commands.
+- DAT-03 còn hoàn tất bước4, rollout225+63 tháng, official collection-aware MLI-02/registry/loader/import và receipts ba máy. Prepared collection không thay EXPORTED; chưa chạy full-pin production preparation/Mc hoặc cấp scientific approval.
+- Pilot giữ PARTIAL/DEVELOPMENT_ONLY. EXP-02..05 official experiments/evaluation và SEC-01 cloud/Drive/Colab chưa được chứng nhận bởi PR này. Reviewer unassigned.
 ```

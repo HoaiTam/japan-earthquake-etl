@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 JAVA_ROOT = "spark/src/test/java/ie212/earthquake/spark/"
 FEATURE_SOURCES = {"FeatureScalingConfig", "SpacetimeFeatureEngine", "LocalFeatureJob", "PilotExportJob", "WindowArtifactInput"}
 FEATURE_TESTS = {"FeatureScalingConfigTest", "SpacetimeFeatureEngineTest", "PilotExportJobTest", "FeatureParquetCrossProcessTest"}
-EXPORT_TESTS = {"FeatureExportCoverageTest", "FeatureExportBundleTest"}
+EXPORT_TESTS = {"FeatureExportCoverageTest", "FeatureExportBundleTest", "ResearchCollectionPlanTest", "ResearchCollectionJobTest"}
 FEATURE_CONSUMER_TESTS = FEATURE_TESTS | EXPORT_TESTS
 PILOT_SCRIPTS = {"scripts/local-ml.py", "scripts/stage-ml-windows.py", "scripts/inspect-pilot-notebook.py", "scripts/pack-pilot.py"}
 PILOT_CONFIGS = {"config/ml/feature_scaling_global_dev_v1.json", "config/ml/feature_scaling_adaptive_dev_v1.json", "config/ml/dat02_reproduction_v1.json"}
@@ -171,6 +171,7 @@ def inventory(component, root=ROOT):
                          "mld-03-windows" if path.stem in WINDOW_TESTS else "mld-01-02-contract-audit")
             elif package in {"ie212/earthquake/spark/" + p for p in ("usgs", "jma", "silver", "gold")}:
                 group = {"usgs": "usgs-bronze", "jma": "jma-bronze", "silver": "silver", "gold": "gold"}[relative.parent.name]
+                if path.stem == "ResearchBoundedE2EJobTest": group = "orc-07-real-adapters"
             groups[group].append(name)
     elif component == "airflow":
         groups = {name: [] for name in AIRFLOW_SUITES}

@@ -65,6 +65,17 @@ PARTIAL thay full research data.
 - [x] Đo compressed/member bytes, parser runtime/peak RSS và lập
   [kế hoạch batch/UTC boundary](../../runbooks/DAT-03_RESEARCH_PROFILING.md).
   Overlay 2024 đã capture/profile, không đổi default baseline hoặc ML split.
+- [x] Bước 3 kỹ thuật: collection v1 whole-mainshock sharding, full-assignment,
+  global pinned Mc và strict split; local Spark/Parquet readback/rerun/tamper
+  tests đạt. Giữ RESEARCH_COLLECTION_PREPARED/BUILDING, không official EXPORTED.
+  [Contract](../../specs/RESEARCH_COLLECTION.md),
+  [evidence bước 3/4](../../evidence/DAT-03_COLLECTION_BOUNDED_E2E.md).
+- [ ] Bước 4: bounded original-source Bronze/Silver/six Gold/Trino/rerun và
+  số đo capacity thật cho2000-01,2011-04,2016-04,2023-12+h2024/USGS; chỉ tick
+  sau exact report/SQL/SHA chain và own lease release đạt. Hai tháng đầu đã
+  PASSED; tháng2016-04 COMMITTED nhưng verify lỗi EOF khi Trino restart,
+  tháng2023-12 chưa chạy. Owner chọn giữ lỗi/bàn giao trước; giữ own lease,
+  không tự phục hồi/release. Xem evidence bước3/4 để lấy exact run/pins.
 - [ ] Đo capacity/ETA thực của Spark/joins/lake/export và duyệt rollout full kỳ;
   chưa suy 51 giây parser scan hoặc ~9,8 GiB disk trống thành budget full ETL.
 - [ ] Resource/boundary policies được kiểm trên dữ liệu thật; không silent sampling.
@@ -105,8 +116,8 @@ release đủ gate. Không tạo dependency ngược từ DAT-03 sang EXP-02.
 - **Evidence / PR:** [DAT-03 progress](../../evidence/DAT-03_PROGRESS.md). Branch
   `feat/dat-03-research-dataset-handoff` từ main `bc0ce9e` (PR #98).
   [PR #99](https://github.com/HoaiTam/japan-earthquake-etl/pull/99), HEAD khi
-  tiếp tục `6356a44` (pilot/profile); scoped replay/strict split và bước 1/2
-  parser/archive preparation tiếp theo đang sửa local, chưa tự commit/push.
+  tiếp tục bước3/4 `258710d` (bước1/2 đã được owner commit). Collection/bounded
+  E2E tiếp theo đang sửa local, chưa tự commit/push.
   Chưa có reviewer approval, full research hoặc ba máy acceptance. ThanhTris và
   rosy179 chưa chạy verifier theo xác nhận owner; tiếp tục phần kỹ thuật độc lập.
 
@@ -117,4 +128,5 @@ release đủ gate. Không tạo dependency ngược từ DAT-03 sang EXP-02.
 - [MLI-02](../../runbooks/MLI-02_DATASET_BUILD.md), [DAT-02](./DAT-02.md).
 - [Profile/rollout](../../runbooks/DAT-03_RESEARCH_PROFILING.md),
   [kết quả bước 1/2](../../evidence/DAT-03_RESEARCH_PROFILE_ACCEPTANCE.md).
+- [Collection và bounded E2E](../../runbooks/DAT-03_RESEARCH_COLLECTION_E2E.md).
 - [SEC-01](./SEC-01.md), [EXP-02](./EXP-02.md), [EXP-03](./EXP-03.md).
