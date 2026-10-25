@@ -185,11 +185,15 @@ profile-research-archives: ## DAT-03 profile tuần tự ZIP đã pin bằng JAR
 
 .PHONY: test-research-e2e capture-research-e2e prepare-research-e2e run-research-e2e verify-research-e2e
 .PHONY: test-research-recovery prepare-research-recovery check-research-recovery
+.PHONY: test-research-continuation prepare-research-continuation run-research-continuation verify-research-continuation
 .PHONY: test-research-collection
 RESEARCH_DEPLOYMENT_ROOT ?=
 RESEARCH_E2E_FOLDER ?=
 RESEARCH_RECOVERY_FOLDER ?=
 RESEARCH_RETAINED_ROOT ?=
+RESEARCH_PREFLIGHT_ROOT ?=
+RESEARCH_CONTINUATION_FOLDER ?=
+RESEARCH_CHECKPOINT_ROOT ?=
 test-research-collection: ## DAT-03 collection/shared Mc/whole-window Parquet regression; không Docker hoặc nguồn thật
 	@./mvnw --batch-mode --no-transfer-progress -pl spark -am test -Dtest=ResearchCollectionPlanTest,ResearchCollectionJobTest -Dsurefire.failIfNoSpecifiedTests=false
 
@@ -206,6 +210,22 @@ prepare-research-recovery: ## DAT-03 pin failed run + JAR preflight riêng; khô
 check-research-recovery: ## DAT-03 read-only live recovery preflight; không resume/publish/release
 	@test -n "$(RESEARCH_DEPLOYMENT_ROOT)" -a -n "$(RESEARCH_RECOVERY_FOLDER)" || { echo 'RESEARCH_DEPLOYMENT_ROOT/RECOVERY_FOLDER are required'; exit 1; }
 	@python3 scripts/research-recovery.py check --deployment-root "$(RESEARCH_DEPLOYMENT_ROOT)" --folder "$(RESEARCH_RECOVERY_FOLDER)"
+
+test-research-continuation: ## DAT-03 continuation/code provenance/acceptance regression, không Docker
+	@python3 -m unittest discover -s tests -p 'test_research_continuation.py'
+	@python3 -m unittest discover -s tests -p 'test_trino_memory.py'
+
+prepare-research-continuation: ## DAT-03 stage code recovery riêng, pin original/preflight/bytecode; không lake writes
+	@test -n "$(RESEARCH_DEPLOYMENT_ROOT)" -a -n "$(RESEARCH_RETAINED_ROOT)" -a -n "$(RESEARCH_PREFLIGHT_ROOT)" || { echo 'RESEARCH_DEPLOYMENT_ROOT/RETAINED_ROOT/PREFLIGHT_ROOT are required'; exit 1; }
+	@python3 scripts/research-continuation.py prepare --deployment-root "$(RESEARCH_DEPLOYMENT_ROOT)" --original-root "$(RESEARCH_RETAINED_ROOT)" --preflight-root "$(RESEARCH_PREFLIGHT_ROOT)" $(if $(RESEARCH_CHECKPOINT_ROOT),--checkpoint-root "$(RESEARCH_CHECKPOINT_ROOT)")
+
+run-research-continuation: ## DAT-03 explicit own-run continuation 2016 verify/publish -> 2023 case; release chỉ sau đủ gates
+	@test -n "$(RESEARCH_DEPLOYMENT_ROOT)" -a -n "$(RESEARCH_CONTINUATION_FOLDER)" || { echo 'RESEARCH_DEPLOYMENT_ROOT/CONTINUATION_FOLDER are required'; exit 1; }
+	@python3 scripts/research-continuation.py run --deployment-root "$(RESEARCH_DEPLOYMENT_ROOT)" --folder "$(RESEARCH_CONTINUATION_FOLDER)"
+
+verify-research-continuation: ## DAT-03 offline exact recovery receipt, four-case SHA chain và release proof
+	@test -n "$(RESEARCH_CONTINUATION_FOLDER)" || { echo 'RESEARCH_CONTINUATION_FOLDER is required'; exit 1; }
+	@python3 scripts/research-continuation.py verify --folder "$(RESEARCH_CONTINUATION_FOLDER)"
 
 capture-research-e2e: ## DAT-03 explicit USGS tháng 12/2023 + halo; chỉ capture local, không lake writes
 	@python3 scripts/research-e2e.py capture-usgs
@@ -501,6 +521,7 @@ ci-docs-base: ## Always-on CI guards; pilot tests được chọn riêng theo im
 	@python3 -m unittest discover -s tests -p 'test_ml_export_cli.py'
 	@$(MAKE) test-research-e2e
 	@$(MAKE) test-research-recovery
+	@$(MAKE) test-research-continuation
 	@$(MAKE) test-security-audit
 	@$(MAKE) test-docker-runtime
 	@$(MAKE) check-config ENV_FILE=/dev/null

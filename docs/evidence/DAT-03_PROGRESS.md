@@ -4,7 +4,8 @@ Branch `feat/dat-03-research-dataset-handoff` từ origin/main `bc0ce9e` (#98).
 Assignee HoaiTam, reviewer unassigned. **In Progress**. Phần pilot/profile đã
 được owner commit, HEAD khi tiếp tục bước3/4 `258710d`, trên [PR #99](https://github.com/HoaiTam/japan-earthquake-etl/pull/99).
 Bước3/4 đã được owner commit ở `19073bd`. Ngày25/10 khối 1 recovery được
-tiếp tục local trên `fix/dat-03-trino-recovery`, chưa tự commit/push.
+tiếp tục trên `fix/dat-03-trino-recovery`; owner đã commit/push khối1 ở1910de8,
+PR #100 và cho phép commit/push trực tiếp khối2 sau acceptance.
 Owner chọn gửi pilot thật dùng trước trong lúc chuẩn bị full research catalog.
 Owner xác nhận hai thành viên chưa chạy verifier và yêu cầu tiếp tục kỹ thuật;
 chốt strict split, loại window thiếu PRE/POST coverage và báo chi tiết từng mainshock.
@@ -15,9 +16,19 @@ chốt strict split, loại window thiếu PRE/POST coverage và báo chi tiết
 whole-mainshock assignment/global Mc và local Parquet tests, không official
 EXPORTED. Bounded E2E thật được nghiệm thu riêng; task vẫn In Progress cho
 full catalog/export/ba máy. Các đoạn dưới giữ lịch sử trước đợt này.
-Bước4 mới đạt2000-01/2011-04;2016-04 đã COMMITTED nhưng Trino restart làm
+Mốc trước recovery: bước4 mới đạt2000-01/2011-04;2016-04 đã COMMITTED nhưng Trino restart làm
 verify EOF,2023-12 chưa chạy. Owner chọn giữ lỗi/bàn giao trước; own lease
 còn giữ, không tự phục hồi/release. Source runs khác sẽ bị lease chặn.
+
+**Cập nhật mới nhất25/10 — [Khối2 PASSED](./DAT-03_CONTINUATION.md):** đủ4cases
+với124.969 canonical/125.069 bridge/124.856 serving cộng dồn; first/rerun,
+retention, six pins và SHA/SQL chain đạt. Attempt đầu publish2016 rồi OOM-kill
+Trino tại verify2023. Owner duyệt backup/recreate riêng Trino, memory budget
+và exact checkpoint recovery; không replay Silver/Gold. Final acceptance đạt,
+own lease đã RELEASED, không Java/DagRun active; original failures vẫn giữ.
+Task vẫn In Progress cho full225+63 tháng/capacity/official export/ba máy.
+Những đoạn mô tả failed/lease bên dưới là lịch sử tại mốc cũ, không trạng thái
+lease hiện tại. Không đổi evidence cũ thành PASS.
 
 Ngày25/10 owner yêu cầu làm lại **khối 1**: chẩn đoán và chuẩn bị read-only
 preflight theo [runbook recovery](../runbooks/DAT-03_RECOVERY.md). Không chạy

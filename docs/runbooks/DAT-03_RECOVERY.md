@@ -89,6 +89,9 @@ context và committed snapshots để verify/publish 2016-04, đối soát/rerun
 tiếp tục case2023-12+h2024/USGS trong cùng run/namespace/source cutoff. Chỉ
 nghiệm thu đủ bốn case/SHA chain/Trino/retention mới tạo final acceptance và
 release own lease. Preflight không cung cấp lệnh resume để tránh vô tình ghi.
+Owner đã yêu cầu thực hiện khối 2 trên PR #100: các lệnh continuation tách riêng
+trong [runbook khối 2](./DAT-03_CONTINUATION.md), không thay chế độ chỉ đọc của
+preflight hoặc tự chạy continuation khi gọi check-research-recovery.
 
 **DAT-03 khối 3/4/5**: capacity gate/full225+63-month rollout, official
 collection-aware MLI-02 export và ba máy receipts vẫn còn. Xem

@@ -9,6 +9,11 @@ Cập nhật25/10: bước3/4 đã được owner commit ở `19073bd`; branch v
 đạt13/13 metadata checks. Các failed/runtime results dưới đây giữ nguyên,
 không bị đổi thành full PASSED hoặc coi lease đã release.
 
+**Mốc mới25/10:** [Khối2 recovery](./DAT-03_CONTINUATION.md) đã đạt4/4 bounded
+cases và release own lease sau verify toàn bộ pins/SQL/receipt/rerun/retention.
+Trang này giữ nguyên failure của original execution, không mô tả trạng thái
+hiện tại của lease hoặc kết luận full research đã đạt.
+
 ## Bước 3 — Component đã kiểm
 
 Collection v1 giữ full parent identity/Gold/split/cutoff, global pinned Mc,

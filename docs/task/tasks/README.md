@@ -81,8 +81,10 @@ DAT-03 bước3 có [collection preparation v1](../../specs/RESEARCH_COLLECTION.
 và local Spark/Parquet tests; bước4 bounded real-source runtime có
 [evidence riêng](../../evidence/DAT-03_COLLECTION_BOUNDED_E2E.md). Không thay
 full225+63-month source proof, official collection export hoặc receipts ba máy.
-Bước4 hiện2/4cases đạt; dừng verify2016-04 khi Trino restart, giữ own lease
-theo lựa chọn owner bàn giao trước; chưa retry/release hoặc nghiệm thu Done.
+Bước4 từng dừng2/4cases khi verify2016-04/Trino restart; failed evidence gốc
+giữ nguyên. [Khối2 ngày25/10](../../evidence/DAT-03_CONTINUATION.md) đã đạt4/4
+cases/six pins/SQL/SHA/rerun/retention và release own lease sau memory fix có
+phê duyệt, chỉ recreate Trino.124.969 canonical cộng dồn, không full research.
 Ngày25/10 owner yêu cầu làm lại khối 1: bổ sung [chẩn đoán/recovery preflight
 chỉ đọc](../../runbooks/DAT-03_RECOVERY.md); không resume/publish/release trong
 khối này, không thay acceptance khối 2 hoặc chuyển DAT-03 Done.
