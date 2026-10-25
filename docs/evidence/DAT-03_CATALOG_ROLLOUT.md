@@ -217,3 +217,18 @@ tests đã PASS trong targeted57 trước khi mở ETL; CI-impact21 và docs249f
 2245links0problems. Không dùng mock full288/EXPORTED làm research evidence.
 [Runbook](../runbooks/DAT-03_RESEARCH_ML_EXPORT.md) mô tả roots/pins/budget,
 own lease checkpoint, unknown-outcome stop và final independent handoff gate.
+
+## Guard bổ sung trong khi phiên catalog chạy
+
+Host run/resume kiểm4GiB physical free trước Docker cho cả catalog và ML export;
+không dùng logical free trong VM thay host reserve. Các phiên host mới lưu
+host wall/free before-after riêng, không retroactively thêm vào phiên cũ.
+Catalog mocks hiện19PASS (gồm low-host-disk và success/timeout host observation),
+ML export mocks14PASS (thêm boolean count reject và host-disk preflight).
+Không đổi active continuation/code pins, restart hoặc xóa artifacts.
+
+Full Airflow discovery477tests lần đầu có20failure/57errors ở QA fixture
+paths qua `/var` alias của macOS. Files QA liên quan unchanged từ0487a83;
+rerun **cùng code** với TMPDIR=/private/tmp đạt477/477 trong22,229s. Không
+nới production path guards hoặc đổi fixture expectations. Những mock log
+`pipeline_qa_started` không là DagRun/lake writes thật.

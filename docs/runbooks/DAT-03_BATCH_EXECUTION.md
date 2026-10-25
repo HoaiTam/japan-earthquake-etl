@@ -39,8 +39,17 @@ Lệnh resume và continuation được mô tả ở
 Tái dùng exact original catalog và compatible continuation đã nghiệm thu;
 không prepare catalog mới để tiếp tục một checkpoint cũ. Mỗi phiên preflight
 health/idle/own scope/disk, kiểm input pins, rồi mới acquire lease.
+Host kiểm >=4GiB trống trên filesystem vật lý trước mọi Docker action;
+worker còn kiểm riêng >=4GiB trên volume. Không coi logical free của Docker VM
+là bằng chứng ổ Mac đủ chỗ, không tự xóa dữ liệu để vượt reserve.
+Các phiên chạy bằng host controller mới còn ghi `host-observation.json` trong
+observation mới: entrypoint SHA, physical disk before/after và host wall time.
+Đây không phải child acceptance; không tự thêm số đo đó cho phiên cũ thiếu file.
 
 Không chạy Spark fixture tests đồng thời với ETL trên máy đang thiếu RAM.
+Trên macOS, full Airflow fixture suite cần temp root không qua alias symlink:
+`env TMPDIR=/private/tmp python3 -m unittest discover -s airflow/tests`.
+Không tắt symlink guards trong runtime để né lỗi đường dẫn của fixture.
 Không mở session khác khi session trước active, thiếu acceptance hoặc giữ lease.
 Nếu failed/timeout/partial, lưu nguyên artifacts/lease, chỉ chẩn đoán read-only;
 recovery có thay đổi trạng thái cần xem xét riêng, không restart/delete để pass.

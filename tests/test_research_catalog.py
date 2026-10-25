@@ -174,6 +174,41 @@ class ResearchCatalogTest(unittest.TestCase):
             for seconds,months in ((True,1),(7200,1),(6000,0),(6000,True)):
                 with self.assertRaises(RuntimeError):c.run(ROOT,ROOT,seconds,months)
 
+    def test_low_physical_host_disk_blocks_resume_before_docker_or_lease(self):
+        with tempfile.TemporaryDirectory() as temp:
+            deployment=Path(temp).resolve();folder=deployment/"staging/dat03-catalog"/("a"*32)
+            with patch.object(c,"module") as module,patch.object(c,"validate",side_effect=AssertionError("no pin/file reads")), \
+                    patch.object(c.shutil,"disk_usage",return_value=types.SimpleNamespace(free=4*1024**3-1)):
+                with self.assertRaisesRegex(RuntimeError,"HOST_DISK_RESERVE"):
+                    c.run(deployment,folder,resume=True)
+                module.return_value.services.assert_not_called()
+
+    def host_observation(self,timeout=False):
+        with tempfile.TemporaryDirectory() as temp:
+            deployment=Path(temp).resolve();folder=deployment/"staging/dat03-catalog"/("a"*32)
+            (folder/"runtime").mkdir(parents=True)
+            request={"controller_sha256":"b"*64,"support_sha256":"c"*64};c.e.save(folder/"request.json",request)
+            def command(args,**kwargs):
+                if args[:2]==["docker","cp"]:
+                    Path(args[-1]).mkdir();return types.SimpleNamespace(returncode=0)
+                self.assertEqual(["docker","exec"],args[:2]);self.assertIn("pycache_prefix=/dev/null",args)
+                if timeout:raise subprocess.TimeoutExpired(args,6300)
+                return types.SimpleNamespace(returncode=0)
+            with patch.object(c,"module"),patch.object(c,"validate",return_value=request), \
+                    patch.object(c.subprocess,"run",side_effect=command), \
+                    patch.object(c.shutil,"disk_usage",return_value=types.SimpleNamespace(free=8*1024**3)):
+                if timeout:
+                    with self.assertRaises(subprocess.TimeoutExpired):c.run(deployment,folder,resume=True)
+                else:c.run(deployment,folder,resume=True)
+            observations=list(folder.glob("runtime-observation-*/host-observation.json"));self.assertEqual(1,len(observations))
+            note=c.load(observations[0]);self.assertEqual(not timeout,note["host_command_succeeded"])
+            self.assertEqual("HOST_OBSERVATION_NOT_CHILD_ACCEPTANCE",note["scope"])
+            self.assertFalse(note["research_ready"]);self.assertEqual(8*1024**3,note["host_disk_free_bytes_before"])
+            self.assertFalse((folder/"runtime/host-observation.json").exists())
+
+    def test_host_receipt_is_new_metadata_not_overwritten_runtime(self):self.host_observation()
+    def test_host_timeout_is_never_reported_as_child_acceptance(self):self.host_observation(timeout=True)
+
     def test_continuation_keeps_all_original_parser_canonical_and_dependency_bytes(self):
         with tempfile.TemporaryDirectory() as temp:
             root=Path(temp).resolve();original=root/"old.jar";current=root/"new.jar"

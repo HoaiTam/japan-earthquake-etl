@@ -39,6 +39,14 @@ class ResearchMlExportTest(unittest.TestCase):
                     m.prepare(root,catalog,observation,observation/"sessions"/("b"*32),"REPRODUCTION")
             self.assertFalse((root/"staging/dat03-ml-export").exists())
 
+    def test_low_physical_host_disk_blocks_resume_before_inputs_or_docker(self):
+        with tempfile.TemporaryDirectory() as temp:
+            deployment=Path(temp).resolve();root=deployment/"staging/dat03-ml-export"/("a"*32)
+            with patch.object(m,"support",return_value=c),patch.object(c,"load",side_effect=AssertionError("no inputs read")), \
+                    patch.object(m.shutil,"disk_usage",return_value=types.SimpleNamespace(free=4*1024**3-1)):
+                with self.assertRaisesRegex(RuntimeError,"HOST_DISK_RESERVE"):
+                    m.run(deployment,root,6000,True)
+
     def test_full_catalog_receipt_rejects_boolean_exit_code_and_partial_count(self):
         with tempfile.TemporaryDirectory() as temp:
             root=Path(temp).resolve();session=root/"sessions"/("a"*32);session.mkdir(parents=True)
@@ -79,13 +87,14 @@ class ResearchMlExportTest(unittest.TestCase):
                 self.assertEqual(6120,seconds);self.assertIn("local[1]",command)
                 if outcome in ("failure","timeout"):return (1,outcome=="timeout")
                 reports=root/"sessions";reports.mkdir(exist_ok=True)
-                exported=outcome in ("exported","bad-handoff")
+                exported=outcome in ("exported","bad-handoff","bad-count")
                 report={"version":m.VERSION,"status":"DATASET_EXPORTED" if exported else "CHECKPOINTED",
                         "request_sha256":c.e.sha(root/"request.json"),"runner_sha256":request["runner_sha256"],"catalog_completed_months":288,
                         "dataset_split":"REPRODUCTION","dataset_id":"ds_"+"d"*64,"required_steps":10,"completed_steps":10 if exported else 3,
                         "synthetic_component_qa":False,"scientific_approval":False,
-                        "final_readback":{"status":"DATASET_EXPORTED","trusted_handoff_verified":outcome=="exported",
+                        "final_readback":{"status":"DATASET_EXPORTED","trusted_handoff_verified":outcome in ("exported","bad-count"),
                                           "quality_gate_status":"PASSED","invalid_feature_count":0,"feature_row_count":5}}
+                if outcome=="bad-count":report["final_readback"].update(invalid_feature_count=False,feature_row_count=True)
                 c.e.save(reports/"12345678-1234-1234-1234-123456789abc.json",report)
                 return (0,False)
             child_call=Mock(side_effect=child)
@@ -95,8 +104,8 @@ class ResearchMlExportTest(unittest.TestCase):
                 if pattern.startswith("/opt/pipeline/staging/dat03-") and value in (str(root),str(catalog)):return True
                 return original_match(pattern,value,*args)
             expected_error=("FOREIGN_LEASE" if held=="foreign" else "DEPS_OR_DISK" if outcome=="missing-deps" else
-                            "HANDOFF_NOT_ACCEPTED" if outcome=="bad-handoff" else "FAILED_OWN_LEASE_RETAINED")
-            should_fail=held=="foreign" or outcome in ("failure","timeout","missing-deps","bad-handoff")
+                            "HANDOFF_NOT_ACCEPTED" if outcome in ("bad-handoff","bad-count") else "FAILED_OWN_LEASE_RETAINED")
+            should_fail=held=="foreign" or outcome in ("failure","timeout","missing-deps","bad-handoff","bad-count")
             with patch.object(m,"support",return_value=c),patch.object(m,"full_catalog",return_value={"completed_months":288}), \
                     patch.object(c,"validate"),patch.object(c,"quiet") as quiet,patch.object(m,"Path",side_effect=path), \
                     patch.object(m.re,"fullmatch",side_effect=match),patch.object(m,"module",return_value=types.SimpleNamespace(bounded_child=child_call)), \
@@ -122,6 +131,7 @@ class ResearchMlExportTest(unittest.TestCase):
     def test_failed_job_never_releases_or_retries(self):self.trial("failure")
     def test_timeout_never_releases_or_retries(self):self.trial("timeout")
     def test_false_handoff_keeps_lease(self):self.trial("bad-handoff")
+    def test_boolean_counts_cannot_release_lease(self):self.trial("bad-count")
     def test_missing_dependencies_stop_before_lease(self):self.trial("missing-deps")
     def test_foreign_lease_stops_without_child(self):self.trial(held="foreign")
     def test_resume_own_clean_checkpoint_does_not_acquire_twice(self):self.trial(held="own")

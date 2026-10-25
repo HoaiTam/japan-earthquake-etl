@@ -24,6 +24,9 @@ Java/Spark, không thêm Python ETL. Hiện controller/component tests đã có;
 Controller host7200s, default Java6000s; control-plane chỉ nhận4200..6600s,
 để dư startup so với reserve3600s trước step mới. Driver local[1], heap768MiB,
 direct256MiB, shuffle16. Không build/pull/start/reset trong controller.
+Mỗi host run/resume kiểm >=4GiB đĩa vật lý trước Docker; không thay phép đo
+đó bằng logical free bên trong VM. Worker kiểm dependencies/volume reserve
+trước tạo execution/acquire. Thiếu chỗ dừng, không tự xóa artifacts.
 
 Request +8 input files được hash tại host và bootstrap trong container;
 `-B -X pycache_prefix=/dev/null` không đọc/write cache cũ. Private stdout/

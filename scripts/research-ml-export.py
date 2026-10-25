@@ -147,7 +147,8 @@ def worker(root,seconds):
     if report["status"]=="DATASET_EXPORTED":
         final=report["final_readback"]
         c.e.require(report["completed_steps"]==10 and final["status"]=="DATASET_EXPORTED" and final["trusted_handoff_verified"] is True
-                    and final["quality_gate_status"]=="PASSED" and final["invalid_feature_count"]==0 and final["feature_row_count"]>0,"RESEARCH_EXPORT_HANDOFF_NOT_ACCEPTED")
+                    and final["quality_gate_status"]=="PASSED" and type(final["invalid_feature_count"]) is int and final["invalid_feature_count"]==0
+                    and type(final["feature_row_count"]) is int and final["feature_row_count"]>0,"RESEARCH_EXPORT_HANDOFF_NOT_ACCEPTED")
         c.e.require(lease("release",owner)=={"status":"RELEASED",**owner},"RESEARCH_EXPORT_RELEASE_UNCONFIRMED");released=True
     else:c.e.require(report["status"]=="CHECKPOINTED" and 0<=report["completed_steps"]<10,"RESEARCH_EXPORT_REPORT_NOT_ACCEPTED")
     c.e.save(session/"acceptance.json",{"status":"DATASET_EXPORTED" if released else "CHECKPOINT_ACCEPTED","request_sha256":c.e.sha(root/"request.json"),
@@ -180,6 +181,7 @@ def run(deployment,root,seconds,resume):
     c=support();deadline=time.monotonic()+7200;deployment,root=map(c.e.safe,(deployment,root))
     relative=root.relative_to(deployment/"staging/dat03-ml-export");c.e.require(re.fullmatch(r"[a-f0-9]{32}",str(relative)),"RESEARCH_EXPORT_EXACT_HOST_ROOT")
     c.e.require(type(seconds) is int and MIN_SECONDS<=seconds<=MAX_SECONDS,"RESEARCH_EXPORT_BUDGET_REQUIRED")
+    c.e.require(shutil.disk_usage(deployment).free>=4*1024**3,"RESEARCH_EXPORT_HOST_DISK_RESERVE")
     pins=c.load(root/"inputs.json",65536);c.e.require(set(pins)==set(FILES),"RESEARCH_EXPORT_EXACT_INPUT_SET_REQUIRED")
     for name,item in pins.items():c.e.require(c.e.sha(root/name)==item["sha256"] and (root/name).stat().st_size==item["bytes"],"RESEARCH_EXPORT_PIN_CHANGED")
     r=c.module("research-rollout");r.services();r.trino_queries_idle()

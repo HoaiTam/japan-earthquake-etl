@@ -460,11 +460,16 @@ else:
 
 
 def run(deployment, folder, seconds=6000, max_months=288, resume=False, continuation=None):
-    deadline = time.monotonic() + 7200
+    host_started = time.monotonic(); deadline = host_started + 7200
     e.require(type(seconds) is int and 1800 <= seconds <= 6600 and type(max_months) is int and 1 <= max_months <= 288, "CATALOG_SESSION_LIMIT_INVALID")
     r = module("research-rollout"); deployment, folder = map(e.safe, (deployment, folder))
     relative = folder.relative_to(deployment / "staging/dat03-catalog")
     e.require(re.fullmatch(r"[a-f0-9]{32}", str(relative)), "CATALOG_EXACT_HOST_FOLDER_REQUIRED")
+    # The Docker VM may report ample logical space while its sparse disk lives
+    # on a nearly full host filesystem. Refuse BEFORE any Docker/lease action.
+    host_free_before = shutil.disk_usage(deployment).free
+    e.require(host_free_before >= 4*1024**3, "CATALOG_HOST_DISK_RESERVE")
+    host_entrypoint_sha = e.sha(Path(__file__))
     request = validate(folder); extra = continuation_inputs(folder, continuation) if continuation is not None else None
     r.services(); r.idle(); r.trino_queries_idle()
     inside = "/opt/pipeline/staging/dat03-catalog/" + str(relative)
@@ -495,6 +500,7 @@ def run(deployment, folder, seconds=6000, max_months=288, resume=False, continua
                 for name in names:
                     with (code_root/name).open("rb") as src: shutil.copyfileobj(src, child.stdin, 1024**2)
                 child.stdin.close(); e.require(child.wait(timeout=120)==0, "CATALOG_CONTINUATION_STAGE_FAILED")
+    host_command_succeeded = False
     try:
         seconds = min(seconds, int(deadline-time.monotonic())-600)
         e.require(seconds >= 1800, "CATALOG_SESSION_BUDGET_SPENT_BEFORE_EXECUTION")
@@ -514,10 +520,18 @@ runpy.run_path(str(p/"controller.py"),run_name="__main__")
                  "--seconds", str(seconds), "--max-months", str(max_months)]
         if extra: command += ["--continuation", code_inside]
         subprocess.run(command, check=True, timeout=seconds+300)
+        host_command_succeeded = True
     finally:
         # Each host observation is new, including failures. Never overwrite an old snapshot.
         target = folder / ("runtime" if not (folder / "runtime").exists() else "runtime-observation-" + uuid.uuid4().hex)
         subprocess.run(["docker", "cp", e.CONTAINER + ":" + inside, str(target)], check=True, timeout=120)
+        e.save(target / "host-observation.json", {
+            "version": "dat03-catalog-host-observation-v1", "host_entrypoint_sha256": host_entrypoint_sha,
+            "catalog_request_sha256": e.sha(folder / "request.json"), "host_command_succeeded": host_command_succeeded,
+            "host_wall_seconds": round(time.monotonic()-host_started, 3), "host_disk_free_bytes_before": host_free_before,
+            "host_disk_free_bytes_after": shutil.disk_usage(deployment).free,
+            "scope": "HOST_OBSERVATION_NOT_CHILD_ACCEPTANCE", "research_ready": False,
+        })
 
 
 def main():
