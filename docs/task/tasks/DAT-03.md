@@ -221,6 +221,15 @@ release đủ gate. Không tạo dependency ngược từ DAT-03 sang EXP-02.
   Vòng nối tiếp kiểm health/idle/COW unchanged-progress/reserve rồi mở phiên
   kế từ87, max18tháng/6000s; không auto recovery hoặc tự chuyển Done.
 
+  Cập nhật26/10: [checkpoint101](../../evidence/DAT-03_CATALOG_CHECKPOINT_101.json)
+  đã accepted101/288 (35,069%) đến2008-05,1.064.869canonical/bridge,
+  exit0/no timeout/own release. Coordinator đã dừng sạch vì physical host
+  free3.913.068.544bytes dưới reserve4GiB sau COW; fresh postflight healthy/
+  idle/lease-empty. Cần giải phóng dung lượng có chủ đích trước resume2008-06;
+  không restart/reset/xóa source hoặc gọi catalog là official ML export.
+  [Bàn giao](../../evidence/DAT-03_OVERNIGHT_20261026.md#dừng-sạch-tại-checkpoint101).
+  Giữ In Progress, chưa full288/export/receipts ba máy; follow-up đã dừng.
+
 ## Tài liệu liên quan
 
 - [Source coverage](../../specs/SOURCE_COVERAGE.md), [baseline](../../specs/MVP_SCOPE_KPI_AND_DOD.md).

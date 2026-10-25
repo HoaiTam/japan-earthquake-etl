@@ -1,0 +1,45 @@
+{
+  "acceptance_sha256": "9806b5bf739ad9a55c562525cf898ba1cc6d788bb889ce14ee4cc9fafd627c77",
+  "catalog_percent": 32.292,
+  "catalog_request_sha256": "ad306633ac438b33276cfa3cf5e797482cc78e139410db3385863bbd3c9501fb",
+  "child_peak_rss_kib": 1398904,
+  "completed_in_session": 6,
+  "completed_months": 93,
+  "current_snapshots": {
+    "dim_date": 995362841318022611,
+    "dim_depth_band": 8588583179536983992,
+    "dim_magnitude_band": 9200391194786304234,
+    "dim_region": 8923790486622735530,
+    "event_current": 7217264980764926959,
+    "event_source_bridge": 7216950138309956674
+  },
+  "execution_sha256": "2a2dea14b1166aa8a4a14565af178bc820a3a78b3f05b6d35792b35a6599bf25",
+  "extension_months": 0,
+  "last_published_month": "2007-09",
+  "lease_release": {
+    "dag_id": "dat03_catalog_rollout",
+    "run_id": "dat03-catalog-b6db356fb30e46f9a26a419ebacb5393",
+    "status": "RELEASED"
+  },
+  "official_exported": false,
+  "reached_milestones": [
+    25
+  ],
+  "reproduction_months": 93,
+  "required_months": 288,
+  "research_ready": false,
+  "result_sha256": "111ef88685ecb8f9db45b184ff27e6be98f98d553dbd2af02fd366042ff909a5",
+  "scope": "CATALOG_ONLY_NOT_DAT03_COMPLETION",
+  "session_id": "8635dafd045149db8da0b93974978c67",
+  "status": "ACCEPTED_CATALOG_CHECKPOINT",
+  "table_counts": {
+    "dim_date": 2831,
+    "dim_depth_band": 5,
+    "dim_magnitude_band": 7,
+    "dim_region": 1,
+    "event_current": 990281,
+    "event_source_bridge": 990281
+  },
+  "version": "dat03-catalog-progress-v1",
+  "wall_seconds": 2455.01
+}

@@ -13,6 +13,19 @@ chốt strict split, loại window thiếu PRE/POST coverage và báo chi tiết
 
 ## Cập nhật kỹ thuật tiếp theo
 
+**Mới nhất 26/10 — dừng sạch vì host disk reserve:** đã xác minh
+101/288 tháng (35,069%) đến2008-05,1.064.869 canonical/bridge;
+[metadata101](./DAT-03_CATALOG_CHECKPOINT_101.json). Phiên
+`9515ebd43baa451a847e849fba3c103a` exit0/2545,568s/own release, host2582,908s.
+Mốc93 giữ [metadata riêng](./DAT-03_CATALOG_CHECKPOINT_093.json). Coordinator
+đã kết thúc bình thường sau COW và không mở phiên mới: physical free
+3.913.068.544bytes, dưới reserve4GiB. Fresh postflight required services healthy,
+không active DagRun/Java/Trino query và lease trống. Không reset/retry hoặc
+xóa source/warehouse/log/evidence; cần giải phóng thêm dung lượng có chủ đích
+trước fresh preflight/resume từ2008-06. Chưa50%, full288 hoặc official ML export;
+DAT-03 vẫn In Progress. [Chi tiết bàn giao](./DAT-03_OVERNIGHT_20261026.md#dừng-sạch-tại-checkpoint101).
+Các đoạn dưới giữ mốc lịch sử, không là current process/lease state.
+
 [Phiên tiếp tục đêm26/10](./DAT-03_OVERNIGHT_20261026.md): owner cho phép bật
 lại9containers cũ;9healthy và idle/lease preflight đạt. Phiên tiếp theo từ72
 đã accepted87/288 đến2007-03,918.168canonical/bridge. Phiên gần nhất thêm8tháng,

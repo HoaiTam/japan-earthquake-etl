@@ -170,3 +170,74 @@ Spark fixtures song song với ETL; các tests Java/component trước giữ evi
 official two-split collection export/loader/rerun và receipts ba máy. Xem
 [progress](./DAT-03_PROGRESS.md), [batch policy](../runbooks/DAT-03_BATCH_EXECUTION.md)
 và [task](../task/tasks/DAT-03.md). Chưa mở scientific/Colab gates.
+
+## Dừng sạch tại checkpoint101
+
+Ngày26/10, coordinator đã kết thúc bình thường với
+`reason=HOST_DISK_RESERVE`, không failed child hoặc timeout. PID87371 không
+còn sống, coordinator lock đã tự bỏ sau clean exit; không mở coordinator/ETL
+thứ hai. Hai phiên terminal mới đã được reporter offline xác minh lại:
+
+| Phiên | Prefix Published | Đến tháng | Canonical/bridge | Child wall | Own lease |
+|---|---:|---|---:|---:|---|
+|`8635dafd045149db8da0b93974978c67`|93/288|2007-09|990.281/990.281|2455,010s|RELEASED|
+|`9515ebd43baa451a847e849fba3c103a`|101/288|2008-05|1.064.869/1.064.869|2545,568s|RELEASED|
+
+[Metadata093](./DAT-03_CATALOG_CHECKPOINT_093.json) và
+[metadata101](./DAT-03_CATALOG_CHECKPOINT_101.json) pin acceptance/result/
+execution SHA, six snapshots, counts và own release. Latest host observation
+`runtime-observation-f18d6f60bcb04592a34c8e42aee78edd` có
+host_command_succeeded=true, host2582,908s; host entrypoint/source cutoff và
+namespace giữ nguyên. Không suy `month=2007-10` trong batch log là toàn prefix;
+reporter đã kiểm contiguous101months tới2008-05.
+
+COW chỉ new terminal host copies, giữ bytes/paths/metadata và accepted
+progress trước/sau; không sửa runtime container hoặc lakehouse. Local receipts
+trong ignored `staging/dat03-cleanup-20261026/`:
+
+- 93: `cow-receipt-5479b6dbd672456eb8be76eddb0cec3c.json`, SHA
+  `e09f1b9043bbb37ce802f4af3056cd1c8504e5f4341e1037f2cbd5fdc9e1a25a`;
+  duplicate logical604.060.485bytes.
+- 101: `cow-receipt-df480fbacb8d436186c66147f19422ec.json`, SHA
+  `6864764aa692d484d10c4a0cb009411c9b6256b55d280797bd8541809af9b9de`;
+  duplicate logical639.423.381bytes.
+
+Sau COW101, physical free quan sát3.913.207.808bytes; event checkpoint ghi
+3.913.068.544bytes (<4.294.967.296bytes reserve). Không gọi logical duplicates
+là physical space còn thu hồi được hoặc nới guard để tiếp tục. Chưa xác định
+nguyên nhân toàn bộ tăng disk usage; không kết luận lakehouse/log là nguồn
+gây tăng chỉ từ delta. Không xóa thêm source ZIP, warehouse, log hoặc evidence.
+
+Fresh postflight read-only đạt:9containers healthy,4required services healthy,
+0active DagRun/Java/Trino query, source lease trống. Không thay DAG/cron/pause,
+DB state, credentials, service lifecycle hoặc business lease. Follow-up đã
+xóa sau terminal handoff theo điều kiện owner đặt; không polling lặp khi
+không đủ disk và không tạo automation thay thế.
+
+### Bước tiếp tục của DAT-03
+
+Owner cần giải phóng thêm dung lượng vật lý có chủ đích hoặc duyệt phương án
+lưu trữ ngoài; không tự prune Docker/volume hoặc xóa dữ liệu khác. Mốc4GiB là
+reserve tối thiểu để preflight, không bảo đảm đủ disk cho187tháng còn lại.
+Sau khi đủ chỗ, kiểm lại health/quiescence/lease/pins/reserve rồi dùng existing
+controller `resume` exact catalog/continuation từ checkpoint101, tháng kế
+2008-06. Không prepare catalog mới hoặc dùng directory mtime chọn observation.
+
+DAT-03 còn full288months, official REPRODUCTION/EXTENSION collection ML
+export/loader/rerun và ba máy verifier receipts. Chưa actual research ZIP,
+official_exported=false/research_ready=false; không dùng pilot thay research
+hoặc chuyển Done. Mốc thông báo đã đạt vẫn chỉ25%, chưa50%.
+
+### Kiểm tra cho commit bàn giao101
+
+- Reporter offline kiểm lại prefix93/101 cùng exact observations/session và
+  SHA chain; không biến báo cáo offline thành fresh Trino readback mới.
+- `make check-docs test-docs check-task-status check-config ENV_FILE=/dev/null`
+  PASS:253Markdown/2.292links/0problems,10docs regression tests,77task statuses
+  khớp; configuration/secret hygiene repository/example đạt, không đọc local
+  `.env` của deployment trong lệnh config check này.
+- `git diff --check` PASS. Chỉ docs và hai checkpoint metadata được chọn để
+  stage; không raw/source ZIP/JAR/private logs hoặc credentials. Không chạy
+  Spark fixtures/build/deploy và không push/merge. Staged secret scan phải đạt
+  trước local commit; kiểm cả pattern và configured deployment secrets, chỉ
+  in tổng số findings, không in giá trị secret.
