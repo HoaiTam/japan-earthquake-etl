@@ -90,6 +90,22 @@ PARTIAL thay full research data.
   six pins không đổi, Trino restart0/oom_kill0, own lease release và idle đạt.
 - [ ] Đo capacity/ETA thực của Spark/joins/lake/export và duyệt rollout full kỳ;
   chưa suy 51 giây parser scan hoặc ~9,8 GiB disk trống thành budget full ETL.
+  [Chuẩn bị rollout25/10](../../evidence/DAT-03_ROLLOUT_CAPACITY.md) có25 JMA
+  fresh pins/288-month plan và12 USGS capture/Java check; không BronzeReady/
+  source completeness. Trino stress timeout/ABANDONED_TASK, trial profile chỉ
+  late healthy; SELECT1 mất56,44s. Probe sau profile bị scheduler unhealthy
+  chặn trước SQL; sau khi service tự healthy lại, full32copy probe mới vẫn
+  BLOCKED_TIME90s, postflight unchanged. Chưa có full-period capacity hoặc
+  official collection export.
+  [Phiên giảm tải bổ sung](../../evidence/DAT-03_LIGHT_SESSION.md) đã stop/
+  restore đúng4ID,9healthy/5kept unchanged; full query chặn512MB,3bucket đạt/
+  bucket3timeout/12chưa chạy. Không nới cap hoặc gọi partial là full acceptance.
+- [ ] Khối 3 tiếp theo: capacity gate và rollout catalog 225/63 tháng có
+  source pins, checkpoint, six-snapshot publication và bounded recovery; chỉ
+  tick khi runtime toàn kỳ đạt, không lấy planner hoặc bốn tháng mẫu thay thế.
+- [ ] Khối 4 tiếp theo: official collection-aware ML export từ full Gold pin,
+  lifecycle/registry/loader/import và rerun; không đổi PREPARED thành EXPORTED
+  chỉ bằng metadata. Khối 5 là receipts từ ba máy thành viên.
 - [ ] Resource/boundary policies được kiểm trên dữ liệu thật; không silent sampling.
   Đã triển khai opt-in resolver `orc-06-v2` và `dat03-strict-split-v1` trong nhánh
   PR #99; regression/reader profile không thay full-period runtime acceptance.
@@ -116,6 +132,12 @@ release đủ gate. Không tạo dependency ngược từ DAT-03 sang EXP-02.
   Ngoại lệ owner duyệt25/10 cho bounded recovery: giữ run/namespace/cutoff,
   recreate riêng Trino với cached image sau backup, chỉ release own lease sau
   acceptance. Controller/test không tự triển khai hoặc retry service.
+  Phần rollout tiếp theo owner chọn máy hiện tại, <=2h/phiên; duyệt riêng
+  backup/lower-concurrency/recreate chỉ Trino bằng cached image, không service
+  khác hoặc dữ liệu. Trial không thay approval full rollout/capacity.
+  Owner duyệt bổ sung25/10 một phiên giảm tải: stop đúng Spark master/worker,
+  Airflow API/DAG processor rồi start lại cùng4ID; giữ5services khác, không
+  DAG/credential/data mutations. Chỉ đo read-only, phải xác nhận restore thật.
 - Không xóa dữ liệu; release khác bytes dùng identity/output mới.
 - Không upload cloud/thay ACL/tạo link public. SEC-01 Done local; mở lại phần
   Colab/Drive trước migration. Người dùng tự chọn nơi chia sẻ.
@@ -137,6 +159,12 @@ release đủ gate. Không tạo dependency ngược từ DAT-03 sang EXP-02.
   Theo yêu cầu mới khối 2 sửa tiếp ngay branch/PR này, không tạo branch/PR mới;
   owner cho phép commit/push trực tiếp sau acceptance. Khối2 đã đạt, không merge
   hoặc sửa original failed evidence. [Evidence](../../evidence/DAT-03_CONTINUATION.md).
+  PR #100 đã được merge vào main `8ef6c41` ngày25/10; phần tiếp theo mở branch
+  `feat/dat-03-research-rollout` từ đúng main này. Đang làm capacity/source plan
+  trên branch này;12 USGS captures/Java validation đạt, Trino-only trial chưa
+  đủ capacity. Official export wiring/full rollout chưa triển khai, không
+  chứng nhận khối3/4. [Evidence](../../evidence/DAT-03_ROLLOUT_CAPACITY.md),
+  [runbook](../../runbooks/DAT-03_RESEARCH_ROLLOUT.md).
   Chưa có reviewer approval, full research hoặc ba máy acceptance. ThanhTris và
   rosy179 chưa chạy verifier theo xác nhận owner; tiếp tục phần kỹ thuật độc lập.
 

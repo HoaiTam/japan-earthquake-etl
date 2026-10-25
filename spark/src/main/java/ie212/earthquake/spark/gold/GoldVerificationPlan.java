@@ -109,5 +109,31 @@ public final class GoldVerificationPlan {
         String before="SELECT * FROM "+table(name)+" FOR VERSION AS OF "+baseline+filter, after="SELECT * FROM "+ref(name)+filter;
         return "SELECT count(*) FROM (("+before+" EXCEPT "+after+") UNION ALL ("+after+" EXCEPT "+before+")) changes";
     }
+    /** Exhaustive full-row comparison, with bounded hash state per query. Not a hash equality test. */
+    public String outsideScopeBucket(String name,String bucket) {
+        if(!Set.of("event_current","event_source_bridge").contains(name) || bucket==null || !bucket.matches("[0-9a-f]"))
+            throw new IllegalArgumentException("EXACT_OUTSIDE_BUCKET_REQUIRED");
+        var value=commit.path("scope").path("baseline_snapshots").path(name);
+        if(!value.isIntegralNumber() || !value.canConvertToLong() || value.asLong()<0)
+            throw new IllegalArgumentException("TYPED_OUTSIDE_BASELINE_REQUIRED");
+        long baseline=value.asLong(); if(baseline==0)return "SELECT 0";
+        var months=new TreeSet<String>();
+        for(var m:commit.path("scope").path("affected_months")) {
+            if(!m.isTextual())throw new IllegalArgumentException("EXACT_OUTSIDE_MONTH_REQUIRED");
+            java.time.YearMonth.parse(m.asText());
+            if(!months.add(quote(m.asText())))throw new IllegalArgumentException("EXACT_OUTSIDE_MONTH_REQUIRED");
+        }
+        if(months.isEmpty())throw new IllegalArgumentException("EXACT_OUTSIDE_MONTH_REQUIRED");
+        String field=name.equals("event_current")?"format_datetime(event_time_utc AT TIME ZONE 'UTC','yyyy-MM')":"event_month_utc";
+        String filter=" WHERE "+field+" NOT IN ("+String.join(",",months)+") AND "+outsideBucketPredicate("canonical_event_id",bucket);
+        String before="SELECT * FROM "+table(name)+" FOR VERSION AS OF "+baseline+filter;
+        String after="SELECT * FROM "+ref(name)+filter;
+        return "SELECT count(*) FROM (("+before+" EXCEPT "+after+") UNION ALL ("+after+" EXCEPT "+before+")) changes";
+    }
+    public static String outsideBucketPredicate(String key,String bucket) {
+        if(!"canonical_event_id".equals(key) || bucket==null || !bucket.matches("[0-9a-f]"))
+            throw new IllegalArgumentException("EXACT_OUTSIDE_BUCKET_REQUIRED");
+        return "lower(substr(to_hex(sha256(to_utf8(coalesce("+key+",'')))),1,1))="+quote(bucket);
+    }
     public static String quote(String value) { return "'"+value.replace("'","''")+"'"; }
 }

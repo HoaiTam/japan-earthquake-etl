@@ -12,6 +12,30 @@ chốt strict split, loại window thiếu PRE/POST coverage và báo chi tiết
 
 ## Cập nhật kỹ thuật tiếp theo
 
+[Mới nhất — phiên giảm tải theo approval riêng](./DAT-03_LIGHT_SESSION.md):
+đã stop/start đúng4containers cũ,9service healthy,5service giữ nguyên ID/start/
+config; không active run/lease/query. Full stress chạm query-memory512MB;
+bucket0–2 đạt, bucket3timeout,12chưa chạy. Session450,547s, không data writes/
+recreate/DAG mutation. Còn capacity/full catalog/export, giữ In Progress.
+Checkpoint12:43 cùng ngày: read-only Docker check có quyền vẫn không kết nối
+được daemon; chưa xác định nguyên nhân.9healthy là postflight cuối phiên đo,
+không phải current health. Không tự restart Docker hoặc lặp stop/start;
+offline `make ci-docs-base` và secret hygiene đã đạt, runtime chờ daemon trở lại.
+
+[Chuẩn bị khối3/4 ngày25/10](./DAT-03_ROLLOUT_CAPACITY.md): branch mới từ main
+`8ef6c41` sau PR #100 merge. Fresh25 JMA pins/288-month plan,12 original USGS
+captures2023 (1.809 features gồm halo duplicates) có Java validation/SHA.
+Read-only Trino capacity chưa đạt; owner duyệt backup/recreate riêng Trino,
+profile mới late healthy nhưng SELECT1 mất56,44s, scheduler/DAG processor
+đã từng unhealthy, sau đó tự healthy lại. Preflight đầu sau trial dừng trước
+SQL, không tự đổi service khác. Phép đo full32copy mới sau readiness vẫn
+BLOCKED_TIME90s, postflight unchanged/no active queries. Chưa có full rollout
+controller, monthly catalog writes hoặc official collection export.
+Ở đợt chỉ chỉnh Trino, probe16bucket dừng tại bucket0/time limit; host swap-in/
+out thực đo~29/28MiB/s. Đợt ấy không stop service khác; phiên giảm tải theo
+approval bổ sung được nghiệm thu riêng ở link mới nhất bên trên.
+Giữ In Progress, không chuyển Done từ source capture/planner hoặc component tests.
+
 [Bước 3/4](./DAT-03_COLLECTION_BOUNDED_E2E.md) bổ sung collection v1 có
 whole-mainshock assignment/global Mc và local Parquet tests, không official
 EXPORTED. Bounded E2E thật được nghiệm thu riêng; task vẫn In Progress cho
@@ -20,7 +44,7 @@ Mốc trước recovery: bước4 mới đạt2000-01/2011-04;2016-04 đã COMMI
 verify EOF,2023-12 chưa chạy. Owner chọn giữ lỗi/bàn giao trước; own lease
 còn giữ, không tự phục hồi/release. Source runs khác sẽ bị lease chặn.
 
-**Cập nhật mới nhất25/10 — [Khối2 PASSED](./DAT-03_CONTINUATION.md):** đủ4cases
+**Mốc nghiệm thu25/10 — [Khối2 PASSED](./DAT-03_CONTINUATION.md):** đủ4cases
 với124.969 canonical/125.069 bridge/124.856 serving cộng dồn; first/rerun,
 retention, six pins và SHA/SQL chain đạt. Attempt đầu publish2016 rồi OOM-kill
 Trino tại verify2023. Owner duyệt backup/recreate riêng Trino, memory budget

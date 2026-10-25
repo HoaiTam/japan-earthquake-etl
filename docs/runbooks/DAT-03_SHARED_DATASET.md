@@ -1,6 +1,6 @@
 # DAT-03 — Dataset dùng chung cho ba thành viên
 
-## Tình trạng 24/10/2026
+## Tình trạng 25/10/2026
 
 DAT-03 **In Progress**, owner HoaiTam, reviewer unassigned. Hiện phát hành
 **pilot JMA thật để dùng trước** theo lựa chọn owner; chưa có research release
@@ -12,9 +12,24 @@ v1.2 và profile đủ25 archive; chưa full Gold/export/handoff nghiên cứu.
 Tiếp theo [bước3/4](./DAT-03_RESEARCH_COLLECTION_E2E.md) có collection
 preparation riêng và bounded real-source E2E; đây không phải research ZIP để
 gửi nhóm. Pilot dưới đây giữ nguyên bytes/pins và DEVELOPMENT_ONLY/PARTIAL.
-Bước4 mới đạt2/4cases, lỗi verify2016-04 đúng lúc Trino restart; owner chọn
-giữ lỗi/bàn giao, own lease còn giữ. Không chạy capture/ingest khác để lách
-lease; đọc evidence trước mọi runtime tiếp theo.
+[Khối2 recovery ngày25/10](../evidence/DAT-03_CONTINUATION.md) đã đạt4/4cases,
+verify/publish/rerun/retention và release own lease; PR #100 đã merge. Đây chỉ
+là bounded E2E, chưa full225/63-month coverage hoặc official ML export. Không
+chạy lại retained attempt đã hoàn tất, không dùng bộ bốn tháng làm research release.
+
+[Chuẩn bị rollout](./DAT-03_RESEARCH_ROLLOUT.md) đã verify25 JMA pins, lập288
+tháng và capture/Java-check12 USGS responses2023. [Capacity/profile trial](../evidence/DAT-03_ROLLOUT_CAPACITY.md)
+chưa đạt: timeout/ABANDONED_TASK trước profile; sau Trino-only recreate có
+late health nhưng SELECT1 mất56,44s, capacity preflight đầu bị scheduler unhealthy
+chặn trước SQL. Các service tự healthy lại; full32copy probe mới vẫn quá hạn90s,
+postflight unchanged. Chưa có catalog writes hoặc official collection export mới;
+không tự restart Airflow ngoài phạm vi owner duyệt.
+Probe16bucket sau đó cũng dừng ngay bucket0 vì timeout; host sampling đo được
+swap-in/out khoảng29/28MiB/s. Chỉ chỉnh Trino chưa đủ vượt gate thời gian trong
+phiên này; chưa kết luận nguyên nhân gốc hoặc tăng timeout để công bố PASS.
+[Phiên giảm tải bổ sung](../evidence/DAT-03_LIGHT_SESSION.md) đã stop/restore
+đúng4container cũ,9service healthy. Full query chạm512MB;3bucket đạt, bucket3
+timeout/12chưa chạy. Chưa đủ capacity/Gold/export, chưa có research ZIP mới.
 
 File gửi nhóm trên máy chuẩn bị:
 `staging/shared-datasets/jma-development-pilot-team.zip` trong checkout DAT-03.

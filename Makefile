@@ -194,6 +194,63 @@ RESEARCH_RETAINED_ROOT ?=
 RESEARCH_PREFLIGHT_ROOT ?=
 RESEARCH_CONTINUATION_FOLDER ?=
 RESEARCH_CHECKPOINT_ROOT ?=
+.PHONY: test-research-rollout plan-research-rollout probe-research-capacity test-research-usgs plan-research-usgs capture-research-usgs verify-research-usgs
+.PHONY: test-research-trino-profile prepare-research-trino-profile apply-research-trino-profile verify-research-trino-profile
+.PHONY: test-research-light-session measure-research-light-session
+RESEARCH_ROLLOUT_PLAN ?=
+RESEARCH_CAPACITY_RUNTIME ?=
+RESEARCH_CAPACITY_STRATEGY ?= full
+RESEARCH_CAPACITY_QUERY_SECONDS ?= 90
+RESEARCH_USGS_ROOT ?= staging/dat03-usgs-2023
+RESEARCH_USGS_REUSE_DECEMBER ?=
+RESEARCH_JAVA ?= java
+RESEARCH_USGS_JAR ?= spark/target/japan-earthquake-etl-runner.jar
+RESEARCH_TRINO_PROFILE_FOLDER ?=
+test-research-rollout: ## DAT-03 offline rollout/capacity guards; không Docker/mạng
+	@python3 -m unittest discover -s tests -p 'test_research_rollout.py'
+
+plan-research-rollout: ## DAT-03 verify25 original captures/profiles, plan288 months; không lake writes
+	@python3 scripts/research-rollout.py plan --captures "$(RESEARCH_PROFILE_ROOT)" $(if $(RESEARCH_ROLLOUT_PLAN),--output "$(RESEARCH_ROLLOUT_PLAN)")
+
+probe-research-capacity: ## DAT-03 bounded read-only Trino stress probe, không là coverage/research acceptance
+	@test -n "$(RESEARCH_DEPLOYMENT_ROOT)" -a -n "$(RESEARCH_CAPACITY_RUNTIME)" || { echo 'RESEARCH_DEPLOYMENT_ROOT/CAPACITY_RUNTIME are required'; exit 1; }
+	@python3 scripts/research-rollout.py probe --deployment-root "$(RESEARCH_DEPLOYMENT_ROOT)" --runtime-root "$(RESEARCH_CAPACITY_RUNTIME)" --strategy "$(RESEARCH_CAPACITY_STRATEGY)" --query-seconds "$(RESEARCH_CAPACITY_QUERY_SECONDS)"
+
+test-research-usgs: ## DAT-03 offline capture guards và Java response validation; không network/Docker
+	@python3 -m unittest discover -s tests -p 'test_research_usgs_captures.py'
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am test -Dtest=ResearchUsgsCaptureCheckTest -Dsurefire.failIfNoSpecifiedTests=false
+
+plan-research-usgs: ## DAT-03 xem12 exact USGS queries/halo/seed; không network hoặc files
+	@python3 scripts/capture-research-usgs.py plan --root "$(RESEARCH_USGS_ROOT)"
+
+capture-research-usgs: ## DAT-03 EXPLICIT original API capture/Java check; không Bronze/ETL/deployment
+	@python3 scripts/capture-research-usgs.py capture --root "$(RESEARCH_USGS_ROOT)" --java "$(RESEARCH_JAVA)" --jar "$(RESEARCH_USGS_JAR)" $(if $(RESEARCH_USGS_REUSE_DECEMBER),--reuse-december "$(RESEARCH_USGS_REUSE_DECEMBER)")
+
+verify-research-usgs: ## DAT-03 read-only exact12 captures + Java check + summary pin; không download
+	@python3 scripts/capture-research-usgs.py verify --root "$(RESEARCH_USGS_ROOT)" --java "$(RESEARCH_JAVA)" --jar "$(RESEARCH_USGS_JAR)"
+
+test-research-trino-profile: ## DAT-03 offline profile/scope/credential guards; không Docker
+	@python3 -m unittest discover -s tests -p 'test_research_trino_profile.py'
+
+prepare-research-trino-profile: ## DAT-03 explicit private backup/preflight; không restart hoặc dữ liệu
+	@test -n "$(RESEARCH_DEPLOYMENT_ROOT)" || { echo 'RESEARCH_DEPLOYMENT_ROOT is required'; exit 1; }
+	@python3 scripts/research-trino-profile.py prepare --deployment-root "$(RESEARCH_DEPLOYMENT_ROOT)"
+
+apply-research-trino-profile: ## DAT-03 OPERATOR-APPROVED Trino-only recreate; không build/pull/data writes
+	@test "$(TRINO_PROFILE_OPERATOR_APPROVED)" = yes -a -n "$(RESEARCH_TRINO_PROFILE_FOLDER)" || { echo 'Explicit TRINO_PROFILE_OPERATOR_APPROVED=yes and exact folder are required'; exit 1; }
+	@python3 scripts/research-trino-profile.py apply --folder "$(RESEARCH_TRINO_PROFILE_FOLDER)" --operator-approved-trino-only
+
+verify-research-trino-profile: ## DAT-03 read-only late health/pins; không apply hoặc recreate lần nữa
+	@test -n "$(RESEARCH_TRINO_PROFILE_FOLDER)" || { echo 'Exact RESEARCH_TRINO_PROFILE_FOLDER is required'; exit 1; }
+	@python3 scripts/research-trino-profile.py verify --folder "$(RESEARCH_TRINO_PROFILE_FOLDER)"
+
+test-research-light-session: ## DAT-03 mock four-container stop/restore; không Docker
+	@python3 -m unittest discover -s tests -p 'test_research_light_session.py'
+
+measure-research-light-session: ## DAT-03 EXPLICIT approved stop4/probe/restore4; không build/pull/data writes
+	@test "$(RESEARCH_LIGHT_OPERATOR_APPROVED)" = yes -a -n "$(RESEARCH_DEPLOYMENT_ROOT)" -a -n "$(RESEARCH_CAPACITY_RUNTIME)" || { echo 'Explicit four-container approval and exact roots required'; exit 1; }
+	@python3 scripts/research-light-session.py --deployment-root "$(RESEARCH_DEPLOYMENT_ROOT)" --runtime-root "$(RESEARCH_CAPACITY_RUNTIME)" --operator-approved-four-container-session
+
 test-research-collection: ## DAT-03 collection/shared Mc/whole-window Parquet regression; không Docker hoặc nguồn thật
 	@./mvnw --batch-mode --no-transfer-progress -pl spark -am test -Dtest=ResearchCollectionPlanTest,ResearchCollectionJobTest -Dsurefire.failIfNoSpecifiedTests=false
 
@@ -522,6 +579,10 @@ ci-docs-base: ## Always-on CI guards; pilot tests được chọn riêng theo im
 	@$(MAKE) test-research-e2e
 	@$(MAKE) test-research-recovery
 	@$(MAKE) test-research-continuation
+	@$(MAKE) test-research-rollout
+	@python3 -m unittest discover -s tests -p 'test_research_usgs_captures.py'
+	@$(MAKE) test-research-trino-profile
+	@$(MAKE) test-research-light-session
 	@$(MAKE) test-security-audit
 	@$(MAKE) test-docker-runtime
 	@$(MAKE) check-config ENV_FILE=/dev/null
