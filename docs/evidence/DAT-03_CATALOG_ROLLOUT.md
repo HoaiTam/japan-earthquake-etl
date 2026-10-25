@@ -232,3 +232,24 @@ paths qua `/var` alias của macOS. Files QA liên quan unchanged từ0487a83;
 rerun **cùng code** với TMPDIR=/private/tmp đạt477/477 trong22,229s. Không
 nới production path guards hoặc đổi fixture expectations. Những mock log
 `pipeline_qa_started` không là DagRun/lake writes thật.
+
+## Đợt chạy tiếp —45/288 accepted
+
+Session `5de5ac2f746642d49d98677ad207cf5a`, source/control pins giữ nguyên,
+18tháng mới qua3batch:2002-04–09,2002-10–2003-04,2003-05–09. Final45/288
+contiguous months2000-01–2003-09,466.990 canonical/466.990bridge.
+Exit0/timed_out=false,2460,963s (~41min), child peak RSS1.442.732KiB,
+pending=null. Own lease RELEASED; phiên dừng theo reserve, không timeout.
+
+[Receipt metadata045](./DAT-03_CATALOG_CHECKPOINT_045.json) được tạo bằng
+progress verifier từ exact retained observation
+`runtime-observation-f40296b56ddd4427b28fd18cb489df8b`, không sửa dữ liệu/evidence cũ.
+Host entrypoint của phiên này chưa có host-observation.json mới, không gán
+physical before/after giả từ logical volume free. Postflight host có9,8GiB
+free, chỉ là quan sát ở thời điểm ấy; agent không xóa file để đạt giá trị đó.
+
+Result SHA `24eeeafb9ac0a3bc5feff25739db1d1282683373d5bea7e5ca917eafbb56a2b5`,
+execution SHA `11d5d048b173eb6648a15682adcbbd40845d15e1d403f6713e8a39b4f3062106`,
+acceptance SHA `4c33c2912fc8b11b721276f066ea9516d1e6e53b85b6f042d8ddff9cbf35fd49`.
+Catalog15,625%; reached_milestones=[]; official_exported/research_ready=false.
+Chưa mốc25%, full288 hoặc official research ZIP/team handoff.

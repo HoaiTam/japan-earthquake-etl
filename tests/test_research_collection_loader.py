@@ -136,6 +136,28 @@ class CollectionLoaderTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "COMPLETED_BUNDLE_CONFLICT"):
             harness.write_experiment_result(**args, experiment_run_id=first["run_id"], is_retry=True)
 
+    def test_boolean_global_mc_is_not_a_numeric_completeness_value(self):
+        manifest=json.loads((self.root/"dataset_manifest.json").read_bytes())
+        plan=manifest["collection_plan"];plan["global_mc"]["mc_value"]=True
+        write_json(self.root/"dataset_manifest.json",manifest)
+        write_json(self.root/"collection-preparation.json",{"status":"RESEARCH_COLLECTION_PREPARED","plan":plan})
+        self.pins=reindex(self.root)
+        with self.assertRaisesRegex(ValueError,"GLOBAL_MC_REQUIRED"):self.load()
+
+    def test_unknown_split_with_missing_month_count_is_not_complete(self):
+        manifest=json.loads((self.root/"dataset_manifest.json").read_bytes());manifest["dataset_split"]="UNKNOWN"
+        plan=manifest["collection_plan"];plan["coverage"].pop("required_month_count")
+        write_json(self.root/"dataset_manifest.json",manifest)
+        write_json(self.root/"collection-preparation.json",{"status":"RESEARCH_COLLECTION_PREPARED","plan":plan})
+        self.pins=reindex(self.root)
+        with self.assertRaisesRegex(ValueError,"COMPLETE_SPLIT_REQUIRED"):self.load()
+
+    def test_float_mainshock_counter_is_rejected_even_if_python_equality_matches(self):
+        path=self.root/"shard_00000/mainshocks.parquet";table=pq.ParquetFile(path).read()
+        table=table.set_column(table.schema.get_field_index("candidate_count"),"candidate_count",pa.array([2.0],type=pa.float64()))
+        pq.write_table(table,path);self.pins=reindex(self.root)
+        with self.assertRaisesRegex(ValueError,"SCHEMA_TYPE_MISMATCH"):self.load().load_shard("shard_00000")
+
 
 if __name__ == "__main__":
     unittest.main()

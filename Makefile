@@ -279,6 +279,22 @@ run-research-ml-export resume-research-ml-export: ## DAT-03 EXPLICIT checkpointe
 	@test -n "$(RESEARCH_DEPLOYMENT_ROOT)" -a -n "$(RESEARCH_ML_FOLDER)" || { echo 'Exact deployment and ML folder required'; exit 1; }
 	@python3 scripts/research-ml-export.py $(if $(filter resume-research-ml-export,$@),resume,run) --deployment-root "$(RESEARCH_DEPLOYMENT_ROOT)" --folder "$(RESEARCH_ML_FOLDER)" --seconds "$(RESEARCH_ML_SECONDS)"
 
+.PHONY: test-research-team pack-research-team
+RESEARCH_TEAM_REPRODUCTION ?=
+RESEARCH_TEAM_EXTENSION ?=
+RESEARCH_TEAM_REPRODUCTION_MANIFEST_SHA256 ?=
+RESEARCH_TEAM_REPRODUCTION_CHECKSUMS_SHA256 ?=
+RESEARCH_TEAM_EXTENSION_MANIFEST_SHA256 ?=
+RESEARCH_TEAM_EXTENSION_CHECKSUMS_SHA256 ?=
+RESEARCH_TEAM_ZIP ?= staging/shared-datasets/jma-research-team.zip
+
+test-research-team: ## DAT-03 paired kit/tamper/source race/offline fresh-process verifier fixtures; không Docker
+	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_research_team.py'
+
+pack-research-team: ## DAT-03 EXPLICIT hai actual EXPORTED splits đã nghiệm thu; không download/ETL/cloud
+	@test -n "$(RESEARCH_TEAM_REPRODUCTION)" -a -n "$(RESEARCH_TEAM_EXTENSION)" -a -n "$(RESEARCH_TEAM_REPRODUCTION_MANIFEST_SHA256)" -a -n "$(RESEARCH_TEAM_REPRODUCTION_CHECKSUMS_SHA256)" -a -n "$(RESEARCH_TEAM_EXTENSION_MANIFEST_SHA256)" -a -n "$(RESEARCH_TEAM_EXTENSION_CHECKSUMS_SHA256)" || { echo 'Two actual export folders and external manifest/checksums pins are required'; exit 1; }
+	@$(PILOT_PYTHON) scripts/pack-research-team.py --reproduction "$(RESEARCH_TEAM_REPRODUCTION)" --extension "$(RESEARCH_TEAM_EXTENSION)" --reproduction-manifest-sha256 "$(RESEARCH_TEAM_REPRODUCTION_MANIFEST_SHA256)" --reproduction-checksums-sha256 "$(RESEARCH_TEAM_REPRODUCTION_CHECKSUMS_SHA256)" --extension-manifest-sha256 "$(RESEARCH_TEAM_EXTENSION_MANIFEST_SHA256)" --extension-checksums-sha256 "$(RESEARCH_TEAM_EXTENSION_CHECKSUMS_SHA256)" --output "$(RESEARCH_TEAM_ZIP)"
+
 test-research-usgs: ## DAT-03 offline capture guards và Java response validation; không network/Docker
 	@python3 -m unittest discover -s tests -p 'test_research_usgs_captures.py'
 	@./mvnw --batch-mode --no-transfer-progress -pl spark -am test -Dtest=ResearchUsgsCaptureCheckTest -Dsurefire.failIfNoSpecifiedTests=false
@@ -442,6 +458,7 @@ test-pilot: ## Pilot/model regression; cần pyarrow/model deps và loopback Jup
 	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_team_pilot.py'
 	@$(PILOT_PYTHON) -m unittest tests/test_experiment_harness.py
 	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_research_collection_loader.py'
+	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_research_team.py'
 	@$(PILOT_PYTHON) -m unittest tests/test_baseline_algorithms.py
 	@$(PILOT_PYTHON) -m unittest tests/test_adaptive_hdbscan.py
 

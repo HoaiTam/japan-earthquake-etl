@@ -15,7 +15,7 @@ import re
 
 import pyarrow.parquet as pq
 from experiment_harness import read_json_safe, require, sha256_bytes, MODE_OFFICIAL
-from pilot_bundle import FEATURE_TYPES, typed_schema
+from pilot_bundle import FEATURE_TYPES, MAIN_TYPES, typed_schema
 
 VERSION = "dat03-collection-export-v1"
 MAX_FILE = 64 * 1024**2
@@ -92,11 +92,14 @@ class ResearchCollection:
             require(type(s["feature_row_count"]) is int and 1 <= count == s["feature_row_count"] <= 100000,
                     "COLLECTION_SHARD_RESOURCE_LIMIT")
             rows += count
-        require(rows == p["feature_row_count"] == m["feature_row_count"] and len(assigned) == p["mainshock_count"] == m["mainshock_count"] <= 4096,
+        require(all(type(value) is int for value in (p["feature_row_count"],m["feature_row_count"],p["mainshock_count"],m["mainshock_count"]))
+                and rows == p["feature_row_count"] == m["feature_row_count"] and len(assigned) == p["mainshock_count"] == m["mainshock_count"] <= 4096,
                 "COLLECTION_TOTALS_UNBALANCED")
-        require(p["global_mc"].get("scope") == "FULL_PINNED_SPLIT" and math.isfinite(p["global_mc"]["mc_value"]),
+        require(p["global_mc"].get("scope") == "FULL_PINNED_SPLIT" and type(p["global_mc"]["mc_value"]) in (int,float)
+                and math.isfinite(p["global_mc"]["mc_value"]),
                 "COLLECTION_GLOBAL_MC_REQUIRED")
-        require(p["coverage"].get("status") == "COMPLETE" and p["coverage"].get("required_month_count") ==
+        require(m.get("dataset_split") in ("REPRODUCTION","EXTENSION")
+                and p["coverage"].get("status") == "COMPLETE" and p["coverage"].get("required_month_count") ==
                 {"REPRODUCTION": 225, "EXTENSION": 63}.get(m.get("dataset_split")), "COLLECTION_COMPLETE_SPLIT_REQUIRED")
         expected = {"dataset_manifest.json", "collection-preparation.json", "export-checksums.sha256"}
         for name in self.shards:
@@ -128,6 +131,8 @@ class ResearchCollection:
         features, main = files["features.parquet"], files["mainshocks.parquet"]
         types = {k: v for k, v in FEATURE_TYPES.items() if k != "pilot_id"}
         typed_schema(features, self.manifest["feature_schema"], types)
+        main_types={k:v for k,v in MAIN_TYPES.items() if k!="pilot_id"}
+        typed_schema(main,[{"name":name,"type":main_types.get(name,"UNKNOWN")} for name in main.column_names],main_types)
         declared = {w["mainshock_event_id"]: w["candidate_row_count"] for w in s["mainshocks"]}
         actual = Counter()
         keys, self_ids = set(), set()
@@ -151,7 +156,10 @@ class ResearchCollection:
         require(dict(actual) == declared and self_ids == set(declared), "COLLECTION_ASSIGNMENT_CHANGED")
         main_rows = main.to_pylist()
         require(len(main_rows) == len(declared) and {r["mainshock_event_id"]: r["candidate_count"] for r in main_rows} == declared
-                and all(r["dataset_id"] == self.manifest["dataset_id"] for r in main_rows), "COLLECTION_MAINSHOCK_CHANGED")
+                and all(r["dataset_id"] == self.manifest["dataset_id"] and all(v is not None for k,v in r.items() if k!="resource_reason_code")
+                        and all(math.isfinite(v) for v in r.values() if isinstance(v,float)) and r["schema_version"]=="1.0"
+                        and r["mc_value"]==self.plan["global_mc"]["mc_value"]
+                        and r["window_model_version"]==self.manifest["window_model_version"] for r in main_rows), "COLLECTION_MAINSHOCK_CHANGED")
         return {"mode": MODE_OFFICIAL, "bundle_id": self.manifest["dataset_id"], "source_dataset_id": self.manifest["dataset_id"],
                 "manifest": self.manifest, "features_table": features, "mainshocks_table": main, "coverage": self.plan["coverage"],
                 "bundle_dir": self.root, "is_official": True, "checksums": self.index,

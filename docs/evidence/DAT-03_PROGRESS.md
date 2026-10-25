@@ -1,6 +1,7 @@
 # DAT-03 — Tiến độ thực tế (cập nhật 25/10/2026)
 
-Branch `feat/dat-03-research-dataset-handoff` từ origin/main `bc0ce9e` (#98).
+Branch hiện tại `feat/dat-03-research-rollout`, tiếp tục từ0487a83 sau PR #100.
+Lịch sử trước đó: `feat/dat-03-research-dataset-handoff` từ main `bc0ce9e` (#98).
 Assignee HoaiTam, reviewer unassigned. **In Progress**. Phần pilot/profile đã
 được owner commit, HEAD khi tiếp tục bước3/4 `258710d`, trên [PR #99](https://github.com/HoaiTam/japan-earthquake-etl/pull/99).
 Bước3/4 đã được owner commit ở `19073bd`. Ngày25/10 khối 1 recovery được
@@ -15,13 +16,16 @@ chốt strict split, loại window thiếu PRE/POST coverage và báo chi tiết
 [Mới nhất — capacity đủ quy mô và catalog controller](./DAT-03_CATALOG_ROLLOUT.md):
 hai SQL probes event/bridge43copies đều16/16PASS với4.527.126rows mỗi phía,
 90s/query/512MB không đổi. Controller đã stage37original captures, chạy thật
-20/288tháng Published đến2001-08. Hai phiên resume đã terminal/acceptance/own
-release; batch cuối7tháng1082,979s,148reported checks dùng chung six pins.
+45/288tháng Published đến2003-09. Phiên mới nhất đã terminal/acceptance/own
+release; thêm18tháng qua3batch trong2460,963s, không timeout/pending. Có
+466.990 canonical/466.990 bridge, [six pins và SHA receipt](./DAT-03_CATALOG_CHECKPOINT_045.json).
 Source namespace/cutoff giữ nguyên, continuation có code/compatibility pins
 riêng; không đổi deployment. Chưa288tháng/official export, không lấy synthetic
 expansion hoặc checkpoint đầu thay full research acceptance. Code official
 collection opt-in/registry/loader/result-scope đang nghiệm thu component theo
-[contract](../specs/RESEARCH_COLLECTION_EXPORT.md); chưa actual research export.
+[contract](../specs/RESEARCH_COLLECTION_EXPORT.md); controller ML checkpoint
+có code/tests nhưng chưa actual research export. Báo25%/50%/75%/100% catalog
+tại72/144/216/288 accepted months, không dùng phần trăm này làm DAT-03 Done.
 
 [Mới nhất — phiên giảm tải theo approval riêng](./DAT-03_LIGHT_SESSION.md):
 đã stop/start đúng4containers cũ,9service healthy,5service giữ nguyên ID/start/

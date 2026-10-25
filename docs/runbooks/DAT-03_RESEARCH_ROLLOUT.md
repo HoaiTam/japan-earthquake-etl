@@ -7,8 +7,8 @@ Owner chọn máy hiện tại, tối đa **2 giờ/phiên**, có checkpoint. Kh
 probe thành công là chấp thuận toàn bộ Spark/Gold/export capacity.
 
 **Cập nhật25/10:** hai full-scale event/bridge probes43copies đã đủ16/16 mỗi
-bảng; catalog controller mới đã có checkpoint2000-01 và đang nghiệm thu phiên
-tiếp tục. [Evidence mới](../evidence/DAT-03_CATALOG_ROLLOUT.md),
+bảng; catalog controller đã nghiệm thu45/288tháng đến2003-09, own lease release
+sau từng phiên. [Evidence mới](../evidence/DAT-03_CATALOG_ROLLOUT.md),
 [contract](../specs/RESEARCH_CATALOG_ROLLOUT.md). Không đồng nghĩa288tháng hoặc
 official ML export đã hoàn tất; các phép đo thất bại bên dưới giữ nguyên lịch sử.
 
@@ -21,7 +21,7 @@ official ML export đã hoàn tất; các phép đo thất bại bên dưới gi
 | `ResearchUsgsCaptureCheck` | Kiểm envelope/query/ROI/seed/time/SHA/count và guard saturation bằng Java | Không chứng nhận source completeness hoặc canonical count |
 | `research-rollout.py probe` | Read-only full-row symmetric difference trên exact bounded snapshots; giữ request/log/receipt và resource budget | Không mutate Iceberg, acquire/release lease hoặc tự retry |
 | `scripts/research-trino-profile.py` | Private backup, explicit Trino-only profile trial, read-only late-health reconciliation | Không build/pull/init, đổi credential hoặc chạm service khác |
-| `GoldPublisher.researchRollout` | Opt-in component chia outside-scope comparison thành 16 bucket đầy đủ, vẫn so toàn hàng bằng EXCEPT hai chiều | Chưa nối runtime; không thay default/operational publisher hoặc bỏ quality gate |
+| `GoldPublisher.researchRollout` / `researchCatalogCheckpointed` | Opt-in outside-scope comparison16bucket, fact blockers và same-process proof cache trong catalog runtime | Không thay default/operational publisher hoặc bỏ quality gate; chưa full288-month acceptance |
 
 Business ETL vẫn Java/Spark. Python chỉ gọi API lấy bytes, kiểm pin/control
 plane và evidence. Bucket SHA chỉ định tuyến hàng vào một trong 16 nhóm;

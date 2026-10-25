@@ -113,3 +113,7 @@ python3 notebooks/research_collection.py --bundle "$DATASET_DIRECTORY" \
 ThanhTris/rosy179 đổi đúng recipient và receipt riêng, tự chạy trên máy mình.
 Kết quả phải `COLLECTION_VERIFIED`, all_shards_verified=true và cùng dataset/
 collection/SHA/counts. Không tạo hộ receipts bằng nhiều lần chạy máy owner.
+
+Khi cả hai splits được nghiệm thu thật, [paired research kit](./RESEARCH_TEAM_KIT.md)
+đóng gói hai bundles cùng Gold pin +offline verifier thành một ZIP bất biến.
+Packer/component tests không thay actual export acceptance hoặc three-machine receipts.

@@ -31,12 +31,17 @@ phiên này; chưa kết luận nguyên nhân gốc hoặc tăng timeout để c
 đúng4container cũ,9service healthy. Full query chạm512MB;3bucket đạt, bucket3
 timeout/12chưa chạy. Chưa đủ capacity/Gold/export, chưa có research ZIP mới.
 Mốc mới sau Docker hoạt động lại: [catalog rollout](../evidence/DAT-03_CATALOG_ROLLOUT.md)
-đã đạt full-scale event/bridge SQL probes, controller có20/288tháng Published
-đến2001-08, các phiên đã acceptance/release own lease. Nhánh
+đã đạt full-scale event/bridge SQL và Spark fingerprint probes; controller có
+45/288tháng Published đến2003-09, các phiên đã acceptance/release own lease. Nhánh
 [official collection](../specs/RESEARCH_COLLECTION_EXPORT.md) có loader từng
 shard/registry/result-scope riêng, vẫn đang nghiệm thu component và chưa có
-actual full-period export. **Vẫn chưa có full research ZIP để gửi nhóm**; không dùng
+actual full-period export. [Controller ML](./DAT-03_RESEARCH_ML_EXPORT.md) đã
+có code/test, vẫn chặn catalog chưa đủ288tháng. **Vẫn chưa có full research ZIP để gửi nhóm**; không dùng
 source captures hoặc một phần Gold thay bundle đã VALIDATED/EXPORTED.
+
+[Công cụ paired kit](../specs/RESEARCH_TEAM_KIT.md) đã có code/tests cho hai
+official splits cùng Gold pin. Chỉ được pack actual research release sau
+full288/official export acceptance; hiện chưa có research ZIP để gửi nhóm.
 
 File gửi nhóm trên máy chuẩn bị:
 `staging/shared-datasets/jma-development-pilot-team.zip` trong checkout DAT-03.

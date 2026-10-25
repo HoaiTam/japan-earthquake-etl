@@ -75,7 +75,7 @@ không giảm scope recovery. Ngày 24/10 thêm DAT-03, 16h estimate ban đầu 
 catalog thật và receipts ba người; pilot dùng ngay không thay research acceptance.
 [Mới nhất25/10 — DAT-03 catalog](../../evidence/DAT-03_CATALOG_ROLLOUT.md):
 event/bridge probes43copies đủ full-profile upper bound đã16/16 mỗi bảng;
-controller có27/288tháng Published đến2002-03, session v2 exit0/1173,357s/
+controller có45/288tháng Published đến2003-09, session v2 exit0/2460,963s/
 own release; source cutoff giữ nguyên. Nhánh official collection
 opt-in đang nghiệm thu component, chưa actual full-period export. Chưa288tháng hoặc official
 collection export/receipts ba máy; DAT-03 vẫn In Progress. Các trial fail bên

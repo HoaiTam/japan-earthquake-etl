@@ -190,6 +190,14 @@ release đủ gate. Không tạo dependency ngược từ DAT-03 sang EXP-02.
   tests; [runbook](../../runbooks/DAT-03_RESEARCH_ML_EXPORT.md) giữ full288 gate
   và lease qua checkpoint, chưa chạy trên research catalog toàn kỳ. Các ghi
   chú "wiring chưa triển khai" phía trên là lịch sử trước component này.
+  Phiên kế tiếp5de5ac2f746642d49d98677ad207cf5a accepted45/288 đến2003-09:
+  thêm18tháng/3batch,2460,963s, exit0/no timeout/no pending và own release.
+  [Metadata](../../evidence/DAT-03_CATALOG_CHECKPOINT_045.json) có six pins/
+  466.990 canonical/bridge. Catalog15,625%, chưa mốc25% hoặc full DAT-03.
+  [Paired research kit component](../../evidence/DAT-03_RESEARCH_TEAM_COMPONENT.md)
+  có11kit/9loader tests và full138pilot regression PASS bằng existing doc01
+  venv; chưa actual paired release hoặc receipts ba máy. Không ship fixture
+  ZIP, tự tạo receipt thành viên khác hoặc chuyển task Done từ code/tests.
 
 ## Tài liệu liên quan
 
