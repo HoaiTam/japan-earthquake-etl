@@ -260,6 +260,25 @@ verify-research-catalog-inputs: ## DAT-03 read-only local pins/capacity verifica
 	@test -n "$(RESEARCH_CATALOG_FOLDER)" || { echo 'Exact catalog folder required'; exit 1; }
 	@python3 scripts/research-catalog.py verify-inputs --folder "$(RESEARCH_CATALOG_FOLDER)"
 
+.PHONY: test-research-ml-export prepare-research-ml-export run-research-ml-export resume-research-ml-export
+RESEARCH_ML_FOLDER ?=
+RESEARCH_ML_CATALOG_OBSERVATION ?=
+RESEARCH_ML_CATALOG_SESSION ?=
+RESEARCH_ML_SPLIT ?=
+RESEARCH_ML_SECONDS ?= 6000
+
+test-research-ml-export: ## DAT-03 full288 gate/own lease/checkpoint/timeout mocks; không Docker
+	@python3 -m unittest discover -s tests -p 'test_research_ml_export.py'
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am test -Dtest=ResearchDatasetBuildJobTest -Dsurefire.failIfNoSpecifiedTests=false
+
+prepare-research-ml-export: ## DAT-03 pin một split từ catalog đủ288 tháng; không ETL/service/lease writes
+	@test -n "$(RESEARCH_DEPLOYMENT_ROOT)" -a -n "$(RESEARCH_CATALOG_FOLDER)" -a -n "$(RESEARCH_ML_CATALOG_OBSERVATION)" -a -n "$(RESEARCH_ML_CATALOG_SESSION)" -a -n "$(RESEARCH_ML_SPLIT)" || { echo 'Exact deployment/catalog/observation/session/split required'; exit 1; }
+	@python3 scripts/research-ml-export.py prepare --deployment-root "$(RESEARCH_DEPLOYMENT_ROOT)" --catalog "$(RESEARCH_CATALOG_FOLDER)" --catalog-runtime "$(RESEARCH_ML_CATALOG_OBSERVATION)" --catalog-session "$(RESEARCH_ML_CATALOG_SESSION)" --split "$(RESEARCH_ML_SPLIT)"
+
+run-research-ml-export resume-research-ml-export: ## DAT-03 EXPLICIT checkpointed MLI-02; chỉ sau full288 gate, không scheduled DAG
+	@test -n "$(RESEARCH_DEPLOYMENT_ROOT)" -a -n "$(RESEARCH_ML_FOLDER)" || { echo 'Exact deployment and ML folder required'; exit 1; }
+	@python3 scripts/research-ml-export.py $(if $(filter resume-research-ml-export,$@),resume,run) --deployment-root "$(RESEARCH_DEPLOYMENT_ROOT)" --folder "$(RESEARCH_ML_FOLDER)" --seconds "$(RESEARCH_ML_SECONDS)"
+
 test-research-usgs: ## DAT-03 offline capture guards và Java response validation; không network/Docker
 	@python3 -m unittest discover -s tests -p 'test_research_usgs_captures.py'
 	@./mvnw --batch-mode --no-transfer-progress -pl spark -am test -Dtest=ResearchUsgsCaptureCheckTest -Dsurefire.failIfNoSpecifiedTests=false
@@ -629,6 +648,7 @@ ci-docs-base: ## Always-on CI guards; pilot tests được chọn riêng theo im
 	@python3 -m unittest discover -s tests -p 'test_research_catalog.py'
 	@python3 -m unittest discover -s tests -p 'test_research_catalog_progress.py'
 	@python3 -m unittest discover -s tests -p 'test_research_spark_capacity.py'
+	@python3 -m unittest discover -s tests -p 'test_research_ml_export.py'
 	@python3 -m unittest discover -s tests -p 'test_research_usgs_captures.py'
 	@$(MAKE) test-research-trino-profile
 	@$(MAKE) test-research-light-session

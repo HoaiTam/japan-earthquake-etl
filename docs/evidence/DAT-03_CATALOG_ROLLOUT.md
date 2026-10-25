@@ -207,3 +207,13 @@ Worker bootstrap dùng `-B -X pycache_prefix=/dev/null` để không đọc/writ
 cũ, luôn compile đúng source bytes đã hash. Không xóa cache, không thay runner
 hoặc nới input SHA guard. Hai regression tests kiểm generated cache/foreign
 file/tampered JAR/symlink; resume chỉ sau fresh health/idle/pin checks.
+
+## Control-plane ML export — chỉ component, không runtime acceptance
+
+Trong lúc catalog active, hoàn thiện `ResearchDatasetBuildJob` và
+`scripts/research-ml-export.py`, không chạy thêm Spark fixture hoặc ML job
+song song trên máy này.12Python mocks PASS,2Java pure config/full288 rejection
+tests đã PASS trong targeted57 trước khi mở ETL; CI-impact21 và docs249files/
+2245links0problems. Không dùng mock full288/EXPORTED làm research evidence.
+[Runbook](../runbooks/DAT-03_RESEARCH_ML_EXPORT.md) mô tả roots/pins/budget,
+own lease checkpoint, unknown-outcome stop và final independent handoff gate.

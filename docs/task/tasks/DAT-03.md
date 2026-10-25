@@ -186,6 +186,10 @@ release đủ gate. Không tạo dependency ngược từ DAT-03 sang EXP-02.
   (72/144/216/288), không gọi catalog100% là DAT-03 Done. Xem
   [kế hoạch batch](../../runbooks/DAT-03_BATCH_EXECUTION.md). Được commit theo
   đợt; chưa có yêu cầu push/merge. Khối3/4/5 vẫn chưa đạt toàn bộ acceptance.
+  Controller full-catalog ML export đã có code/12Python mocks/2Java pure gate
+  tests; [runbook](../../runbooks/DAT-03_RESEARCH_ML_EXPORT.md) giữ full288 gate
+  và lease qua checkpoint, chưa chạy trên research catalog toàn kỳ. Các ghi
+  chú "wiring chưa triển khai" phía trên là lịch sử trước component này.
 
 ## Tài liệu liên quan
 

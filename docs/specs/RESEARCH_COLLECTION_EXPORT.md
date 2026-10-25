@@ -89,8 +89,11 @@ MLI-02 có thể chọn JAR đã pin riêng dưới
 `/opt/pipeline/staging/dat03-ml-export/<uuid>/runner.jar`; mặc định deployed
 JAR không đổi. Không nhận shell command/runner path từ DagRun. Các roots/code
 pin được bind trong immutable context, lease bao toàn run, no build/pull/init.
-Mỗi runtime session vẫn phải giữ budget <=2h và checkpoint; component support
-này **chưa** là controller hoặc actual long-run export acceptance.
+Mỗi runtime session vẫn phải giữ budget <=2h và checkpoint. Controller opt-in
+`scripts/research-ml-export.py`/`ResearchDatasetBuildJob` nối10 MLI-02 steps và
+giữ lease qua clean checkpoint. Đây không phải scheduled DagRun và **chưa**
+có actual long-run export acceptance. Xem
+[runbook controller](../runbooks/DAT-03_RESEARCH_ML_EXPORT.md).
 
 ## Kiểm thử
 
