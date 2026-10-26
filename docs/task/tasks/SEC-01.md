@@ -1,6 +1,6 @@
 ---
 task_id: "SEC-01"
-status: "Done"
+status: "Needs Update"
 week: 4
 block: "K - QA & Release"
 workstream: "Security"
@@ -52,6 +52,36 @@ và không biến pilot/synthetic result thành research-ready.
 - [x] Notebook và result bundle local được pin/scan, không có pipeline credential hoặc local account path ngoài contract.
 - **Colab/Drive: không áp dụng tại mốc local đã được owner duyệt**, chưa triển khai và chưa chứng nhận; phải nghiệm thu bảo mật trước migration theo quy tắc mở lại task ở trên.
 
+### Mở lại26/10 — handoff Drive đã được owner yêu cầu
+
+Local acceptance23/10 ở trên giữ nguyên làm lịch sử, không tự chạy lại Docker
+hoặc MinIO permission writes. Owner duyệt upload pilot đã verify và25JMA
+source archives vào folder nhóm đã chọn. Mở lại Needs Update trước transfer;
+không dùng trạng thái Done local để chứng nhận cloud. Phiên này không mở Colab.
+
+- [x] Fresh exact folder/effective permissions, không anyone/domain; ghi rõ
+  giới hạn roster mapping và inherited permissions, không tự đổi ACL.
+- [x] Allowlist actual pilot/source/metadata, kiểm SHA/ZIP/decoded payload và
+  secret/account-path scan; không upload .env/OAuth config/private logs.
+- [x] Remote bytes/readback/standalone verifier đạt trên đúng immutable release,
+  giữ expected pins ngoài artifact và evidence không chứa credential.
+- [ ] Bàn giao cho hai máy thành viên, xác nhận quyền nhận và download thực tế;
+  không tạo hộ receipts hoặc coi root folder check là full cloud acceptance.
+
+[Evidence transfer26/10](../../evidence/DAT-03_DRIVE_UPLOAD_20261026.json):
+exact35objects/33files có3user permissions (owner1/writer2), không anyone/domain,
+không đổi ACL. Source scan464.953.689decoded bytes và pilot10inner files không
+có finding; remote33files khớp, tải lại verify25archives và pilot279/2 đạt.
+Còn map recipient identities/quyền nhận và hai máy thực chạy verifier; không
+chứng nhận mọi descendant của Drive hoặc Colab. Task giữ Needs Update.
+
+Tiếp theo owner duyệt [partial101tháng](../../runbooks/DAT-03_PARTIAL_CATALOG_HANDOFF.md):
+155unchanged Spark Parquet và proof/support được decoded-scan trước transfer;
+fresh6file download/SHA, standalone ID/month/join verifier và7object ACL đạt.
+Không có .env/private logs/JAR trong kit, không đổi ACL. Cleanup41exact temp
+files sau proof không thay runtime/warehouse/CAS. [Evidence](../../evidence/DAT-03_PREFIX_101_DRIVE_20261026.json).
+Chưa có hai máy receipts hoặc Colab-session audit; giữ Needs Update.
+
 ## Hard dependency
 
 - [ORC-05](./ORC-05.md)
@@ -94,11 +124,15 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Theo dõi
 
-- **Trạng thái:** Done
+- **Trạng thái:** Needs Update
 - **Assignee:** HoaiTam
 - **Reviewer:** unassigned — chưa có approval độc lập
 - **Evidence / PR:** [Nghiệm thu local 23/10](../../evidence/SEC-01_LOCAL_ACCEPTANCE_20261023.md), [report redacted](../../evidence/SEC-01-20261023.json), [checklist](../../security/SEC-01-CHECKLIST.md). [Audit 22/10](../../evidence/SEC-01_20261022.md) và [runtime cũ](../../evidence/SEC-01_RUNTIME.md) giữ làm lịch sử. Branch `fix/sec-01-ml-handoff-audit`, auditor commit `3d2250d` cộng bản docs acceptance; deployment PR #96 tại `b93456e`, không đổi checkout đang bind. Phiên nghiệm thu này không commit/push/mở PR.
 - **Kỹ năng phù hợp:** Security, Docker, Git
+
+26/10: mở lại phần cloud theo yêu cầu handoff dữ liệu của owner. Local23/10
+không bị viết lại thành chưa đạt; payload/permission/readback scoped đã đạt,
+còn recipient/identity gates phía trên. Không tự commit/push/merge hoặc đổi IAM/ACL.
 
 ## Checklist bàn giao
 

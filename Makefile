@@ -291,6 +291,10 @@ RESEARCH_TEAM_ZIP ?= staging/shared-datasets/jma-research-team.zip
 test-research-team: ## DAT-03 paired kit/tamper/source race/offline fresh-process verifier fixtures; không Docker
 	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_research_team.py'
 
+.PHONY: test-catalog-prefix-kit
+test-catalog-prefix-kit: ## DAT-03 partial processed Parquet transport/pins/IDs/coverage; không Docker hoặc ETL
+	@$(PILOT_PYTHON) -B -m unittest discover -s tests -p 'test_catalog_prefix_kit.py'
+
 pack-research-team: ## DAT-03 EXPLICIT hai actual EXPORTED splits đã nghiệm thu; không download/ETL/cloud
 	@test -n "$(RESEARCH_TEAM_REPRODUCTION)" -a -n "$(RESEARCH_TEAM_EXTENSION)" -a -n "$(RESEARCH_TEAM_REPRODUCTION_MANIFEST_SHA256)" -a -n "$(RESEARCH_TEAM_REPRODUCTION_CHECKSUMS_SHA256)" -a -n "$(RESEARCH_TEAM_EXTENSION_MANIFEST_SHA256)" -a -n "$(RESEARCH_TEAM_EXTENSION_CHECKSUMS_SHA256)" || { echo 'Two actual export folders and external manifest/checksums pins are required'; exit 1; }
 	@$(PILOT_PYTHON) scripts/pack-research-team.py --reproduction "$(RESEARCH_TEAM_REPRODUCTION)" --extension "$(RESEARCH_TEAM_EXTENSION)" --reproduction-manifest-sha256 "$(RESEARCH_TEAM_REPRODUCTION_MANIFEST_SHA256)" --reproduction-checksums-sha256 "$(RESEARCH_TEAM_REPRODUCTION_CHECKSUMS_SHA256)" --extension-manifest-sha256 "$(RESEARCH_TEAM_EXTENSION_MANIFEST_SHA256)" --extension-checksums-sha256 "$(RESEARCH_TEAM_EXTENSION_CHECKSUMS_SHA256)" --output "$(RESEARCH_TEAM_ZIP)"
@@ -390,6 +394,10 @@ check-docs: ## DOC-01 validate link/file/heading Markdown nội bộ; offline, k
 test-docs: ## DOC-01 link checker và onboarding command regression; standard library only
 	@python3 -m unittest discover -s tests -p 'test_documentation.py'
 
+.PHONY: test-jma-source-handoff
+test-jma-source-handoff: ## DAT-03 offline source-kit SHA/ZIP/allowlist guards; không Docker hoặc nguồn mạng
+	@python3 -B -m unittest discover -s tests -p 'test_jma_source_handoff.py'
+
 test-qa-01: ## QA-01 identity/chain/count/SQL guards + ORC-07 blocker tests offline; không Docker
 	@python3 -m unittest discover -s airflow/tests -p 'test_qa_01_*.py'
 	@python3 -m unittest discover -s airflow/tests -p 'test_current_month_runtime.py'
@@ -459,6 +467,7 @@ test-pilot: ## Pilot/model regression; cần pyarrow/model deps và loopback Jup
 	@$(PILOT_PYTHON) -m unittest tests/test_experiment_harness.py
 	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_research_collection_loader.py'
 	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_research_team.py'
+	@$(MAKE) test-catalog-prefix-kit PILOT_PYTHON="$(PILOT_PYTHON)"
 	@$(PILOT_PYTHON) -m unittest tests/test_baseline_algorithms.py
 	@$(PILOT_PYTHON) -m unittest tests/test_adaptive_hdbscan.py
 
@@ -651,7 +660,7 @@ ci-docs: ## Docs/contracts/secret hygiene/Compose tĩnh; không đọc .env riê
 	@$(MAKE) test-pilot PILOT_PYTHON=python3
 
 ci-docs-base: ## Always-on CI guards; pilot tests được chọn riêng theo impact, không Docker daemon
-	@$(MAKE) check-docs test-docs
+	@$(MAKE) check-docs test-docs test-jma-source-handoff
 	@$(MAKE) test-contracts
 	@python3 -m unittest discover -s tests -p 'test_real_etl_cli.py'
 	@python3 -m unittest discover -s tests -p 'test_full_month_*.py'

@@ -54,6 +54,10 @@ PARTIAL thay full research data.
 - Archive profile và rollout/coverage/quality/resource reports; chỉ metadata vào Git.
 - Real Gold pins, MLI-02 acceptance, immutable research bundle và external SHA.
 - Công cụ đóng gói/verify offline, metadata handoff và receipts của ba người.
+- [Bản Parquet partial101tháng trên Drive](../../runbooks/DAT-03_PARTIAL_CATALOG_HANDOFF.md):
+  unchanged Spark readback/ID/month/remote restore proof, EXPLORATORY_ONLY;
+  không thay official ML export hoặc backup warehouse. Cleanup chỉ exact
+  temporary copies đã verify; frozen inputs/CAS/checkpoint/warehouse giữ nguyên.
 - [Evidence theo giai đoạn](../../evidence/DAT-03_PROGRESS.md); không viết lại
   evidence DAT-02/MLI-02 thành kết quả full catalog mới.
 
@@ -153,6 +157,10 @@ release đủ gate. Không tạo dependency ngược từ DAT-03 sang EXP-02.
 - Không xóa dữ liệu; release khác bytes dùng identity/output mới.
 - Không upload cloud/thay ACL/tạo link public. SEC-01 Done local; mở lại phần
   Colab/Drive trước migration. Người dùng tự chọn nơi chia sẻ.
+  Ngoại lệ26/10 owner chọn folder nhóm và duyệt pilot/source, tiếp theo ZIP
+  Parquet101tháng và xóa copies local sau remote readback. SEC-01 đã mở lại
+  Needs Update; scoped payload/ACL đạt, còn recipient/identity acceptance.
+  Không đổi ACL hoặc cấp official research/ML readiness từ partial ZIP.
 - Hash kiểm byte identity theo expected pin ngoài bundle, không là chữ ký nguồn.
 - Không fit/tune/cấp scientific approval: EXP-02/03/04/05 sở hữu experiment,
   MLI-04/MLQ-01 sở hữu report/ML E2E.

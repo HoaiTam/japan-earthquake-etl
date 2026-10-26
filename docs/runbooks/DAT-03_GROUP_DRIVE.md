@@ -9,6 +9,22 @@
   distributed ETL. Giữ các gate [team worker setup](./DAT-03_TEAM_WORKER_SETUP.md).
 - `/u/1` chỉ là vị trí account trong browser, không pin danh tính Google.
 
+## Dữ liệu đã upload sau setup — 26/10/2026
+
+Owner đã duyệt thêm transfer pilot và25JMA source archives. Hai immutable
+releases đã upload, đối chiếu remote bytes, tải lại và verify thành công;
+[link tải và pins](./DAT-03_DRIVE_DATA_HANDOFF.md),
+[evidence](../evidence/DAT-03_DRIVE_UPLOAD_20261026.json). Không public/đổi ACL
+hoặc xóa local. SEC-01 đã mở lại Needs Update: actual scoped payload/permissions
+đạt, còn identity/receipt hai máy thành viên. Không là official research release
+hoặc distributed ETL acceptance; DAT-03 vẫn In Progress.
+
+Owner tiếp tục duyệt ZIP dữ liệu đã xử lý101tháng và cleanup local sau verify:
+[partial catalog handoff](./DAT-03_PARTIAL_CATALOG_HANDOFF.md) đã có
+fresh download/SHA/semantic/ACL proof, không ETL hoặc Docker mutation. Đây là
+release thứ ba, không official feature export; chỉ dọn copies/ZIP tạm, giữ
+warehouse/CAS/checkpoint. Evidence setup và hai release đầu giữ nguyên lịch sử.
+
 ## Tình trạng setup trên máy HoaiTam — 26/10/2026
 
 - Rclone v1.75.2 đã cài sẵn; không cài lại.
@@ -28,14 +44,16 @@
   cloud acceptance. Không lưu email/permission IDs/token vào evidence.
 - Đã tạo và readback đủ6required directories dưới
   **`dat03_team:data/dat03/`**; giữ nguyên `data/` và dữ liệu cũ. Không upload
-  dataset, delete hoặc mutate ACL. [Evidence metadata](../evidence/DAT-03_DRIVE_SETUP_20261026.json).
+  dataset trong mốc setup, delete hoặc mutate ACL. Transfer sau đó là phiên
+  riêng được owner duyệt ở mục trên. [Evidence metadata](../evidence/DAT-03_DRIVE_SETUP_20261026.json).
 - `about` đọc được quota account hiện đăng nhập; đây không phải dung lượng
   được reserve cho folder nhóm hay bảo đảm quota của mọi file owner. Không
   dùng quota account làm lý do bỏ physical4GiB reserve trên máy ETL.
 ### Lịch sử lỗi trước khi chuyển sang client riêng
 
 Các mô tả sau không phải trạng thái kết nối hiện tại; custom client đã kiểm
-read/write thư mục ở trên. Chưa nghiệm thu file transfer hoặc research data.
+read/write thư mục ở trên. File transfer đã được nghiệm thu ở phiên handoff
+mới; research data toàn kỳ vẫn chưa nghiệm thu.
 
 - Remote cũ `gdrive` dùng `scope=drive.appfolder`, root `appDataFolder`;
   đây là vùng ẩn của ứng dụng, không dùng truy cập folder share thông thường.
@@ -144,8 +162,8 @@ dat03_team:data/dat03/
 └── receipts/
 ```
 
-Các folder đã được tạo bằng mkdir và đọc lại từng path thành công, không có
-dataset bên trong do phiên setup này upload. Shared folder My Drive không tự
+Các folder đã được tạo bằng mkdir và đọc lại từng path thành công; riêng phiên
+setup không upload dataset, phiên handoff sau đó đã upload hai release. Shared folder My Drive không tự
 có quota riêng; quyền thư mục cha có thể kế thừa. Worker paths là quy ước
 ownership, **chưa được ACL-isolate** theo mỗi người. Người dùng cần xác nhận
 effective permissions và chỉ cấp quyền ghi cần thiết trước handoff thật;
@@ -153,9 +171,9 @@ không tự sửa quyền đã có hoặc bật public trong lúc setup.
 
 DAT-03 vẫn cần range worker/portable ETL export/import/merge trước chia187tháng,
 và full288/source/publication/official ML export/ba máy receipts trước Done.
-SEC-01 local Done không chứng nhận Drive; phải mở lại Needs Update và nghiệm
-thu cloud trước upload dataset. Phiên này chỉ setup và root permission read;
-không scan toàn Drive, upload/readback payload hoặc dùng Drive làm live warehouse.
+SEC-01 local Done không chứng nhận Drive; đã mở lại Needs Update trước transfer,
+kiểm payload và scoped permissions thật. Còn recipient/identity acceptance;
+không scan toàn Drive hoặc dùng Drive làm live warehouse.
 
 Nguồn: [rclone Drive](https://rclone.org/drive/),
 [quota/about](https://rclone.org/commands/rclone_about/),

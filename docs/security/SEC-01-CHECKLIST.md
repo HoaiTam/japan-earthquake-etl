@@ -1,6 +1,7 @@
 # SEC-01 — Review secret và bề mặt truy cập
 
-Owner hiện tại: **HoaiTam**. Status: **Done — local**. Reviewer: **unassigned**.
+Owner hiện tại: **HoaiTam**. Status: **Needs Update — Drive handoff26/10**.
+Local acceptance23/10 giữ nguyên. Reviewer: **unassigned**.
 Trang/Windows và [report static cũ](../evidence/SEC-01-static.json) là mốc lịch
 sử, không chứng nhận runtime máy hiện tại. ORC-05 đã Done.
 
@@ -126,12 +127,22 @@ smokes hiện có vẫn giữ docker-runtime preflight/freshness, không đượ
 | Trino logging fix | Đã mount đúng source/read-only, không cần restart trong audit này |
 | Actual notebook/export/import local | PASS: 5 artifacts/23 files của DAT-02/EXP-01/MLD-05/MLI-03; không chứng nhận remote Google account hoặc scientific approval |
 | Current full runtime | 23/10 start đúng hai Spark containers cũ theo owner; 9 runtime services healthy và 2 init exited/0; không build/pull/init |
-| Phạm vi cloud | Không áp dụng tại mốc local được owner duyệt; chưa triển khai/chưa chứng nhận Colab/Drive, phải mở lại SEC-01 trước migration |
+| Drive handoff26/10 | Đã mở lại Needs Update, scoped payload/remote33files/fresh restore đạt; exact35objects chỉ3user permissions, không anyone/domain; còn recipient identity và hai máy download/verifier |
+| Colab | Chưa triển khai/chưa chứng nhận; local23/10 không chứng nhận remote session |
 
 [Nghiệm thu local 23/10](../evidence/SEC-01_LOCAL_ACCEPTANCE_20261023.md),
 [report redacted hiện tại](../evidence/SEC-01-20261023.json).
 [Evidence 22/10](../evidence/SEC-01_20261022.md) và report tương ứng giữ làm lịch sử.
 [Evidence cũ](../evidence/SEC-01_RUNTIME.md) giữ làm mốc lịch sử, không ghi đè.
+[Evidence Drive26/10](../evidence/DAT-03_DRIVE_UPLOAD_20261026.json),
+[release links/pins và cách kiểm máy thành viên](../runbooks/DAT-03_DRIVE_DATA_HANDOFF.md).
+Nguồn25ZIP và pilot279/2 đã scan allowlist/decoded payload trước upload;
+no findings trong phạm vi scan, không upload OAuth config/.env/private logs.
+Không suy ra full cloud acceptance hoặc nghiên cứu hoàn chỉnh từ scoped checks.
+Partial101tháng sau đó có [evidence riêng](../evidence/DAT-03_PREFIX_101_DRIVE_20261026.json):
+155Parquet/proof/support đã decoded-scan, remote6file/fresh verifier và7object
+ACL đạt. Không upload source/JAR/private logs cùng partial kit; cleanup chỉ
+copies/ZIP tạm theo owner. Recipient identities/hai máy và Colab khi dùng còn pending.
 
 **SEC-01 — Review secret và bề mặt truy cập:** QA-01 scheduled 23/10 đã failed,
 không còn active run; daily đã pause trước audit. Lease QA-01 giữ nguyên, probe
