@@ -24,7 +24,7 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 
 - Tổng số task: **77**.
 - Foundation: **9 task `Done`**, FND-01 đã nghiệm thu runtime của lifecycle mới ngày 2026-10-15.
-- Task còn ở trạng thái `Needs Update`: **0**.
+- Task còn ở trạng thái `Needs Update`: **1** — SEC-01 mở lại cho Drive handoff26/10.
 - Core: **69 task**.
 - Stretch: **8 task**.
 - Tổng effort task: **402 giờ**; baseline 364h + ORC-06/07 16h + DAT-02 6h + DAT-03 16h.
@@ -54,10 +54,12 @@ scheduled/first/rerun/contention, 7 tasks mỗi daily run và pause/lease readba
 xem [evidence](../../evidence/ORC-02_LIVE_ACCEPTANCE.md).
 FND-01 đã Done: cold/warm startup, hai foundation smoke và hai USGS live smoke
 đạt; [evidence](../../evidence/FND-01_LIVE_ACCEPTANCE.md).
-SEC-01 **Done trong phạm vi Docker/Jupyter local** owner duyệt ngày 23/10:
+SEC-01 **Needs Update cho Drive handoff26/10**; local acceptance **Done** owner duyệt ngày23/10 giữ làm lịch sử:
 audit source/history/logs/config/runtime và 5 handoff artifacts đạt, fresh 15
-permission checks đạt, findings=0/pending=0. Colab/Drive chưa triển khai, chưa
-chứng nhận; phải mở lại SEC-01 trước migration. Xem
+permission checks đạt, findings=0/pending=0. Owner nay duyệt upload pilot và
+25JMA sources lên Drive; đã mở lại SEC-01 trước transfer, scoped payload/ACL/
+remote readback đạt. Còn identity/receipts hai máy thành viên, chưa full cloud
+acceptance. [Drive handoff26/10](../../runbooks/DAT-03_DRIVE_DATA_HANDOFF.md). Xem
 [evidence SEC-01](../../evidence/SEC-01_LOCAL_ACCEPTANCE_20261023.md).
 MLD-02/03 giữ assignee rosy179, reviewer HoaiTam; task mới reviewer unassigned.
 MLI-02 **Done technical component 24/10**: real build DAG first/rerun 12/12,
@@ -262,4 +264,4 @@ fixture/inventory; assignee `HoaiTam`, reviewer `unassigned`. Xem
 | [QA-03](./QA-03.md) - Kiểm thử JMA historical backfill | 5 | Historical backfill | Core | P0 | 5h | Done |
 | [QA-04](./QA-04.md) - Test failure và recovery theo tầng | 5 | Failure recovery | Core | P0 | 4h | Done |
 | [QA-05](./QA-05.md) - Profile dữ liệu lịch sử và tài nguyên local | 8 | Performance | Stretch | P2 | 4h | Backlog |
-| [SEC-01](./SEC-01.md) - Review secret và bề mặt truy cập | 4 | Security | Core | P1 | 4h | Done |
+| [SEC-01](./SEC-01.md) - Review secret và bề mặt truy cập | 4 | Security | Core | P1 | 4h | Needs Update |

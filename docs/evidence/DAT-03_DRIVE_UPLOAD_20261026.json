@@ -1,0 +1,116 @@
+{
+  "schema_version": "dat03-drive-handoff-v1",
+  "observed_on": "2026-10-26",
+  "status": "UPLOADED_BYTE_CHECKED_DOWNLOADED_AND_VERIFIED",
+  "scope": "PINNED_JMA_RAW_SOURCES_AND_DEVELOPMENT_PILOT_NOT_OFFICIAL_RESEARCH",
+  "remote_root_folder_id": "17Wntw5LIRvFdzaU0RpnBRL60gzsRdFTB",
+  "remote_base": "dat03_team:data/dat03/shared-inputs",
+  "source": {
+    "remote": "dat03_team:data/dat03/shared-inputs/jma-sources-2000-2024/79a44764037f",
+    "folder_id": "1YWUGWzuC8K1VKEzZj-6sk6OUV2vASAP6",
+    "url": "https://drive.google.com/drive/folders/1YWUGWzuC8K1VKEzZj-6sk6OUV2vASAP6",
+    "files": 29,
+    "archives": 25,
+    "compressed_archive_bytes": 128784513,
+    "years": [
+      2000,
+      2024
+    ],
+    "research_source_years": [
+      2000,
+      2023
+    ],
+    "boundary_source_only_year": 2024,
+    "manifest_sha256": "79a44764037f6357be1f8a9c95183958f7a1879b6146415c338cf5b27a0d701b",
+    "verifier_sha256": "aa0507323f916f59b4de7e4902de8e0bf0e5cda9498a660f8abc0f7f1664c203",
+    "fresh_download_verifier_status": "PINNED_JMA_SOURCES_VERIFIED",
+    "coverage_verified": false,
+    "bronze_ready": false,
+    "gold_published": false,
+    "research_ready": false,
+    "source_authenticity_verified": false
+  },
+  "pilot": {
+    "remote": "dat03_team:data/dat03/shared-inputs/development-pilot/f58291b72873",
+    "folder_id": "1b7m-DE6f3OcM4Qm8wQf46U0T8O2whLQb",
+    "url": "https://drive.google.com/drive/folders/1b7m-DE6f3OcM4Qm8wQf46U0T8O2whLQb",
+    "zip_url": "https://drive.google.com/file/d/12eLvQJzEkBuT0WYaxHYvb9KZlk5MK_vb/view",
+    "files": 4,
+    "zip_bytes": 55408,
+    "zip_sha256": "f58291b72873e1b26791fef97818fdcf5e2b028a5dfa528885a666d8cdc1b870",
+    "handoff_sha256": "9121d6839f9ef8e5646a06cd0bf870fcde50b65da00c03e7b268760237cddc9a",
+    "release_metadata_sha256": "7ae966433ee844ddf8a3b9e9294950b0cb3bf1918945d03ed8dfdc0927ad8559",
+    "feature_count": 279,
+    "mainshock_count": 2,
+    "coverage_status": "PARTIAL",
+    "allowed_usage": "DEVELOPMENT_ONLY",
+    "fresh_download_semantic_verifier": "TEAM_PILOT_VERIFIED",
+    "verified_recipient": "HoaiTam",
+    "research_ready": false,
+    "scientific_approval": false
+  },
+  "checks": {
+    "source_pin_comparison": "PASSED_25_OF_25",
+    "source_zip_layout_crc": "PASSED_25_OF_25",
+    "source_decoded_bytes_scanned": 464953689,
+    "pilot_inner_files_scanned": 10,
+    "local_payload_and_metadata_secret_scan_findings": 0,
+    "configured_secret_exact_value_scan": "PASSED_NO_VALUES_RECORDED",
+    "immutable_allowlist_copy": "PASSED",
+    "rclone_check_download": {
+      "source_archives": 25,
+      "source_metadata": 4,
+      "pilot_zip": 1,
+      "pilot_metadata": 3,
+      "differences": 0
+    },
+    "exact_remote_file_names_sizes": "PASSED_29_SOURCE_4_PILOT",
+    "fresh_independent_download_source": "PASSED",
+    "fresh_independent_download_pilot_semantics": "PASSED_279_FEATURES_2_MAINSHOCKS"
+  },
+  "permissions": {
+    "root_and_shared_inputs_preflight": "PASSED_USER_ONLY_OWNER_1_WRITER_2",
+    "exact_release_objects_checked": 35,
+    "users_per_object": 3,
+    "roles": [
+      "owner",
+      "writer",
+      "writer"
+    ],
+    "anyone_permissions": 0,
+    "domain_permissions": 0,
+    "file_download_capability": "PASSED_33_FILES",
+    "roster_email_mapping_verified": false,
+    "unrelated_descendants_audited": false,
+    "acl_mutations": 0
+  },
+  "safety": {
+    "local_data_deleted": 0,
+    "remote_data_deleted": 0,
+    "original_archives_and_pilot_retained": true,
+    "credentials_or_logs_uploaded": false,
+    "docker_or_etl_changed": false,
+    "leases_changed": false,
+    "commit_push_merge": false
+  },
+  "receipts": {
+    "HoaiTam": "VERIFIED_FRESH_DRIVE_DOWNLOAD_ON_PREPARING_MACHINE",
+    "ThanhTris": "PENDING_ON_OWN_MACHINE",
+    "rosy179": "PENDING_ON_OWN_MACHINE"
+  },
+  "catalog": {
+    "accepted_months": 101,
+    "planned_months": 288,
+    "progress_changed_by_upload": false,
+    "official_ml_export_complete": false
+  },
+  "task_status": {
+    "DAT_03": "In Progress",
+    "SEC_01": "Needs Update"
+  },
+  "remaining": [
+    "DAT-03: full 288-month catalog and official collection ML export, portable batch worker/export/import/merge, and three-machine research receipts",
+    "SEC-01: map expected recipient identities and confirm actual downloads/verifiers on ThanhTris and rosy179 machines; no Colab session acceptance",
+    "Drive setup: OAuth publishing/long-running refresh-token readiness not independently verified"
+  ]
+}

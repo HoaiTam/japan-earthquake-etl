@@ -1,5 +1,19 @@
 # DAT-03 — Dataset dùng chung cho ba thành viên
 
+## Handoff Drive mới nhất — 26/10/2026
+
+Sau hai release pilot/source, đã thêm [Parquet101tháng](./DAT-03_PARTIAL_CATALOG_HANDOFF.md)
+với155files/1.064.869observations và memberships; fresh Drive download đạt,
+ZIP/readback tạm đã dọn theo owner. Chỉ exploratory partial, không full288,
+official features hoặc warehouse backup. Giữ dữ liệu/checkpoint gốc cần resume.
+
+Đã upload pilot giữ nguyên pin và25ZIP JMA nguồn2000–2024 lên folder nhóm;
+remote content check và fresh download/semantic verifier đều đạt.
+[Link tải, checksum và hướng dẫn máy thành viên](./DAT-03_DRIVE_DATA_HANDOFF.md),
+[evidence](../evidence/DAT-03_DRIVE_UPLOAD_20261026.json). Nguồn2024 chỉ boundary;
+source/pilot không là Gold hoặc official ML export. HoaiTam verify download
+thật; ThanhTris/rosy179 còn gửi receipt từ máy riêng. Không public ACL/xóa local.
+
 ## Agent trên máy thành viên: setup/check và kế hoạch Drive
 
 Đọc [team worker setup](./DAT-03_TEAM_WORKER_SETUP.md) cho ThanhTris/rosy179:
@@ -54,8 +68,8 @@ full288/official export acceptance; hiện chưa có research ZIP để gửi nh
 
 File gửi nhóm trên máy chuẩn bị:
 `staging/shared-datasets/jma-development-pilot-team.zip` trong checkout DAT-03.
-Đây là đường dẫn local, không phải URL public; người dùng gửi ZIP và pins qua
-kênh nhóm đã được duyệt. Chưa upload/thay ACL Drive, không tự tạo cloud link.
+Đây là đường dẫn local của mốc25/10. Ngày26/10 ZIP giữ nguyên đã upload theo
+owner duyệt; dùng restricted Drive links và pins ở đầu tài liệu. Không đổi ACL.
 
 | Thuộc tính | Bản pilot gửi trước |
 |---|---|
