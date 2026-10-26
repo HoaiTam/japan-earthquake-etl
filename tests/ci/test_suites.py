@@ -82,7 +82,10 @@ class SuitePolicyTest(unittest.TestCase):
 
     def test_real_build_adapter_is_visible_in_task_suite(self):
         groups = impact.inventory("java")
-        self.assertEqual(groups["mli-02-build"], ["ie212.earthquake.spark.ml.DatasetBuildJobTest"])
+        self.assertEqual(groups["mli-02-build"], [
+            "ie212.earthquake.spark.ml.DatasetBuildJobTest",
+            "ie212.earthquake.spark.usgs.ResearchDatasetBuildJobTest",
+        ])
         self.assertTrue({"test_ml_dataset_real.py", "test_mli_02_build_dataset.py"} <= set(impact.inventory("airflow")["ml-qa"]))
 
     def test_empty_inventory_missing_selector_and_invalid_mode_fail(self):

@@ -29,6 +29,7 @@ public final class TrustedDatasetResolver {
         Path manifestPath = root.resolve(reference).normalize();
         requireInside(root, manifestPath);
         if (Files.isSymbolicLink(manifestPath) || !Files.isRegularFile(manifestPath)) throw new IllegalArgumentException("IMP_UNKNOWN_DATASET");
+        if(Files.size(manifestPath)>64*1024*1024) throw new IllegalArgumentException("IMP_DATASET_METADATA_LIMIT");
         String manifestSha = sha256(Files.readAllBytes(manifestPath));
         if (!manifestSha.equals(text(request, "dataset_manifest_sha256"))) throw new IllegalArgumentException("IMP_CHECKSUM_MISMATCH");
         JsonNode manifest = JSON.readTree(Files.readAllBytes(manifestPath));
@@ -42,14 +43,53 @@ public final class TrustedDatasetResolver {
         Path exportManifest = resolveExportManifest(root, manifest);
         String exportSha = sha256(Files.readAllBytes(exportManifest));
         if (!exportSha.equals(manifest.path("export_manifest_sha256").asText())) throw new IllegalArgumentException("IMP_CHECKSUM_MISMATCH");
-        List<ResultBundleValidator.Candidate> candidates = candidates(manifest.path("candidates"));
+        ResultBundleValidator.CollectionScope scope=null;
+        List<ResultBundleValidator.Candidate> candidates;
+        if(ResearchCollectionExportBundle.VERSION.equals(manifest.path("export_version").asText())) {
+            String shard=text(request,"collection_shard_id"),collection=text(request,"collection_id");
+            scope=new ResultBundleValidator.CollectionScope(ResearchCollectionExportBundle.VERSION,collection,shard);
+            JsonNode plan=manifest.path("collection_plan"),entry=manifest.path("collection_shards").path(shard);
+            if(!collection.equals(plan.path("collection_id").asText()) || !entry.isObject()
+                    || entry.path("feature_row_count").asLong()<1 || entry.path("feature_row_count").asLong()>FeatureExportBundle.MAX_ROWS
+                    || entry.path("mainshock_count").asLong()<1 || entry.path("mainshock_count").asLong()>128)
+                throw new IllegalArgumentException("IMP_COLLECTION_SCOPE_REQUIRED");
+            String ref=text(entry,"lineage_ref");
+            if(!ref.equals("exports/"+text(request,"dataset_id")+"/"+shard+".json"))throw new IllegalArgumentException("IMP_DATASET_REFERENCE_INVALID");
+            Path file=root.resolve(ref);requireInside(root,file);
+            if(!Files.isRegularFile(file) || Files.size(file)>64*1024*1024)throw new IllegalArgumentException("IMP_DATASET_METADATA_LIMIT");
+            byte[] bytes=Files.readAllBytes(file);
+            if(!sha256(bytes).equals(text(entry,"lineage_sha256")))throw new IllegalArgumentException("IMP_CHECKSUM_MISMATCH");
+            var lineage=JSON.readTree(bytes);
+            if(lineage.size()!=4 || !collection.equals(text(lineage,"collection_id")) || !shard.equals(text(lineage,"shard_id"))
+                    || !text(request,"dataset_id").equals(text(lineage,"dataset_id")))throw new IllegalArgumentException("IMP_DATASET_LINEAGE_MISMATCH");
+            candidates=candidates(lineage.path("candidates"));
+            if(!lineage.path("candidates").isArray() || candidates.size()!=lineage.path("candidates").size())
+                throw new IllegalArgumentException("IMP_CANDIDATE_LINEAGE_REQUIRED");
+            var assigned=new java.util.TreeMap<String,Long>();
+            for(var p:plan.path("shards"))if(shard.equals(p.path("shard_id").asText()))for(var m:p.path("mainshocks"))
+                if(assigned.put(m.path("mainshock_event_id").asText(),m.path("candidate_row_count").asLong())!=null)throw new IllegalArgumentException("IMP_DUPLICATE_GRAIN");
+            var actual=new java.util.TreeMap<String,Long>();var keys=new java.util.HashSet<String>();
+            for(var candidate:candidates) {
+                if(candidate.eventId().isBlank() || candidate.eventId().length()>256
+                        || !java.util.Set.of("PRE","MAINSHOCK","POST").contains(candidate.role())
+                        || candidate.mainshockId().equals(candidate.eventId())!=candidate.role().equals("MAINSHOCK"))
+                    throw new IllegalArgumentException("IMP_EVENT_ROLE_MISMATCH");
+                if(!keys.add(candidate.mainshockId()+"\u0000"+candidate.eventId()))throw new IllegalArgumentException("IMP_DUPLICATE_GRAIN");
+                actual.merge(candidate.mainshockId(),1L,Long::sum);
+            }
+            if(candidates.size()!=entry.path("feature_row_count").asLong() || actual.size()!=entry.path("mainshock_count").asLong()
+                    || !actual.equals(assigned))throw new IllegalArgumentException("IMP_CANDIDATE_LINEAGE_REQUIRED");
+        } else {
+            if(request.has("collection_shard_id") || request.has("collection_id"))throw new IllegalArgumentException("IMP_COLLECTION_SCOPE_REQUIRED");
+            candidates=candidates(manifest.path("candidates"));
+        }
         if (candidates.isEmpty()) throw new IllegalArgumentException("IMP_CANDIDATE_LINEAGE_REQUIRED");
         String runId = text(request, "experiment_run_id");
         return new ResultBundleValidator.Context(text(request, "dataset_id"), "EXPORTED", runId,
             text(request, "algorithm_name"), text(request, "model_config_version"), candidates, previousBundleSha256,
             new ResultBundleValidator.DatasetPins(reference, manifestSha, exportSha,
                 manifest.path("registry_snapshot_id").asText(), manifest.path("candidate_snapshot_id").asText(),
-                manifest.path("mainshock_snapshot_id").asText()), null);
+                manifest.path("mainshock_snapshot_id").asText()), null,scope);
     }
 
     private static List<ResultBundleValidator.Candidate> candidates(JsonNode values) {
@@ -84,6 +124,7 @@ public final class TrustedDatasetResolver {
 
     private static void requireInside(Path root, Path path) {
         if (!path.startsWith(root)) throw new IllegalArgumentException("IMP_DATASET_REFERENCE_INVALID");
+        for(Path p=path;p!=null;p=p.getParent()) if(Files.isSymbolicLink(p)) throw new IllegalArgumentException("IMP_DATASET_REFERENCE_INVALID");
     }
 
     static String sha256(byte[] bytes) {

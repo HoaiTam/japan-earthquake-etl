@@ -653,6 +653,12 @@ def write_experiment_result(
     require(mode in VALID_MODES, f"INVALID_MODE:{mode}")
     require(mode == bundle.get("mode"), f"MODE_MISMATCH_WITH_BUNDLE:{mode}!={bundle.get('mode')}")
     require(algorithm_name in ALGORITHMS, f"INVALID_ALGORITHM:{algorithm_name}")
+    collection_scope = bundle.get("collection_scope")
+    if collection_scope is not None:
+        require(mode == MODE_OFFICIAL and isinstance(collection_scope, dict)
+                and set(collection_scope) == {"version", "collection_id", "shard_id", "scope"}
+                and collection_scope["version"] == "dat03-collection-export-v1"
+                and collection_scope["scope"] == "WHOLE_WINDOW_SHARD", "EXP_COLLECTION_SCOPE_INVALID")
 
     out_path = Path(output_dir).resolve()
     out_path.mkdir(parents=True, exist_ok=True)
@@ -772,6 +778,7 @@ def write_experiment_result(
                     cfg_data.get("algorithm_version") == algorithm_version and
                     cfg_data.get("model_config_version") == model_config_version and
                     canonical(cfg_data.get("model_config")) == canonical(model_config) and
+                    cfg_data.get("collection_scope") == collection_scope and
                     cfg_data.get("random_seed") == random_seed and
                     (code_version is None or cfg_data.get("code_version") == code_version)):
                     config_matches = True
@@ -819,6 +826,8 @@ def write_experiment_result(
             "random_seed": random_seed,
             "execution_token": exec_token,
         }
+        if collection_scope is not None:
+            run_id_payload["collection_scope"] = collection_scope
         identity_digest = sha256_bytes(canonical(run_id_payload).encode("utf-8"))[:32]
         effective_run_id = f"pilot_run_{identity_digest}" if mode == MODE_DEVELOPMENT else f"exp_run_{identity_digest}"
 
@@ -891,6 +900,8 @@ def write_experiment_result(
         "runtime_environment": runtime_meta,
         "runtime_environment_json": canonical(runtime_meta),
     }
+    if collection_scope is not None:
+        config_payload["collection_scope"] = collection_scope
     config_file.write_text(canonical(config_payload) + "\n", encoding="utf-8")
 
     # 4. Write experiment_metrics.json

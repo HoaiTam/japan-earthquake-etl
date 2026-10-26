@@ -1,6 +1,7 @@
-# DAT-03 — Tiến độ thực tế (cập nhật 25/10/2026)
+# DAT-03 — Tiến độ thực tế (cập nhật 26/10/2026)
 
-Branch `feat/dat-03-research-dataset-handoff` từ origin/main `bc0ce9e` (#98).
+Branch hiện tại `feat/dat-03-research-rollout`, tiếp tục từ0487a83 sau PR #100.
+Lịch sử trước đó: `feat/dat-03-research-dataset-handoff` từ main `bc0ce9e` (#98).
 Assignee HoaiTam, reviewer unassigned. **In Progress**. Phần pilot/profile đã
 được owner commit, HEAD khi tiếp tục bước3/4 `258710d`, trên [PR #99](https://github.com/HoaiTam/japan-earthquake-etl/pull/99).
 Bước3/4 đã được owner commit ở `19073bd`. Ngày25/10 khối 1 recovery được
@@ -12,6 +13,75 @@ chốt strict split, loại window thiếu PRE/POST coverage và báo chi tiết
 
 ## Cập nhật kỹ thuật tiếp theo
 
+**Mới nhất 26/10 — dừng sạch vì host disk reserve:** đã xác minh
+101/288 tháng (35,069%) đến2008-05,1.064.869 canonical/bridge;
+[metadata101](./DAT-03_CATALOG_CHECKPOINT_101.json). Phiên
+`9515ebd43baa451a847e849fba3c103a` exit0/2545,568s/own release, host2582,908s.
+Mốc93 giữ [metadata riêng](./DAT-03_CATALOG_CHECKPOINT_093.json). Coordinator
+đã kết thúc bình thường sau COW và không mở phiên mới: physical free
+3.913.068.544bytes, dưới reserve4GiB. Fresh postflight required services healthy,
+không active DagRun/Java/Trino query và lease trống. Không reset/retry hoặc
+xóa source/warehouse/log/evidence; cần giải phóng thêm dung lượng có chủ đích
+trước fresh preflight/resume từ2008-06. Chưa50%, full288 hoặc official ML export;
+DAT-03 vẫn In Progress. [Chi tiết bàn giao](./DAT-03_OVERNIGHT_20261026.md#dừng-sạch-tại-checkpoint101).
+Các đoạn dưới giữ mốc lịch sử, không là current process/lease state.
+
+[Phiên tiếp tục đêm26/10](./DAT-03_OVERNIGHT_20261026.md): owner cho phép bật
+lại9containers cũ;9healthy và idle/lease preflight đạt. Phiên tiếp theo từ72
+đã accepted87/288 đến2007-03,918.168canonical/bridge. Phiên gần nhất thêm8tháng,
+exit0/2173,924s/own release; [metadata087](./DAT-03_CATALOG_CHECKPOINT_087.json).
+Mốc79 giữ [metadata riêng](./DAT-03_CATALOG_CHECKPOINT_079.json). Năm host observations
+cũ13/20/27/45/63 đã qua ZIP verification rồi restore độc lập bằng COW; toàn bộ
+original paths/file bytes/modes/progress đều khớp. Chỉ xóa ZIP trung gian sau
+restore proof, giữ receipt; [compaction](./DAT-03_HOST_COMPACTION_20261026.json).
+Giữ observation72,
+source inputs và container runtime. Host physical space có lúc xuống dưới4GiB;
+đã COW437byte-identical host copies, hashes/metadata giữ nguyên và reporter079
+đạt lại. Batch2006-08–2007-03 đã accepted, vòng nối tiếp kiểm lại health/idle,
+COW new host copy và reserve đạt rồi mở phiên kế từ87, max18tháng/budget6000s.
+Không mở phiên mới dưới reserve hoặc đổi guard để chạy tiếp. Chưa mốc50%.
+
+[Mới nhất — capacity đủ quy mô và catalog controller](./DAT-03_CATALOG_ROLLOUT.md):
+hai SQL probes event/bridge43copies đều16/16PASS với4.527.126rows mỗi phía,
+90s/query/512MB không đổi. Controller đã stage37original captures, chạy thật
+72/288tháng (25%) Published đến2005-12. Phiên mới nhất đã terminal/acceptance/own
+release; thêm9tháng qua2batch trong3097,855s, không timeout/pending. Có
+774.260 canonical/774.260 bridge, [six pins và SHA receipt](./DAT-03_CATALOG_CHECKPOINT_072.json).
+Source namespace/cutoff giữ nguyên, continuation có code/compatibility pins
+riêng; không đổi deployment. Chưa288tháng/official export, không lấy synthetic
+expansion hoặc checkpoint đầu thay full research acceptance. Code official
+collection opt-in/registry/loader/result-scope đang nghiệm thu component theo
+[contract](../specs/RESEARCH_COLLECTION_EXPORT.md); controller ML checkpoint
+có code/tests nhưng chưa actual research export. Báo25%/50%/75%/100% catalog
+tại72/144/216/288 accepted months, không dùng phần trăm này làm DAT-03 Done.
+Mốc25% đã báo owner. Hậu kiểm sau phiên:9service healthy, không Java/DagRun/
+Trino query active và lease trống. Host physical free sau copy5,5GiB; không
+thay bằng logical volume free, không tự xóa dữ liệu để mở phiên tiếp.
+
+[Mới nhất — phiên giảm tải theo approval riêng](./DAT-03_LIGHT_SESSION.md):
+đã stop/start đúng4containers cũ,9service healthy,5service giữ nguyên ID/start/
+config; không active run/lease/query. Full stress chạm query-memory512MB;
+bucket0–2 đạt, bucket3timeout,12chưa chạy. Session450,547s, không data writes/
+recreate/DAG mutation. Còn capacity/full catalog/export, giữ In Progress.
+Checkpoint12:43 cùng ngày: read-only Docker check có quyền vẫn không kết nối
+được daemon; chưa xác định nguyên nhân.9healthy là postflight cuối phiên đo,
+không phải current health. Không tự restart Docker hoặc lặp stop/start;
+offline `make ci-docs-base` và secret hygiene đã đạt, runtime chờ daemon trở lại.
+
+[Chuẩn bị khối3/4 ngày25/10](./DAT-03_ROLLOUT_CAPACITY.md): branch mới từ main
+`8ef6c41` sau PR #100 merge. Fresh25 JMA pins/288-month plan,12 original USGS
+captures2023 (1.809 features gồm halo duplicates) có Java validation/SHA.
+Read-only Trino capacity chưa đạt; owner duyệt backup/recreate riêng Trino,
+profile mới late healthy nhưng SELECT1 mất56,44s, scheduler/DAG processor
+đã từng unhealthy, sau đó tự healthy lại. Preflight đầu sau trial dừng trước
+SQL, không tự đổi service khác. Phép đo full32copy mới sau readiness vẫn
+BLOCKED_TIME90s, postflight unchanged/no active queries. Chưa có full rollout
+controller, monthly catalog writes hoặc official collection export.
+Ở đợt chỉ chỉnh Trino, probe16bucket dừng tại bucket0/time limit; host swap-in/
+out thực đo~29/28MiB/s. Đợt ấy không stop service khác; phiên giảm tải theo
+approval bổ sung được nghiệm thu riêng ở link mới nhất bên trên.
+Giữ In Progress, không chuyển Done từ source capture/planner hoặc component tests.
+
 [Bước 3/4](./DAT-03_COLLECTION_BOUNDED_E2E.md) bổ sung collection v1 có
 whole-mainshock assignment/global Mc và local Parquet tests, không official
 EXPORTED. Bounded E2E thật được nghiệm thu riêng; task vẫn In Progress cho
@@ -20,7 +90,7 @@ Mốc trước recovery: bước4 mới đạt2000-01/2011-04;2016-04 đã COMMI
 verify EOF,2023-12 chưa chạy. Owner chọn giữ lỗi/bàn giao trước; own lease
 còn giữ, không tự phục hồi/release. Source runs khác sẽ bị lease chặn.
 
-**Cập nhật mới nhất25/10 — [Khối2 PASSED](./DAT-03_CONTINUATION.md):** đủ4cases
+**Mốc nghiệm thu25/10 — [Khối2 PASSED](./DAT-03_CONTINUATION.md):** đủ4cases
 với124.969 canonical/125.069 bridge/124.856 serving cộng dồn; first/rerun,
 retention, six pins và SHA/SQL chain đạt. Attempt đầu publish2016 rồi OOM-kill
 Trino tại verify2023. Owner duyệt backup/recreate riêng Trino, memory budget

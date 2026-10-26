@@ -15,6 +15,7 @@ import org.apache.spark.sql.SparkSession;
 /** MLI-02 fixed step adapter. Real pinned reads/engines/export, never mock data or caller Mc. */
 public final class DatasetBuildJob {
     public static final String VERSION = "mli-02-real-v1";
+    public static final String COLLECTION_VERSION="mli-02-collection-v1";
     public static final List<String> STEPS = List.of("wait_gold_published", "resolve_gold_snapshot", "audit_gold_input",
         "resolve_mc", "select_mainshocks", "build_candidate_windows", "build_spacetime_features",
         "validate_feature_snapshot", "export_parquet", "mark_dataset_exported");
@@ -34,6 +35,8 @@ public final class DatasetBuildJob {
         for (String key : List.of("gold_publication_id", "physical_gold_table_name", "gold_table_name", "publication_bundle_sha256"))
             require(publication.path(key).equals(reference.path(key)), "MLI02_PUBLICATION_PIN_CHANGED");
         var identity = new DatasetIdentityPlan(publication, request.path("config"), request.path("build_run_id").asText(), Instant.now());
+        boolean collection=request.path("config").path("filter_config").has("collection_export");
+        require(collection==COLLECTION_VERSION.equals(request.path("contract_version").asText()),"MLI02_COLLECTION_PROTOCOL_REQUIRED");
         var result = JSON.createObjectNode().put("dataset_id", identity.manifest().path("dataset_id").asText())
             .put("identity_payload_sha256", identity.manifest().path("identity_payload_sha256").asText());
         result.set("gold_publication", publication); return result;
@@ -71,15 +74,29 @@ public final class DatasetBuildJob {
         var manifest = FeatureExportJob.manifest(sql, ns, id);
         DatasetManifestWriter.pinnedGoldSql(manifest);
         Path output = Path.of(request.path("export_root").asText()), registry = Path.of(request.path("registry_root").asText());
+        boolean collection=COLLECTION_VERSION.equals(request.path("contract_version").asText());
         if (step.equals("validate_feature_snapshot"))
-            return FeatureExportJob.prepare(spark, sql, store, ns, id, run, output, registry, lease);
+            return collection?ResearchCollectionExportJob.export(spark,sql,store,ns,id,run,output,registry,lease,true)
+                    :FeatureExportJob.prepare(spark, sql, store, ns, id, run, output, registry, lease);
         if (step.equals("export_parquet") || step.equals("mark_dataset_exported")) {
-            var result = FeatureExportJob.export(spark, sql, store, ns, id, run, output, registry, lease);
+            var result = collection?ResearchCollectionExportJob.export(spark,sql,store,ns,id,run,output,registry,lease,false)
+                    :FeatureExportJob.export(spark, sql, store, ns, id, run, output, registry, lease);
             if (step.equals("mark_dataset_exported")) {
                 var trusted = result.deepCopy().put("algorithm_name", "WINDOW").put("model_config_version", "1")
                     .put("experiment_run_id", "exp_mli02_handoff_check");
-                var resolved = TrustedDatasetResolver.resolve(trusted, registry, null);
-                require(resolved.candidates().size() == result.path("feature_row_count").asLong(), "MLI02_TRUSTED_HANDOFF_CHANGED");
+                if(collection) {
+                    var exported=JSON.readTree(Files.readAllBytes(registry.resolve(id+".json")));long total=0;
+                    for(var shard:exported.path("collection_plan").path("shards")) {
+                        trusted.put("collection_id",result.path("collection_id").asText()).put("collection_shard_id",shard.path("shard_id").asText());
+                        var resolved=TrustedDatasetResolver.resolve(trusted,registry,null);
+                        require(resolved.collectionScope()!=null && resolved.candidates().size()==shard.path("feature_row_count").asLong(),"MLI02_TRUSTED_HANDOFF_CHANGED");
+                        total+=resolved.candidates().size();
+                    }
+                    require(total==result.path("feature_row_count").asLong(),"MLI02_TRUSTED_HANDOFF_CHANGED");
+                } else {
+                    var resolved = TrustedDatasetResolver.resolve(trusted, registry, null);
+                    require(resolved.candidates().size() == result.path("feature_row_count").asLong(), "MLI02_TRUSTED_HANDOFF_CHANGED");
+                }
                 result.put("trusted_handoff_verified", true);
             }
             result.put("export_artifact_uri", output.resolve("dataset_id=" + id).toString());
@@ -100,6 +117,19 @@ public final class DatasetBuildJob {
         }
         if (step.equals("resolve_mc")) return out.put("status", "MC_RESOLVED").put("mc_value", audit.mcApplied())
             .put("mc_config_sha256", audit.mcConfigSha256());
+        if(collection) {
+            // Preparation validates the entire assignment once and materializes whole-window shards.
+            // These are preparation artifacts only; official pins/lifecycle are handled by validate/export above.
+            var prepared=ResearchCollectionExportJob.prepared(spark,sql,store,ns,id,run,output,lease);var p=prepared.path("plan");
+            out.put("mainshock_count",p.path("mainshock_count").asLong()).put("candidate_row_count",p.path("feature_row_count").asLong())
+                    .put("collection_id",p.path("collection_id").asText()).put("shard_count",p.path("shards").size())
+                    .put("window_coverage_sha256",digest(p.path("window_coverage")))
+                    .put("excluded_mainshock_count",p.path("window_coverage").path("excluded_mainshock_count").asLong());
+            if(step.equals("select_mainshocks"))return out.put("status","MAINSHOCKS_SELECTED");
+            if(step.equals("build_candidate_windows"))return out.put("status","WINDOWS_BUILT").put("collection_plan_sha256",p.path("plan_sha256").asText());
+            require(step.equals("build_spacetime_features"),"MLI02_UNKNOWN_STEP");
+            return out.put("status","FEATURES_BUILT").put("feature_row_count",p.path("feature_row_count").asLong());
+        }
         // A phase has many invariant/null/vector actions. Cache only its exact pin's
         // bounded intermediates so every column check does not rebuild the Gold/window DAG.
         var audited = audit.auditedEvents().cache();
@@ -133,7 +163,7 @@ public final class DatasetBuildJob {
 
     public static ObjectNode execute(JsonNode request, GoldPublisher.Sql sql, SilverObjectStore store,
             SparkSession spark, Runnable lease) throws Exception {
-        require(VERSION.equals(request.path("contract_version").asText()) && request.path("attempt").isIntegralNumber()
+        require(Set.of(VERSION,COLLECTION_VERSION).contains(request.path("contract_version").asText()) && request.path("attempt").isIntegralNumber()
             && request.path("attempt").asInt() > 0, "MLI02_PROTOCOL_REQUIRED");
         String step = request.path("step").asText(), ns = request.path("ml_namespace").asText();
         require((step.equals("plan") || STEPS.contains(step)) && ns.matches("[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*"), "MLI02_EXACT_STEP_NAMESPACE_REQUIRED");
@@ -150,7 +180,7 @@ public final class DatasetBuildJob {
                     .equals(request.path("previous_receipt_sha256").asText()), "MLI02_PREVIOUS_STEP_REQUIRED");
         }
         var result = phase(spark, sql, store, request, planned, lease);
-        result.put("contract_version", VERSION).put("step", step).put("run_id", request.path("run_id").asText())
+        result.put("contract_version", request.path("contract_version").asText()).put("step", step).put("run_id", request.path("run_id").asText())
             .put("dataset_id", planned.path("dataset_id").asText()).put("identity_payload_sha256", planned.path("identity_payload_sha256").asText())
             .put("plan_sha256", digest(planned)).put("attempt", request.path("attempt").asInt());
         result.set("gold_snapshot_id", planned.path("gold_publication").path("gold_snapshot_id"));

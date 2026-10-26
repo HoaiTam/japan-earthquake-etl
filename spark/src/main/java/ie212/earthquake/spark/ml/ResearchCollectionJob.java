@@ -24,6 +24,8 @@ public final class ResearchCollectionJob {
                 .put("input_event_count",audit.inputEventCount()).put("eligible_event_count",audit.eligibleEventCount())
                 .put("excluded_event_count",audit.excludedEventCount());
         for(String k:List.of("dataset_id","gold_snapshot_id","period_start_utc","period_end_utc_exclusive")) out.set(k,parent.path(k));
+        // Preserve the full-split audit, not a new estimate derived from shards.
+        out.set("audit_manifest",audit.enrichManifest((ObjectNode)parent.deepCopy()));
         return out;
     }
     public static ObjectNode prepare(SparkSession spark,GoldPublisher.Sql sql,SilverObjectStore store,String ns,String id,

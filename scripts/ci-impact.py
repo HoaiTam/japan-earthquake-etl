@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 JAVA_ROOT = "spark/src/test/java/ie212/earthquake/spark/"
 FEATURE_SOURCES = {"FeatureScalingConfig", "SpacetimeFeatureEngine", "LocalFeatureJob", "PilotExportJob", "WindowArtifactInput"}
 FEATURE_TESTS = {"FeatureScalingConfigTest", "SpacetimeFeatureEngineTest", "PilotExportJobTest", "FeatureParquetCrossProcessTest"}
-EXPORT_TESTS = {"FeatureExportCoverageTest", "FeatureExportBundleTest", "ResearchCollectionPlanTest", "ResearchCollectionJobTest"}
+EXPORT_TESTS = {"FeatureExportCoverageTest", "FeatureExportBundleTest", "ResearchCollectionPlanTest", "ResearchCollectionJobTest", "ResearchCollectionExportBundleTest"}
 FEATURE_CONSUMER_TESTS = FEATURE_TESTS | EXPORT_TESTS
 PILOT_SCRIPTS = {"scripts/local-ml.py", "scripts/stage-ml-windows.py", "scripts/inspect-pilot-notebook.py", "scripts/pack-pilot.py"}
 PILOT_CONFIGS = {"config/ml/feature_scaling_global_dev_v1.json", "config/ml/feature_scaling_adaptive_dev_v1.json", "config/ml/dat02_reproduction_v1.json"}
@@ -22,6 +22,7 @@ PILOT_FILES = {"notebooks/pilot_bundle.py", "notebooks/dat_02_inspection.ipynb"}
 TEAM_PILOT_FILES = {"scripts/pack-team-pilot.py", "scripts/verify-team-pilot.py", "tests/test_team_pilot.py"}
 EXP_FILES = {
     "notebooks/experiment_harness.py",
+    "notebooks/research_collection.py",
     "notebooks/baseline_models.py",
     "notebooks/adaptive_hdbscan.py",
     "notebooks/exp_01_harness_smoke.ipynb",
@@ -84,13 +85,13 @@ def classify(changes, root=ROOT):
             or path in PILOT_SCRIPTS
             or path in EXP_FILES
             or path in EXP_SCRIPTS
-            or re.fullmatch(r"tests/test_(pilot_[a-z0-9_]+|experiment_harness|baseline_algorithms|adaptive_hdbscan)\.py", path)
+            or re.fullmatch(r"tests/test_(pilot_[a-z0-9_]+|experiment_harness|baseline_algorithms|adaptive_hdbscan|research_collection_loader)\.py", path)
         ):
             pilot = "full"
             reasons.add("pilot-python")
             if path in PILOT_SCRIPTS:
                 scopes.add("feature")
-            elif path in EXP_FILES or path in EXP_SCRIPTS or any(k in path for k in ("experiment_harness", "baseline_algorithms", "adaptive_hdbscan")):
+            elif path in EXP_FILES or path in EXP_SCRIPTS or any(k in path for k in ("experiment_harness", "baseline_algorithms", "adaptive_hdbscan", "research_collection_loader")):
                 scopes.add("ml")
             continue
         if path in PILOT_CONFIGS or path in EXP_CONFIGS:
@@ -171,7 +172,8 @@ def inventory(component, root=ROOT):
                          "mld-03-windows" if path.stem in WINDOW_TESTS else "mld-01-02-contract-audit")
             elif package in {"ie212/earthquake/spark/" + p for p in ("usgs", "jma", "silver", "gold")}:
                 group = {"usgs": "usgs-bronze", "jma": "jma-bronze", "silver": "silver", "gold": "gold"}[relative.parent.name]
-                if path.stem in {"ResearchBoundedE2EJobTest", "ResearchRecoveryPreflightTest", "ResearchBoundedContinuationJobTest"}: group = "orc-07-real-adapters"
+                if path.stem in {"ResearchBoundedE2EJobTest", "ResearchRecoveryPreflightTest", "ResearchBoundedContinuationJobTest", "ResearchCatalogStateTest", "ResearchCatalogBatchPlanTest", "ResearchCatalogCompatibilityTest"}: group = "orc-07-real-adapters"
+                if path.stem == "ResearchDatasetBuildJobTest": group = "mli-02-build"
             groups[group].append(name)
     elif component == "airflow":
         groups = {name: [] for name in AIRFLOW_SUITES}

@@ -73,6 +73,26 @@ EXP-02 PASSED. QA-04 từng dời tuần 6 ở mốc cũ, nay đưa lại tuần
 không giảm scope recovery. Ngày 24/10 thêm DAT-03, 16h estimate ban đầu ở tuần 6:
 77 task/402h, không cộng lại vào budget tuần 5. DAT-03 còn In Progress cho
 catalog thật và receipts ba người; pilot dùng ngay không thay research acceptance.
+[Mới nhất26/10 — DAT-03 catalog](../../evidence/DAT-03_CATALOG_ROLLOUT.md):
+event/bridge probes43copies đủ full-profile upper bound đã16/16 mỗi bảng;
+controller đã nghiệm thu101/288tháng (35,069%) đến2008-05, session v2 exit0/2545,568s/
+own release, no pending; source cutoff giữ nguyên. Coordinator dừng sạch sau
+COW vì physical host free3.913.068.544bytes dưới reserve4GiB; fresh postflight
+healthy/idle/lease-empty. Cần thêm dung lượng trước resume2008-06, không xóa
+source/warehouse/log/evidence hoặc nới guard. [Phiên26/10 và bàn giao101](../../evidence/DAT-03_OVERNIGHT_20261026.md#dừng-sạch-tại-checkpoint101).
+Nhánh official collection
+opt-in đang nghiệm thu component, chưa actual full-period export. Chưa288tháng hoặc official
+collection export/receipts ba máy; DAT-03 vẫn In Progress. Các trial fail bên
+dưới là lịch sử, không phải kết quả full-scale probes mới.
+Sau PR #100 merge, [chuẩn bị rollout DAT-03](../../evidence/DAT-03_ROLLOUT_CAPACITY.md)
+có fresh JMA pins/288-month plan và12 USGS captures; capacity chưa đạt,
+Trino-only trial late healthy; scheduler/DAG processor từng unhealthy rồi tự
+healthy trở lại, không agent restart. Chưa
+đạt full32copy stress query90s sau readiness, postflight unchanged. Chưa
+chạy catalog toàn kỳ hoặc official collection export; giữ DAT-03 In Progress.
+[Phiên giảm tải bổ sung](../../evidence/DAT-03_LIGHT_SESSION.md) đã khôi phục
+đúng4container/9healthy,5service giữ nguyên; full-query memory gate512MB,
+3bucket đạt rồi timeout ở bucket3. Không full capacity, không đổi DAT-03 Done.
 DAT-03 bước 1/2 ngày 24/10: parser v1.2 giữ đủ 18 depth records; profile 25
 archive có 4.793.337 accepted/0 parser rejects, overlay 2024 chỉ nguồn biên.
 [Evidence](../../evidence/DAT-03_RESEARCH_PROFILE_ACCEPTANCE.md) không thay
@@ -85,6 +105,9 @@ Bước4 từng dừng2/4cases khi verify2016-04/Trino restart; failed evidence 
 giữ nguyên. [Khối2 ngày25/10](../../evidence/DAT-03_CONTINUATION.md) đã đạt4/4
 cases/six pins/SQL/SHA/rerun/retention và release own lease sau memory fix có
 phê duyệt, chỉ recreate Trino.124.969 canonical cộng dồn, không full research.
+PR #100 đã merge ngày25/10 vào main8ef6c41; DAT-03 tiếp tục khối3 capacity/full
+catalog và khối4 official collection export trên feat/dat-03-research-rollout.
+Hai khối chưa được nghiệm thu; receipts ba máy vẫn là gate riêng của khối5.
 Ngày25/10 owner yêu cầu làm lại khối 1: bổ sung [chẩn đoán/recovery preflight
 chỉ đọc](../../runbooks/DAT-03_RECOVERY.md); không resume/publish/release trong
 khối này, không thay acceptance khối 2 hoặc chuyển DAT-03 Done.

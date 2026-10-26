@@ -1,0 +1,70 @@
+{
+  "version": "dat03-host-compaction-summary-v1",
+  "scope": "HOST_OBSERVATIONS_ONLY_NOT_LAKEHOUSE",
+  "catalog_request_sha256": "ad306633ac438b33276cfa3cf5e797482cc78e139410db3385863bbd3c9501fb",
+  "accepted_months_at_compaction": 79,
+  "original_cow_compaction": {
+    "receipt_name": "cow-receipt-e507d464aced4e499a2c8b4b003c0c56.json",
+    "receipt_sha256": "7af40de7805d6adf7a1de808bcff03e7766fe722fb2412db2e99b30099d5aa38",
+    "files": 437,
+    "duplicate_logical_bytes": 854262782,
+    "observed_host_free_bytes_before": 4012044288,
+    "observed_host_free_bytes_after": 4870823936,
+    "paths_bytes_hashes_modes_mtime_xattrs_preserved": true,
+    "progress_report_unchanged": true
+  },
+  "historical_observations_restored_as_independent_cow_files": [
+    {
+      "observation": "runtime-observation-fa268b89bed244a298a4efe394c5590b",
+      "months": 13,
+      "receipt_name": "runtime-observation-fa268b89bed244a298a4efe394c5590b.cow-restored-6aa7e0a29e7940a29b4c903cee0a4025.json",
+      "receipt_sha256": "e8b6e7dbcadb073bccd2535061008b562268562b631e96b547eaf1a5600efd00",
+      "independent_cow_files": 289,
+      "unique_extracted_bytes": 0,
+      "redundant_operator_created_zip_removed_bytes": 177151584
+    },
+    {
+      "observation": "runtime-observation-e47edaf60572488b9e0b2dd238d3dcb6",
+      "months": 20,
+      "receipt_name": "runtime-observation-e47edaf60572488b9e0b2dd238d3dcb6.cow-restored-cefbd2312a5e4e9fb337595e76e2dc3c.json",
+      "receipt_sha256": "c28679e66e280b0e179dffc671b11b9db41a027da05ee235e14e110faf518932",
+      "independent_cow_files": 331,
+      "unique_extracted_bytes": 0,
+      "redundant_operator_created_zip_removed_bytes": 191978555
+    },
+    {
+      "observation": "runtime-observation-070e681ac90a4899a3395cc8c833aac0",
+      "months": 27,
+      "receipt_name": "runtime-observation-070e681ac90a4899a3395cc8c833aac0.cow-restored-90972344a9d24c0da7a4d61b7e1340eb.json",
+      "receipt_sha256": "d037395d64b6c34f5b2d76c338df86899102a04dd8415bab407f89471ba2bd73",
+      "independent_cow_files": 373,
+      "unique_extracted_bytes": 0,
+      "redundant_operator_created_zip_removed_bytes": 207678070
+    },
+    {
+      "observation": "runtime-observation-f40296b56ddd4427b28fd18cb489df8b",
+      "months": 45,
+      "receipt_name": "runtime-observation-f40296b56ddd4427b28fd18cb489df8b.cow-restored-7db4828d448f4b759b48556517906ad2.json",
+      "receipt_sha256": "f2f75edf63da43c69206ae08f7a631a43a62f9aadf7f981bfccd65aa3cebcf51",
+      "independent_cow_files": 475,
+      "unique_extracted_bytes": 0,
+      "redundant_operator_created_zip_removed_bytes": 251669472
+    },
+    {
+      "observation": "runtime-observation-622db2c891ea4f7cbc0c9462d77ce064",
+      "months": 63,
+      "receipt_name": "runtime-observation-622db2c891ea4f7cbc0c9462d77ce064.cow-restored-6daa737e9c0e40d6870ecb0119d4c175.json",
+      "receipt_sha256": "dbb8fd295601360b7356e49400540f2d1447ba0f183be51f5c1a1bb1d7377af4",
+      "independent_cow_files": 577,
+      "unique_extracted_bytes": 481,
+      "redundant_operator_created_zip_removed_bytes": 296037679
+    }
+  ],
+  "historical_file_sets_hashes_sizes_modes_and_progress_reports_verified": true,
+  "historical_original_paths_available_again": true,
+  "redundant_operator_created_zip_removed_bytes": 1124515360,
+  "source_archives_or_lakehouse_deleted": false,
+  "runtime_code_or_source_pins_changed": false,
+  "research_ready": false,
+  "official_exported": false
+}

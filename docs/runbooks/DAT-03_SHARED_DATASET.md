@@ -1,6 +1,15 @@
 # DAT-03 — Dataset dùng chung cho ba thành viên
 
-## Tình trạng 24/10/2026
+## Agent trên máy thành viên: setup/check và kế hoạch Drive
+
+Đọc [team worker setup](./DAT-03_TEAM_WORKER_SETUP.md) cho ThanhTris/rosy179:
+pin release, offline checks, Drive/runtime readiness, proposal chia187tháng
+còn lại và quy tắc upload/verify/dọn local. Có prompt bàn giao agent và mẫu
+báo cáo; không là distributed ETL implementation hoặc quyền tự xóa staging.
+Checkpoint mới nhất tại [progress](../evidence/DAT-03_PROGRESS.md); các mốc
+capacity/catalog25/10 bên dưới là lịch sử, không thay latest101/288.
+
+## Tình trạng 25/10/2026
 
 DAT-03 **In Progress**, owner HoaiTam, reviewer unassigned. Hiện phát hành
 **pilot JMA thật để dùng trước** theo lựa chọn owner; chưa có research release
@@ -12,9 +21,36 @@ v1.2 và profile đủ25 archive; chưa full Gold/export/handoff nghiên cứu.
 Tiếp theo [bước3/4](./DAT-03_RESEARCH_COLLECTION_E2E.md) có collection
 preparation riêng và bounded real-source E2E; đây không phải research ZIP để
 gửi nhóm. Pilot dưới đây giữ nguyên bytes/pins và DEVELOPMENT_ONLY/PARTIAL.
-Bước4 mới đạt2/4cases, lỗi verify2016-04 đúng lúc Trino restart; owner chọn
-giữ lỗi/bàn giao, own lease còn giữ. Không chạy capture/ingest khác để lách
-lease; đọc evidence trước mọi runtime tiếp theo.
+[Khối2 recovery ngày25/10](../evidence/DAT-03_CONTINUATION.md) đã đạt4/4cases,
+verify/publish/rerun/retention và release own lease; PR #100 đã merge. Đây chỉ
+là bounded E2E, chưa full225/63-month coverage hoặc official ML export. Không
+chạy lại retained attempt đã hoàn tất, không dùng bộ bốn tháng làm research release.
+
+[Chuẩn bị rollout](./DAT-03_RESEARCH_ROLLOUT.md) đã verify25 JMA pins, lập288
+tháng và capture/Java-check12 USGS responses2023. [Capacity/profile trial](../evidence/DAT-03_ROLLOUT_CAPACITY.md)
+chưa đạt: timeout/ABANDONED_TASK trước profile; sau Trino-only recreate có
+late health nhưng SELECT1 mất56,44s, capacity preflight đầu bị scheduler unhealthy
+chặn trước SQL. Các service tự healthy lại; full32copy probe mới vẫn quá hạn90s,
+postflight unchanged. Chưa có catalog writes hoặc official collection export mới;
+không tự restart Airflow ngoài phạm vi owner duyệt.
+Probe16bucket sau đó cũng dừng ngay bucket0 vì timeout; host sampling đo được
+swap-in/out khoảng29/28MiB/s. Chỉ chỉnh Trino chưa đủ vượt gate thời gian trong
+phiên này; chưa kết luận nguyên nhân gốc hoặc tăng timeout để công bố PASS.
+[Phiên giảm tải bổ sung](../evidence/DAT-03_LIGHT_SESSION.md) đã stop/restore
+đúng4container cũ,9service healthy. Full query chạm512MB;3bucket đạt, bucket3
+timeout/12chưa chạy. Chưa đủ capacity/Gold/export, chưa có research ZIP mới.
+Mốc mới sau Docker hoạt động lại: [catalog rollout](../evidence/DAT-03_CATALOG_ROLLOUT.md)
+đã đạt full-scale event/bridge SQL và Spark fingerprint probes; controller có
+72/288tháng (25%) Published đến2005-12, các phiên đã acceptance/release own lease. Nhánh
+[official collection](../specs/RESEARCH_COLLECTION_EXPORT.md) có loader từng
+shard/registry/result-scope riêng, vẫn đang nghiệm thu component và chưa có
+actual full-period export. [Controller ML](./DAT-03_RESEARCH_ML_EXPORT.md) đã
+có code/test, vẫn chặn catalog chưa đủ288tháng. **Vẫn chưa có full research ZIP để gửi nhóm**; không dùng
+source captures hoặc một phần Gold thay bundle đã VALIDATED/EXPORTED.
+
+[Công cụ paired kit](../specs/RESEARCH_TEAM_KIT.md) đã có code/tests cho hai
+official splits cùng Gold pin. Chỉ được pack actual research release sau
+full288/official export acceptance; hiện chưa có research ZIP để gửi nhóm.
 
 File gửi nhóm trên máy chuẩn bị:
 `staging/shared-datasets/jma-development-pilot-team.zip` trong checkout DAT-03.

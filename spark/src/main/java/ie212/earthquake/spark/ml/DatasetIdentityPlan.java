@@ -48,6 +48,14 @@ public final class DatasetIdentityPlan {
         if(filters.has("window_coverage_policy") && (!filters.path("window_coverage_policy").isTextual()
                 || !WindowCoveragePolicy.STRICT.equals(filters.path("window_coverage_policy").asText())))
             throw new IllegalArgumentException("DS_WINDOW_POLICY_UNSUPPORTED");
+        if(filters.has("collection_export")) {
+            var layout=filters.path("collection_export");
+            if(!layout.isObject() || layout.size()!=2 || !ResearchCollectionExportBundle.VERSION.equals(layout.path("version").asText())
+                    || !WindowCoveragePolicy.STRICT.equals(filters.path("window_coverage_policy").asText()))
+                throw new IllegalArgumentException("DS_COLLECTION_EXPORT_CONFIG_INVALID");
+            try {ResearchCollectionPlan.Limits.read(layout.path("layout_limits"));}
+            catch(Exception error) {throw new IllegalArgumentException("DS_COLLECTION_EXPORT_CONFIG_INVALID",error);}
+        }
         identity = JSON.createObjectNode();
         for (String key : List.of("gold_table_name", "physical_gold_table_name", "gold_publication_id", "publication_bundle_sha256")) {
             String value = publication.path(key).asText();

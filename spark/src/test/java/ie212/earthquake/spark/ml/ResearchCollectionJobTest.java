@@ -16,6 +16,9 @@ class ResearchCollectionJobTest {
     static FeatureScalingConfig scaling; static String id;
     @org.junit.jupiter.api.io.TempDir Path temporary;
     @BeforeAll static void start() throws Exception {
+        setup(false);
+    }
+    static void setup(boolean official) throws Exception {
         spark=LocalFeatureJob.session();
         if(System.getProperty("os.name").startsWith("Windows")) {
             spark.sparkContext().hadoopConfiguration().set("fs.file.impl",FeatureExportBundleTest.NioFileSystem.class.getName());
@@ -28,6 +31,10 @@ class ResearchCollectionJobTest {
                 .put("time_scale_hours",scaling.timeScaleHours()).put("max_candidates_per_window",scaling.maxCandidatesPerWindow())
                 .put("coordinate_tolerance_km",scaling.coordinateToleranceKm()).put("time_tolerance_hours",scaling.timeToleranceHours());
         ((ObjectNode)c.path("filter_config")).put("window_coverage_policy",WindowCoveragePolicy.STRICT).set("feature_scaling_config",scalingJson);
+        if(official) {
+            var export=((ObjectNode)c.path("filter_config")).putObject("collection_export").put("version",ResearchCollectionExportBundle.VERSION);
+            export.set("layout_limits",new ResearchCollectionPlan.Limits(1,100000,64).json());
+        }
         c.put("feature_version",scaling.featureVersion()).put("scaling_config_version",scaling.scalingConfigVersion());
         parent=(ObjectNode)new DatasetIdentityPlan(DatasetManifestTest.publication(),c,"collection-fixture",Instant.parse("2026-10-24T00:00:00Z")).manifest();
         id=parent.path("dataset_id").asText(); Instant t=Instant.parse("2005-06-01T00:00:00Z");

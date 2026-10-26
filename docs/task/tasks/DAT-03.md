@@ -48,6 +48,9 @@ PARTIAL thay full research data.
 ## Deliverable
 
 - [Hướng dẫn dataset dùng chung](../../runbooks/DAT-03_SHARED_DATASET.md).
+- [Agent setup/check trên máy thành viên](../../runbooks/DAT-03_TEAM_WORKER_SETUP.md):
+  release/input pins, offline/Drive/runtime readiness, handoff report và
+  proposal chia187tháng; chưa là worker/export/import chia máy đã nghiệm thu.
 - Archive profile và rollout/coverage/quality/resource reports; chỉ metadata vào Git.
 - Real Gold pins, MLI-02 acceptance, immutable research bundle và external SHA.
 - Công cụ đóng gói/verify offline, metadata handoff và receipts của ba người.
@@ -90,6 +93,31 @@ PARTIAL thay full research data.
   six pins không đổi, Trino restart0/oom_kill0, own lease release và idle đạt.
 - [ ] Đo capacity/ETA thực của Spark/joins/lake/export và duyệt rollout full kỳ;
   chưa suy 51 giây parser scan hoặc ~9,8 GiB disk trống thành budget full ETL.
+  [Chuẩn bị rollout25/10](../../evidence/DAT-03_ROLLOUT_CAPACITY.md) có25 JMA
+  fresh pins/288-month plan và12 USGS capture/Java check; không BronzeReady/
+  source completeness. Trino stress timeout/ABANDONED_TASK, trial profile chỉ
+  late healthy; SELECT1 mất56,44s. Probe sau profile bị scheduler unhealthy
+  chặn trước SQL; sau khi service tự healthy lại, full32copy probe mới vẫn
+  BLOCKED_TIME90s, postflight unchanged. Chưa có full-period capacity hoặc
+  official collection export.
+  [Phiên giảm tải bổ sung](../../evidence/DAT-03_LIGHT_SESSION.md) đã stop/
+  restore đúng4ID,9healthy/5kept unchanged; full query chặn512MB,3bucket đạt/
+  bucket3timeout/12chưa chạy. Không nới cap hoặc gọi partial là full acceptance.
+  Mốc mới sau Docker hoạt động lại: event/bridge43copies=4.527.126rows mỗi
+  phía, **16/16 mỗi bảng đạt**,90s/query giữ nguyên; không full Spark capacity.
+  [Catalog rollout](../../evidence/DAT-03_CATALOG_ROLLOUT.md) có checkpoint
+  2000-01 thật, đang chạy phiên tiếp tục, chưa đủ288tháng hoặc official export.
+- [x] Controller kỹ thuật `dat03-catalog-rollout-v1`:37exact original sources,
+  frozen cutoff/code/inventories, phase/month checkpoints và contiguous chain,
+  budgets dưới2h, fail/timeout giữ lease. Tháng đầu2000-01 có68reported checks/
+  six pins, session exit0/release own lease. Không gọi controller hoặc checkpoint
+  đầu là acceptance toàn catalog. [Contract](../../specs/RESEARCH_CATALOG_ROLLOUT.md).
+- [ ] Khối 3 tiếp theo: capacity gate và rollout catalog 225/63 tháng có
+  source pins, checkpoint, six-snapshot publication và bounded recovery; chỉ
+  tick khi runtime toàn kỳ đạt, không lấy planner hoặc bốn tháng mẫu thay thế.
+- [ ] Khối 4 tiếp theo: official collection-aware ML export từ full Gold pin,
+  lifecycle/registry/loader/import và rerun; không đổi PREPARED thành EXPORTED
+  chỉ bằng metadata. Khối 5 là receipts từ ba máy thành viên.
 - [ ] Resource/boundary policies được kiểm trên dữ liệu thật; không silent sampling.
   Đã triển khai opt-in resolver `orc-06-v2` và `dat03-strict-split-v1` trong nhánh
   PR #99; regression/reader profile không thay full-period runtime acceptance.
@@ -116,6 +144,12 @@ release đủ gate. Không tạo dependency ngược từ DAT-03 sang EXP-02.
   Ngoại lệ owner duyệt25/10 cho bounded recovery: giữ run/namespace/cutoff,
   recreate riêng Trino với cached image sau backup, chỉ release own lease sau
   acceptance. Controller/test không tự triển khai hoặc retry service.
+  Phần rollout tiếp theo owner chọn máy hiện tại, <=2h/phiên; duyệt riêng
+  backup/lower-concurrency/recreate chỉ Trino bằng cached image, không service
+  khác hoặc dữ liệu. Trial không thay approval full rollout/capacity.
+  Owner duyệt bổ sung25/10 một phiên giảm tải: stop đúng Spark master/worker,
+  Airflow API/DAG processor rồi start lại cùng4ID; giữ5services khác, không
+  DAG/credential/data mutations. Chỉ đo read-only, phải xác nhận restore thật.
 - Không xóa dữ liệu; release khác bytes dùng identity/output mới.
 - Không upload cloud/thay ACL/tạo link public. SEC-01 Done local; mở lại phần
   Colab/Drive trước migration. Người dùng tự chọn nơi chia sẻ.
@@ -137,10 +171,76 @@ release đủ gate. Không tạo dependency ngược từ DAT-03 sang EXP-02.
   Theo yêu cầu mới khối 2 sửa tiếp ngay branch/PR này, không tạo branch/PR mới;
   owner cho phép commit/push trực tiếp sau acceptance. Khối2 đã đạt, không merge
   hoặc sửa original failed evidence. [Evidence](../../evidence/DAT-03_CONTINUATION.md).
+  PR #100 đã được merge vào main `8ef6c41` ngày25/10; phần tiếp theo mở branch
+  `feat/dat-03-research-rollout` từ đúng main này. Đang làm capacity/source plan
+  trên branch này;12 USGS captures/Java validation đạt, Trino-only trial chưa
+  đủ capacity. Official export wiring/full rollout chưa triển khai, không
+  chứng nhận khối3/4. [Evidence](../../evidence/DAT-03_ROLLOUT_CAPACITY.md),
+  [runbook](../../runbooks/DAT-03_RESEARCH_ROLLOUT.md).
+  Theo yêu cầu mới hoàn thiện toàn bộ DAT-03, tiếp tục từ commit0487a83 đã
+  push. Hai SQL probes đủ full-profile upper bound đã đạt; catalog controller
+  mới có first acceptance2000-01 và đang chạy phiên resume cùng pins/cutoff.
+  [Evidence mới](../../evidence/DAT-03_CATALOG_ROLLOUT.md). Chưa full catalog/
+  official collection export hoặc receipts ba máy; không tự commit/push/merge.
   Chưa có reviewer approval, full research hoặc ba máy acceptance. ThanhTris và
   rosy179 chưa chạy verifier theo xác nhận owner; tiếp tục phần kỹ thuật độc lập.
+  Mốc tiếp theo27/288tháng đến2002-03 đã accepted, own lease release. Owner yêu
+  cầu25/10 chạy các đợt khoảng3h/commit, giữ <=2h/phiên và báo mỗi25% catalog
+  (72/144/216/288), không gọi catalog100% là DAT-03 Done. Xem
+  [kế hoạch batch](../../runbooks/DAT-03_BATCH_EXECUTION.md). Được commit theo
+  đợt; chưa có yêu cầu push/merge. Khối3/4/5 vẫn chưa đạt toàn bộ acceptance.
+  Controller full-catalog ML export đã có code/12Python mocks/2Java pure gate
+  tests; [runbook](../../runbooks/DAT-03_RESEARCH_ML_EXPORT.md) giữ full288 gate
+  và lease qua checkpoint, chưa chạy trên research catalog toàn kỳ. Các ghi
+  chú "wiring chưa triển khai" phía trên là lịch sử trước component này.
+  Phiên kế tiếp5de5ac2f746642d49d98677ad207cf5a accepted45/288 đến2003-09:
+  thêm18tháng/3batch,2460,963s, exit0/no timeout/no pending và own release.
+  [Metadata](../../evidence/DAT-03_CATALOG_CHECKPOINT_045.json) có six pins/
+  466.990 canonical/bridge. Catalog15,625%, chưa mốc25% hoặc full DAT-03.
+  [Paired research kit component](../../evidence/DAT-03_RESEARCH_TEAM_COMPONENT.md)
+  có11kit/9loader tests và full138pilot regression PASS bằng existing doc01
+  venv; chưa actual paired release hoặc receipts ba máy. Không ship fixture
+  ZIP, tự tạo receipt thành viên khác hoặc chuyển task Done từ code/tests.
+  Phiên0c09edf220f842b0bbc4cb9fd17847f2 accepted63/288 đến2005-03:
+  thêm18tháng/3batch,3575,76s, exit0/no timeout/no pending, own release.
+  [Metadata063](../../evidence/DAT-03_CATALOG_CHECKPOINT_063.json) giữ six pins,
+  673.105 canonical/bridge;21,875% catalog. Chưa đủ mốc25% hoặc full DAT-03.
+  Mốc25%: phiên33489cff7443484eb7e161b12a3cef4b accepted72/288 đến2005-12,
+  thêm9tháng/2batch,3097,855s, exit0/no timeout/no pending, own release.
+  [Metadata072](../../evidence/DAT-03_CATALOG_CHECKPOINT_072.json) giữ six pins,
+  774.260 canonical/bridge. Hậu kiểm9healthy/no active Java/DagRun/query và
+  lease trống. Đã báo owner25% catalog; chưa full288/official export/ba máy,
+  task vẫn In Progress. Các commit theo đợt đang local, chưa tự push/merge.
+  Phiên26/10 từ72 đã accepted79/288 đến2006-07,843.404canonical/bridge,
+  exit0/1562,109s/own release, postflight idle/lease trống. Năm host copies cũ
+  đã archive/verify rồi restore COW đầy đủ tại original paths trước bỏ ZIP
+  trung gian; newest giữ nguyên. COW duplicate host
+  copies giữ nguyên bytes/paths/SHA/metadata. [Evidence26/10](../../evidence/DAT-03_OVERNIGHT_20261026.md)
+  và [metadata079](../../evidence/DAT-03_CATALOG_CHECKPOINT_079.json). Chưa50%,
+  full288 hoặc actual ML export/receipts; giữ In Progress. Fresh preflight/
+  physical reserve đạt trước mở batch2006-08–2007-03, không tự nới guard.
+  Batch này sau đó accepted87/288 đến2007-03: thêm8tháng,2173,924s, exit0/no
+  timeout/no pending/own release,918.168canonical/bridge. [Metadata087](../../evidence/DAT-03_CATALOG_CHECKPOINT_087.json).
+  Vòng nối tiếp kiểm health/idle/COW unchanged-progress/reserve rồi mở phiên
+  kế từ87, max18tháng/6000s; không auto recovery hoặc tự chuyển Done.
+
+  Cập nhật26/10: [checkpoint101](../../evidence/DAT-03_CATALOG_CHECKPOINT_101.json)
+  đã accepted101/288 (35,069%) đến2008-05,1.064.869canonical/bridge,
+  exit0/no timeout/own release. Coordinator đã dừng sạch vì physical host
+  free3.913.068.544bytes dưới reserve4GiB sau COW; fresh postflight healthy/
+  idle/lease-empty. Cần giải phóng dung lượng có chủ đích trước resume2008-06;
+  không restart/reset/xóa source hoặc gọi catalog là official ML export.
+  [Bàn giao](../../evidence/DAT-03_OVERNIGHT_20261026.md#dừng-sạch-tại-checkpoint101).
+  Giữ In Progress, chưa full288/export/receipts ba máy; follow-up đã dừng.
 
 ## Tài liệu liên quan
+
+- Storage26/10: [incremental host observations](../../evidence/DAT-03_INCREMENTAL_OBSERVATIONS_20261026.md)
+  có code/tests, migrate10accepted copies với full SHA/acceptance, real
+  read-only capture và808file full restore101. Không ETL mới/official export;
+  giữ In Progress cho187tháng/full ML export/ba máy. Dùng nhánh
+  `fix/dat-03-incremental-observations`, không downgrade host tooling hoặc
+  chạy helper cũ trên descriptor layout. [Contract](../../specs/RESEARCH_HOST_OBSERVATIONS.md).
 
 - [Source coverage](../../specs/SOURCE_COVERAGE.md), [baseline](../../specs/MVP_SCOPE_KPI_AND_DOD.md).
 - [Full-month state](../../specs/FULL_MONTH_STATE_CONTRACT.md), [feature/export](../../specs/FEATURE_EXPORT.md).

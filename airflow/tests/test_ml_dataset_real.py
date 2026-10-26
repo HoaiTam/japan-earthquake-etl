@@ -38,7 +38,7 @@ class RealDatasetTest(unittest.TestCase):
         self.calls.append(req)
         if req["step"] == "plan": return deepcopy(self.plan)
         step = req["step"]
-        result = {"contract_version": real.VERSION, "step": step, "run_id": req["run_id"],
+        result = {"contract_version": req["contract_version"], "step": step, "run_id": req["run_id"],
                   "dataset_id": self.plan["dataset_id"], "identity_payload_sha256": self.plan["identity_payload_sha256"],
                   "gold_snapshot_id": self.pub["gold_snapshot_id"], "attempt": req["attempt"],
                   "plan_sha256": hashlib.sha256(real.payload(self.plan)).hexdigest(), "status": real.STATUSES[real.STEPS.index(step)]}
@@ -68,6 +68,38 @@ class RealDatasetTest(unittest.TestCase):
         self.assertEqual(9079127511755137392, ctx["plan"]["gold_publication"]["gold_snapshot_id"])
         self.assertNotIn(":", ctx["build_run_id"])
         self.assertEqual(self.raw["run_id"], real.read(self.root / "guard/owner.json")["run_id"])
+
+    def collection_conf(self):
+        filters=self.raw["conf"]["filter_config"]
+        filters["window_coverage_policy"]="dat03-strict-split-v1"
+        filters["collection_export"]={"version":"dat03-collection-export-v1",
+                                      "layout_limits":{"mainshocks_per_shard":128,"rows_per_shard":100000,"max_shards":64}}
+
+    def test_collection_version_is_derived_from_validated_identity_config(self):
+        self.collection_conf();ctx=self.context()
+        self.assertEqual(real.COLLECTION_VERSION,ctx["contract_version"])
+        self.assertEqual(real.COLLECTION_VERSION,ctx["runtime_protocol"])
+        first=dispatch.execute_step(real.STEPS[0],ctx,None,self.env)
+        self.assertEqual(real.COLLECTION_VERSION,first["contract_version"])
+        changed={**ctx,"runtime_protocol":real.VERSION}
+        with self.assertRaisesRegex(RuntimeError,"REAL_CONTEXT_REQUIRED"):
+            dispatch.execute_step(real.STEPS[1],changed,first,self.env)
+
+    def test_collection_rejects_boolean_limits_or_unknown_version_before_lease(self):
+        self.collection_conf()
+        layout=self.raw["conf"]["filter_config"]["collection_export"]
+        layout["layout_limits"]["rows_per_shard"]=True
+        with self.assertRaisesRegex(RuntimeError,"COLLECTION_CONFIG_INVALID"):self.context()
+        layout["layout_limits"]["rows_per_shard"]=100000;layout["version"]="unknown"
+        with self.assertRaisesRegex(RuntimeError,"COLLECTION_CONFIG_INVALID"):self.context()
+        self.assertFalse((self.root/"guard/owner.json").exists())
+
+    def test_staged_runner_is_exact_and_does_not_change_default(self):
+        self.assertEqual(real.JAR,real.runner(self.env))
+        path="/opt/pipeline/staging/dat03-ml-export/"+"1"*32+"/runner.jar"
+        self.assertEqual(Path(path),real.runner({**self.env,"ML_BUILD_RUNNER_JAR":path}))
+        for bad in ("/tmp/runner.jar","/opt/spark/jobs/runner.jar",path.replace("runner.jar","other.jar")):
+            with self.assertRaisesRegex(RuntimeError,"EXACT_STAGED_RUNNER_REQUIRED|UNSAFE_PATH"):real.runner({**self.env,"ML_BUILD_RUNNER_JAR":bad})
 
     def test_invalid_config_no_lease_no_java(self):
         for key, value in (("dataset_split", "invalid"), ("mock_pipeline", True)):
