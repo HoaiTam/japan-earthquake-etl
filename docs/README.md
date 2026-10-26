@@ -17,6 +17,7 @@ approval. Power BI là Stretch; Trino/static report là Core.
 | Nhu cầu | Tài liệu |
 |---|---|
 | Thành viên mới: setup và tái lập dataset/experiment nhỏ không credential | [DOC-01 onboarding](./runbooks/DOC-01_TEAM_ONBOARDING.md) |
+| Agent trên máy ThanhTris/rosy179: setup/check DAT-03, Drive và các gate trước chia batch | [DAT-03 team worker setup](./runbooks/DAT-03_TEAM_WORKER_SETUP.md) |
 | Phân biệt đã có implementation, đã verify và còn thiếu gate nào | [Known issues theo task](./KNOWN_ISSUES.md) |
 | Hiểu nhanh đề tài, mục tiêu và công nghệ | [Giới thiệu đề tài](./GIOI_THIEU_DE_TAI_DONG_DAT_NHAT_BAN.md) |
 | Chốt yêu cầu và tiêu chí hoàn thành | [Đặc tả dự án](./specs/PROJECT_SPECIFICATION.md) |

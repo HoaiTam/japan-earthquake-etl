@@ -1,5 +1,14 @@
 # DAT-03 — Dataset dùng chung cho ba thành viên
 
+## Agent trên máy thành viên: setup/check và kế hoạch Drive
+
+Đọc [team worker setup](./DAT-03_TEAM_WORKER_SETUP.md) cho ThanhTris/rosy179:
+pin release, offline checks, Drive/runtime readiness, proposal chia187tháng
+còn lại và quy tắc upload/verify/dọn local. Có prompt bàn giao agent và mẫu
+báo cáo; không là distributed ETL implementation hoặc quyền tự xóa staging.
+Checkpoint mới nhất tại [progress](../evidence/DAT-03_PROGRESS.md); các mốc
+capacity/catalog25/10 bên dưới là lịch sử, không thay latest101/288.
+
 ## Tình trạng 25/10/2026
 
 DAT-03 **In Progress**, owner HoaiTam, reviewer unassigned. Hiện phát hành

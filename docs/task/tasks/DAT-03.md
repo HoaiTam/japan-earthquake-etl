@@ -48,6 +48,9 @@ PARTIAL thay full research data.
 ## Deliverable
 
 - [Hướng dẫn dataset dùng chung](../../runbooks/DAT-03_SHARED_DATASET.md).
+- [Agent setup/check trên máy thành viên](../../runbooks/DAT-03_TEAM_WORKER_SETUP.md):
+  release/input pins, offline/Drive/runtime readiness, handoff report và
+  proposal chia187tháng; chưa là worker/export/import chia máy đã nghiệm thu.
 - Archive profile và rollout/coverage/quality/resource reports; chỉ metadata vào Git.
 - Real Gold pins, MLI-02 acceptance, immutable research bundle và external SHA.
 - Công cụ đóng gói/verify offline, metadata handoff và receipts của ba người.
@@ -231,6 +234,13 @@ release đủ gate. Không tạo dependency ngược từ DAT-03 sang EXP-02.
   Giữ In Progress, chưa full288/export/receipts ba máy; follow-up đã dừng.
 
 ## Tài liệu liên quan
+
+- Storage26/10: [incremental host observations](../../evidence/DAT-03_INCREMENTAL_OBSERVATIONS_20261026.md)
+  có code/tests, migrate10accepted copies với full SHA/acceptance, real
+  read-only capture và808file full restore101. Không ETL mới/official export;
+  giữ In Progress cho187tháng/full ML export/ba máy. Dùng nhánh
+  `fix/dat-03-incremental-observations`, không downgrade host tooling hoặc
+  chạy helper cũ trên descriptor layout. [Contract](../../specs/RESEARCH_HOST_OBSERVATIONS.md).
 
 - [Source coverage](../../specs/SOURCE_COVERAGE.md), [baseline](../../specs/MVP_SCOPE_KPI_AND_DOD.md).
 - [Full-month state](../../specs/FULL_MONTH_STATE_CONTRACT.md), [feature/export](../../specs/FEATURE_EXPORT.md).
