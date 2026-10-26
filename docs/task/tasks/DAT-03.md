@@ -235,12 +235,15 @@ release đủ gate. Không tạo dependency ngược từ DAT-03 sang EXP-02.
 
 ## Tài liệu liên quan
 
-- Storage26/10: [incremental host observations](../../evidence/DAT-03_INCREMENTAL_OBSERVATIONS_20261026.md)
+- Storage26/10 ở worktree local `fix/dat-03-incremental-observations`:
   có code/tests, migrate10accepted copies với full SHA/acceptance, real
-  read-only capture và808file full restore101. Không ETL mới/official export;
-  giữ In Progress cho187tháng/full ML export/ba máy. Dùng nhánh
-  `fix/dat-03-incremental-observations`, không downgrade host tooling hoặc
-  chạy helper cũ trên descriptor layout. [Contract](../../specs/RESEARCH_HOST_OBSERVATIONS.md).
+  read-only capture và808file full restore101. Code/contract/evidence storage
+  còn chưa commit trong lần bàn giao Drive này; không đặt link tới các file
+  chỉ có local hoặc coi chúng đã được phát hành cho máy thành viên. Không
+  ETL mới/official export; giữ In Progress cho187tháng/full ML export/ba máy.
+  Host đã migrate vẫn cần tooling tương ứng; không downgrade hoặc chạy helper
+  cũ trên descriptor layout. Xem [hướng dẫn setup máy thành viên](../../runbooks/DAT-03_TEAM_WORKER_SETUP.md)
+  để kiểm release trước khi nhận việc.
 
 - [Source coverage](../../specs/SOURCE_COVERAGE.md), [baseline](../../specs/MVP_SCOPE_KPI_AND_DOD.md).
 - [Full-month state](../../specs/FULL_MONTH_STATE_CONTRACT.md), [feature/export](../../specs/FEATURE_EXPORT.md).

@@ -121,13 +121,26 @@ khác và tốn tài nguyên, không cần cho việc kiểm guide/storage contr
 
 ## 5. Setup Drive — từng người tự xác thực
 
+Folder nhóm owner đã cung cấp:
+[Drive nhóm](https://drive.google.com/drive/u/1/folders/17Wntw5LIRvFdzaU0RpnBRL60gzsRdFTB),
+ID `17Wntw5LIRvFdzaU0RpnBRL60gzsRdFTB`. Remote riêng dùng `dat03_team`;
+đọc [setup folder nhóm](./DAT-03_GROUP_DRIVE.md) cho tình trạng xác thực/check.
+Không dùng `/u/1` làm định danh account: từng người đăng nhập tài khoản của mình.
+Trên máy HoaiTam đã xác thực bằng client riêng, verify root metadata và
+tạo/readback layout dưới **`dat03_team:data/dat03/`**. Vì folder nhóm thực tế
+là `IE212` với `data/` có sẵn, layout đề xuất phía dưới nằm trong subfolder
+này, không tạo lại ở root hoặc chuyển dữ liệu cũ. Chưa upload dataset.
+
 ### 5.1 Folder và quyền
 
-Owner tạo folder riêng `IE212-DAT03`, share đúng email ba người, không bật
-“Anyone with the link”. Tách `shared-inputs`, `workers/HoaiTam`,
+Folder nhóm thực tế `IE212` đã có; tái dùng folder ID trên và namespace
+`data/dat03/`, không yêu cầu tạo một root `IE212-DAT03` mới. Owner xác nhận
+share đúng email ba người, không bật “Anyone with the link”. Bên trong
+`data/dat03/` tách `shared-inputs`, `workers/HoaiTam`,
 `workers/ThanhTris`, `workers/rosy179`, `accepted`, `receipts`.
 Chỉ owner/người tích hợp cập nhật accepted sau review; worker chỉ ghi phần
-được giao. Quyền cha được kế thừa: không cấp Editor ở root nếu cần giới hạn
+được giao. Đây mới là quy ước ownership, chưa ACL-isolate các worker folders.
+Quyền cha được kế thừa: không cấp Editor ở root nếu cần giới hạn
 worker chỉ sửa subfolder riêng. Xác nhận effective permissions bằng tài khoản
 từng người, không chỉ nhìn tên folder. Kiểm storage quota của chủ sở hữu file;
 đừng coi My Drive shared folder tự có quota độc lập của nhóm.
@@ -147,11 +160,12 @@ rclone version
 rclone config
 ```
 
-Trong wizard: new remote `gdrive`, backend `drive`, dùng OAuth client riêng
+Trong wizard: new remote `dat03_team`, backend `drive`, dùng OAuth client riêng
 theo [official client-id setup](https://rclone.org/drive/#making-your-own-client-id).
 Tài liệu rclone hiện khuyến nghị client riêng vì shared client đang được loại bỏ.
 Đăng nhập đúng Google account trong browser, không copy token giữa ba máy.
 Advanced `root_folder_id` là ID folder owner gửi, lấy sau `/folders/` trong URL.
+Ở nhóm này, nhập `17Wntw5LIRvFdzaU0RpnBRL60gzsRdFTB`.
 Folder share thông thường **không phải Shared Drive**; chỉ chọn Shared Drive
 nếu trường/tổ chức đã cấp loại đó. Tránh chọn theo số thứ tự wizard vì có thể đổi.
 
@@ -163,8 +177,8 @@ Giữ rclone config/token ngoài repo và gói upload, không dán config vào b
 Kiểm read-only sau khi người dùng hoàn tất wizard:
 
 ```bash
-rclone lsd gdrive:
-rclone about gdrive:
+rclone lsd dat03_team:
+rclone about dat03_team:
 ```
 
 Expected: thấy các folder đã chia sẻ dưới đúng root; quota đủ cho dự kiến
@@ -254,6 +268,8 @@ verify publication mới, không tự coi concatenate Parquet là merge Iceberg.
 Ví dụ thao tác **rclone có thật**, không phải command export của repo. Hai biến
 dưới phải được người dùng đặt thành đường dẫn upload local và remote riêng
 của gói; không dùng staging root hoặc folder chứa secret. `test` thất bại thì dừng.
+Remote của worker phải ở `dat03_team:data/dat03/workers/<người-nhận>/<batch-id>`
+với batch ID/version đã duyệt, không ghi lên accepted hoặc folder người khác.
 
 ```bash
 test -n "$DAT03_UPLOAD_DIR" && test -d "$DAT03_UPLOAD_DIR"
