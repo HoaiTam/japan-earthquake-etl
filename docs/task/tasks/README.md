@@ -22,6 +22,31 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 
 ## Tổng quan
 
+DAT-03 tối27/10: automation đã hủy; Docker mở lại để benchmark chỉ đọc.
+Recovery cũ bị gián đoạn, không còn active nhưng thiếu terminal receipt;
+accepted vẫn113/288. Primary provenance whole-query16,47s so16bucket88,70s,
+cùng0vi phạm; opt-in component chưa được bật trong pinned recovery.
+[Evidence](../../evidence/DAT-03_VERIFICATION_BENCHMARK_20261027.md).
+Các ghi chú "đang chạy" bên dưới là lịch sử trước khi Docker dừng.
+
+Chỉ đạo DAT-03 mới nhất27/10: chỉ hoàn tất recovery batch06–11/2009 rồi dừng;
+không mở batch12/2009/normal continuation. Chưa có acceptance mới ngoài113.
+
+DAT-03 chiều27/10: accepted113/288 đến2009-05 (39,236%),12/62tháng phần
+HoaiTam. Batch06–11/2009 commit nhưng verify/recovery V1 failed. Bản vá V2
+SELECT-only polling300s (write/default120s/không retry) qua13metadata+actual
+slow-query probe58,637s/0vi phạm; recovery riêng không Spark/ETL replay đang
+chạy, chưa cộng tháng mới. Owner cho phép sau17:00, tối đa2h/phiên.
+[Evidence mới](../../evidence/DAT-03_CATALOG_VERIFY_RECOVERY_200906.md).
+
+DAT-03 cập nhật27/10: đã phục hồi publication batch06–11/2008 trên commit cũ,
+13/13 preflight và186actualSQL/own release đạt, không ETL replay. Host capture
+allowlist lỗi đã chẩn đoán/lưu own dead lock/recapture chỉ đọc, latest và SHA
+report đạt107/288 (37,153%) đến2008-11,1.137.791canonical/bridge. Đã mở phiên
+tiếp từ2008-12, tối đa18tháng; không cộng tháng active. Vẫn In Progress cho
+full catalog/export/receipts ba máy.
+[Evidence mới](../../evidence/DAT-03_CATALOG_RECOVERY_20261027.md).
+
 - Tổng số task: **77**.
 - Foundation: **9 task `Done`**, FND-01 đã nghiệm thu runtime của lifecycle mới ngày 2026-10-15.
 - Task còn ở trạng thái `Needs Update`: **1** — SEC-01 mở lại cho Drive handoff26/10.
@@ -75,6 +100,10 @@ EXP-02 PASSED. QA-04 từng dời tuần 6 ở mốc cũ, nay đưa lại tuần
 không giảm scope recovery. Ngày 24/10 thêm DAT-03, 16h estimate ban đầu ở tuần 6:
 77 task/402h, không cộng lại vào budget tuần 5. DAT-03 còn In Progress cho
 catalog thật và receipts ba người; pilot dùng ngay không thay research acceptance.
+[Storage26/10](../../evidence/DAT-03_INCREMENTAL_OBSERVATIONS_20261026.md) đã
+migrate10host copies thành shared CAS/descriptors, real read-only capture và
+full restore101 đạt; chưa ETL mới hoặc official export. Task vẫn In Progress,
+dùng host tooling mới, không xóa blobs hoặc chạy ignored helper cũ.
 [Mới nhất26/10 — DAT-03 catalog](../../evidence/DAT-03_CATALOG_ROLLOUT.md):
 event/bridge probes43copies đủ full-profile upper bound đã16/16 mỗi bảng;
 controller đã nghiệm thu101/288tháng (35,069%) đến2008-05, session v2 exit0/2545,568s/

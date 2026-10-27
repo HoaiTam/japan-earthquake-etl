@@ -241,7 +241,18 @@ measure-research-spark-capacity: ## DAT-03 read-only full-profile count/unique/w
 test-research-catalog: ## DAT-03 catalog control-plane tests, no Docker/source network
 	@python3 -m unittest discover -s tests -p 'test_research_catalog.py'
 	@python3 -m unittest discover -s tests -p 'test_research_catalog_progress.py'
-	@./mvnw --batch-mode --no-transfer-progress -pl spark -am test -Dtest=ResearchCatalogStateTest,ResearchCatalogBatchPlanTest,ResearchCatalogCompatibilityTest,FullMonthJmaCacheTest,GoldFactBucketTest,GoldOutsideBucketTest,GoldVerifiedReuseTest -Dsurefire.failIfNoSpecifiedTests=false
+	@python3 -B -m unittest discover -s tests -p 'test_research_catalog_recovery.py'
+	@$(MAKE) test-research-observation
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am test -Dtest=ResearchCatalogStateTest,ResearchCatalogBatchPlanTest,ResearchCatalogCompatibilityTest,ResearchCatalogRecoveryJobTest,FullMonthJmaCacheTest,GoldFactBucketTest,GoldOutsideBucketTest,GoldVerifiedReuseTest -Dsurefire.failIfNoSpecifiedTests=false
+
+.PHONY: test-research-catalog-recovery
+test-research-catalog-recovery: ## DAT-03 publication-only recovery guards; mock/offline, không ETL/Docker
+	@python3 -B -m unittest discover -s tests -p 'test_research_catalog_recovery.py'
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am test -Dtest=ResearchCatalogRecoveryJobTest,TrinoSqlClientTest -Dsurefire.failIfNoSpecifiedTests=false
+
+.PHONY: test-research-observation
+test-research-observation: ## DAT-03 host CAS/delta/restore/failure guards, offline; không Spark/Docker
+	@python3 -B -m unittest discover -s tests -p 'test_research_observation.py'
 
 .PHONY: prepare-research-catalog-continuation
 prepare-research-catalog-continuation: ## DAT-03 pin a new compatible batch/cache runner without changing active code or source pins
@@ -673,6 +684,8 @@ ci-docs-base: ## Always-on CI guards; pilot tests được chọn riêng theo im
 	@$(MAKE) test-research-rollout
 	@python3 -m unittest discover -s tests -p 'test_research_catalog.py'
 	@python3 -m unittest discover -s tests -p 'test_research_catalog_progress.py'
+	@$(MAKE) test-research-observation
+	@python3 -B -m unittest discover -s tests -p 'test_research_catalog_recovery.py'
 	@python3 -m unittest discover -s tests -p 'test_research_spark_capacity.py'
 	@python3 -m unittest discover -s tests -p 'test_research_ml_export.py'
 	@python3 -m unittest discover -s tests -p 'test_research_usgs_captures.py'

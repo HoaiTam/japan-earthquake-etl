@@ -191,7 +191,8 @@ public final class ResearchCatalogJob {
                 .config("spark.sql.codegen.wholeStage","false").getOrCreate();spark.sparkContext().setLogLevel("ERROR");
         try(var bronze=MinioBronzeObjectStore.fromEnvironment();var silver=MinioSilverObjectStore.fromEnvironment()) {
             var writer=new GoldIcebergWriter(spark,text(r,"namespace"),silver,lease);
-            var sql=new TrinoSqlClient(URI.create("http://"+System.getenv("TRINO_HOST")+":"+System.getenv("TRINO_INTERNAL_PORT")));
+            var endpoint=URI.create("http://"+System.getenv("TRINO_HOST")+":"+System.getenv("TRINO_INTERNAL_PORT"));
+            var sql=batched?TrinoSqlClient.researchCatalog(endpoint):new TrinoSqlClient(endpoint);
             var publisher=batched?GoldPublisher.researchCatalogCheckpointed(sql,silver,lease):GoldPublisher.researchRollout(sql,silver,lease);
             var cache=batched?new FullMonthBronzeReader.JmaStructureCache():null;
             var adapter=new RealEtlAdapter(spark,bronze,silver,inventory,writer,publisher,lease,cache);
@@ -243,6 +244,7 @@ public final class ResearchCatalogJob {
                     .put("jma_structural_full_scans",cache.fullScans()).put("jma_structural_cache_hits",cache.hits())
                     .put("shuffle_partitions",ResearchCatalogBatchPlan.SHUFFLE_PARTITIONS).put("start_reserve_seconds",ResearchCatalogBatchPlan.START_RESERVE_SECONDS)
                     .put("continuation_sha256",sha(Files.readAllBytes(safe(Path.of(args[4])))));
+            if(batched)result.put("sql_read_profile",TrinoSqlClient.RESEARCH_READ_PROFILE);
             if(pending==null)result.putNull("pending_month");else result.put("pending_month",pending).put("status","PARTIAL_MONTH_REQUIRES_RECOVERY");
             save(session.resolve("result.json"),result);
         } finally {spark.stop();}

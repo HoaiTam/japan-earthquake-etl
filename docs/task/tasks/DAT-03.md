@@ -170,6 +170,31 @@ release đủ gate. Không tạo dependency ngược từ DAT-03 sang EXP-02.
 - **Trạng thái:** In Progress
 - **Assignee:** HoaiTam
 - **Reviewer:** unassigned
+- **Cập nhật tối27/10:** đã hủy automation, mở lại Docker và benchmark chỉ đọc
+  batch06–11/2009. Recovery V2 bị gián đoạn ở ordinal134, thiếu terminal receipt,
+  own lease giữ; accepted vẫn113. Primary whole-query16,47s so16bucket88,70s,
+  cùng0vi phạm; thêm opt-in có capacity guard, chưa wiring/recover/publish.
+  [Evidence benchmark](../../evidence/DAT-03_VERIFICATION_BENCHMARK_20261027.md),
+  [quy trình mới](../../runbooks/DAT-03_VERIFICATION_BENCHMARK.md).
+- **Chỉ đạo mới nhất27/10:** chỉ hoàn tất batch06–11/2009/recovery V2 đang
+  chạy rồi dừng; không mở normal continuation/batch12/2009. Quyền tiếp tục
+  các phiên sau17:00 đã giới hạn lại. Không cộng119 trước actual acceptance.
+- **Cập nhật chiều27/10:** accepted113/288 đến2009-05 (39,236%),
+  1.200.455canonical/bridge,12/62tháng phần HoaiTam. Batch06–11/2009 đã commit
+  Gold nhưng verify failed/ABANDONED_QUERY; owner yêu cầu xử lý rồi tiếp tục.
+  Recovery V1 cũng failed; đã có bản vá V2 SELECT-only polling300s, write/default
+  vẫn120s/không retry,13metadata+slow-query probe58,637s/0vi phạm đạt.
+  Recovery V2 không Spark/không replay ETL đang verify/publish;
+  chỉ cộng119 khi actual acceptance/own release/host CAS reporter đạt.
+  [Evidence](../../evidence/DAT-03_CATALOG_VERIFY_RECOVERY_200906.md).
+- **Cập nhật27/10:** owner yêu cầu phục hồi batch06–11/2008 đã commit nhưng
+  chưa Published. Branch `fix/dat-03-catalog-publication-recovery` từ main
+  `fe80830`; giữ failure và toàn bộ pins. Read-only preflight13/13 và actual
+  verify/publish/186SQL/own release đạt, không Spark/ETL replay. Host capture
+  allowlist lỗi đã phục hồi riêng chỉ đọc. [Checkpoint107](../../evidence/DAT-03_CATALOG_CHECKPOINT_107.json)
+  accepted107/288 đến2008-11;6/62tháng phần HoaiTam. Đã mở phiên tiếp từ2008-12,
+  tối đa18tháng/budget6000s; không cộng tháng active. [Evidence](../../evidence/DAT-03_CATALOG_RECOVERY_20261027.md),
+  [runbook](../../runbooks/DAT-03_CATALOG_PUBLICATION_RECOVERY.md).
 - **Evidence / PR:** [DAT-03 progress](../../evidence/DAT-03_PROGRESS.md). Branch
   `feat/dat-03-research-dataset-handoff` từ main `bc0ce9e` (PR #98).
   [PR #99](https://github.com/HoaiTam/japan-earthquake-etl/pull/99), bước3/4

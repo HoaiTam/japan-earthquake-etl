@@ -32,7 +32,9 @@ def support():
 
 
 def full_catalog(folder,session):
-    c=support();request=c.validate(folder);session=c.e.safe(session)
+    c=support();raw_folder=c.e.safe(folder);raw_session=c.e.safe(session)
+    c.e.require(raw_session.parent==raw_folder/"sessions" and re.fullmatch(r"[a-f0-9]{32}",raw_session.name),"RESEARCH_EXPORT_EXACT_CATALOG_SESSION_REQUIRED")
+    folder=c.observation_view(raw_folder);request=c.validate(folder);session=folder/"sessions"/raw_session.name
     c.e.require(session.parent==folder/"sessions" and re.fullmatch(r"[a-f0-9]{32}",session.name),"RESEARCH_EXPORT_EXACT_CATALOG_SESSION_REQUIRED")
     pin=c.load(session/"acceptance.json",65536);measurement=c.load(session/"execution.json",65536);result=c.session_result(folder,request,session)
     c.e.require(pin["status"]=="CHECKPOINT_ACCEPTED" and pin["request_sha256"]==c.e.sha(folder/"request.json")
@@ -50,6 +52,8 @@ def prepare(deployment,catalog,observation,session,split):
     relative=catalog.relative_to(deployment/"staging/dat03-catalog")
     c.e.require(re.fullmatch(r"[a-f0-9]{32}",str(relative)) and observation.is_relative_to(catalog)
                 and observation!=catalog,"RESEARCH_EXPORT_EXACT_CATALOG_COPY_REQUIRED")
+    c.e.require(session.parent==observation/"sessions" and re.fullmatch(r"[a-f0-9]{32}",session.name),"RESEARCH_EXPORT_EXACT_CATALOG_SESSION_REQUIRED")
+    observation=c.observation_view(observation);session=observation/"sessions"/session.name
     c.validate(catalog);c.e.require(c.e.sha(catalog/"request.json")==c.e.sha(observation/"request.json"),"RESEARCH_EXPORT_CATALOG_COPY_CHANGED")
     full_catalog(observation,session)  # No directory, lease or Docker action before the full-source gate.
     c.e.require(shutil.disk_usage(deployment).free>=4*1024**3,"RESEARCH_EXPORT_DISK_RESERVE")

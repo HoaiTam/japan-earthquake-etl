@@ -60,6 +60,22 @@ class ResearchMlExportTest(unittest.TestCase):
             with patch.object(m,"support",return_value=c),patch.object(c,"validate",return_value=request),patch.object(c,"session_result",return_value=result):
                 with self.assertRaisesRegex(RuntimeError,"FULL_288"):m.full_catalog(root,session)
 
+    def test_foreign_session_cannot_be_rebound_to_a_valid_local_session_name(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp).resolve();catalog=root/"catalog";session=root/"foreign/sessions"/("a"*32)
+            with self.assertRaisesRegex(RuntimeError,"EXACT_CATALOG_SESSION"):
+                m.full_catalog(catalog,session)
+
+    def test_prepare_rejects_foreign_session_before_rebinding_or_creating_attempt(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp).resolve();catalog=root/"staging/dat03-catalog"/("a"*32)
+            observation=catalog/"runtime";observation.mkdir(parents=True)
+            session=root/"foreign/sessions"/("b"*32)
+            with patch.object(m,"support",return_value=c),patch.object(c,"validate",side_effect=AssertionError("no input reads")):
+                with self.assertRaisesRegex(RuntimeError,"EXACT_CATALOG_SESSION"):
+                    m.prepare(root,catalog,observation,session,"REPRODUCTION")
+            self.assertFalse((root/"staging/dat03-ml-export").exists())
+
     def trial(self,outcome="checkpoint",held=None):
         with tempfile.TemporaryDirectory() as temp:
             base=Path(temp).resolve();root=base/"export"/("a"*32);root.mkdir(parents=True)

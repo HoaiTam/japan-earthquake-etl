@@ -12,6 +12,10 @@ Java/Spark, không thêm Python ETL. Hiện controller/component tests đã có;
 - Request pin catalog root/request SHA, exact prebuilt runner SHA, scaling
   config SHA, observation cutoff UTC và một split. REPRODUCTION/EXTENSION
   là hai attempts/dataset IDs riêng, giữ shared source pins và exact full Gold.
+- Host observation có thể là legacy directory hoặc complete CAS descriptor
+  theo [storage contract](../specs/RESEARCH_HOST_OBSERVATIONS.md); full file-set/
+  input/blob SHA vẫn kiểm trước full288 gate. Worker vẫn dùng ordinary runtime
+  trong Docker volume, không dùng manifest host thay source/publication proof.
 - Reuse selection/window/scaling config đã version hóa; natural/Japan/JMA/
   UNIFIED filters, full-split MAXC Mc, strict window coverage. Không caller Mc,
   sample, truncate, nới limits mù hoặc đổi scientific baseline để chạy nhanh.

@@ -22,6 +22,8 @@ public final class GoldPublisher {
     private final boolean bucketedOutside;
     private final boolean bucketedBlockers;
     private final boolean reuseVerified;
+    private boolean singlePassPrimary;
+    public static final String SINGLE_PASS_PRIMARY_VERSION="dat03-primary-whole-other-buckets-v1";
     private final java.util.function.LongSupplier monotonic;
     private ObjectNode verificationCache;
     private long verifiedAtNanos;
@@ -55,6 +57,15 @@ public final class GoldPublisher {
     public static GoldPublisher researchCatalogCheckpointed(Sql sql,SilverObjectStore store,Runnable lease) {
         return researchCatalogCheckpointed(sql,store,lease,System::nanoTime);
     }
+    /** Explicit measured opt-in. Other checks, outside proof and publication gates stay exhaustive. */
+    public static GoldPublisher researchCatalogSinglePassPrimary(Sql sql,SilverObjectStore store,Runnable lease) {
+        var publisher=researchCatalogCheckpointed(sql,store,lease);
+        publisher.singlePassPrimary=true;
+        return publisher;
+    }
+    private String factStrategy() {
+        return singlePassPrimary ? SINGLE_PASS_PRIMARY_VERSION : BUCKETED_BLOCKERS_VERSION;
+    }
     static GoldPublisher researchCatalogCheckpointed(Sql sql,SilverObjectStore store,Runnable lease,java.util.function.LongSupplier monotonic) {
         return new GoldPublisher(sql,store,lease,false,true,true,true,monotonic);
     }
@@ -73,7 +84,7 @@ public final class GoldPublisher {
         report.put("identity_sha256",identity); report.put("bundle_sha256",SilverBundlePublisher.sha(bytes));
         if(operational) OperationalGoldPolicy.attach(report,commit.path("operational_policy"));
         if(bucketedOutside)report.put("outside_scope_strategy",BUCKETED_OUTSIDE_VERSION);
-        if(bucketedBlockers)report.put("fact_blocker_strategy",BUCKETED_BLOCKERS_VERSION);
+        if(bucketedBlockers)report.put("fact_blocker_strategy",factStrategy());
         report.set("snapshot_bundle",commit.path("tables")); var checks=report.putObject("checks");
         for(String name:GoldIcebergWriter.TABLES) {
             var shape=sql.execute("SELECT * FROM "+plan.ref(name)+" LIMIT 0");
@@ -107,7 +118,7 @@ public final class GoldPublisher {
         report.put("gold_run_id",goldRun);report.put("namespace",namespace);report.set("snapshot_bundle",commit.path("tables"));
         if(operational) OperationalGoldPolicy.attach(report,commit.path("operational_policy"));
         if(bucketedOutside)report.put("outside_scope_strategy",BUCKETED_OUTSIDE_VERSION);
-        if(bucketedBlockers)report.put("fact_blocker_strategy",BUCKETED_BLOCKERS_VERSION);
+        if(bucketedBlockers)report.put("fact_blocker_strategy",factStrategy());
         var checks=report.putObject("checks");
         JsonNode reusable=reusable(commit,bundleSha);
         if(reusable!=null) {
@@ -139,7 +150,7 @@ public final class GoldPublisher {
                     && !BUCKETED_OUTSIDE_VERSION.equals(existing.path("outside_scope_strategy").asText())))
                 throw new IOException("PUBLICATION_OUTSIDE_STRATEGY_CHANGED");
             if(bucketedBlockers!=existing.has("fact_blocker_strategy") || (bucketedBlockers
-                    && !BUCKETED_BLOCKERS_VERSION.equals(existing.path("fact_blocker_strategy").asText())))
+                    && !factStrategy().equals(existing.path("fact_blocker_strategy").asText())))
                 throw new IOException("PUBLICATION_FACT_STRATEGY_CHANGED");
             requirePublication(namespace,publicationId,bundleSha,plan.snapshot("event_current"),commit);
             return existing; // Never move serving aliases back on a historical rerun.
@@ -212,6 +223,12 @@ public final class GoldPublisher {
             throw new IOException("ASOF_PUBLICATION_ROW_POLICY_CONFLICT");
     }
     private void policy(JsonNode commit) {
+        // This opt-in is measured only at the current bounded catalog size, not the full research period.
+        if(singlePassPrimary)for(String name:List.of("event_current","event_source_bridge")) {
+            var count=commit.path("tables").path(name).path("count");
+            if(!count.isIntegralNumber() || !count.canConvertToLong() || count.asLong()<0 || count.asLong()>1_300_000)
+                throw new IllegalArgumentException("SINGLE_PASS_PRIMARY_CAPACITY_NOT_MEASURED");
+        }
         if(bucketedOutside && !commit.path("namespace").asText().matches("iceberg\\.dat03_catalog_[a-f0-9]{32}"))
             throw new IllegalArgumentException("DAT03_ISOLATED_CATALOG_REQUIRED");
         if(operational) OperationalGoldPolicy.validate(commit.path("namespace").asText(),commit.path("operational_policy"));
@@ -232,7 +249,8 @@ public final class GoldPublisher {
     }
     private void blockers(GoldVerificationPlan plan,ObjectNode checks) throws Exception {
         for(var query:plan.blockers().entrySet()) {
-            if(!bucketedBlockers || !GoldVerificationPlan.BUCKETED_FACT_BLOCKERS.contains(query.getKey())) {
+            if(!bucketedBlockers || !GoldVerificationPlan.BUCKETED_FACT_BLOCKERS.contains(query.getKey())
+                    || (singlePassPrimary && query.getKey().equals("primary_provenance"))) {
                 checked(checks,query.getKey(),query.getValue(),0);continue;
             }
             for(char bucket:"0123456789abcdef".toCharArray())

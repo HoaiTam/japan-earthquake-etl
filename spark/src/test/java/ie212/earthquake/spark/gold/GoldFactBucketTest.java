@@ -67,4 +67,40 @@ class GoldFactBucketTest {
         var fake=new GoldPublicationTest.Fake();assertThrows(Exception.class,()->GoldPublisher.researchCatalog(fake,store,()->{}).verify("gold-test","iceberg.gold","a".repeat(64)));
         assertTrue(fake.queries.isEmpty());
     }
+    @Test void singlePassPrimaryKeepsOtherExhaustiveBucketsAndDoesNotPublishDuringVerify() throws Exception {
+        var c=commit();var store=new FileSilverObjectStore(root);
+        store.put("gold-commits/gold-test/commit.json",GoldPublicationTest.JSON.writeValueAsBytes(c),"application/json");
+        var fake=new GoldPublicationTest.Fake();
+        var report=GoldPublisher.researchCatalogSinglePassPrimary(fake,store,()->{}).verify("gold-test",c.path("namespace").asText(),"a".repeat(64));
+        assertEquals(GoldPublisher.SINGLE_PASS_PRIMARY_VERSION,report.path("fact_blocker_strategy").asText());
+        assertEquals(new GoldVerificationPlan(c).blockers().get("primary_provenance"),report.path("checks").path("primary_provenance").path("sql").asText());
+        assertFalse(report.path("checks").has("primary_provenance:0"));
+        for(String name:GoldVerificationPlan.BUCKETED_FACT_BLOCKERS)if(!name.equals("primary_provenance"))
+            assertEquals(16,report.path("checks").path(name).path("query_count").asInt());
+        for(String name:List.of("event_current","event_source_bridge"))
+            assertEquals(16,report.path("checks").path("outside:"+name).path("query_count").asInt());
+        assertFalse(fake.queries.stream().anyMatch(q->q.startsWith("CREATE")||q.startsWith("INSERT")));
+    }
+    @Test void singlePassPrimaryViolationStillBlocksBeforeAnyWrite() throws Exception {
+        var c=commit();var store=new FileSilverObjectStore(root);
+        store.put("gold-commits/gold-test/commit.json",GoldPublicationTest.JSON.writeValueAsBytes(c),"application/json");
+        String primary=new GoldVerificationPlan(c).blockers().get("primary_provenance");
+        var fake=new GoldPublicationTest.Fake() {
+            @Override public GoldPublisher.Result execute(String query) throws Exception {
+                var result=super.execute(query);
+                return query.equals(primary)?new GoldPublisher.Result(List.of(),List.of(GoldPublicationTest.JSON.readTree("[1]"))):result;
+            }
+        };
+        assertThrows(Exception.class,()->GoldPublisher.researchCatalogSinglePassPrimary(fake,store,()->{}).publish("gold-test",c.path("namespace").asText(),"a".repeat(64)));
+        assertFalse(fake.queries.stream().anyMatch(q->q.startsWith("CREATE")||q.startsWith("INSERT")));
+        assertFalse(store.exists("gold-verification/gold-test/publication.json"));
+    }
+    @Test void singlePassCannotSilentlyExpandBeyondMeasuredCapacity() throws Exception {
+        var c=commit();((ObjectNode)c.path("tables").path("event_current")).put("count",1_300_001);
+        var store=new FileSilverObjectStore(root);
+        store.put("gold-commits/gold-test/commit.json",GoldPublicationTest.JSON.writeValueAsBytes(c),"application/json");
+        var fake=new GoldPublicationTest.Fake();
+        assertThrows(IllegalArgumentException.class,()->GoldPublisher.researchCatalogSinglePassPrimary(fake,store,()->{}).verify("gold-test",c.path("namespace").asText(),"a".repeat(64)));
+        assertTrue(fake.queries.isEmpty());
+    }
 }

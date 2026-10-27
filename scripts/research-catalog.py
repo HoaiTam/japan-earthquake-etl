@@ -25,6 +25,23 @@ CHECK = "ie212.earthquake.spark.usgs.ResearchCatalogJob"
 CONTINUATION_VERSION = "dat03-catalog-continuation-v1"
 TABLES = ("event_current", "event_source_bridge")
 NAMES = tuple([f"h{y}" for y in range(2000, 2025)] + [f"usgs-2023-{m:02d}" for m in range(1, 13)])
+_OBSERVATIONS = None
+
+
+def observations():
+    global _OBSERVATIONS
+    if _OBSERVATIONS is None:
+        _OBSERVATIONS = module("research-observation")
+    return _OBSERVATIONS
+
+
+def observation_view(root):
+    # The pinned container controller continues to use ordinary directories.
+    # Only host descriptors load the new, read-only content-addressed reader.
+    if _OBSERVATIONS is not None and isinstance(root, _OBSERVATIONS.View):
+        return root
+    path = e.safe(root)
+    return observations().view(path, files()) if (path / "observation.json").exists() else path
 
 
 def module(name):
@@ -35,7 +52,7 @@ def module(name):
 def compatibility(original, current):
     base = "ie212/earthquake/spark/"
     changed_allowed = {base+n+".class" for n in ("usgs/ResearchCatalogJob", "usgs/ResearchCatalogState", "orchestration/FullMonthBronzeReader",
-                                                "orchestration/FullMonthStateResolver", "orchestration/RealEtlAdapter", "gold/GoldPublisher", "gold/GoldVerificationPlan")}
+                                                "orchestration/FullMonthStateResolver", "orchestration/RealEtlAdapter", "gold/GoldPublisher", "gold/GoldVerificationPlan", "gold/TrinoSqlClient")}
     added_allowed = {base+n+".class" for n in ("usgs/ResearchCatalogBatchPlan", "usgs/ResearchCatalogCompatibility", "orchestration/FullMonthBronzeReader$JmaStructureCache")}
     proof = {"version": CONTINUATION_VERSION, "changed_entries": {}, "added_entries": {}, "matched_original_entries": 0}; total = 0
     with zipfile.ZipFile(e.safe(original)) as a, zipfile.ZipFile(e.safe(current)) as b:
@@ -137,7 +154,7 @@ def capacity(root, request, plan, summary):
 
 
 def validate(root):
-    root = e.safe(root); request = load(root / "request.json", 65536)
+    root = observation_view(root); request = load(root / "request.json", 65536)
     e.require(set(request) == {"version", "run_id", "namespace", "runner_sha256", "controller_sha256", "support_sha256", "source_cutoff_utc",
                               "baseline_inventory_sha256", "boundary_inventory_sha256", "plan_sha256", "usgs_summary_sha256", "sources", "trino_capacity"}
               and request["version"] == VERSION and re.fullmatch(r"dat03-catalog-[a-f0-9]{32}", request["run_id"])
@@ -259,7 +276,7 @@ def overlay_catalog(original,compiled,target):
     original_pin=e.sha(original);compiled_pin=e.sha(compiled)
     prefix="ie212/earthquake/spark/"
     changed={prefix+n+".class" for n in ("usgs/ResearchCatalogJob","usgs/ResearchCatalogState","orchestration/FullMonthBronzeReader",
-             "orchestration/FullMonthStateResolver","orchestration/RealEtlAdapter","gold/GoldPublisher","gold/GoldVerificationPlan")}
+             "orchestration/FullMonthStateResolver","orchestration/RealEtlAdapter","gold/GoldPublisher","gold/GoldVerificationPlan","gold/TrinoSqlClient")}
     added={prefix+n+".class" for n in ("usgs/ResearchCatalogBatchPlan","usgs/ResearchCatalogCompatibility","orchestration/FullMonthBronzeReader$JmaStructureCache")}
     with zipfile.ZipFile(e.safe(original)) as base,zipfile.ZipFile(e.safe(compiled)) as build:
         e.require(len(base.namelist())==len(set(base.namelist())) and len(build.namelist())==len(set(build.namelist()))
@@ -312,7 +329,7 @@ def session_result(folder, request, session):
     e.require([p["month"] for p in result["months"]] == module_months()[:result["completed_months"]], "CATALOG_CHECKPOINT_PREFIX_CHANGED")
     previous = None
     for checkpoint in result["months"]:
-        root = e.safe(folder / "months" / checkpoint["month"])
+        root = folder / "months" / checkpoint["month"]
         e.require(load(root / "checkpoint.json", 65536) == checkpoint and checkpoint["previous_checkpoint_sha256"] == previous
                   and checkpoint["request_identity_sha256"] == e.digest(request) and checkpoint["status"] == "PUBLISHED"
                   and checkpoint["record_sha256"] == e.sha(e.safe(root / "record.json")), "CATALOG_CHECKPOINT_CHAIN_CHANGED")
@@ -324,11 +341,51 @@ def session_result(folder, request, session):
                   and record["publication"]["published"] is True and record["publication"]["verify_status"] == "PASSED"
                   and record["commit"]["tables"] == record["publication"]["snapshot_bundle"]
                   and checkpoint["snapshots"] == {t: p["snapshot_id"] for t, p in record["commit"]["tables"].items()}, "CATALOG_CHECKPOINT_RECORD_CHANGED")
-        previous = e.sha(root / "checkpoint.json")
+        previous = e.sha(e.safe(root / "checkpoint.json"))
     expected = result["months"][-1]["snapshots"] if result["months"] else {t: 0 for t in e.TABLES}
     e.require(set(expected) == e.TABLES and result["current_snapshots"] == expected
               and all(type(v) is int and 0 <= v <= 9223372036854775807 for v in expected.values()), "CATALOG_CURRENT_PIN_CHANGED")
     return result
+
+
+def resolved_failure(folder, request, previous):
+    """A separate accepted recovery may resolve, never rewrite, a failed session."""
+    pin = load(folder / "session-resolutions" / (previous.name + ".json"), 65536)
+    version = pin.get("version")
+    v2 = version == "dat03-catalog-publication-recovery-v2"
+    fields = {"version", "recovered_session", "recovery_session", "recovery_request_sha256", "acceptance_sha256", "failed_files"}
+    if v2: fields |= {"primary_failed_session", "resolved_failed_sessions"}
+    primary = pin.get("primary_failed_session") if v2 else previous.name
+    resolved = pin.get("resolved_failed_sessions") if v2 else [previous.name]
+    e.require(isinstance(resolved, list) and 1 <= len(resolved) <= 3 and len(set(resolved)) == len(resolved)
+              and all(isinstance(sid, str) and re.fullmatch(r"[a-f0-9]{32}", sid) for sid in resolved)
+              and primary == resolved[0] and previous.name in resolved, "CATALOG_FAILURE_RESOLUTION_INVALID")
+    e.require(set(pin) == fields and version in ("dat03-catalog-publication-recovery-v1", "dat03-catalog-publication-recovery-v2")
+              and pin["recovered_session"] == previous.name and re.fullmatch(r"[a-f0-9]{32}", pin["recovery_session"])
+              and pin["recovery_session"] != previous.name, "CATALOG_FAILURE_RESOLUTION_INVALID")
+    recovered = folder / "sessions" / pin["recovery_session"]
+    acceptance = load(recovered / "acceptance.json", 65536); execution = load(recovered / "execution.json", 65536)
+    e.require(e.sha(recovered / "acceptance.json") == pin["acceptance_sha256"]
+              and acceptance["status"] == "CHECKPOINT_ACCEPTED" and acceptance["recovered_session"] == primary
+              and acceptance["recovery_request_sha256"] == pin["recovery_request_sha256"]
+              and acceptance["request_sha256"] == e.sha(folder / "request.json")
+              and acceptance["result_sha256"] == e.sha(recovered / "result.json")
+              and acceptance["execution_sha256"] == e.sha(recovered / "execution.json")
+              and type(execution["exit_code"]) is int and execution["exit_code"] == 0 and execution["timed_out"] is False
+              and acceptance["lease_release"] == {"status": "RELEASED", "dag_id": DAG, "run_id": request["run_id"]}, "CATALOG_FAILURE_RESOLUTION_UNACCEPTED")
+    result = session_result(folder, request, recovered)
+    e.require(result["recovered_session"] == primary and result["recovery_request_sha256"] == pin["recovery_request_sha256"]
+              and (not v2 or result.get("resolved_failed_sessions") == acceptance.get("resolved_failed_sessions") == resolved), "CATALOG_RECOVERY_RESULT_CHANGED")
+    failed = load(previous / "execution.json", 65536)
+    required = {str(previous.relative_to(folder)) + "/" + name for name in ("intent.json", "execution.json", "stdout.private", "stderr.private")}
+    if v2:
+        required |= {"sessions/"+sid+"/"+name for sid in resolved for name in ("intent.json", "execution.json", "stdout.private", "stderr.private")}
+    e.require(type(failed["exit_code"]) is int and failed["exit_code"] != 0 and failed["timed_out"] is False
+              and required <= set(pin["failed_files"]) and len(pin["failed_files"]) <= 20, "CATALOG_FAILURE_EVIDENCE_REQUIRED")
+    for name, digest in pin["failed_files"].items():
+        e.require(isinstance(name, str) and not name.startswith("/") and ".." not in name
+                  and re.fullmatch(r"[a-zA-Z0-9_./-]+", name) and isinstance(digest, str) and re.fullmatch(r"[a-f0-9]{64}", digest)
+                  and e.sha(e.safe(folder / name)) == digest, "CATALOG_FAILED_EVIDENCE_CHANGED")
 
 
 def worker(folder, seconds, max_months, continuation=None):
@@ -338,6 +395,9 @@ def worker(folder, seconds, max_months, continuation=None):
     request = validate(folder); extra = continuation_inputs(folder, continuation) if continuation is not None else None; quiet()
     sessions = folder / "sessions"; sessions.mkdir(exist_ok=True, mode=0o700)
     for previous in sessions.iterdir():
+        if previous.is_dir() and not previous.is_symlink() and not (previous / "acceptance.json").exists():
+            resolved_failure(folder, request, previous)
+            continue
         e.require(previous.is_dir() and not previous.is_symlink() and (previous / "acceptance.json").is_file(), "CATALOG_PREVIOUS_SESSION_REQUIRES_REVIEW")
         pin = load(previous / "acceptance.json", 65536); measurement = load(previous / "execution.json", 65536)
         e.require(pin["status"] == "CHECKPOINT_ACCEPTED" and pin["request_sha256"] == e.sha(folder / "request.json")
@@ -522,16 +582,33 @@ runpy.run_path(str(p/"controller.py"),run_name="__main__")
         subprocess.run(command, check=True, timeout=seconds+300)
         host_command_succeeded = True
     finally:
-        # Each host observation is new, including failures. Never overwrite an old snapshot.
+        # Transfer only missing content; never duplicate frozen inputs or old artifacts.
+        # Failed/unknown attempts also get a descriptor, but never become latest accepted.
         target = folder / ("runtime" if not (folder / "runtime").exists() else "runtime-observation-" + uuid.uuid4().hex)
-        subprocess.run(["docker", "cp", e.CONTAINER + ":" + inside, str(target)], check=True, timeout=120)
-        e.save(target / "host-observation.json", {
+        store = observations()
+        snapshot, measurement = store.capture(folder, target, e.CONTAINER, inside, files(), lambda: {
             "version": "dat03-catalog-host-observation-v1", "host_entrypoint_sha256": host_entrypoint_sha,
             "catalog_request_sha256": e.sha(folder / "request.json"), "host_command_succeeded": host_command_succeeded,
             "host_wall_seconds": round(time.monotonic()-host_started, 3), "host_disk_free_bytes_before": host_free_before,
             "host_disk_free_bytes_after": shutil.disk_usage(deployment).free,
             "scope": "HOST_OBSERVATION_NOT_CHILD_ACCEPTANCE", "research_ready": False,
         })
+        if host_command_succeeded:
+            progress = module("research-catalog-progress")
+            accepted = []
+            completed = len(list((snapshot / "months").glob("*/checkpoint.json")))
+            for receipt in (snapshot / "sessions").glob("*/acceptance.json"):
+                summary = load(receipt.parent / "result.json")
+                if type(summary["completed_months"]) is not int or summary["completed_months"] != completed:
+                    continue  # Do not repeatedly hash the full snapshot for older prefixes.
+                try:
+                    accepted.append(progress.report(folder, target, receipt.parent.name))
+                except RuntimeError:
+                    continue  # Earlier sessions cannot cover the full observed prefix.
+            e.require(len(accepted) == 1, "CATALOG_EXACT_NEW_HOST_ACCEPTANCE_REQUIRED")
+            store.publish_latest(folder, target, accepted[0])
+        print(json.dumps({"event": "dat03_host_observation_saved", "observation": target.name,
+                          "host_command_succeeded": host_command_succeeded, **measurement}), flush=True)
 
 
 def main():

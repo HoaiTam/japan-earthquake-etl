@@ -65,8 +65,11 @@ sessions/<uuid>/intent.json, stdout.private, stderr.private,
 - Chỉ release đúng owner sau child exit0, checkpoint/record chain đã verify,
   không pending month, no active Java/DagRun/Trino query và input pins không đổi.
   Session mới acquire lại khi lease trống; không expiration/foreign takeover.
-- Bản copy host của mỗi quan sát runtime là thư mục mới; không overwrite lần
-  quan sát đầu hoặc failed evidence. Private logs không vào Git hoặc kit nhóm.
+- Host observations mới dùng [content-addressed manifests](./RESEARCH_HOST_OBSERVATIONS.md):
+  frozen inputs giữ một bộ, stream missing payloads; mỗi observation vẫn khóa
+  đầy đủ file-set/SHA và không overwrite acceptance/failed bytes. Legacy
+  full-copy vẫn đọc được hoặc migrate explicit có proof; không còn full
+  `docker cp` mỗi phiên. Private logs không vào Git hoặc kit nhóm.
 
 ## Gate còn lại
 
