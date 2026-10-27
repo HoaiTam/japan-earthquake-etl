@@ -1,6 +1,42 @@
-# DAT-03 — Tiến độ thực tế (cập nhật 26/10/2026)
+# DAT-03 — Tiến độ thực tế (cập nhật 27/10/2026)
 
-Branch hiện tại `feat/dat-03-research-rollout`, tiếp tục từ0487a83 sau PR #100.
+**Cập nhật tối27/10:** automation đã hủy; owner duyệt mở Docker và test quy
+trình tối ưu trên batch hiện tại. V2 bị gián đoạn tại verify134, thiếu terminal
+receipt; không còn worker, giữ lease và accepted113/288. Benchmark primary
+whole16,47s so16bucket88,70s, cùng0vi phạm; mới là read-only A/B, chưa publication.
+[Evidence và giới hạn](DAT-03_VERIFICATION_BENCHMARK_20261027.md),
+[quy trình benchmark](../runbooks/DAT-03_VERIFICATION_BENCHMARK.md).
+Ghi chú recovery "đang chạy" bên dưới là lịch sử, không phải trạng thái mới nhất.
+
+**Chỉ đạo mới nhất27/10:** chỉ hoàn tất recovery batch06–11/2009 rồi dừng,
+không mở batch12/2009 hoặc normal continuation mới. Accepted hiện113/288;
+chỉ cộng119 sau actual acceptance/release/host report. Không auto retry nếu lỗi.
+
+**Cập nhật chiều27/10 — batch06–11/2009:** accepted113/288 (39,236%) đến
+2009-05,1.200.455canonical/bridge,12/62tháng phần HoaiTam. Phiên kế đã commit
+Gold nhưng verify failed/ABANDONED_QUERY; giữ nguyên failure/own lease, không
+cộng batch active. Recovery V1 cũng đã dừng; owner yêu cầu xử lý rồi tiếp tục
+cả sau17:00, tối đa2h/phiên. Bản vá V2 SELECT-only polling300s (write/default
+vẫn120s, không retry) qua13metadata+actual slow-query probe58,637s/0vi phạm;
+recovery riêng không Spark/ETL replay đang verify/publish, chưa acceptance mới.
+[Evidence và giới hạn](./DAT-03_CATALOG_VERIFY_RECOVERY_200906.md).
+Các mốc107 và trước đó bên dưới là lịch sử.
+
+**Mới nhất27/10 — publication-only recovery:** branch
+`fix/dat-03-catalog-publication-recovery` từ main `fe80830`. Batch06–11/2008
+đã commit nhưng session exit1/unknown Trino outcome. Owner yêu cầu bắt đầu lại;
+read-only13/13 preflight, actual186SQL/verify/publish/own release đã đạt trong
+1679,196s. [Checkpoint107](./DAT-03_CATALOG_CHECKPOINT_107.json) accepted107/288
+(37,153%) đến2008-11,1.137.791canonical/bridge;6/62tháng phần HoaiTam.
+Host capture từng lỗi allowlist recovery record; đã lưu own dead lock và
+recapture chỉ đọc, latest107/full SHA report đạt. Không replay Bronze/Silver/
+Gold hoặc publication. Đã mở phiên tiếp tối đa18tháng từ2008-12, chỉ cộng
+tháng mới sau acceptance. [Evidence mới](./DAT-03_CATALOG_RECOVERY_20261027.md)
+và [runbook](../runbooks/DAT-03_CATALOG_PUBLICATION_RECOVERY.md). Các mốc dưới
+là lịch sử, không là current runtime/lease. Task vẫn In Progress.
+
+Branch hiện tại `fix/dat-03-incremental-observations`, tiếp tục từ rollout
+`3625f9a`; nhánh rollout trước từ0487a83 sau PR #100.
 Lịch sử trước đó: `feat/dat-03-research-dataset-handoff` từ main `bc0ce9e` (#98).
 Assignee HoaiTam, reviewer unassigned. **In Progress**. Phần pilot/profile đã
 được owner commit, HEAD khi tiếp tục bước3/4 `258710d`, trên [PR #99](https://github.com/HoaiTam/japan-earthquake-etl/pull/99).
@@ -12,6 +48,16 @@ Owner xác nhận hai thành viên chưa chạy verifier và yêu cầu tiếp t
 chốt strict split, loại window thiếu PRE/POST coverage và báo chi tiết từng mainshock.
 
 ## Cập nhật kỹ thuật tiếp theo
+
+**Mới nhất — storage26/10:** [incremental observations](./DAT-03_INCREMENTAL_OBSERVATIONS_20261026.md)
+đã migrate10host copies sang manifest/CAS, giữ đủ bytes/SHA/acceptance.
+Latest vẫn101/288, không ETL mới. Real read-only capture chuyển0old payload
+bytes; full restore101 đủ808files khớp reporter. Catalog `du` khoảng805MiB,
+không suy physical freed3,8GiB vì COW; delta host free quan sát chỉ~5,86MiB.
+Giữ frozen root + blob store + manifests; không dùng helper ZIP/COW/overnight
+cũ hoặc xóa store. Các mô tả physical directories phía dưới là lịch sử;
+original paths của10observations hiện là descriptors. ZIP13 vẫn giữ nguyên.
+Không tự resume hoặc hồi sinh follow-up; DAT-03 còn full catalog/export/receipts.
 
 **Mới nhất 26/10 — dừng sạch vì host disk reserve:** đã xác minh
 101/288 tháng (35,069%) đến2008-05,1.064.869 canonical/bridge;
@@ -25,6 +71,14 @@ xóa source/warehouse/log/evidence; cần giải phóng thêm dung lượng có 
 trước fresh preflight/resume từ2008-06. Chưa50%, full288 hoặc official ML export;
 DAT-03 vẫn In Progress. [Chi tiết bàn giao](./DAT-03_OVERNIGHT_20261026.md#dừng-sạch-tại-checkpoint101).
 Các đoạn dưới giữ mốc lịch sử, không là current process/lease state.
+
+Owner yêu cầu thử giữ ZIP/xóa bản giải nén: đã thực hiện riêng host
+observation13 với289files, full unzip/hash/progress verification trước xóa.
+ZIP/receipt giữ nguyên, source/runtime/warehouse không chạm. Host free giảm
+169,52MiB, không tiết kiệm; dừng sau một target vì COW sharing không cho phép
+suy logical bytes thành reclaimed space. [Kết quả/restore](./DAT-03_OVERNIGHT_20261026.md#thử-giữ-zip-và-xóa-bản-giải-nén-theo-yêu-cầu-mới),
+[metadata](./DAT-03_ZIP_SPACE_TRIAL_20261026.json). Những mô tả5directories
+hiện diện bên dưới là lịch sử trước trial; observation13 hiện chỉ giữ ZIP.
 
 [Phiên tiếp tục đêm26/10](./DAT-03_OVERNIGHT_20261026.md): owner cho phép bật
 lại9containers cũ;9healthy và idle/lease preflight đạt. Phiên tiếp theo từ72

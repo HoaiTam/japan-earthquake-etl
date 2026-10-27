@@ -4,6 +4,12 @@ Owner cho phép bật lại các container cũ, chạy tiếp theo checkpoint v�
 hỏi lại các bước vận hành trong phạm vi đã duyệt. Không mở quyền build/pull,
 recreate/reset, đổi DAG/cron/credential hoặc xóa lakehouse để vượt lỗi.
 
+**Trạng thái storage mới hơn:** sau ZIP trial, owner yêu cầu incremental
+observations.10host copies đã migrate thành complete descriptors + shared
+CAS, không còn cây full physical/COW tại từng original path. [Evidence mới](./DAT-03_INCREMENTAL_OBSERVATIONS_20261026.md)
+ghi real capture/restore và số đo; các đoạn bên dưới giữ lịch sử. Không chạy
+lại ignored ZIP/COW/overnight helper cũ trên descriptors. ZIP13 giữ nguyên.
+
 ## Khôi phục dịch vụ và mở phiên
 
 - Bật đúng9containers cũ: PostgreSQL, MinIO, Iceberg REST, Trino, Spark master/
@@ -241,3 +247,51 @@ hoặc chuyển Done. Mốc thông báo đã đạt vẫn chỉ25%, chưa50%.
   Spark fixtures/build/deploy và không push/merge. Staged secret scan phải đạt
   trước local commit; kiểm cả pattern và configured deployment secrets, chỉ
   in tổng số findings, không in giá trị secret.
+
+## Thử giữ ZIP và xóa bản giải nén theo yêu cầu mới
+
+Sau bàn giao101, owner yêu cầu thử trực tiếp để đo dung lượng. Chỉ chọn
+historical host observation13months
+`runtime-observation-fa268b89bed244a298a4efe394c5590b`; giữ nguyên original
+source archives, catalog inputs/runtime và các observations còn lại, gồm101.
+Fresh read-only preflight healthy/idle/lease-empty; coordinator không còn chạy.
+
+Operational helper ignored `rearchive_trial.py` pin exact target/session từ
+old receipt, không chọn theo mtime và không overwrite receipt/archive cũ.
+Tạo ZIP mới0600 và external receipt, verify exact file-set/size/SHA/mode,
+persist/fsync/reload, giải nén toàn bộ289files vào thư mục mới, so inventory
+và chạy reporter chứng minh accepted progress13 khớp. Sau xóa đúng thư mục
+giải nén thử, kiểm lại ZIP/source/proof trước unlink từng file của exact old
+observation. Sáu safety tests PASS: exact bounded deletion, reject target
+ngoài allowlist, reject changed tree/symlink, full ZIP hash và reject bad ZIP.
+
+**Trạng thái mới:** chỉ observation13 không còn thư mục giải nén; ZIP giữ ở
+`observation-archives/rearchive-trial-c669bec419034cc78dc661888a2c49c0/`
+trong catalog host, có `archive.receipt.json`, `restore-proof.json` và
+`result.json`. [Metadata công khai](./DAT-03_ZIP_SPACE_TRIAL_20261026.json)
+pin ZIP/receipt SHA; không đưa archive/private receipts vào Git. Những đoạn
+phía trên mô tả cả5directories hiện diện là lịch sử trước thử nghiệm này.
+
+| Số đo | Bytes |
+|---|---:|
+| Original logical files |214.938.665|
+| ZIP retained |177.151.584|
+| Host free trước |3.781.804.032|
+| Host free sau tạo ZIP |3.604.008.960|
+| Host free trước xóa original |3.603.910.656|
+| Host free sau xóa original |3.604.045.824|
+| Observed net free delta |−177.758.208|
+
+**Không thu hồi dung lượng:** free giảm khoảng169,52MiB (3,52→3,36GiB).
+Kết quả phù hợp với shared APFS COW blocks còn được observations khác tham
+chiếu: xóa một clone không giải phóng toàn logical bytes, trong khi ZIP là
+bytes mới. OS/Docker vẫn có thể làm thay đổi host free nên delta không là
+exclusive attribution hoặc dự báo chính xác cho toàn bộ directories.
+Đã dừng sau đúng một target; không lặp nén các bản còn lại, không tự restore
+rồi xóa ZIP trở lại hoặc xóa runtime/warehouse để bù chỗ. Thư mục đã xóa có
+thể khôi phục từ ZIP verified; giữ ZIP đúng lựa chọn owner.
+
+Để restore: verify ZIP SHA/từng member theo external receipt, extract vào
+thư mục mới, so inventory/progress với receipt, chỉ trả lại original name khi
+đường dẫn đó chưa tồn tại. Không overlay active runtime hoặc dùng mtime chọn
+latest. DAT-03 vẫn In Progress tại101/288, chưa resume/official ML export.

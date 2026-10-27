@@ -19,10 +19,11 @@ def milestones(completed):
 def report(catalog, runtime, session_id):
     c.e.require(isinstance(session_id, str) and re.fullmatch(r"[a-f0-9]{32}", session_id), "CATALOG_PROGRESS_EXACT_SESSION_REQUIRED")
     catalog, runtime = map(c.e.safe, (catalog, runtime))
+    runtime = c.observation_view(runtime)
     request = c.validate(catalog)
     c.e.require(c.validate(runtime) == request and c.e.sha(catalog / "request.json") == c.e.sha(runtime / "request.json"),
                 "CATALOG_PROGRESS_FROZEN_INPUT_CHANGED")
-    session = c.e.safe(runtime / "sessions" / session_id)
+    session = runtime / "sessions" / session_id
     acceptance = c.load(session / "acceptance.json", 65536)
     execution = c.load(session / "execution.json", 65536)
     c.e.require(acceptance["version"] == c.VERSION and acceptance["status"] == "CHECKPOINT_ACCEPTED"

@@ -13,7 +13,7 @@ public final class ResearchCatalogCompatibility {
     private static final String BASE="ie212/earthquake/spark/";
     public static final Set<String> CHANGED=Set.of(BASE+"usgs/ResearchCatalogJob.class",BASE+"usgs/ResearchCatalogState.class",
             BASE+"orchestration/FullMonthBronzeReader.class",BASE+"orchestration/FullMonthStateResolver.class",BASE+"orchestration/RealEtlAdapter.class",
-            BASE+"gold/GoldPublisher.class",BASE+"gold/GoldVerificationPlan.class");
+            BASE+"gold/GoldPublisher.class",BASE+"gold/GoldVerificationPlan.class",BASE+"gold/TrinoSqlClient.class");
     public static final Set<String> ADDED=Set.of(BASE+"usgs/ResearchCatalogBatchPlan.class",BASE+"usgs/ResearchCatalogCompatibility.class",
             BASE+"orchestration/FullMonthBronzeReader$JmaStructureCache.class");
     private ResearchCatalogCompatibility() { }

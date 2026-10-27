@@ -22,7 +22,7 @@ class ResearchCatalogTest(unittest.TestCase):
     def test_catalog_overlay_keeps_parser_and_ml_bytes_from_frozen_base(self):
         base="ie212/earthquake/spark/"
         changed={base+n+".class" for n in ("usgs/ResearchCatalogJob","usgs/ResearchCatalogState","orchestration/FullMonthBronzeReader",
-                 "orchestration/FullMonthStateResolver","orchestration/RealEtlAdapter","gold/GoldPublisher","gold/GoldVerificationPlan")}
+                 "orchestration/FullMonthStateResolver","orchestration/RealEtlAdapter","gold/GoldPublisher","gold/GoldVerificationPlan","gold/TrinoSqlClient")}
         added={base+n+".class" for n in ("usgs/ResearchCatalogBatchPlan","usgs/ResearchCatalogCompatibility","orchestration/FullMonthBronzeReader$JmaStructureCache")}
         parser=base+"silver/CanonicalObservationTransformer.class";ml=base+"ml/ResultBundleValidator.class"
         with tempfile.TemporaryDirectory() as temp:
@@ -188,13 +188,20 @@ class ResearchCatalogTest(unittest.TestCase):
             deployment=Path(temp).resolve();folder=deployment/"staging/dat03-catalog"/("a"*32)
             (folder/"runtime").mkdir(parents=True)
             request={"controller_sha256":"b"*64,"support_sha256":"c"*64};c.e.save(folder/"request.json",request)
+            store=Mock()
+            def capture(catalog,target,container,inside,frozen,note):
+                self.assertEqual(catalog,folder);self.assertEqual(c.files(),frozen)
+                target.mkdir();c.e.save(target/"host-observation.json",note())
+                session=target/"sessions"/("f"*32);session.mkdir(parents=True)
+                c.e.save(session/"acceptance.json",{})
+                c.e.save(session/"result.json",{"completed_months":0})
+                return target,{"unique_payload_bytes_transferred":12,"new_payload_objects":1}
+            store.capture.side_effect=capture
             def command(args,**kwargs):
-                if args[:2]==["docker","cp"]:
-                    Path(args[-1]).mkdir();return types.SimpleNamespace(returncode=0)
                 self.assertEqual(["docker","exec"],args[:2]);self.assertIn("pycache_prefix=/dev/null",args)
                 if timeout:raise subprocess.TimeoutExpired(args,6300)
                 return types.SimpleNamespace(returncode=0)
-            with patch.object(c,"module"),patch.object(c,"validate",return_value=request), \
+            with patch.object(c,"module"),patch.object(c,"observations",return_value=store),patch.object(c,"validate",return_value=request), \
                     patch.object(c.subprocess,"run",side_effect=command), \
                     patch.object(c.shutil,"disk_usage",return_value=types.SimpleNamespace(free=8*1024**3)):
                 if timeout:
@@ -205,6 +212,7 @@ class ResearchCatalogTest(unittest.TestCase):
             self.assertEqual("HOST_OBSERVATION_NOT_CHILD_ACCEPTANCE",note["scope"])
             self.assertFalse(note["research_ready"]);self.assertEqual(8*1024**3,note["host_disk_free_bytes_before"])
             self.assertFalse((folder/"runtime/host-observation.json").exists())
+            self.assertEqual(not timeout,store.publish_latest.called)
 
     def test_host_receipt_is_new_metadata_not_overwritten_runtime(self):self.host_observation()
     def test_host_timeout_is_never_reported_as_child_acceptance(self):self.host_observation(timeout=True)
