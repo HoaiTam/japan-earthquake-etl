@@ -1,5 +1,20 @@
 # DAT-03 — Tiến độ thực tế (cập nhật 27/10/2026)
 
+## Mốc mới28/10 — bàn giao Drive và setup team
+
+Accepted134/288 đến2011-02 (46,528%),1.445.918canonical/bridge;
+HoaiTam33/62, còn29tháng. [Drive evidence](DAT-03_DRIVE_RANGES_20261028.md)
+ghi actual accepted parent và hai gói24/9tháng fresh download/semantic đạt.
+Drive có partial134tháng, chưa official ML export. Các số113/119 và trạng thái
+lease/recovery bên dưới là lịch sử trước nghiệm thu mới.
+
+[TEAM START](../runbooks/DAT-03_TEAM_START.md) chốt assignment/config/source pins
+và CLI kiểm input cho từng người. Component setup đạt11unit tests,
+9source-handoff tests,12partial-catalog tests,42CI tests,10docs tests;
+fresh source download25archives/128.784.513bytes verifier đạt trên máy owner.
+Không nghiệm thu runtime/Drive identity của hai máy khác. Distributed worker,
+portable import/merge và USGS frozen transport còn thiếu; DAT-03 In Progress.
+
 **Cập nhật tối27/10:** automation đã hủy; owner duyệt mở Docker và test quy
 trình tối ưu trên batch hiện tại. V2 bị gián đoạn tại verify134, thiếu terminal
 receipt; không còn worker, giữ lease và accepted113/288. Benchmark primary

@@ -23,6 +23,16 @@ PARTIAL thay full research data.
 
 ## Phạm vi và từng khối công việc
 
+**Agent máy thành viên đọc trước:** [DAT-03 TEAM START](../../runbooks/DAT-03_TEAM_START.md).
+Ngày28/10 owner chốt phân công và input/config pins trong
+[config](../../../config/research/team_assignments_v1.json): ThanhTris62tháng
+08/2013–09/2018, rosy17963tháng10/2018–12/2023; HoaiTam còn29tháng03/2011–07/2013.
+CLI `scripts/dat03-team-setup.py` có plan/verify-inputs, kiểm approved commit,
+inventory/source SHA và ZIP; không execute ETL. Setup không cần hỏi lại phạm vi.
+Chưa RANGE_READY: còn range worker, portable ETL import/merge, USGS2023 frozen
+transport và runtime/Drive acceptance trên từng máy. Chi tiết trách nhiệm,
+commands/expected results và prompt agent nằm trong TEAM START mục6–8.
+
 1. **Dùng ngay:** theo lựa chọn owner 24/10, verify và đóng gói pilot JMA thật
    DAT-02 cho nhóm phát triển; giữ DEVELOPMENT_ONLY/PARTIAL/research_ready=false.
    Bản này không hoàn tất task hoặc mở official fit/import gate.
@@ -166,6 +176,15 @@ release đủ gate. Không tạo dependency ngược từ DAT-03 sang EXP-02.
   MLI-04/MLQ-01 sở hữu report/ML E2E.
 
 ## Theo dõi
+
+- **28/10 — team setup:** branch `feat/dat-03-team-readiness` từ main
+  `c4410dbcfb325671f485ce192aa15f4d1db07a62`; chốt assignment/pins và CLI
+  offline. Không đưa các thay đổi recovery chưa commit từ checkout owner vào
+  release này. Full commit sau push được gửi qua nhóm làm external code pin.
+- **28/10 — dữ liệu:** accepted134/288 (46,528%) đến2011-02;
+  Drive có101 + 24 + 9tháng partial, fresh download/SHA/semantic/ACL đạt.
+  [Evidence](../../evidence/DAT-03_DRIVE_RANGES_20261028.md). Giữ In Progress;
+  các mốc101/113 bên dưới là lịch sử, chưa officialMLexport/receipts ba máy.
 
 - **Trạng thái:** In Progress
 - **Assignee:** HoaiTam

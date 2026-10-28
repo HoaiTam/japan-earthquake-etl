@@ -1,5 +1,12 @@
 # DAT-03 — Agent setup/check trên máy ThanhTris và rosy179
 
+**Cập nhật28/10:** bắt đầu bằng [TEAM START](DAT-03_TEAM_START.md), có assignment
+và input/config pins cụ thể, CLI plan/verify-inputs, commands cho từng máy.
+Phân công62/63tháng đã chốt, không còn chờ owner chọn range; gate thực thi
+range-worker/import/merge vẫn thiếu. Catalog đã134/288, Drive có partial134.
+SEC-01 hiện Needs Update cho cloud recipients, không coi Done local là cloud.
+Nội dung26/10 và số101/187 dưới đây giữ làm lịch sử; TEAM START ưu tiên khi khác.
+
 Cập nhật 26/10/2026. Phạm vi: chuẩn bị hai máy, kiểm tra code/input, cấu hình
 kênh bàn giao và báo cáo readiness. **Không phải lệnh khởi chạy distributed
 rollout.** Không có quyền mặc định upload, đổi ACL hoặc xóa dữ liệu từ tài liệu này.

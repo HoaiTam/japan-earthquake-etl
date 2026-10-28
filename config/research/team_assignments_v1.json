@@ -1,0 +1,20 @@
+{
+  "version": "dat03-team-setup-v1",
+  "source_cutoff_utc": "2026-10-25T06:13:04.747Z",
+  "drive_root_id": "17Wntw5LIRvFdzaU0RpnBRL60gzsRdFTB",
+  "source_remote": "dat03_team:data/dat03/shared-inputs/jma-sources-2000-2024/79a44764037f",
+  "source_manifest_sha256": "79a44764037f6357be1f8a9c95183958f7a1879b6146415c338cf5b27a0d701b",
+  "source_verifier_sha256": "aa0507323f916f59b4de7e4902de8e0bf0e5cda9498a660f8abc0f7f1664c203",
+  "config_sha256": {
+    "config/jma/hypocenter_archives_v1.csv": "61dc2c73f1bb9cee48fba851cbb941cc62c893201c36db583cdd55ae19f8199a",
+    "config/jma/research_boundary_archives_v1.csv": "0274a4bf5b452f5fb3f33c6e65a6180af73e9725c71fa0392e6d7c6c5c147dc1"
+  },
+  "assignments": {
+    "HoaiTam": {"start": "2008-06", "end_exclusive": "2013-08", "months": 62, "accepted_through": "2011-02"},
+    "ThanhTris": {"start": "2013-08", "end_exclusive": "2018-10", "months": 62, "accepted_through": null},
+    "rosy179": {"start": "2018-10", "end_exclusive": "2024-01", "months": 63, "accepted_through": null}
+  },
+  "execution_enabled": false,
+  "remaining_gates": ["RANGE_WORKER_RUNTIME", "PORTABLE_ETL_IMPORT_MERGE", "WORKER_RUNTIME_ACCEPTANCE", "USGS_2023_TRANSPORT_PINS"],
+  "research_ready": false
+}
