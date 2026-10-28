@@ -229,7 +229,7 @@ public final class GoldPublisher {
             if(!count.isIntegralNumber() || !count.canConvertToLong() || count.asLong()<0 || count.asLong()>1_300_000)
                 throw new IllegalArgumentException("SINGLE_PASS_PRIMARY_CAPACITY_NOT_MEASURED");
         }
-        if(bucketedOutside && !commit.path("namespace").asText().matches("iceberg\\.dat03_catalog_[a-f0-9]{32}"))
+        if(bucketedOutside && !commit.path("namespace").asText().matches("iceberg\\.dat03_(?:catalog|range)_[a-f0-9]{32}"))
             throw new IllegalArgumentException("DAT03_ISOLATED_CATALOG_REQUIRED");
         if(operational) OperationalGoldPolicy.validate(commit.path("namespace").asText(),commit.path("operational_policy"));
         else {

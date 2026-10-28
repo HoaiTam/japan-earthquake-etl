@@ -70,6 +70,7 @@ def plan(owner):
             "namespace_requirement": "new local namespace and own lease; never copy HoaiTam namespace",
             "runtime": "NOT_CHECKED", "drive_identity": "NOT_CHECKED",
             "remaining_gates": config["remaining_gates"],
+            "range_worker_runbook": "docs/runbooks/DAT-03_RANGE_WORKER.md",
             "execution_enabled": False, "research_ready": False}
 
 

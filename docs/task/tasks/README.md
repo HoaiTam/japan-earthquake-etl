@@ -190,6 +190,10 @@ fixture/inventory; assignee `HoaiTam`, reviewer `unassigned`. Xem
 | [DAT-02](./DAT-02.md) - Tạo dataset pilot nhỏ để test trên Jupyter | 5 | Jupyter development pilot | Core | P0 | 6h | Done |
 | [DAT-03](./DAT-03.md) - Chuẩn bị catalog nghiên cứu thật và bàn giao dataset dùng chung | 6 | Verified research data and team handoff | Core | P0 | 16h | In Progress |
 
+DAT-03: [range worker + frozen USGS2023](../../runbooks/DAT-03_RANGE_WORKER.md)
+đã có code/transport; còn một tháng runtime acceptance trên từng máy,
+portable merge, full catalog và official export/receipts. Không suy unit PASS thành Done.
+
 ## B - USGS Bronze
 
 | Task | Tuần | Workstream | Scope | Priority | Effort | Trạng thái |

@@ -1,19 +1,21 @@
 # DAT-03 — Agent bắt đầu trên máy thành viên
 
-Ngày28/10/2026. Đọc file này trước guide cũ. Owner yêu cầu setup/pin/phân công
-để các máy làm song song. Release này **làm được setup và kiểm input**, chưa
-cho phép chạy62/63tháng: range worker và merge/import còn thiếu implementation.
-Không biến `execution_enabled=false` thành true bằng sửa JSON.
+Ngày28/10/2026. **Bước tiếp theo hiện hành:**
+[Range worker + frozen USGS2023](DAT-03_RANGE_WORKER.md) có code prepare/run/
+resume/report và source release trên Drive. Chạy một tháng nghiệm thu trên
+từng máy trước rollout12tháng/phiên; không suy unit tests thành runtime PASS.
+File này giữ setup/OAuth/runtime cơ bản của PR #106. `execution_enabled=false`
+trong CLI setup chỉ nói CLI đó không execute; dùng worker mới, không sửa flag.
 
 ## 1. Phân công và những gì có sẵn
 
 | Người | Khoảng UTC inclusive đã giao | Tổng | Đã accepted | Còn |
 |---|---|---:|---:|---:|
-| HoaiTam | 2008-06–2013-07 |62|33 đến2011-02|29|
+| HoaiTam | 2008-06–2013-07 |62|40 đến2011-09|22|
 | ThanhTris | 2013-08–2018-09 |62|Chưa có receipt máy Trí|62|
 | rosy179 | 2018-10–2023-12 |63|Chưa có receipt máy rosy179|63|
 
-101tháng2000-01–2008-05 đã có, không chạy lại. Catalog toàn nhóm134/288;
+101tháng2000-01–2008-05 đã có, không chạy lại. Catalog owner141/288;
 không suy đã làm từ số tháng được giao. Task DAT-03 giữ HoaiTam làm coordinator.
 [Config máy đọc](../../config/research/team_assignments_v1.json) pin cutoff,
 inventory SHA, source manifest/verifier, từng range và gate chưa đạt.
@@ -53,7 +55,7 @@ python3 -B scripts/dat03-team-setup.py plan --owner ThanhTris
 
 Expected `ASSIGNMENT_PINNED_NOT_EXECUTABLE`,62tháng08/2013–09/2018,
 groups24/24/14; runtime và Drive `NOT_CHECKED`, không là lỗi parser.
-HoaiTam có29tháng còn lại03/2011–07/2013; rosy179 có63tháng10/2018–12/2023.
+HoaiTam có22tháng còn lại10/2011–07/2013; rosy179 có63tháng10/2018–12/2023.
 
 ## 3. Drive và dữ liệu nguồn — từng người kiểm tài khoản riêng
 
@@ -79,9 +81,9 @@ CLI dùng verifier trong repo đã pin, không execute code tùy ý từ Drive.
 Verifier nguồn không chứng nhận BronzeReady, source coverage hoặc Gold Published.
 h2024 chỉ boundary cho UTC2023; không thêm vào scientific period.
 
-Nguồn đã tải đủ để chuẩn bị JMA; **USGS2023 frozen transport chưa bàn giao**.
-rosy179 không fetch dữ liệu USGS latest để thay source pin đã chốt. Đây là gate
-DAT-03 còn thiếu, không lỗi setup máy. Cutoff không tự được coi là capture proof.
+Gói JMA cũ chỉ để kiểm source ZIP. Worker dùng **gói frozen37sources mới** tại
+[range runbook mục2](DAT-03_RANGE_WORKER.md): bổ sung12USGS capture2023,
+original metadata, summary và plan. Không fetch latest để thay pins.
 
 ## 4. Đọc dữ liệu đã xử lý ngay, không cần Docker
 
@@ -115,31 +117,28 @@ host physical free; reserve4GiB là mức tối thiểu, không capacity của62
 Không trigger/unpause DAG, clear run, release lease hoặc prune để test setup.
 Máy Windows dùng WSL2/Linux shell; chưa nghiệm thu native Windows.
 
-## 6. Phần còn phải triển khai để RUN được — không che bằng docs
+## 6. Trạng thái sau bổ sung range worker
 
 Các khối dưới thuộc **DAT-03**, chưa Done, chưa có task ID riêng:
 
-1. **Range worker (owner HoaiTam tích hợp):** request version mới pin owner,
-   interval/cutoff/sources/runner/config; namespace/lease/checkpoint độc lập.
-   Sửa Java validator/planner và controller tương ứng, không đổi288 thành62
-   hoặc sửa request của catalog hiện tại. Test disjoint range, boundary/halo,
-   resume/failure/own lease và outside-partition guards. Nghiệm thu một tháng
-   thật trên mỗi worker trước rollout, không gọi unit mock là RANGE_READY.
+1. **Range worker:** đã có request version mới pin owner/interval/cutoff/
+   sources/runner/config; namespace/lease/checkpoint độc lập, Spark Java dùng
+   lại real adapters. Unit/prepare đạt không thay một tháng runtime trên mỗi máy.
 2. **Transport/import/merge (owner HoaiTam tích hợp):** portable Parquet/schema/
    source lineage/receipt pins, whitelist/SHA/fresh restore; verify duplicate,
    gap/overlap/halo liên máy và publication mới trên catalog tích hợp. Gói
    partial134tháng hiện tại không có sáu Gold tables hoặc Iceberg importer.
-3. **USGS2023 pins (owner HoaiTam):** chuyển đúng12capture/metadata/summary
-   đã frozen, security allowlist + immutable transfer + verifier, không lấy
-   response mới thay cũ. Giữ JMA2024 boundary và overlap policy.
-4. **Máy thành viên:** sau khi ba khối trên có released commit/acceptance,
-   mỗi người chốt runtime+Drive receipt, chạy thử tháng đầu rồi bounded batches;
-   upload output theo owner, không chạm namespace người khác.
+3. **USGS2023 pins:** đã upload original frozen bytes/metadata/summary cùng
+   JMA2024 boundary; download/checksum/allowlist verifier đạt. Không thay bằng
+   response mới. Exact release/SHA và commands nằm trong range runbook.
+4. **Máy thành viên:** nhận released commit, chốt runtime+Drive receipt rồi
+   chạy thử tháng đầu. Portable merge chưa đạt không chặn ETL local, nhưng
+   không xóa local output hoặc gọi local snapshots là catalog đã tích hợp.
 
-Không có command run distributed trong release setup này. CLI cố ý không
-nhận `run` hoặc `resume`. Nếu agent thấy `BLOCKED_RANGE_WORKER_NOT_IMPLEMENTED`
-thì đó là kết quả đúng, **không cần hỏi lại owner về phạm vi62tháng**; phần
-phân công/input pins đã chốt, còn implementation/gates ở trên.
+`dat03-team-setup.py` vẫn chỉ plan/verify-inputs. Dùng
+`dat03-range-worker.py` theo runbook mới để prepare/run/resume/report.
+Không còn báo range worker hoặc USGS transport là chưa có implementation;
+gate còn lại là actual runtime mỗi máy và portable merge/export.
 
 ## 7. Prompt gửi agent máy thành viên
 
@@ -147,12 +146,12 @@ phân công/input pins đã chốt, còn implementation/gates ở trên.
 Đọc AGENTS.md, docs/task/tasks/DAT-03.md và docs/runbooks/DAT-03_TEAM_START.md
 ở exact full commit HoaiTam gửi. Tôi là ThanhTris (hoặc rosy179).
 Thực hiện setup/check code, in plan theo owner, tải và verify nguồn pinned,
-verify partial dataset để dùng notebook. Xin chủ máy xác nhận OAuth và quyền
-build/start Docker nếu chưa có. Không đổi ACL/public, không copy credential
-owner, không tự chạy catalog từ2000 hoặc fake RANGE_READY.
-Gửi report theo mục8, giữ output ngoài input/repo. Các gates range worker,
-portable import/merge và USGS transport chưa có thì ghi BLOCKED rõ tên,
-không đánh đồng đã setup với đã chạy xong62/63tháng.
+đọc thêm DAT-03_RANGE_WORKER.md để tải frozen37sources và chạy worker mới.
+Xin chủ máy xác nhận OAuth và quyền build/start Docker nếu chưa có.
+Không đổi ACL/public, không copy credential owner, không chạy catalog từ2000.
+Chỉ sau tháng đầu accepted/own release/postflight mới resume12tháng/phiên.
+Gửi report theo mục8, giữ output. Không đánh đồng setup/unit tests với runtime
+hoặc local publication với portable merge/official ML export.
 ```
 
 ## 8. Report để nhóm tích hợp

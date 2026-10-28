@@ -14,8 +14,8 @@ class TeamSetupTest(unittest.TestCase):
     def test_assignments_cover_remaining_original_scope(self):
         plans = [setup.plan(owner) for owner in setup.OWNERS]
         self.assertEqual([p['assignment']['months'] for p in plans], [62, 62, 63])
-        self.assertEqual([len(p['remaining_months']) for p in plans], [29, 62, 63])
-        self.assertEqual(sum(len(p['remaining_months']) for p in plans), 154)
+        self.assertEqual([len(p['remaining_months']) for p in plans], [22, 62, 63])
+        self.assertEqual(sum(len(p['remaining_months']) for p in plans), 147)
 
     def test_tris_exact_interval(self):
         p = setup.plan('ThanhTris')
@@ -28,7 +28,8 @@ class TeamSetupTest(unittest.TestCase):
         self.assertEqual(p['remaining_months'][0], '2018-10')
         self.assertEqual(p['remaining_months'][-1], '2023-12')
         self.assertNotIn('2024-01', p['remaining_months'])
-        self.assertIn('USGS_2023_TRANSPORT_PINS', p['remaining_gates'])
+        self.assertNotIn('USGS_2023_TRANSPORT_PINS', p['remaining_gates'])
+        self.assertIn('WORKER_RUNTIME_ACCEPTANCE', p['remaining_gates'])
 
     def test_plan_does_not_claim_runtime_or_drive(self):
         for owner in setup.OWNERS:
