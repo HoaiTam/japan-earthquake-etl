@@ -26,12 +26,14 @@ PARTIAL thay full research data.
 **Agent máy thành viên đọc trước:** [DAT-03 TEAM START](../../runbooks/DAT-03_TEAM_START.md).
 Ngày28/10 owner chốt phân công và input/config pins trong
 [config](../../../config/research/team_assignments_v1.json): ThanhTris62tháng
-08/2013–09/2018, rosy17963tháng10/2018–12/2023; HoaiTam còn29tháng03/2011–07/2013.
+08/2013–09/2018, rosy17963tháng10/2018–12/2023; HoaiTam còn22tháng10/2011–07/2013.
 CLI `scripts/dat03-team-setup.py` có plan/verify-inputs, kiểm approved commit,
 inventory/source SHA và ZIP; không execute ETL. Setup không cần hỏi lại phạm vi.
-Chưa RANGE_READY: còn range worker, portable ETL import/merge, USGS2023 frozen
-transport và runtime/Drive acceptance trên từng máy. Chi tiết trách nhiệm,
-commands/expected results và prompt agent nằm trong TEAM START mục6–8.
+**Bản bổ sung:** [Range worker](../../runbooks/DAT-03_RANGE_WORKER.md) có
+prepare/run/resume/report, range62/63tháng và namespace/lease/checkpoint riêng;
+frozen37sources gồm12USGS2023 đã upload/readback Drive. Mỗi máy phải chạy một
+tháng accepted trước phiên12tháng. Chưa chứng nhận runtime máy thành viên,
+portable ETL import/merge hoặc official ML export. Không sửa flag setup để pass.
 
 1. **Dùng ngay:** theo lựa chọn owner 24/10, verify và đóng gói pilot JMA thật
    DAT-02 cho nhóm phát triển; giữ DEVELOPMENT_ONLY/PARTIAL/research_ready=false.
@@ -60,7 +62,9 @@ commands/expected results và prompt agent nằm trong TEAM START mục6–8.
 - [Hướng dẫn dataset dùng chung](../../runbooks/DAT-03_SHARED_DATASET.md).
 - [Agent setup/check trên máy thành viên](../../runbooks/DAT-03_TEAM_WORKER_SETUP.md):
   release/input pins, offline/Drive/runtime readiness, handoff report và
-  proposal chia187tháng; chưa là worker/export/import chia máy đã nghiệm thu.
+  chia187tháng theo owner; [range worker](../../runbooks/DAT-03_RANGE_WORKER.md)
+  đã test real first-month/resume trên máy owner, chưa portable export/import
+  hoặc acceptance trên hai máy thành viên.
 - Archive profile và rollout/coverage/quality/resource reports; chỉ metadata vào Git.
 - Real Gold pins, MLI-02 acceptance, immutable research bundle và external SHA.
 - Công cụ đóng gói/verify offline, metadata handoff và receipts của ba người.
@@ -176,6 +180,14 @@ release đủ gate. Không tạo dependency ngược từ DAT-03 sang EXP-02.
   MLI-04/MLQ-01 sở hữu report/ML E2E.
 
 ## Theo dõi
+
+- **28/10 — mở đường ETL thành viên:** branch `feat/dat-03-range-worker`
+  từ main `327a275`; thêm Spark Java range worker, controller và offline
+  verifier gói frozen37sources. [Evidence](../../evidence/DAT-03_RANGE_WORKER_20261028.md)
+  có fresh run2018-10/resume2018-11 đạt2/63 trên máy owner, không coi là
+  receipt máy ThanhTris/rosy179. Test2013-08 đã recovery publication riêng
+  sau lỗi namespace gate, giữ failure. Catalog cũ141/288 đến2011-09, không
+  cộng range tests vào catalog ấy. Giữ In Progress.
 
 - **28/10 — team setup:** branch `feat/dat-03-team-readiness` từ main
   `c4410dbcfb325671f485ce192aa15f4d1db07a62`; chốt assignment/pins và CLI

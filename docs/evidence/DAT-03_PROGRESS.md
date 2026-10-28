@@ -1,5 +1,17 @@
 # DAT-03 — Tiến độ thực tế (cập nhật 27/10/2026)
 
+## Bổ sung28/10 — range worker và USGS frozen cho thành viên
+
+[Worker runbook](../runbooks/DAT-03_RANGE_WORKER.md) thay blocker thiếu
+implementation của setup PR #106: controller/Spark range và37frozen sources
+đã có, Drive readback/prepare nguồn thật được kiểm. Fresh first-month2018-10
+và resume2018-11 đạt2/63,45.826canonical/bridge trên máy owner; không cộng test
+vào global catalog. Catalog cũ terminal accepted141/288 đến2011-09; Drive
+partial vẫn134. Xem
+[evidence](DAT-03_RANGE_WORKER_20261028.md) cho test và giới hạn runtime.
+Chưa có receipt ETL thực trên hai máy; portable merge/official export vẫn thiếu.
+Các số134 và ghi chú thiếu range/USGS bên dưới là mốc setup trước bổ sung này.
+
 ## Mốc mới28/10 — bàn giao Drive và setup team
 
 Accepted134/288 đến2011-02 (46,528%),1.445.918canonical/bridge;
