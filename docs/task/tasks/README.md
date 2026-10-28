@@ -22,6 +22,12 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 
 ## Tổng quan
 
+**DAT-03 28/10:** accepted134/288 đến2011-02 (46,528%), Drive partial134tháng.
+[Evidence](../../evidence/DAT-03_DRIVE_RANGES_20261028.md).
+[Agent team setup](../../runbooks/DAT-03_TEAM_START.md) chốt range/pins và
+CLI plan/verify-inputs; chưa range ETL/portable merge/USGS transport acceptance.
+Task vẫn In Progress. Mốc rollout cũ bên dưới giữ làm lịch sử.
+
 DAT-03 tối27/10: automation đã hủy; Docker mở lại để benchmark chỉ đọc.
 Recovery cũ bị gián đoạn, không còn active nhưng thiếu terminal receipt;
 accepted vẫn113/288. Primary provenance whole-query16,47s so16bucket88,70s,

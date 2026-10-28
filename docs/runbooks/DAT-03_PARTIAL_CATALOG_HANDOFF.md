@@ -1,5 +1,9 @@
 # DAT-03 — Bản Parquet 101 tháng trên Drive
 
+**28/10:** đã có thêm24 + 9tháng, tổng partial coverage134tháng đến2011-02.
+[Link tải, trusted pins và verify](../evidence/DAT-03_DRIVE_RANGES_20261028.md).
+Không official ML export; các số101/còn187 bên dưới là lịch sử26/10.
+
 ## Kết quả đã bàn giao26/10/2026
 
 - [ZIP 229.180.092 bytes (~218,6 MiB)](https://drive.google.com/file/d/1wLnASLdSnnis91wGApcRnfFCh2ASQQUd/view).
