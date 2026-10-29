@@ -101,6 +101,7 @@ current-month-local: ## Opt-in live USGS -> isolated local Bronze/Silver; không
 
 test-dat03-range-worker: ## DAT-03 isolated range control/input guards; no Docker/network
 	@python3 -B -m unittest discover -s tests -p 'test_dat03_range_worker.py'
+	@python3 -B -m unittest discover -s tests -p 'test_dat03_range_recovery.py'
 
 test-dat03-team-setup: ## DAT-03 offline assignment/pin/readiness regression; không Docker/network
 	@python3 -B -m unittest discover -s tests -p 'test_dat03_team_setup.py'

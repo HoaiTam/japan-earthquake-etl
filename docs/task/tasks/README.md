@@ -22,6 +22,11 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 
 ## Tổng quan
 
+**DAT-03 29/10 — range recovery:** có [bản vá và hướng dẫn máy rosy179](../../runbooks/DAT-03_RANGE_RECOVERY.md)
+cho session952973b42c8d4570b653ece99c79ed78 bị ngắt ở Verify sau COMMITTED.
+Giữ failed evidence, không quarantine/skip. Báo cáo33/63 của chủ máy chưa
+được cộng thành acceptance; chờ actual recovery trên máy đó. Task In Progress.
+
 **Phân công hiện hành — tuần7, 02–08/11/2026:**
 [kế hoạch Colab ba khối](../WEEK_7_COLAB_PLAN.md) và
 [setup đầy đủ](../../runbooks/WEEK_7_COLAB_SETUP.md). HoaiTam khối1

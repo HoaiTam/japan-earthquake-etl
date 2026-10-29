@@ -120,6 +120,11 @@ Nếu lỗi/timeout/pending/unknown: worker giữ lease và evidence; `resume` s
 chối phiên chưa accepted. Dừng, gửi session/request hash và reason đã lọc cho
 HoaiTam; không release lease, retry, clear, reset hoặc prepare run mới né lỗi.
 
+Riêng **known terminal Trino failure ở Verify sau COMMITTED**, dùng
+[range publication recovery](DAT-03_RANGE_RECOVERY.md): helper/JAR riêng,
+preflight/full Verify/Publish/own acceptance rồi pinned resume bridge. Không
+dùng first-month namespace recovery cũ hoặc quarantine để bỏ qua tháng lỗi.
+
 ## 5. Bàn giao và giới hạn
 
 Gửi full commit, owner, request SHA/namespace, session và receipt thật;

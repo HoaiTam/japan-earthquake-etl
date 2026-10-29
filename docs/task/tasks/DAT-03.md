@@ -23,6 +23,13 @@ PARTIAL thay full research data.
 
 ## Phạm vi và từng khối công việc
 
+**Bản vá29/10 cho máy rosy179:** [range recovery](../../runbooks/DAT-03_RANGE_RECOVERY.md)
+và [evidence](../../evidence/DAT-03_RANGE_RECOVERY_20261029.md) bổ sung
+publication-only recovery + pinned resume bridge cho terminal Trino failure ở
+Verify sau COMMITTED. Giữ failed evidence/request/JAR/own lease, không skip/quarantine.
+33/63tháng là số chủ máy báo, chưa phải runtime acceptance mới; agent máy Trang
+phải chạy preflight/recovery/postflight thật trước resume. DAT-03 vẫn In Progress.
+
 **Tuần7 (02–08/11), HoaiTam:** [kế hoạch](../WEEK_7_COLAB_PLAN.md) và
 [setup đầy đủ](../../runbooks/WEEK_7_COLAB_SETUP.md) giao phần pilot handoff:
 chốt đúng release/ZIP/feature pins, mỗi người tự verify/download và gửi receipt.
@@ -187,6 +194,12 @@ release đủ gate. Không tạo dependency ngược từ DAT-03 sang EXP-02.
   MLI-04/MLQ-01 sở hữu report/ML E2E.
 
 ## Theo dõi
+
+- **29/10 — recovery range sau sleep:** branch `fix/dat-03-range-sleep-recovery`
+  từ main `ec7431244df1e5858fc0d148ec71755d36915033`; thêm helper publication-only,
+  own lease/postflight gate và pinned bridge cho session lỗi của rosy179.
+  [Evidence](../../evidence/DAT-03_RANGE_RECOVERY_20261029.md) ghi offline tests;
+  không thay failed execution, chưa live acceptance máy Trang. Giữ In Progress.
 
 - **28/10 — mở đường ETL thành viên:** branch `feat/dat-03-range-worker`
   từ main `327a275`; thêm Spark Java range worker, controller và offline
