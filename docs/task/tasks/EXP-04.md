@@ -7,7 +7,7 @@ workstream: "Scientific evaluation"
 scope: "Core"
 priority: "P0"
 effort_hours: 7
-assignee: "unassigned"
+assignee: "ThanhTris"
 reviewer: "unassigned"
 dependencies: ["EXP-02", "EXP-03"]
 ---
@@ -56,10 +56,31 @@ làm song song trên cùng membership fixture rồi hợp nhất bằng metric s
 - Không tạo score tổng hợp không công bố thành phần/trọng số.
 - Không biến statistical candidate thành nhãn nhân quả.
 
+## Tuần 7 — ThanhTris: bắt đầu evaluation mức pilot
+
+Đọc [kế hoạch](../WEEK_7_COLAB_PLAN.md) và
+[setup](../../runbooks/WEEK_7_COLAB_SETUP.md). Task cũ chưa triển khai, giữ
+Backlog đến khi thật sự bắt đầu; không gọi việc này là Needs Update của task Done.
+
+- Chuẩn bị metric schema/reason codes, stability/Omori harness và fixture tests
+  ngay; không chờ EXP-02/03 official để thiết kế interface.
+- COL-03 của rosy179 bàn giao baseline metrics/plots và pinned artifacts.
+  ThanhTris sở hữu evaluation module, không tính lại cùng metrics hai lần.
+- Tính stability trên cùng candidate population, công bố seed/tolerance,
+  số lần perturb/repeat và policy cho all-noise/empty sets. Không sửa vector
+  trong immutable pilot; perturb chỉ tạo bản thử nghiệm ngoài input và có version.
+- Physical-consistency/Omori chỉ fit khi đủ mẫu; thiếu mẫu báo null + reason,
+  không drop window hoặc dùng zero thay missing metric.
+- Report pilot giữ PARTIAL/development-only và không chọn model tốt nhất.
+
+Đầu ra tuần: harness/tests và pilot stability report. **Không đủ Done toàn
+EXP-04** nếu còn official research comparison/Omori/stability theo acceptance
+gốc. Dependencies và tiêu chí gốc phía trên giữ nguyên.
+
 ## Theo dõi
 
 - **Trạng thái:** Backlog
-- **Assignee:** Chưa ghi lại
+- **Assignee:** ThanhTris
 - **Reviewer:** Chưa ghi lại
 - **Evidence / PR:** Chưa có
 - **Kỹ năng phù hợp:** Clustering evaluation, seismology statistics, experiment design

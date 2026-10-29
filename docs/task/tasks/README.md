@@ -22,6 +22,16 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 
 ## Tổng quan
 
+**Phân công hiện hành — tuần7, 02–08/11/2026:**
+[kế hoạch Colab ba khối](../WEEK_7_COLAB_PLAN.md) và
+[setup đầy đủ](../../runbooks/WEEK_7_COLAB_SETUP.md). HoaiTam khối1
+(DAT-03 pilot/EXP-01/COL-01/DOC-01/SEC-01), rosy179 khối2
+(EXP-02/COL-02/COL-03), ThanhTris khối3 (EXP-03/COL-04/EXP-04/MLI-04).
+EXP-01 mở lại Needs Update cho cloud; local nghiệm thu cũ vẫn giữ. Bốn COL
+mới Backlog, EXP-03 chuyển owner ThanhTris; không claim Colab đã chạy từ plan.
+Week metadata task cũ là lịch triển khai gốc, carryover tuần7 tại kế hoạch mới.
+Các ghi chú phân công tuần5 bên dưới giữ làm lịch sử, không là roster hiện hành.
+
 **DAT-03 28/10:** accepted134/288 đến2011-02 (46,528%), Drive partial134tháng.
 [Evidence](../../evidence/DAT-03_DRIVE_RANGES_20261028.md).
 [Agent team setup](../../runbooks/DAT-03_TEAM_START.md) chốt range/pins và
@@ -53,16 +63,16 @@ tiếp từ2008-12, tối đa18tháng; không cộng tháng active. Vẫn In Pro
 full catalog/export/receipts ba máy.
 [Evidence mới](../../evidence/DAT-03_CATALOG_RECOVERY_20261027.md).
 
-- Tổng số task: **77**.
+- Tổng số task: **81**.
 - Foundation: **9 task `Done`**, FND-01 đã nghiệm thu runtime của lifecycle mới ngày 2026-10-15.
-- Task còn ở trạng thái `Needs Update`: **1** — SEC-01 mở lại cho Drive handoff26/10.
-- Core: **69 task**.
+- Task còn ở trạng thái `Needs Update`: **2** — SEC-01 và EXP-01 (cloud setup tuần7).
+- Core: **73 task**.
 - Stretch: **8 task**.
-- Tổng effort task: **402 giờ**; baseline 364h + ORC-06/07 16h + DAT-02 6h + DAT-03 16h.
+- Tổng effort task: **416 giờ**; baseline 364h + ORC-06/07 16h + DAT-02 6h + DAT-03 16h + COL-01..04 14h.
   Trong đó 12h data-readiness trước tuần 3, còn 390h task trong 8 tuần.
   Capacity tăng tốc là đề xuất, không phải khả năng thực tế đã xác nhận.
 
-Phân công hiện tại: [Kế hoạch tuần 5](../WEEK_5_PARALLEL_PLAN.md),
+Phân công lịch sử: [Kế hoạch tuần 5](../WEEK_5_PARALLEL_PLAN.md),
 19–25/10/2026, đồng bộ 22/10 theo bảng gần nhất: **11 task giao việc/61h +
 4 task mở đường/25h = 15 task Core/86h**; HoaiTam 31h, ThanhTris 21h,
 rosy179 34h. MLI-02 chuyển rosy179; DOC-01/QA-04/EXP-03 về tuần 5.
@@ -264,11 +274,15 @@ portable merge, full catalog và official export/receipts. Không suy unit PASS 
 
 | Task | Tuần | Workstream | Scope | Priority | Effort | Trạng thái |
 |---|---:|---|---|---|---:|---|
-| [EXP-01](./EXP-01.md) - Tạo Jupyter harness và chuẩn bị chuyển sang Colab | 5 | Jupyter-first harness | Core | P0 | 5h | Done |
+| [EXP-01](./EXP-01.md) - Tạo Jupyter harness và chuẩn bị chuyển sang Colab | 5 | Jupyter-first harness | Core | P0 | 5h | Needs Update |
 | [EXP-02](./EXP-02.md) - Chạy Window, DBSCAN và HDBSCAN global | 5 | Baseline algorithms | Core | P0 | 7h | In Progress |
 | [EXP-03](./EXP-03.md) - Xây HDBSCAN adaptive và giải quyết multi-sequence | 5 | Adaptive HDBSCAN | Core | P0 | 6h | In Progress |
 | [EXP-04](./EXP-04.md) - Đánh giá quality, physical consistency và stability | 7 | Scientific evaluation | Core | P0 | 7h | Backlog |
 | [EXP-05](./EXP-05.md) - Chạy out-of-period extension 2018-2023 | 7 | Out-of-period evaluation | Core | P0 | 5h | Backlog |
+| [COL-01](./COL-01.md) - Khảo sát và giải thích pilot trên Colab | 7 | Colab pilot data inspection | Core | P1 | 3h | Backlog |
+| [COL-02](./COL-02.md) - Sweep tham số baseline giới hạn trên pilot | 7 | Bounded baseline parameter sweep | Core | P1 | 4h | Backlog |
+| [COL-03](./COL-03.md) - Metrics và trực quan hóa baseline pilot | 7 | Pilot baseline metrics and plots | Core | P1 | 4h | Backlog |
+| [COL-04](./COL-04.md) - Kiểm thử biên, multi-sequence và rerun adaptive | 7 | Adaptive edge-case regression | Core | P1 | 3h | Backlog |
 
 ## I - ML Integration
 

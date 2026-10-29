@@ -20,7 +20,7 @@ done
 
 required_baseline_values='
 | Trạng thái tài liệu | Baseline HDBSCAN hiện hành |
-8 tuần, 3 thành viên, 402 giờ task; 12 giờ data-readiness trước tuần 3 và 390 giờ task trong lịch 8 tuần
+8 tuần, 3 thành viên, 416 giờ task; 12 giờ data-readiness trước tuần 3 và 404 giờ task trong lịch 8 tuần
 Window, DBSCAN, HDBSCAN global và HDBSCAN adaptive
 Power BI là Stretch và không chặn MVP
 2018-10-01T00:00:00Z

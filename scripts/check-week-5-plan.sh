@@ -14,7 +14,11 @@ lane() {
     for id in "$@"; do
         [ -f "$tasks_dir/$id.md" ] || fail "missing $id"
         [ "$(field week "$id")" = 5 ] || fail "$id week must be 5"
-        [ "$(field assignee "$id")" = "$owner" ] || fail "$id owner must be $owner"
+        # Keep historical week/effort accounting, but honor the user's explicit
+        # week-7 carryover ownership. No arbitrary owner/status bypass.
+        current_owner=$owner
+        case "$id" in EXP-01) current_owner=HoaiTam;; EXP-03) current_owner=ThanhTris;; esac
+        [ "$(field assignee "$id")" = "$current_owner" ] || fail "$id owner must be $current_owner"
         [ "$(field scope "$id")" = Core ] || fail "$id must stay Core"
         grep -F -- "[$id](./tasks/$id.md)" "$plan" >/dev/null || fail "plan lacks $id link"
         hours=$(field effort_hours "$id")
@@ -79,4 +83,4 @@ for id in MLD-02 MLD-03; do
     [ "$(field assignee "$id")" = rosy179 ] || fail "$id owner exception lost"
     [ "$(field reviewer "$id")" = HoaiTam ] || fail "$id reviewer exception lost"
 done
-printf 'Week 5 plan check passed: 15 Core tasks, 86h (31/21/34); 11 weekly tasks + 4 prerequisites; MLI-02 rosy179; DOC-01/QA-04/EXP-03 week 5; Jupyter first, Colab gated.\n'
+printf 'Week 5 history check passed: 15 Core tasks/86h; week-7 carryover owners EXP-01 HoaiTam/EXP-03 ThanhTris; original weeks/effort and scientific gates retained.\n'

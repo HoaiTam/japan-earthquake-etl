@@ -410,6 +410,7 @@ check-docs: ## DOC-01 validate link/file/heading Markdown nội bộ; offline, k
 
 test-docs: ## DOC-01 link checker và onboarding command regression; standard library only
 	@python3 -m unittest discover -s tests -p 'test_documentation.py'
+	@python3 -B -m unittest discover -s tests -p 'test_week7_plan.py'
 
 .PHONY: test-jma-source-handoff
 test-jma-source-handoff: ## DAT-03 offline source-kit SHA/ZIP/allowlist guards; không Docker hoặc nguồn mạng

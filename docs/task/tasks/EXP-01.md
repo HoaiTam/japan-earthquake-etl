@@ -1,14 +1,14 @@
 ---
 task_id: "EXP-01"
-status: "Done"
+status: "Needs Update"
 week: 5
 block: "H - Experiment"
 workstream: "Jupyter-first harness"
 scope: "Core"
 priority: "P0"
 effort_hours: 5
-assignee: "rosy179"
-reviewer: "HoaiTam"
+assignee: "HoaiTam"
+reviewer: "unassigned"
 dependencies: ["CON-03", "DAT-02"]
 ---
 
@@ -79,18 +79,38 @@ MLD-05 để hoàn tất local harness. Cloud smoke nằm trong EXP-02 giai đo�
 - **Bắt đầu ngay / gate:** Làm bằng feature bundle fixture ngay; local smoke DAT-02 trước Done, official loader contract-test riêng. Cloud run chờ local gate EXP-02; không claim research run từ pilot.
 - **Theo dõi:** Phân công không có nghĩa đã triển khai; chỉ đổi In Progress khi bắt đầu, Done khi đủ acceptance/evidence. Reviewer hiện unassigned, chưa có approval.
 
+## Tuần 7 — HoaiTam: hoàn thiện môi trường Colab
+
+Theo [phân công mới](../WEEK_7_COLAB_PLAN.md), chuyển owner từ rosy179 sang
+HoaiTam và mở lại Needs Update cho cloud setup; local nghiệm thu cũ giữ nguyên.
+Tuần metadata5 là lịch triển khai đầu, phần carryover tuần7 ghi ở kế hoạch mới.
+Đọc [setup](../../runbooks/WEEK_7_COLAB_SETUP.md) trước khi triển khai.
+
+- [ ] Bootstrap Colab CPU dùng cùng shared modules/requirements/pilot pins;
+      không synthetic fallback khi path input thật thiếu/sai.
+- [ ] Pin và ghi package/code/config thực tế; xử lý pip conflict và plotting
+      dependency bằng PR có test, không đổi version im lặng.
+- [ ] Kiểm local report thật gắn đúng pilot/feature/code/config trước cloud fit;
+      không tự gán flag fresh kernel hoặc tạo PASSED JSON.
+- [ ] Fresh Colab session → Run all, loader/checksum gate và output/readback
+      có evidence; chưa có quyền/session thì ghi pending, không claim đã chạy.
+
+Không chặn EDA hoặc fixture work của hai khối khác; reuse local harness đã
+Done thay vì viết lại model pipeline. Không tự công nhận official research.
+
 ## Theo dõi
 
-- **Trạng thái:** Done
-- **Assignee:** rosy179
-- **Reviewer:** HoaiTam
+- **Trạng thái:** Needs Update
+- **Assignee:** HoaiTam
+- **Reviewer:** unassigned — chưa có approval cho phần cloud mới
 - **Evidence / PR:** Đã khắc phục toàn bộ review comments từ HoaiTam tại PR #83 ([comment-6229834764](https://github.com/HoaiTam/japan-earthquake-etl/pull/83#issuecomment-6229834764), [comment-6231696916](https://github.com/HoaiTam/japan-earthquake-etl/pull/83#issuecomment-6231696916), [comment-6244707869](https://github.com/HoaiTam/japan-earthquake-etl/pull/83#issuecomment-6244707869) và [comment-6244865924](https://github.com/HoaiTam/japan-earthquake-etl/pull/83#issuecomment-6244865924)). Đã giải quyết triệt để vấn đề ràng buộc retry run ID / config / seed, lineage guard trên memberships/summaries chạy trước retry reuse, xác thực marker status, checksums map không rỗng và bao phủ đủ standard required files, verify toàn bộ file hash trên đĩa. Bổ sung regression tests (tổng cộng 44 Python tests và 15 Java tests PASS). Chi tiết tại [docs/evidence/EXP-01.md](../../evidence/EXP-01.md).
 - **Kỹ năng phù hợp:** Python, Jupyter, Colab, reproducible environments
 
 ## Checklist bàn giao
 
 - [x] Deliverable và test/evidence tồn tại trong repository.
-- [x] Acceptance criteria đã được kiểm tra.
+- [x] Acceptance local harness cũ đã được kiểm tra, evidence giữ nguyên.
+- [ ] Acceptance bổ sung cloud setup tuần7 còn chờ triển khai/runtime thật.
 - [x] Contract/docs đã cập nhật và không chứa secret/data dump.
 - [ ] Reviewer độc lập được khuyến nghị cho P0.
 

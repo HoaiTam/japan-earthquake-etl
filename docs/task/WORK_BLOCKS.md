@@ -2,6 +2,13 @@
 
 Tài liệu này giải thích các task từ tuần 2 đến tuần 8 theo ba câu hỏi: **làm phần gì**, **có những gì** và **dùng để làm gì**. Danh sách task chi tiết, effort, assignee, reviewer và status nằm trong [danh mục task Markdown](./tasks/README.md); mỗi mã task dẫn đến một file riêng.
 
+**Phân công hiện hành:** [tuần7 — Colab pilot](./WEEK_7_COLAB_PLAN.md),
+02–08/11/2026: HoaiTam khối1, rosy179 khối2, ThanhTris khối3.
+[Setup chung](../runbooks/WEEK_7_COLAB_SETUP.md); COL-01..04 mới/14h,
+tổng81task/416h/Core73/Stretch8. Những roster/số tổng bên dưới là lịch sử.
+Khối H thêm COL-01 EDA, COL-02 sweep, COL-03 baseline metrics/plots,
+COL-04 adaptive edge tests; pilot không thay official export/evaluation.
+
 ## 1. Luồng dữ liệu mục tiêu
 
 ```mermaid
@@ -334,7 +341,7 @@ gate. Đây là tải tăng tốc khoảng 32h/người, không phải lịch 15
 EXP-01 nghiệm thu local harness bằng DAT-02, còn official export/import và
 DOC-01 final reproduction vẫn cần evidence đúng scope; không suy pilot thành research-ready.
 
-## 15. Phân công hiện hành — tuần 5
+## 15. Phân công lịch sử — tuần 5
 
 [Kế hoạch tuần 5](./WEEK_5_PARALLEL_PLAN.md), 19–25/10/2026, thay lịch tuần 4
 ở trên (mốc lịch sử). Ba assignee mới dùng account GitHub, không suy ánh xạ tên Trang.

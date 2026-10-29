@@ -91,6 +91,14 @@ class Week5PlanTest(unittest.TestCase):
         self.change("MLI-02", 'assignee: "rosy179"', 'assignee: "HoaiTam"')
         self.rejects("MLI-02 owner must be rosy179")
 
+    def test_carryover_exp01_owner_tracks_week7_assignment(self):
+        self.change("EXP-01", 'assignee: "HoaiTam"', 'assignee: "rosy179"')
+        self.rejects("EXP-01 owner must be HoaiTam")
+
+    def test_carryover_exp03_owner_tracks_week7_assignment(self):
+        self.change("EXP-03", 'assignee: "ThanhTris"', 'assignee: "rosy179"')
+        self.rejects("EXP-03 owner must be ThanhTris")
+
     def test_unassigned_extra_core_task_cannot_enter_week5(self):
         self.change("MLI-04", "week: 8", "week: 5")
         self.rejects("expected 15 Core week-5 tasks")

@@ -73,6 +73,11 @@ small synthetic fixtures. Notebook output lớn phải clear trước commit.
 
 ## 4. Trình tự và ownership
 
+Ownership dưới đây là mốc triển khai Jupyter-first ban đầu. Theo
+[tuần7](../task/WEEK_7_COLAB_PLAN.md), phần cloud EXP-01 chuyển HoaiTam,
+EXP-03/04 và MLI-04 chuyển ThanhTris; EXP-02 giữ rosy179. Không đổi trình tự
+local gate → Colab, feature implementation hoặc official export/import gates.
+
 1. MLD-04 (rosy179): khóa feature implementation/schema/fixture.
 2. DAT-02 (HoaiTam): chọn pins/scope, tạo pilot feature bundle và Jupyter
    inspection evidence; không cần full research dataset EXPORTED.

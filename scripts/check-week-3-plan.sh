@@ -48,19 +48,20 @@ do
 done
 
 set -- "$tasks_dir"/*-[0-9][0-9].md
-[ "$#" -eq 77 ] || fail "expected 77 task files (73 baseline + ORC-06/07 + DAT-02/03), found $#"
+[ "$#" -eq 81 ] || fail "expected 81 task files (77 previous + COL-01..04), found $#"
 
 total_effort=$(awk '$1 == "effort_hours:" { total += $2 } END { print total + 0 }' "$@")
-[ "$total_effort" -eq 402 ] || fail "expected 402 total task hours, found $total_effort"
+[ "$total_effort" -eq 416 ] || fail "expected 416 total task hours, found $total_effort"
 # Preserve historical estimates while checking explicitly added scope.
 [ "$(sum_effort ORC-06 ORC-07)" -eq 16 ] || fail 'ORC-06/07 addendum must total 16 hours'
 [ "$(sum_effort DAT-02)" -eq 6 ] || fail 'DAT-02 pilot addendum must total 6 hours'
 [ "$(sum_effort DAT-03)" -eq 16 ] || fail 'DAT-03 research handoff initial estimate must total 16 hours'
-[ "$((total_effort - 16 - 6 - 16))" -eq 364 ] || fail 'original backlog must retain 364 hours'
+[ "$(sum_effort COL-01 COL-02 COL-03 COL-04)" -eq 14 ] || fail 'COL pilot addendum must total 14 hours'
+[ "$((total_effort - 16 - 6 - 16 - 14))" -eq 364 ] || fail 'original backlog must retain 364 hours'
 
 core_count=$(awk -F ': ' '$1 == "scope" && $2 == "\"Core\"" { count++ } END { print count + 0 }' "$@")
 stretch_count=$(awk -F ': ' '$1 == "scope" && $2 == "\"Stretch\"" { count++ } END { print count + 0 }' "$@")
-[ "$core_count" -eq 69 ] || fail "expected 69 Core tasks, found $core_count"
+[ "$core_count" -eq 73 ] || fail "expected 73 Core tasks, found $core_count"
 [ "$stretch_count" -eq 8 ] || fail "expected 8 Stretch tasks, found $stretch_count"
 
 [ "$(sum_effort USG-06 JMA-01 DAT-01)" -eq 12 ] || \
@@ -90,10 +91,10 @@ for task_id in SLV-01 SLV-02 SLV-03 SLV-04 SLV-05 SLV-08; do
 done
 
 for expected in \
-    'Tổng số task: **77**' \
-    'Core: **69 task**' \
+    'Tổng số task: **81**' \
+    'Core: **73 task**' \
     'Stretch: **8 task**' \
-    'Tổng effort task: **402 giờ**' \
+    'Tổng effort task: **416 giờ**' \
     '[DAT-01](./DAT-01.md)' \
     '[USG-06](./USG-06.md)'
 do
@@ -119,4 +120,4 @@ if grep -E '(^|[^A-Z])(TBD|TODO|FIXME)([^A-Z]|$)' \
     fail 'new task documents contain unresolved placeholders'
 fi
 
-printf 'Week 3 historical lanes preserved: 12h pre-week + 41h lanes; current backlog 77 tasks/402h (364h + 16h + 6h + 16h).\n'
+printf 'Week 3 historical lanes preserved: 12h pre-week + 41h lanes; current backlog 81 tasks/416h (364h + 16h + 6h + 16h + 14h COL).\n'

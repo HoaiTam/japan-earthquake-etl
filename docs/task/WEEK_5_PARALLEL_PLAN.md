@@ -1,5 +1,10 @@
 # Tuần 5 — ETL thật và Jupyter pilot trước Colab
 
+**Mốc lịch sử 19–25/10/2026.** Phân công hiện hành đã chuyển sang
+[tuần7 — Colab](./WEEK_7_COLAB_PLAN.md): EXP-01 hiện HoaiTam,
+EXP-03 hiện ThanhTris; những tên/giờ tuần5 dưới đây giữ nguyên để truy vết.
+Week metadata task carryover giữ lịch triển khai gốc, không là phân công mới.
+
 ## Phân công hiện hành — đồng bộ 22/10/2026
 
 Áp dụng cho **19–25/10/2026**, theo bảng phân công gần nhất HoaiTam gửi.

@@ -35,6 +35,26 @@ và không biến pilot/synthetic result thành research-ready.
 
 ## Thành phần cần có
 
+### Tuần 7 — HoaiTam: nghiệm thu actual Drive/Colab
+
+Đọc [kế hoạch tuần7](../WEEK_7_COLAB_PLAN.md) và
+[setup](../../runbooks/WEEK_7_COLAB_SETUP.md). Giữ Needs Update đến khi:
+
+- [ ] Đúng recipient của cả ba người mở/tải đúng release được, có receipt thật;
+      phân biệt máy local với Colab VM, không tạo hộ hoặc suy identity từ tên file.
+- [ ] Audit actual bootstrap/model notebooks, session metadata và outputs;
+      không credential/OAuth JSON/private logs/local account path ngoài contract.
+- [ ] Kiểm exact release/output sharing theo quyền hiện có; không anyone/domain
+      hoặc public link ngoài scope đã duyệt; map identity với roster ở kênh riêng.
+- [ ] Mô tả Drive mount cấp quyền rộng, notebook được chia sẻ có thể chứa
+      outputs; không coi mount là folder-scoped readonly security boundary.
+- [ ] Findings/pending có triage và evidence; chưa đủ actual cloud session hoặc
+      recipient thì giữ chưa Done, không tự đổi ACL để pass.
+
+Local acceptance23/10 giữ nguyên; không cần bật Docker hoặc ghi permission
+probes mới chỉ để audit cloud pilot. Không công bố full project security nếu
+chỉ đọc tài liệu setup.
+
 - **Đầu vào và contract:** [ORC-05](./ORC-05.md)
 - **Phần triển khai:** Kiểm tra env, Git history, logs, default credentials, exposed ports, DSN và bucket permissions cho toàn bộ block mới.
 - **Kết quả bàn giao:** Security checklist và issue fixes.

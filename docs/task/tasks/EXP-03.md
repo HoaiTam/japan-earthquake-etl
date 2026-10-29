@@ -7,7 +7,7 @@ workstream: "Adaptive HDBSCAN"
 scope: "Core"
 priority: "P0"
 effort_hours: 6
-assignee: "rosy179"
+assignee: "ThanhTris"
 reviewer: "unassigned"
 dependencies: ["EXP-02"]
 ---
@@ -55,10 +55,25 @@ adaptive parameter analysis đang chạy, miễn cùng output contract.
 - Không xóa raw membership chỉ vì event được resolve sang sequence khác.
 - Không tuyên bố adaptive tốt hơn trước khi `EXP-04` đánh giá.
 
+## Tuần 7 — ThanhTris: tiếp nhận adaptive và multi-sequence
+
+Theo [kế hoạch tuần7](../WEEK_7_COLAB_PLAN.md), chuyển owner sang ThanhTris;
+rosy179 trong evidence/PR#86 vẫn là tác giả mốc triển khai trước. Không sửa
+evidence cũ thành nghiệm thu của người mới. Giữ In Progress và hard gate EXP-02.
+
+1. Đọc [setup](../../runbooks/WEEK_7_COLAB_SETUP.md); làm fixture/unit tests
+   ngay trên module có sẵn, không đợi baseline cloud hoặc official DAT-03.
+2. Chạy local adaptive fresh kernel bằng pilot thật và baseline local gate
+   trước cloud; không lấy isolated_exec/fallback làm fresh-kernel acceptance.
+3. Chạy Colab adaptive, giữ raw membership, đối soát unique resolved/noise/
+   ambiguous/nested counts; lưu config/SHA, session metadata và pilot marker.
+4. COL-04 bổ sung regression còn thiếu; EXP-04 stability/evaluation và MLI-04
+   report template riêng. Không tự nâng PARTIAL thành official reproduction.
+
 ## Theo dõi
 
 - **Trạng thái:** In Progress
-- **Assignee:** rosy179
+- **Assignee:** ThanhTris
 - **Reviewer:** unassigned
 - **Evidence / PR:** [EXP-03 evidence](../../evidence/EXP-03.md), [PR #86](https://github.com/HoaiTam/japan-earthquake-etl/pull/86) đã merge implementation. Đồng bộ tuần 5 ngày 22/10/2026 theo phân công gần nhất. Evidence notebook hiện là isolated_exec/fallback, không thay fresh-kernel acceptance trên input hợp lệ; dependency EXP-02 còn In Progress.
 - **Kỹ năng phù hợp:** HDBSCAN, parameter policies, entity resolution
