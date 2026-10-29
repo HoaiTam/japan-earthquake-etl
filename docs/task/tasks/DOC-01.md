@@ -80,11 +80,21 @@ Bổ sung runbook DAT-02 → EXP-01/02 Jupyter → local PASSED → Colab với 
 
 ## Theo dõi
 
+Tuần7 theo yêu cầu29/10: [phân công ba khối](../WEEK_7_COLAB_PLAN.md),
+[setup đầy đủ](../../runbooks/WEEK_7_COLAB_SETUP.md), file riêng COL-01..04 và
+carryover task owners/status. Scope lần này là docs/planning; không tự thực thi
+Colab, cấp quyền Drive hoặc nghiệm thu model. Khi các PR cloud có output mới,
+HoaiTam tiếp tục bổ sung expected outputs/known issues theo đúng evidence.
+
 - **Trạng thái:** Done
 - **Assignee:** HoaiTam
 - **Reviewer:** unassigned; chưa có approval độc lập
 - **Evidence / PR:** [DOC-01 evidence](../../evidence/DOC-01.md), [reproduction metadata](../../evidence/DOC-01-reproduction.json), [PR #89](https://github.com/HoaiTam/japan-earthquake-etl/pull/89) đã merge. [Đồng bộ 22/10/2026](../../evidence/DOC-01_TRACKING_SYNC.md) trên `docs/doc-01-sync-task-tracking` từ main `3e8625e`: lịch/owner/checklists/known issues; không chạy lại nghiệm thu runtime và không ghi reviewer approval.
 - **Kỹ năng phù hợp:** Technical writing, architecture
+
+- **Bổ sung29/10:** [evidence phân công/setup tuần7](../../evidence/DOC-01_WEEK_7_PLAN.md)
+  đã kiểm links/task status/planning/secret hygiene và38tests docs/planning;
+  Done scope docs, không phải nghiệm thu actual Colab hoặc model.
 
 ## Checklist bàn giao
 

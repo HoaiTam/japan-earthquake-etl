@@ -3,8 +3,12 @@
 Backlog được lưu hoàn toàn bằng Markdown. Mỗi task có một file độc lập trong
 [danh mục task](./tasks/README.md); phạm vi, thành phần và mục đích của từng
 khối được giải thích tại [Các khối công việc sau Foundation](./WORK_BLOCKS.md).
-Phân công gần nhất nằm tại [Kế hoạch tuần 5](./WEEK_5_PARALLEL_PLAN.md),
-19–25/10/2026, gồm nhóm nghiệm thu tồn và ba khối song song.
+Phân công gần nhất là [tuần7 — pilot trên Colab](./WEEK_7_COLAB_PLAN.md),
+02–08/11/2026: HoaiTam khối1, rosy179 khối2, ThanhTris khối3;
+[setup đầy đủ](../runbooks/WEEK_7_COLAB_SETUP.md). Có4task COL mới/14h,
+backlog hiện **81task/416h**, Core73/Stretch8. Tuần7 budget54h là phần còn
+làm và buffer, không phải tổng estimate lịch sử. Status chỉ đổi theo evidence.
+[Kế hoạch tuần 5](./WEEK_5_PARALLEL_PLAN.md), 19–25/10/2026, giữ làm lịch sử.
 [Kế hoạch tuần 4](./WEEK_4_PARALLEL_PLAN.md) và [nhóm mở đường](./WEEK_4_PREP_GROUP.md)
 giữ lại làm mốc lịch sử. [Kế hoạch tuần 3](./WEEK_3_PARALLEL_PLAN.md) giữ lại để đối chiếu
 handoff/evidence.
@@ -47,10 +51,12 @@ Nếu capacity thực tế khác 15 giờ/người/tuần, nhóm dùng trường
 | 4 | Nhóm mở đường + ETL/Gold/ML pilot mở rộng | JMA Bronze thật, DAG/run context, SilverReady, Gold Published, pinned dataset/audit/candidate pilot và security evidence | 89 giờ Core + 7 giờ review/tích hợp; GLD-02 Stretch 4h ngoài cam kết |
 | 5 | Nối ETL thật, feature/export, baseline/adaptive, import và docs | Full-month proof, QA/recovery; feature/export/experiment giữ audit/coverage/lifecycle gates | 86h Core + 4h nghiệm thu tồn + 20h review/tích hợp/dự phòng |
 | 6 | Catalog thật/handoff DAT-03 và phần tuần 5 chưa đủ gate; restore/evaluation/report | Không bỏ coverage/quality gate; nhận cùng release trên ba máy | 20h task gắn tuần 6 (4h cũ + DAT-03 16h estimate); replan sau profile |
-| 7 | Scientific evaluation và extension | Stability/Omori, out-of-period và coverage đủ trước scientific review | 16h task đang gắn tuần 7; EXP-03 đã chuyển tuần 5 |
+| 7 | Pilot Colab và evaluation harness; official evaluation/extension giữ gate riêng | Ba khối chạy pilot, parity/report/reasons; chưa scientific conclusion từ PARTIAL | 30h task gắn tuần7 (16h cũ + COL14h); budget carryover54h tại kế hoạch mới |
 | 8 | ML report/E2E, release và Stretch | Report/import lineage, demo và release evidence; BI không chặn Core | 44h task đang gắn tuần 8, gồm BI-02 đã dời |
 
-Tổng effort gồm Stretch là **402 giờ** = baseline **364h** + ORC-06/07 **16h** + DAT-02 **6h** + DAT-03 **16h**.
+Tổng effort hiện hành gồm Stretch là **416 giờ** = baseline **364h** + ORC-06/07 **16h** + DAT-02 **6h** + DAT-03 **16h** + COL-01..04 **14h**.
+Các tổng402h và lịch phân bổ bên dưới là mốc trước khi thêm COL ngày29/10;
+hiện phần trong lịch8tuần là404h (416−12), không phải remaining effort.
 Baseline lịch sử còn **352 giờ task** trong 8 tuần sau pre-week; hiện tại
 còn **390 giờ task** trong 8 tuần (402 − 12). “Còn” ở đây là phân bổ lịch,
 không phải remaining effort của các task đã Done. Giữ tuần 3/4 làm mốc lịch sử.

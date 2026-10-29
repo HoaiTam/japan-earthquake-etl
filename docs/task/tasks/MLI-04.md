@@ -7,7 +7,7 @@ workstream: "ML serving and report"
 scope: "Core"
 priority: "P0"
 effort_hours: 4
-assignee: "unassigned"
+assignee: "ThanhTris"
 reviewer: "unassigned"
 dependencies: ["MLI-03", "EXP-04"]
 ---
@@ -55,10 +55,26 @@ khóa schema; evidence thật cần import snapshot từ `MLI-03`.
 - Không chỉnh membership hoặc scientific metric ở serving layer.
 - Không hard-code số minh họa như kết quả thật.
 
+## Chuẩn bị tuần 7 — ThanhTris: report template
+
+Theo [kế hoạch tuần7](../WEEK_7_COLAB_PLAN.md), dùng
+[setup Colab](../../runbooks/WEEK_7_COLAB_SETUP.md); làm template/static-report
+source và fixture SQL tests ngay, actual official nghiệm thu vẫn mục tiêu8.
+Task cũ chưa làm giữ Backlog; không đổi hard dependencies để pilot được import.
+
+1. Template có pilot/dataset ID, run/algorithm/config/code pins, counts/noise/
+   failure/N/A reasons và limitation; không hard-code số minh họa.
+2. Đọc development output để render báo cáo nhãn DEVELOPMENT_ONLY, tách hẳn
+   official input CANDIDATE/APPROVED. Không đẩy pilot vào `ml.*` để demo SQL.
+3. Chuẩn bị Trino query/schema fixtures theo MLI-01/MLI-03 đã có; test bằng
+   fixture rõ nhãn, không cần mở Docker hoặc truy cập production trong tuần này.
+4. Khi có official dataset/result import và EXP-04 thật, nghiệm thu query
+   readback/count parity bằng exact snapshots. Phần này chưa được pilot thay thế.
+
 ## Theo dõi
 
 - **Trạng thái:** Backlog
-- **Assignee:** Chưa ghi lại
+- **Assignee:** ThanhTris
 - **Reviewer:** Chưa ghi lại
 - **Evidence / PR:** Chưa có
 - **Kỹ năng phù hợp:** Trino SQL, reproducible reporting, data validation

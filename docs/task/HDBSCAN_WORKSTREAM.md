@@ -4,6 +4,11 @@ Tài liệu này chuyển phương án nghiên cứu HDBSCAN thành các khối 
 thể giao độc lập. File task riêng trong [`tasks/`](./tasks/README.md) là nguồn
 theo dõi chính cho dependency, acceptance criteria, assignee và evidence.
 
+**Phân công hiện hành:** [tuần7 Colab](./WEEK_7_COLAB_PLAN.md),
+HoaiTam khối1, rosy179 khối2, ThanhTris khối3; COL-01..04 cụ thể hóa
+pilot EDA/sweep/metrics/edge tests. [Setup](../runbooks/WEEK_7_COLAB_SETUP.md).
+Các roster tuần4/5 bên dưới là lịch sử; không mở official scientific gate.
+
 ## 1. Mục tiêu đã chốt
 
 Pipeline nhận `gold.earthquake_event_current` tại một Iceberg snapshot cố định,

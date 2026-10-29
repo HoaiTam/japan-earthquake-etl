@@ -23,6 +23,13 @@ PARTIAL thay full research data.
 
 ## Phạm vi và từng khối công việc
 
+**Tuần7 (02–08/11), HoaiTam:** [kế hoạch](../WEEK_7_COLAB_PLAN.md) và
+[setup đầy đủ](../../runbooks/WEEK_7_COLAB_SETUP.md) giao phần pilot handoff:
+chốt đúng release/ZIP/feature pins, mỗi người tự verify/download và gửi receipt.
+Colab receipt ghi rõ VM/runtime, không thay receipt ba máy thật của DAT-03.
+Không làm lại catalog288tháng hoặc chuyển task Done trong budget pilot tuần này;
+full research rollout/export còn giữ acceptance phía dưới.
+
 **Agent máy thành viên đọc trước:** [DAT-03 TEAM START](../../runbooks/DAT-03_TEAM_START.md).
 Ngày28/10 owner chốt phân công và input/config pins trong
 [config](../../../config/research/team_assignments_v1.json): ThanhTris62tháng

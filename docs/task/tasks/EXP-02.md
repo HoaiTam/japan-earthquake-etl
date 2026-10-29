@@ -88,6 +88,17 @@ schema output và feature fixture do `EXP-01` khóa.
 - **Bắt đầu ngay / gate:** Algorithm fixtures làm ngay; local integration cần EXP-01/DAT-02; official acceptance cần MLD-05, Colab sau local PASSED. Mainshock noise không chọn cluster gần nhất; giữ failure/noise counts. Coverage chưa đủ thì chưa nhận nghiên cứu toàn kỳ.
 - **Theo dõi:** Phân công không có nghĩa đã triển khai; chỉ đổi In Progress khi bắt đầu, Done khi đủ acceptance/evidence. Reviewer hiện unassigned, chưa có approval.
 
+## Tuần 7 — rosy179: baseline Colab và parity
+
+Giữ owner rosy179, In Progress. Theo [kế hoạch tuần7](../WEEK_7_COLAB_PLAN.md),
+đọc [setup](../../runbooks/WEEK_7_COLAB_SETUP.md), chạy ba default baselines từ
+exact pilot279/2, đối soát local–Colab bằng grain/roles/noise/membership và
+tolerance công bố; output mới từng run, không sửa input/marker để pass.
+COL-02 sở hữu bounded sweep; COL-03 sở hữu baseline metrics/plots, không
+đưa effort các task mới vào estimate7h lịch sử của EXP-02.
+Không chờ full DAT-03 để nghiệm thu pilot portability; official run vẫn cần
+release thật EXPORTED. Colab pilot đạt chưa chuyển toàn EXP-02 Done.
+
 ## Theo dõi
 
 - **Trạng thái:** In Progress

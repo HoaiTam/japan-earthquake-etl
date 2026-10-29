@@ -4,7 +4,7 @@
 |---|---|
 | Task | `PLN-01` |
 | Trạng thái tài liệu | Baseline HDBSCAN hiện hành |
-| Kế hoạch | 8 tuần, 3 thành viên, 402 giờ task; 12 giờ data-readiness trước tuần 3 và 390 giờ task trong lịch 8 tuần; capacity sơ bộ 360 giờ không đủ toàn backlog |
+| Kế hoạch | 8 tuần, 3 thành viên, 416 giờ task; 12 giờ data-readiness trước tuần 3 và 404 giờ task trong lịch 8 tuần; capacity sơ bộ 360 giờ không đủ toàn backlog |
 | Nguồn backlog | [`docs/task/tasks/README.md`](../task/tasks/README.md) và file riêng của từng task |
 | Roadmap kỹ thuật | [Roadmap HDBSCAN từ Gold đến ML Iceberg](../task/HDBSCAN_WORKSTREAM.md) |
 
@@ -38,6 +38,12 @@ cho catalog nghiên cứu thật và handoff ba thành viên: **77 task/402h**, 
 Stretch 8. Không đổi phạm vi thời gian/schema/KPI, không cộng vào kế hoạch tuần 5;
 profile xong phải ước lượng lại resource/remaining work, không cam kết 16h đủ
 full-scale rollout. Pilot gửi trước vẫn development-only.
+
+Ngày29/10 thêm COL-01..04 (14h) cho EDA/sweep/metrics/edge tests của pilot
+Colab tuần7: hiện **81task/416h**, Core73/Stretch8. Đây là cụ thể hóa workflow
+đã có, không đổi research split, scientific gate hoặc lifecycle. Carryover
+giữ estimate gốc; [budget tuần7](../task/WEEK_7_COLAB_PLAN.md) tính phần còn
+làm riêng, không coi tổng416h là remaining effort hoặc capacity cam kết.
 
 ## 2. Kết quả MVP bắt buộc
 
