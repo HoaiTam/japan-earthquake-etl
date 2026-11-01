@@ -484,6 +484,7 @@ test-pilot: ## Pilot/model regression; cần pyarrow/model deps và loopback Jup
 	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_pilot_*.py'
 	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_team_pilot.py'
 	@$(PILOT_PYTHON) -m unittest tests/test_experiment_harness.py
+	@$(PILOT_PYTHON) -B -m unittest discover -s tests -p 'test_colab_bootstrap.py'
 	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_research_collection_loader.py'
 	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_research_team.py'
 	@$(MAKE) test-catalog-prefix-kit PILOT_PYTHON="$(PILOT_PYTHON)"
@@ -502,8 +503,9 @@ jupyter-pilot: ## Mở Jupyter loopback với bundle local đã chọn; Ctrl+C �
 	@test -n "$(PILOT_BUNDLE)" || { echo 'Set PILOT_BUNDLE=staging/ml-pilot/pilot_id=<exact-id>'; exit 2; }
 	@PILOT_BUNDLE="$(abspath $(PILOT_BUNDLE))" $(PILOT_PYTHON) -m jupyterlab --ip=127.0.0.1 --no-browser notebooks/dat_02_inspection.ipynb
 
-test-exp01: ## EXP-01 harness & Colab adapter unit tests; không Docker/network
+test-exp01: ## EXP-01 harness/bootstrap regression; không Docker/API, cần kernel Jupyter loopback
 	@python3 -m unittest tests/test_experiment_harness.py
+	@python3 -B -m unittest discover -s tests -p 'test_colab_bootstrap.py'
 
 inspect-exp01: ## EXP-01 fresh Jupyter kernel Run All; không Docker/API
 	@python3 scripts/inspect-exp01-notebook.py $${PILOT_BUNDLE:+--bundle "$$PILOT_BUNDLE"}

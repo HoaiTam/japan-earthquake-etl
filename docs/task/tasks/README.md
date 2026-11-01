@@ -32,7 +32,8 @@ Giữ failed evidence, không quarantine/skip. Báo cáo33/63 của chủ máy c
 [setup đầy đủ](../../runbooks/WEEK_7_COLAB_SETUP.md). HoaiTam khối1
 (DAT-03 pilot/EXP-01/COL-01/DOC-01/SEC-01), rosy179 khối2
 (EXP-02/COL-02/COL-03), ThanhTris khối3 (EXP-03/COL-04/EXP-04/MLI-04).
-EXP-01 mở lại Needs Update cho cloud; local nghiệm thu cũ vẫn giữ. Bốn COL
+EXP-01 Done cho cloud harness01/11 qua Colab CPU thật/ba parity/output readback;
+local nghiệm thu cũ vẫn giữ. Bốn COL
 mới Backlog, EXP-03 chuyển owner ThanhTris; không claim Colab đã chạy từ plan.
 Week metadata task cũ là lịch triển khai gốc, carryover tuần7 tại kế hoạch mới.
 Các ghi chú phân công tuần5 bên dưới giữ làm lịch sử, không là roster hiện hành.
@@ -70,7 +71,7 @@ full catalog/export/receipts ba máy.
 
 - Tổng số task: **81**.
 - Foundation: **9 task `Done`**, FND-01 đã nghiệm thu runtime của lifecycle mới ngày 2026-10-15.
-- Task còn ở trạng thái `Needs Update`: **2** — SEC-01 và EXP-01 (cloud setup tuần7).
+- Task còn ở trạng thái `Needs Update`: **1** — SEC-01; EXP-01 cloud harness tuần7 đã Done, không thay security/session audit.
 - Core: **73 task**.
 - Stretch: **8 task**.
 - Tổng effort task: **416 giờ**; baseline 364h + ORC-06/07 16h + DAT-02 6h + DAT-03 16h + COL-01..04 14h.
@@ -279,7 +280,7 @@ portable merge, full catalog và official export/receipts. Không suy unit PASS 
 
 | Task | Tuần | Workstream | Scope | Priority | Effort | Trạng thái |
 |---|---:|---|---|---|---:|---|
-| [EXP-01](./EXP-01.md) - Tạo Jupyter harness và chuẩn bị chuyển sang Colab | 5 | Jupyter-first harness | Core | P0 | 5h | Needs Update |
+| [EXP-01](./EXP-01.md) - Tạo Jupyter harness và chuẩn bị chuyển sang Colab | 5 | Jupyter-first harness | Core | P0 | 5h | Done |
 | [EXP-02](./EXP-02.md) - Chạy Window, DBSCAN và HDBSCAN global | 5 | Baseline algorithms | Core | P0 | 7h | In Progress |
 | [EXP-03](./EXP-03.md) - Xây HDBSCAN adaptive và giải quyết multi-sequence | 5 | Adaptive HDBSCAN | Core | P0 | 6h | In Progress |
 | [EXP-04](./EXP-04.md) - Đánh giá quality, physical consistency và stability | 7 | Scientific evaluation | Core | P0 | 7h | Backlog |

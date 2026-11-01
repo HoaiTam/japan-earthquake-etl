@@ -4,6 +4,14 @@
 Đây là **hướng dẫn để thực hiện**, chưa là bằng chứng đã chạy cloud. Không cần
 Docker/Java/Airflow/MinIO hoặc `.env` để đọc pilot và fit các thuật toán.
 
+**Entry point EXP-01 mới:** dùng [bootstrap CPU cô lập](./EXP-01_COLAB_BOOTSTRAP.md)
+để tạo ZIP từ fresh local kernel, bind source/config/package và kiểm parity
+cloud. Các cell thủ công mục4–9 dưới đây là thiết kế tham khảo ban đầu, **không
+là đường nghiệm thu EXP-01**: chúng cài vào host kernel và adapter cũ chưa bind
+đủ source/package/config. Không trộn cell thủ công vào session bootstrap hoặc
+coi code base PR#108 là code pin của bootstrap mới. Adaptive mục8 vẫn cần
+EXP-03 local gate và nghiệm thu riêng, không nằm trong ba baseline bootstrap.
+
 ## 1. Chọn đúng dữ liệu và code
 
 | Thành phần | Giá trị khóa ban đầu |
