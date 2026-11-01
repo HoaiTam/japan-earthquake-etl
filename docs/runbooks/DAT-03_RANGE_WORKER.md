@@ -26,6 +26,12 @@ Portable Gold export/import/merge thuộc **DAT-03**, vẫn chưa được nghi�
 điều này không chặn nghiệm thu ETL local, nhưng chặn gọi output là catalog đã
 ghép/official ML dataset. Giữ Docker volume, source và evidence; chưa xóa local.
 
+Stack thành viên có thể tách bằng `COMPOSE_PROJECT_NAME`. Đặt cùng một giá trị
+cho mọi lệnh Compose và worker trong suốt range, ví dụ
+`japan-earthquake-etl-dat03`; Compose sẽ tạo container/volume riêng và worker
+sẽ nhắm scheduler của project đó. Không dùng project name của stack cũ nếu cần
+giữ nguyên volume/credential cũ.
+
 ## 2. Source release — không fetch lại USGS
 
 Drive: [frozen range inputs](https://drive.google.com/drive/folders/1EuR7uISq_EhCkKX7NCWJPwkJtnD0PbZ6).
@@ -62,6 +68,9 @@ Không build/start trong mỗi test. Chưa có runtime thì chủ máy cho phép
 `make env-init`, điền secret, `make docker-build`, `make docker-up WAIT_TIMEOUT=600`.
 Không trigger/unpause DAG. Cần scheduler/metadata DB/MinIO/REST/Trino healthy,
 không Java/DagRun/query active và source lease rỗng. Host physical free >=4GiB.
+Khi dùng stack DAT-03 riêng, export `COMPOSE_PROJECT_NAME=japan-earthquake-etl-dat03`
+trước các lệnh Make và giữ biến này trong shell worker; không chia sẻ `.env`
+của stack cũ.
 
 Java17+ và Python3.11+ trên Bash/WSL. Build runner + pure contract regressions:
 
