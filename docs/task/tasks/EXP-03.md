@@ -75,7 +75,8 @@ evidence cũ thành nghiệm thu của người mới. Giữ In Progress và har
 - **Trạng thái:** In Progress
 - **Assignee:** ThanhTris
 - **Reviewer:** unassigned
-- **Evidence / PR:** [EXP-03 evidence](../../evidence/EXP-03.md), [PR #86](https://github.com/HoaiTam/japan-earthquake-etl/pull/86) đã merge implementation. Đồng bộ tuần 5 ngày 22/10/2026 theo phân công gần nhất. Evidence notebook hiện là isolated_exec/fallback, không thay fresh-kernel acceptance trên input hợp lệ; dependency EXP-02 còn In Progress.
+- **01/11/2026 — local smoke acceptance:** ThanhTris kiểm chứng thành công notebook adaptive với fresh kernel (`nbclient`, Python 3.12.16) trên bundle pilot thật. Kết quả đạt `RESTART_RUN_ALL_PASSED`, `local_smoke_status=PASSED`, `fresh_kernel_acceptance=true`, `colab_migration_allowed=true`; 23/23 tests `test_adaptive_hdbscan.py` PASS. [Evidence](../../evidence/EXP-03-local-smoke.json). Giữ `In Progress` cho cloud run.
+- **Evidence / PR:** [EXP-03 evidence](../../evidence/EXP-03.md), [PR #86](https://github.com/HoaiTam/japan-earthquake-etl/pull/86) đã merge implementation. Tiếp nhận tuần 7 theo phân công mới; dependency EXP-02 còn In Progress.
 - **Kỹ năng phù hợp:** HDBSCAN, parameter policies, entity resolution
 
 ## Checklist bàn giao

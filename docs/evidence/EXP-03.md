@@ -146,3 +146,22 @@ Toàn bộ cấu hình được cố định trong `config/ml/models/hdbscan_ada
 - **Official dataset export:** Dữ liệu nghiên cứu chính thức toàn kỳ phụ thuộc vào [MLD-05 - Validate feature snapshot và export Parquet bundle](../task/tasks/MLD-05.md).
 - **Import Iceberg `ml.*`:** Nạp kết quả vào bảng Iceberg thuộc về [MLI-03 - Validate/import kết quả và commit bảng ML Iceberg](../task/tasks/MLI-03.md).
 - **Reviewer:** Reviewer độc lập cho task P0 này hiện là `unassigned`.
+
+## 6. Nghiệm thu Local Smoke Gate với Fresh Kernel (01/11/2026 — ThanhTris)
+
+- **Người thực hiện:** ThanhTris (tiếp nhận theo [kế hoạch Tuần 7](../task/WEEK_7_COLAB_PLAN.md)).
+- **Môi trường thực thi:** Python 3.12.16 (virtual environment `exp-venv` qua `uv`), hệ điều hành Ubuntu 24.04 (WSL2).
+- **Bộ dữ liệu pilot thật:** `D:/Download/DAT03/jma-pilot-kit/bundle` (279 candidate events, 2 mainshock windows, đúng SHA256 `f58291b72873...`).
+- **Unit & Contract Tests:** `python -m unittest tests/test_adaptive_hdbscan.py` đạt **23/23 tests PASS** (0 errors, 0 failures, 12.88s).
+- **Headless Notebook Inspection:**
+  - Lệnh chạy: `python scripts/inspect-exp03-notebook.py --pilot-bundle /mnt/d/Download/DAT03/jma-pilot-kit/bundle --output-json docs/evidence/EXP-03-local-smoke.json`
+  - Runner mode: `nbclient` (fresh execution kernel, Restart & Run All).
+  - Kết quả kiểm chứng trong [EXP-03-local-smoke.json](./EXP-03-local-smoke.json):
+    - `notebook_status`: `RESTART_RUN_ALL_PASSED`
+    - `local_smoke_status`: `PASSED`
+    - `fresh_kernel_acceptance`: `true`
+    - `colab_migration_allowed`: `true`
+    - `runtime_seconds`: 5.05s
+    - `executed_code_cells`: 5
+    - `source_notebook_outputs_cleared`: `true`
+- **Kết luận:** Đã xóa bỏ hoàn toàn trạng thái fallback cảnh báo (`FALLBACK_EXEC_WARNING`) của đợt kiểm thử trước; đạt 100% điều kiện local smoke gate để chuyển giao sang bước thực nghiệm trên Google Colab.
