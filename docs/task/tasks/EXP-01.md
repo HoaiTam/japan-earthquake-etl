@@ -1,6 +1,6 @@
 ---
 task_id: "EXP-01"
-status: "Needs Update"
+status: "Done"
 week: 5
 block: "H - Experiment"
 workstream: "Jupyter-first harness"
@@ -62,8 +62,10 @@ MLD-05 và EXP-02 local gate; không nhận pilot là dataset EXPORTED.
 ## Cách làm song song
 
 Viết loader/writer bằng DAT-02 schema/fixture ngay. Local acceptance dùng pilot
-thật đã verify; Colab adapter contract-test offline. Không đợi EXP-02 hoặc
-MLD-05 để hoàn tất local harness. Cloud smoke nằm trong EXP-02 giai đoạn sau.
+thật đã verify; Colab adapter có contract-test offline. Không đợi EXP-02 hoặc
+MLD-05 official acceptance để hoàn tất local harness. Tuần7 bổ sung cloud
+portability trong EXP-01 sau local report thật của ba baseline; experiment
+nghiên cứu/scientific vẫn nằm trong EXP-02 và các task sau, không tạo vòng chờ.
 
 ## Ranh giới
 
@@ -86,13 +88,13 @@ HoaiTam và mở lại Needs Update cho cloud setup; local nghiệm thu cũ gi�
 Tuần metadata5 là lịch triển khai đầu, phần carryover tuần7 ghi ở kế hoạch mới.
 Đọc [setup](../../runbooks/WEEK_7_COLAB_SETUP.md) trước khi triển khai.
 
-- [ ] Bootstrap Colab CPU dùng cùng shared modules/requirements/pilot pins;
+- [x] Bootstrap Colab CPU dùng cùng shared modules/requirements/pilot pins;
       không synthetic fallback khi path input thật thiếu/sai.
-- [ ] Pin và ghi package/code/config thực tế; xử lý pip conflict và plotting
+- [x] Pin và ghi package/code/config thực tế; xử lý pip conflict và plotting
       dependency bằng PR có test, không đổi version im lặng.
-- [ ] Kiểm local report thật gắn đúng pilot/feature/code/config trước cloud fit;
+- [x] Kiểm local report thật gắn đúng pilot/feature/code/config trước cloud fit;
       không tự gán flag fresh kernel hoặc tạo PASSED JSON.
-- [ ] Fresh Colab session → Run all, loader/checksum gate và output/readback
+- [x] Fresh Colab session → Run all, loader/checksum gate và output/readback
       có evidence; chưa có quyền/session thì ghi pending, không claim đã chạy.
 
 Không chặn EDA hoặc fixture work của hai khối khác; reuse local harness đã
@@ -100,7 +102,17 @@ Done thay vì viết lại model pipeline. Không tự công nhận official res
 
 ## Theo dõi
 
-- **Trạng thái:** Needs Update
+- **Trạng thái:** Done
+- **01/11 — cloud implementation:** HoaiTam triển khai bootstrap CPU cô lập,
+  exact source/config/package binding, local gate và notebook dùng lại shared
+  modules trên branch `feat/exp-01-colab-bootstrap`. Đã nghiệm thu Colab CPU
+  mới bằng Run all01/11; giữ riêng bằng chứng cloud và local cũ.
+- **Evidence bổ sung:** [EXP-01 Colab01/11](../../evidence/EXP-01_COLAB_20261101.md),
+  [runbook bootstrap](../../runbooks/EXP-01_COLAB_BOOTSTRAP.md). Local fresh
+  kernel thật279rows/2mainshocks,71harness/bootstrap và19baseline tests đạt.
+  Attempt cloud đầu dừng trước fit ở tạo venv; đã sửa bootstrap để không phụ
+  thuộc ensurepip; v4 fresh cloud Run all đạt ba parity và25file output
+  download/readback. Python local3.13.3/cloud3.13.18, không scientific approval.
 - **Assignee:** HoaiTam
 - **Reviewer:** unassigned — chưa có approval cho phần cloud mới
 - **Evidence / PR:** Đã khắc phục toàn bộ review comments từ HoaiTam tại PR #83 ([comment-6229834764](https://github.com/HoaiTam/japan-earthquake-etl/pull/83#issuecomment-6229834764), [comment-6231696916](https://github.com/HoaiTam/japan-earthquake-etl/pull/83#issuecomment-6231696916), [comment-6244707869](https://github.com/HoaiTam/japan-earthquake-etl/pull/83#issuecomment-6244707869) và [comment-6244865924](https://github.com/HoaiTam/japan-earthquake-etl/pull/83#issuecomment-6244865924)). Đã giải quyết triệt để vấn đề ràng buộc retry run ID / config / seed, lineage guard trên memberships/summaries chạy trước retry reuse, xác thực marker status, checksums map không rỗng và bao phủ đủ standard required files, verify toàn bộ file hash trên đĩa. Bổ sung regression tests (tổng cộng 44 Python tests và 15 Java tests PASS). Chi tiết tại [docs/evidence/EXP-01.md](../../evidence/EXP-01.md).
@@ -110,7 +122,7 @@ Done thay vì viết lại model pipeline. Không tự công nhận official res
 
 - [x] Deliverable và test/evidence tồn tại trong repository.
 - [x] Acceptance local harness cũ đã được kiểm tra, evidence giữ nguyên.
-- [ ] Acceptance bổ sung cloud setup tuần7 còn chờ triển khai/runtime thật.
+- [x] Acceptance bổ sung cloud setup tuần7 đã đạt Run all/parity/readback thật.
 - [x] Contract/docs đã cập nhật và không chứa secret/data dump.
 - [ ] Reviewer độc lập được khuyến nghị cho P0.
 
