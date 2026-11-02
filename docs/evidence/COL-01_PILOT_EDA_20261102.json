@@ -1,0 +1,291 @@
+{
+  "task_id": "COL-01",
+  "status": "PASSED",
+  "recorded_date": "2026-11-02",
+  "base_commit": "bd71d1911f5219072a3d184e44be5e938c22e251",
+  "local_report": {
+    "pilot_id": "pilot_196b6d4081d347e1c289e331022658fbbe572dd33181ad987900895c1f1b189c",
+    "dataset_id": "ds_98d4837dcb142bad1fb0ba2e77ad7524193056e57ca1b9a68269cc4b814022f5",
+    "feature_sha256": "3baddf613f237d2117248ad9095230ec17e428ea47f73d499623035d3097d2e6",
+    "analysis_module_sha256": "34aa30df79f7cbcaee99fd08d77fea8347fd60c97cf51dae8802cd2a5cf30ece",
+    "checksum_index_sha256": "310b5f232ae34ca4f0a197b0181bff81efe6bee38897b6e151e9b58e8d5a6502",
+    "code_version": "bd71d1911f5219072a3d184e44be5e938c22e251",
+    "python_version": "3.13.3",
+    "executed_at_utc": "2026-11-02T10:26:01.371015+00:00",
+    "packages": {
+      "pyarrow": "21.0.0",
+      "matplotlib": "3.10.0",
+      "numpy": "2.2.2"
+    },
+    "runtime_platform": "Darwin",
+    "allowed_usage": "DEVELOPMENT_ONLY",
+    "research_ready": false,
+    "coverage_status": "PARTIAL",
+    "feature_rows": 279,
+    "mainshocks": 2,
+    "unique_candidate_ids": 279,
+    "unique_mainshock_candidate_pairs": 279,
+    "duplicate_pairs": 0,
+    "null_values_by_column": {
+      "schema_version": 0,
+      "dataset_id": 0,
+      "mainshock_event_id": 0,
+      "candidate_event_id": 0,
+      "candidate_time_utc": 0,
+      "candidate_latitude": 0,
+      "candidate_longitude": 0,
+      "candidate_depth_km": 0,
+      "candidate_magnitude": 0,
+      "mainshock_magnitude": 0,
+      "relative_time_role": 0,
+      "is_mainshock": 0,
+      "dx_km": 0,
+      "dy_km": 0,
+      "dz_km": 0,
+      "delta_time_hours": 0,
+      "distance_3d_km": 0,
+      "mc_value": 0,
+      "window_model_version": 0,
+      "created_at_utc": 0,
+      "x_scaled": 0,
+      "y_scaled": 0,
+      "z_scaled": 0,
+      "time_scaled": 0,
+      "space_scale_km": 0,
+      "depth_scale_km": 0,
+      "time_scale_hours": 0,
+      "feature_version": 0,
+      "scaling_config_version": 0,
+      "pilot_id": 0
+    },
+    "nonfinite_values_by_column": {
+      "schema_version": 0,
+      "dataset_id": 0,
+      "mainshock_event_id": 0,
+      "candidate_event_id": 0,
+      "candidate_time_utc": 0,
+      "candidate_latitude": 0,
+      "candidate_longitude": 0,
+      "candidate_depth_km": 0,
+      "candidate_magnitude": 0,
+      "mainshock_magnitude": 0,
+      "relative_time_role": 0,
+      "is_mainshock": 0,
+      "dx_km": 0,
+      "dy_km": 0,
+      "dz_km": 0,
+      "delta_time_hours": 0,
+      "distance_3d_km": 0,
+      "mc_value": 0,
+      "window_model_version": 0,
+      "created_at_utc": 0,
+      "x_scaled": 0,
+      "y_scaled": 0,
+      "z_scaled": 0,
+      "time_scaled": 0,
+      "space_scale_km": 0,
+      "depth_scale_km": 0,
+      "time_scale_hours": 0,
+      "feature_version": 0,
+      "scaling_config_version": 0,
+      "pilot_id": 0
+    },
+    "self_vectors": {
+      "evt_d47fcaaf451cc2e5c3dcc8f016a999be": {
+        "x_scaled": 0,
+        "y_scaled": 0,
+        "z_scaled": 0,
+        "time_scaled": 0
+      },
+      "evt_f0300848e0b73b5ce9497a70a74a5905": {
+        "x_scaled": 0,
+        "y_scaled": 0,
+        "z_scaled": 0,
+        "time_scaled": 0
+      }
+    },
+    "feature_version": "relative-4d-v1",
+    "scaling_config_version": "scaling-global-dev-v1",
+    "scaling": {
+      "coordinate_tolerance_km": 1e-8,
+      "depth_scale_km": 30,
+      "feature_version": "relative-4d-v1",
+      "max_candidates_per_window": 10000,
+      "mode": "GLOBAL",
+      "scaling_config_version": "scaling-global-dev-v1",
+      "space_scale_km": 50,
+      "time_scale_hours": 720,
+      "time_tolerance_hours": 1e-12
+    },
+    "coverage_windows": [
+      {
+        "available_ranges": [
+          {
+            "end_utc_exclusive": "2000-02-04T14:21:08.760Z",
+            "start_utc": "2000-01-21T14:21:08.760Z"
+          }
+        ],
+        "candidate_count": 1,
+        "mainshock_event_id": "evt_d47fcaaf451cc2e5c3dcc8f016a999be",
+        "missing_ranges": [
+          {
+            "end_utc_exclusive": "2000-01-21T14:21:08.760Z",
+            "start_utc": "2000-01-16T06:32:59.043676Z"
+          },
+          {
+            "end_utc_exclusive": "2000-04-20T12:02:14.668827Z",
+            "start_utc": "2000-02-04T14:21:08.760Z"
+          }
+        ],
+        "required_end_utc_exclusive": "2000-04-20T12:02:14.668827Z",
+        "required_start_utc": "2000-01-16T06:32:59.043676Z",
+        "status": "PARTIAL"
+      },
+      {
+        "available_ranges": [
+          {
+            "end_utc_exclusive": "2000-02-04T14:21:08.760Z",
+            "start_utc": "2000-01-21T14:21:08.760Z"
+          }
+        ],
+        "candidate_count": 278,
+        "mainshock_event_id": "evt_f0300848e0b73b5ce9497a70a74a5905",
+        "missing_ranges": [
+          {
+            "end_utc_exclusive": "2000-01-21T14:21:08.760Z",
+            "start_utc": "1999-12-29T14:21:08.760Z"
+          },
+          {
+            "end_utc_exclusive": "2000-12-15T17:57:54.857392Z",
+            "start_utc": "2000-02-04T14:21:08.760Z"
+          }
+        ],
+        "required_end_utc_exclusive": "2000-12-15T17:57:54.857392Z",
+        "required_start_utc": "1999-12-29T14:21:08.760Z",
+        "status": "PARTIAL"
+      }
+    ],
+    "coverage_meaning": "Temporal input-scope coverage only; not catalog completeness or research approval",
+    "windows": [
+      {
+        "mainshock_event_id": "evt_d47fcaaf451cc2e5c3dcc8f016a999be",
+        "candidate_count": 1,
+        "PRE": 0,
+        "MAINSHOCK": 1,
+        "POST": 0,
+        "self_only": true
+      },
+      {
+        "mainshock_event_id": "evt_f0300848e0b73b5ce9497a70a74a5905",
+        "candidate_count": 278,
+        "PRE": 22,
+        "MAINSHOCK": 1,
+        "POST": 255,
+        "self_only": false
+      }
+    ],
+    "units": {
+      "dx_km": "km",
+      "dy_km": "km",
+      "dz_km": "km",
+      "delta_time_hours": "hour",
+      "scaled_vectors": "dimensionless"
+    },
+    "limitation": "PARTIAL, development only; overlapping windows are not independent events; no inference to full Japan or full period.",
+    "input_unchanged": true,
+    "input_sha256": {
+      "pilot_manifest.json": "b837c3b61427dcf61e9bdb3a9a739e0949d82232898c3636841fcf8776c903ab",
+      "features-part-00000.parquet": "3baddf613f237d2117248ad9095230ec17e428ea47f73d499623035d3097d2e6",
+      "checksums.sha256": "310b5f232ae34ca4f0a197b0181bff81efe6bee38897b6e151e9b58e8d5a6502",
+      "mainshocks.parquet": "97e6bd85dd826a8dca22864002db485706e788c98f8cede2d86d1b77e84fb7a7",
+      "coverage_report.json": "5bf4f428e4d8e7435a577470c67e9895f26536c3c435d2d67c1da415c8cabce6"
+    },
+    "plot_sha256": "8c9c427a3bea3fad1f6f6f4a448b25da72f3aca02875d6830b9436550c0b0a55",
+    "runtime_kind": "LOCAL",
+    "loader_module_sha256": "893707d2965d2bf23852fb7b5b01d7419d6624009a877f65bacb9f97c0b439bc",
+    "runner_sha256": "6149c2fa89c898c6a1f84a7a037ce6c95a25a4f34108ace76dc10f318f693a4a"
+  },
+  "tests": {
+    "col01_real_png_regressions": 11,
+    "docs_regressions": 17,
+    "task_status": "PASSED",
+    "docs_links": "PASSED",
+    "config_secret_hygiene": "PASSED"
+  },
+  "handoff": {
+    "file": "col01-handoff-final.zip",
+    "bytes": 55289,
+    "sha256": "1863eea837f63aeec9d24f744b6a06b54839e9bf4a1425ab7496599f7d1b4265"
+  },
+  "backend_fix": {
+    "cause": "Inherited MPLBACKEND=module://matplotlib_inline.backend_inline fails before matplotlib.use('Agg') in the isolated PNG-only environment.",
+    "resolution": "Set Agg temporarily before importing matplotlib; restore inherited environment afterward.",
+    "downloaded_notebook_sha256": "bc2bf56154de60ba26ab0799823079487f4cc4f9f9c927ecd8eabb76cff1ccf5",
+    "downloaded_notebook_source_cells_match": true,
+    "fixed_module_sha256": "0e30f78da340aed3365aa9d4a8b8937bd048553ae1c25cfc09876cd58c4118d0",
+    "fresh_child_missing_backend_regression": "PASSED",
+    "real_pilot_local_run_with_invalid_inherited_backend": "PASSED",
+    "input_unchanged": true,
+    "handoff_file": "col01-handoff-backend-fixed.zip",
+    "handoff_bytes": 55488,
+    "handoff_sha256": "e0a8c6f922c3a94abcd9bf7fa5816b929fced3055b3ff5b5e8b56d482f194425",
+    "cloud_rerun": "PASSED"
+  },
+  "cloud_acceptance": true,
+  "accepted_cloud_run": {
+    "notebook_url": "https://colab.research.google.com/drive/10FAialkfontu8mJZQ6igLvPHzgC_vuA9",
+    "notebook_source_sha256": "151ea4c3fba7e1f73ada153f8d75604b9c2a621d5f0f2e1bc9e958b8f1d15fcb",
+    "fresh_session_run_all_observed": true,
+    "code_cell_execution_counts": [1, 2, 3, 4],
+    "runtime_kind": "GOOGLE_COLAB",
+    "runtime_platform": "Linux",
+    "python_version": "3.13.18",
+    "executed_at_utc": "2026-11-02T11:43:17.887542+00:00",
+    "packages": {"pyarrow": "21.0.0", "numpy": "2.2.2", "matplotlib": "3.10.0"},
+    "analysis_module_sha256": "0e30f78da340aed3365aa9d4a8b8937bd048553ae1c25cfc09876cd58c4118d0",
+    "handoff_sha256": "e0a8c6f922c3a94abcd9bf7fa5816b929fced3055b3ff5b5e8b56d482f194425",
+    "output_zip_file": "col01-output.zip",
+    "output_zip_bytes": 22995,
+    "output_zip_sha256": "8da3256ffcb39a13ec800f29199614c6c0dea99659c64b1059359e85b45c6142",
+    "output_artifact_sha256": {
+      "pilot-eda.json": "8de9deb82b986c0ee639a4c4fefdc5303a13ada64e643185cb111a922174ed4a",
+      "windows.csv": "e7ad338fb1cacf54e07432857bd42a51d3b053805475e0483097874c841f1b9b",
+      "window-counts.png": "2eb190b7a568235d982d590142c272be0d808bfc8f0ffc9e5757aa949cdc54ae"
+    },
+    "download_readback_exact_four_files": true,
+    "all_three_artifact_checksums_verified": true,
+    "png_visual_qa": "PASSED",
+    "feature_rows": 279,
+    "mainshocks": 2,
+    "unique_candidate_ids": 279,
+    "unique_mainshock_candidate_pairs": 279,
+    "duplicate_pairs": 0,
+    "null_values_total": 0,
+    "nonfinite_values_total": 0,
+    "input_unchanged": true,
+    "input_hashes_match_local": true,
+    "identity_counts_windows_coverage_scaling_match_fixed_local": true,
+    "allowed_usage": "DEVELOPMENT_ONLY",
+    "coverage_status": "PARTIAL",
+    "research_ready": false,
+    "note": "Actual fresh Colab Run all plus downloaded output readback, not inferred from runtime_kind alone. Historical local_report and failed attempts below are retained unchanged."
+  },
+  "cloud_attempts": [
+    {
+      "notebook_url": "https://colab.research.google.com/drive/1PJYEDHJ1XGTtjvVGF-3dMjBHzZMus_YP",
+      "handoff_bytes_verified": true,
+      "status": "FAILED_ENVIRONMENT_CHECK",
+      "fix": "Use host pip --python <venv python> check for a --without-pip venv; do not install into host runtime. Uploaded a fresh clean source notebook after native editor update was unreliable."
+    },
+    {
+      "notebook_url": "https://colab.research.google.com/drive/10FAialkfontu8mJZQ6igLvPHzgC_vuA9",
+      "runtime": "Google Compute Engine Python 3 CPU, connected via Colab UI",
+      "handoff_bytes_verified": true,
+      "status": "EDA_CELL_ERROR_TRACEBACK_PENDING",
+      "environment_cell_execution_count": 2,
+      "environment_cell_seconds": 19,
+      "note": "UI exposed an error in analysis cell; detailed iframe traceback unavailable to native capture. No output ZIP readback or full Run all acceptance yet. Requested user download the notebook with outputs."
+    }
+  ],
+  "blocker": null
+}

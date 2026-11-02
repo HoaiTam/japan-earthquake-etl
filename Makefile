@@ -490,6 +490,11 @@ test-pilot: ## Pilot/model regression; cần pyarrow/model deps và loopback Jup
 	@$(MAKE) test-catalog-prefix-kit PILOT_PYTHON="$(PILOT_PYTHON)"
 	@$(PILOT_PYTHON) -m unittest tests/test_baseline_algorithms.py
 	@$(PILOT_PYTHON) -m unittest tests/test_adaptive_hdbscan.py
+	@$(MAKE) test-col01 PILOT_PYTHON="$(PILOT_PYTHON)"
+
+.PHONY: test-col01
+test-col01: ## COL-01 offline EDA/guard/real PNG regression; cần notebooks/requirements-col01-lock.txt, không Docker
+	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_col_01_eda.py'
 
 inspect-pilot: ## Fresh Jupyter kernel Run All; PILOT_BUNDLE=exact local directory, không Docker/API
 	@test -n "$(PILOT_BUNDLE)" || { echo 'Set PILOT_BUNDLE=staging/ml-pilot/pilot_id=<exact-id>'; exit 2; }
