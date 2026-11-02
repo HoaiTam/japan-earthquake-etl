@@ -1,6 +1,6 @@
 ---
 task_id: "COL-04"
-status: "Backlog"
+status: "Done"
 week: 7
 block: "H - Experiment"
 workstream: "Adaptive edge-case regression"
@@ -41,12 +41,12 @@ Python model environment, không cần Docker hoặc chờ baseline cloud của 
 
 ## Tiêu chí nghiệm thu
 
-- [ ] Test mới nhỏ, deterministic, không network/credential/Docker.
-- [ ] Không giảm test cũ hoặc sửa expected chỉ để PASS; báo exact test counts.
-- [ ] Fixture không được gọi là pilot thật; pilot input giữ nguyên checksum.
-- [ ] Rerun/overlap/noise/tie được đối soát theo contract, failure reasons rõ.
-- [ ] Development output không official `_SUCCESS.json` hoặc import `ml.*`.
-- [ ] Báo test matrix và giới hạn chưa cover; notebook source sạch output.
+- [x] Test mới nhỏ, deterministic, không network/credential/Docker.
+- [x] Không giảm test cũ hoặc sửa expected chỉ để PASS; báo exact test counts.
+- [x] Fixture không được gọi là pilot thật; pilot input giữ nguyên checksum.
+- [x] Rerun/overlap/noise/tie được đối soát theo contract, failure reasons rõ.
+- [x] Development output không official `_SUCCESS.json` hoặc import `ml.*`.
+- [x] Báo test matrix và giới hạn chưa cover; notebook source sạch output.
 
 ## Dependency / song song / giới hạn
 
@@ -57,7 +57,7 @@ Nghiệm thu COL-04 không thay official reproduction run của EXP-03.
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
+- **Trạng thái:** Done
 - **Assignee:** ThanhTris
 - **Reviewer:** unassigned
-- **Evidence / PR:** Chưa triển khai; chưa có test/evidence mới tuần 7.
+- **Evidence / PR:** Hoàn thành bộ 12 test regression mới trong `tests/test_adaptive_hdbscan.py` (tổng số test tăng từ 23 lên 35 tests, 100% PASS offline trong 11.44s). Chạy fresh kernel `inspect-exp03-notebook.py` đạt `RESTART_RUN_ALL_PASSED` (2.53s), source notebook sạch output (0 cells). Branch `feat/col-04-adaptive-edge-regression`.
