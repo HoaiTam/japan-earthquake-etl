@@ -161,15 +161,21 @@ Toàn bộ cấu hình được cố định trong `config/ml/models/hdbscan_ada
   - `is_real_pilot`: `true`
 - **Kiểm chứng Hard Gate EXP-02 (Baseline Local Gate & Handoff Archive):**
   - Task ID: `EXP-02`
-  - Trạng thái kiểm chứng: `LOCAL_GATE_AND_HANDOFF_VERIFIED`
+  - Trạng thái kiểm chứng: `LOCAL_GATE_AND_HANDOFF_VERIFIED` / `COLAB_PILOT_PARITY_VERIFIED`
+  - Báo cáo bằng chứng: [EXP-02_COLAB_PARITY_20261102.json](./EXP-02_COLAB_PARITY_20261102.json)
   - Tham chiếu PR: [PR #114](https://github.com/HoaiTam/japan-earthquake-etl/pull/114)
   - Mã băm gói handoff baseline: `d6be707111be8d2b1a2ba64434d6c0cacaa67b73c5aae3235f9772403c544333`
-  - `prerequisite_verified`: `true` (chặn di chuyển Colab nếu thiếu hoặc sai lệch)
-- **Unit & Contract Tests:** `python -m unittest tests/test_adaptive_hdbscan.py` đạt **27/27 tests PASS** (0 errors, 0 failures), bổ sung 4 regression tests:
+  - Cơ chế fail-closed: Xác thực toàn bộ các trường metadata trong báo cáo EXP-02 gồm task ID, status, `pilot_id_pin`, `feature_sha256_pin`, và `handoff_archive_sha256`. Nếu file báo cáo bị thiếu, JSON lỗi cú pháp, sai khác bất kỳ mã băm nào, hoặc archive handoff thực tế sai lệch SHA, gate lập tức fail và chặn di chuyển Colab (`prerequisite_verified=false`).
+- **Unit & Contract Tests:** `python -m unittest tests/test_adaptive_hdbscan.py` đạt **32/32 tests PASS** (0 errors, 0 failures), bổ sung 9 regression tests:
   - `test_notebook_missing_pilot_bundle_fails_loudly`: Văng `FileNotFoundError: PILOT_BUNDLE_NOT_FOUND` ngay lập tức khi đường dẫn pilot không tồn tại.
   - `test_notebook_pilot_path_is_file_not_dir_fails_loudly`: Văng `FileNotFoundError: PILOT_BUNDLE_NOT_FOUND` khi đường dẫn là file thay vì thư mục.
   - `test_inspect_script_fixture_fallback_denies_colab_migration`: Chặn Colab migration (`colab_migration_allowed=false`) và gắn lý do `REAL_PILOT_REQUIRED_FOR_COLAB_MIGRATION` khi chạy trên synthetic fixture.
   - `test_inspect_script_missing_exp02_baseline_denies_colab_migration`: Chặn Colab migration (`colab_migration_allowed=false`) và gắn lý do `EXP02_BASELINE_LOCAL_GATE_REQUIRED` khi thiếu baseline gate EXP-02.
+  - `test_exp02_baseline_gate_missing_report_fails_closed`: Chặn migration khi báo cáo EXP-02 không tồn tại.
+  - `test_exp02_baseline_gate_corrupted_json_fails_closed`: Chặn migration khi báo cáo EXP-02 bị lỗi JSON.
+  - `test_exp02_baseline_gate_mismatched_pilot_or_feature_sha_fails_closed`: Chặn migration khi pilot ID hoặc feature SHA trong báo cáo EXP-02 không khớp pin.
+  - `test_exp02_baseline_gate_handoff_archive_sha_mismatch_fails_closed`: Chặn migration khi file archive handoff sai lệch SHA256.
+  - `test_find_experiment_run_rejects_unmatched_subfolder_or_missing_manifest`: Đảm bảo chỉ nhận diện run hợp lệ khớp tên thư mục với `experiment_run_id` và có manifest hoàn chỉnh; loại trừ tìm kiếm theo mtime mù.
 - **Headless Notebook Inspection:**
   - Lệnh chạy: `python scripts/inspect-exp03-notebook.py --pilot-bundle staging/ml-pilot/pilot-kit/bundle --output-json docs/evidence/EXP-03-local-smoke.json`
   - Runner mode: `nbclient` (fresh execution kernel, Restart & Run All).

@@ -20,20 +20,23 @@
     "pr_reference": "https://github.com/HoaiTam/japan-earthquake-etl/pull/114",
     "handoff_archive_sha256": "d6be707111be8d2b1a2ba64434d6c0cacaa67b73c5aae3235f9772403c544333",
     "evidence_document": "docs/evidence/EXP-02.md",
+    "evidence_report_json": "docs/evidence/EXP-02_COLAB_PARITY_20261102.json",
     "evidence_document_exists": true,
+    "evidence_report_exists": true,
     "handoff_archive_exists": false,
-    "prerequisite_verified": true
+    "prerequisite_verified": true,
+    "failure_reasons": []
   },
   "experiment_summary": {
-    "experiment_run_id": "pilot_run_218ed117feb4ff46afcb2426778b4e02",
-    "output_dir": "/mnt/c/Code/IE212/japan-earthquake-etl/staging/ml-experiments/exp03-adaptive/pilot_run_218ed117feb4ff46afcb2426778b4e02",
+    "experiment_run_id": "pilot_run_4c518e54eb69480325575b77aa200545",
+    "output_dir": "/mnt/c/Code/IE212/japan-earthquake-etl/staging/ml-experiments/exp03-adaptive/pilot_run_4c518e54eb69480325575b77aa200545",
     "resolved_unique_aftershocks": 0,
     "ambiguous_candidates_count": 0,
     "nested_mainshocks_count": 0
   },
   "notebook_sha256": "607fa092987af81d627adb3fb619b5385a4dca1f4baf8b51abc82085550e99ab",
   "executed_code_cells": 5,
-  "runtime_seconds": 7.0355,
+  "runtime_seconds": 11.8936,
   "python_version": "3.12.16",
   "runner_mode": "nbclient",
   "source_notebook_outputs_cleared": true
