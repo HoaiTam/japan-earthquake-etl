@@ -11,7 +11,7 @@
 
 ## 1. Mục tiêu và bối cảnh
 
-Task [EXP-02 - Chạy Window, DBSCAN và HDBSCAN global](../task/tasks/EXP-02.md) đã hoàn tất giai đoạn phát triển và kiểm chứng kỹ thuật cục bộ (Local Development) tại mốc 2026-10-18 (Review Round 4, xem [EXP-02.md](./EXP-02.md)). 
+Task [EXP-02 - Chạy Window, DBSCAN và HDBSCAN global](../task/tasks/EXP-02.md) đã hoàn tất giai đoạn phát triển và kiểm chứng kỹ thuật cục bộ (Local Development) tại mốc 2026-10-18 (Review Round 4, xem [EXP-02.md](./EXP-02.md)).
 
 Tại Tuần 7, theo kế hoạch ba khối độc lập, **rosy179** phụ trách Khối 2 với mục tiêu:
 1. Tiếp nhận pilot JMA thật dùng chung từ Google Drive (279 dòng đặc trưng 4-D không-thời gian, 2 mainshock windows).
