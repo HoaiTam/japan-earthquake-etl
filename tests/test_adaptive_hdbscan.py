@@ -963,12 +963,21 @@ class TestAdaptiveHDBSCAN(unittest.TestCase):
         """
         out_root = self.tmp_dir / "notebook_consecutive_runs"
         out_root.mkdir(parents=True, exist_ok=True)
+        fixture_dir = self.tmp_dir / "consecutive_fixture_pilot"
+        fixture_dir.mkdir(parents=True, exist_ok=True)
+        test_experiment_harness.create_pilot_fixture(fixture_dir)
+
         nb_path = ROOT / "notebooks/exp_03_adaptive_hdbscan.ipynb"
+        common_env = {
+            "EXP03_OUTPUT_DIR": str(out_root),
+            "PILOT_BUNDLE": str(fixture_dir),
+            "EXP03_ALLOW_FIXTURE_FALLBACK": "true",
+        }
 
         # 1. First execution
         report1 = inspect_exp03.run_notebook_cells(
             notebook_path=nb_path,
-            env_override={"EXP03_OUTPUT_DIR": str(out_root)},
+            env_override=common_env,
         )
         self.assertIn(report1["notebook_status"], ("RESTART_RUN_ALL_PASSED", "FALLBACK_EXEC_PASSED"))
 
@@ -990,7 +999,7 @@ class TestAdaptiveHDBSCAN(unittest.TestCase):
         # 2. Second execution with identical input/config and SAME output root
         report2 = inspect_exp03.run_notebook_cells(
             notebook_path=nb_path,
-            env_override={"EXP03_OUTPUT_DIR": str(out_root)},
+            env_override=common_env,
         )
         self.assertIn(report2["notebook_status"], ("RESTART_RUN_ALL_PASSED", "FALLBACK_EXEC_PASSED"))
 
@@ -1007,13 +1016,14 @@ class TestAdaptiveHDBSCAN(unittest.TestCase):
             self.assertEqual(expected_sha, actual_sha, f"File {fname} in first run was altered by second execution!")
 
         # 3. Third execution: retry of first execution reuses existing bundle
+        retry_env = dict(common_env)
+        retry_env.update({
+            "EXP03_RUN_ID": run_1_dir.name,
+            "EXP03_IS_RETRY": "true",
+        })
         report3 = inspect_exp03.run_notebook_cells(
             notebook_path=nb_path,
-            env_override={
-                "EXP03_OUTPUT_DIR": str(out_root),
-                "EXP03_RUN_ID": run_1_dir.name,
-                "EXP03_IS_RETRY": "true",
-            },
+            env_override=retry_env,
         )
         self.assertIn(report3["notebook_status"], ("RESTART_RUN_ALL_PASSED", "FALLBACK_EXEC_PASSED"))
 
@@ -1115,7 +1125,6 @@ class TestAdaptiveHDBSCAN(unittest.TestCase):
         in the non-mainshock cluster can be claimed as a sequence member.
         """
         cfg = dict(self.model_config)
-        cfg["allow_single_cluster"] = False
         np.random.seed(42)
         b1 = np.random.randn(20, 4) * 0.1
         outlier = [{
@@ -1147,6 +1156,20 @@ class TestAdaptiveHDBSCAN(unittest.TestCase):
         main_row = next(r for r in mem_rows if r["candidate_event_id"] == "main_outlier")
         self.assertEqual(main_row["cluster_id"], -1)
         self.assertTrue(main_row["is_noise"])
+
+        # Review requirement (PR #116 comment): Ensure candidate blob actually formed
+        # at least one non-noise cluster (cluster_id >= 0) to avoid false-positive pass where all are noise.
+        non_noise_clusters = {r["cluster_id"] for r in mem_rows if r["cluster_id"] >= 0}
+        self.assertGreaterEqual(
+            len(non_noise_clusters),
+            1,
+            "Expected at least one valid non-noise cluster formed by candidate blob",
+        )
+        blob_rows = [r for r in mem_rows if r["candidate_event_id"] != "main_outlier"]
+        self.assertTrue(
+            any(r["cluster_id"] in non_noise_clusters for r in blob_rows),
+            "Expected candidate blob events to be assigned to valid non-noise cluster",
+        )
 
         for r in mem_rows:
             self.assertFalse(r["is_sequence_member"])
@@ -1194,7 +1217,6 @@ class TestAdaptiveHDBSCAN(unittest.TestCase):
         Candidates in other clusters must have is_sequence_member=False and multi_sequence_status=NOT_MEMBER.
         """
         cfg = dict(self.model_config)
-        cfg["allow_single_cluster"] = False
         np.random.seed(42)
         b1 = np.random.randn(20, 4) * 0.1
         b2 = np.random.randn(20, 4) * 0.1 + 20.0
@@ -1389,7 +1411,6 @@ class TestAdaptiveHDBSCAN(unittest.TestCase):
         set of sequence member IDs, roles, and summary metrics.
         """
         cfg = dict(self.model_config)
-        cfg["allow_single_cluster"] = False
         np.random.seed(42)
         b = np.random.randn(15, 4) * 0.1
         base_candidates = []
@@ -1529,6 +1550,174 @@ class TestAdaptiveHDBSCAN(unittest.TestCase):
                 subfolder_by_run_id=True,
             )
         self.assertIn("EXP_COMPLETED_BUNDLE_CONFLICT", str(ctx.exception))
+    # -------------------------------------------------------------------------
+    # 12. EXP-02 Baseline Local Gate and Run Manifest Verifications
+    # -------------------------------------------------------------------------
+    def test_notebook_missing_pilot_bundle_fails_loudly(self):
+        """Review requirement: missing or invalid PILOT_BUNDLE path must fail loudly, never fallback silently."""
+        nb_path = ROOT / "notebooks/exp_03_adaptive_hdbscan.ipynb"
+        with self.assertRaises(FileNotFoundError) as ctx:
+            inspect_exp03.run_notebook_cells(
+                notebook_path=nb_path,
+                env_override={"PILOT_BUNDLE": "/nonexistent/invalid/pilot_path_987654"},
+            )
+        self.assertIn("PILOT_BUNDLE_NOT_FOUND", str(ctx.exception))
+
+    def test_notebook_pilot_path_is_file_not_dir_fails_loudly(self):
+        """Review requirement: PILOT_BUNDLE pointing to a file instead of a directory must fail loudly."""
+        nb_path = ROOT / "notebooks/exp_03_adaptive_hdbscan.ipynb"
+        dummy_file = self.tmp_dir / "not_a_dir.parquet"
+        dummy_file.write_text("dummy", encoding="utf-8")
+        with self.assertRaises(FileNotFoundError) as ctx:
+            inspect_exp03.run_notebook_cells(
+                notebook_path=nb_path,
+                env_override={"PILOT_BUNDLE": str(dummy_file)},
+            )
+        self.assertIn("PILOT_BUNDLE_NOT_FOUND", str(ctx.exception))
+
+    def test_inspect_script_fixture_fallback_denies_colab_migration(self):
+        """Review requirement: running on synthetic fixture must block colab migration."""
+        nb_path = ROOT / "notebooks/exp_03_adaptive_hdbscan.ipynb"
+        out_root = self.tmp_dir / "fixture_fallback_test"
+        out_root.mkdir(parents=True, exist_ok=True)
+        fixture_dir = self.tmp_dir / "synth_fixture"
+        fixture_dir.mkdir(parents=True, exist_ok=True)
+        from test_experiment_harness import create_pilot_fixture
+        create_pilot_fixture(fixture_dir)
+
+        report = inspect_exp03.run_notebook_cells(
+            notebook_path=nb_path,
+            env_override={
+                "PILOT_BUNDLE": str(fixture_dir),
+                "EXP03_OUTPUT_DIR": str(out_root),
+                "EXP03_ALLOW_FIXTURE_FALLBACK": "true",
+            },
+        )
+        self.assertFalse(report["pilot_verification"]["is_real_pilot"])
+        self.assertFalse(report["colab_migration_allowed"])
+        self.assertIn("REAL_PILOT_REQUIRED_FOR_COLAB_MIGRATION", report["migration_block_reasons"])
+
+    def test_inspect_script_missing_exp02_baseline_denies_colab_migration(self):
+        """Review requirement: colab migration requires verified EXP-02 baseline local gate."""
+        nb_path = ROOT / "notebooks/exp_03_adaptive_hdbscan.ipynb"
+        out_root = self.tmp_dir / "exp02_gate_test"
+        out_root.mkdir(parents=True, exist_ok=True)
+        fixture_dir = self.tmp_dir / "exp02_gate_fixture_pilot"
+        fixture_dir.mkdir(parents=True, exist_ok=True)
+        test_experiment_harness.create_pilot_fixture(fixture_dir)
+
+        report = inspect_exp03.run_notebook_cells(
+            notebook_path=nb_path,
+            env_override={
+                "EXP03_OUTPUT_DIR": str(out_root),
+                "PILOT_BUNDLE": str(fixture_dir),
+                "EXP03_ALLOW_FIXTURE_FALLBACK": "true",
+                "EXP03_SIMULATE_EXP02_GATE_FAIL": "true",
+            },
+        )
+        self.assertFalse(report["colab_migration_allowed"])
+        self.assertIn("EXP02_BASELINE_LOCAL_GATE_REQUIRED", report["migration_block_reasons"])
+
+    def test_exp02_baseline_gate_missing_report_fails_closed(self):
+        """Hard gate regression: missing EXP-02 evidence report must fail closed."""
+        res = inspect_exp03.check_exp02_baseline_local_gate(
+            ROOT,
+            env_override={"EXP02_REPORT_PATH": str(self.tmp_dir / "nonexistent_exp02_report.json")},
+        )
+        self.assertFalse(res["prerequisite_verified"])
+        self.assertEqual(res["status"], "EXP02_BASELINE_GATE_FAILED")
+        self.assertIn("EXP02_EVIDENCE_REPORT_MISSING", res["failure_reasons"])
+
+    def test_exp02_baseline_gate_corrupted_json_fails_closed(self):
+        """Hard gate regression: corrupted EXP-02 evidence report JSON must fail closed."""
+        bad_json_file = self.tmp_dir / "corrupted_exp02_report.json"
+        bad_json_file.write_text("{invalid json structure", encoding="utf-8")
+
+        res = inspect_exp03.check_exp02_baseline_local_gate(
+            ROOT,
+            env_override={"EXP02_REPORT_PATH": str(bad_json_file)},
+        )
+        self.assertFalse(res["prerequisite_verified"])
+        self.assertEqual(res["status"], "EXP02_BASELINE_GATE_FAILED")
+        self.assertTrue(any("EXP02_REPORT_JSON_CORRUPT" in r for r in res["failure_reasons"]))
+
+    def test_exp02_baseline_gate_mismatched_pilot_or_feature_sha_fails_closed(self):
+        """Hard gate regression: report with wrong pilot ID or feature SHA must fail closed."""
+        valid_report = json.loads((ROOT / "docs/evidence/EXP-02_COLAB_PARITY_20261102.json").read_text(encoding="utf-8"))
+
+        # Case 1: Wrong pilot ID
+        tampered_pilot = dict(valid_report)
+        tampered_pilot["pilot"] = dict(valid_report["pilot"])
+        tampered_pilot["pilot"]["pilot_id"] = "pilot_wrong_id_12345"
+
+        report_p1 = self.tmp_dir / "tampered_pilot_id.json"
+        report_p1.write_text(json.dumps(tampered_pilot), encoding="utf-8")
+
+        res1 = inspect_exp03.check_exp02_baseline_local_gate(ROOT, env_override={"EXP02_REPORT_PATH": str(report_p1)})
+        self.assertFalse(res1["prerequisite_verified"])
+        self.assertIn("EXP02_REPORT_PILOT_ID_MISMATCH", res1["failure_reasons"])
+
+        # Case 2: Wrong feature SHA
+        tampered_feat = dict(valid_report)
+        tampered_feat["pilot"] = dict(valid_report["pilot"])
+        tampered_feat["pilot"]["feature_sha256"] = "f" * 64
+
+        report_p2 = self.tmp_dir / "tampered_feat_sha.json"
+        report_p2.write_text(json.dumps(tampered_feat), encoding="utf-8")
+
+        res2 = inspect_exp03.check_exp02_baseline_local_gate(ROOT, env_override={"EXP02_REPORT_PATH": str(report_p2)})
+        self.assertFalse(res2["prerequisite_verified"])
+        self.assertIn("EXP02_REPORT_FEATURE_SHA_MISMATCH", res2["failure_reasons"])
+
+    def test_exp02_baseline_gate_handoff_archive_sha_mismatch_fails_closed(self):
+        """Hard gate regression: physical handoff archive with wrong SHA must fail closed."""
+        fake_archive = self.tmp_dir / "fake_handoff.zip"
+        fake_archive.write_bytes(b"corrupted zip bytes for testing")
+
+        res = inspect_exp03.check_exp02_baseline_local_gate(
+            ROOT,
+            env_override={"EXP02_HANDOFF_ARCHIVE": str(fake_archive)},
+        )
+        self.assertFalse(res["prerequisite_verified"])
+        self.assertEqual(res["status"], "EXP02_BASELINE_GATE_FAILED")
+        self.assertIn("EXP02_HANDOFF_ARCHIVE_SHA_MISMATCH", res["failure_reasons"])
+
+    def test_find_experiment_run_rejects_unmatched_subfolder_or_missing_manifest(self):
+        """Regression test for comment-6570696486: selection must tie to exact run ID/pins, not blind mtime."""
+        out_root = self.tmp_dir / "find_run_test"
+        out_root.mkdir(parents=True, exist_ok=True)
+
+        # 1. Valid run directory
+        run_1_dir = out_root / "pilot_run_11111111111111111111111111111111"
+        run_1_dir.mkdir(parents=True, exist_ok=True)
+        (run_1_dir / "exp03_run_summary.json").write_text(json.dumps({
+            "experiment_run_id": "pilot_run_11111111111111111111111111111111",
+            "pilot_id": inspect_exp03.REAL_PILOT_ID_PIN,
+            "output_dir": str(run_1_dir),
+        }), encoding="utf-8")
+        (run_1_dir / "pilot_result_manifest.json").write_text("{}", encoding="utf-8")
+
+        # 2. Invalid run directory: subfolder name does NOT match experiment_run_id
+        run_2_dir = out_root / "subfolder_mismatch"
+        run_2_dir.mkdir(parents=True, exist_ok=True)
+        (run_2_dir / "exp03_run_summary.json").write_text(json.dumps({
+            "experiment_run_id": "pilot_run_22222222222222222222222222222222",
+            "pilot_id": inspect_exp03.REAL_PILOT_ID_PIN,
+            "output_dir": str(run_2_dir),
+        }), encoding="utf-8")
+        (run_2_dir / "pilot_result_manifest.json").write_text("{}", encoding="utf-8")
+
+        # Direct search with target_run_id
+        found_1 = inspect_exp03.find_latest_experiment_run(out_root, target_run_id="pilot_run_11111111111111111111111111111111")
+        self.assertEqual(found_1.get("experiment_run_id"), "pilot_run_11111111111111111111111111111111")
+
+        # Mismatched target run ID must return empty
+        found_nonexistent = inspect_exp03.find_latest_experiment_run(out_root, target_run_id="pilot_run_nonexistent")
+        self.assertEqual(found_nonexistent, {})
+
+        # Auto-discovery must only pick valid run_1_dir and reject mismatched run_2_dir
+        auto_found = inspect_exp03.find_latest_experiment_run(out_root)
+        self.assertEqual(auto_found.get("experiment_run_id"), "pilot_run_11111111111111111111111111111111")
 
 
 if __name__ == "__main__":

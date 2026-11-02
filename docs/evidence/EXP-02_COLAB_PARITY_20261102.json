@@ -1,0 +1,157 @@
+{
+  "task_id": "EXP-02",
+  "status": "COLAB_PILOT_PARITY_VERIFIED",
+  "version": "exp02-colab-parity-v1",
+  "recipient": "rosy179",
+  "verified_at_utc": "2026-11-02T03:31:43.410294+00:00",
+  "pilot": {
+    "feature_sha256": "3baddf613f237d2117248ad9095230ec17e428ea47f73d499623035d3097d2e6",
+    "handoff_sha256": "9121d6839f9ef8e5646a06cd0bf870fcde50b65da00c03e7b268760237cddc9a",
+    "index_sha256": "310b5f232ae34ca4f0a197b0181bff81efe6bee38897b6e151e9b58e8d5a6502",
+    "pilot_id": "pilot_196b6d4081d347e1c289e331022658fbbe572dd33181ad987900895c1f1b189c",
+    "zip_sha256": "f58291b72873e1b26791fef97818fdcf5e2b028a5dfa528885a666d8cdc1b870"
+  },
+  "local_gate": {
+    "status": "LOCAL_GATE_AND_HANDOFF_VERIFIED",
+    "local_smoke_sha256": "b68ee4e1606f12349f234c7d2776d12bd14da9627d515c6c1940c5d1f0c2b01a",
+    "handoff_zip_sha256": "d6be707111be8d2b1a2ba64434d6c0cacaa67b73c5aae3235f9772403c544333",
+    "handoff_zip_bytes": 171993,
+    "source_sha256": "7a65c8fa203c143283a07de2678dc9f7fd16569342f6d6f43e5edcfdf102ff4d",
+    "inspection": {
+      "colab_migration_allowed": true,
+      "executed_code_cells": 2,
+      "fresh_kernel_acceptance": true,
+      "local_smoke_status": "PASSED",
+      "notebook_sha256": "81c42bc5e999d6785fcad51881035b96a27f2e44792bdb0a7738082bc328cd59",
+      "notebook_status": "RESTART_RUN_ALL_PASSED",
+      "python_version": "3.11.0",
+      "runner_mode": "nbclient",
+      "runtime_seconds": 17.0408,
+      "source_notebook_outputs_cleared": true
+    },
+    "reconciliation": {
+      "DBSCAN": {
+        "algorithm_name": "DBSCAN",
+        "failed_windows": 1,
+        "model_config_version": "dbscan-global-dev-v1",
+        "runtime_seconds": 0.0695,
+        "skipped_windows": 0,
+        "successful_windows": 1,
+        "total_aftershocks": 240,
+        "total_candidates": 279,
+        "total_noise": 9,
+        "total_noise_candidates": 9,
+        "total_sequence_members": 251,
+        "total_windows": 2,
+        "windows_processed": 2
+      },
+      "HDBSCAN_GLOBAL": {
+        "algorithm_name": "HDBSCAN_GLOBAL",
+        "failed_windows": 2,
+        "model_config_version": "hdbscan-global-dev-v1",
+        "runtime_seconds": 0.009,
+        "skipped_windows": 0,
+        "successful_windows": 0,
+        "total_aftershocks": 0,
+        "total_candidates": 279,
+        "total_noise": 108,
+        "total_noise_candidates": 108,
+        "total_sequence_members": 0,
+        "total_windows": 2,
+        "windows_processed": 2
+      },
+      "WINDOW": {
+        "algorithm_name": "WINDOW",
+        "failed_windows": 0,
+        "model_config_version": "window-baseline-v1",
+        "runtime_seconds": 0.001,
+        "skipped_windows": 0,
+        "successful_windows": 2,
+        "total_aftershocks": 255,
+        "total_candidates": 279,
+        "total_noise": 0,
+        "total_noise_candidates": 0,
+        "total_sequence_members": 257,
+        "total_windows": 2,
+        "windows_processed": 2
+      }
+    }
+  },
+  "cloud_execution": {
+    "status": "COLAB_HARNESS_PASSED",
+    "runtime_kind": "GOOGLE_COLAB",
+    "host_runtime_probe": {
+      "module": "/usr/local/lib/python3.13/dist-packages/google/colab/__init__.py",
+      "system": "Linux"
+    },
+    "parity": {
+      "DBSCAN": {
+        "atol": 1e-08,
+        "mainshocks": 2,
+        "memberships": 279,
+        "rtol": 1e-06,
+        "status": "PASSED"
+      },
+      "HDBSCAN_GLOBAL": {
+        "atol": 1e-08,
+        "mainshocks": 2,
+        "memberships": 279,
+        "rtol": 1e-06,
+        "status": "PASSED"
+      },
+      "WINDOW": {
+        "atol": 1e-08,
+        "mainshocks": 2,
+        "memberships": 279,
+        "rtol": 1e-06,
+        "status": "PASSED"
+      }
+    },
+    "output_zip_sha256": "df5dae61e79cb707e8136af2b46037b27b5818f0abc89bedb59dab218d4b8665",
+    "output_checksums": {
+      "colab-report.json": "0431eef8bebec954e5e6aaa45e73e3cbf6eaf7b3332ae4fd9a4598e6fc3cd0ed",
+      "environment-plot-smoke.png": "c74e3a7c485279bb6d5adaee56680b06dd312ec8245d153c26ea0d5e68d638b0",
+      "pilot-receipt.json": "a31df3bc53fa31618b42e0c3897f103ce7ab9dab1030ecdc72b3bb361db6e44c",
+      "results/dbscan/checksums.sha256": "fb76c60af2b5e7b66f11bcca40eb845440e4c381ffc8e3ae90b56db2765fd970",
+      "results/dbscan/experiment_config.json": "bdcd612af13d75da2fb2ac07be787f0cfcbc1bd0dc04e8ae1e4fee9c5f8ebfd2",
+      "results/dbscan/experiment_metrics.json": "cd7ca8355d0aff04d624893dc82309822d9369d88c2e074ed381108b8ea37070",
+      "results/dbscan/memberships.parquet": "41351a20d963e425c1a3c8487a3bba1306f174d52ee8de31d9b9ee874aa5dab9",
+      "results/dbscan/pilot_result_manifest.json": "334c242999ffcada8bc3448df2ef4356c6db586134d149c024f30b7df4ca6c0e",
+      "results/dbscan/requirements-lock.txt": "c5838ca3bc61cfdfc3615ab6d5301d0009ea687072b1171bbb6e2e40494e5baf",
+      "results/dbscan/sequence_summary.parquet": "c1363153b0d91c1b1b4b34d8ed1e43c3222bde6fbdf1323309a56d85336d1784",
+      "results/hdbscan_global/checksums.sha256": "2982c30554b9dd346d4302333f128b300a2a29dd9d4b6be9a558e03c43713f8e",
+      "results/hdbscan_global/experiment_config.json": "72f039bd6f3519be6fc17d35e7d3fad0b9a25e6fc0ddfe3bbfb2f5d274d96983",
+      "results/hdbscan_global/experiment_metrics.json": "945f7d66d2b1f4490781be86ddabba43a0338d225a7415cd2426eb4b66bbac5d",
+      "results/hdbscan_global/memberships.parquet": "b5c2df3535378150e93bc78e3eae0f2350a2fb7d56e36bd28b74c4afa0dfc1b1",
+      "results/hdbscan_global/pilot_result_manifest.json": "e331f598c6867b8eccc3e3f9a65fb8cd92146abd20997f3f37c31bbbf300a724",
+      "results/hdbscan_global/requirements-lock.txt": "c5838ca3bc61cfdfc3615ab6d5301d0009ea687072b1171bbb6e2e40494e5baf",
+      "results/hdbscan_global/sequence_summary.parquet": "862b1a4122a73eff1f28ccff46f4d21567203685506a339047fb2bcfb8baa342",
+      "results/window/checksums.sha256": "f32f2b34bb1dfbc4f1cf2392542efff557a32737c087967a392bfaae0ecbbe26",
+      "results/window/experiment_config.json": "2e40e397c89e16312b67e18e3a84a0be75b17472136ef65c603015553ebd9ef9",
+      "results/window/experiment_metrics.json": "77a913bdf5c5cc66a562d68a71450cb042ebeaa13149c6d44aa8a0d6d8216363",
+      "results/window/memberships.parquet": "ebceeeaaabfcdcd73095b378c393a21893fd480a7d3e77ffb9fc910e20f85706",
+      "results/window/pilot_result_manifest.json": "9f0b2dc3ed85a0020d193ae16fa053f431e76da491f183b4b197bf915f02464a",
+      "results/window/requirements-lock.txt": "c5838ca3bc61cfdfc3615ab6d5301d0009ea687072b1171bbb6e2e40494e5baf",
+      "results/window/sequence_summary.parquet": "38cafa6c70652ef8d943705360918a9c17a6f63b3f8ce8a435d51041ac8538c1"
+    },
+    "pilot_receipt": {
+      "allowed_usage": "DEVELOPMENT_ONLY",
+      "coverage_status": "PARTIAL",
+      "feature_count": 279,
+      "handoff_sha256": "9121d6839f9ef8e5646a06cd0bf870fcde50b65da00c03e7b268760237cddc9a",
+      "mainshock_count": 2,
+      "pilot_id": "pilot_196b6d4081d347e1c289e331022658fbbe572dd33181ad987900895c1f1b189c",
+      "recipient": "rosy179",
+      "recipient_self_reported": true,
+      "research_ready": false,
+      "scientific_approval": false,
+      "status": "TEAM_PILOT_VERIFIED",
+      "verified_at_utc": "2026-11-02T03:31:41.026521+00:00",
+      "version": "dat03-team-receipt-v1"
+    }
+  },
+  "research_ready": false,
+  "official_exported": false,
+  "scientific_approval": false,
+  "allowed_usage": "DEVELOPMENT_ONLY"
+}

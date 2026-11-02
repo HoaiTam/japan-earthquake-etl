@@ -1,12 +1,43 @@
 {
-  "notebook_status": "FALLBACK_EXEC_PASSED",
-  "local_smoke_status": "FALLBACK_EXEC_WARNING",
-  "colab_migration_allowed": false,
-  "fresh_kernel_acceptance": false,
-  "notebook_sha256": "f559aa5eb23b09b489031589ceea4a246944791daa030913e45d05dd060a94e2",
+  "task_id": "EXP-03",
+  "notebook_status": "RESTART_RUN_ALL_PASSED",
+  "local_smoke_status": "PASSED",
+  "colab_migration_allowed": true,
+  "fresh_kernel_acceptance": true,
+  "migration_block_reasons": [],
+  "pilot_verification": {
+    "pilot_id": "pilot_196b6d4081d347e1c289e331022658fbbe572dd33181ad987900895c1f1b189c",
+    "is_real_pilot": true,
+    "candidate_rows": 279,
+    "mainshock_count": 2,
+    "features_parquet_sha256": "3baddf613f237d2117248ad9095230ec17e428ea47f73d499623035d3097d2e6",
+    "checksums_index_sha256": "310b5f232ae34ca4f0a197b0181bff81efe6bee38897b6e151e9b58e8d5a6502",
+    "pilot_manifest_sha256": "b837c3b61427dcf61e9bdb3a9a739e0949d82232898c3636841fcf8776c903ab"
+  },
+  "exp02_baseline_local_gate": {
+    "status": "LOCAL_GATE_AND_HANDOFF_VERIFIED",
+    "task_id": "EXP-02",
+    "pr_reference": "https://github.com/HoaiTam/japan-earthquake-etl/pull/114",
+    "handoff_archive_sha256": "d6be707111be8d2b1a2ba64434d6c0cacaa67b73c5aae3235f9772403c544333",
+    "evidence_document": "docs/evidence/EXP-02.md",
+    "evidence_report_json": "docs/evidence/EXP-02_COLAB_PARITY_20261102.json",
+    "evidence_document_exists": true,
+    "evidence_report_exists": true,
+    "handoff_archive_exists": false,
+    "prerequisite_verified": true,
+    "failure_reasons": []
+  },
+  "experiment_summary": {
+    "experiment_run_id": "pilot_run_e78c723a9cb6d0802751b3d67d8bc8e5",
+    "output_dir": "/mnt/c/Code/IE212/japan-earthquake-etl/staging/ml-experiments/exp03-adaptive/pilot_run_e78c723a9cb6d0802751b3d67d8bc8e5",
+    "resolved_unique_aftershocks": 0,
+    "ambiguous_candidates_count": 0,
+    "nested_mainshocks_count": 0
+  },
+  "notebook_sha256": "607fa092987af81d627adb3fb619b5385a4dca1f4baf8b51abc82085550e99ab",
   "executed_code_cells": 5,
-  "runtime_seconds": 2.153,
-  "python_version": "3.11.0",
-  "runner_mode": "isolated_exec",
+  "runtime_seconds": 7.3278,
+  "python_version": "3.12.16",
+  "runner_mode": "nbclient",
   "source_notebook_outputs_cleared": true
 }

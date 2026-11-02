@@ -146,3 +146,50 @@ Toàn bộ cấu hình được cố định trong `config/ml/models/hdbscan_ada
 - **Official dataset export:** Dữ liệu nghiên cứu chính thức toàn kỳ phụ thuộc vào [MLD-05 - Validate feature snapshot và export Parquet bundle](../task/tasks/MLD-05.md).
 - **Import Iceberg `ml.*`:** Nạp kết quả vào bảng Iceberg thuộc về [MLI-03 - Validate/import kết quả và commit bảng ML Iceberg](../task/tasks/MLI-03.md).
 - **Reviewer:** Reviewer độc lập cho task P0 này hiện là `unassigned`.
+
+## 6. Nghiệm thu Local Smoke Gate với Fresh Kernel & Real Pilot Identity (02/11/2026 — ThanhTris)
+
+- **Người thực hiện:** ThanhTris (tiếp nhận theo [kế hoạch Tuần 7](../task/WEEK_7_COLAB_PLAN.md); cập nhật theo review của @HoaiTam tại [PR #113](https://github.com/HoaiTam/japan-earthquake-etl/pull/113)).
+- **Môi trường thực thi:** Python 3.12.16 (virtual environment `exp-venv` qua `uv`), hệ điều hành Ubuntu 24.04 (WSL2).
+- **Bộ dữ liệu pilot thật (`staging/ml-pilot/pilot-kit/bundle`):**
+  - Dataset ID: `pilot_196b6d4081d347e1c289e331022658fbbe572dd33181ad987900895c1f1b189c`
+  - Số lượng ứng viên (`candidate_rows`): 279 dòng
+  - Số lượng cửa sổ chấn tiêu (`mainshock_count`): 2 mainshock windows
+  - Mã băm đặc trưng (`features-part-00000.parquet`): `3baddf613f237d2117248ad9095230ec17e428ea47f73d499623035d3097d2e6`
+  - Mã băm chỉ mục checksums (`checksums.sha256`): `310b5f232ae34ca4f0a197b0181bff81efe6bee38897b6e151e9b58e8d5a6502`
+  - Mã băm manifest (`pilot_manifest.json`): `b837c3b61427dcf61e9bdb3a9a739e0949d82232898c3636841fcf8776c903ab`
+  - `is_real_pilot`: `true`
+- **Kiểm chứng Hard Gate EXP-02 (Baseline Local Gate & Handoff Archive):**
+  - Task ID: `EXP-02`
+  - Trạng thái kiểm chứng: `LOCAL_GATE_AND_HANDOFF_VERIFIED` / `COLAB_PILOT_PARITY_VERIFIED`
+  - Báo cáo bằng chứng: [EXP-02_COLAB_PARITY_20261102.json](./EXP-02_COLAB_PARITY_20261102.json)
+  - Tham chiếu PR: [PR #114](https://github.com/HoaiTam/japan-earthquake-etl/pull/114)
+  - Mã băm gói handoff baseline: `d6be707111be8d2b1a2ba64434d6c0cacaa67b73c5aae3235f9772403c544333`
+  - Cơ chế fail-closed: Xác thực toàn bộ các trường metadata trong báo cáo EXP-02 gồm task ID, status, `pilot_id_pin`, `feature_sha256_pin`, và `handoff_archive_sha256`. Nếu file báo cáo bị thiếu, JSON lỗi cú pháp, sai khác bất kỳ mã băm nào, hoặc archive handoff thực tế sai lệch SHA, gate lập tức fail và chặn di chuyển Colab (`prerequisite_verified=false`).
+- **Unit & Contract Tests:** `python -m unittest tests/test_adaptive_hdbscan.py` đạt **32/32 tests PASS** (0 errors, 0 failures), bổ sung 9 regression tests:
+  - `test_notebook_missing_pilot_bundle_fails_loudly`: Văng `FileNotFoundError: PILOT_BUNDLE_NOT_FOUND` ngay lập tức khi đường dẫn pilot không tồn tại.
+  - `test_notebook_pilot_path_is_file_not_dir_fails_loudly`: Văng `FileNotFoundError: PILOT_BUNDLE_NOT_FOUND` khi đường dẫn là file thay vì thư mục.
+  - `test_inspect_script_fixture_fallback_denies_colab_migration`: Chặn Colab migration (`colab_migration_allowed=false`) và gắn lý do `REAL_PILOT_REQUIRED_FOR_COLAB_MIGRATION` khi chạy trên synthetic fixture.
+  - `test_inspect_script_missing_exp02_baseline_denies_colab_migration`: Chặn Colab migration (`colab_migration_allowed=false`) và gắn lý do `EXP02_BASELINE_LOCAL_GATE_REQUIRED` khi thiếu baseline gate EXP-02.
+  - `test_exp02_baseline_gate_missing_report_fails_closed`: Chặn migration khi báo cáo EXP-02 không tồn tại.
+  - `test_exp02_baseline_gate_corrupted_json_fails_closed`: Chặn migration khi báo cáo EXP-02 bị lỗi JSON.
+  - `test_exp02_baseline_gate_mismatched_pilot_or_feature_sha_fails_closed`: Chặn migration khi pilot ID hoặc feature SHA trong báo cáo EXP-02 không khớp pin.
+  - `test_exp02_baseline_gate_handoff_archive_sha_mismatch_fails_closed`: Chặn migration khi file archive handoff sai lệch SHA256.
+  - `test_find_experiment_run_rejects_unmatched_subfolder_or_missing_manifest`: Đảm bảo chỉ nhận diện run hợp lệ khớp tên thư mục với `experiment_run_id` và có manifest hoàn chỉnh; loại trừ tìm kiếm theo mtime mù.
+- **Headless Notebook Inspection:**
+  - Lệnh chạy: `python scripts/inspect-exp03-notebook.py --pilot-bundle staging/ml-pilot/pilot-kit/bundle --output-json docs/evidence/EXP-03-local-smoke.json`
+  - Runner mode: `nbclient` (fresh execution kernel, Restart & Run All).
+  - Kết quả kiểm chứng trong [EXP-03-local-smoke.json](./EXP-03-local-smoke.json):
+    - `notebook_status`: `RESTART_RUN_ALL_PASSED`
+    - `local_smoke_status`: `PASSED`
+    - `fresh_kernel_acceptance`: `true`
+    - `colab_migration_allowed`: `true`
+    - `migration_block_reasons`: `[]`
+    - `pilot_verification.is_real_pilot`: `true`
+    - `pilot_verification.candidate_rows`: 279
+    - `pilot_verification.mainshock_count`: 2
+    - `exp02_baseline_local_gate.prerequisite_verified`: `true`
+    - `runtime_seconds`: ~7.04s
+    - `executed_code_cells`: 5
+    - `source_notebook_outputs_cleared`: `true`
+- **Kết luận:** Đã khắc phục triệt để các nhận xét tại PR #113; loại bỏ hoàn toàn fallback ngầm; đối soát định danh pilot thật chính xác 100% và bảo đảm liên kết hard dependency EXP-02 trước khi cấp quyền di chuyển Google Colab.
