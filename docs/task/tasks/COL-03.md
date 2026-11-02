@@ -1,6 +1,6 @@
 ---
 task_id: "COL-03"
-status: "Backlog"
+status: "Done"
 week: 7
 block: "H - Experiment"
 workstream: "Pilot baseline metrics and plots"
@@ -42,12 +42,12 @@ có, chuẩn bị template/tests bằng fixture có nhãn rõ, không đợi ng�
 
 ## Tiêu chí nghiệm thu
 
-- [ ] Số bảng/hình truy ngược được về exact artifacts, không số nhập tay.
-- [ ] Không gọi noise hoặc no-productive-sequence mặc định là implementation lỗi.
-- [ ] Metric null có reason; không accuracy/F1 khi chưa có ground truth.
-- [ ] Không dùng runtime khác hardware để khẳng định model nhanh hơn.
-- [ ] Notebook/report chạy từ session mới và giữ DEVELOPMENT_ONLY/PARTIAL.
-- [ ] Handoff cho ThanhTris có checksum/pins/schema; không cần đổi input source.
+- [x] Số bảng/hình truy ngược được về exact artifacts, không số nhập tay.
+- [x] Không gọi noise hoặc no-productive-sequence mặc định là implementation lỗi.
+- [x] Metric null có reason; không accuracy/F1 khi chưa có ground truth.
+- [x] Không dùng runtime khác hardware để khẳng định model nhanh hơn.
+- [x] Notebook/report chạy từ session mới và giữ DEVELOPMENT_ONLY/PARTIAL.
+- [x] Handoff cho ThanhTris có checksum/pins/schema; không cần đổi input source ([COL-03 Evidence](../../evidence/COL-03_BASELINE_METRICS_PLOTS_20261102.md)).
 
 ## Dependency / giới hạn
 
@@ -58,7 +58,7 @@ Trino report của [MLI-04](./MLI-04.md).
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
+- **Trạng thái:** Done
 - **Assignee:** rosy179
 - **Reviewer:** unassigned
-- **Evidence / PR:** Chưa triển khai; chưa có metric report hoặc plots mới.
+- **Evidence / PR:** [COL-03 Baseline Metrics and Plots Evidence](../../evidence/COL-03_BASELINE_METRICS_PLOTS_20261102.md)

@@ -1,0 +1,27 @@
+{
+  "task_id": "COL-03",
+  "status": "BASELINE_METRICS_AND_PLOTS_VERIFIED",
+  "version": "col03-metrics-v1",
+  "recipient": "rosy179",
+  "intended_handoff_recipient": "ThanhTris",
+  "verified_at_utc": "2026-11-02T04:34:33.425608+00:00",
+  "pilot": {
+    "pilot_id": "pilot_196b6d4081d347e1c289e331022658fbbe572dd33181ad987900895c1f1b189c",
+    "candidate_count": 279,
+    "mainshock_count": 2,
+    "coverage_status": "PARTIAL",
+    "allowed_usage": "DEVELOPMENT_ONLY"
+  },
+  "metrics_summary": {
+    "total_windows_evaluated": 18,
+    "algorithms_included": ["WINDOW", "DBSCAN", "HDBSCAN_GLOBAL"],
+    "configurations_included": 9,
+    "output_csv_sha256": "e54ff8dc6513cda4214a526c939c8ac465fdc2090141669b26d414b5184c8c87",
+    "output_json_sha256": "74d33693273f2fde910dfdda4fb60b89e35d3093bf075572815aeb06cdd6baf2",
+    "handoff_manifest_sha256": "6b7b25ad75704d257256e9c9c379a29e71ec26a804791e2b694f4a3e6aa0f38b"
+  },
+  "allowed_usage": "DEVELOPMENT_ONLY",
+  "research_ready": false,
+  "official_exported": false,
+  "scientific_approval": false
+}
