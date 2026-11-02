@@ -1,6 +1,6 @@
 ---
 task_id: "SEC-01"
-status: "Needs Update"
+status: "In Progress"
 week: 4
 block: "K - QA & Release"
 workstream: "Security"
@@ -38,7 +38,7 @@ và không biến pilot/synthetic result thành research-ready.
 ### Tuần 7 — HoaiTam: nghiệm thu actual Drive/Colab
 
 Đọc [kế hoạch tuần7](../WEEK_7_COLAB_PLAN.md) và
-[setup](../../runbooks/WEEK_7_COLAB_SETUP.md). Giữ Needs Update đến khi:
+[setup](../../runbooks/WEEK_7_COLAB_SETUP.md). Giữ chưa Done đến khi:
 
 - [ ] Đúng recipient của cả ba người mở/tải đúng release được, có receipt thật;
       phân biệt máy local với Colab VM, không tạo hộ hoặc suy identity từ tên file.
@@ -46,14 +46,25 @@ và không biến pilot/synthetic result thành research-ready.
       không credential/OAuth JSON/private logs/local account path ngoài contract.
 - [ ] Kiểm exact release/output sharing theo quyền hiện có; không anyone/domain
       hoặc public link ngoài scope đã duyệt; map identity với roster ở kênh riêng.
-- [ ] Mô tả Drive mount cấp quyền rộng, notebook được chia sẻ có thể chứa
+- [x] Mô tả Drive mount cấp quyền rộng, notebook được chia sẻ có thể chứa
       outputs; không coi mount là folder-scoped readonly security boundary.
-- [ ] Findings/pending có triage và evidence; chưa đủ actual cloud session hoặc
+- [x] Findings/pending có triage và evidence; chưa đủ actual cloud session hoặc
       recipient thì giữ chưa Done, không tự đổi ACL để pass.
 
 Local acceptance23/10 giữ nguyên; không cần bật Docker hoặc ghi permission
 probes mới chỉ để audit cloud pilot. Không công bố full project security nếu
 chỉ đọc tài liệu setup.
+
+**Triển khai02/11:** [Cloud audit/runbook](../../security/SEC-01-CLOUD-AUDIT.md),
+[evidence thật](../../evidence/SEC-01_CLOUD_20261102.md),
+[metadata](../../evidence/SEC-01_CLOUD_20261102.json). Tám pinned artifacts và
+hai actual Colab notebooks của owner đã scan, source cells khớp Git pins;
+không thấy finding trong scope. Tám object ACL user-only, nhưng root4/pilot5
+principals khác mốc cũ3 nên cần owner xác nhận private roster/alias.
+Đã tìm embedded pilot receipt của rosy179 trong PR #114; PR #113 của ThanhTris
+có local pilot verification, chưa standalone receipt/actual Colab links.
+Chưa có notebook/output ZIP member để audit độc lập. Task In Progress,
+không claim cloud acceptance đã đủ; xem evidence để nhận từng pending.
 
 - **Đầu vào và contract:** [ORC-05](./ORC-05.md)
 - **Phần triển khai:** Kiểm tra env, Git history, logs, default credentials, exposed ports, DSN và bucket permissions cho toàn bộ block mới.
@@ -144,9 +155,15 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Theo dõi
 
-- **Trạng thái:** Needs Update
+- **Trạng thái:** In Progress
 - **Assignee:** HoaiTam
 - **Reviewer:** unassigned — chưa có approval độc lập
+- **Cloud02/11:** [Evidence và pending](../../evidence/SEC-01_CLOUD_20261102.md),
+  [runbook](../../security/SEC-01-CLOUD-AUDIT.md), branch
+  `chore/sec-01-cloud-handoff-audit`; findings=0 trong scope, pending=9,
+  can_mark_done=false. Không đổi ACL/Docker. Theo yêu cầu owner, đóng gói
+  code/docs thành PR riêng; phần acceptance còn thiếu sẽ hoàn thiện sau khi
+  các PR cũ được merge. Không tự chuyển Done hoặc merge từ scoped scan PASS.
 - **Evidence / PR:** [Nghiệm thu local 23/10](../../evidence/SEC-01_LOCAL_ACCEPTANCE_20261023.md), [report redacted](../../evidence/SEC-01-20261023.json), [checklist](../../security/SEC-01-CHECKLIST.md). [Audit 22/10](../../evidence/SEC-01_20261022.md) và [runtime cũ](../../evidence/SEC-01_RUNTIME.md) giữ làm lịch sử. Branch `fix/sec-01-ml-handoff-audit`, auditor commit `3d2250d` cộng bản docs acceptance; deployment PR #96 tại `b93456e`, không đổi checkout đang bind. Phiên nghiệm thu này không commit/push/mở PR.
 - **Kỹ năng phù hợp:** Security, Docker, Git
 

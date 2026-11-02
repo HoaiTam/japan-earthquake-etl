@@ -22,6 +22,8 @@ RUN_SUMMARY_RUN_ID ?=
 SECURITY_REPORT ?= staging/sec-01-report.json
 SECURITY_DEPLOYMENT_ROOT ?=
 SECURITY_HANDOFF_MANIFEST ?=
+SECURITY_CLOUD_MANIFEST ?=
+SECURITY_CLOUD_ONLINE ?= 0
 SECURITY_AUDIT_FLAGS = $(if $(SECURITY_DEPLOYMENT_ROOT),--deployment-root "$(SECURITY_DEPLOYMENT_ROOT)") $(if $(SECURITY_HANDOFF_MANIFEST),--handoff-manifest "$(SECURITY_HANDOFF_MANIFEST)")
 QA_03_MATRIX ?= airflow/dags/fixtures/qa_03_jma_historical_matrix.json
 QA_03_JSON ?= staging/qa-03/qa-03.json
@@ -726,6 +728,11 @@ test-ci-workflow: ## YAML duplicate-key/safety/trigger/job regression; cần tes
 
 test-security-audit: ## SEC-01 offline redaction/role/port/permission/stdin regression tests
 	@python3 -m unittest discover -s tests -p 'test_security*.py'
+
+.PHONY: audit-security-cloud
+audit-security-cloud: ## SEC-01 explicit pinned cloud bytes/GET ACL; exit 2 = pending, không Docker/ACL writes
+	@test -n "$(SECURITY_CLOUD_MANIFEST)" || { echo 'Set SECURITY_CLOUD_MANIFEST to an explicit private scope JSON'; exit 2; }
+	@$(PILOT_PYTHON) -B scripts/audit-security-cloud.py --manifest "$(SECURITY_CLOUD_MANIFEST)" --output "$(SECURITY_REPORT)" $(if $(filter 1,$(SECURITY_CLOUD_ONLINE)),--drive) $(if $(SECURITY_DEPLOYMENT_ROOT),--deployment-root "$(SECURITY_DEPLOYMENT_ROOT)")
 
 audit-security: ## SEC-01 source/history/config scan; exit 2 = còn coverage, không có nghĩa Done
 	@python3 scripts/audit-security.py --output "$(SECURITY_REPORT)" $(SECURITY_AUDIT_FLAGS)

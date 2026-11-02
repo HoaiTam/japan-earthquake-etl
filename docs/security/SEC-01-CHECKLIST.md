@@ -1,7 +1,14 @@
 # SEC-01 — Review secret và bề mặt truy cập
 
-Owner hiện tại: **HoaiTam**. Status: **Needs Update — Drive handoff26/10**.
+Owner hiện tại: **HoaiTam**. Status: **In Progress — cloud audit02/11**.
 Local acceptance23/10 giữ nguyên. Reviewer: **unassigned**.
+
+Đang nghiệm thu cloud theo [runbook mới](./SEC-01-CLOUD-AUDIT.md) và
+[evidence02/11](../evidence/SEC-01_CLOUD_20261102.md): tám pinned artifacts và
+hai actual notebooks chưa thấy finding; ACL user-only nhưng root4/pilot5
+principals cần owner xác nhận. Trang có embedded receipt trong PR #114; Trí
+có local pilot evidence PR #113. Chưa đủ actual cloud artifacts/session/identity
+ba người, không lấy historical local PASS hoặc CI xanh để chuyển Done.
 Trang/Windows và [report static cũ](../evidence/SEC-01-static.json) là mốc lịch
 sử, không chứng nhận runtime máy hiện tại. ORC-05 đã Done.
 
@@ -128,7 +135,7 @@ smokes hiện có vẫn giữ docker-runtime preflight/freshness, không đượ
 | Actual notebook/export/import local | PASS: 5 artifacts/23 files của DAT-02/EXP-01/MLD-05/MLI-03; không chứng nhận remote Google account hoặc scientific approval |
 | Current full runtime | 23/10 start đúng hai Spark containers cũ theo owner; 9 runtime services healthy và 2 init exited/0; không build/pull/init |
 | Drive handoff26/10 | Đã mở lại Needs Update, scoped payload/remote33files/fresh restore đạt; exact35objects chỉ3user permissions, không anyone/domain; còn recipient identity và hai máy download/verifier |
-| Colab | Chưa triển khai/chưa chứng nhận; local23/10 không chứng nhận remote session |
+| Colab | 02/11: actual EXP-01/COL-01 của owner đã scan source/output/metadata, source khớp pins; còn member session/output/identity review, local23/10 không chứng nhận cloud |
 
 [Nghiệm thu local 23/10](../evidence/SEC-01_LOCAL_ACCEPTANCE_20261023.md),
 [report redacted hiện tại](../evidence/SEC-01-20261023.json).
