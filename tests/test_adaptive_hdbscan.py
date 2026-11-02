@@ -1023,6 +1023,66 @@ class TestAdaptiveHDBSCAN(unittest.TestCase):
             actual_sha = sha256_bytes((run_1_dir / fname).read_bytes())
             self.assertEqual(expected_sha, actual_sha)
 
+    def test_notebook_missing_pilot_bundle_fails_loudly(self):
+        """Review requirement: missing or invalid PILOT_BUNDLE path must fail loudly, never fallback silently."""
+        nb_path = ROOT / "notebooks/exp_03_adaptive_hdbscan.ipynb"
+        with self.assertRaises(FileNotFoundError) as ctx:
+            inspect_exp03.run_notebook_cells(
+                notebook_path=nb_path,
+                env_override={"PILOT_BUNDLE": "/nonexistent/invalid/pilot_path_987654"},
+            )
+        self.assertIn("PILOT_BUNDLE_NOT_FOUND", str(ctx.exception))
+
+    def test_notebook_pilot_path_is_file_not_dir_fails_loudly(self):
+        """Review requirement: PILOT_BUNDLE pointing to a file instead of a directory must fail loudly."""
+        nb_path = ROOT / "notebooks/exp_03_adaptive_hdbscan.ipynb"
+        dummy_file = self.tmp_dir / "not_a_dir.parquet"
+        dummy_file.write_text("dummy", encoding="utf-8")
+        with self.assertRaises(FileNotFoundError) as ctx:
+            inspect_exp03.run_notebook_cells(
+                notebook_path=nb_path,
+                env_override={"PILOT_BUNDLE": str(dummy_file)},
+            )
+        self.assertIn("PILOT_BUNDLE_NOT_FOUND", str(ctx.exception))
+
+    def test_inspect_script_fixture_fallback_denies_colab_migration(self):
+        """Review requirement: running on synthetic fixture must block colab migration."""
+        nb_path = ROOT / "notebooks/exp_03_adaptive_hdbscan.ipynb"
+        out_root = self.tmp_dir / "fixture_fallback_test"
+        out_root.mkdir(parents=True, exist_ok=True)
+        fixture_dir = self.tmp_dir / "synth_fixture"
+        fixture_dir.mkdir(parents=True, exist_ok=True)
+        from test_experiment_harness import create_pilot_fixture
+        create_pilot_fixture(fixture_dir)
+
+        report = inspect_exp03.run_notebook_cells(
+            notebook_path=nb_path,
+            env_override={
+                "PILOT_BUNDLE": str(fixture_dir),
+                "EXP03_OUTPUT_DIR": str(out_root),
+                "EXP03_ALLOW_FIXTURE_FALLBACK": "true",
+            },
+        )
+        self.assertFalse(report["pilot_verification"]["is_real_pilot"])
+        self.assertFalse(report["colab_migration_allowed"])
+        self.assertIn("REAL_PILOT_REQUIRED_FOR_COLAB_MIGRATION", report["migration_block_reasons"])
+
+    def test_inspect_script_missing_exp02_baseline_denies_colab_migration(self):
+        """Review requirement: colab migration requires verified EXP-02 baseline local gate."""
+        nb_path = ROOT / "notebooks/exp_03_adaptive_hdbscan.ipynb"
+        out_root = self.tmp_dir / "exp02_gate_test"
+        out_root.mkdir(parents=True, exist_ok=True)
+
+        report = inspect_exp03.run_notebook_cells(
+            notebook_path=nb_path,
+            env_override={
+                "EXP03_OUTPUT_DIR": str(out_root),
+                "EXP03_SIMULATE_EXP02_GATE_FAIL": "true",
+            },
+        )
+        self.assertFalse(report["colab_migration_allowed"])
+        self.assertIn("EXP02_BASELINE_LOCAL_GATE_REQUIRED", report["migration_block_reasons"])
+
 
 if __name__ == "__main__":
     unittest.main()

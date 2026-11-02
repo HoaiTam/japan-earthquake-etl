@@ -11,6 +11,122 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 
+REAL_PILOT_ID_PIN = "pilot_196b6d4081d347e1c289e331022658fbbe572dd33181ad987900895c1f1b189c"
+REAL_PILOT_FEATURES_SHA256_PIN = "3baddf613f237d2117248ad9095230ec17e428ea47f73d499623035d3097d2e6"
+REAL_PILOT_CHECKSUMS_SHA256_PIN = "310b5f232ae34ca4f0a197b0181bff81efe6bee38897b6e151e9b58e8d5a6502"
+REAL_PILOT_CANDIDATE_ROWS = 279
+REAL_PILOT_MAINSHOCK_COUNT = 2
+
+EXP02_BASELINE_LOCAL_GATE_INFO = {
+    "task_id": "EXP-02",
+    "status": "LOCAL_GATE_AND_HANDOFF_VERIFIED",
+    "pr_reference": "https://github.com/HoaiTam/japan-earthquake-etl/pull/114",
+    "handoff_archive": "staging/exp02-local-rosy179/exp01-colab-handoff.zip",
+    "handoff_archive_sha256": "d6be707111be8d2b1a2ba64434d6c0cacaa67b73c5aae3235f9772403c544333",
+    "evidence_document": "docs/evidence/EXP-02.md",
+}
+
+
+def check_exp02_baseline_local_gate(root: Path) -> dict:
+    evidence_file = root / "docs/evidence/EXP-02.md"
+    task_file = root / "docs/task/tasks/EXP-02.md"
+    evidence_parity_file = root / "docs/evidence/EXP-02_COLAB_PARITY_20261102.md"
+
+    has_evidence_doc = evidence_file.is_file() or evidence_parity_file.is_file()
+    has_task_doc = task_file.is_file()
+
+    handoff_file = root / "staging/exp02-local-rosy179/exp01-colab-handoff.zip"
+    handoff_exists = handoff_file.is_file()
+    handoff_sha_matches = False
+    expected_handoff_sha = EXP02_BASELINE_LOCAL_GATE_INFO["handoff_archive_sha256"]
+    if handoff_exists:
+        actual_sha = hashlib.sha256(handoff_file.read_bytes()).hexdigest()
+        handoff_sha_matches = (actual_sha == expected_handoff_sha)
+
+    prerequisite_verified = bool(has_evidence_doc and has_task_doc)
+
+    return {
+        "status": EXP02_BASELINE_LOCAL_GATE_INFO["status"],
+        "task_id": "EXP-02",
+        "pr_reference": EXP02_BASELINE_LOCAL_GATE_INFO["pr_reference"],
+        "handoff_archive_sha256": expected_handoff_sha,
+        "evidence_document": EXP02_BASELINE_LOCAL_GATE_INFO["evidence_document"],
+        "evidence_document_exists": has_evidence_doc,
+        "handoff_archive_exists": handoff_exists,
+        "prerequisite_verified": prerequisite_verified,
+    }
+
+
+def find_latest_experiment_run(output_root: Path) -> dict:
+    summary_files = list(output_root.glob("**/exp03_run_summary.json"))
+    if summary_files:
+        summary_files.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+        try:
+            return json.loads(summary_files[0].read_text(encoding="utf-8"))
+        except Exception:
+            pass
+
+    manifest_files = list(output_root.glob("**/pilot_result_manifest.json"))
+    if manifest_files:
+        manifest_files.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+        try:
+            m_data = json.loads(manifest_files[0].read_text(encoding="utf-8"))
+            return {
+                "pilot_id": m_data.get("source_dataset_id"),
+                "experiment_run_id": m_data.get("pilot_run_id"),
+                "output_dir": str(manifest_files[0].parent),
+            }
+        except Exception:
+            pass
+    return {}
+
+
+def extract_pilot_verification(pilot_dir: Path, run_summary: dict) -> dict:
+    pilot_id = run_summary.get("pilot_id")
+    candidate_rows = run_summary.get("candidate_rows")
+    mainshock_count = run_summary.get("mainshock_count")
+
+    checksums_index_sha256 = None
+    features_parquet_sha256 = None
+    mainshocks_sha256 = None
+    pilot_manifest_sha256 = None
+
+    if pilot_dir and pilot_dir.is_dir():
+        chk_file = pilot_dir / "checksums.sha256"
+        if chk_file.is_file():
+            checksums_index_sha256 = hashlib.sha256(chk_file.read_bytes()).hexdigest()
+            for line in chk_file.read_text(encoding="utf-8").splitlines():
+                line = line.strip()
+                if not line or "  " not in line:
+                    continue
+                sha_val, fname = line.split("  ", 1)
+                if fname == "features-part-00000.parquet":
+                    features_parquet_sha256 = sha_val
+                elif fname == "mainshocks.parquet":
+                    mainshocks_sha256 = sha_val
+                elif fname == "pilot_manifest.json":
+                    pilot_manifest_sha256 = sha_val
+        feat_file = pilot_dir / "features-part-00000.parquet"
+        if feat_file.is_file() and not features_parquet_sha256:
+            features_parquet_sha256 = hashlib.sha256(feat_file.read_bytes()).hexdigest()
+
+    is_real_pilot = bool(
+        pilot_id == REAL_PILOT_ID_PIN
+        and candidate_rows == REAL_PILOT_CANDIDATE_ROWS
+        and mainshock_count == REAL_PILOT_MAINSHOCK_COUNT
+        and features_parquet_sha256 == REAL_PILOT_FEATURES_SHA256_PIN
+    )
+
+    return {
+        "pilot_id": pilot_id,
+        "is_real_pilot": is_real_pilot,
+        "candidate_rows": candidate_rows,
+        "mainshock_count": mainshock_count,
+        "features_parquet_sha256": features_parquet_sha256,
+        "checksums_index_sha256": checksums_index_sha256,
+        "pilot_manifest_sha256": pilot_manifest_sha256,
+    }
+
 
 def run_notebook_cells(notebook_path: Path, env_override: dict) -> dict:
     source_bytes = notebook_path.read_bytes()
@@ -24,6 +140,34 @@ def run_notebook_cells(notebook_path: Path, env_override: dict) -> dict:
                 raise ValueError("EXP03_SOURCE_NOTEBOOK_MUST_BE_CLEARED")
 
     code_cells = [cell for cell in data.get("cells", []) if cell.get("cell_type") == "code"]
+
+    # Validate pilot bundle path upfront: fail loudly if invalid or missing when required
+    bundle_arg = env_override.get("PILOT_BUNDLE", "").strip()
+    allow_fixture = env_override.get("EXP03_ALLOW_FIXTURE_FALLBACK", "").lower() in ("true", "1", "yes")
+
+    if bundle_arg:
+        pilot_dir = Path(bundle_arg).resolve()
+        if not pilot_dir.is_dir():
+            raise FileNotFoundError(f"PILOT_BUNDLE_NOT_FOUND: directory does not exist: {pilot_dir}")
+    else:
+        default_pilot = (ROOT / "staging/ml-pilot/pilot-kit/bundle").resolve()
+        if default_pilot.is_dir():
+            pilot_dir = default_pilot
+            env_override["PILOT_BUNDLE"] = str(pilot_dir)
+        elif allow_fixture:
+            pilot_dir = (ROOT / "staging/ml-pilot/exp03-fixture").resolve()
+        else:
+            raise FileNotFoundError(
+                "PILOT_BUNDLE_REQUIRED: PILOT_BUNDLE is not provided and default pilot bundle "
+                f"does not exist at {default_pilot}. Provide --pilot-bundle or set EXP03_ALLOW_FIXTURE_FALLBACK=true."
+            )
+
+    output_dir_str = env_override.get("EXP03_OUTPUT_DIR", "").strip()
+    if not output_dir_str:
+        output_dir_str = str((ROOT / "staging/ml-experiments/exp03-adaptive").resolve())
+        env_override["EXP03_OUTPUT_DIR"] = output_dir_str
+    output_root = Path(output_dir_str).resolve()
+    output_root.mkdir(parents=True, exist_ok=True)
 
     # Try nbclient first if available
     nbclient_available = False
@@ -90,11 +234,43 @@ def run_notebook_cells(notebook_path: Path, env_override: dict) -> dict:
     if hashlib.sha256(notebook_path.read_bytes()).hexdigest() != source_sha:
         raise ValueError("EXP03_SOURCE_NOTEBOOK_MUTATED")
 
+    # Read execution summary produced by the notebook run
+    run_summary = find_latest_experiment_run(output_root)
+    pilot_verif = extract_pilot_verification(pilot_dir, run_summary)
+    exp02_gate = check_exp02_baseline_local_gate(ROOT)
+
+    # Allow test simulation of EXP-02 gate
+    if env_override.get("EXP03_SIMULATE_EXP02_GATE_FAIL", "").lower() in ("true", "1", "yes"):
+        exp02_gate["prerequisite_verified"] = False
+
+    migration_block_reasons = []
+    if not nbclient_available:
+        migration_block_reasons.append("FRESH_KERNEL_REQUIRED")
+    if not pilot_verif["is_real_pilot"]:
+        migration_block_reasons.append("REAL_PILOT_REQUIRED_FOR_COLAB_MIGRATION")
+    if not exp02_gate["prerequisite_verified"]:
+        migration_block_reasons.append("EXP02_BASELINE_LOCAL_GATE_REQUIRED")
+
+    colab_migration_allowed = bool(len(migration_block_reasons) == 0)
+
+    recon_summary = {
+        "experiment_run_id": run_summary.get("experiment_run_id"),
+        "output_dir": run_summary.get("output_dir"),
+        "resolved_unique_aftershocks": run_summary.get("resolved_unique_aftershocks"),
+        "ambiguous_candidates_count": run_summary.get("ambiguous_candidates_count"),
+        "nested_mainshocks_count": run_summary.get("nested_mainshocks_count"),
+    }
+
     return {
+        "task_id": "EXP-03",
         "notebook_status": "RESTART_RUN_ALL_PASSED" if nbclient_available else "FALLBACK_EXEC_PASSED",
         "local_smoke_status": "PASSED" if nbclient_available else "FALLBACK_EXEC_WARNING",
-        "colab_migration_allowed": bool(nbclient_available),
+        "colab_migration_allowed": colab_migration_allowed,
         "fresh_kernel_acceptance": bool(nbclient_available),
+        "migration_block_reasons": migration_block_reasons,
+        "pilot_verification": pilot_verif,
+        "exp02_baseline_local_gate": exp02_gate,
+        "experiment_summary": recon_summary,
         "notebook_sha256": source_sha,
         "executed_code_cells": executed_count,
         "runtime_seconds": round(elapsed, 4),
@@ -110,6 +286,7 @@ def main():
     parser.add_argument("--pilot-bundle", default=os.environ.get("PILOT_BUNDLE", ""), help="Path to pilot bundle directory")
     parser.add_argument("--output-json", default="", help="Optional output path for inspection JSON")
     parser.add_argument("--output-dir", default=os.environ.get("EXP03_OUTPUT_DIR", ""), help="Optional path to output directory")
+    parser.add_argument("--allow-fixture", action="store_true", help="Allow synthetic fixture fallback (blocks Colab migration)")
     args = parser.parse_args()
 
     notebook_path = Path(args.notebook).resolve()
@@ -122,6 +299,8 @@ def main():
         env_override["PILOT_BUNDLE"] = args.pilot_bundle
     if args.output_dir:
         env_override["EXP03_OUTPUT_DIR"] = args.output_dir
+    if args.allow_fixture:
+        env_override["EXP03_ALLOW_FIXTURE_FALLBACK"] = "true"
 
     try:
         report = run_notebook_cells(notebook_path, env_override)

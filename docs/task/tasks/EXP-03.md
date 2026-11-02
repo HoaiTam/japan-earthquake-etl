@@ -75,8 +75,13 @@ evidence cũ thành nghiệm thu của người mới. Giữ In Progress và har
 - **Trạng thái:** In Progress
 - **Assignee:** ThanhTris
 - **Reviewer:** unassigned
-- **01/11/2026 — local smoke acceptance:** ThanhTris kiểm chứng thành công notebook adaptive với fresh kernel (`nbclient`, Python 3.12.16) trên bundle pilot thật. Kết quả đạt `RESTART_RUN_ALL_PASSED`, `local_smoke_status=PASSED`, `fresh_kernel_acceptance=true`, `colab_migration_allowed=true`; 23/23 tests `test_adaptive_hdbscan.py` PASS. [Evidence](../../evidence/EXP-03-local-smoke.json). Giữ `In Progress` cho cloud run.
-- **Evidence / PR:** [EXP-03 evidence](../../evidence/EXP-03.md), [PR #86](https://github.com/HoaiTam/japan-earthquake-etl/pull/86) đã merge implementation. Tiếp nhận tuần 7 theo phân công mới; dependency EXP-02 còn In Progress.
+- **02/11/2026 — local smoke gate update & real pilot identity verification:** Hoàn thiện theo review của @HoaiTam (PR #113):
+  1. Loại bỏ fallback ngầm; gate fail ngay lập tức (`FileNotFoundError: PILOT_BUNDLE_NOT_FOUND`) nếu đường dẫn pilot thiếu hoặc không hợp lệ.
+  2. Xác minh và ghi nhận danh tính pilot thật vào evidence JSON: `pilot_id` (`pilot_196b6d4081d347e1c289e331022658fbbe572dd33181ad987900895c1f1b189c`), 279 dòng đặc trưng, 2 mainshock windows, `features_parquet_sha256` (`3baddf613f237d2117248ad9095230ec17e428ea47f73d499623035d3097d2e6`), `checksums_index_sha256` (`310b5f232ae34ca4f0a197b0181bff81efe6bee38897b6e151e9b58e8d5a6502`), `is_real_pilot=true`.
+  3. Dẫn chiếu và kiểm chứng hard gate baseline local gate của EXP-02 (PR #114, mã băm handoff `d6be707111be8d2b1a2ba64434d6c0cacaa67b73c5aae3235f9772403c544333`, `prerequisite_verified=true`) trước khi cấp phép `colab_migration_allowed=true`. Chặn di chuyển Colab nếu dùng fixture hoặc thiếu gate EXP-02.
+  4. Bổ sung 4 regression tests trong `tests/test_adaptive_hdbscan.py` (nâng tổng số lên 27 tests PASS).
+  5. Thực thi fresh kernel `nbclient` Python 3.12.16 trên bundle pilot thật thành công; xuất bằng chứng tại [EXP-03-local-smoke.json](../../evidence/EXP-03-local-smoke.json). Giữ `In Progress` cho cloud run.
+- **Evidence / PR:** [EXP-03 evidence](../../evidence/EXP-03.md), [PR #86](https://github.com/HoaiTam/japan-earthquake-etl/pull/86) đã merge implementation, [PR #113](https://github.com/HoaiTam/japan-earthquake-etl/pull/113) local smoke gate review round 2. Hard gate EXP-02 đã được liên kết với PR #114.
 - **Kỹ năng phù hợp:** HDBSCAN, parameter policies, entity resolution
 
 ## Checklist bàn giao
