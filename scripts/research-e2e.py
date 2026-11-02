@@ -15,7 +15,7 @@ import uuid
 from urllib.parse import urlencode
 
 ROOT = Path(__file__).resolve().parents[1]
-CONTAINER = "japan-earthquake-etl-airflow-scheduler-1"
+DEFAULT_COMPOSE_PROJECT = "japan-earthquake-etl"
 VERSION = "dat03-bounded-e2e-v1"
 YEARS = (2000, 2011, 2016, 2023, 2024)
 MONTHS = ("2000-01", "2011-04", "2016-04", "2023-12")
@@ -30,6 +30,17 @@ QUERY = "https://earthquake.usgs.gov/fdsnws/event/1/query?" + urlencode({
 def require(ok, reason):
     if not ok:
         raise RuntimeError(reason)
+
+
+def airflow_container(project_name=None):
+    if project_name is None:
+        project_name = os.environ.get("COMPOSE_PROJECT_NAME", DEFAULT_COMPOSE_PROJECT)
+    require(isinstance(project_name, str) and re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,62}", project_name) is not None,
+            "DAT03_COMPOSE_PROJECT_NAME_INVALID")
+    return f"{project_name}-airflow-scheduler-1"
+
+
+CONTAINER = airflow_container()
 
 
 def sha(path):

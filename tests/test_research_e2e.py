@@ -15,6 +15,18 @@ SPEC.loader.exec_module(e2e)
 
 
 class ResearchE2ETest(unittest.TestCase):
+    def test_airflow_container_tracks_compose_project_without_changing_default(self):
+        self.assertEqual("japan-earthquake-etl-airflow-scheduler-1", e2e.airflow_container("japan-earthquake-etl"))
+        self.assertEqual("japan-earthquake-etl-dat03-airflow-scheduler-1",
+                         e2e.airflow_container("japan-earthquake-etl-dat03"))
+        with patch.dict("os.environ", {"COMPOSE_PROJECT_NAME": "japan-earthquake-etl-dat03"}):
+            self.assertEqual("japan-earthquake-etl-dat03-airflow-scheduler-1", e2e.airflow_container())
+
+    def test_airflow_container_rejects_unsafe_compose_project(self):
+        for project in ("", "../old-stack", "UPPERCASE", "a" * 64):
+            with self.assertRaisesRegex(RuntimeError, "COMPOSE_PROJECT_NAME_INVALID"):
+                e2e.airflow_container(project)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(); self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name).resolve()
