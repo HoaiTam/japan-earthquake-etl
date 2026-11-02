@@ -1,6 +1,6 @@
 ---
 task_id: "COL-02"
-status: "Backlog"
+status: "Done"
 week: 7
 block: "H - Experiment"
 workstream: "Bounded baseline parameter sweep"
@@ -42,12 +42,12 @@ loader/module/config hiện có. [Kế hoạch tuần](../WEEK_7_COLAB_PLAN.md).
 
 ## Deliverable / nghiệm thu
 
-- [ ] Notebook/module sweep (đề xuất `notebooks/col_02_parameter_sweep.ipynb`),
+- [x] Notebook/module sweep (`notebooks/col_02_parameter_sweep.ipynb`, `notebooks/parameter_sweep.py`),
       matrix config có version và kết quả máy đọc được.
-- [ ] Không quá 8 cấu hình, cùng pilot/code/scaling pins; đủ failure windows.
-- [ ] Rerun không đổi input hoặc ghi đè result; comparison dựa grain/membership.
-- [ ] PARTIAL/development-only và lý do không dùng pilot để scientific selection.
-- [ ] Colab fresh-session evidence, config hashes và parity/rerun report.
+- [x] Không quá 8 cấu hình (chính xác 8 cấu hình: 4 DBSCAN, 4 HDBSCAN + 1 control WINDOW), cùng pilot/code/scaling pins; đủ failure windows.
+- [x] Rerun không đổi input hoặc ghi đè result; comparison dựa grain/membership đạt RERUN_INVARIANTS_PASSED.
+- [x] PARTIAL/development-only và lý do không dùng pilot để scientific selection.
+- [x] Colab fresh-session evidence, config hashes và parity/rerun report ([COL-02 Evidence](../../evidence/COL-02_PARAMETER_SWEEP_20261102.md)).
 
 ## Dependency / song song / ranh giới
 
@@ -58,7 +58,7 @@ Không thay feature math, không import `ml.*`, không fit toàn catalog.
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
+- **Trạng thái:** Done
 - **Assignee:** rosy179
 - **Reviewer:** unassigned
-- **Evidence / PR:** Chưa triển khai; chưa có sweep hoặc cloud acceptance.
+- **Evidence / PR:** [COL-02 Parameter Sweep Evidence](../../evidence/COL-02_PARAMETER_SWEEP_20261102.md)

@@ -286,7 +286,7 @@ portable merge, full catalog và official export/receipts. Không suy unit PASS 
 | [EXP-04](./EXP-04.md) - Đánh giá quality, physical consistency và stability | 7 | Scientific evaluation | Core | P0 | 7h | Backlog |
 | [EXP-05](./EXP-05.md) - Chạy out-of-period extension 2018-2023 | 7 | Out-of-period evaluation | Core | P0 | 5h | Backlog |
 | [COL-01](./COL-01.md) - Khảo sát và giải thích pilot trên Colab | 7 | Colab pilot data inspection | Core | P1 | 3h | Backlog |
-| [COL-02](./COL-02.md) - Sweep tham số baseline giới hạn trên pilot | 7 | Bounded baseline parameter sweep | Core | P1 | 4h | Backlog |
+| [COL-02](./COL-02.md) - Sweep tham số baseline giới hạn trên pilot | 7 | Bounded baseline parameter sweep | Core | P1 | 4h | Done |
 | [COL-03](./COL-03.md) - Metrics và trực quan hóa baseline pilot | 7 | Pilot baseline metrics and plots | Core | P1 | 4h | Backlog |
 | [COL-04](./COL-04.md) - Kiểm thử biên, multi-sequence và rerun adaptive | 7 | Adaptive edge-case regression | Core | P1 | 3h | Backlog |
 
