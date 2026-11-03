@@ -81,6 +81,11 @@ evidence cũ thành nghiệm thu của người mới. Giữ In Progress và har
   3. Siết chặt fail-closed hard gate EXP-02 (đối chiếu trực tiếp evidence report `docs/evidence/EXP-02_COLAB_PARITY_20261102.json`, pilot ID pin, feature SHA pin, và handoff archive pin `d6be707111be8d2b1a2ba64434d6c0cacaa67b73c5aae3235f9772403c544333`, `prerequisite_verified=true`) trước khi cấp phép `colab_migration_allowed=true`. Siết chặt `find_latest_experiment_run` kiểm tra khớp tuyệt đối `experiment_run_id` với subfolder và manifest thay vì sort theo mtime mù.
   4. Bổ sung 9 regression tests trong `tests/test_adaptive_hdbscan.py` (nâng tổng số lên 32 tests PASS).
   5. Thực thi fresh kernel `nbclient` Python 3.12.16 trên bundle pilot thật thành công; xuất bằng chứng tại [EXP-03-local-smoke.json](../../evidence/EXP-03-local-smoke.json). Giữ `In Progress` cho cloud run.
+- **03/11/2026 — gate hardening & exact run ID pinning (Round 3 review):** Hoàn thiện 2 điểm P2 theo review của @HoaiTam (PR #113):
+  1. Phân biệt rõ chế độ nghiệm thu artifact vs report verification: Trong chế độ `REPORT_ONLY_VERIFIED` (`handoff_archive_exists=false`), gate kiểm tra chặt chẽ metadata, binding pilot/code/config/run và trạng thái `local_smoke_status=PASSED`. Nếu truyền `EXP02_HANDOFF_ARCHIVE` nhưng file không tồn tại, hoặc report EXP-02 có trạng thái `FAILED`, gate lập tức fail-closed.
+  2. Loại bỏ hoàn toàn việc sort mtime mù khi resolve experiment output: Inspector tạo và truyền `experiment_run_id` xác định vào notebook kernel trước khi chạy; chỉ nghiệm thu đúng run đó và đối chiếu cấu trúc manifest JSON.
+  3. Bổ sung thêm 8 regression tests nâng tổng số lên **40 tests PASS** với fresh Jupyter kernel (đạt 21/21 CI checks).
+  4. Xuất evidence mới tại [EXP-03-local-smoke.json](../../evidence/EXP-03-local-smoke.json) với status `REPORT_ONLY_VERIFIED`. Giữ task `In Progress` chờ PR #114 merge và nghiệm thu Colab cloud.
 - **Evidence / PR:** [EXP-03 evidence](../../evidence/EXP-03.md), [PR #86](https://github.com/HoaiTam/japan-earthquake-etl/pull/86) đã merge implementation, [PR #113](https://github.com/HoaiTam/japan-earthquake-etl/pull/113) local smoke gate review round 2. Hard gate EXP-02 đã được liên kết với PR #114.
 - **Kỹ năng phù hợp:** HDBSCAN, parameter policies, entity resolution
 
