@@ -1,6 +1,10 @@
 # COL-02 — Bounded Baseline Parameter Sweep on Development Pilot
 
-- **Trạng thái:** `In Progress` (Đã hoàn tất nghiệm thu kỹ thuật Local Gate & Rerun Invariants; chờ Colab fresh-session cloud execution)
+- **Trạng thái tại mốc local:** `In Progress` (Local Gate & Rerun Invariants).
+  **Hiện hành: Done ngày 05/11/2026** sau
+  [fresh Colab và independent readback](./COL-02_COLAB_20261104.md).
+  Các số liệu/branch dưới đây giữ làm evidence lịch sử của phiên local,
+  không thay pins và artifacts của lần cloud acceptance cuối.
 - **Ngày kiểm chứng:** 2026-11-02 (Cập nhật bản vá 2026-11-04)
 - **Tuần thực hiện:** Tuần 7 (02–08/11/2026), Khối 2
 - **Assignee:** `rosy179`
@@ -114,7 +118,11 @@ Cấu hình `DBSCAN_C1` được chạy lại trong một thư mục cô lập �
 
 ## 7. Giới hạn / Rủi ro / Bước tiếp theo
 
-- **Nghiệm thu Colab Fresh-session (COL-02 Cloud):** Bằng chứng parity của EXP-02 (#114) không thay thế cho việc nghiệm thu sweep 8 cấu hình của COL-02 trên đám mây. Cần chạy sweep trên Google Colab CPU runtime với đúng output ZIP/links và exact pins để chuyển task sang `Done`.
+- **Nghiệm thu Colab Fresh-session (COL-02 Cloud):** tại mốc local này còn thiếu;
+  parity EXP-02 (#114) không thay nghiệm thu sweep. Đã hoàn tất riêng bằng
+  actual Colab CPU và independent output readback ngày 05/11, xem
+  [evidence/pins cuối](./COL-02_COLAB_20261104.md); không dùng các run IDs local
+  trong tài liệu lịch sử này thay cloud result bundles.
 - **Trực quan hóa và bảng metrics (COL-03):** Kết xuất bảng so sánh chi tiết và đồ thị không gian - thời gian tương đối phục vụ handoff cho ThanhTris thuộc về [COL-03 - Metrics và trực quan hóa baseline pilot](../task/tasks/COL-03.md).
 - **Đánh giá tính ổn định / Omori (EXP-04):** Đánh giá decay law và độ ổn định chuỗi theo thời gian thuộc về [EXP-04 - Đánh giá quality, physical consistency và stability](../task/tasks/EXP-04.md) (ThanhTris).
 - **Nghiên cứu chính thức toàn kỳ:** Pilot mang tính chất kỹ thuật (`DEVELOPMENT_ONLY`, `PARTIAL`); việc chạy nghiên cứu toàn kỳ cần catalog chính thức từ [DAT-03 - Chuẩn bị catalog nghiên cứu thật](../task/tasks/DAT-03.md) và [MLD-05 - Validate feature snapshot và export Parquet bundle](../task/tasks/MLD-05.md).

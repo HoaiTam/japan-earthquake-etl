@@ -44,7 +44,7 @@ Giờ bên dưới là **ước lượng phần còn làm tuần này**, không 
 | HoaiTam — 1 | [DOC-01](./tasks/DOC-01.md) | Cũ — bổ sung hướng dẫn | Done — scope tài liệu hiện có | Cập nhật lệnh/expected output theo các PR cloud thực tế | 3 |
 | HoaiTam — 1 | [SEC-01](./tasks/SEC-01.md) | Cũ — Needs Update cloud audit | Needs Update | Kiểm quyền nhận, notebook/session và output không chứa secret | 3 |
 | rosy179 — 2 | [EXP-02](./tasks/EXP-02.md) | Cũ — hoàn thiện Colab parity | In Progress | Chạy ba baseline cùng input/config; so với local | 6 |
-| rosy179 — 2 | [COL-02](./tasks/COL-02.md) | New | Backlog | Sweep tham số nhỏ có version, không sửa feature gốc | 4 |
+| rosy179 — 2 | [COL-02](./tasks/COL-02.md) | New | Backlog | Sweep giới hạn, config pins, Colab parity và rerun | 4 |
 | rosy179 — 2 | [COL-03](./tasks/COL-03.md) | New | Backlog | Bảng metrics baseline/plots và lý do N/A/failure | 4 |
 | ThanhTris — 3 | [EXP-03](./tasks/EXP-03.md) | Cũ — chuyển owner, hoàn thiện | In Progress | Adaptive/multi-sequence; fresh kernel và output thật | 5 |
 | ThanhTris — 3 | [COL-04](./tasks/COL-04.md) | New | Backlog | Test ít mẫu/noise/overlap/tie và kiểm rerun | 3 |
@@ -58,6 +58,13 @@ Giờ bên dưới là **ước lượng phần còn làm tuần này**, không 
   là ThanhTris. rosy179 cung cấp baseline metrics qua COL-03, không cùng sửa
   evaluation module để tránh xung đột. Reviewer vẫn `unassigned` đến khi có
   người thật nhận review; không ghi approval trước.
+
+**Cập nhật COL-02 ngày 05/11:** task đã Done sau fresh Colab CPU ngày 04/11 và
+independent local readback đủ 75 files/10 parity ngày 05/11; HoaiTam vận hành,
+assignee vẫn rosy179, reviewer unassigned. Cột “Status lúc giao” giữ mốc lịch
+phân công, không thay trạng thái hiện hành trong file task.
+[Evidence](../evidence/COL-02_COLAB_20261104.md). Pilot không thay official
+EXP-02/EXP-04 evaluation hoặc DAT-03 research release.
 
 ## 4. Hướng dẫn khối 1 — HoaiTam
 
