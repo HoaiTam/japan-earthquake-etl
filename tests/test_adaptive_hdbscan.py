@@ -1035,6 +1035,526 @@ class TestAdaptiveHDBSCAN(unittest.TestCase):
             actual_sha = sha256_bytes((run_1_dir / fname).read_bytes())
             self.assertEqual(expected_sha, actual_sha)
 
+    # -------------------------------------------------------------------------
+    # 9. Edge-Case Regression in Window Fitting (fit_hdbscan_adaptive)
+    # -------------------------------------------------------------------------
+    def test_edge_case_single_candidate_self_only(self):
+        """Window containing only the mainshock itself (N=1).
+
+        Must assign role MAINSHOCK, noise label -1, 0 sequence members,
+        and summary status FAILED with EXP_MAINSHOCK_CLASSIFIED_AS_NOISE.
+        """
+        candidates = [
+            {
+                "candidate_event_id": "main_single",
+                "mainshock_magnitude": 6.0,
+                "candidate_magnitude": 6.0,
+                "delta_time_hours": 0.0,
+                "x_scaled": 0.0,
+                "y_scaled": 0.0,
+                "z_scaled": 0.0,
+                "time_scaled": 0.0,
+            }
+        ]
+        mem_rows, sum_row = fit_hdbscan_adaptive(
+            window_candidates=candidates,
+            mainshock_id="main_single",
+            config=self.model_config,
+        )
+        self.assertEqual(len(mem_rows), 1)
+        r = mem_rows[0]
+        self.assertEqual(r["candidate_event_id"], "main_single")
+        self.assertEqual(r["event_role_candidate"], "MAINSHOCK")
+        self.assertTrue(r["is_noise"])
+        self.assertEqual(r["cluster_id"], -1)
+        self.assertFalse(r["is_mainshock_cluster_member"])
+        self.assertFalse(r["is_sequence_member"])
+        self.assertEqual(r["multi_sequence_status"], "NOT_MEMBER")
+        self.assertIsNone(r["resolution_rank"])
+
+        self.assertEqual(sum_row["window_result_status"], "FAILED")
+        self.assertEqual(sum_row["failure_reason_code"], "EXP_MAINSHOCK_CLASSIFIED_AS_NOISE")
+        self.assertIsNone(sum_row["sequence_member_count"])
+        self.assertIsNone(sum_row["aftershock_count"])
+        self.assertIsNone(sum_row["foreshock_candidate_count"])
+
+    def test_edge_case_small_sample_under_min_cluster_size(self):
+        """Window with candidate count N < min_cluster_size (e.g. N=2 when min is 3).
+
+        HDBSCAN is bypassed/labels all points -1, raw grain preserved,
+        window fails with EXP_MAINSHOCK_CLASSIFIED_AS_NOISE.
+        """
+        candidates = [
+            {
+                "candidate_event_id": "main_small",
+                "mainshock_magnitude": 5.5,
+                "delta_time_hours": 0.0,
+                "x_scaled": 0.0,
+                "y_scaled": 0.0,
+                "z_scaled": 0.0,
+                "time_scaled": 0.0,
+            },
+            {
+                "candidate_event_id": "cand_after_1",
+                "mainshock_magnitude": 5.5,
+                "candidate_magnitude": 4.2,
+                "delta_time_hours": 2.5,
+                "x_scaled": 5.0,
+                "y_scaled": 1.0,
+                "z_scaled": 0.5,
+                "time_scaled": 2.5,
+            },
+        ]
+        mem_rows, sum_row = fit_hdbscan_adaptive(
+            window_candidates=candidates,
+            mainshock_id="main_small",
+            config=self.model_config,
+        )
+        self.assertEqual(len(mem_rows), 2)
+        for r in mem_rows:
+            self.assertTrue(r["is_noise"])
+            self.assertEqual(r["cluster_id"], -1)
+            self.assertFalse(r["is_sequence_member"])
+
+        self.assertEqual(sum_row["window_result_status"], "FAILED")
+        self.assertEqual(sum_row["failure_reason_code"], "EXP_MAINSHOCK_CLASSIFIED_AS_NOISE")
+        self.assertIsNone(sum_row["sequence_member_count"])
+
+    def test_edge_case_mainshock_classified_as_noise_with_valid_cluster(self):
+        """Window where candidates form a valid cluster but mainshock is an outlier (noise).
+
+        Window must fail with EXP_MAINSHOCK_CLASSIFIED_AS_NOISE and NO candidate
+        in the non-mainshock cluster can be claimed as a sequence member.
+        """
+        cfg = dict(self.model_config)
+        np.random.seed(42)
+        b1 = np.random.randn(20, 4) * 0.1
+        outlier = [{
+            "candidate_event_id": "main_outlier",
+            "mainshock_magnitude": 4.5,
+            "x_scaled": 100.0,
+            "y_scaled": 100.0,
+            "z_scaled": 100.0,
+            "time_scaled": 100.0,
+        }]
+        blob = [
+            {
+                "candidate_event_id": f"c_{i}",
+                "mainshock_magnitude": 4.5,
+                "delta_time_hours": 1.0 + float(b1[i, 0]),
+                "x_scaled": float(b1[i, 0]),
+                "y_scaled": float(b1[i, 1]),
+                "z_scaled": float(b1[i, 2]),
+                "time_scaled": float(b1[i, 3]),
+            }
+            for i in range(20)
+        ]
+        mem_rows, sum_row = fit_hdbscan_adaptive(
+            window_candidates=outlier + blob,
+            mainshock_id="main_outlier",
+            config=cfg,
+        )
+        self.assertEqual(len(mem_rows), 21)
+        main_row = next(r for r in mem_rows if r["candidate_event_id"] == "main_outlier")
+        self.assertEqual(main_row["cluster_id"], -1)
+        self.assertTrue(main_row["is_noise"])
+
+        # Review requirement (PR #116 comment): Ensure candidate blob actually formed
+        # at least one non-noise cluster (cluster_id >= 0) to avoid false-positive pass where all are noise.
+        non_noise_clusters = {r["cluster_id"] for r in mem_rows if r["cluster_id"] >= 0}
+        self.assertGreaterEqual(
+            len(non_noise_clusters),
+            1,
+            "Expected at least one valid non-noise cluster formed by candidate blob",
+        )
+        blob_rows = [r for r in mem_rows if r["candidate_event_id"] != "main_outlier"]
+        self.assertTrue(
+            any(r["cluster_id"] in non_noise_clusters for r in blob_rows),
+            "Expected candidate blob events to be assigned to valid non-noise cluster",
+        )
+
+        for r in mem_rows:
+            self.assertFalse(r["is_sequence_member"])
+            self.assertFalse(r["is_mainshock_cluster_member"])
+            self.assertEqual(r["multi_sequence_status"], "NOT_MEMBER")
+            self.assertIsNone(r["resolution_rank"])
+
+        self.assertEqual(sum_row["window_result_status"], "FAILED")
+        self.assertEqual(sum_row["failure_reason_code"], "EXP_MAINSHOCK_CLASSIFIED_AS_NOISE")
+        self.assertIsNone(sum_row["sequence_member_count"])
+
+    def test_edge_case_all_noise_window(self):
+        """Window where candidates are dispersed so HDBSCAN assigns all -1.
+
+        Window must fail with EXP_MAINSHOCK_CLASSIFIED_AS_NOISE.
+        """
+        cfg = dict(self.model_config)
+        cfg["allow_single_cluster"] = False
+        candidates = [
+            {
+                "candidate_event_id": f"disp_{i}",
+                "mainshock_magnitude": 4.5,
+                "x_scaled": float(i * 1000.0),
+                "y_scaled": 0.0,
+                "z_scaled": 0.0,
+                "time_scaled": 0.0,
+            }
+            for i in range(10)
+        ]
+        mem_rows, sum_row = fit_hdbscan_adaptive(
+            window_candidates=candidates,
+            mainshock_id="disp_0",
+            config=cfg,
+        )
+        for r in mem_rows:
+            self.assertEqual(r["cluster_id"], -1)
+            self.assertTrue(r["is_noise"])
+            self.assertFalse(r["is_sequence_member"])
+        self.assertEqual(sum_row["window_result_status"], "FAILED")
+        self.assertEqual(sum_row["failure_reason_code"], "EXP_MAINSHOCK_CLASSIFIED_AS_NOISE")
+
+    def test_edge_case_multi_cluster_only_mainshock_cluster_accepted(self):
+        """When multiple clusters form, only candidates in the mainshock's cluster are accepted.
+
+        Candidates in other clusters must have is_sequence_member=False and multi_sequence_status=NOT_MEMBER.
+        """
+        cfg = dict(self.model_config)
+        np.random.seed(42)
+        b1 = np.random.randn(20, 4) * 0.1
+        b2 = np.random.randn(20, 4) * 0.1 + 20.0
+        cands = []
+        for i in range(20):
+            cands.append({
+                "candidate_event_id": "main_A" if i == 0 else f"a_{i}",
+                "mainshock_magnitude": 4.5,
+                "delta_time_hours": 0.0 if i == 0 else 0.5,
+                "x_scaled": float(b1[i, 0]),
+                "y_scaled": float(b1[i, 1]),
+                "z_scaled": float(b1[i, 2]),
+                "time_scaled": float(b1[i, 3]),
+            })
+        for i in range(20):
+            cands.append({
+                "candidate_event_id": f"b_{i}",
+                "mainshock_magnitude": 4.5,
+                "delta_time_hours": 50.0,
+                "x_scaled": float(b2[i, 0]),
+                "y_scaled": float(b2[i, 1]),
+                "z_scaled": float(b2[i, 2]),
+                "time_scaled": float(b2[i, 3]),
+            })
+
+        mem_rows, sum_row = fit_hdbscan_adaptive(
+            window_candidates=cands,
+            mainshock_id="main_A",
+            config=cfg,
+        )
+        self.assertEqual(len(mem_rows), 40)
+        self.assertEqual(sum_row["window_result_status"], "SUCCESS")
+
+        a_members = [r for r in mem_rows if r["candidate_event_id"].startswith("a_") or r["candidate_event_id"] == "main_A"]
+        b_non_members = [r for r in mem_rows if r["candidate_event_id"].startswith("b_")]
+
+        for r in a_members:
+            self.assertTrue(r["is_sequence_member"])
+            self.assertTrue(r["is_mainshock_cluster_member"])
+            self.assertEqual(r["multi_sequence_status"], "UNIQUE")
+
+        for r in b_non_members:
+            self.assertFalse(r["is_sequence_member"])
+            self.assertFalse(r["is_mainshock_cluster_member"])
+            self.assertEqual(r["multi_sequence_status"], "NOT_MEMBER")
+            self.assertIsNone(r["resolution_rank"])
+
+        self.assertEqual(sum_row["sequence_member_count"], 20)
+
+    def test_edge_case_empty_post_candidates(self):
+        """Window with foreshocks (PRE) and MAINSHOCK, but zero aftershocks (POST).
+
+        Must handle empty POST gracefully: aftershock_count=0, foreshock_candidate_count>0,
+        status SUCCESS.
+        """
+        cfg = dict(self.model_config)
+        np.random.seed(42)
+        b = np.random.randn(20, 4) * 0.05
+        cands = []
+        for i in range(20):
+            is_main = (i == 0)
+            cands.append({
+                "candidate_event_id": "main_no_post" if is_main else f"pre_{i}",
+                "mainshock_magnitude": 4.5,
+                "delta_time_hours": 0.0 if is_main else -float(abs(b[i, 0]) + 0.1),
+                "x_scaled": float(b[i, 0]),
+                "y_scaled": float(b[i, 1]),
+                "z_scaled": float(b[i, 2]),
+                "time_scaled": float(b[i, 3]),
+            })
+
+        mem_rows, sum_row = fit_hdbscan_adaptive(
+            window_candidates=cands,
+            mainshock_id="main_no_post",
+            config=cfg,
+        )
+        self.assertEqual(sum_row["window_result_status"], "SUCCESS")
+        self.assertEqual(sum_row["aftershock_count"], 0)
+        self.assertGreater(sum_row["foreshock_candidate_count"], 0)
+        self.assertEqual(sum_row["sequence_member_count"], sum_row["foreshock_candidate_count"] + 1)
+
+        for r in mem_rows:
+            if r["candidate_event_id"] == "main_no_post":
+                self.assertEqual(r["event_role_candidate"], "MAINSHOCK")
+            else:
+                self.assertEqual(r["event_role_candidate"], "PRE")
+
+    # -------------------------------------------------------------------------
+    # 10. Multi-Sequence Overlap Fixture & Reconciliation
+    # -------------------------------------------------------------------------
+    def test_multi_sequence_two_window_overlap_reconciliation(self):
+        """Two overlapping windows with shared candidate: verify raw grain, reconciliation count,
+
+        and rank assignments.
+        """
+        # Window A: main_A (self), c_shared, c_unique_A
+        # Window B: main_B (self), c_shared, c_unique_B
+        all_memberships = [
+            {"mainshock_event_id": "main_A", "candidate_event_id": "main_A", "is_sequence_member": True, "membership_probability": 1.0, "normalized_distance": 0.0, "event_role_candidate": "MAINSHOCK"},
+            {"mainshock_event_id": "main_A", "candidate_event_id": "c_shared", "is_sequence_member": True, "membership_probability": 0.90, "normalized_distance": 0.1, "event_role_candidate": "POST"},
+            {"mainshock_event_id": "main_A", "candidate_event_id": "c_unique_A", "is_sequence_member": True, "membership_probability": 0.80, "normalized_distance": 0.2, "event_role_candidate": "POST"},
+            {"mainshock_event_id": "main_B", "candidate_event_id": "main_B", "is_sequence_member": True, "membership_probability": 1.0, "normalized_distance": 0.0, "event_role_candidate": "MAINSHOCK"},
+            {"mainshock_event_id": "main_B", "candidate_event_id": "c_shared", "is_sequence_member": True, "membership_probability": 0.40, "normalized_distance": 0.5, "event_role_candidate": "POST"},
+            {"mainshock_event_id": "main_B", "candidate_event_id": "c_unique_B", "is_sequence_member": True, "membership_probability": 0.75, "normalized_distance": 0.3, "event_role_candidate": "POST"},
+        ]
+        summaries = [
+            {"mainshock_event_id": "main_A", "is_nested_mainshock_candidate": False},
+            {"mainshock_event_id": "main_B", "is_nested_mainshock_candidate": False},
+        ]
+        res_mem, res_sum, recon = resolve_multi_sequence_and_nested_mainshocks(all_memberships, summaries)
+
+        # Raw grain strictly preserved: exactly 6 rows returned
+        self.assertEqual(len(res_mem), 6)
+        self.assertEqual(recon["total_raw_memberships"], 6)
+
+        # Shared candidate resolution
+        shared_in_a = next(m for m in res_mem if m["mainshock_event_id"] == "main_A" and m["candidate_event_id"] == "c_shared")
+        shared_in_b = next(m for m in res_mem if m["mainshock_event_id"] == "main_B" and m["candidate_event_id"] == "c_shared")
+
+        self.assertEqual(shared_in_a["multi_sequence_status"], "MULTIPLE")
+        self.assertEqual(shared_in_a["resolution_rank"], 1)
+        self.assertEqual(shared_in_b["multi_sequence_status"], "MULTIPLE")
+        self.assertEqual(shared_in_b["resolution_rank"], 2)
+
+        # Unique candidates remain UNIQUE with rank 1
+        u_a = next(m for m in res_mem if m["mainshock_event_id"] == "main_A" and m["candidate_event_id"] == "c_unique_A")
+        u_b = next(m for m in res_mem if m["mainshock_event_id"] == "main_B" and m["candidate_event_id"] == "c_unique_B")
+        self.assertEqual(u_a["multi_sequence_status"], "UNIQUE")
+        self.assertEqual(u_a["resolution_rank"], 1)
+        self.assertEqual(u_b["multi_sequence_status"], "UNIQUE")
+        self.assertEqual(u_b["resolution_rank"], 1)
+
+        # Deduplication count reconciliation: 4 raw aftershocks, 3 unique resolved aftershocks, 1 deduplicated
+        self.assertEqual(recon["raw_aftershocks"], 4)
+        self.assertEqual(recon["resolved_unique_aftershocks"], 3)
+        self.assertEqual(recon["aftershocks_deduplicated_count"], 1)
+        self.assertEqual(recon["ambiguous_candidates_count"], 0)
+
+    def test_multi_sequence_two_window_overlap_exact_tie_ambiguous(self):
+        """When 2 overlapping sequences tie on probability and distance, candidate is AMBIGUOUS.
+
+        Resolution must be invariant under window order permutation.
+        """
+        eps_tie = 1e-6
+        base_shared = [
+            {"mainshock_event_id": "main_A", "candidate_event_id": "c_tie", "is_sequence_member": True, "membership_probability": 0.8000000, "normalized_distance": 0.2, "event_role_candidate": "POST"},
+            {"mainshock_event_id": "main_B", "candidate_event_id": "c_tie", "is_sequence_member": True, "membership_probability": 0.8000001, "normalized_distance": 0.2, "event_role_candidate": "POST"},
+        ]
+        for perm in itertools.permutations(base_shared):
+            memberships = list(perm)
+            summaries = [
+                {"mainshock_event_id": "main_A", "is_nested_mainshock_candidate": False},
+                {"mainshock_event_id": "main_B", "is_nested_mainshock_candidate": False},
+            ]
+            res_mem, _, recon = resolve_multi_sequence_and_nested_mainshocks(memberships, summaries, eps_tie=eps_tie)
+            self.assertEqual(len(res_mem), 2)
+            for m in res_mem:
+                self.assertEqual(m["multi_sequence_status"], "AMBIGUOUS")
+                self.assertIsNone(m["resolution_rank"])
+            self.assertEqual(recon["ambiguous_candidates_count"], 1)
+            self.assertEqual(recon["resolved_unique_aftershocks"], 0)
+
+    def test_multi_sequence_candidate_member_in_one_and_noise_in_other(self):
+        """Candidate that is a sequence member in Window A but noise in Window B.
+
+        Must resolve as UNIQUE (rank 1) in Window A, and NOT_MEMBER (rank None) in Window B.
+        """
+        all_memberships = [
+            {"mainshock_event_id": "main_A", "candidate_event_id": "c_mixed", "is_sequence_member": True, "membership_probability": 0.85, "normalized_distance": 0.15, "event_role_candidate": "POST"},
+            {"mainshock_event_id": "main_B", "candidate_event_id": "c_mixed", "is_sequence_member": False, "membership_probability": 0.0, "normalized_distance": 1.5, "event_role_candidate": "POST"},
+        ]
+        summaries = [
+            {"mainshock_event_id": "main_A", "is_nested_mainshock_candidate": False},
+            {"mainshock_event_id": "main_B", "is_nested_mainshock_candidate": False},
+        ]
+        res_mem, _, recon = resolve_multi_sequence_and_nested_mainshocks(all_memberships, summaries)
+        row_a = next(m for m in res_mem if m["mainshock_event_id"] == "main_A")
+        row_b = next(m for m in res_mem if m["mainshock_event_id"] == "main_B")
+
+        self.assertEqual(row_a["multi_sequence_status"], "UNIQUE")
+        self.assertEqual(row_a["resolution_rank"], 1)
+        self.assertEqual(row_b["multi_sequence_status"], "NOT_MEMBER")
+        self.assertIsNone(row_b["resolution_rank"])
+        self.assertEqual(recon["resolved_unique_aftershocks"], 1)
+
+    # -------------------------------------------------------------------------
+    # 11. Determinism & Permutation Invariance
+    # -------------------------------------------------------------------------
+    def test_candidate_input_order_permutation_invariance_fit_adaptive(self):
+        """Permuting candidate order into fit_hdbscan_adaptive must yield identical
+
+        set of sequence member IDs, roles, and summary metrics.
+        """
+        cfg = dict(self.model_config)
+        np.random.seed(42)
+        b = np.random.randn(15, 4) * 0.1
+        base_candidates = []
+        for i in range(15):
+            is_main = (i == 0)
+            base_candidates.append({
+                "candidate_event_id": "m_inv" if is_main else f"c_inv_{i}",
+                "mainshock_magnitude": 4.5,
+                "delta_time_hours": 0.0 if is_main else float(b[i, 0]),
+                "x_scaled": float(b[i, 0]),
+                "y_scaled": float(b[i, 1]),
+                "z_scaled": float(b[i, 2]),
+                "time_scaled": float(b[i, 3]),
+            })
+
+        ref_members = None
+        ref_roles = None
+        ref_status = None
+        for perm in list(itertools.permutations(base_candidates[:6])):
+            full_perm = list(perm) + base_candidates[6:]
+            mem, sum_row = fit_hdbscan_adaptive(
+                window_candidates=full_perm,
+                mainshock_id="m_inv",
+                config=cfg,
+            )
+            seq_members = {m["candidate_event_id"] for m in mem if m["is_sequence_member"]}
+            roles = {m["candidate_event_id"]: m["event_role_candidate"] for m in mem}
+            if ref_members is None:
+                ref_members = seq_members
+                ref_roles = roles
+                ref_status = sum_row["window_result_status"]
+            else:
+                self.assertEqual(seq_members, ref_members)
+                self.assertEqual(roles, ref_roles)
+                self.assertEqual(sum_row["window_result_status"], ref_status)
+
+    # -------------------------------------------------------------------------
+    # 12. Rerun, Retry & Tamper Detection
+    # -------------------------------------------------------------------------
+    def test_rerun_with_same_config_yields_identical_analytical_outputs(self):
+        """Running adaptive experiment on identical bundle with same configuration
+
+        produces bitwise identical analytical columns and retry idempotent reuse.
+        """
+        temp_bundle_dir = self.tmp_dir / "pilot_bundle_det"
+        temp_bundle_dir.mkdir(parents=True, exist_ok=True)
+        test_experiment_harness.create_pilot_fixture(temp_bundle_dir)
+        bundle = load_feature_bundle(temp_bundle_dir, mode=MODE_DEVELOPMENT)
+
+        out_1 = self.tmp_dir / "res_det_1"
+        out_2 = self.tmp_dir / "res_det_2"
+        out_1.mkdir(parents=True, exist_ok=True)
+        out_2.mkdir(parents=True, exist_ok=True)
+
+        res1 = run_adaptive_experiment(
+            bundle=bundle,
+            config=self.model_config,
+            model_config_version="hdbscan-adaptive-dev-v1",
+            output_dir=out_1,
+            mode=MODE_DEVELOPMENT,
+            experiment_run_id="run_fixed_det",
+            execution_id="exec_fixed_det",
+        )
+        res2 = run_adaptive_experiment(
+            bundle=bundle,
+            config=self.model_config,
+            model_config_version="hdbscan-adaptive-dev-v1",
+            output_dir=out_2,
+            mode=MODE_DEVELOPMENT,
+            experiment_run_id="run_fixed_det",
+            execution_id="exec_fixed_det",
+        )
+        # Compare analytical data columns in memberships.parquet
+        t1 = pq.read_table(out_1 / "memberships.parquet")
+        t2 = pq.read_table(out_2 / "memberships.parquet")
+        analytical_cols = [c for c in t1.column_names if c != "created_at_utc"]
+        self.assertEqual(t1.select(analytical_cols).to_pylist(), t2.select(analytical_cols).to_pylist())
+
+        # Compare analytical data columns in sequence_summary.parquet
+        s1 = pq.read_table(out_1 / "sequence_summary.parquet")
+        s2 = pq.read_table(out_2 / "sequence_summary.parquet")
+        sum_cols = [c for c in s1.column_names if c not in ("created_at_utc", "runtime_seconds")]
+        self.assertEqual(s1.select(sum_cols).to_pylist(), s2.select(sum_cols).to_pylist())
+
+        # Test retry reuse: retry with same run_id reuses bundle intact with matching sha256
+        res3 = run_adaptive_experiment(
+            bundle=bundle,
+            config=self.model_config,
+            model_config_version="hdbscan-adaptive-dev-v1",
+            output_dir=out_1,
+            mode=MODE_DEVELOPMENT,
+            experiment_run_id="run_fixed_det",
+            is_retry=True,
+        )
+        self.assertTrue(res3["write_result"]["is_reused"])
+
+    def test_rerun_tampered_artifact_detection(self):
+        """When an artifact file is modified/tampered, retry must detect the corruption
+
+        and refuse to reuse the damaged bundle (raises EXP_COMPLETED_BUNDLE_CONFLICT).
+        """
+        temp_bundle_dir = self.tmp_dir / "pilot_bundle_tamper"
+        temp_bundle_dir.mkdir(parents=True, exist_ok=True)
+        test_experiment_harness.create_pilot_fixture(temp_bundle_dir)
+        bundle = load_feature_bundle(temp_bundle_dir, mode=MODE_DEVELOPMENT)
+
+        out_root = self.tmp_dir / "results_tamper"
+        out_root.mkdir(parents=True, exist_ok=True)
+
+        res1 = run_adaptive_experiment(
+            bundle=bundle,
+            config=self.model_config,
+            model_config_version="hdbscan-adaptive-dev-v1",
+            output_dir=out_root,
+            mode=MODE_DEVELOPMENT,
+            subfolder_by_run_id=True,
+        )
+        run_id = res1["run_id"]
+        run_dir = Path(res1["output_dir"])
+
+        # Tamper with memberships.parquet
+        parquet_file = run_dir / "memberships.parquet"
+        self.assertTrue(parquet_file.is_file())
+        with open(parquet_file, "ab") as f:
+            f.write(b"CORRUPTED_TAMPER_BYTES")
+
+        # Retry should detect checksum mismatch and raise EXP_COMPLETED_BUNDLE_CONFLICT
+        with self.assertRaises(ValueError) as ctx:
+            run_adaptive_experiment(
+                bundle=bundle,
+                config=self.model_config,
+                model_config_version="hdbscan-adaptive-dev-v1",
+                output_dir=out_root,
+                mode=MODE_DEVELOPMENT,
+                experiment_run_id=run_id,
+                is_retry=True,
+                subfolder_by_run_id=True,
+            )
+        self.assertIn("EXP_COMPLETED_BUNDLE_CONFLICT", str(ctx.exception))
+    # -------------------------------------------------------------------------
+    # 12. EXP-02 Baseline Local Gate and Run Manifest Verifications
+    # -------------------------------------------------------------------------
     def test_notebook_missing_pilot_bundle_fails_loudly(self):
         """Review requirement: missing or invalid PILOT_BUNDLE path must fail loudly, never fallback silently."""
         nb_path = ROOT / "notebooks/exp_03_adaptive_hdbscan.ipynb"

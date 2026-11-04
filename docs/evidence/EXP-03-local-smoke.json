@@ -28,15 +28,15 @@
     "failure_reasons": []
   },
   "experiment_summary": {
-    "experiment_run_id": "pilot_run_f0cda8b1a178475799c54c7e835f0e6c",
-    "output_dir": "/mnt/c/Code/IE212/japan-earthquake-etl/staging/ml-experiments/exp03-adaptive/pilot_run_f0cda8b1a178475799c54c7e835f0e6c",
+    "experiment_run_id": "pilot_run_cfe24f4de7704819ac1c6116360e1aae",
+    "output_dir": "/mnt/c/Code/IE212/japan-earthquake-etl/staging/ml-experiments/exp03-adaptive/pilot_run_cfe24f4de7704819ac1c6116360e1aae",
     "resolved_unique_aftershocks": 0,
     "ambiguous_candidates_count": 0,
     "nested_mainshocks_count": 0
   },
   "notebook_sha256": "607fa092987af81d627adb3fb619b5385a4dca1f4baf8b51abc82085550e99ab",
   "executed_code_cells": 5,
-  "runtime_seconds": 5.7851,
+  "runtime_seconds": 8.4127,
   "python_version": "3.12.16",
   "runner_mode": "nbclient",
   "source_notebook_outputs_cleared": true
