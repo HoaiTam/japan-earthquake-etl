@@ -1,9 +1,21 @@
 {
   "task_id": "COL-02",
-  "status": "SWEEP_MATRIX_AND_RERUN_INVARIANTS_VERIFIED",
-  "version": "col02-sweep-report-v1",
+  "status": "LOCAL_SWEEP_AND_RERUN_INVARIANTS_VERIFIED",
+  "version": "col02-sweep-report-v2",
   "recipient": "rosy179",
-  "verified_at_utc": "2026-11-02T04:03:35.676893+00:00",
+  "verified_at_utc": "2026-11-04T03:50:00.000000+00:00",
+  "local_gate": {
+    "status": "PASSED",
+    "fail_closed_overwrite_protection": true,
+    "explicit_pilot_path_validation": true,
+    "total_configurations_evaluated": 9,
+    "parameter_configurations": 8,
+    "control_configurations": 1
+  },
+  "cloud_acceptance": {
+    "status": "PENDING_FRESH_COLAB_EVIDENCE",
+    "cloud_session_verified": false
+  },
   "pilot": {
     "pilot_id": "pilot_196b6d4081d347e1c289e331022658fbbe572dd33181ad987900895c1f1b189c",
     "candidate_count": 279,

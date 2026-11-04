@@ -28,20 +28,58 @@ from test_experiment_harness import create_pilot_fixture
 
 def main():
     parser = argparse.ArgumentParser(description="COL-02 Parameter Sweep Runner")
-    parser.add_argument("--pilot-bundle", type=Path, help="Path to pilot bundle directory containing manifest/features")
-    parser.add_argument("--output-dir", type=Path, default=ROOT / "staging/ml-experiments/col02-sweep", help="Directory for sweep outputs")
-    parser.add_argument("--report-json", type=Path, help="Path to write col02-sweep-report.json")
+    parser.add_argument(
+        "--pilot-bundle",
+        type=Path,
+        help="Path to pilot bundle directory containing manifest/features",
+    )
+    parser.add_argument(
+        "--synthetic-fixture",
+        action="store_true",
+        default=False,
+        help="Explicit flag to allow using a synthetic pilot fixture for dev/testing only",
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=ROOT / "staging/ml-experiments/col02-sweep",
+        help="Directory for sweep outputs",
+    )
+    parser.add_argument(
+        "--report-json",
+        type=Path,
+        help="Path to write col02-sweep-report.json",
+    )
+    parser.add_argument(
+        "--allow-overwrite",
+        action="store_true",
+        default=False,
+        help="Explicitly permit overwriting an existing sweep output directory",
+    )
     args = parser.parse_args()
 
     temp_bundle_dir = None
-    if args.pilot_bundle and args.pilot_bundle.is_dir():
+    if args.pilot_bundle is not None:
+        if args.synthetic_fixture:
+            parser.error("Cannot combine --pilot-bundle and --synthetic-fixture.")
+        if not args.pilot_bundle.exists():
+            print(f"ERROR: Explicit pilot bundle path does not exist: {args.pilot_bundle}", file=sys.stderr)
+            sys.exit(2)
+        if not args.pilot_bundle.is_dir():
+            print(f"ERROR: Explicit pilot bundle path is not a directory: {args.pilot_bundle}", file=sys.stderr)
+            sys.exit(2)
         bundle_path = args.pilot_bundle.resolve()
+        input_kind = "REAL_PILOT"
         print(f"Loading real pilot bundle from: {bundle_path}")
-    else:
+    elif args.synthetic_fixture:
         temp_bundle_dir = tempfile.TemporaryDirectory()
         bundle_path = Path(temp_bundle_dir.name)
         create_pilot_fixture(bundle_path)
-        print(f"Using self-contained synthetic pilot fixture at: {bundle_path}")
+        input_kind = "SYNTHETIC_FIXTURE"
+        print(f"Using explicitly requested synthetic pilot fixture at: {bundle_path}")
+    else:
+        print("ERROR: Missing input dataset. Either --pilot-bundle <dir> or --synthetic-fixture is required.", file=sys.stderr)
+        sys.exit(2)
 
     bundle = load_feature_bundle(bundle_path, mode=MODE_DEVELOPMENT)
     total_cands = bundle["features_table"].num_rows
@@ -49,16 +87,22 @@ def main():
     print(f"Bundle ID: {bundle['bundle_id']}, Candidates: {total_cands}, Mainshocks: {total_ms}")
 
     out_dir = args.output_dir.resolve()
-    out_dir.mkdir(parents=True, exist_ok=True)
 
     print("\n--- Running Bounded Parameter Sweep (8 configurations + 1 control) ---")
-    sweep = run_bounded_parameter_sweep(
-        bundle=bundle,
-        project_root=ROOT,
-        output_dir=out_dir,
-        allow_overwrite=True,
-        code_version="col02-sweep-v1",
-    )
+    try:
+        sweep = run_bounded_parameter_sweep(
+            bundle=bundle,
+            project_root=ROOT,
+            output_dir=out_dir,
+            allow_overwrite=args.allow_overwrite,
+            code_version="col02-sweep-v1",
+        )
+    except ValueError as e:
+        print(f"ERROR: {e}", file=sys.stderr)
+        if temp_bundle_dir:
+            temp_bundle_dir.cleanup()
+        sys.exit(1)
+
     matrix = sweep["matrix"]
     print(f"Sweep completed. Configurations evaluated: {len(matrix['configurations'])}")
 
@@ -77,7 +121,7 @@ def main():
         project_root=ROOT,
         output_dir=rerun_dir,
         config_keys=["DBSCAN_C1"],
-        allow_overwrite=True,
+        allow_overwrite=args.allow_overwrite,
     )
     invariants = verify_sweep_rerun_invariants(
         sweep["results"]["DBSCAN_C1"],
@@ -90,7 +134,10 @@ def main():
     report = {
         "report_version": "col-02-sweep-report-v1",
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
+        "input_kind": input_kind,
+        "is_synthetic_fixture": (input_kind == "SYNTHETIC_FIXTURE"),
         "pilot_id": bundle["bundle_id"],
+        "pilot_bundle_path": str(bundle_path),
         "candidate_count": total_cands,
         "mainshock_count": total_ms,
         "sweep_configurations_evaluated": len(matrix["configurations"]),

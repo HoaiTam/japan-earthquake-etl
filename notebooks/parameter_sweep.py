@@ -66,7 +66,7 @@ def run_bounded_parameter_sweep(
     project_root: Path,
     output_dir: Path,
     config_keys: Optional[List[str]] = None,
-    allow_overwrite: bool = True,
+    allow_overwrite: bool = False,
     code_version: str = "col02-sweep-v1",
     random_seed: int = 42,
 ) -> Dict[str, Any]:
@@ -83,6 +83,25 @@ def run_bounded_parameter_sweep(
     require(len(param_configs) <= 8, f"EXCEEDED_MAX_8_PARAMETER_CONFIGS: {len(param_configs)}")
 
     output_dir = Path(output_dir).resolve()
+
+    # Fail-closed check: if overwrite is not explicitly allowed, do not touch an existing run
+    matrix_path = output_dir / "sweep_results_matrix.json"
+    if not allow_overwrite:
+        if matrix_path.is_file():
+            require(
+                False,
+                f"EXP_COMPLETED_BUNDLE_CONFLICT: Output directory {output_dir} already contains a completed sweep matrix ({matrix_path.name}) that cannot be overwritten without allow_overwrite=True.",
+            )
+        for key in keys:
+            sub_out = output_dir / key.lower()
+            manifest_path = sub_out / "pilot_result_manifest.json"
+            success_path = sub_out / "_SUCCESS.json"
+            if manifest_path.is_file() or success_path.is_file():
+                require(
+                    False,
+                    f"EXP_COMPLETED_BUNDLE_CONFLICT: Output directory {output_dir} already contains existing completed results for config '{key}' ({sub_out.name}) that cannot be overwritten without allow_overwrite=True.",
+                )
+
     output_dir.mkdir(parents=True, exist_ok=True)
 
     sweep_results: Dict[str, Any] = {}

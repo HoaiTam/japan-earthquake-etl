@@ -1,6 +1,7 @@
 # COL-02 — Bounded Baseline Parameter Sweep on Development Pilot
 
-- **Ngày kiểm chứng:** 2026-11-02
+- **Trạng thái:** `In Progress` (Đã hoàn tất nghiệm thu kỹ thuật Local Gate & Rerun Invariants; chờ Colab fresh-session cloud execution)
+- **Ngày kiểm chứng:** 2026-11-02 (Cập nhật bản vá 2026-11-04)
 - **Tuần thực hiện:** Tuần 7 (02–08/11/2026), Khối 2
 - **Assignee:** `rosy179`
 - **Reviewer:** `unassigned`
@@ -74,14 +75,24 @@ Thực thi qua script headless runner `scripts/inspect-col02-sweep.py` và noteb
 
 ---
 
-## 5. Kiểm chứng tính bất biến khi Rerun (Rerun Invariance Check)
+## 5. Kiểm chứng tính bất biến khi Rerun và Cơ chế bảo vệ đầu ra
 
+### 5.1. Rerun Invariance Check
 Cấu hình `DBSCAN_C1` được chạy lại trong một thư mục cô lập độc lập (`staging/ml-experiments/col02-sweep/rerun_check/dbscan_c1`):
 * **Số lượng ứng viên:** $279/279$ khớp tuyệt đối.
 * **Grain & Nhãn vai trò:** Khớp $100\%$ các trường `event_role_candidate`, `is_noise`, `is_mainshock_cluster_member`.
 * **Phân hoạch cụm (Cluster Partitions):** Cấu trúc tập hợp cụm (frozenset of member keys) giữa hai lần chạy hoàn toàn đồng nhất, không bị ảnh hưởng bởi việc hoán đổi nhãn số.
 * **Sai số số học:** Tuân thủ ngưỡng $rtol = 10^{-6}, atol = 10^{-8}$.
 * **Trạng thái:** `RERUN_INVARIANTS_PASSED`.
+
+### 5.2. Cơ chế Fail-Closed chống ghi đè (Non-overwriting Protection)
+- `run_bounded_parameter_sweep` mặc định `allow_overwrite=False`.
+- Khi thư mục đích đã chứa tệp `sweep_results_matrix.json` hoặc thư mục con đã chứa kết quả chạy (`pilot_result_manifest.json`), hệ thống kích hoạt ngoại lệ `EXP_COMPLETED_BUNDLE_CONFLICT`, từ chối chạy đè và bảo toàn $100\%$ tệp cũng như mã băm SHA-256 của lần chạy trước.
+- CLI `scripts/inspect-col02-sweep.py` không tự động bật overwrite; cờ `--allow-overwrite` phải được người dùng cung cấp tường minh nếu có nhu cầu ghi đè.
+
+### 5.3. Cơ chế xác thực đường dẫn Pilot
+- CLI `scripts/inspect-col02-sweep.py` thẩm tra tính tồn tại và kiểu thư mục của `--pilot-bundle`. Mọi đường dẫn sai hoặc không tồn tại sẽ bị từ chối ngay lập tức với mã lỗi 2, tuyệt đối không âm thầm tự sinh fixture thay thế.
+- Chế độ synthetic fixture chỉ được kích hoạt khi có cờ rõ ràng `--synthetic-fixture`, và báo cáo kết xuất ghi nhận rõ ràng `"input_kind": "SYNTHETIC_FIXTURE"`.
 
 ---
 
@@ -93,7 +104,7 @@ Cấu hình `DBSCAN_C1` được chạy lại trong một thư mục cô lập �
   - Script Headless Runner: `scripts/inspect-col02-sweep.py`
   - Bộ 8 cấu hình sweep: `config/ml/sweeps/dbscan_sweep_c1..c4.json`, `config/ml/sweeps/hdbscan_sweep_c1..c4.json`
 - **Unit Test Suite:**
-  - `tests/test_parameter_sweep.py` (5/5 tests PASS).
+  - `tests/test_parameter_sweep.py` (9/9 tests PASS bao gồm fail-closed immutability và CLI path validation).
 - **Kết quả thực nghiệm:**
   - Ma trận JSON: `staging/ml-experiments/col02-sweep/sweep_results_matrix.json`
   - Báo cáo tổng hợp: `staging/ml-experiments/col02-sweep/col02-sweep-report.json`
@@ -103,6 +114,7 @@ Cấu hình `DBSCAN_C1` được chạy lại trong một thư mục cô lập �
 
 ## 7. Giới hạn / Rủi ro / Bước tiếp theo
 
+- **Nghiệm thu Colab Fresh-session (COL-02 Cloud):** Bằng chứng parity của EXP-02 (#114) không thay thế cho việc nghiệm thu sweep 8 cấu hình của COL-02 trên đám mây. Cần chạy sweep trên Google Colab CPU runtime với đúng output ZIP/links và exact pins để chuyển task sang `Done`.
 - **Trực quan hóa và bảng metrics (COL-03):** Kết xuất bảng so sánh chi tiết và đồ thị không gian - thời gian tương đối phục vụ handoff cho ThanhTris thuộc về [COL-03 - Metrics và trực quan hóa baseline pilot](../task/tasks/COL-03.md).
 - **Đánh giá tính ổn định / Omori (EXP-04):** Đánh giá decay law và độ ổn định chuỗi theo thời gian thuộc về [EXP-04 - Đánh giá quality, physical consistency và stability](../task/tasks/EXP-04.md) (ThanhTris).
 - **Nghiên cứu chính thức toàn kỳ:** Pilot mang tính chất kỹ thuật (`DEVELOPMENT_ONLY`, `PARTIAL`); việc chạy nghiên cứu toàn kỳ cần catalog chính thức từ [DAT-03 - Chuẩn bị catalog nghiên cứu thật](../task/tasks/DAT-03.md) và [MLD-05 - Validate feature snapshot và export Parquet bundle](../task/tasks/MLD-05.md).
