@@ -148,10 +148,59 @@
       "status": "TEAM_PILOT_VERIFIED",
       "verified_at_utc": "2026-11-02T03:31:41.026521+00:00",
       "version": "dat03-team-receipt-v1"
+    },
+    "notebook_url": "https://colab.research.google.com/drive/1uIXjbwNQHZ-K1km-HU3ckKXyKCzYSsSq?usp=sharing",
+    "executed_notebook": {
+      "drive_file_id": "1uIXjbwNQHZ-K1km-HU3ckKXyKCzYSsSq",
+      "bytes": 67285,
+      "sha256": "188b299d735fe63c6d5d587cee1651ebb8ed48ead4272fd86d16e94b4c6f08eb",
+      "cells_count": 5,
+      "outputs_present": true
     }
   },
   "research_ready": false,
   "official_exported": false,
   "scientific_approval": false,
-  "allowed_usage": "DEVELOPMENT_ONLY"
+  "allowed_usage": "DEVELOPMENT_ONLY",
+  "source_identity_reconciliation": {
+    "execution_source_sha256": "7a65c8fa203c143283a07de2678dc9f7fd16569342f6d6f43e5edcfdf102ff4d",
+    "canonical_lf_source_sha256": "d355ef349844900d94b86b56e25af15e228908101cec11ed8c84eb84f822d22a",
+    "reconciliation_status": "IDENTICAL_LOGIC_LINE_ENDING_EXPLAINED",
+    "total_sources": 16,
+    "byte_identical_files_count": 15,
+    "differing_files_count": 1,
+    "differing_files": [
+      {
+        "path": "notebooks/pilot_bundle.py",
+        "windows_crlf_sha256": "29d92e1e6bf085c6c3ef4bd88c16e5e670b2d9ca3ac7fdeea9a8a44ce59f86a7",
+        "canonical_lf_sha256": "893707d296655c6ce25585f97305d263919e18b6fc87e5ffea49a1f11c79e7e7",
+        "difference_reason": "CRLF_WINDOWS_CHECKOUT_VS_LF_CANONICAL",
+        "semantic_difference": false
+      }
+    ]
+  },
+  "shared_artifacts": {
+    "google_drive_folder": "https://drive.google.com/drive/u/1/folders/17Wntw5LIRvFdzaU0RpnBRL60gzsRdFTB",
+    "colab_notebook_url": "https://colab.research.google.com/drive/1uIXjbwNQHZ-K1km-HU3ckKXyKCzYSsSq?usp=sharing",
+    "handoff_zip": {
+      "filename": "exp01-colab-handoff.zip",
+      "drive_url": "https://drive.google.com/file/d/1taAG1gUWhzoYhQKSU7clsI3uK2s1c3vE/view",
+      "drive_file_id": "1taAG1gUWhzoYhQKSU7clsI3uK2s1c3vE",
+      "bytes": 171993,
+      "sha256": "d6be707111be8d2b1a2ba64434d6c0cacaa67b73c5aae3235f9772403c544333"
+    },
+    "colab_output_zip": {
+      "filename": "exp01-colab-output.zip",
+      "drive_url": "https://drive.google.com/file/d/1YV-A0FeNtcdv2t_zCR507PIpQsW05bog/view",
+      "drive_file_id": "1YV-A0FeNtcdv2t_zCR507PIpQsW05bog",
+      "bytes": 70896,
+      "sha256": "df5dae61e79cb707e8136af2b46037b27b5818f0abc89bedb59dab218d4b8665"
+    },
+    "colab_notebook": {
+      "drive_url": "https://colab.research.google.com/drive/1uIXjbwNQHZ-K1km-HU3ckKXyKCzYSsSq?usp=sharing",
+      "drive_file_id": "1uIXjbwNQHZ-K1km-HU3ckKXyKCzYSsSq",
+      "bytes": 67285,
+      "sha256": "188b299d735fe63c6d5d587cee1651ebb8ed48ead4272fd86d16e94b4c6f08eb"
+    }
+  }
 }

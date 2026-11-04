@@ -1,6 +1,6 @@
 ---
 task_id: "COL-01"
-status: "Backlog"
+status: "Done"
 week: 7
 block: "H - Experiment"
 workstream: "Colab pilot data inspection"
@@ -37,16 +37,16 @@ không Docker/Java/.env. Inspection không fit nên không chờ EXP-02 cloud pa
 4. Hiển thị actual available/required/missing coverage. Giải thích self-only
    window và selection bias; không extrapolate ra toàn Nhật Bản/toàn kỳ.
 5. Lưu bảng JSON/CSV và hình nhỏ có dataset/pilot ID, checksum/code version;
-   đề xuất notebook mới `notebooks/col_01_pilot_eda.ipynb` (chưa triển khai).
+   notebook `notebooks/col_01_pilot_eda.ipynb` gọi cùng CLI/module local.
 
 ## Tiêu chí nghiệm thu
 
-- [ ] Colab session mới → Run all đạt với input thật, có runtime metadata.
-- [ ] 279 candidate rows/2 mainshocks; unique event count được tính độc lập.
-- [ ] Báo rõ PARTIAL/DEVELOPMENT_ONLY/research_ready=false, không im lặng bỏ rows.
-- [ ] Input không đổi bytes; output ngoài kit, không chứa credentials.
-- [ ] Bảng/plots sinh từ dữ liệu, không nhập tay số minh họa làm kết quả thật.
-- [ ] Notebook source sạch output và có cách chạy lại theo runbook.
+- [x] Colab session mới → Run all đạt với input thật, có runtime metadata.
+- [x] 279 candidate rows/2 mainshocks; unique event count được tính độc lập (local và Colab).
+- [x] Báo rõ PARTIAL/DEVELOPMENT_ONLY/research_ready=false, không im lặng bỏ rows.
+- [x] Input không đổi bytes; output ngoài kit, không chứa credentials (local và Colab).
+- [x] Bảng/plots sinh từ dữ liệu, không nhập tay số minh họa làm kết quả thật (local và Colab).
+- [x] Notebook source sạch output và có cách chạy lại theo runbook.
 
 ## Dependency / song song / ranh giới
 
@@ -56,7 +56,16 @@ không tự gán trạng thái EXPORTED/APPROVED hoặc tạo official marker.
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
+- **Trạng thái:** Done
 - **Assignee:** HoaiTam
 - **Reviewer:** unassigned
-- **Evidence / PR:** Chưa triển khai; giao việc không là bằng chứng nghiệm thu.
+- **Evidence / PR:** [Nghiệm thu local và Colab 02/11](../../evidence/COL-01_PILOT_EDA_20261102.md),
+  [metadata/checksums](../../evidence/COL-01_PILOT_EDA_20261102.json),
+  [runbook](../../runbooks/COL-01_PILOT_EDA.md). Fresh Colab session Run all đủ
+  bốn code cells đạt; output ZIP tải về đã readback exact file-set và ba artifact
+  SHA, PNG đã kiểm tra trực quan. Kết quả khớp local: 279 rows/2 mainshocks,
+  không null/nonfinite/trùng grain; input không đổi bytes. 11 regressions và
+  17 docs tests đạt. Đã sửa pip check cho venv without-pip và inherited
+  MPLBACKEND trước import; giữ lịch sử lỗi trong evidence, không sửa input.
+  Pilot vẫn PARTIAL/DEVELOPMENT_ONLY/research_ready=false; không fit model hoặc
+  thay official lifecycle. Reviewer độc lập chưa được chỉ định.
