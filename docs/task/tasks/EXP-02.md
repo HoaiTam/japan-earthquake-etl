@@ -54,7 +54,7 @@ Noise/no productive sequence hợp lệ không bị coi là implementation lỗi
 
 - [x] Local ba thuật toán cùng pilot_id/checksum; không mutate input.
 - [x] Local smoke report PASSED trước Colab; restart/run-all và cases lỗi/noise/count đạt.
-- [ ] Colab dùng cùng code/bundle/config, đối soát invariants/tolerance; không rewrite model (chờ môi trường Colab sau local gate).
+- [x] Colab dùng cùng code/bundle/config, đối soát invariants/tolerance; không rewrite model (đã đạt: session Colab 2026-11-02T03:31:43Z bởi rosy179, cả 3 thuật toán đạt parity, xem docs/evidence/EXP-02_COLAB_PARITY_20261102.md).
 - [ ] Official run pin EXPORTED dataset; pilot không phát _SUCCESS/RESULT_READY/CANDIDATE (MLD-05 component đã Done; chờ DAT-03 catalog nghiên cứu thật và release đủ gate).
 - [x] HDBSCAN/DBSCAN chạy theo từng mainshock, không fit toàn catalog.
 - [x] Chỉ cluster chứa mainshock được coi là sequence; không chọn cluster gần nhất khi mainshock noise.
@@ -104,13 +104,13 @@ release thật EXPORTED. Colab pilot đạt chưa chuyển toàn EXP-02 Done.
 - **Trạng thái:** In Progress
 - **Assignee:** rosy179
 - **Reviewer:** unassigned
-- **Evidence / PR:** [docs/evidence/EXP-02.md](../../evidence/EXP-02.md)
+- **Evidence / PR:** [EXP-02 Local Evidence](../../evidence/EXP-02.md) và [EXP-02 Colab Parity Evidence](../../evidence/EXP-02_COLAB_PARITY_20261102.md)
 - **Kỹ năng phù hợp:** DBSCAN, HDBSCAN, unsupervised learning
 
 ## Checklist bàn giao
 
 - [x] Deliverable và test/evidence tồn tại trong repository.
-- [ ] Acceptance criteria đã được kiểm tra (local development hoàn tất; Colab và official run chờ bước tiếp theo).
+- [ ] Acceptance criteria đã được kiểm tra (local development và Colab portability hoàn tất; official run chờ DAT-03 release dataset toàn kỳ).
 - [x] Contract/docs đã cập nhật và không chứa secret/data dump.
 - [ ] Reviewer độc lập được khuyến nghị cho P0.
 
