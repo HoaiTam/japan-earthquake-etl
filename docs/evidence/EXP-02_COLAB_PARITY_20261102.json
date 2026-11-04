@@ -148,7 +148,8 @@
       "status": "TEAM_PILOT_VERIFIED",
       "verified_at_utc": "2026-11-02T03:31:41.026521+00:00",
       "version": "dat03-team-receipt-v1"
-    }
+    },
+    "notebook_url": "https://colab.research.google.com/drive/1uIXjbwNQHZ-K1km-HU3ckKXyKCzYSsSq"
   },
   "research_ready": false,
   "official_exported": false,
@@ -173,14 +174,18 @@
   },
   "shared_artifacts": {
     "google_drive_folder": "https://drive.google.com/drive/u/1/folders/17Wntw5LIRvFdzaU0RpnBRL60gzsRdFTB",
-    "relative_path": "IE212-Colab-Outputs/rosy179",
+    "colab_notebook_url": "https://colab.research.google.com/drive/1uIXjbwNQHZ-K1km-HU3ckKXyKCzYSsSq",
     "handoff_zip": {
       "filename": "exp01-colab-handoff.zip",
+      "drive_url": "https://drive.google.com/file/d/1taAG1gUWhzoYhQKSU7clsI3uK2s1c3vE/view",
+      "drive_file_id": "1taAG1gUWhzoYhQKSU7clsI3uK2s1c3vE",
       "bytes": 171993,
       "sha256": "d6be707111be8d2b1a2ba64434d6c0cacaa67b73c5aae3235f9772403c544333"
     },
     "colab_output_zip": {
       "filename": "exp01-colab-output.zip",
+      "drive_url": "https://drive.google.com/file/d/1YV-A0FeNtcdv2t_zCR507PIpQsW05bog/view",
+      "drive_file_id": "1YV-A0FeNtcdv2t_zCR507PIpQsW05bog",
       "bytes": 152880,
       "sha256": "df5dae61e79cb707e8136af2b46037b27b5818f0abc89bedb59dab218d4b8665"
     }

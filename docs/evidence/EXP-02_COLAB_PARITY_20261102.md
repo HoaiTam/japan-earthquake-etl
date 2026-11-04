@@ -83,7 +83,7 @@ Hàm `notebooks.colab_runtime.source_identity()` thu thập và tính mã băm S
   - Nền tảng: Google Colab (CPU runtime, Linux x86_64).
   - Probe môi trường: `{'module': '/usr/local/lib/python3.13/dist-packages/google/colab/__init__.py', 'system': 'Linux'}`.
   - Runtime Python: Python 3.13, môi trường venv cô lập (`--without-pip`, host pip `--isolated --python`).
-  - Notebook sử dụng: `notebooks/exp_01_colab_bootstrap.ipynb`.
+  - Notebook sử dụng: [notebook Colab](https://colab.research.google.com/drive/1uIXjbwNQHZ-K1km-HU3ckKXyKCzYSsSq).
   - Recipient: `rosy179`.
   - Thời điểm hoàn tất (UTC): `2026-11-02T03:31:43.410294+00:00`.
 - **Kết quả nghiệm thu tổng thể:**
@@ -145,17 +145,20 @@ Toàn bộ các số liệu và trạng thái trong bảng đối soát được
 ## 6. Danh mục tệp bằng chứng và Kênh chia sẻ nhóm
 
 ### Kênh chia sẻ Google Drive nhóm (đối soát độc lập)
-Tuân thủ runbook [WEEK_7_COLAB_SETUP.md](../runbooks/WEEK_7_COLAB_SETUP.md), các gói ZIP đã được đưa lên Google Drive nhóm để reviewer và nhóm tải về đối chiếu trực tiếp:
+Tuân thủ runbook [WEEK_7_COLAB_SETUP.md](../runbooks/WEEK_7_COLAB_SETUP.md), các gói ZIP và notebook đã được đưa lên Google Drive và cấp quyền truy cập để reviewer và nhóm tải về đối chiếu trực tiếp:
 - **Thư mục nhóm IE212:** [Google Drive IE212](https://drive.google.com/drive/u/1/folders/17Wntw5LIRvFdzaU0RpnBRL60gzsRdFTB)
-- **Đường dẫn con:** `IE212-Colab-Outputs/rosy179/`
 - **Tệp Handoff cục bộ:**
   - Tên: `exp01-colab-handoff.zip`
+  - Direct Drive URL: [exp01-colab-handoff.zip](https://drive.google.com/file/d/1taAG1gUWhzoYhQKSU7clsI3uK2s1c3vE/view) (Drive File ID: `1taAG1gUWhzoYhQKSU7clsI3uK2s1c3vE`)
   - Dung lượng: 171.993 bytes
   - SHA-256: `d6be707111be8d2b1a2ba64434d6c0cacaa67b73c5aae3235f9772403c544333`
 - **Tệp Kết quả Google Colab:**
   - Tên: `exp01-colab-output.zip`
+  - Direct Drive URL: [exp01-colab-output.zip](https://drive.google.com/file/d/1YV-A0FeNtcdv2t_zCR507PIpQsW05bog/view) (Drive File ID: `1YV-A0FeNtcdv2t_zCR507PIpQsW05bog`)
   - Dung lượng: 152.880 bytes
   - SHA-256: `df5dae61e79cb707e8136af2b46037b27b5818f0abc89bedb59dab218d4b8665`
+- **Google Colab Notebook:**
+  - Direct Colab URL: [exp_01_colab_bootstrap.ipynb (rosy179)](https://colab.research.google.com/drive/1uIXjbwNQHZ-K1km-HU3ckKXyKCzYSsSq)
 
 ### Tệp bằng chứng và báo cáo đối soát trong Repository
 - Báo cáo đối soát JSON: [EXP-02_COLAB_PARITY_20261102.json](./EXP-02_COLAB_PARITY_20261102.json)
