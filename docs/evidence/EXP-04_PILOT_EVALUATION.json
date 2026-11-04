@@ -1,0 +1,475 @@
+{
+  "task_id": "EXP-04",
+  "evaluation_scope": "PILOT_DEVELOPMENT",
+  "pilot_verification": {
+    "pilot_id": "pilot_196b6d4081d347e1c289e331022658fbbe572dd33181ad987900895c1f1b189c",
+    "source_dataset_id": "ds_98d4837dcb142bad1fb0ba2e77ad7524193056e57ca1b9a68269cc4b814022f5",
+    "candidate_rows": 279,
+    "mainshock_count": 2,
+    "features_sha256": "3baddf613f237d2117248ad9095230ec17e428ea47f73d499623035d3097d2e6"
+  },
+  "runtime_metadata": {
+    "schema_version": "1.0",
+    "python_version": "3.12.16",
+    "package_versions": {
+      "pyarrow": "21.0.0",
+      "numpy": "2.2.2",
+      "scipy": "1.15.1",
+      "scikit-learn": "1.6.1",
+      "hdbscan": "0.8.40",
+      "nbformat": "5.10.4",
+      "nbclient": "0.10.2"
+    },
+    "code_version": "dev-local",
+    "random_seed": null,
+    "timestamp_utc": "2026-11-04T18:03:01.438680+00:00",
+    "vector_columns": [
+      "x_scaled",
+      "y_scaled",
+      "z_scaled",
+      "time_scaled"
+    ]
+  },
+  "evaluation_parameters": {
+    "stability_repeats": 5,
+    "perturbation_sigma": 0.01,
+    "random_seed": 42,
+    "min_omori_aftershocks": 5
+  },
+  "evaluation_summary": {
+    "pilot_id": "pilot_unknown",
+    "evaluated_at_utc": "2026-11-04T18:03:07Z",
+    "comparison_table": [
+      {
+        "Algorithm": "WINDOW",
+        "Total Windows": 2,
+        "Success Windows": 2,
+        "Failure Windows": 0,
+        "Failure Rate": "0.0%",
+        "Total Aftershocks": 255,
+        "Mean Noise Ratio": "N/A",
+        "Mean DBCV": "N/A",
+        "Mean Omori p": "1.00",
+        "Omori Fitted Windows": "1/2",
+        "Mean Jaccard Stability": "1.0000",
+        "Mean ARI Stability": "1.0000",
+        "Runtime (s)": "0.10"
+      },
+      {
+        "Algorithm": "DBSCAN",
+        "Total Windows": 2,
+        "Success Windows": 1,
+        "Failure Windows": 1,
+        "Failure Rate": "50.0%",
+        "Total Aftershocks": 240,
+        "Mean Noise Ratio": "2.9%",
+        "Mean DBCV": "0.1676",
+        "Mean Omori p": "1.00",
+        "Omori Fitted Windows": "1/2",
+        "Mean Jaccard Stability": "0.9880",
+        "Mean ARI Stability": "0.9483",
+        "Runtime (s)": "0.11"
+      },
+      {
+        "Algorithm": "HDBSCAN_GLOBAL",
+        "Total Windows": 2,
+        "Success Windows": 0,
+        "Failure Windows": 2,
+        "Failure Rate": "100.0%",
+        "Total Aftershocks": 0,
+        "Mean Noise Ratio": "N/A",
+        "Mean DBCV": "0.1509",
+        "Mean Omori p": "N/A",
+        "Omori Fitted Windows": "0/2",
+        "Mean Jaccard Stability": "0.5977",
+        "Mean ARI Stability": "0.6339",
+        "Runtime (s)": "0.11"
+      },
+      {
+        "Algorithm": "HDBSCAN_ADAPTIVE",
+        "Total Windows": 2,
+        "Success Windows": 0,
+        "Failure Windows": 2,
+        "Failure Rate": "100.0%",
+        "Total Aftershocks": 0,
+        "Mean Noise Ratio": "N/A",
+        "Mean DBCV": "N/A",
+        "Mean Omori p": "N/A",
+        "Omori Fitted Windows": "0/2",
+        "Mean Jaccard Stability": "1.0000",
+        "Mean ARI Stability": "0.6714",
+        "Runtime (s)": "0.06"
+      }
+    ],
+    "algorithm_details": {
+      "WINDOW": {
+        "algorithm_name": "WINDOW",
+        "total_windows": 2,
+        "success_windows": 2,
+        "failure_windows": 0,
+        "failure_rate": 0.0,
+        "failure_reasons": [],
+        "total_candidates": 279,
+        "total_aftershocks": 255,
+        "mean_noise_ratio": null,
+        "mean_dbcv_score": null,
+        "dbcv_computed_windows": 0,
+        "mean_omori_p": 1.0,
+        "mean_omori_r2": 0.9956,
+        "omori_fitted_windows": 1,
+        "mean_jaccard_stability": 1.0,
+        "mean_ari_stability": 1.0,
+        "runtime_seconds": 0.1049,
+        "window_evaluations": [
+          {
+            "mainshock_id": "evt_d47fcaaf451cc2e5c3dcc8f016a999be",
+            "candidate_count": 1,
+            "window_result_status": "SUCCESS",
+            "failure_reason_code": null,
+            "aftershock_count": 0,
+            "noise_ratio": null,
+            "dbcv_score": null,
+            "dbcv_reason_codes": [
+              "METRIC_NOT_APPLICABLE"
+            ],
+            "omori_fit": {
+              "omori_k": null,
+              "omori_c": null,
+              "omori_p": null,
+              "omori_fit_metric": null,
+              "metric_reason_codes": [
+                "METRIC_INSUFFICIENT_MEMBERS"
+              ],
+              "aftershock_sample_size": 0
+            },
+            "stability": {
+              "mean_jaccard": 1.0,
+              "std_jaccard": 0.0,
+              "min_jaccard": 1.0,
+              "max_jaccard": 1.0,
+              "mean_ari": 1.0,
+              "std_ari": 0.0,
+              "min_ari": 1.0,
+              "max_ari": 1.0,
+              "repeats": 5,
+              "sigma": 0.01,
+              "seed": 42,
+              "note": "DETERMINISTIC_SELF_ONLY"
+            }
+          },
+          {
+            "mainshock_id": "evt_f0300848e0b73b5ce9497a70a74a5905",
+            "candidate_count": 278,
+            "window_result_status": "SUCCESS",
+            "failure_reason_code": null,
+            "aftershock_count": 255,
+            "noise_ratio": null,
+            "dbcv_score": null,
+            "dbcv_reason_codes": [
+              "METRIC_NOT_APPLICABLE"
+            ],
+            "omori_fit": {
+              "omori_k": 46.8558,
+              "omori_c": 0.9212,
+              "omori_p": 1.0,
+              "omori_fit_metric": 0.9956,
+              "metric_reason_codes": [],
+              "aftershock_sample_size": 255
+            },
+            "stability": {
+              "mean_jaccard": 1.0,
+              "std_jaccard": 0.0,
+              "min_jaccard": 1.0,
+              "max_jaccard": 1.0,
+              "mean_ari": 1.0,
+              "std_ari": 0.0,
+              "min_ari": 1.0,
+              "max_ari": 1.0,
+              "repeats": 5,
+              "sigma": 0.01,
+              "seed": 42
+            }
+          }
+        ]
+      },
+      "DBSCAN": {
+        "algorithm_name": "DBSCAN",
+        "total_windows": 2,
+        "success_windows": 1,
+        "failure_windows": 1,
+        "failure_rate": 0.5,
+        "failure_reasons": [
+          "EXP_MAINSHOCK_CLASSIFIED_AS_NOISE"
+        ],
+        "total_candidates": 279,
+        "total_aftershocks": 240,
+        "mean_noise_ratio": 0.0288,
+        "mean_dbcv_score": 0.1676,
+        "dbcv_computed_windows": 1,
+        "mean_omori_p": 1.0,
+        "mean_omori_r2": 0.9966,
+        "omori_fitted_windows": 1,
+        "mean_jaccard_stability": 0.988,
+        "mean_ari_stability": 0.9483,
+        "runtime_seconds": 0.1089,
+        "window_evaluations": [
+          {
+            "mainshock_id": "evt_d47fcaaf451cc2e5c3dcc8f016a999be",
+            "candidate_count": 1,
+            "window_result_status": "FAILED",
+            "failure_reason_code": "EXP_MAINSHOCK_CLASSIFIED_AS_NOISE",
+            "aftershock_count": null,
+            "noise_ratio": null,
+            "dbcv_score": null,
+            "dbcv_reason_codes": [
+              "METRIC_INSUFFICIENT_MEMBERS"
+            ],
+            "omori_fit": {
+              "omori_k": null,
+              "omori_c": null,
+              "omori_p": null,
+              "omori_fit_metric": null,
+              "metric_reason_codes": [
+                "METRIC_INSUFFICIENT_MEMBERS"
+              ],
+              "aftershock_sample_size": 0
+            },
+            "stability": {
+              "mean_jaccard": 1.0,
+              "std_jaccard": 0.0,
+              "min_jaccard": 1.0,
+              "max_jaccard": 1.0,
+              "mean_ari": 1.0,
+              "std_ari": 0.0,
+              "min_ari": 1.0,
+              "max_ari": 1.0,
+              "repeats": 5,
+              "sigma": 0.01,
+              "seed": 42,
+              "note": "DETERMINISTIC_SELF_ONLY"
+            }
+          },
+          {
+            "mainshock_id": "evt_f0300848e0b73b5ce9497a70a74a5905",
+            "candidate_count": 278,
+            "window_result_status": "SUCCESS",
+            "failure_reason_code": null,
+            "aftershock_count": 240,
+            "noise_ratio": 0.02877697841726619,
+            "dbcv_score": 0.16755451520669778,
+            "dbcv_reason_codes": [],
+            "omori_fit": {
+              "omori_k": 42.6437,
+              "omori_c": 0.7504,
+              "omori_p": 1.0,
+              "omori_fit_metric": 0.9966,
+              "metric_reason_codes": [],
+              "aftershock_sample_size": 240
+            },
+            "stability": {
+              "mean_jaccard": 0.9761,
+              "std_jaccard": 0.0293,
+              "min_jaccard": 0.9402,
+              "max_jaccard": 1.0,
+              "mean_ari": 0.8965,
+              "std_ari": 0.1268,
+              "min_ari": 0.7413,
+              "max_ari": 1.0,
+              "repeats": 5,
+              "sigma": 0.01,
+              "seed": 42
+            }
+          }
+        ]
+      },
+      "HDBSCAN_GLOBAL": {
+        "algorithm_name": "HDBSCAN_GLOBAL",
+        "total_windows": 2,
+        "success_windows": 0,
+        "failure_windows": 2,
+        "failure_rate": 1.0,
+        "failure_reasons": [
+          "EXP_MAINSHOCK_CLASSIFIED_AS_NOISE",
+          "EXP_MAINSHOCK_CLASSIFIED_AS_NOISE"
+        ],
+        "total_candidates": 279,
+        "total_aftershocks": 0,
+        "mean_noise_ratio": null,
+        "mean_dbcv_score": 0.1509,
+        "dbcv_computed_windows": 1,
+        "mean_omori_p": null,
+        "mean_omori_r2": null,
+        "omori_fitted_windows": 0,
+        "mean_jaccard_stability": 0.5977,
+        "mean_ari_stability": 0.6339,
+        "runtime_seconds": 0.1099,
+        "window_evaluations": [
+          {
+            "mainshock_id": "evt_d47fcaaf451cc2e5c3dcc8f016a999be",
+            "candidate_count": 1,
+            "window_result_status": "FAILED",
+            "failure_reason_code": "EXP_MAINSHOCK_CLASSIFIED_AS_NOISE",
+            "aftershock_count": null,
+            "noise_ratio": null,
+            "dbcv_score": null,
+            "dbcv_reason_codes": [
+              "METRIC_INSUFFICIENT_MEMBERS"
+            ],
+            "omori_fit": {
+              "omori_k": null,
+              "omori_c": null,
+              "omori_p": null,
+              "omori_fit_metric": null,
+              "metric_reason_codes": [
+                "METRIC_INSUFFICIENT_MEMBERS"
+              ],
+              "aftershock_sample_size": 0
+            },
+            "stability": {
+              "mean_jaccard": 1.0,
+              "std_jaccard": 0.0,
+              "min_jaccard": 1.0,
+              "max_jaccard": 1.0,
+              "mean_ari": 1.0,
+              "std_ari": 0.0,
+              "min_ari": 1.0,
+              "max_ari": 1.0,
+              "repeats": 5,
+              "sigma": 0.01,
+              "seed": 42,
+              "note": "DETERMINISTIC_SELF_ONLY"
+            }
+          },
+          {
+            "mainshock_id": "evt_f0300848e0b73b5ce9497a70a74a5905",
+            "candidate_count": 278,
+            "window_result_status": "FAILED",
+            "failure_reason_code": "EXP_MAINSHOCK_CLASSIFIED_AS_NOISE",
+            "aftershock_count": null,
+            "noise_ratio": null,
+            "dbcv_score": 0.15085907045400665,
+            "dbcv_reason_codes": [],
+            "omori_fit": {
+              "omori_k": null,
+              "omori_c": null,
+              "omori_p": null,
+              "omori_fit_metric": null,
+              "metric_reason_codes": [
+                "METRIC_INSUFFICIENT_MEMBERS"
+              ],
+              "aftershock_sample_size": 0
+            },
+            "stability": {
+              "mean_jaccard": 0.1954,
+              "std_jaccard": 0.3846,
+              "min_jaccard": 0.0,
+              "max_jaccard": 1.0,
+              "mean_ari": 0.2677,
+              "std_ari": 0.2333,
+              "min_ari": 0.0646,
+              "max_ari": 0.7741,
+              "repeats": 5,
+              "sigma": 0.01,
+              "seed": 42
+            }
+          }
+        ]
+      },
+      "HDBSCAN_ADAPTIVE": {
+        "algorithm_name": "HDBSCAN_ADAPTIVE",
+        "total_windows": 2,
+        "success_windows": 0,
+        "failure_windows": 2,
+        "failure_rate": 1.0,
+        "failure_reasons": [
+          "EXP_MAINSHOCK_CLASSIFIED_AS_NOISE",
+          "EXP_MAINSHOCK_CLASSIFIED_AS_NOISE"
+        ],
+        "total_candidates": 279,
+        "total_aftershocks": 0,
+        "mean_noise_ratio": null,
+        "mean_dbcv_score": null,
+        "dbcv_computed_windows": 0,
+        "mean_omori_p": null,
+        "mean_omori_r2": null,
+        "omori_fitted_windows": 0,
+        "mean_jaccard_stability": 1.0,
+        "mean_ari_stability": 0.6714,
+        "runtime_seconds": 0.0569,
+        "window_evaluations": [
+          {
+            "mainshock_id": "evt_d47fcaaf451cc2e5c3dcc8f016a999be",
+            "candidate_count": 1,
+            "window_result_status": "FAILED",
+            "failure_reason_code": "EXP_MAINSHOCK_CLASSIFIED_AS_NOISE",
+            "aftershock_count": null,
+            "noise_ratio": null,
+            "dbcv_score": null,
+            "dbcv_reason_codes": [
+              "METRIC_INSUFFICIENT_MEMBERS"
+            ],
+            "omori_fit": {
+              "omori_k": null,
+              "omori_c": null,
+              "omori_p": null,
+              "omori_fit_metric": null,
+              "metric_reason_codes": [
+                "METRIC_INSUFFICIENT_MEMBERS"
+              ],
+              "aftershock_sample_size": 0
+            },
+            "stability": {
+              "mean_jaccard": 1.0,
+              "std_jaccard": 0.0,
+              "min_jaccard": 1.0,
+              "max_jaccard": 1.0,
+              "mean_ari": 1.0,
+              "std_ari": 0.0,
+              "min_ari": 1.0,
+              "max_ari": 1.0,
+              "repeats": 5,
+              "sigma": 0.01,
+              "seed": 42,
+              "note": "DETERMINISTIC_SELF_ONLY"
+            }
+          },
+          {
+            "mainshock_id": "evt_f0300848e0b73b5ce9497a70a74a5905",
+            "candidate_count": 278,
+            "window_result_status": "FAILED",
+            "failure_reason_code": "EXP_MAINSHOCK_CLASSIFIED_AS_NOISE",
+            "aftershock_count": null,
+            "noise_ratio": null,
+            "dbcv_score": null,
+            "dbcv_reason_codes": [
+              "METRIC_FIT_FAILED"
+            ],
+            "omori_fit": {
+              "omori_k": null,
+              "omori_c": null,
+              "omori_p": null,
+              "omori_fit_metric": null,
+              "metric_reason_codes": [
+                "METRIC_INSUFFICIENT_MEMBERS"
+              ],
+              "aftershock_sample_size": 0
+            },
+            "stability": {
+              "mean_jaccard": 1.0,
+              "std_jaccard": 0.0,
+              "min_jaccard": 1.0,
+              "max_jaccard": 1.0,
+              "mean_ari": 0.3428,
+              "std_ari": 0.1723,
+              "min_ari": 0.1411,
+              "max_ari": 0.6587,
+              "repeats": 5,
+              "sigma": 0.01,
+              "seed": 42
+            }
+          }
+        ]
+      }
+    }
+  }
+}
