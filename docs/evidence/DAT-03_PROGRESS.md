@@ -1,6 +1,13 @@
-# DAT-03 — Tiến độ thực tế (cập nhật 27/10/2026)
+# DAT-03 — Tiến độ thực tế (cập nhật 05/11/2026)
 
-## Bổ sung28/10 — range worker và USGS frozen cho thành viên
+## Cập nhật 05/11/2026 — Đối soát 288 tháng và 75/75 Provenance First-hop của ThanhTris
+
+Theo kiểm tra offline ngày 02/11/2026 và cập nhật đối soát từ Hoài Tâm:
+- **Dữ liệu 288 tháng:** Đã phủ kín 288/288 tháng qua 4 gói phân đoạn độc lập (101 catalog nền + 62 HoaiTam + 62 ThanhTris + 63 rosy179), không có gap và không có overlap. Chi tiết tại [báo cáo đối soát 288 tháng](DAT-03_INTEGRATION_EVIDENCE_288_MONTHS.md).
+- **Provenance ThanhTris:** Hoài Tâm đã tải và xác minh gói \ThanhTris-dat03-provenance-metadata.zip\: **75/75 objects first-hop khớp 100% SHA-256** (37 Bronze manifests, 19 Silver manifests, 19 registry JSON). Không yêu cầu Trí gửi lại 75 file này.
+- **Tiến độ còn lại:** rosy179 cần tải lên 83 provenance objects; tích hợp 4 gói vào catalog Gold Iceberg chung và chạy kiểm tra Trino; chạy official ML export hai tập REPRODUCTION (225m) và EXTENSION (63m); đóng gói release chung vào \ccepted/\ và thu thập đủ 3 receipt độc lập để chuyển task sang Done.
+
+## Bổ sung 28/10 — range worker và USGS frozen cho thành viên
 
 [Worker runbook](../runbooks/DAT-03_RANGE_WORKER.md) thay blocker thiếu
 implementation của setup PR #106: controller/Spark range và37frozen sources

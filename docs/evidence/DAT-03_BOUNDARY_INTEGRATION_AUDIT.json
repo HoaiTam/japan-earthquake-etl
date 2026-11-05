@@ -1,0 +1,98 @@
+{
+  "status": "PASS",
+  "contiguity": {
+    "status": "PASS",
+    "total_months": 288,
+    "expected_months": 288,
+    "missing_months": [],
+    "overlapping_months": [],
+    "unexpected_months": [],
+    "segments": [
+      {
+        "segment_id": "catalog_base_101",
+        "owner": "Catalog n\u1ec1n",
+        "start_month": "2000-01",
+        "end_month": "2008-05",
+        "month_count": 101
+      },
+      {
+        "segment_id": "hoaitam_62",
+        "owner": "HoaiTam",
+        "start_month": "2008-06",
+        "end_month": "2013-07",
+        "month_count": 62
+      },
+      {
+        "segment_id": "thanhtris_62",
+        "owner": "ThanhTris",
+        "start_month": "2013-08",
+        "end_month": "2018-09",
+        "month_count": 62
+      },
+      {
+        "segment_id": "rosy179_63",
+        "owner": "rosy179",
+        "start_month": "2018-10",
+        "end_month": "2023-12",
+        "month_count": 63
+      }
+    ]
+  },
+  "boundaries": [
+    {
+      "boundary": "Boundary 1 (Base -> HoaiTam)",
+      "status": "PASS",
+      "prev_month": "2008-05",
+      "next_month": "2008-06",
+      "disjointness": {
+        "id_type": "canonical_event_id",
+        "status": "PASS",
+        "duplicate_count": 0,
+        "sample_duplicates": []
+      },
+      "time_window": {
+        "prev_month": "2008-05",
+        "next_month": "2008-06",
+        "status": "PASS",
+        "violations": []
+      }
+    },
+    {
+      "boundary": "Boundary 2 (HoaiTam -> ThanhTris)",
+      "status": "PASS",
+      "prev_month": "2013-07",
+      "next_month": "2013-08",
+      "disjointness": {
+        "id_type": "canonical_event_id",
+        "status": "PASS",
+        "duplicate_count": 0,
+        "sample_duplicates": []
+      },
+      "time_window": {
+        "prev_month": "2013-07",
+        "next_month": "2013-08",
+        "status": "PASS",
+        "violations": []
+      }
+    },
+    {
+      "boundary": "Boundary 3 (ThanhTris -> rosy179)",
+      "status": "PASS",
+      "prev_month": "2018-09",
+      "next_month": "2018-10",
+      "disjointness": {
+        "id_type": "canonical_event_id",
+        "status": "PASS",
+        "duplicate_count": 0,
+        "sample_duplicates": []
+      },
+      "time_window": {
+        "prev_month": "2018-09",
+        "next_month": "2018-10",
+        "status": "PASS",
+        "violations": []
+      }
+    }
+  ],
+  "checked_at_utc": "2026-11-05T07:53:33.962904+00:00"
+}
