@@ -500,6 +500,7 @@ test-col01: ## COL-01 offline EDA/guard/real PNG regression; cần notebooks/req
 .PHONY: test-col02
 test-col02: ## COL-02 parameter sweep regression; không Docker
 	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_parameter_sweep.py'
+	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_col02_colab.py'
 
 inspect-pilot: ## Fresh Jupyter kernel Run All; PILOT_BUNDLE=exact local directory, không Docker/API
 	@test -n "$(PILOT_BUNDLE)" || { echo 'Set PILOT_BUNDLE=staging/ml-pilot/pilot_id=<exact-id>'; exit 2; }
