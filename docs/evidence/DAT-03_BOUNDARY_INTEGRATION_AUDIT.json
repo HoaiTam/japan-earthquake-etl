@@ -1,7 +1,11 @@
 {
-  "status": "PASS",
+  "status": "NOT_CHECKED",
+  "gate_status": "PENDING_CATALOG_MERGE",
+  "audit_scope": "DEVELOPMENT_VERIFICATION_HARNESS",
+  "description": "Boundary verification gate (Gate 2 of DAT-03) is currently PENDING. 288 months exist in 4 isolated worker packages (101 catalog base + 62 HoaiTam + 62 ThanhTris + 63 rosy179), but cross-boundary deduplication and Iceberg Gold merge have not yet been executed. Audit harness is implemented and verified via unit tests, but will only be marked PASS once packages are merged into Gold and audited via Trino.",
   "contiguity": {
-    "status": "PASS",
+    "status": "PASS_THEORETICAL",
+    "note": "CALENDAR_MATH_ONLY_NO_MANIFESTS_VERIFIED",
     "total_months": 288,
     "expected_months": 288,
     "missing_months": [],
@@ -10,7 +14,7 @@
     "segments": [
       {
         "segment_id": "catalog_base_101",
-        "owner": "Catalog n\u1ec1n",
+        "owner": "Catalog nền",
         "start_month": "2000-01",
         "end_month": "2008-05",
         "month_count": 101
@@ -41,58 +45,55 @@
   "boundaries": [
     {
       "boundary": "Boundary 1 (Base -> HoaiTam)",
-      "status": "PASS",
+      "status": "NOT_CHECKED",
+      "reason": "MISSING_BOUNDARY_INPUT",
       "prev_month": "2008-05",
       "next_month": "2008-06",
       "disjointness": {
-        "id_type": "canonical_event_id",
-        "status": "PASS",
-        "duplicate_count": 0,
-        "sample_duplicates": []
+        "status": "NOT_CHECKED",
+        "reason": "NO_DATA"
       },
       "time_window": {
-        "prev_month": "2008-05",
-        "next_month": "2008-06",
-        "status": "PASS",
-        "violations": []
+        "status": "NOT_CHECKED",
+        "violations": [
+          "NO_DATA"
+        ]
       }
     },
     {
       "boundary": "Boundary 2 (HoaiTam -> ThanhTris)",
-      "status": "PASS",
+      "status": "NOT_CHECKED",
+      "reason": "MISSING_BOUNDARY_INPUT",
       "prev_month": "2013-07",
       "next_month": "2013-08",
       "disjointness": {
-        "id_type": "canonical_event_id",
-        "status": "PASS",
-        "duplicate_count": 0,
-        "sample_duplicates": []
+        "status": "NOT_CHECKED",
+        "reason": "NO_DATA"
       },
       "time_window": {
-        "prev_month": "2013-07",
-        "next_month": "2013-08",
-        "status": "PASS",
-        "violations": []
+        "status": "NOT_CHECKED",
+        "violations": [
+          "NO_DATA"
+        ]
       }
     },
     {
       "boundary": "Boundary 3 (ThanhTris -> rosy179)",
-      "status": "PASS",
+      "status": "NOT_CHECKED",
+      "reason": "MISSING_BOUNDARY_INPUT",
       "prev_month": "2018-09",
       "next_month": "2018-10",
       "disjointness": {
-        "id_type": "canonical_event_id",
-        "status": "PASS",
-        "duplicate_count": 0,
-        "sample_duplicates": []
+        "status": "NOT_CHECKED",
+        "reason": "NO_DATA"
       },
       "time_window": {
-        "prev_month": "2018-09",
-        "next_month": "2018-10",
-        "status": "PASS",
-        "violations": []
+        "status": "NOT_CHECKED",
+        "violations": [
+          "NO_DATA"
+        ]
       }
     }
   ],
-  "checked_at_utc": "2026-11-05T07:53:33.962904+00:00"
+  "checked_at_utc": "2026-11-05T16:57:02.986928+00:00"
 }
