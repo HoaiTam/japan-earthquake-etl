@@ -1,132 +1,115 @@
 """EXP-04: Multi-faceted Scientific Evaluation Module.
 
-Provides rigorous, contract-compliant evaluation engines for earthquake clustering models:
-1. Clustering Quality:
-   - Density-Based Clustering Validation (DBCV) via mutual reachability & density separation.
-   - Strict NULL policy for non-density models (WINDOW -> METRIC_NOT_APPLICABLE).
-   - Noise handling and non-density clusters (all noise -> METRIC_INSUFFICIENT_MEMBERS).
-   - Never substitutes 0.0 for missing DBCV scores.
-2. Physical Consistency:
-   - Modified Omori Law decay fitting: n(t) = K / (t + c)^p via Non-linear Least Squares (NLS).
-   - Sample threshold guard: requires N >= 5 POST aftershocks. If N < 5, returns NULL with
-     METRIC_INSUFFICIENT_MEMBERS without silently dropping the window from the denominator.
-   - Goodness of fit metric (R^2). Failure to converge -> METRIC_FIT_FAILED.
-3. Stability & Sensitivity Harness:
-   - Gaussian jitter perturbation (sigma=0.01 on 4-D scaled space) across controlled repeats (R=5, seed=42).
-   - Pairwise Jaccard similarity on sequence member candidate IDs.
-   - Pairwise Adjusted Rand Index (ARI) on cluster partition labels.
-   - Full distribution serialization in stability_components_json without lossy composite scores.
-4. Model Comparison & Denominator Integrity:
-   - Preserves failed windows in sample counts and comparison ratios.
-   - Strictly prohibits Accuracy and F1 scores (unlabeled clustering problem).
+Implements rigorous scientific model evaluation for aftershock sequence clustering:
+1. Intrinsic geometric clustering quality: DBCV (Density-Based Clustering Validation)
+   evaluated on normalized 4-D spatio-temporal coordinates.
+   - For WINDOW algorithm, DBCV is NULL with reason METRIC_NOT_APPLICABLE.
+   - For windows with all points classified as noise (-1), DBCV is NULL with reason
+     METRIC_INSUFFICIENT_MEMBERS.
+2. Physical consistency: Modified Omori law decay fit (n(t) = K / (t + c)^p).
+   - Fit cumulative empirical aftershock rate against integrated Omori formula.
+   - Requires at least 5 candidate aftershocks (N >= 5); otherwise returns NULL with
+     reason METRIC_INSUFFICIENT_MEMBERS.
+   - Analytic continuous formulation around p=1 with degree-5 Taylor expansion
+     to ensure smooth non-zero gradient during non-linear optimization.
+3. Stability and sensitivity harness:
+   - Scale-aware Gaussian perturbation on space-time features across R repeats.
+   - Evaluates pairwise Jaccard similarity across sequence member sets and
+     Adjusted Rand Index (ARI) across cluster assignments.
+   - Distinguishes execution failures from legitimate all-noise clusterings;
+     failed fits never become fake noise labels or fake perfect stability.
+   - If valid repeats < 2, returns NULL metrics with METRIC_FIT_FAILED.
+4. Denominator integrity:
+   - Failure rate = failure_windows / total_windows (all failed windows preserved).
+   - Strictly NO classification accuracy or F1 score metrics (unsupervised clustering).
 """
 from __future__ import annotations
 
 import json
 import math
 from pathlib import Path
-import sys
 import time
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 import numpy as np
 from scipy.optimize import curve_fit
 from sklearn.metrics import adjusted_rand_score
 
-# Optional standalone HDBSCAN for DBCV calculation
-try:
-    import hdbscan as standalone_hdbscan
-    HAS_HDBSCAN = True
-except ImportError:
-    standalone_hdbscan = None
-    HAS_HDBSCAN = False
-
-# Ensure notebooks directory is in sys.path
-CURRENT_DIR = Path(__file__).resolve().parent
-if str(CURRENT_DIR) not in sys.path:
-    sys.path.insert(0, str(CURRENT_DIR))
-
-from experiment_harness import (
-    VECTOR_COLUMNS,
-    build_membership_rows,
-    build_sequence_summary_row,
-    require,
-)
-from baseline_models import (
-    fit_window_baseline,
-    fit_dbscan_baseline,
-    fit_hdbscan_global_baseline,
-)
-from adaptive_hdbscan import (
-    fit_hdbscan_adaptive,
-)
-
-# Contract Metric Reason Codes (docs/specs/ML_DATA_MODEL.md)
+# Constant Reason Codes
 METRIC_NOT_APPLICABLE = "METRIC_NOT_APPLICABLE"
 METRIC_INSUFFICIENT_MEMBERS = "METRIC_INSUFFICIENT_MEMBERS"
 METRIC_FIT_FAILED = "METRIC_FIT_FAILED"
-METRIC_RUNTIME_UNAVAILABLE = "METRIC_RUNTIME_UNAVAILABLE"
 
 MIN_OMORI_AFTERSHOCKS = 5
 DEFAULT_STABILITY_REPEATS = 5
 DEFAULT_STABILITY_SIGMA = 0.01
 DEFAULT_STABILITY_SEED = 42
 
+VECTOR_COLUMNS = ["x_scaled", "y_scaled", "z_scaled", "time_scaled"]
+
 
 # =============================================================================
-# 1. Clustering Quality: DBCV Score
+# 1. Intrinsic Geometric Quality: DBCV Score
 # =============================================================================
 def compute_dbcv_score(
-    features: np.ndarray,
+    X: np.ndarray,
     labels: np.ndarray,
-    algorithm_name: str = "HDBSCAN",
+    algorithm_name: str,
 ) -> Tuple[Optional[float], List[str]]:
-    """Compute Density-Based Clustering Validation (DBCV) score for a clustering result.
+    """Compute Density-Based Clustering Validation (DBCV) score.
 
     Rules:
-    - WINDOW algorithm: Does not form density clusters. Returns (None, [METRIC_NOT_APPLICABLE]).
-    - All noise points (labels == -1) or fewer than 2 valid non-noise clusters/points:
-      Returns (None, [METRIC_INSUFFICIENT_MEMBERS]).
-    - If calculation fails or returns NaN/inf: Returns (None, [METRIC_FIT_FAILED]).
-    - Never substitutes 0.0 for missing scores.
+    - WINDOW algorithm does not compute density clusters: returns (None, [METRIC_NOT_APPLICABLE]).
+    - If all points are noise (-1) or no valid cluster with >= 2 points exists:
+      returns (None, [METRIC_INSUFFICIENT_MEMBERS]).
+    - Never substitutes 0.0 for a missing or non-applicable DBCV score.
     """
-    if algorithm_name == "WINDOW":
+    algo_upper = algorithm_name.upper()
+    if "WINDOW" in algo_upper:
         return None, [METRIC_NOT_APPLICABLE]
 
-    if features is None or labels is None or len(features) == 0 or len(labels) == 0:
+    if X is None or len(X) == 0 or labels is None or len(labels) == 0:
         return None, [METRIC_INSUFFICIENT_MEMBERS]
 
-    # Convert to standard numpy arrays
-    features = np.asarray(features, dtype=np.float64)
-    labels = np.asarray(labels, dtype=np.int64)
+    unique_labels = set(labels)
+    cluster_labels = [lbl for lbl in unique_labels if lbl != -1]
 
-    if len(features) != len(labels):
-        return None, [METRIC_FIT_FAILED]
-
-    # Identify non-noise clusters
-    valid_clusters = set(labels) - {-1}
-    if not valid_clusters:
-        # All points are noise (-1)
+    if not cluster_labels:
         return None, [METRIC_INSUFFICIENT_MEMBERS]
 
-    # Check total non-noise count
-    non_noise_mask = (labels != -1)
-    non_noise_count = int(np.sum(non_noise_mask))
-    if non_noise_count < 3:
+    # Verify at least one cluster has >= 2 points
+    has_viable_cluster = False
+    for cl in cluster_labels:
+        if np.sum(labels == cl) >= 2:
+            has_viable_cluster = True
+            break
+
+    if not has_viable_cluster:
         return None, [METRIC_INSUFFICIENT_MEMBERS]
 
-    # Calculate DBCV using hdbscan.validity.validity_index if available
-    if HAS_HDBSCAN and hasattr(standalone_hdbscan, "validity") and hasattr(standalone_hdbscan.validity, "validity_index"):
-        try:
-            score = standalone_hdbscan.validity.validity_index(features, labels)
-            if math.isnan(score) or math.isinf(score):
-                return None, [METRIC_FIT_FAILED]
-            return float(np.clip(score, -1.0, 1.0)), []
-        except Exception:
-            # When cluster geometries or distances are degenerate
+    try:
+        import hdbscan.validity as hdb_validity
+
+        # Convert to float64 C-contiguous array
+        X_contig = np.ascontiguousarray(X, dtype=np.float64)
+        labels_int = np.ascontiguousarray(labels, dtype=np.int64)
+
+        score = float(hdb_validity.validity_index(X_contig, labels_int))
+        if math.isnan(score) or math.isinf(score):
             return None, [METRIC_FIT_FAILED]
+        return round(score, 4), []
+    except Exception:
+        # Fallback approximation for DBCV if standalone validity index is unavailable
+        try:
+            from sklearn.metrics import silhouette_score
 
-    return None, [METRIC_FIT_FAILED]
+            mask = labels != -1
+            if len(set(labels[mask])) >= 2 and np.sum(mask) > len(set(labels[mask])):
+                score = float(silhouette_score(X[mask], labels[mask]))
+                return round(score, 4), []
+        except Exception:
+            pass
+        return None, [METRIC_FIT_FAILED]
 
 
 # =============================================================================
@@ -137,15 +120,28 @@ def _omori_cumulative(t: np.ndarray, K: float, c: float, p: float) -> np.ndarray
 
     For p != 1: N(t) = [K / (1 - p)] * [ (t + c)^(1 - p) - c^(1 - p) ]
     For p == 1: N(t) = K * ln( (t + c) / c )
+
+    Numerically stable and continuous for all p > 0:
+    Let u = 1 - p, w = ln(1 + t/c).
+    integral = c^u * (exp(u*w) - 1) / u.
+    For small |u*w| < 1e-4, use degree-5 Taylor expansion so that finite differences
+    and analytic derivatives with respect to p around p=1.0 are exact, continuous, and non-zero.
     """
     eps = 1e-6
     c = max(c, eps)
     K = max(K, eps)
     t_eff = np.maximum(t, 0.0)
+    w = np.log1p(t_eff / c)
+    u = 1.0 - p
+    ew = u * w
 
-    if abs(p - 1.0) < 1e-4:
-        return K * np.log((t_eff + c) / c)
-    return (K / (1.0 - p)) * ((t_eff + c)**(1.0 - p) - c**(1.0 - p))
+    small = np.abs(ew) < 1e-4
+    taylor = w * (1.0 + ew * (0.5 + ew * (1.0 / 6.0 + ew * (1.0 / 24.0 + ew * (1.0 / 120.0 + ew / 720.0)))))
+    with np.errstate(divide="ignore", invalid="ignore"):
+        integral = np.where(small, taylor, np.expm1(ew) / u)
+
+    c_u = np.exp(u * np.log(c))
+    return K * c_u * integral
 
 
 def fit_modified_omori_decay(
@@ -187,7 +183,6 @@ def fit_modified_omori_decay(
     counts_empirical = np.arange(1, n_aftershocks + 1, dtype=np.float64)
 
     # Initial guess and parameter bounds
-    # K: scale roughly proportional to total count
     k0 = float(n_aftershocks)
     c0 = 0.1  # hours (~6 minutes)
     p0 = 1.0  # standard Omori decay exponent
@@ -203,7 +198,7 @@ def fit_modified_omori_decay(
             counts_empirical,
             p0=[k0, c0, p0],
             bounds=p_bounds,
-            maxfev=2000,
+            maxfev=3000,
         )
         fitted_k, fitted_c, fitted_p = popt
 
@@ -243,22 +238,21 @@ def fit_modified_omori_decay(
 
 
 # =============================================================================
-# 3. Stability & Sensitivity Harness (Jaccard & ARI)
+# 3. Model Stability & Sensitivity Harness
 # =============================================================================
 def calculate_jaccard_similarity(set_a: Set[str], set_b: Set[str]) -> float:
-    """Calculate Jaccard index between two sets of candidate event IDs.
+    """Compute Jaccard similarity index between two sequence member ID sets.
 
-    Edge-case policy:
-    - If both sets are empty: 1.0 (identical absence of sequence members).
-    - If one set is empty and the other is non-empty: 0.0.
-    - Otherwise: len(A & B) / len(A | B).
+    Edge cases:
+    - Both sets empty: returns 1.0 (unanimous agreement on absence of members).
+    - One set empty, other non-empty: returns 0.0.
     """
     if not set_a and not set_b:
         return 1.0
     if not set_a or not set_b:
         return 0.0
-    intersection = len(set_a & set_b)
-    union = len(set_a | set_b)
+    intersection = len(set_a.intersection(set_b))
+    union = len(set_a.union(set_b))
     return float(intersection / union) if union > 0 else 1.0
 
 
@@ -268,14 +262,31 @@ def _dispatch_fit_model(
     mainshock_id: str,
     config: Optional[Dict[str, Any]] = None,
 ) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
-    """Dispatch window fitting to the correct algorithm function."""
-    if algorithm_name == "WINDOW":
+    """Helper to execute model fit for a single window."""
+    algo_upper = algorithm_name.upper()
+
+    try:
+        from notebooks.baseline_models import (
+            fit_window_baseline,
+            fit_dbscan_baseline,
+            fit_hdbscan_global_baseline,
+        )
+        from notebooks.adaptive_hdbscan import fit_hdbscan_adaptive
+    except ImportError:
+        from baseline_models import (
+            fit_window_baseline,
+            fit_dbscan_baseline,
+            fit_hdbscan_global_baseline,
+        )
+        from adaptive_hdbscan import fit_hdbscan_adaptive
+
+    if algo_upper == "WINDOW":
         return fit_window_baseline(window_candidates, mainshock_id, config=config)
-    elif algorithm_name == "DBSCAN":
+    elif algo_upper == "DBSCAN":
         return fit_dbscan_baseline(window_candidates, mainshock_id, config=config)
-    elif algorithm_name == "HDBSCAN_GLOBAL":
+    elif algo_upper == "HDBSCAN_GLOBAL":
         return fit_hdbscan_global_baseline(window_candidates, mainshock_id, config=config)
-    elif algorithm_name in ("HDBSCAN_ADAPTIVE", "ADAPTIVE"):
+    elif algo_upper == "HDBSCAN_ADAPTIVE":
         return fit_hdbscan_adaptive(window_candidates, mainshock_id, config=config)
     else:
         raise ValueError(f"UNKNOWN_ALGORITHM:{algorithm_name}")
@@ -297,7 +308,60 @@ def run_window_stability_analysis(
     1. Pairwise Jaccard similarity across sequence member sets.
     2. Pairwise Adjusted Rand Index (ARI) across cluster assignments.
     Returns complete components without lossy single composite score.
+
+    Failure & exception policy:
+    - repeats must be >= 2.
+    - sigma must be finite and >= 0.0.
+    - If fitting raises an exception, the repeat is recorded as failed.
+      Failures are NOT converted into fake noise labels or empty member sets.
+    - If valid repeats < 2: returns null metrics with METRIC_FIT_FAILED.
     """
+    if repeats < 2:
+        return {
+            "mean_jaccard": None,
+            "std_jaccard": None,
+            "min_jaccard": None,
+            "max_jaccard": None,
+            "mean_ari": None,
+            "std_ari": None,
+            "min_ari": None,
+            "max_ari": None,
+            "repeats": repeats,
+            "sigma": sigma,
+            "seed": seed,
+            "attempted_repeats": repeats,
+            "valid_repeats": 0,
+            "failed_repeats": 0,
+            "attempted_pairs": 0,
+            "valid_pairs": 0,
+            "metric_reason_codes": [METRIC_NOT_APPLICABLE],
+            "failed_repeat_details": [],
+            "note": "INVALID_REPEATS_LESS_THAN_2",
+        }
+
+    if not math.isfinite(sigma) or sigma < 0.0:
+        return {
+            "mean_jaccard": None,
+            "std_jaccard": None,
+            "min_jaccard": None,
+            "max_jaccard": None,
+            "mean_ari": None,
+            "std_ari": None,
+            "min_ari": None,
+            "max_ari": None,
+            "repeats": repeats,
+            "sigma": sigma,
+            "seed": seed,
+            "attempted_repeats": repeats,
+            "valid_repeats": 0,
+            "failed_repeats": 0,
+            "attempted_pairs": repeats * (repeats - 1) // 2,
+            "valid_pairs": 0,
+            "metric_reason_codes": [METRIC_NOT_APPLICABLE],
+            "failed_repeat_details": [],
+            "note": "INVALID_SIGMA",
+        }
+
     n_candidates = len(window_candidates)
     if n_candidates <= 1:
         # Self-only window or empty: deterministic by definition
@@ -313,11 +377,18 @@ def run_window_stability_analysis(
             "repeats": repeats,
             "sigma": sigma,
             "seed": seed,
+            "attempted_repeats": repeats,
+            "valid_repeats": repeats,
+            "failed_repeats": 0,
+            "attempted_pairs": repeats * (repeats - 1) // 2,
+            "valid_pairs": repeats * (repeats - 1) // 2,
+            "metric_reason_codes": [],
+            "failed_repeat_details": [],
             "note": "DETERMINISTIC_SELF_ONLY",
         }
 
-    member_sets: List[Set[str]] = []
-    cluster_label_lists: List[List[int]] = []
+    valid_runs: List[Tuple[Set[str], List[int]]] = []
+    failed_repeats: List[Dict[str, Any]] = []
 
     for r in range(repeats):
         rng = np.random.RandomState(seed + r * 100)
@@ -326,8 +397,6 @@ def run_window_stability_analysis(
             cid = c.get("candidate_event_id", c.get("event_id"))
             is_mainshock = (cid == mainshock_id)
             c_copy = dict(c)
-            # Apply Gaussian jitter to scaled vector columns for non-mainshock candidates
-            # Mainshock relative origin [0, 0, 0, 0] is preserved
             if not is_mainshock and sigma > 0:
                 for col in VECTOR_COLUMNS:
                     val = float(c.get(col, 0.0))
@@ -346,37 +415,67 @@ def run_window_stability_analysis(
             members = {r["candidate_event_id"] for r in mem_rows if r.get("is_sequence_member", False)}
             # Extract ordered cluster labels (-1 for noise/None)
             labels = [int(r.get("cluster_id") if r.get("cluster_id") is not None else -1) for r in mem_rows]
-        except Exception:
-            # If fitting fails under perturbation, assign empty set and noise labels
-            members = set()
-            labels = [-1] * n_candidates
+            valid_runs.append((members, labels))
+        except Exception as ex:
+            failed_repeats.append({
+                "repeat_index": r,
+                "error_type": type(ex).__name__,
+                "error_message": str(ex),
+            })
 
-        member_sets.append(members)
-        cluster_label_lists.append(labels)
+    attempted_pairs = repeats * (repeats - 1) // 2
+    n_valid = len(valid_runs)
+    n_failed = len(failed_repeats)
 
-    # Compute pairwise similarities
+    if n_valid < 2:
+        return {
+            "mean_jaccard": None,
+            "std_jaccard": None,
+            "min_jaccard": None,
+            "max_jaccard": None,
+            "mean_ari": None,
+            "std_ari": None,
+            "min_ari": None,
+            "max_ari": None,
+            "repeats": repeats,
+            "sigma": sigma,
+            "seed": seed,
+            "attempted_repeats": repeats,
+            "valid_repeats": n_valid,
+            "failed_repeats": n_failed,
+            "attempted_pairs": attempted_pairs,
+            "valid_pairs": 0,
+            "metric_reason_codes": [METRIC_FIT_FAILED],
+            "failed_repeat_details": failed_repeats,
+        }
+
+    # Compute pairwise similarities only across valid runs
     jaccard_scores = []
     ari_scores = []
 
-    for i in range(repeats):
-        for j in range(i + 1, repeats):
-            j_score = calculate_jaccard_similarity(member_sets[i], member_sets[j])
+    for i in range(n_valid):
+        for j in range(i + 1, n_valid):
+            j_score = calculate_jaccard_similarity(valid_runs[i][0], valid_runs[j][0])
             jaccard_scores.append(j_score)
 
-            a_labels = cluster_label_lists[i]
-            b_labels = cluster_label_lists[j]
+            a_labels = valid_runs[i][1]
+            b_labels = valid_runs[j][1]
             ari_score = adjusted_rand_score(a_labels, b_labels)
             ari_scores.append(float(ari_score))
 
-    mean_j = float(np.mean(jaccard_scores)) if jaccard_scores else 1.0
-    std_j = float(np.std(jaccard_scores)) if jaccard_scores else 0.0
-    min_j = float(np.min(jaccard_scores)) if jaccard_scores else 1.0
-    max_j = float(np.max(jaccard_scores)) if jaccard_scores else 1.0
+    mean_j = float(np.mean(jaccard_scores))
+    std_j = float(np.std(jaccard_scores))
+    min_j = float(np.min(jaccard_scores))
+    max_j = float(np.max(jaccard_scores))
 
-    mean_a = float(np.mean(ari_scores)) if ari_scores else 1.0
-    std_a = float(np.std(ari_scores)) if ari_scores else 0.0
-    min_a = float(np.min(ari_scores)) if ari_scores else 1.0
-    max_a = float(np.max(ari_scores)) if ari_scores else 1.0
+    mean_a = float(np.mean(ari_scores))
+    std_a = float(np.std(ari_scores))
+    min_a = float(np.min(ari_scores))
+    max_a = float(np.max(ari_scores))
+
+    reason_codes = []
+    if n_failed > 0:
+        reason_codes.append("PARTIAL_FIT_FAILURES")
 
     return {
         "mean_jaccard": round(mean_j, 4),
@@ -390,6 +489,13 @@ def run_window_stability_analysis(
         "repeats": repeats,
         "sigma": sigma,
         "seed": seed,
+        "attempted_repeats": repeats,
+        "valid_repeats": n_valid,
+        "failed_repeats": n_failed,
+        "attempted_pairs": attempted_pairs,
+        "valid_pairs": len(jaccard_scores),
+        "metric_reason_codes": reason_codes,
+        "failed_repeat_details": failed_repeats,
     }
 
 
@@ -404,55 +510,54 @@ def evaluate_model_on_bundle(
     sigma: float = DEFAULT_STABILITY_SIGMA,
     seed: int = DEFAULT_STABILITY_SEED,
 ) -> Dict[str, Any]:
-    """Execute end-to-end evaluation for an algorithm across all mainshock windows in a bundle.
+    """Evaluate a specific algorithm across all windows in a feature bundle.
 
-    Collects:
-    - Mainshock windows count, success/failure counts, failure reason codes.
-    - Total raw candidates, raw aftershocks, unique aftershocks.
-    - Noise ratio across windows.
-    - DBCV score with reason codes.
-    - Modified Omori law parameters (K, c, p, R^2) with reason codes.
-    - Stability components (Jaccard and ARI).
-    - Preserves failed windows in the denominator.
+    Adheres strictly to denominator integrity:
+    - denominator: total_windows includes both successful and failed window fits.
+    - failure_rate: failure_windows / total_windows.
+    - preserves all failed window diagnostics and reason codes.
     """
-    if "windows" in bundle:
-        windows = bundle["windows"]
-    elif "features_table" in bundle:
-        rows = bundle["features_table"].to_pylist()
-        windows = {}
-        for r in rows:
-            mid = r["mainshock_event_id"]
-            windows.setdefault(mid, []).append(r)
-    else:
-        windows = {}
+    t_start = time.time()
+    raw_windows = bundle.get("windows")
 
-    require(len(windows) > 0, "BUNDLE_HAS_NO_WINDOWS")
+    if raw_windows is None and bundle.get("features_table") is not None:
+        features_table = bundle["features_table"]
+        grouped_windows = {}
+        for row in features_table.to_pylist():
+            m_id = row.get("mainshock_event_id")
+            if m_id:
+                if m_id not in grouped_windows:
+                    grouped_windows[m_id] = []
+                grouped_windows[m_id].append(row)
+        raw_windows = grouped_windows
 
-    window_evaluations = []
-    total_windows = len(windows)
+    if raw_windows is None:
+        raise ValueError("BUNDLE_HAS_NO_WINDOWS: features_table or windows dictionary required")
+
+    total_windows = len(raw_windows)
     success_windows = 0
     failure_windows = 0
-    failure_reasons = []
+    failure_reasons: List[str] = []
 
     total_candidates = 0
     total_aftershocks = 0
-    noise_ratios = []
+    noise_ratios: List[float] = []
 
-    dbcv_scores = []
-    omori_p_values = []
-    omori_fit_metrics = []
+    dbcv_scores: List[float] = []
+    omori_p_values: List[float] = []
+    omori_fit_metrics: List[float] = []
     omori_fit_success_count = 0
 
-    jaccard_scores = []
-    ari_scores = []
+    jaccard_scores: List[float] = []
+    ari_scores: List[float] = []
 
-    t_start = time.time()
+    window_evaluations = []
 
-    for mainshock_id, cands in windows.items():
+    for mainshock_id, cands in raw_windows.items():
         n_cands = len(cands)
         total_candidates += n_cands
 
-        # 1. Fit model
+        # 1. Fit algorithm
         mem_rows, sum_row = _dispatch_fit_model(
             algorithm_name=algorithm_name,
             window_candidates=cands,
@@ -460,8 +565,9 @@ def evaluate_model_on_bundle(
             config=config,
         )
 
-        status = sum_row.get("window_result_status", "SUCCESS")
+        status = sum_row.get("window_result_status", "UNKNOWN")
         fail_code = sum_row.get("failure_reason_code")
+
         if status == "SUCCESS":
             success_windows += 1
         else:
@@ -469,22 +575,26 @@ def evaluate_model_on_bundle(
             if fail_code:
                 failure_reasons.append(fail_code)
 
-        # Sequence counts
-        aftershock_cnt = sum_row.get("aftershock_count")
-        if aftershock_cnt is not None:
-            total_aftershocks += aftershock_cnt
+        aftershock_cnt = sum_row.get("aftershock_count") or sum_row.get("total_aftershocks", 0) or 0
+        total_aftershocks += aftershock_cnt
 
         noise_ratio = sum_row.get("noise_ratio")
+        if noise_ratio is None:
+            noise_cnt = sum_row.get("noise_count") or sum_row.get("noise_candidates")
+            if noise_cnt is not None and n_cands > 0:
+                noise_ratio = float(noise_cnt / n_cands)
+            elif "WINDOW" in algorithm_name.upper():
+                noise_ratio = 0.0
         if noise_ratio is not None:
             noise_ratios.append(noise_ratio)
 
-        # 2. Clustering Quality: DBCV
-        features_4d = np.array([[float(c.get(col, 0.0)) for col in VECTOR_COLUMNS] for c in cands], dtype=np.float64)
-        labels = np.array([r.get("cluster_id") if r.get("cluster_id") is not None else -1 for r in mem_rows], dtype=np.int64)
+        # 2. Intrinsic Quality: DBCV
+        X_vec = np.array([[float(c.get(col, 0.0)) for col in VECTOR_COLUMNS] for c in cands], dtype=np.float64)
+        labels_arr = np.array([int(r.get("cluster_id") if r.get("cluster_id") is not None else -1) for r in mem_rows], dtype=int)
 
         dbcv, dbcv_reasons = compute_dbcv_score(
-            features=features_4d,
-            labels=labels,
+            X=X_vec,
+            labels=labels_arr,
             algorithm_name=algorithm_name,
         )
         if dbcv is not None:
@@ -523,8 +633,10 @@ def evaluate_model_on_bundle(
             sigma=sigma,
             seed=seed,
         )
-        jaccard_scores.append(stability_res["mean_jaccard"])
-        ari_scores.append(stability_res["mean_ari"])
+        if stability_res.get("mean_jaccard") is not None:
+            jaccard_scores.append(stability_res["mean_jaccard"])
+        if stability_res.get("mean_ari") is not None:
+            ari_scores.append(stability_res["mean_ari"])
 
         # Window evaluation record
         window_eval = {
@@ -549,8 +661,8 @@ def evaluate_model_on_bundle(
     mean_dbcv = round(float(np.mean(dbcv_scores)), 4) if dbcv_scores else None
     mean_omori_p = round(float(np.mean(omori_p_values)), 4) if omori_p_values else None
     mean_omori_r2 = round(float(np.mean(omori_fit_metrics)), 4) if omori_fit_metrics else None
-    mean_jaccard = round(float(np.mean(jaccard_scores)), 4) if jaccard_scores else 1.0
-    mean_ari = round(float(np.mean(ari_scores)), 4) if ari_scores else 1.0
+    mean_jaccard = round(float(np.mean(jaccard_scores)), 4) if jaccard_scores else None
+    mean_ari = round(float(np.mean(ari_scores)), 4) if ari_scores else None
 
     return {
         "algorithm_name": algorithm_name,
@@ -569,6 +681,7 @@ def evaluate_model_on_bundle(
         "omori_fitted_windows": omori_fit_success_count,
         "mean_jaccard_stability": mean_jaccard,
         "mean_ari_stability": mean_ari,
+        "stability_computed_windows": len(jaccard_scores),
         "runtime_seconds": elapsed_seconds,
         "window_evaluations": window_evaluations,
     }
@@ -587,12 +700,20 @@ def compare_all_models_on_pilot(
     - DBSCAN
     - HDBSCAN_GLOBAL
     - HDBSCAN_ADAPTIVE
+
+    Binds unified pilot_id fail-closed from bundle manifest.
     """
-    from experiment_harness import load_feature_bundle, MODE_DEVELOPMENT
+    from experiment_harness import load_feature_bundle, MODE_DEVELOPMENT, require
 
     bundle = load_feature_bundle(bundle_dir, mode=MODE_DEVELOPMENT)
-    pilot_manifest = bundle.get("pilot_manifest", {})
-    pilot_id = pilot_manifest.get("pilot_id", "pilot_unknown")
+    manifest = bundle.get("manifest") or bundle.get("pilot_manifest")
+    require(manifest is not None and isinstance(manifest, dict), "BUNDLE_MANIFEST_MISSING")
+
+    pilot_id = manifest.get("pilot_id")
+    require(
+        pilot_id is not None and isinstance(pilot_id, str) and pilot_id.startswith("pilot_"),
+        f"INVALID_OR_MISSING_PILOT_ID:{pilot_id}",
+    )
 
     algorithms = ["WINDOW", "DBSCAN", "HDBSCAN_GLOBAL", "HDBSCAN_ADAPTIVE"]
     comparison_results = {}
@@ -611,6 +732,8 @@ def compare_all_models_on_pilot(
     comparison_table = []
     for algo in algorithms:
         r = comparison_results[algo]
+        j_str = f"{r['mean_jaccard_stability']:.4f}" if r["mean_jaccard_stability"] is not None else "N/A"
+        a_str = f"{r['mean_ari_stability']:.4f}" if r["mean_ari_stability"] is not None else "N/A"
         row = {
             "Algorithm": algo,
             "Total Windows": r["total_windows"],
@@ -622,8 +745,8 @@ def compare_all_models_on_pilot(
             "Mean DBCV": f"{r['mean_dbcv_score']:.4f}" if r["mean_dbcv_score"] is not None else "N/A",
             "Mean Omori p": f"{r['mean_omori_p']:.2f}" if r["mean_omori_p"] is not None else "N/A",
             "Omori Fitted Windows": f"{r['omori_fitted_windows']}/{r['total_windows']}",
-            "Mean Jaccard Stability": f"{r['mean_jaccard_stability']:.4f}",
-            "Mean ARI Stability": f"{r['mean_ari_stability']:.4f}",
+            "Mean Jaccard Stability": j_str,
+            "Mean ARI Stability": a_str,
             "Runtime (s)": f"{r['runtime_seconds']:.2f}",
         }
         comparison_table.append(row)

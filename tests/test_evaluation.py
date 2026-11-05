@@ -3,11 +3,16 @@
 Verifies:
 1. Clustering quality (DBCV score and NULL reason code policy).
 2. Physical consistency (Modified Omori law decay fitting, threshold N>=5, and failure reason codes).
+   - Verifies recovery of diverse true p values across [0.5, 2.0].
+   - Verifies non-zero analytic finite differences around p=1.0.
 3. Stability harness (Jaccard on sequence members, ARI on cluster partitions, reproducibility, and component distribution).
+   - Verifies that execution errors return METRIC_FIT_FAILED instead of fake 1.0 stability.
+   - Verifies handling of partial fit failures and invalid parameters.
 4. Integrity constraints:
    - Strictly NO accuracy/F1 metrics (unlabeled clustering problem).
    - Denominator integrity: all failed windows preserved in total count without silent drop.
 5. Multi-model comparative evaluation across WINDOW, DBSCAN, HDBSCAN_GLOBAL, and HDBSCAN_ADAPTIVE.
+   - Binds pilot_id fail-closed from bundle manifest.
 """
 from __future__ import annotations
 
@@ -16,6 +21,7 @@ from pathlib import Path
 import shutil
 import tempfile
 import unittest
+from unittest.mock import patch
 
 import numpy as np
 
@@ -30,6 +36,7 @@ if str(NOTEBOOKS_DIR) not in sys.path:
 
 from notebooks.evaluation import (
     compute_dbcv_score,
+    _omori_cumulative,
     fit_modified_omori_decay,
     calculate_jaccard_similarity,
     run_window_stability_analysis,
@@ -73,9 +80,7 @@ class TestScientificEvaluation(unittest.TestCase):
     def test_dbcv_two_well_separated_clusters_returns_valid_score(self):
         """Two compact, well-separated clusters should yield a valid finite DBCV score."""
         rng = np.random.RandomState(42)
-        # Cluster 1 around origin
         c1 = rng.randn(10, 4) * 0.05
-        # Cluster 2 shifted by 10 units
         c2 = rng.randn(10, 4) * 0.05 + 10.0
         X = np.vstack([c1, c2])
         labels = np.array([0] * 10 + [1] * 10, dtype=int)
@@ -85,7 +90,6 @@ class TestScientificEvaluation(unittest.TestCase):
             self.assertTrue(-1.0 <= score <= 1.0)
             self.assertEqual(len(reasons), 0)
         else:
-            # If standalone hdbscan validity is not available, it reports METRIC_FIT_FAILED
             self.assertIn(METRIC_FIT_FAILED, reasons)
 
     def test_dbcv_never_substitutes_zero_for_missing_score(self):
@@ -99,28 +103,48 @@ class TestScientificEvaluation(unittest.TestCase):
     # -------------------------------------------------------------------------
     # 2. Physical Consistency: Modified Omori Law Tests
     # -------------------------------------------------------------------------
-    def test_omori_decay_synthetic_fit_success(self):
-        """Synthetic aftershock sequence decaying with p=1.1 must fit with p in [0.7, 1.5] and R^2 > 0.8."""
-        rng = np.random.RandomState(42)
-        # Generate synthetic aftershocks: inverse transform sampling from Omori CDF
-        # N(t) = K/(1-p) * ((t+c)^(1-p) - c^(1-p))
-        n_points = 50
-        u = rng.uniform(0.01, 0.99, size=n_points)
-        c_true = 0.1  # hours
-        p_true = 1.1
-        # Invert: t = [u * (1-p)/K + c^(1-p)]^(1/(1-p)) - c
-        # For simplicity, sample times that decay in density
-        times = np.sort(np.exp(rng.uniform(np.log(0.1), np.log(100.0), size=n_points)))
+    def test_omori_cumulative_derivative_around_p1(self):
+        """Verify that finite differences around p=1.0 yield non-zero, continuous gradient."""
+        t = np.array([0.1, 1.0, 10.0])
+        K = 100.0
+        c = 0.1
+        h = 1e-8
+        f_plus = _omori_cumulative(t, K, c, 1.0 + h)
+        f_minus = _omori_cumulative(t, K, c, 1.0 - h)
+        num_deriv = (f_plus - f_minus) / (2 * h)
 
-        res = fit_modified_omori_decay(times, duration_hours=120.0, min_aftershocks=5)
-        self.assertIsNotNone(res["omori_p"])
-        self.assertIsNotNone(res["omori_k"])
-        self.assertIsNotNone(res["omori_c"])
-        self.assertIsNotNone(res["omori_fit_metric"])
-        self.assertEqual(res["metric_reason_codes"], [])
-        self.assertEqual(res["aftershock_sample_size"], n_points)
-        self.assertTrue(0.2 <= res["omori_p"] <= 2.5)
-        self.assertTrue(res["omori_fit_metric"] >= 0.0)
+        # Analytic derivative: -K * w * (ln(c) + 0.5 * w) where w = ln(1 + t/c)
+        w = np.log1p(t / c)
+        analytic_deriv = -K * w * (np.log(c) + 0.5 * w)
+
+        self.assertTrue(np.all(np.abs(num_deriv) > 0.01), "Derivative must be non-zero")
+        rel_diff = np.max(np.abs(num_deriv - analytic_deriv) / np.abs(analytic_deriv))
+        self.assertLess(rel_diff, 1e-4, "Finite difference must match analytic derivative")
+
+    def test_omori_decay_recovers_diverse_true_p(self):
+        """Verify that curve_fit reliably estimates diverse true p values across [0.5, 2.0]."""
+        from scipy.optimize import root_scalar
+
+        for p_true in [0.5, 0.8, 0.95, 1.0, 1.05, 1.2, 1.6, 2.0]:
+            c_true = 0.1
+            K_true = 50.0
+            u_vals = np.linspace(0.01, 0.99, 80)
+            N_max = _omori_cumulative(np.array([48.0]), K_true, c_true, p_true)[0]
+
+            t_synth = []
+            for u in u_vals:
+                sol = root_scalar(
+                    lambda t_i: _omori_cumulative(np.array([t_i]), K_true, c_true, p_true)[0] - u * N_max,
+                    bracket=[0.0, 48.0],
+                )
+                t_synth.append(sol.root)
+            t_synth = np.array(t_synth)
+
+            res = fit_modified_omori_decay(t_synth, duration_hours=48.0, min_aftershocks=5)
+            self.assertIsNotNone(res["omori_p"])
+            self.assertIsNotNone(res["omori_fit_metric"])
+            self.assertAlmostEqual(res["omori_p"], p_true, delta=0.03, msg=f"Failed to recover p={p_true}")
+            self.assertGreater(res["omori_fit_metric"], 0.95)
 
     def test_omori_insufficient_samples_under_threshold(self):
         """When aftershock count N < 5, Omori fit must return NULL parameters with METRIC_INSUFFICIENT_MEMBERS."""
@@ -145,16 +169,11 @@ class TestScientificEvaluation(unittest.TestCase):
     # -------------------------------------------------------------------------
     def test_jaccard_similarity_edge_cases(self):
         """Jaccard similarity must handle identical, disjoint, and empty set edge cases properly."""
-        # Identical sets
         self.assertEqual(calculate_jaccard_similarity({"e1", "e2"}, {"e1", "e2"}), 1.0)
-        # Disjoint sets
         self.assertEqual(calculate_jaccard_similarity({"e1", "e2"}, {"e3", "e4"}), 0.0)
-        # Both empty sets (consistent absence of members)
         self.assertEqual(calculate_jaccard_similarity(set(), set()), 1.0)
-        # One empty set, one non-empty
         self.assertEqual(calculate_jaccard_similarity(set(), {"e1"}), 0.0)
         self.assertEqual(calculate_jaccard_similarity({"e1"}, set()), 0.0)
-        # Overlapping sets
         self.assertAlmostEqual(calculate_jaccard_similarity({"e1", "e2"}, {"e2", "e3"}), 1.0 / 3.0)
 
     def test_stability_harness_self_only_window(self):
@@ -192,17 +211,67 @@ class TestScientificEvaluation(unittest.TestCase):
         self.assertEqual(res1["std_jaccard"], res2["std_jaccard"])
         self.assertEqual(res1["mean_ari"], res2["mean_ari"])
 
-    def test_stability_components_structure_completeness(self):
-        """Stability analysis result must include all required statistical component fields."""
+    def test_stability_harness_crashes_gracefully_on_all_fit_failures(self):
+        """When model fit throws an exception on all repeats, returns NULL metrics with METRIC_FIT_FAILED."""
         cands = [
             {"candidate_event_id": "main_1", "delta_time_hours": 0.0, "x_scaled": 0.0, "y_scaled": 0.0, "z_scaled": 0.0, "time_scaled": 0.0},
             {"candidate_event_id": "cand_1", "delta_time_hours": 1.0, "x_scaled": 0.5, "y_scaled": 0.5, "z_scaled": 0.1, "time_scaled": 1.0},
             {"candidate_event_id": "cand_2", "delta_time_hours": 2.0, "x_scaled": 0.6, "y_scaled": 0.4, "z_scaled": 0.2, "time_scaled": 2.0},
         ]
-        res = run_window_stability_analysis(cands, "main_1", "HDBSCAN_ADAPTIVE", repeats=3, seed=123)
-        for key in ["mean_jaccard", "std_jaccard", "min_jaccard", "max_jaccard",
-                    "mean_ari", "std_ari", "min_ari", "max_ari", "repeats", "sigma", "seed"]:
-            self.assertIn(key, res, f"Missing key {key} in stability result")
+        with patch("notebooks.evaluation._dispatch_fit_model", side_effect=RuntimeError("Cluster engine crashed")):
+            res = run_window_stability_analysis(cands, "main_1", "DBSCAN", repeats=5)
+            self.assertIsNone(res["mean_jaccard"])
+            self.assertIsNone(res["mean_ari"])
+            self.assertEqual(res["attempted_repeats"], 5)
+            self.assertEqual(res["valid_repeats"], 0)
+            self.assertEqual(res["failed_repeats"], 5)
+            self.assertEqual(res["valid_pairs"], 0)
+            self.assertIn(METRIC_FIT_FAILED, res["metric_reason_codes"])
+            self.assertEqual(len(res["failed_repeat_details"]), 5)
+
+    def test_stability_harness_handles_partial_fit_failures(self):
+        """When some repeats fail but >= 2 succeed, computes stability over valid pairs and records partial failures."""
+        cands = [
+            {"candidate_event_id": "main_1", "delta_time_hours": 0.0, "x_scaled": 0.0, "y_scaled": 0.0, "z_scaled": 0.0, "time_scaled": 0.0},
+            {"candidate_event_id": "cand_1", "delta_time_hours": 1.0, "x_scaled": 0.5, "y_scaled": 0.5, "z_scaled": 0.1, "time_scaled": 1.0},
+            {"candidate_event_id": "cand_2", "delta_time_hours": 2.0, "x_scaled": 0.6, "y_scaled": 0.4, "z_scaled": 0.2, "time_scaled": 2.0},
+        ]
+        call_count = [0]
+        original_dispatch = None
+        from notebooks.evaluation import _dispatch_fit_model
+        original_dispatch = _dispatch_fit_model
+
+        def mock_dispatch(*args, **kwargs):
+            call_count[0] += 1
+            if call_count[0] == 2:  # fail on second repeat
+                raise RuntimeError("Intermittent failure")
+            return original_dispatch(*args, **kwargs)
+
+        with patch("notebooks.evaluation._dispatch_fit_model", side_effect=mock_dispatch):
+            res = run_window_stability_analysis(cands, "main_1", "WINDOW", repeats=3)
+            self.assertIsNotNone(res["mean_jaccard"])
+            self.assertIsNotNone(res["mean_ari"])
+            self.assertEqual(res["attempted_repeats"], 3)
+            self.assertEqual(res["valid_repeats"], 2)
+            self.assertEqual(res["failed_repeats"], 1)
+            self.assertEqual(res["valid_pairs"], 1)
+            self.assertIn("PARTIAL_FIT_FAILURES", res["metric_reason_codes"])
+
+    def test_stability_harness_rejects_invalid_inputs(self):
+        """Stability harness returns null metrics when repeats < 2 or sigma is negative/invalid."""
+        cands = [
+            {"candidate_event_id": "main_1", "x_scaled": 0.0, "y_scaled": 0.0, "z_scaled": 0.0, "time_scaled": 0.0},
+            {"candidate_event_id": "cand_1", "x_scaled": 0.5, "y_scaled": 0.5, "z_scaled": 0.1, "time_scaled": 1.0},
+        ]
+        # Repeats < 2
+        res1 = run_window_stability_analysis(cands, "main_1", "WINDOW", repeats=1)
+        self.assertIsNone(res1["mean_jaccard"])
+        self.assertIn(METRIC_NOT_APPLICABLE, res1["metric_reason_codes"])
+
+        # Negative sigma
+        res2 = run_window_stability_analysis(cands, "main_1", "WINDOW", repeats=3, sigma=-0.1)
+        self.assertIsNone(res2["mean_jaccard"])
+        self.assertIn(METRIC_NOT_APPLICABLE, res2["metric_reason_codes"])
 
     # -------------------------------------------------------------------------
     # 4. Strict Quality & Denominator Integrity Guards
@@ -215,10 +284,9 @@ class TestScientificEvaluation(unittest.TestCase):
         ]
         bundle = {
             "windows": {"main_1": cands},
-            "pilot_manifest": {"pilot_id": "test_pilot_manifest"},
+            "manifest": {"pilot_id": "pilot_test_no_acc"},
         }
         eval_res = evaluate_model_on_bundle(bundle, algorithm_name="WINDOW", repeats=2)
-        # Convert dictionary to JSON string and scan for accuracy / f1 keywords
         dumped = json.dumps(eval_res).lower()
         self.assertNotIn("accuracy", dumped)
         self.assertNotIn("f1_score", dumped)
@@ -228,18 +296,16 @@ class TestScientificEvaluation(unittest.TestCase):
 
     def test_denominator_integrity_preserves_failed_windows(self):
         """Failed windows must be included in total windows count and failure rate calculation."""
-        # Window 1: normal window
         cands_win1 = [
             {"candidate_event_id": "m1", "mainshock_magnitude": 6.0, "delta_time_hours": 0.0, "x_scaled": 0.0, "y_scaled": 0.0, "z_scaled": 0.0, "time_scaled": 0.0},
             {"candidate_event_id": "c1", "mainshock_magnitude": 6.0, "delta_time_hours": 1.0, "x_scaled": 0.1, "y_scaled": 0.1, "z_scaled": 0.1, "time_scaled": 1.0},
         ]
-        # Window 2: self-only window where HDBSCAN marks mainshock as noise (-1) -> FAILED
         cands_win2 = [
             {"candidate_event_id": "m2", "mainshock_magnitude": 6.0, "delta_time_hours": 0.0, "x_scaled": 0.0, "y_scaled": 0.0, "z_scaled": 0.0, "time_scaled": 0.0},
         ]
         bundle = {
             "windows": {"m1": cands_win1, "m2": cands_win2},
-            "pilot_manifest": {"pilot_id": "test_pilot_fail"},
+            "manifest": {"pilot_id": "pilot_test_fail"},
         }
         res = evaluate_model_on_bundle(bundle, algorithm_name="HDBSCAN_ADAPTIVE", repeats=2)
         self.assertEqual(res["total_windows"], 2)
@@ -251,9 +317,8 @@ class TestScientificEvaluation(unittest.TestCase):
     # -------------------------------------------------------------------------
     # 5. Multi-Model Pilot Comparison Integration
     # -------------------------------------------------------------------------
-    def test_compare_all_models_on_pilot_fixture(self):
-        """compare_all_models_on_pilot executes all 4 algorithms on pilot fixture and produces comparison table."""
-        # Create standard pilot fixture in tmp directory
+    def test_compare_all_models_on_pilot_fixture_and_pilot_id_binding(self):
+        """compare_all_models_on_pilot binds pilot_id fail-closed and produces comparison table."""
         test_harness_util.create_pilot_fixture(self.tmp_dir)
 
         report = compare_all_models_on_pilot(self.tmp_dir, repeats=2, sigma=0.01, seed=42)
@@ -261,18 +326,16 @@ class TestScientificEvaluation(unittest.TestCase):
         self.assertIn("algorithm_details", report)
         self.assertEqual(len(report["comparison_table"]), 4)
 
+        # Check pilot_id binding
+        self.assertTrue(report["pilot_id"].startswith("pilot_"), f"pilot_id was {report['pilot_id']}")
+        self.assertNotEqual(report["pilot_id"], "pilot_unknown")
+
         algo_names = [row["Algorithm"] for row in report["comparison_table"]]
         self.assertEqual(algo_names, ["WINDOW", "DBSCAN", "HDBSCAN_GLOBAL", "HDBSCAN_ADAPTIVE"])
 
         # Check WINDOW row specifics
         window_row = [r for r in report["comparison_table"] if r["Algorithm"] == "WINDOW"][0]
         self.assertEqual(window_row["Mean DBCV"], "N/A")
-
-        # Check HDBSCAN_ADAPTIVE details
-        adaptive_res = report["algorithm_details"]["HDBSCAN_ADAPTIVE"]
-        self.assertIn("mean_jaccard_stability", adaptive_res)
-        self.assertIn("mean_ari_stability", adaptive_res)
-        self.assertIn("failure_rate", adaptive_res)
 
 
 if __name__ == "__main__":

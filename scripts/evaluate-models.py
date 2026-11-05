@@ -1,22 +1,29 @@
 #!/usr/bin/env python3
-"""EXP-04: Comparative Model Evaluation Runner for Pilot Bundle.
+"""EXP-04: Scientific Model Evaluation CLI Runner.
 
-Evaluates 4 earthquake clustering algorithms on a real pilot bundle:
-1. WINDOW
-2. DBSCAN
-3. HDBSCAN_GLOBAL
-4. HDBSCAN_ADAPTIVE
+Executes comparative evaluation across 4 aftershock sequence clustering models
+on the development pilot bundle:
+1. WINDOW (Space-time counting window baseline)
+2. DBSCAN (Density-based spatial clustering baseline)
+3. HDBSCAN_GLOBAL (Hierarchical density-based clustering with global density)
+4. HDBSCAN_ADAPTIVE (Adaptive parameter scaling based on candidate count and magnitude)
 
-Outputs:
-- JSON evidence: docs/evidence/EXP-04_PILOT_EVALUATION.json
-- Markdown report: docs/evidence/EXP-04_PILOT_EVALUATION.md
+Enforces:
+- Denominator integrity: all failed windows preserved in total count.
+- Strictly NO accuracy/F1 metrics.
+- Physical consistency: Modified Omori law decay fit (threshold N >= 5).
+- Geometric clustering quality: DBCV score (WINDOW = METRIC_NOT_APPLICABLE).
+- Stability harness: Jaccard and ARI over feature perturbation.
+- Exact fail-closed config pins, code commit pin, and pilot dataset identity.
 """
 from __future__ import annotations
 
 import argparse
-from datetime import datetime, timezone
+import hashlib
 import json
 from pathlib import Path
+import re
+import subprocess
 import sys
 from typing import Any, Dict, List
 
@@ -42,6 +49,46 @@ from notebooks.evaluation import (
 )
 
 
+def get_git_commit_hash() -> str:
+    """Safely obtain current full git commit hash."""
+    try:
+        res = subprocess.run(
+            ["git", "-C", str(PROJECT_ROOT), "rev-parse", "HEAD"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        commit = res.stdout.strip()
+        if re.fullmatch(r"[a-f0-9]{40}", commit):
+            return commit
+    except Exception:
+        pass
+    return "unknown"
+
+
+def get_algorithm_config_pins() -> Dict[str, Dict[str, Any]]:
+    """Load exact algorithm config files, parse versions, and compute SHA-256."""
+    config_map = {
+        "WINDOW": PROJECT_ROOT / "config/ml/models/window_baseline_v1.json",
+        "DBSCAN": PROJECT_ROOT / "config/ml/models/dbscan_global_dev_v1.json",
+        "HDBSCAN_GLOBAL": PROJECT_ROOT / "config/ml/models/hdbscan_global_dev_v1.json",
+        "HDBSCAN_ADAPTIVE": PROJECT_ROOT / "config/ml/models/hdbscan_adaptive_dev_v1.json",
+    }
+    pins = {}
+    for algo, path in config_map.items():
+        require(path.is_file(), f"CONFIG_FILE_MISSING:{path}")
+        raw_bytes = path.read_bytes()
+        cfg = json.loads(raw_bytes.decode("utf-8"))
+        sha256 = hashlib.sha256(raw_bytes).hexdigest()
+        pins[algo] = {
+            "config_path": str(path.relative_to(PROJECT_ROOT)),
+            "model_config_version": cfg.get("model_config_version", "unknown"),
+            "algorithm_version": cfg.get("algorithm_version", "unknown"),
+            "config_sha256": sha256,
+        }
+    return pins
+
+
 def format_markdown_table(rows: List[Dict[str, Any]]) -> str:
     """Format list of dicts as clean Markdown table."""
     if not rows:
@@ -59,6 +106,7 @@ def generate_markdown_report(
     eval_results: Dict[str, Any],
     pilot_info: Dict[str, Any],
     runtime_meta: Dict[str, Any],
+    config_pins: Dict[str, Dict[str, Any]],
 ) -> str:
     """Generate comprehensive Markdown evaluation report."""
     comp_table = eval_results.get("comparison_table", [])
@@ -75,10 +123,22 @@ def generate_markdown_report(
         f"- **Mã Task:** [EXP-04](../task/tasks/EXP-04.md) (Tuần 7, Khối H - Experiment)",
         f"- **Thời điểm đánh giá (UTC):** `{eval_results.get('evaluated_at_utc')}`",
         f"- **Pilot Dataset ID:** `{pilot_id}`",
+        f"- **Git Commit Pin:** `{runtime_meta.get('code_version')}`",
+        f"- **Random Seed:** `{runtime_meta.get('random_seed')}`",
         f"- **Số lượng ứng viên đầu vào:** `{rows_count}` dòng (ở grain mainshock/candidate)",
         f"- **Số lượng cửa sổ Mainshock:** `{mainshock_count}` cửa sổ",
         f"- **Môi trường thực thi:** Python `{runtime_meta.get('python_version')}`",
         "- **Phạm vi dữ liệu:** `DEVELOPMENT_ONLY`, `research_ready=false` (Pilot 14 ngày, độ phủ `PARTIAL`)",
+        "",
+        "### Cấu hình thuật toán (Config Pins):",
+    ]
+
+    for algo, c_info in config_pins.items():
+        lines.append(
+            f"- **{algo}:** `{c_info['config_path']}` (Version: `{c_info['model_config_version']}`, SHA: `{c_info['config_sha256'][:16]}...`)"
+        )
+
+    lines.extend([
         "",
         "## 2. Bảng Đối soát So sánh 4 Thuật toán (Reproduction Comparison Table)",
         "",
@@ -89,17 +149,19 @@ def generate_markdown_report(
         "- **Bảo toàn mẫu số (Denominator Integrity):** Toàn bộ các cửa sổ thất bại (`failure_windows`) được giữ nguyên trong mẫu số tính tỷ lệ thất bại (`failure_rate = failure_windows / total_windows`), không bị loại bỏ ngầm khỏi báo cáo.",
         "- **DBCV (Density-Based Clustering Validation):** Chỉ áp dụng cho các thuật toán phân cụm mật độ (DBSCAN, HDBSCAN). Thuật toán không gian - thời gian đơn thuần `WINDOW` có DBCV là `N/A` kèm mã `METRIC_NOT_APPLICABLE`.",
         "- **Modified Omori Law:** Khớp phương trình suy giảm $n(t) = \\frac{K}{(t + c)^p}$ qua phi tuyến bình phương tối thiểu (`scipy.optimize.curve_fit`). Chỉ fit khi cửa sổ có tối thiểu $N \\ge 5$ dư chấn sau chấn (`POST`). Cửa sổ thiếu mẫu được ghi nhận `N/A` kèm `METRIC_INSUFFICIENT_MEMBERS`.",
-        "- **Stability Harness:** Áp dụng nhiễu Gaussian feature jitter nhỏ ($\\sigma = 0.01$ trên 4-D scaled space) qua 5 lần lặp với `seed=42`. Đo chỉ số tương đồng cặp **Jaccard index** (trên tập dư chấn) và **Adjusted Rand Index (ARI)** (trên phân vùng cụm).",
+        "- **Stability Harness:** Áp dụng nhiễu Gaussian feature jitter nhỏ ($\\sigma = 0.01$ trên 4-D scaled space) qua 5 lần lặp với `seed=42`. Đo chỉ số tương đồng cặp **Jaccard index** (trên tập dư chấn) và **Adjusted Rand Index (ARI)** (trên phân vùng cụm). Phân biệt rõ lỗi thực thi (báo `METRIC_FIT_FAILED`) với kết quả nhiễu vật lý.",
         "",
         "## 3. Phân tích Chi tiết Từng Thuật toán",
         "",
-    ]
+    ])
 
     for algo_name, details in algo_details.items():
         noise_str = f"{details.get('mean_noise_ratio') * 100:.1f}%" if details.get('mean_noise_ratio') is not None else "N/A"
         dbcv_str = f"{details.get('mean_dbcv_score'):.4f}" if details.get('mean_dbcv_score') is not None else "N/A"
         omori_p_str = f"{details.get('mean_omori_p'):.2f}" if details.get('mean_omori_p') is not None else "N/A"
         omori_r2_str = f"{details.get('mean_omori_r2'):.2f}" if details.get('mean_omori_r2') is not None else "N/A"
+        jaccard_str = f"{details.get('mean_jaccard_stability'):.4f}" if details.get('mean_jaccard_stability') is not None else "N/A"
+        ari_str = f"{details.get('mean_ari_stability'):.4f}" if details.get('mean_ari_stability') is not None else "N/A"
 
         lines.extend([
             f"### {algo_name}",
@@ -110,8 +172,8 @@ def generate_markdown_report(
             f"- **Tỷ lệ nhiễu trung bình (Noise ratio):** `{noise_str}`",
             f"- **DBCV trung bình:** `{dbcv_str}` (Số cửa sổ tính được: `{details.get('dbcv_computed_windows')}/{details.get('total_windows')}`)",
             f"- **Modified Omori decay exponent p:** `{omori_p_str}` (R^2 fit: `{omori_r2_str}`, số cửa sổ fit: `{details.get('omori_fitted_windows')}/{details.get('total_windows')}`)",
-            f"- **Độ ổn định Jaccard (Mean Jaccard):** `{details.get('mean_jaccard_stability'):.4f}`",
-            f"- **Độ ổn định ARI (Mean ARI):** `{details.get('mean_ari_stability'):.4f}`",
+            f"- **Độ ổn định Jaccard (Mean Jaccard):** `{jaccard_str}`",
+            f"- **Độ ổn định ARI (Mean ARI):** `{ari_str}`",
             f"- **Thời gian thực thi:** `{details.get('runtime_seconds'):.2f}` giây",
             "",
         ])
@@ -119,16 +181,60 @@ def generate_markdown_report(
     lines.extend([
         "## 4. Nhận xét và Giới hạn Thực nghiệm (Pilot Limitations)",
         "",
-        "1. **Khác biệt giữa Window và Density Models:**",
-        "   - Thuật toán `WINDOW` thu nhận toàn bộ ứng viên xảy ra sau mainshock trong hộp không-thời gian làm dư chấn (`aftershocks = 277`), dẫn đến tỷ lệ nhiễu 0% nhưng không lọc được chấn động nền ngẫu nhiên.",
-        "   - `DBSCAN` và `HDBSCAN` loại bỏ nhiễu hiệu quả hơn, chỉ giữ các điểm gắn kết mật độ với tâm chấn chính.",
-        "   - `HDBSCAN_ADAPTIVE` thích ứng bán kính và mật độ theo độ lớn chấn chính ($M_w$), cho độ ổn định Jaccard và ARI cao trước nhiễu không gian.",
+        "1. **Phân tích so sánh thực tế giữa các mô hình trên Pilot Bundle:**",
+    ])
+
+    window_res = algo_details.get("WINDOW", {})
+    lines.append(
+        f"   - **WINDOW:** Thu nhận toàn bộ ứng viên xảy ra sau mainshock trong hộp không-thời gian "
+        f"({window_res.get('total_aftershocks', 0)} sau chấn trên {window_res.get('total_windows', 0)} cửa sổ), "
+        f"tỷ lệ nhiễu đạt 0% nhưng không lọc được chấn động nền ngẫu nhiên không gắn kết mật độ."
+    )
+    dbscan_res = algo_details.get("DBSCAN", {})
+    dbscan_noise = f"{dbscan_res.get('mean_noise_ratio', 0.0) * 100:.1f}%" if dbscan_res.get("mean_noise_ratio") is not None else "N/A"
+    lines.append(
+        f"   - **DBSCAN:** Lọc nhiễu hiệu quả (tỷ lệ nhiễu trung bình {dbscan_noise}), "
+        f"giữ lại {dbscan_res.get('total_aftershocks', 0)} sau chấn với {dbscan_res.get('success_windows', 0)}/{dbscan_res.get('total_windows', 0)} cửa sổ thành công. "
+        f"Độ ổn định Jaccard đạt {dbscan_res.get('mean_jaccard_stability', 0.0):.4f} và ARI đạt {dbscan_res.get('mean_ari_stability', 0.0):.4f}."
+    )
+    hdb_res = algo_details.get("HDBSCAN_GLOBAL", {})
+    lines.append(
+        f"   - **HDBSCAN_GLOBAL:** Đạt {hdb_res.get('success_windows', 0)}/{hdb_res.get('total_windows', 0)} cửa sổ thành công trên cấu hình mặc định "
+        f"(tỷ lệ thất bại {hdb_res.get('failure_rate', 0.0) * 100:.1f}%, lý do chính: {', '.join(hdb_res.get('failure_reasons', [])) or 'none'})."
+    )
+    adapt_res = algo_details.get("HDBSCAN_ADAPTIVE", {})
+    lines.append(
+        f"   - **HDBSCAN_ADAPTIVE:** Đạt {adapt_res.get('success_windows', 0)}/{adapt_res.get('total_windows', 0)} cửa sổ thành công trên cấu hình dev "
+        f"(tỷ lệ thất bại {adapt_res.get('failure_rate', 0.0) * 100:.1f}%, lý do: {', '.join(adapt_res.get('failure_reasons', [])) or 'none'}). "
+        f"Cần tinh chỉnh tham số thích ứng (adaptive policy / min_cluster_size) cho các cụm thưa trước khi áp dụng trên tập dữ liệu chính thức."
+    )
+
+    lines.extend([
+        "",
         "2. **Tính nhất quán vật lý (Modified Omori Law):**",
-        "   - Cửa sổ mainshock có đủ mẫu dư chấn sau chấn ($N \\ge 5$) hội tụ giá trị $p$ nằm trong khoảng vật lý hợp lý ($0.8 \\le p \\le 1.4$).",
-        "   - Cửa sổ cô lập chỉ có 1 mainshock (self-only, $N=1$) không đủ mẫu nên trả về `N/A (METRIC_INSUFFICIENT_MEMBERS)`, không bóp méo số liệu phân tích.",
+    ])
+    omori_fitted_total = sum(r.get("omori_fitted_windows", 0) for r in algo_details.values())
+    if omori_fitted_total > 0:
+        fitted_examples = [
+            f"`{algo}` (p={r.get('mean_omori_p')}, R²={r.get('mean_omori_r2')})"
+            for algo, r in algo_details.items()
+            if r.get("mean_omori_p") is not None
+        ]
+        lines.append(
+            f"   - Các mô hình có cửa sổ sau chấn đủ mẫu ($N \\ge 5$) đã thực hiện khớp phân rã Omori: {', '.join(fitted_examples)}. "
+            f"Các cửa sổ ít hơn 5 sau chấn trả về `METRIC_INSUFFICIENT_MEMBERS` để bảo toàn tính trung thực thống kê."
+        )
+    else:
+        lines.append(
+            "   - Không có cửa sổ nào đủ mẫu sau chấn ($N \\ge 5$) để khớp phân rã Omori; toàn bộ trả về `METRIC_INSUFFICIENT_MEMBERS`."
+        )
+
+    lines.extend([
+        "",
         "3. **Giới hạn Pilot & Bước tiếp theo:**",
         "   - Dữ liệu pilot 14 ngày (2 mainshocks, 279 dòng) chỉ phục vụ kiểm tra tính khả thi và hoàn thiện harness đánh giá (`DEVELOPMENT_ONLY`).",
-        "   - Chưa đưa ra kết luận khoa học chính thức về việc thuật toán nào vượt trội cho toàn bộ dữ liệu lịch sử Nhật Bản (288 tháng) cho đến khi hoàn thành [EXP-04](../task/tasks/EXP-04.md) chính thức và [MLI-04](../task/tasks/MLI-04.md).",
+        "   - Kết quả phân cụm chỉ mang tính ứng viên chuỗi sau chấn (candidate aftershock sequences) hồi cứu, không tuyên bố dự đoán động đất hoặc quan hệ nhân quả vật lý.",
+        "   - Việc đánh giá và so sánh khoa học chính thức trên toàn bộ 288 tháng thuộc [EXP-04](../task/tasks/EXP-04.md) và [MLI-04](../task/tasks/MLI-04.md) sau khi official dataset export được nghiệm thu.",
         "",
     ])
 
@@ -165,22 +271,28 @@ def main():
     out_json = (PROJECT_ROOT / args.output_json).resolve() if not Path(args.output_json).is_absolute() else Path(args.output_json)
     out_md = (PROJECT_ROOT / args.output_md).resolve() if not Path(args.output_md).is_absolute() else Path(args.output_md)
 
-    require(pilot_dir.is_dir(), f"PILOT_BUNDLE_NOT_FOUND: {pilot_dir}")
-
     print(f"=== EXP-04: Running Scientific Model Evaluation on {pilot_dir.name} ===")
     bundle = load_feature_bundle(pilot_dir, mode=MODE_DEVELOPMENT)
-    manifest = bundle.get("manifest", {})
+    manifest = bundle.get("manifest")
+    require(manifest is not None and isinstance(manifest, dict), "BUNDLE_MANIFEST_MISSING")
+
+    pilot_id = manifest.get("pilot_id")
+    require(pilot_id is not None and pilot_id.startswith("pilot_"), f"INVALID_PILOT_ID:{pilot_id}")
+
     features_table = bundle.get("features_table")
     mainshocks_table = bundle.get("mainshocks_table")
 
     pilot_info = {
-        "pilot_id": manifest.get("pilot_id"),
+        "pilot_id": pilot_id,
         "source_dataset_id": manifest.get("source_dataset_id"),
         "candidate_rows": len(features_table) if features_table is not None else 0,
         "mainshock_count": len(mainshocks_table) if mainshocks_table is not None else 0,
         "features_sha256": bundle.get("checksums", {}).get("features-part-00000.parquet"),
     }
-    runtime_meta = get_runtime_metadata()
+
+    commit_hash = get_git_commit_hash()
+    config_pins = get_algorithm_config_pins()
+    runtime_meta = get_runtime_metadata(code_version=commit_hash, random_seed=args.seed)
 
     # Run comparative evaluation
     eval_results = compare_all_models_on_pilot(
@@ -189,12 +301,14 @@ def main():
         sigma=args.sigma,
         seed=args.seed,
     )
+    require(eval_results["pilot_id"] == pilot_id, "PILOT_ID_MISMATCH_IN_EVALUATION")
 
     full_report = {
         "task_id": "EXP-04",
         "evaluation_scope": "PILOT_DEVELOPMENT",
         "pilot_verification": pilot_info,
         "runtime_metadata": runtime_meta,
+        "algorithm_config_pins": config_pins,
         "evaluation_parameters": {
             "stability_repeats": args.repeats,
             "perturbation_sigma": args.sigma,
@@ -210,7 +324,7 @@ def main():
     print(f"[OK] Wrote JSON evidence: {out_json}")
 
     # Write Markdown report
-    md_content = generate_markdown_report(eval_results, pilot_info, runtime_meta)
+    md_content = generate_markdown_report(eval_results, pilot_info, runtime_meta, config_pins)
     out_md.parent.mkdir(parents=True, exist_ok=True)
     out_md.write_text(md_content, encoding="utf-8")
     print(f"[OK] Wrote Markdown report: {out_md}")

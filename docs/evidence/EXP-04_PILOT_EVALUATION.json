@@ -20,15 +20,41 @@
       "nbformat": "5.10.4",
       "nbclient": "0.10.2"
     },
-    "code_version": "dev-local",
-    "random_seed": null,
-    "timestamp_utc": "2026-11-04T18:03:01.438680+00:00",
+    "code_version": "2ea32c19907cea91c2309307cfa5a522491de35d",
+    "random_seed": 42,
+    "timestamp_utc": "2026-11-05T14:37:10.779309+00:00",
     "vector_columns": [
       "x_scaled",
       "y_scaled",
       "z_scaled",
       "time_scaled"
     ]
+  },
+  "algorithm_config_pins": {
+    "WINDOW": {
+      "config_path": "config/ml/models/window_baseline_v1.json",
+      "model_config_version": "window-baseline-v1",
+      "algorithm_version": "1.0.0",
+      "config_sha256": "78feda8112fd4a687be8383cc100faa20fdc0f0ae7a9d54a312a4868d703ad40"
+    },
+    "DBSCAN": {
+      "config_path": "config/ml/models/dbscan_global_dev_v1.json",
+      "model_config_version": "dbscan-global-dev-v1",
+      "algorithm_version": "1.0.0",
+      "config_sha256": "f089d928f4ace1c695207b1b4200f03c34e782a9fef3069f9da4518fcf5dcba1"
+    },
+    "HDBSCAN_GLOBAL": {
+      "config_path": "config/ml/models/hdbscan_global_dev_v1.json",
+      "model_config_version": "hdbscan-global-dev-v1",
+      "algorithm_version": "1.0.0",
+      "config_sha256": "10d2b375d66c8c95a6388c8dbda068dfebc1a492bcfd27df8bd5e1c8a20829f2"
+    },
+    "HDBSCAN_ADAPTIVE": {
+      "config_path": "config/ml/models/hdbscan_adaptive_dev_v1.json",
+      "model_config_version": "hdbscan-adaptive-dev-v1",
+      "algorithm_version": "1.0.0",
+      "config_sha256": "41a4232ad6e4ae50505f14f8af2ea5cbd9353c0dc43ce6f3776d539977adbd65"
+    }
   },
   "evaluation_parameters": {
     "stability_repeats": 5,
@@ -37,8 +63,8 @@
     "min_omori_aftershocks": 5
   },
   "evaluation_summary": {
-    "pilot_id": "pilot_unknown",
-    "evaluated_at_utc": "2026-11-04T18:03:07Z",
+    "pilot_id": "pilot_196b6d4081d347e1c289e331022658fbbe572dd33181ad987900895c1f1b189c",
+    "evaluated_at_utc": "2026-11-05T14:37:16Z",
     "comparison_table": [
       {
         "Algorithm": "WINDOW",
@@ -47,13 +73,13 @@
         "Failure Windows": 0,
         "Failure Rate": "0.0%",
         "Total Aftershocks": 255,
-        "Mean Noise Ratio": "N/A",
+        "Mean Noise Ratio": "0.0%",
         "Mean DBCV": "N/A",
-        "Mean Omori p": "1.00",
+        "Mean Omori p": "0.89",
         "Omori Fitted Windows": "1/2",
         "Mean Jaccard Stability": "1.0000",
         "Mean ARI Stability": "1.0000",
-        "Runtime (s)": "0.10"
+        "Runtime (s)": "1.08"
       },
       {
         "Algorithm": "DBSCAN",
@@ -64,11 +90,11 @@
         "Total Aftershocks": 240,
         "Mean Noise Ratio": "2.9%",
         "Mean DBCV": "0.1676",
-        "Mean Omori p": "1.00",
+        "Mean Omori p": "0.92",
         "Omori Fitted Windows": "1/2",
         "Mean Jaccard Stability": "0.9880",
         "Mean ARI Stability": "0.9483",
-        "Runtime (s)": "0.11"
+        "Runtime (s)": "1.15"
       },
       {
         "Algorithm": "HDBSCAN_GLOBAL",
@@ -83,7 +109,7 @@
         "Omori Fitted Windows": "0/2",
         "Mean Jaccard Stability": "0.5977",
         "Mean ARI Stability": "0.6339",
-        "Runtime (s)": "0.11"
+        "Runtime (s)": "1.13"
       },
       {
         "Algorithm": "HDBSCAN_ADAPTIVE",
@@ -98,7 +124,7 @@
         "Omori Fitted Windows": "0/2",
         "Mean Jaccard Stability": "1.0000",
         "Mean ARI Stability": "0.6714",
-        "Runtime (s)": "0.06"
+        "Runtime (s)": "0.99"
       }
     ],
     "algorithm_details": {
@@ -111,15 +137,16 @@
         "failure_reasons": [],
         "total_candidates": 279,
         "total_aftershocks": 255,
-        "mean_noise_ratio": null,
+        "mean_noise_ratio": 0.0,
         "mean_dbcv_score": null,
         "dbcv_computed_windows": 0,
-        "mean_omori_p": 1.0,
-        "mean_omori_r2": 0.9956,
+        "mean_omori_p": 0.8913,
+        "mean_omori_r2": 0.9972,
         "omori_fitted_windows": 1,
         "mean_jaccard_stability": 1.0,
         "mean_ari_stability": 1.0,
-        "runtime_seconds": 0.1049,
+        "stability_computed_windows": 2,
+        "runtime_seconds": 1.0843,
         "window_evaluations": [
           {
             "mainshock_id": "evt_d47fcaaf451cc2e5c3dcc8f016a999be",
@@ -127,7 +154,7 @@
             "window_result_status": "SUCCESS",
             "failure_reason_code": null,
             "aftershock_count": 0,
-            "noise_ratio": null,
+            "noise_ratio": 0.0,
             "dbcv_score": null,
             "dbcv_reason_codes": [
               "METRIC_NOT_APPLICABLE"
@@ -154,6 +181,13 @@
               "repeats": 5,
               "sigma": 0.01,
               "seed": 42,
+              "attempted_repeats": 5,
+              "valid_repeats": 5,
+              "failed_repeats": 0,
+              "attempted_pairs": 10,
+              "valid_pairs": 10,
+              "metric_reason_codes": [],
+              "failed_repeat_details": [],
               "note": "DETERMINISTIC_SELF_ONLY"
             }
           },
@@ -163,16 +197,16 @@
             "window_result_status": "SUCCESS",
             "failure_reason_code": null,
             "aftershock_count": 255,
-            "noise_ratio": null,
+            "noise_ratio": 0.0,
             "dbcv_score": null,
             "dbcv_reason_codes": [
               "METRIC_NOT_APPLICABLE"
             ],
             "omori_fit": {
-              "omori_k": 46.8558,
-              "omori_c": 0.9212,
-              "omori_p": 1.0,
-              "omori_fit_metric": 0.9956,
+              "omori_k": 32.6,
+              "omori_c": 0.4267,
+              "omori_p": 0.8913,
+              "omori_fit_metric": 0.9972,
               "metric_reason_codes": [],
               "aftershock_sample_size": 255
             },
@@ -187,7 +221,14 @@
               "max_ari": 1.0,
               "repeats": 5,
               "sigma": 0.01,
-              "seed": 42
+              "seed": 42,
+              "attempted_repeats": 5,
+              "valid_repeats": 5,
+              "failed_repeats": 0,
+              "attempted_pairs": 10,
+              "valid_pairs": 10,
+              "metric_reason_codes": [],
+              "failed_repeat_details": []
             }
           }
         ]
@@ -206,19 +247,20 @@
         "mean_noise_ratio": 0.0288,
         "mean_dbcv_score": 0.1676,
         "dbcv_computed_windows": 1,
-        "mean_omori_p": 1.0,
-        "mean_omori_r2": 0.9966,
+        "mean_omori_p": 0.9239,
+        "mean_omori_r2": 0.9975,
         "omori_fitted_windows": 1,
         "mean_jaccard_stability": 0.988,
         "mean_ari_stability": 0.9483,
-        "runtime_seconds": 0.1089,
+        "stability_computed_windows": 2,
+        "runtime_seconds": 1.1522,
         "window_evaluations": [
           {
             "mainshock_id": "evt_d47fcaaf451cc2e5c3dcc8f016a999be",
             "candidate_count": 1,
             "window_result_status": "FAILED",
             "failure_reason_code": "EXP_MAINSHOCK_CLASSIFIED_AS_NOISE",
-            "aftershock_count": null,
+            "aftershock_count": 0,
             "noise_ratio": null,
             "dbcv_score": null,
             "dbcv_reason_codes": [
@@ -246,6 +288,13 @@
               "repeats": 5,
               "sigma": 0.01,
               "seed": 42,
+              "attempted_repeats": 5,
+              "valid_repeats": 5,
+              "failed_repeats": 0,
+              "attempted_pairs": 10,
+              "valid_pairs": 10,
+              "metric_reason_codes": [],
+              "failed_repeat_details": [],
               "note": "DETERMINISTIC_SELF_ONLY"
             }
           },
@@ -256,13 +305,13 @@
             "failure_reason_code": null,
             "aftershock_count": 240,
             "noise_ratio": 0.02877697841726619,
-            "dbcv_score": 0.16755451520669778,
+            "dbcv_score": 0.1676,
             "dbcv_reason_codes": [],
             "omori_fit": {
-              "omori_k": 42.6437,
-              "omori_c": 0.7504,
-              "omori_p": 1.0,
-              "omori_fit_metric": 0.9966,
+              "omori_k": 33.3461,
+              "omori_c": 0.4471,
+              "omori_p": 0.9239,
+              "omori_fit_metric": 0.9975,
               "metric_reason_codes": [],
               "aftershock_sample_size": 240
             },
@@ -277,7 +326,14 @@
               "max_ari": 1.0,
               "repeats": 5,
               "sigma": 0.01,
-              "seed": 42
+              "seed": 42,
+              "attempted_repeats": 5,
+              "valid_repeats": 5,
+              "failed_repeats": 0,
+              "attempted_pairs": 10,
+              "valid_pairs": 10,
+              "metric_reason_codes": [],
+              "failed_repeat_details": []
             }
           }
         ]
@@ -302,14 +358,15 @@
         "omori_fitted_windows": 0,
         "mean_jaccard_stability": 0.5977,
         "mean_ari_stability": 0.6339,
-        "runtime_seconds": 0.1099,
+        "stability_computed_windows": 2,
+        "runtime_seconds": 1.1336,
         "window_evaluations": [
           {
             "mainshock_id": "evt_d47fcaaf451cc2e5c3dcc8f016a999be",
             "candidate_count": 1,
             "window_result_status": "FAILED",
             "failure_reason_code": "EXP_MAINSHOCK_CLASSIFIED_AS_NOISE",
-            "aftershock_count": null,
+            "aftershock_count": 0,
             "noise_ratio": null,
             "dbcv_score": null,
             "dbcv_reason_codes": [
@@ -337,6 +394,13 @@
               "repeats": 5,
               "sigma": 0.01,
               "seed": 42,
+              "attempted_repeats": 5,
+              "valid_repeats": 5,
+              "failed_repeats": 0,
+              "attempted_pairs": 10,
+              "valid_pairs": 10,
+              "metric_reason_codes": [],
+              "failed_repeat_details": [],
               "note": "DETERMINISTIC_SELF_ONLY"
             }
           },
@@ -345,9 +409,9 @@
             "candidate_count": 278,
             "window_result_status": "FAILED",
             "failure_reason_code": "EXP_MAINSHOCK_CLASSIFIED_AS_NOISE",
-            "aftershock_count": null,
+            "aftershock_count": 0,
             "noise_ratio": null,
-            "dbcv_score": 0.15085907045400665,
+            "dbcv_score": 0.1509,
             "dbcv_reason_codes": [],
             "omori_fit": {
               "omori_k": null,
@@ -370,7 +434,14 @@
               "max_ari": 0.7741,
               "repeats": 5,
               "sigma": 0.01,
-              "seed": 42
+              "seed": 42,
+              "attempted_repeats": 5,
+              "valid_repeats": 5,
+              "failed_repeats": 0,
+              "attempted_pairs": 10,
+              "valid_pairs": 10,
+              "metric_reason_codes": [],
+              "failed_repeat_details": []
             }
           }
         ]
@@ -395,14 +466,15 @@
         "omori_fitted_windows": 0,
         "mean_jaccard_stability": 1.0,
         "mean_ari_stability": 0.6714,
-        "runtime_seconds": 0.0569,
+        "stability_computed_windows": 2,
+        "runtime_seconds": 0.9853,
         "window_evaluations": [
           {
             "mainshock_id": "evt_d47fcaaf451cc2e5c3dcc8f016a999be",
             "candidate_count": 1,
             "window_result_status": "FAILED",
             "failure_reason_code": "EXP_MAINSHOCK_CLASSIFIED_AS_NOISE",
-            "aftershock_count": null,
+            "aftershock_count": 0,
             "noise_ratio": null,
             "dbcv_score": null,
             "dbcv_reason_codes": [
@@ -430,6 +502,13 @@
               "repeats": 5,
               "sigma": 0.01,
               "seed": 42,
+              "attempted_repeats": 5,
+              "valid_repeats": 5,
+              "failed_repeats": 0,
+              "attempted_pairs": 10,
+              "valid_pairs": 10,
+              "metric_reason_codes": [],
+              "failed_repeat_details": [],
               "note": "DETERMINISTIC_SELF_ONLY"
             }
           },
@@ -438,7 +517,7 @@
             "candidate_count": 278,
             "window_result_status": "FAILED",
             "failure_reason_code": "EXP_MAINSHOCK_CLASSIFIED_AS_NOISE",
-            "aftershock_count": null,
+            "aftershock_count": 0,
             "noise_ratio": null,
             "dbcv_score": null,
             "dbcv_reason_codes": [
@@ -465,7 +544,14 @@
               "max_ari": 0.6587,
               "repeats": 5,
               "sigma": 0.01,
-              "seed": 42
+              "seed": 42,
+              "attempted_repeats": 5,
+              "valid_repeats": 5,
+              "failed_repeats": 0,
+              "attempted_pairs": 10,
+              "valid_pairs": 10,
+              "metric_reason_codes": [],
+              "failed_repeat_details": []
             }
           }
         ]
