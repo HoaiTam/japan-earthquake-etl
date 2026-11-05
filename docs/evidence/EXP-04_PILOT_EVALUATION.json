@@ -20,15 +20,38 @@
       "nbformat": "5.10.4",
       "nbclient": "0.10.2"
     },
-    "code_version": "2ea32c19907cea91c2309307cfa5a522491de35d",
+    "code_version": "3d719ab87caef849d9c075240c9afec49004f934",
     "random_seed": 42,
-    "timestamp_utc": "2026-11-05T14:37:10.779309+00:00",
+    "timestamp_utc": "2026-11-05T16:47:31.022608+00:00",
     "vector_columns": [
       "x_scaled",
       "y_scaled",
       "z_scaled",
       "time_scaled"
-    ]
+    ],
+    "is_clean_code": false,
+    "critical_code_hashes": {
+      "notebooks/evaluation.py": "3e4a9f4938cd765be0957156e499201780c63b7b51e9974eeecdcd32d03846f7",
+      "scripts/evaluate-models.py": "c63a3f06419a0bda7c2137ea3e5295a289a5f3e60246431ee622fc3bb250a644",
+      "notebooks/baseline_models.py": "c699a18436123c7c5efd15b85d3e4726cccb66f5319f3909d0b7e69db44a3037",
+      "notebooks/adaptive_hdbscan.py": "87f6cd61024015d231f21c784fed722847933aa671c2591a0b83c8fd97575943",
+      "notebooks/experiment_harness.py": "f0b81a29176342ad056513c8eb13234db6189be488985e2d6de98142f0b188cc"
+    }
+  },
+  "code_provenance": {
+    "git_commit": "3d719ab87caef849d9c075240c9afec49004f934",
+    "is_clean_code": false,
+    "dirty_files": [
+      "notebooks/evaluation.py",
+      "scripts/evaluate-models.py"
+    ],
+    "critical_code_hashes": {
+      "notebooks/evaluation.py": "3e4a9f4938cd765be0957156e499201780c63b7b51e9974eeecdcd32d03846f7",
+      "scripts/evaluate-models.py": "c63a3f06419a0bda7c2137ea3e5295a289a5f3e60246431ee622fc3bb250a644",
+      "notebooks/baseline_models.py": "c699a18436123c7c5efd15b85d3e4726cccb66f5319f3909d0b7e69db44a3037",
+      "notebooks/adaptive_hdbscan.py": "87f6cd61024015d231f21c784fed722847933aa671c2591a0b83c8fd97575943",
+      "notebooks/experiment_harness.py": "f0b81a29176342ad056513c8eb13234db6189be488985e2d6de98142f0b188cc"
+    }
   },
   "algorithm_config_pins": {
     "WINDOW": {
@@ -64,7 +87,7 @@
   },
   "evaluation_summary": {
     "pilot_id": "pilot_196b6d4081d347e1c289e331022658fbbe572dd33181ad987900895c1f1b189c",
-    "evaluated_at_utc": "2026-11-05T14:37:16Z",
+    "evaluated_at_utc": "2026-11-05T16:47:36Z",
     "comparison_table": [
       {
         "Algorithm": "WINDOW",
@@ -79,7 +102,7 @@
         "Omori Fitted Windows": "1/2",
         "Mean Jaccard Stability": "1.0000",
         "Mean ARI Stability": "1.0000",
-        "Runtime (s)": "1.08"
+        "Runtime (s)": "0.97"
       },
       {
         "Algorithm": "DBSCAN",
@@ -94,7 +117,7 @@
         "Omori Fitted Windows": "1/2",
         "Mean Jaccard Stability": "0.9880",
         "Mean ARI Stability": "0.9483",
-        "Runtime (s)": "1.15"
+        "Runtime (s)": "0.92"
       },
       {
         "Algorithm": "HDBSCAN_GLOBAL",
@@ -109,7 +132,7 @@
         "Omori Fitted Windows": "0/2",
         "Mean Jaccard Stability": "0.5977",
         "Mean ARI Stability": "0.6339",
-        "Runtime (s)": "1.13"
+        "Runtime (s)": "0.94"
       },
       {
         "Algorithm": "HDBSCAN_ADAPTIVE",
@@ -124,12 +147,13 @@
         "Omori Fitted Windows": "0/2",
         "Mean Jaccard Stability": "1.0000",
         "Mean ARI Stability": "0.6714",
-        "Runtime (s)": "0.99"
+        "Runtime (s)": "0.87"
       }
     ],
     "algorithm_details": {
       "WINDOW": {
         "algorithm_name": "WINDOW",
+        "model_config_version": "window-baseline-v1",
         "total_windows": 2,
         "success_windows": 2,
         "failure_windows": 0,
@@ -146,7 +170,7 @@
         "mean_jaccard_stability": 1.0,
         "mean_ari_stability": 1.0,
         "stability_computed_windows": 2,
-        "runtime_seconds": 1.0843,
+        "runtime_seconds": 0.9748,
         "window_evaluations": [
           {
             "mainshock_id": "evt_d47fcaaf451cc2e5c3dcc8f016a999be",
@@ -187,8 +211,7 @@
               "attempted_pairs": 10,
               "valid_pairs": 10,
               "metric_reason_codes": [],
-              "failed_repeat_details": [],
-              "note": "DETERMINISTIC_SELF_ONLY"
+              "failed_repeat_details": []
             }
           },
           {
@@ -235,6 +258,7 @@
       },
       "DBSCAN": {
         "algorithm_name": "DBSCAN",
+        "model_config_version": "dbscan-global-dev-v1",
         "total_windows": 2,
         "success_windows": 1,
         "failure_windows": 1,
@@ -253,7 +277,7 @@
         "mean_jaccard_stability": 0.988,
         "mean_ari_stability": 0.9483,
         "stability_computed_windows": 2,
-        "runtime_seconds": 1.1522,
+        "runtime_seconds": 0.9151,
         "window_evaluations": [
           {
             "mainshock_id": "evt_d47fcaaf451cc2e5c3dcc8f016a999be",
@@ -294,8 +318,7 @@
               "attempted_pairs": 10,
               "valid_pairs": 10,
               "metric_reason_codes": [],
-              "failed_repeat_details": [],
-              "note": "DETERMINISTIC_SELF_ONLY"
+              "failed_repeat_details": []
             }
           },
           {
@@ -340,6 +363,7 @@
       },
       "HDBSCAN_GLOBAL": {
         "algorithm_name": "HDBSCAN_GLOBAL",
+        "model_config_version": "hdbscan-global-dev-v1",
         "total_windows": 2,
         "success_windows": 0,
         "failure_windows": 2,
@@ -359,7 +383,7 @@
         "mean_jaccard_stability": 0.5977,
         "mean_ari_stability": 0.6339,
         "stability_computed_windows": 2,
-        "runtime_seconds": 1.1336,
+        "runtime_seconds": 0.9351,
         "window_evaluations": [
           {
             "mainshock_id": "evt_d47fcaaf451cc2e5c3dcc8f016a999be",
@@ -400,8 +424,7 @@
               "attempted_pairs": 10,
               "valid_pairs": 10,
               "metric_reason_codes": [],
-              "failed_repeat_details": [],
-              "note": "DETERMINISTIC_SELF_ONLY"
+              "failed_repeat_details": []
             }
           },
           {
@@ -448,6 +471,7 @@
       },
       "HDBSCAN_ADAPTIVE": {
         "algorithm_name": "HDBSCAN_ADAPTIVE",
+        "model_config_version": "hdbscan-adaptive-dev-v1",
         "total_windows": 2,
         "success_windows": 0,
         "failure_windows": 2,
@@ -467,7 +491,7 @@
         "mean_jaccard_stability": 1.0,
         "mean_ari_stability": 0.6714,
         "stability_computed_windows": 2,
-        "runtime_seconds": 0.9853,
+        "runtime_seconds": 0.8661,
         "window_evaluations": [
           {
             "mainshock_id": "evt_d47fcaaf451cc2e5c3dcc8f016a999be",
@@ -508,8 +532,7 @@
               "attempted_pairs": 10,
               "valid_pairs": 10,
               "metric_reason_codes": [],
-              "failed_repeat_details": [],
-              "note": "DETERMINISTIC_SELF_ONLY"
+              "failed_repeat_details": []
             }
           },
           {
@@ -555,6 +578,32 @@
             }
           }
         ]
+      }
+    },
+    "algorithm_config_pins": {
+      "WINDOW": {
+        "config_path": "custom:window",
+        "model_config_version": "window-baseline-v1",
+        "algorithm_version": "1.0.0",
+        "config_sha256": "2307ac48bb5583f0f01ec8a02b108138718d1ddd3dea9ef8802a61988466a934"
+      },
+      "DBSCAN": {
+        "config_path": "custom:dbscan",
+        "model_config_version": "dbscan-global-dev-v1",
+        "algorithm_version": "1.0.0",
+        "config_sha256": "0f280869d059dd2d61790a33695f17d3ef55d75e90a6e768d6ac6dc34592b451"
+      },
+      "HDBSCAN_GLOBAL": {
+        "config_path": "custom:hdbscan_global",
+        "model_config_version": "hdbscan-global-dev-v1",
+        "algorithm_version": "1.0.0",
+        "config_sha256": "52672a9974954e055022fabe8beb433d044b0df836bb5e6eed95a57685906a72"
+      },
+      "HDBSCAN_ADAPTIVE": {
+        "config_path": "custom:hdbscan_adaptive",
+        "model_config_version": "hdbscan-adaptive-dev-v1",
+        "algorithm_version": "1.0.0",
+        "config_sha256": "55c8077ef11023de79a9e2d9935d3168bce9c4b3fa9b32c23bad3ade79f57a3d"
       }
     }
   }

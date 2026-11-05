@@ -25,6 +25,7 @@ Implements rigorous scientific model evaluation for aftershock sequence clusteri
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 from pathlib import Path
@@ -46,6 +47,54 @@ DEFAULT_STABILITY_SIGMA = 0.01
 DEFAULT_STABILITY_SEED = 42
 
 VECTOR_COLUMNS = ["x_scaled", "y_scaled", "z_scaled", "time_scaled"]
+
+DEFAULT_MODEL_CONFIG_PATHS = {
+    "WINDOW": "config/ml/models/window_baseline_v1.json",
+    "DBSCAN": "config/ml/models/dbscan_global_dev_v1.json",
+    "HDBSCAN_GLOBAL": "config/ml/models/hdbscan_global_dev_v1.json",
+    "HDBSCAN_ADAPTIVE": "config/ml/models/hdbscan_adaptive_dev_v1.json",
+}
+
+
+def load_algorithm_configs(
+    project_root: Optional[Union[str, Path]] = None,
+    custom_configs: Optional[Dict[str, Dict[str, Any]]] = None,
+) -> Tuple[Dict[str, Dict[str, Any]], Dict[str, Dict[str, Any]]]:
+    """Load, validate, and compute exact SHA-256 and versions for all algorithm configs.
+
+    Returns:
+        (configs, config_pins)
+        - configs: {algo_name: config_dict}
+        - config_pins: {algo_name: {config_path, model_config_version, algorithm_version, config_sha256}}
+    """
+    root = Path(project_root) if project_root else Path(__file__).resolve().parent.parent
+    configs: Dict[str, Dict[str, Any]] = {}
+    config_pins: Dict[str, Dict[str, Any]] = {}
+
+    for algo, rel_path in DEFAULT_MODEL_CONFIG_PATHS.items():
+        if custom_configs and algo in custom_configs:
+            cfg = dict(custom_configs[algo])
+            raw_bytes = json.dumps(cfg, sort_keys=True).encode("utf-8")
+            sha256 = hashlib.sha256(raw_bytes).hexdigest()
+            cfg_path = f"custom:{algo.lower()}"
+        else:
+            abs_path = root / rel_path
+            if not abs_path.is_file():
+                raise FileNotFoundError(f"CONFIG_FILE_MISSING:{abs_path}")
+            raw_bytes = abs_path.read_bytes()
+            cfg = json.loads(raw_bytes.decode("utf-8"))
+            sha256 = hashlib.sha256(raw_bytes).hexdigest()
+            cfg_path = str(rel_path)
+
+        configs[algo] = cfg
+        config_pins[algo] = {
+            "config_path": cfg_path,
+            "model_config_version": str(cfg.get("model_config_version", "unknown")),
+            "algorithm_version": str(cfg.get("algorithm_version", "unknown")),
+            "config_sha256": sha256,
+        }
+
+    return configs, config_pins
 
 
 # =============================================================================
@@ -362,29 +411,54 @@ def run_window_stability_analysis(
             "note": "INVALID_SIGMA",
         }
 
-    n_candidates = len(window_candidates)
-    if n_candidates <= 1:
-        # Self-only window or empty: deterministic by definition
+    if not window_candidates:
         return {
-            "mean_jaccard": 1.0,
-            "std_jaccard": 0.0,
-            "min_jaccard": 1.0,
-            "max_jaccard": 1.0,
-            "mean_ari": 1.0,
-            "std_ari": 0.0,
-            "min_ari": 1.0,
-            "max_ari": 1.0,
+            "mean_jaccard": None,
+            "std_jaccard": None,
+            "min_jaccard": None,
+            "max_jaccard": None,
+            "mean_ari": None,
+            "std_ari": None,
+            "min_ari": None,
+            "max_ari": None,
             "repeats": repeats,
             "sigma": sigma,
             "seed": seed,
             "attempted_repeats": repeats,
-            "valid_repeats": repeats,
+            "valid_repeats": 0,
             "failed_repeats": 0,
             "attempted_pairs": repeats * (repeats - 1) // 2,
-            "valid_pairs": repeats * (repeats - 1) // 2,
-            "metric_reason_codes": [],
+            "valid_pairs": 0,
+            "metric_reason_codes": [METRIC_NOT_APPLICABLE],
             "failed_repeat_details": [],
-            "note": "DETERMINISTIC_SELF_ONLY",
+            "note": "EMPTY_WINDOW_CANDIDATES",
+        }
+
+    mainshock_present = any(
+        c.get("candidate_event_id", c.get("event_id")) == mainshock_id
+        for c in window_candidates
+    )
+    if not mainshock_present:
+        return {
+            "mean_jaccard": None,
+            "std_jaccard": None,
+            "min_jaccard": None,
+            "max_jaccard": None,
+            "mean_ari": None,
+            "std_ari": None,
+            "min_ari": None,
+            "max_ari": None,
+            "repeats": repeats,
+            "sigma": sigma,
+            "seed": seed,
+            "attempted_repeats": repeats,
+            "valid_repeats": 0,
+            "failed_repeats": 0,
+            "attempted_pairs": repeats * (repeats - 1) // 2,
+            "valid_pairs": 0,
+            "metric_reason_codes": [METRIC_NOT_APPLICABLE],
+            "failed_repeat_details": [],
+            "note": "MAINSHOCK_NOT_IN_CANDIDATES",
         }
 
     valid_runs: List[Tuple[Set[str], List[int]]] = []
@@ -666,6 +740,7 @@ def evaluate_model_on_bundle(
 
     return {
         "algorithm_name": algorithm_name,
+        "model_config_version": config.get("model_config_version") if config else None,
         "total_windows": total_windows,
         "success_windows": success_windows,
         "failure_windows": failure_windows,
@@ -689,9 +764,11 @@ def evaluate_model_on_bundle(
 
 def compare_all_models_on_pilot(
     bundle_dir: Union[str, Path],
+    model_configs: Optional[Dict[str, Dict[str, Any]]] = None,
     repeats: int = DEFAULT_STABILITY_REPEATS,
     sigma: float = DEFAULT_STABILITY_SIGMA,
     seed: int = DEFAULT_STABILITY_SEED,
+    project_root: Optional[Union[str, Path]] = None,
 ) -> Dict[str, Any]:
     """Execute comparative evaluation of the 4 models on a pilot bundle.
 
@@ -702,6 +779,7 @@ def compare_all_models_on_pilot(
     - HDBSCAN_ADAPTIVE
 
     Binds unified pilot_id fail-closed from bundle manifest.
+    Loads and propagates exact validated model configs and config pins.
     """
     from experiment_harness import load_feature_bundle, MODE_DEVELOPMENT, require
 
@@ -716,38 +794,58 @@ def compare_all_models_on_pilot(
     )
 
     algorithms = ["WINDOW", "DBSCAN", "HDBSCAN_GLOBAL", "HDBSCAN_ADAPTIVE"]
+    configs, config_pins = load_algorithm_configs(project_root=project_root, custom_configs=model_configs)
     comparison_results = {}
 
     for algo in algorithms:
         res = evaluate_model_on_bundle(
             bundle=bundle,
             algorithm_name=algo,
+            config=configs.get(algo),
             repeats=repeats,
             sigma=sigma,
             seed=seed,
         )
         comparison_results[algo] = res
 
-    # Summary table rows
+    # Summary table rows (all values null-safe)
     comparison_table = []
     for algo in algorithms:
         r = comparison_results[algo]
-        j_str = f"{r['mean_jaccard_stability']:.4f}" if r["mean_jaccard_stability"] is not None else "N/A"
-        a_str = f"{r['mean_ari_stability']:.4f}" if r["mean_ari_stability"] is not None else "N/A"
+        j_val = r.get("mean_jaccard_stability")
+        a_val = r.get("mean_ari_stability")
+        j_str = f"{j_val:.4f}" if j_val is not None and math.isfinite(j_val) else "N/A"
+        a_str = f"{a_val:.4f}" if a_val is not None and math.isfinite(a_val) else "N/A"
+
+        f_rate = r.get("failure_rate")
+        fail_str = f"{f_rate * 100:.1f}%" if f_rate is not None and math.isfinite(f_rate) else "N/A"
+
+        noise_val = r.get("mean_noise_ratio")
+        noise_str = f"{noise_val * 100:.1f}%" if noise_val is not None and math.isfinite(noise_val) else "N/A"
+
+        dbcv_val = r.get("mean_dbcv_score")
+        dbcv_str = f"{dbcv_val:.4f}" if dbcv_val is not None and math.isfinite(dbcv_val) else "N/A"
+
+        omori_p = r.get("mean_omori_p")
+        omori_p_str = f"{omori_p:.2f}" if omori_p is not None and math.isfinite(omori_p) else "N/A"
+
+        runtime_val = r.get("runtime_seconds")
+        runtime_str = f"{runtime_val:.2f}" if runtime_val is not None and math.isfinite(runtime_val) else "N/A"
+
         row = {
             "Algorithm": algo,
-            "Total Windows": r["total_windows"],
-            "Success Windows": r["success_windows"],
-            "Failure Windows": r["failure_windows"],
-            "Failure Rate": f"{r['failure_rate'] * 100:.1f}%",
-            "Total Aftershocks": r["total_aftershocks"],
-            "Mean Noise Ratio": f"{r['mean_noise_ratio'] * 100:.1f}%" if r["mean_noise_ratio"] is not None else "N/A",
-            "Mean DBCV": f"{r['mean_dbcv_score']:.4f}" if r["mean_dbcv_score"] is not None else "N/A",
-            "Mean Omori p": f"{r['mean_omori_p']:.2f}" if r["mean_omori_p"] is not None else "N/A",
-            "Omori Fitted Windows": f"{r['omori_fitted_windows']}/{r['total_windows']}",
+            "Total Windows": r.get("total_windows", 0),
+            "Success Windows": r.get("success_windows", 0),
+            "Failure Windows": r.get("failure_windows", 0),
+            "Failure Rate": fail_str,
+            "Total Aftershocks": r.get("total_aftershocks", 0),
+            "Mean Noise Ratio": noise_str,
+            "Mean DBCV": dbcv_str,
+            "Mean Omori p": omori_p_str,
+            "Omori Fitted Windows": f"{r.get('omori_fitted_windows', 0)}/{r.get('total_windows', 0)}",
             "Mean Jaccard Stability": j_str,
             "Mean ARI Stability": a_str,
-            "Runtime (s)": f"{r['runtime_seconds']:.2f}",
+            "Runtime (s)": runtime_str,
         }
         comparison_table.append(row)
 
@@ -756,4 +854,5 @@ def compare_all_models_on_pilot(
         "evaluated_at_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "comparison_table": comparison_table,
         "algorithm_details": comparison_results,
+        "algorithm_config_pins": config_pins,
     }

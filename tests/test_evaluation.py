@@ -42,6 +42,7 @@ from notebooks.evaluation import (
     run_window_stability_analysis,
     evaluate_model_on_bundle,
     compare_all_models_on_pilot,
+    load_algorithm_configs,
     METRIC_NOT_APPLICABLE,
     METRIC_INSUFFICIENT_MEMBERS,
     METRIC_FIT_FAILED,
@@ -336,6 +337,156 @@ class TestScientificEvaluation(unittest.TestCase):
         # Check WINDOW row specifics
         window_row = [r for r in report["comparison_table"] if r["Algorithm"] == "WINDOW"][0]
         self.assertEqual(window_row["Mean DBCV"], "N/A")
+
+    def test_stability_harness_empty_window_and_missing_mainshock(self):
+        """Empty candidates or missing mainshock must return null metrics with METRIC_NOT_APPLICABLE and valid_repeats=0."""
+        # 1. Completely empty candidate list
+        res_empty = run_window_stability_analysis([], "main_missing", "DBSCAN", repeats=3)
+        self.assertIsNone(res_empty["mean_jaccard"])
+        self.assertIsNone(res_empty["mean_ari"])
+        self.assertEqual(res_empty["valid_repeats"], 0)
+        self.assertEqual(res_empty["attempted_repeats"], 3)
+        self.assertEqual(res_empty["valid_pairs"], 0)
+        self.assertIn(METRIC_NOT_APPLICABLE, res_empty["metric_reason_codes"])
+        self.assertEqual(res_empty["note"], "EMPTY_WINDOW_CANDIDATES")
+
+        # 2. Candidate list present but mainshock_id not found
+        cands = [
+            {"candidate_event_id": "other_1", "delta_time_hours": 1.0, "x_scaled": 0.1, "y_scaled": 0.1, "z_scaled": 0.1, "time_scaled": 1.0},
+        ]
+        res_missing_main = run_window_stability_analysis(cands, "non_existent_main", "DBSCAN", repeats=3)
+        self.assertIsNone(res_missing_main["mean_jaccard"])
+        self.assertIsNone(res_missing_main["mean_ari"])
+        self.assertEqual(res_missing_main["valid_repeats"], 0)
+        self.assertEqual(res_missing_main["attempted_repeats"], 3)
+        self.assertEqual(res_missing_main["valid_pairs"], 0)
+        self.assertIn(METRIC_NOT_APPLICABLE, res_missing_main["metric_reason_codes"])
+        self.assertEqual(res_missing_main["note"], "MAINSHOCK_NOT_IN_CANDIDATES")
+
+    def test_evaluate_model_respects_custom_config_and_pins(self):
+        """Custom configs (e.g. changing eps or adaptive policy) must propagate to model execution and alter outcomes."""
+        test_harness_util.create_pilot_fixture(self.tmp_dir)
+        from experiment_harness import load_feature_bundle, MODE_DEVELOPMENT
+        bundle = load_feature_bundle(self.tmp_dir, mode=MODE_DEVELOPMENT)
+
+        # 1. Load default configs
+        configs, pins = load_algorithm_configs(ROOT)
+        self.assertEqual(len(configs), 4)
+        self.assertEqual(len(pins), 4)
+        for algo, pin in pins.items():
+            self.assertEqual(len(pin["config_sha256"]), 64)
+            self.assertNotEqual(pin["model_config_version"], "unknown")
+
+        # 2. Evaluate DBSCAN with extremely tight eps (eps=0.0001 -> points not reachable)
+        tight_cfg = {"algorithm_name": "DBSCAN", "eps": 0.0001, "min_samples": 2, "model_config_version": "tight-v1"}
+        res_tight = evaluate_model_on_bundle(bundle, algorithm_name="DBSCAN", config=tight_cfg, repeats=2)
+
+        # 3. Evaluate DBSCAN with generous eps (eps=0.5 -> points clustered)
+        loose_cfg = {"algorithm_name": "DBSCAN", "eps": 0.5, "min_samples": 2, "model_config_version": "loose-v1"}
+        res_loose = evaluate_model_on_bundle(bundle, algorithm_name="DBSCAN", config=loose_cfg, repeats=2)
+
+        # The aftershock counts or failure status must differ, demonstrating config propagation
+        self.assertNotEqual(res_tight["total_aftershocks"], res_loose["total_aftershocks"])
+        self.assertEqual(res_tight["model_config_version"], "tight-v1")
+        self.assertEqual(res_loose["model_config_version"], "loose-v1")
+
+    def test_generate_markdown_report_null_safety_and_stability_failures(self):
+        """Markdown report generator must safely format null metrics (e.g. stability failures) as N/A without raising TypeError."""
+        import importlib
+        eval_script = importlib.import_module("scripts.evaluate-models")
+
+        mock_eval_results = {
+            "evaluated_at_utc": "2026-11-05T00:00:00Z",
+            "comparison_table": [
+                {
+                    "Algorithm": "DBSCAN",
+                    "Total Windows": 2,
+                    "Success Windows": 0,
+                    "Failure Windows": 2,
+                    "Failure Rate": "100.0%",
+                    "Total Aftershocks": 0,
+                    "Mean Noise Ratio": "N/A",
+                    "Mean DBCV": "N/A",
+                    "Mean Omori p": "N/A",
+                    "Omori Fitted Windows": "0/2",
+                    "Mean Jaccard Stability": "N/A",
+                    "Mean ARI Stability": "N/A",
+                    "Runtime (s)": "0.10",
+                }
+            ],
+            "algorithm_details": {
+                "DBSCAN": {
+                    "total_windows": 2,
+                    "success_windows": 0,
+                    "failure_windows": 2,
+                    "failure_rate": 1.0,
+                    "failure_reasons": ["METRIC_FIT_FAILED"],
+                    "total_aftershocks": 0,
+                    "mean_noise_ratio": None,
+                    "mean_dbcv_score": None,
+                    "dbcv_computed_windows": 0,
+                    "mean_omori_p": None,
+                    "mean_omori_r2": None,
+                    "omori_fitted_windows": 0,
+                    "mean_jaccard_stability": None,
+                    "mean_ari_stability": None,
+                    "stability_computed_windows": 0,
+                    "runtime_seconds": 0.10,
+                },
+                "WINDOW": {
+                    "total_windows": 2,
+                    "success_windows": 2,
+                    "failure_windows": 0,
+                    "failure_rate": 0.0,
+                    "total_aftershocks": 10,
+                    "mean_noise_ratio": 0.0,
+                    "mean_dbcv_score": None,
+                    "dbcv_computed_windows": 0,
+                    "mean_omori_p": None,
+                    "omori_fitted_windows": 0,
+                    "mean_jaccard_stability": 1.0,
+                    "mean_ari_stability": 1.0,
+                    "runtime_seconds": 0.05,
+                },
+                "HDBSCAN_GLOBAL": {
+                    "total_windows": 2,
+                    "success_windows": 0,
+                    "failure_windows": 2,
+                    "failure_rate": None,
+                    "failure_reasons": [],
+                },
+                "HDBSCAN_ADAPTIVE": {
+                    "total_windows": 2,
+                    "success_windows": 0,
+                    "failure_windows": 2,
+                    "failure_rate": None,
+                    "failure_reasons": [],
+                },
+            },
+        }
+        pilot_info = {"pilot_id": "pilot_mock_test", "candidate_rows": 10, "mainshock_count": 2}
+        runtime_meta = {"code_version": "test_sha", "random_seed": 42, "python_version": "3.12"}
+        config_pins = {
+            "DBSCAN": {"config_path": "config/test.json", "model_config_version": "v1", "config_sha256": "abc1234567890123"}
+        }
+
+        # Must generate cleanly without TypeError: unsupported format string passed to NoneType.__format__
+        md_text = eval_script.generate_markdown_report(mock_eval_results, pilot_info, runtime_meta, config_pins)
+        self.assertIn("EXP-04: Đánh giá Khoa học", md_text)
+        self.assertIn("N/A", md_text)
+        self.assertIn("METRIC_FIT_FAILED", md_text)
+
+    def test_code_provenance_clean_and_hash_audit(self):
+        """Code provenance must capture git commit and compute SHA-256 for all critical modules."""
+        import importlib
+        eval_script = importlib.import_module("scripts.evaluate-models")
+
+        prov = eval_script.get_code_provenance(ROOT)
+        self.assertIn("git_commit", prov)
+        self.assertIn("is_clean_code", prov)
+        self.assertIn("critical_code_hashes", prov)
+        self.assertIn("notebooks/evaluation.py", prov["critical_code_hashes"])
+        self.assertEqual(len(prov["critical_code_hashes"]["notebooks/evaluation.py"]), 64)
 
 
 if __name__ == "__main__":

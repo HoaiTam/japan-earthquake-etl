@@ -3,9 +3,9 @@
 ## 1. Thông tin Thực nghiệm và Dữ liệu Đầu vào
 
 - **Mã Task:** [EXP-04](../task/tasks/EXP-04.md) (Tuần 7, Khối H - Experiment)
-- **Thời điểm đánh giá (UTC):** `2026-11-05T14:37:16Z`
+- **Thời điểm đánh giá (UTC):** `2026-11-05T16:47:36Z`
 - **Pilot Dataset ID:** `pilot_196b6d4081d347e1c289e331022658fbbe572dd33181ad987900895c1f1b189c`
-- **Git Commit Pin:** `2ea32c19907cea91c2309307cfa5a522491de35d`
+- **Git Commit Pin:** `3d719ab87caef849d9c075240c9afec49004f934` (modified/tracked)
 - **Random Seed:** `42`
 - **Số lượng ứng viên đầu vào:** `279` dòng (ở grain mainshock/candidate)
 - **Số lượng cửa sổ Mainshock:** `2` cửa sổ
@@ -22,10 +22,10 @@
 
 | Algorithm | Total Windows | Success Windows | Failure Windows | Failure Rate | Total Aftershocks | Mean Noise Ratio | Mean DBCV | Mean Omori p | Omori Fitted Windows | Mean Jaccard Stability | Mean ARI Stability | Runtime (s) |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| WINDOW | 2 | 2 | 0 | 0.0% | 255 | 0.0% | N/A | 0.89 | 1/2 | 1.0000 | 1.0000 | 1.08 |
-| DBSCAN | 2 | 1 | 1 | 50.0% | 240 | 2.9% | 0.1676 | 0.92 | 1/2 | 0.9880 | 0.9483 | 1.15 |
-| HDBSCAN_GLOBAL | 2 | 0 | 2 | 100.0% | 0 | N/A | 0.1509 | N/A | 0/2 | 0.5977 | 0.6339 | 1.13 |
-| HDBSCAN_ADAPTIVE | 2 | 0 | 2 | 100.0% | 0 | N/A | N/A | N/A | 0/2 | 1.0000 | 0.6714 | 0.99 |
+| WINDOW | 2 | 2 | 0 | 0.0% | 255 | 0.0% | N/A | 0.89 | 1/2 | 1.0000 | 1.0000 | 0.97 |
+| DBSCAN | 2 | 1 | 1 | 50.0% | 240 | 2.9% | 0.1676 | 0.92 | 1/2 | 0.9880 | 0.9483 | 0.92 |
+| HDBSCAN_GLOBAL | 2 | 0 | 2 | 100.0% | 0 | N/A | 0.1509 | N/A | 0/2 | 0.5977 | 0.6339 | 0.94 |
+| HDBSCAN_ADAPTIVE | 2 | 0 | 2 | 100.0% | 0 | N/A | N/A | N/A | 0/2 | 1.0000 | 0.6714 | 0.87 |
 
 ### Ghi chú quy tắc đánh giá:
 - **Tuyệt đối không dùng Accuracy / F1:** Bài toán phân cụm chuỗi sau chấn là phân cụm mật độ không nhãn, không có ground-truth tuyệt đối.
@@ -46,7 +46,7 @@
 - **Modified Omori decay exponent p:** `0.89` (R^2 fit: `1.00`, số cửa sổ fit: `1/2`)
 - **Độ ổn định Jaccard (Mean Jaccard):** `1.0000`
 - **Độ ổn định ARI (Mean ARI):** `1.0000`
-- **Thời gian thực thi:** `1.08` giây
+- **Thời gian thực thi:** `0.97` giây
 
 ### DBSCAN
 
@@ -58,7 +58,7 @@
 - **Modified Omori decay exponent p:** `0.92` (R^2 fit: `1.00`, số cửa sổ fit: `1/2`)
 - **Độ ổn định Jaccard (Mean Jaccard):** `0.9880`
 - **Độ ổn định ARI (Mean ARI):** `0.9483`
-- **Thời gian thực thi:** `1.15` giây
+- **Thời gian thực thi:** `0.92` giây
 
 ### HDBSCAN_GLOBAL
 
@@ -70,7 +70,7 @@
 - **Modified Omori decay exponent p:** `N/A` (R^2 fit: `N/A`, số cửa sổ fit: `0/2`)
 - **Độ ổn định Jaccard (Mean Jaccard):** `0.5977`
 - **Độ ổn định ARI (Mean ARI):** `0.6339`
-- **Thời gian thực thi:** `1.13` giây
+- **Thời gian thực thi:** `0.94` giây
 
 ### HDBSCAN_ADAPTIVE
 
@@ -82,7 +82,7 @@
 - **Modified Omori decay exponent p:** `N/A` (R^2 fit: `N/A`, số cửa sổ fit: `0/2`)
 - **Độ ổn định Jaccard (Mean Jaccard):** `1.0000`
 - **Độ ổn định ARI (Mean ARI):** `0.6714`
-- **Thời gian thực thi:** `0.99` giây
+- **Thời gian thực thi:** `0.87` giây
 
 ## 4. Nhận xét và Giới hạn Thực nghiệm (Pilot Limitations)
 
@@ -93,7 +93,7 @@
    - **HDBSCAN_ADAPTIVE:** Đạt 0/2 cửa sổ thành công trên cấu hình dev (tỷ lệ thất bại 100.0%, lý do: EXP_MAINSHOCK_CLASSIFIED_AS_NOISE, EXP_MAINSHOCK_CLASSIFIED_AS_NOISE). Cần tinh chỉnh tham số thích ứng (adaptive policy / min_cluster_size) cho các cụm thưa trước khi áp dụng trên tập dữ liệu chính thức.
 
 2. **Tính nhất quán vật lý (Modified Omori Law):**
-   - Các mô hình có cửa sổ sau chấn đủ mẫu ($N \ge 5$) đã thực hiện khớp phân rã Omori: `WINDOW` (p=0.8913, R²=0.9972), `DBSCAN` (p=0.9239, R²=0.9975). Các cửa sổ ít hơn 5 sau chấn trả về `METRIC_INSUFFICIENT_MEMBERS` để bảo toàn tính trung thực thống kê.
+   - Các mô hình có cửa sổ sau chấn đủ mẫu ($N \ge 5$) đã thực hiện khớp phân rã Omori: `WINDOW` (p=0.89, R²=1.00), `DBSCAN` (p=0.92, R²=1.00). Các cửa sổ ít hơn 5 sau chấn trả về `METRIC_INSUFFICIENT_MEMBERS` để bảo toàn tính trung thực thống kê.
 
 3. **Giới hạn Pilot & Bước tiếp theo:**
    - Dữ liệu pilot 14 ngày (2 mainshocks, 279 dòng) chỉ phục vụ kiểm tra tính khả thi và hoàn thiện harness đánh giá (`DEVELOPMENT_ONLY`).
