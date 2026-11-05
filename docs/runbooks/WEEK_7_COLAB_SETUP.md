@@ -361,7 +361,9 @@ Mỗi PR: notebook source sạch outputs/execution counts, config/tests, evidenc
 metadata nhỏ, command/setup và expected outputs thật. Không commit data ZIP,
 Parquet thật, credentials, mount authorization, private logs hoặc OAuth JSON.
 COL-01 có `make test-col01 PILOT_PYTHON=<python-của-venv>` (xem runbook COL-01).
-COL-02..04 chưa có Make targets riêng trong bản này. Tests có
+COL-02 có `make test-col02 PILOT_PYTHON=<python-của-venv>` và
+[runbook Colab riêng](./COL-02_COLAB_ACCEPTANCE.md), không dùng cell thủ công
+mục4–9 thay nghiệm thu. Tests có
 sẵn: `make test-exp01`, `make test-exp02`, `make test-exp03` với model venv
 đã activate (targets này gọi python3, không dùng PILOT_PYTHON); không gọi Docker.
 Windows không có Make có thể dùng Python của venv với

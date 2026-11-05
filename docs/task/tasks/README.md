@@ -34,8 +34,14 @@ Giữ failed evidence, không quarantine/skip. Báo cáo33/63 của chủ máy c
 (EXP-02/COL-02/COL-03), ThanhTris khối3 (EXP-03/COL-04/EXP-04/MLI-04).
 EXP-01 Done cho cloud harness01/11 qua Colab CPU thật/ba parity/output readback;
 local nghiệm thu cũ vẫn giữ. COL-01 Done ngày02/11 sau fresh Colab Run all và
-[output ZIP readback](../../evidence/COL-01_PILOT_EDA_20261102.md); COL-02..04
-vẫn Backlog trong bản này. EXP-03 chuyển owner ThanhTris; kế hoạch không tự
+[output ZIP readback](../../evidence/COL-01_PILOT_EDA_20261102.md).
+COL-02 Done ngày 05/11: fresh Colab CPU đạt 9 configs + DBSCAN_C1 rerun;
+actual notebook và ZIP đã tải về, independent readback đủ 75 files/10 parity đạt.
+[Evidence và pins](../../evidence/COL-02_COLAB_20261104.md),
+[runbook](../../runbooks/COL-02_COLAB_ACCEPTANCE.md). Chỉ development pilot,
+không scientific approval hoặc receipt chạy của cả nhóm.
+Trạng thái COL-03/04 theo file task và bảng bên dưới, không suy ra từ kế hoạch gốc.
+EXP-03 chuyển owner ThanhTris; kế hoạch không tự
 chứng nhận các task đã chạy Colab.
 Week metadata task cũ là lịch triển khai gốc, carryover tuần7 tại kế hoạch mới.
 Các ghi chú phân công tuần5 bên dưới giữ làm lịch sử, không là roster hiện hành.
@@ -288,7 +294,7 @@ portable merge, full catalog và official export/receipts. Không suy unit PASS 
 | [EXP-04](./EXP-04.md) - Đánh giá quality, physical consistency và stability | 7 | Scientific evaluation | Core | P0 | 7h | Backlog |
 | [EXP-05](./EXP-05.md) - Chạy out-of-period extension 2018-2023 | 7 | Out-of-period evaluation | Core | P0 | 5h | Backlog |
 | [COL-01](./COL-01.md) - Khảo sát và giải thích pilot trên Colab | 7 | Colab pilot data inspection | Core | P1 | 3h | Done |
-| [COL-02](./COL-02.md) - Sweep tham số baseline giới hạn trên pilot | 7 | Bounded baseline parameter sweep | Core | P1 | 4h | In Progress |
+| [COL-02](./COL-02.md) - Sweep tham số baseline giới hạn trên pilot | 7 | Bounded baseline parameter sweep | Core | P1 | 4h | Done |
 | [COL-03](./COL-03.md) - Metrics và trực quan hóa baseline pilot | 7 | Pilot baseline metrics and plots | Core | P1 | 4h | Backlog |
 | [COL-04](./COL-04.md) - Kiểm thử biên, multi-sequence và rerun adaptive | 7 | Adaptive edge-case regression | Core | P1 | 3h | Done |
 
