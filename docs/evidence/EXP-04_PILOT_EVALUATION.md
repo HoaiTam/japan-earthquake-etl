@@ -3,9 +3,9 @@
 ## 1. Thông tin Thực nghiệm và Dữ liệu Đầu vào
 
 - **Mã Task:** [EXP-04](../task/tasks/EXP-04.md) (Tuần 7, Khối H - Experiment)
-- **Thời điểm đánh giá (UTC):** `2026-11-05T16:47:36Z`
+- **Thời điểm đánh giá (UTC):** `2026-11-05T16:48:37Z`
 - **Pilot Dataset ID:** `pilot_196b6d4081d347e1c289e331022658fbbe572dd33181ad987900895c1f1b189c`
-- **Git Commit Pin:** `3d719ab87caef849d9c075240c9afec49004f934` (modified/tracked)
+- **Git Commit Pin:** `887d1b5640c7e89b6a8b853f90135dd791d79d3c` (clean)
 - **Random Seed:** `42`
 - **Số lượng ứng viên đầu vào:** `279` dòng (ở grain mainshock/candidate)
 - **Số lượng cửa sổ Mainshock:** `2` cửa sổ
@@ -22,10 +22,10 @@
 
 | Algorithm | Total Windows | Success Windows | Failure Windows | Failure Rate | Total Aftershocks | Mean Noise Ratio | Mean DBCV | Mean Omori p | Omori Fitted Windows | Mean Jaccard Stability | Mean ARI Stability | Runtime (s) |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| WINDOW | 2 | 2 | 0 | 0.0% | 255 | 0.0% | N/A | 0.89 | 1/2 | 1.0000 | 1.0000 | 0.97 |
-| DBSCAN | 2 | 1 | 1 | 50.0% | 240 | 2.9% | 0.1676 | 0.92 | 1/2 | 0.9880 | 0.9483 | 0.92 |
-| HDBSCAN_GLOBAL | 2 | 0 | 2 | 100.0% | 0 | N/A | 0.1509 | N/A | 0/2 | 0.5977 | 0.6339 | 0.94 |
-| HDBSCAN_ADAPTIVE | 2 | 0 | 2 | 100.0% | 0 | N/A | N/A | N/A | 0/2 | 1.0000 | 0.6714 | 0.87 |
+| WINDOW | 2 | 2 | 0 | 0.0% | 255 | 0.0% | N/A | 0.89 | 1/2 | 1.0000 | 1.0000 | 0.98 |
+| DBSCAN | 2 | 1 | 1 | 50.0% | 240 | 2.9% | 0.1676 | 0.92 | 1/2 | 0.9880 | 0.9483 | 0.90 |
+| HDBSCAN_GLOBAL | 2 | 0 | 2 | 100.0% | 0 | N/A | 0.1509 | N/A | 0/2 | 0.5977 | 0.6339 | 0.91 |
+| HDBSCAN_ADAPTIVE | 2 | 0 | 2 | 100.0% | 0 | N/A | N/A | N/A | 0/2 | 1.0000 | 0.6714 | 0.88 |
 
 ### Ghi chú quy tắc đánh giá:
 - **Tuyệt đối không dùng Accuracy / F1:** Bài toán phân cụm chuỗi sau chấn là phân cụm mật độ không nhãn, không có ground-truth tuyệt đối.
@@ -46,7 +46,7 @@
 - **Modified Omori decay exponent p:** `0.89` (R^2 fit: `1.00`, số cửa sổ fit: `1/2`)
 - **Độ ổn định Jaccard (Mean Jaccard):** `1.0000`
 - **Độ ổn định ARI (Mean ARI):** `1.0000`
-- **Thời gian thực thi:** `0.97` giây
+- **Thời gian thực thi:** `0.98` giây
 
 ### DBSCAN
 
@@ -58,7 +58,7 @@
 - **Modified Omori decay exponent p:** `0.92` (R^2 fit: `1.00`, số cửa sổ fit: `1/2`)
 - **Độ ổn định Jaccard (Mean Jaccard):** `0.9880`
 - **Độ ổn định ARI (Mean ARI):** `0.9483`
-- **Thời gian thực thi:** `0.92` giây
+- **Thời gian thực thi:** `0.90` giây
 
 ### HDBSCAN_GLOBAL
 
@@ -70,7 +70,7 @@
 - **Modified Omori decay exponent p:** `N/A` (R^2 fit: `N/A`, số cửa sổ fit: `0/2`)
 - **Độ ổn định Jaccard (Mean Jaccard):** `0.5977`
 - **Độ ổn định ARI (Mean ARI):** `0.6339`
-- **Thời gian thực thi:** `0.94` giây
+- **Thời gian thực thi:** `0.91` giây
 
 ### HDBSCAN_ADAPTIVE
 
@@ -82,7 +82,7 @@
 - **Modified Omori decay exponent p:** `N/A` (R^2 fit: `N/A`, số cửa sổ fit: `0/2`)
 - **Độ ổn định Jaccard (Mean Jaccard):** `1.0000`
 - **Độ ổn định ARI (Mean ARI):** `0.6714`
-- **Thời gian thực thi:** `0.87` giây
+- **Thời gian thực thi:** `0.88` giây
 
 ## 4. Nhận xét và Giới hạn Thực nghiệm (Pilot Limitations)
 

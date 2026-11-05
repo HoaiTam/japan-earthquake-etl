@@ -20,16 +20,16 @@
       "nbformat": "5.10.4",
       "nbclient": "0.10.2"
     },
-    "code_version": "3d719ab87caef849d9c075240c9afec49004f934",
+    "code_version": "887d1b5640c7e89b6a8b853f90135dd791d79d3c",
     "random_seed": 42,
-    "timestamp_utc": "2026-11-05T16:47:31.022608+00:00",
+    "timestamp_utc": "2026-11-05T16:48:32.659072+00:00",
     "vector_columns": [
       "x_scaled",
       "y_scaled",
       "z_scaled",
       "time_scaled"
     ],
-    "is_clean_code": false,
+    "is_clean_code": true,
     "critical_code_hashes": {
       "notebooks/evaluation.py": "3e4a9f4938cd765be0957156e499201780c63b7b51e9974eeecdcd32d03846f7",
       "scripts/evaluate-models.py": "c63a3f06419a0bda7c2137ea3e5295a289a5f3e60246431ee622fc3bb250a644",
@@ -39,12 +39,9 @@
     }
   },
   "code_provenance": {
-    "git_commit": "3d719ab87caef849d9c075240c9afec49004f934",
-    "is_clean_code": false,
-    "dirty_files": [
-      "notebooks/evaluation.py",
-      "scripts/evaluate-models.py"
-    ],
+    "git_commit": "887d1b5640c7e89b6a8b853f90135dd791d79d3c",
+    "is_clean_code": true,
+    "dirty_files": [],
     "critical_code_hashes": {
       "notebooks/evaluation.py": "3e4a9f4938cd765be0957156e499201780c63b7b51e9974eeecdcd32d03846f7",
       "scripts/evaluate-models.py": "c63a3f06419a0bda7c2137ea3e5295a289a5f3e60246431ee622fc3bb250a644",
@@ -87,7 +84,7 @@
   },
   "evaluation_summary": {
     "pilot_id": "pilot_196b6d4081d347e1c289e331022658fbbe572dd33181ad987900895c1f1b189c",
-    "evaluated_at_utc": "2026-11-05T16:47:36Z",
+    "evaluated_at_utc": "2026-11-05T16:48:37Z",
     "comparison_table": [
       {
         "Algorithm": "WINDOW",
@@ -102,7 +99,7 @@
         "Omori Fitted Windows": "1/2",
         "Mean Jaccard Stability": "1.0000",
         "Mean ARI Stability": "1.0000",
-        "Runtime (s)": "0.97"
+        "Runtime (s)": "0.98"
       },
       {
         "Algorithm": "DBSCAN",
@@ -117,7 +114,7 @@
         "Omori Fitted Windows": "1/2",
         "Mean Jaccard Stability": "0.9880",
         "Mean ARI Stability": "0.9483",
-        "Runtime (s)": "0.92"
+        "Runtime (s)": "0.90"
       },
       {
         "Algorithm": "HDBSCAN_GLOBAL",
@@ -132,7 +129,7 @@
         "Omori Fitted Windows": "0/2",
         "Mean Jaccard Stability": "0.5977",
         "Mean ARI Stability": "0.6339",
-        "Runtime (s)": "0.94"
+        "Runtime (s)": "0.91"
       },
       {
         "Algorithm": "HDBSCAN_ADAPTIVE",
@@ -147,7 +144,7 @@
         "Omori Fitted Windows": "0/2",
         "Mean Jaccard Stability": "1.0000",
         "Mean ARI Stability": "0.6714",
-        "Runtime (s)": "0.87"
+        "Runtime (s)": "0.88"
       }
     ],
     "algorithm_details": {
@@ -170,7 +167,7 @@
         "mean_jaccard_stability": 1.0,
         "mean_ari_stability": 1.0,
         "stability_computed_windows": 2,
-        "runtime_seconds": 0.9748,
+        "runtime_seconds": 0.9752,
         "window_evaluations": [
           {
             "mainshock_id": "evt_d47fcaaf451cc2e5c3dcc8f016a999be",
@@ -277,7 +274,7 @@
         "mean_jaccard_stability": 0.988,
         "mean_ari_stability": 0.9483,
         "stability_computed_windows": 2,
-        "runtime_seconds": 0.9151,
+        "runtime_seconds": 0.9032,
         "window_evaluations": [
           {
             "mainshock_id": "evt_d47fcaaf451cc2e5c3dcc8f016a999be",
@@ -383,7 +380,7 @@
         "mean_jaccard_stability": 0.5977,
         "mean_ari_stability": 0.6339,
         "stability_computed_windows": 2,
-        "runtime_seconds": 0.9351,
+        "runtime_seconds": 0.9059,
         "window_evaluations": [
           {
             "mainshock_id": "evt_d47fcaaf451cc2e5c3dcc8f016a999be",
@@ -491,7 +488,7 @@
         "mean_jaccard_stability": 1.0,
         "mean_ari_stability": 0.6714,
         "stability_computed_windows": 2,
-        "runtime_seconds": 0.8661,
+        "runtime_seconds": 0.8823,
         "window_evaluations": [
           {
             "mainshock_id": "evt_d47fcaaf451cc2e5c3dcc8f016a999be",
