@@ -52,7 +52,7 @@ from notebooks.evaluation import (
 
 
 def get_code_provenance(project_root: Optional[Path] = None) -> Dict[str, Any]:
-    """Capture full code provenance: git commit hash, clean/dirty tree status, and critical code hashes."""
+    """Capture full code provenance: git commit hash, clean/dirty tree status, and cross-platform code hashes."""
     root = project_root or PROJECT_ROOT
     critical_files = [
         "notebooks/evaluation.py",
@@ -61,13 +61,39 @@ def get_code_provenance(project_root: Optional[Path] = None) -> Dict[str, Any]:
         "notebooks/adaptive_hdbscan.py",
         "notebooks/experiment_harness.py",
     ]
-    file_hashes: Dict[str, str] = {}
+    raw_file_hashes: Dict[str, str] = {}
+    lf_file_hashes: Dict[str, str] = {}
+    git_blob_hashes: Dict[str, str] = {}
+    detected_line_endings: Dict[str, str] = {}
+
     for rel_path in critical_files:
         f = root / rel_path
         if f.is_file():
-            file_hashes[rel_path] = hashlib.sha256(f.read_bytes()).hexdigest()
+            raw_bytes = f.read_bytes()
+            lf_bytes = raw_bytes.replace(b"\r\n", b"\n")
+            raw_file_hashes[rel_path] = hashlib.sha256(raw_bytes).hexdigest()
+            lf_file_hashes[rel_path] = hashlib.sha256(lf_bytes).hexdigest()
+            detected_line_endings[rel_path] = "crlf" if b"\r\n" in raw_bytes else "lf"
+
+            git_blob = "unknown"
+            try:
+                res = subprocess.run(
+                    ["git", "-C", str(root), "hash-object", str(f)],
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                )
+                blob_candidate = res.stdout.strip()
+                if re.fullmatch(r"[a-f0-9]{40}", blob_candidate):
+                    git_blob = blob_candidate
+            except Exception:
+                pass
+            git_blob_hashes[rel_path] = git_blob
         else:
-            file_hashes[rel_path] = "MISSING"
+            raw_file_hashes[rel_path] = "MISSING"
+            lf_file_hashes[rel_path] = "MISSING"
+            git_blob_hashes[rel_path] = "MISSING"
+            detected_line_endings[rel_path] = "unknown"
 
     git_commit = "unknown"
     is_dirty = True
@@ -116,7 +142,16 @@ def get_code_provenance(project_root: Optional[Path] = None) -> Dict[str, Any]:
         "git_commit": git_commit,
         "is_clean_code": not is_dirty,
         "dirty_files": dirty_files,
-        "critical_code_hashes": file_hashes,
+        "critical_code_hashes": raw_file_hashes,
+        "working_tree_code_hashes": raw_file_hashes,
+        "normalized_lf_code_hashes": lf_file_hashes,
+        "git_blob_hashes": git_blob_hashes,
+        "detected_line_endings": detected_line_endings,
+        "cross_platform_verification_note": (
+            "Working-tree hashes depend on local filesystem line endings (CRLF on Windows vs LF on Unix/macOS). "
+            "For cross-platform reproducibility, verify against git_blob_hashes (via `git hash-object <file>`) "
+            "or normalized_lf_code_hashes (via `sha256sum` after LF conversion)."
+        ),
     }
 
 
@@ -182,9 +217,33 @@ def generate_markdown_report(
     ]
 
     for algo, c_info in config_pins.items():
+        file_sha_str = c_info.get("file_bytes_sha256") or c_info.get("config_sha256", "N/A")
+        canon_sha_str = c_info.get("canonical_config_sha256", "N/A")
         lines.append(
-            f"- **{algo}:** `{c_info['config_path']}` (Version: `{c_info['model_config_version']}`, SHA: `{c_info['config_sha256'][:16]}...`)"
+            f"- **{algo}:** `{c_info['config_path']}` (Version: `{c_info['model_config_version']}`, "
+            f"File SHA: `{file_sha_str[:16]}...`, Canonical SHA: `{canon_sha_str[:16]}...`)"
         )
+
+    if code_prov:
+        lines.extend([
+            "",
+            "### Mã nguồn & Kiểm chứng Đa Nền tảng (Cross-Platform Verification):",
+            f"- **Git Commit:** `{code_prov.get('git_commit')}` (`is_clean_code={code_prov.get('is_clean_code')}`)",
+            f"- **Lưu ý kiểm chứng đa nền tảng:** {code_prov.get('cross_platform_verification_note', '')}",
+            "",
+            "| Tệp nguồn | Working Tree SHA-256 (Local OS) | Normalized LF SHA-256 | Git Blob SHA-1 | Line Ending |",
+            "| :--- | :--- | :--- | :--- | :--- |",
+        ])
+        wt_hashes = code_prov.get("working_tree_code_hashes", {})
+        lf_hashes = code_prov.get("normalized_lf_code_hashes", {})
+        blob_hashes = code_prov.get("git_blob_hashes", {})
+        endings = code_prov.get("detected_line_endings", {})
+        for f_path in wt_hashes:
+            wt_short = wt_hashes.get(f_path, "N/A")[:16] + "..." if len(wt_hashes.get(f_path, "")) > 16 else wt_hashes.get(f_path, "N/A")
+            lf_short = lf_hashes.get(f_path, "N/A")[:16] + "..." if len(lf_hashes.get(f_path, "")) > 16 else lf_hashes.get(f_path, "N/A")
+            b_short = blob_hashes.get(f_path, "N/A")[:16] + "..." if len(blob_hashes.get(f_path, "")) > 16 else blob_hashes.get(f_path, "N/A")
+            le_str = endings.get(f_path, "unknown").upper()
+            lines.append(f"| `{f_path}` | `{wt_short}` | `{lf_short}` | `{b_short}` | {le_str} |")
 
     lines.extend([
         "",
@@ -362,10 +421,11 @@ def main():
     runtime_meta["is_clean_code"] = code_prov["is_clean_code"]
     runtime_meta["critical_code_hashes"] = code_prov["critical_code_hashes"]
 
-    # Run comparative evaluation with exact model configs
+    # Run comparative evaluation with exact model configs and propagate pins
     eval_results = compare_all_models_on_pilot(
         bundle_dir=pilot_dir,
         model_configs=configs,
+        config_pins=config_pins,
         repeats=args.repeats,
         sigma=args.sigma,
         seed=args.seed,

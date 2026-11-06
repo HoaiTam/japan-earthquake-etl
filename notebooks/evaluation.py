@@ -72,26 +72,48 @@ def load_algorithm_configs(
     config_pins: Dict[str, Dict[str, Any]] = {}
 
     for algo, rel_path in DEFAULT_MODEL_CONFIG_PATHS.items():
+        abs_path = root / rel_path
+        file_bytes_sha256 = None
+        file_cfg = None
+
+        if abs_path.is_file():
+            raw_file_bytes = abs_path.read_bytes()
+            file_bytes_sha256 = hashlib.sha256(raw_file_bytes).hexdigest()
+            try:
+                file_cfg = json.loads(raw_file_bytes.decode("utf-8"))
+            except Exception:
+                file_cfg = None
+
         if custom_configs and algo in custom_configs:
             cfg = dict(custom_configs[algo])
-            raw_bytes = json.dumps(cfg, sort_keys=True).encode("utf-8")
-            sha256 = hashlib.sha256(raw_bytes).hexdigest()
-            cfg_path = f"custom:{algo.lower()}"
+            canonical_bytes = json.dumps(cfg, sort_keys=True).encode("utf-8")
+            canonical_sha256 = hashlib.sha256(canonical_bytes).hexdigest()
+
+            # If custom config matches the on-disk file, recognize it as file-backed
+            if file_cfg is not None and cfg == file_cfg:
+                cfg_path = str(rel_path).replace("\\", "/")
+                pin_sha256 = file_bytes_sha256
+            else:
+                cfg_path = f"custom:{algo.lower()}"
+                pin_sha256 = canonical_sha256
+                file_bytes_sha256 = None
         else:
-            abs_path = root / rel_path
             if not abs_path.is_file():
                 raise FileNotFoundError(f"CONFIG_FILE_MISSING:{abs_path}")
-            raw_bytes = abs_path.read_bytes()
-            cfg = json.loads(raw_bytes.decode("utf-8"))
-            sha256 = hashlib.sha256(raw_bytes).hexdigest()
-            cfg_path = str(rel_path)
+            cfg = file_cfg if file_cfg is not None else json.loads(abs_path.read_bytes().decode("utf-8"))
+            canonical_bytes = json.dumps(cfg, sort_keys=True).encode("utf-8")
+            canonical_sha256 = hashlib.sha256(canonical_bytes).hexdigest()
+            cfg_path = str(rel_path).replace("\\", "/")
+            pin_sha256 = file_bytes_sha256
 
         configs[algo] = cfg
         config_pins[algo] = {
             "config_path": cfg_path,
             "model_config_version": str(cfg.get("model_config_version", "unknown")),
             "algorithm_version": str(cfg.get("algorithm_version", "unknown")),
-            "config_sha256": sha256,
+            "config_sha256": pin_sha256,
+            "file_bytes_sha256": file_bytes_sha256,
+            "canonical_config_sha256": canonical_sha256,
         }
 
     return configs, config_pins
@@ -631,13 +653,24 @@ def evaluate_model_on_bundle(
         n_cands = len(cands)
         total_candidates += n_cands
 
-        # 1. Fit algorithm
-        mem_rows, sum_row = _dispatch_fit_model(
-            algorithm_name=algorithm_name,
-            window_candidates=cands,
-            mainshock_id=mainshock_id,
-            config=config,
-        )
+        # 1. Fit algorithm with exception handling to preserve failed window diagnostics
+        fit_exception = None
+        try:
+            mem_rows, sum_row = _dispatch_fit_model(
+                algorithm_name=algorithm_name,
+                window_candidates=cands,
+                mainshock_id=mainshock_id,
+                config=config,
+            )
+        except Exception as exc:
+            fit_exception = exc
+            mem_rows = []
+            sum_row = {
+                "window_result_status": "FAILURE",
+                "failure_reason_code": f"FIT_EXCEPTION: {type(exc).__name__}: {str(exc)}",
+                "total_aftershocks": 0,
+                "noise_count": 0,
+            }
 
         status = sum_row.get("window_result_status", "UNKNOWN")
         fail_code = sum_row.get("failure_reason_code")
@@ -652,65 +685,105 @@ def evaluate_model_on_bundle(
         aftershock_cnt = sum_row.get("aftershock_count") or sum_row.get("total_aftershocks", 0) or 0
         total_aftershocks += aftershock_cnt
 
-        noise_ratio = sum_row.get("noise_ratio")
-        if noise_ratio is None:
-            noise_cnt = sum_row.get("noise_count") or sum_row.get("noise_candidates")
-            if noise_cnt is not None and n_cands > 0:
-                noise_ratio = float(noise_cnt / n_cands)
-            elif "WINDOW" in algorithm_name.upper():
-                noise_ratio = 0.0
-        if noise_ratio is not None:
-            noise_ratios.append(noise_ratio)
+        noise_ratio = None
+        if fit_exception is None:
+            noise_ratio = sum_row.get("noise_ratio")
+            if noise_ratio is None:
+                noise_cnt = sum_row.get("noise_count") or sum_row.get("noise_candidates")
+                if noise_cnt is not None and n_cands > 0:
+                    noise_ratio = float(noise_cnt / n_cands)
+                elif "WINDOW" in algorithm_name.upper():
+                    noise_ratio = 0.0
+            if noise_ratio is not None:
+                noise_ratios.append(noise_ratio)
 
         # 2. Intrinsic Quality: DBCV
-        X_vec = np.array([[float(c.get(col, 0.0)) for col in VECTOR_COLUMNS] for c in cands], dtype=np.float64)
-        labels_arr = np.array([int(r.get("cluster_id") if r.get("cluster_id") is not None else -1) for r in mem_rows], dtype=int)
+        dbcv = None
+        dbcv_reasons = []
+        if fit_exception is not None:
+            dbcv_reasons = [f"FIT_EXCEPTION: {type(fit_exception).__name__}"]
+        else:
+            X_vec = np.array([[float(c.get(col, 0.0)) for col in VECTOR_COLUMNS] for c in cands], dtype=np.float64)
+            labels_arr = np.array([int(r.get("cluster_id") if r.get("cluster_id") is not None else -1) for r in mem_rows], dtype=int)
 
-        dbcv, dbcv_reasons = compute_dbcv_score(
-            X=X_vec,
-            labels=labels_arr,
-            algorithm_name=algorithm_name,
-        )
-        if dbcv is not None:
-            dbcv_scores.append(dbcv)
+            dbcv, dbcv_reasons = compute_dbcv_score(
+                X=X_vec,
+                labels=labels_arr,
+                algorithm_name=algorithm_name,
+            )
+            if dbcv is not None:
+                dbcv_scores.append(dbcv)
 
         # 3. Physical Consistency: Modified Omori Law
-        cand_time_map = {
-            c.get("candidate_event_id", c.get("event_id")): float(c.get("delta_time_hours", 0.0))
-            for c in cands
-        }
-        post_aftershock_times = [
-            cand_time_map[r["candidate_event_id"]]
-            for r in mem_rows
-            if r.get("is_sequence_member", False)
-            and r.get("event_role_candidate") == "POST"
-            and r["candidate_event_id"] in cand_time_map
-        ]
-        duration_hours = sum_row.get("sequence_duration_hours")
-        omori_res = fit_modified_omori_decay(
-            aftershock_times_hours=post_aftershock_times,
-            duration_hours=duration_hours,
-            min_aftershocks=MIN_OMORI_AFTERSHOCKS,
-        )
-        if omori_res.get("omori_p") is not None:
-            omori_p_values.append(omori_res["omori_p"])
-            omori_fit_metrics.append(omori_res["omori_fit_metric"])
-            omori_fit_success_count += 1
+        if fit_exception is not None:
+            omori_res = {
+                "omori_p": None,
+                "omori_fit_metric": None,
+                "status": "NOT_FITTED",
+                "reasons": [f"FIT_EXCEPTION: {type(fit_exception).__name__}"],
+            }
+        else:
+            cand_time_map = {
+                c.get("candidate_event_id", c.get("event_id")): float(c.get("delta_time_hours", 0.0))
+                for c in cands
+            }
+            post_aftershock_times = [
+                cand_time_map[r["candidate_event_id"]]
+                for r in mem_rows
+                if r.get("is_sequence_member", False)
+                and r.get("event_role_candidate") == "POST"
+                and r["candidate_event_id"] in cand_time_map
+            ]
+            duration_hours = sum_row.get("sequence_duration_hours")
+            omori_res = fit_modified_omori_decay(
+                aftershock_times_hours=post_aftershock_times,
+                duration_hours=duration_hours,
+                min_aftershocks=MIN_OMORI_AFTERSHOCKS,
+            )
+            if omori_res.get("omori_p") is not None:
+                omori_p_values.append(omori_res["omori_p"])
+                omori_fit_metrics.append(omori_res["omori_fit_metric"])
+                omori_fit_success_count += 1
 
         # 4. Stability & Sensitivity Harness
-        stability_res = run_window_stability_analysis(
-            window_candidates=cands,
-            mainshock_id=mainshock_id,
-            algorithm_name=algorithm_name,
-            config=config,
-            repeats=repeats,
-            sigma=sigma,
-            seed=seed,
-        )
-        if stability_res.get("mean_jaccard") is not None:
-            jaccard_scores.append(stability_res["mean_jaccard"])
-        if stability_res.get("mean_ari") is not None:
-            ari_scores.append(stability_res["mean_ari"])
+        if fit_exception is not None:
+            stability_res = {
+                "mean_jaccard": None,
+                "std_jaccard": None,
+                "min_jaccard": None,
+                "max_jaccard": None,
+                "mean_ari": None,
+                "std_ari": None,
+                "min_ari": None,
+                "max_ari": None,
+                "repeats": repeats,
+                "sigma": sigma,
+                "seed": seed,
+                "attempted_repeats": repeats,
+                "valid_repeats": 0,
+                "failed_repeats": repeats,
+                "attempted_pairs": repeats * (repeats - 1) // 2 if repeats >= 2 else 0,
+                "valid_pairs": 0,
+                "metric_reason_codes": [METRIC_FIT_FAILED],
+                "failed_repeat_details": [
+                    {"repeat": 0, "error": str(fit_exception), "error_type": type(fit_exception).__name__}
+                ],
+                "note": f"PRIMARY_FIT_FAILED: {type(fit_exception).__name__}",
+            }
+        else:
+            stability_res = run_window_stability_analysis(
+                window_candidates=cands,
+                mainshock_id=mainshock_id,
+                algorithm_name=algorithm_name,
+                config=config,
+                repeats=repeats,
+                sigma=sigma,
+                seed=seed,
+            )
+            if stability_res.get("mean_jaccard") is not None:
+                jaccard_scores.append(stability_res["mean_jaccard"])
+            if stability_res.get("mean_ari") is not None:
+                ari_scores.append(stability_res["mean_ari"])
 
         # Window evaluation record
         window_eval = {
@@ -724,6 +797,7 @@ def evaluate_model_on_bundle(
             "dbcv_reason_codes": dbcv_reasons,
             "omori_fit": omori_res,
             "stability": stability_res,
+            "fit_exception": str(fit_exception) if fit_exception is not None else None,
         }
         window_evaluations.append(window_eval)
 
@@ -765,6 +839,7 @@ def evaluate_model_on_bundle(
 def compare_all_models_on_pilot(
     bundle_dir: Union[str, Path],
     model_configs: Optional[Dict[str, Dict[str, Any]]] = None,
+    config_pins: Optional[Dict[str, Dict[str, Any]]] = None,
     repeats: int = DEFAULT_STABILITY_REPEATS,
     sigma: float = DEFAULT_STABILITY_SIGMA,
     seed: int = DEFAULT_STABILITY_SEED,
@@ -794,7 +869,11 @@ def compare_all_models_on_pilot(
     )
 
     algorithms = ["WINDOW", "DBSCAN", "HDBSCAN_GLOBAL", "HDBSCAN_ADAPTIVE"]
-    configs, config_pins = load_algorithm_configs(project_root=project_root, custom_configs=model_configs)
+    if config_pins is not None and model_configs is not None:
+        configs = model_configs
+        resolved_pins = config_pins
+    else:
+        configs, resolved_pins = load_algorithm_configs(project_root=project_root, custom_configs=model_configs)
     comparison_results = {}
 
     for algo in algorithms:
@@ -854,5 +933,5 @@ def compare_all_models_on_pilot(
         "evaluated_at_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "comparison_table": comparison_table,
         "algorithm_details": comparison_results,
-        "algorithm_config_pins": config_pins,
+        "algorithm_config_pins": resolved_pins,
     }

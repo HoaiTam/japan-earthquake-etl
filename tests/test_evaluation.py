@@ -34,6 +34,7 @@ if str(ROOT) not in sys.path:
 if str(NOTEBOOKS_DIR) not in sys.path:
     sys.path.insert(0, str(NOTEBOOKS_DIR))
 
+import notebooks.evaluation as evaluation
 from notebooks.evaluation import (
     compute_dbcv_score,
     _omori_cumulative,
@@ -488,6 +489,123 @@ class TestScientificEvaluation(unittest.TestCase):
         self.assertIn("notebooks/evaluation.py", prov["critical_code_hashes"])
         self.assertEqual(len(prov["critical_code_hashes"]["notebooks/evaluation.py"]), 64)
 
+
+    def test_evaluate_model_on_bundle_handles_primary_fit_exception_and_preserves_denominators(self):
+        """Primary fit exception on a window must be caught, recorded in failure_reasons, and preserve denominators."""
+        bundle = {
+            "windows": {
+                "m_fail": [
+                    {"candidate_event_id": "m_fail", "x_scaled": 0.0, "y_scaled": 0.0, "z_scaled": 0.0, "time_scaled": 0.0, "delta_time_hours": 0.0},
+                    {"candidate_event_id": "c1", "x_scaled": 0.1, "y_scaled": 0.1, "z_scaled": 0.0, "time_scaled": 1.0, "delta_time_hours": 1.0},
+                ],
+                "m_ok": [
+                    {"candidate_event_id": "m_ok", "x_scaled": 0.0, "y_scaled": 0.0, "z_scaled": 0.0, "time_scaled": 0.0, "delta_time_hours": 0.0},
+                    {"candidate_event_id": "c2", "x_scaled": 0.001, "y_scaled": 0.001, "z_scaled": 0.0, "time_scaled": 0.5, "delta_time_hours": 0.5},
+                ],
+            }
+        }
+
+        real_dispatch = evaluation._dispatch_fit_model
+
+        def mock_dispatch(algorithm_name, window_candidates, mainshock_id, config=None):
+            if mainshock_id == "m_fail":
+                raise RuntimeError("simulated primary fit crash")
+            return real_dispatch(algorithm_name, window_candidates, mainshock_id, config=config)
+
+        with unittest.mock.patch.object(evaluation, "_dispatch_fit_model", side_effect=mock_dispatch):
+            res = evaluation.evaluate_model_on_bundle(
+                bundle=bundle,
+                algorithm_name="WINDOW",
+                repeats=2,
+            )
+
+        self.assertEqual(res["total_windows"], 2)
+        self.assertEqual(res["success_windows"], 1)
+        self.assertEqual(res["failure_windows"], 1)
+        self.assertEqual(res["failure_rate"], 0.5)
+        self.assertTrue(any("simulated primary fit crash" in r for r in res["failure_reasons"]))
+
+        # Window evaluations detail
+        win_evals = {w["mainshock_id"]: w for w in res["window_evaluations"]}
+        self.assertEqual(win_evals["m_fail"]["window_result_status"], "FAILURE")
+        self.assertIn("simulated primary fit crash", win_evals["m_fail"]["fit_exception"])
+        self.assertIsNone(win_evals["m_fail"]["dbcv_score"])
+        self.assertIsNone(win_evals["m_fail"]["stability"]["mean_jaccard"])
+
+        self.assertEqual(win_evals["m_ok"]["window_result_status"], "SUCCESS")
+
+    def test_evaluate_model_on_bundle_all_windows_fit_crashed(self):
+        """When all primary fits crash, evaluate_model_on_bundle must not raise and report 100% failure rate with null metrics."""
+        bundle = {
+            "windows": {
+                "m1": [{"candidate_event_id": "m1", "x_scaled": 0.0, "y_scaled": 0.0, "z_scaled": 0.0, "time_scaled": 0.0}],
+                "m2": [{"candidate_event_id": "m2", "x_scaled": 1.0, "y_scaled": 1.0, "z_scaled": 0.0, "time_scaled": 0.0}],
+            }
+        }
+
+        def mock_crash(*args, **kwargs):
+            raise RuntimeError("total crash")
+
+        with unittest.mock.patch.object(evaluation, "_dispatch_fit_model", side_effect=mock_crash):
+            res = evaluation.evaluate_model_on_bundle(
+                bundle=bundle,
+                algorithm_name="DBSCAN",
+                repeats=2,
+            )
+
+        self.assertEqual(res["total_windows"], 2)
+        self.assertEqual(res["success_windows"], 0)
+        self.assertEqual(res["failure_windows"], 2)
+        self.assertEqual(res["failure_rate"], 1.0)
+        self.assertIsNone(res["mean_dbcv_score"])
+        self.assertEqual(res["dbcv_computed_windows"], 0)
+        self.assertIsNone(res["mean_jaccard_stability"])
+        self.assertEqual(res["stability_computed_windows"], 0)
+        self.assertIsNone(res["mean_omori_p"])
+        self.assertEqual(len(res["failure_reasons"]), 2)
+
+    def test_config_pins_consistency_between_top_level_and_summary(self):
+        """Top-level and nested config pins must be consistent with file_bytes_sha256 and canonical_config_sha256."""
+        configs, pins = evaluation.load_algorithm_configs(project_root=ROOT)
+        for algo in ["WINDOW", "DBSCAN", "HDBSCAN_GLOBAL", "HDBSCAN_ADAPTIVE"]:
+            self.assertIn(algo, pins)
+            p = pins[algo]
+            self.assertIn("file_bytes_sha256", p)
+            self.assertIn("canonical_config_sha256", p)
+            self.assertEqual(len(p["file_bytes_sha256"]), 64)
+            self.assertEqual(len(p["canonical_config_sha256"]), 64)
+            self.assertEqual(p["config_sha256"], p["file_bytes_sha256"])
+
+        # When custom config matches file, it preserves file_bytes_sha256
+        configs_custom, pins_custom = evaluation.load_algorithm_configs(project_root=ROOT, custom_configs=configs)
+        for algo in ["WINDOW", "DBSCAN", "HDBSCAN_GLOBAL", "HDBSCAN_ADAPTIVE"]:
+            self.assertEqual(pins_custom[algo]["config_path"], pins[algo]["config_path"])
+            self.assertEqual(pins_custom[algo]["config_sha256"], pins[algo]["config_sha256"])
+
+        # When custom config is genuinely synthetic, it marks custom: and sets file_bytes_sha256 to None
+        synthetic = {"DBSCAN": {"eps": 0.999, "min_samples": 5}}
+        _, pins_syn = evaluation.load_algorithm_configs(project_root=ROOT, custom_configs=synthetic)
+        self.assertEqual(pins_syn["DBSCAN"]["config_path"], "custom:dbscan")
+        self.assertIsNone(pins_syn["DBSCAN"]["file_bytes_sha256"])
+        self.assertEqual(len(pins_syn["DBSCAN"]["canonical_config_sha256"]), 64)
+
+    def test_code_provenance_cross_platform_hashes(self):
+        """get_code_provenance must return working tree, normalized LF, and git blob hashes with verification note."""
+        import importlib
+        eval_script = importlib.import_module("scripts.evaluate-models")
+
+        prov = eval_script.get_code_provenance(ROOT)
+        self.assertIn("working_tree_code_hashes", prov)
+        self.assertIn("normalized_lf_code_hashes", prov)
+        self.assertIn("git_blob_hashes", prov)
+        self.assertIn("detected_line_endings", prov)
+        self.assertIn("cross_platform_verification_note", prov)
+
+        for rel_path in ["notebooks/evaluation.py", "scripts/evaluate-models.py"]:
+            self.assertEqual(len(prov["working_tree_code_hashes"][rel_path]), 64)
+            self.assertEqual(len(prov["normalized_lf_code_hashes"][rel_path]), 64)
+            self.assertEqual(len(prov["git_blob_hashes"][rel_path]), 40)
+            self.assertIn(prov["detected_line_endings"][rel_path], ["crlf", "lf"])
 
 if __name__ == "__main__":
     unittest.main()
