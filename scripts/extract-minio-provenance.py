@@ -8,7 +8,8 @@ trusted requirement mapping, and packages them into a verifiable provenance ZIP.
 Fail-Closed Policy:
 - Output immutability: fails if output ZIP exists unless --overwrite is explicitly set.
 - Checksum verification: verifies SHA-256 for each object upon retrieval; fails on mismatch.
-- Path safety: validates all object keys against directory traversal or unsafe characters.
+- Path safety: validates all object keys against directory traversal, symlinks, or absolute paths.
+- Pinned checkpoint compatibility: supports exact schema {"objects": [{"uri": ..., "sha256": ..., "kind": ...}]}.
 - Configuration: reads S3 credentials strictly via environment variables or CLI options.
 """
 
@@ -53,59 +54,100 @@ WORKER_PROVENANCE_SPECS: Dict[str, Dict[str, Any]] = {
 }
 
 
-def is_safe_relpath(path_str: str) -> bool:
-    """Validate that path is relative, normalized, and cannot escape root."""
-    if not path_str or not isinstance(path_str, str):
-        return False
-    if "\0" in path_str:
-        return False
-    norm = path_str.replace("\\", "/")
-    if norm.startswith("/") or re.match(r"^[a-zA-Z]:", norm):
-        return False
+def check_raw_path_safety(raw_path: str) -> Tuple[bool, str]:
+    """Validate raw path string strictly before any stripping or modification.
+
+    Rejects:
+    - Empty, None, or non-string
+    - Null bytes (\\0)
+    - Absolute paths starting with / or \\
+    - Absolute paths with Windows drive letter (e.g. C:)
+    - Path traversal with .. components
+    - Current directory . components
+    - Empty components (// or trailing slash)
+    """
+    if not raw_path or not isinstance(raw_path, str):
+        return False, "EMPTY_OR_NON_STRING_PATH"
+    if "\0" in raw_path:
+        return False, "NULL_BYTE_IN_PATH"
+    if raw_path.startswith("/") or raw_path.startswith("\\"):
+        return False, "ABSOLUTE_PATH_LEADING_SLASH"
+    if re.match(r"^[a-zA-Z]:", raw_path):
+        return False, "ABSOLUTE_PATH_DRIVE_LETTER"
+
+    norm = raw_path.replace("\\", "/")
     parts = norm.split("/")
-    if ".." in parts or "." in parts or "" in parts:
-        return False
-    return True
+    if any(p == ".." for p in parts):
+        return False, "PATH_TRAVERSAL_DOT_DOT"
+    if any(p == "." for p in parts):
+        return False, "PATH_SEGMENT_DOT"
+    if any(p == "" for p in parts):
+        return False, "EMPTY_PATH_SEGMENT_OR_CONSECUTIVE_SLASH"
+
+    return True, "SAFE"
 
 
-def normalize_s3_key(uri_or_key: str, bucket: str = "japan-earthquake") -> Tuple[str, str]:
-    """Parse URI or key into (s3_uri, archive_key)."""
-    clean = str(uri_or_key).replace("\\", "/").strip()
-    prefix = f"s3://{bucket}/"
+def parse_uri_or_key(raw_input: str, default_bucket: str = "japan-earthquake") -> Tuple[str, str]:
+    """Parse raw URI or relative path into (s3_uri, rel_key) with fail-closed safety.
+
+    Validates path safety BEFORE any stripping.
+    """
+    if not raw_input or not isinstance(raw_input, str):
+        raise ValueError(f"INVALID_INPUT: {raw_input}")
+
+    clean = raw_input.strip()
+    prefix = f"s3://{default_bucket}/"
     if clean.startswith(prefix):
-        key = clean[len(prefix):]
+        rel_key = clean[len(prefix):]
         s3_uri = clean
     elif clean.startswith("s3://"):
-        # Other bucket
         parts = clean[5:].split("/", 1)
-        if len(parts) == 2:
-            key = parts[1]
+        if len(parts) == 2 and parts[0] == default_bucket:
+            rel_key = parts[1]
             s3_uri = clean
         else:
-            raise ValueError(f"INVALID_S3_URI: {uri_or_key}")
+            raise ValueError(f"UNRECOGNIZED_S3_URI: {clean}")
     else:
-        key = clean.lstrip("/")
-        s3_uri = f"s3://{bucket}/{key}"
+        rel_key = clean
+        s3_uri = f"s3://{default_bucket}/{clean}"
 
-    if not is_safe_relpath(key):
-        raise ValueError(f"UNSAFE_S3_KEY: {key}")
+    safe, reason = check_raw_path_safety(rel_key)
+    if not safe:
+        raise ValueError(f"UNSAFE_PATH: {rel_key} ({reason})")
 
-    return s3_uri, key
+    return s3_uri, rel_key.replace("\\", "/")
 
 
-def categorize_key(key: str) -> str:
-    """Determine object category from key path."""
+def resolve_category(key: str, kind: Optional[str] = None) -> str:
+    """Normalize object category from kind or path."""
+    k = (kind or "").strip().lower()
+    if k in ("bronze_manifest", "bronze"):
+        return "bronze_manifest"
+    if k in ("silver_bundle_manifest", "silver_bundle", "silver"):
+        return "silver_bundle_manifest"
+    if k in ("registry_json", "registry", "snapshot_registry"):
+        return "registry_json"
+
+    # Derive from key path
     if key.startswith("bronze/"):
         return "bronze_manifest"
     elif "bundles/" in key or key.startswith("silver/bundles/"):
         return "silver_bundle_manifest"
-    elif "full-month/" in key or key.startswith("silver/full-month/"):
+    elif "full-month/" in key or key.startswith("silver/full-month/") or "registry" in key:
         return "registry_json"
     return "unknown"
 
 
 def load_expected_mapping(source_path: Path, bucket: str = "japan-earthquake") -> List[Dict[str, Any]]:
-    """Load and parse expected object mapping from file."""
+    """Load and parse expected object mapping from file.
+
+    Supports:
+    - Pinned checkpoint schema: {"objects": [{"uri": ..., "sha256": ..., "kind": ...}]}
+    - Required provenance schema: {"checksums": {path: sha256}}
+    - Package manifest schema: {"objects": [{"path"|"archive_path"|"s3_uri": ..., "sha256": ...}]}
+    - Flat dict: {path_or_uri: sha256}
+    - List of objects: [{"uri"|"path"|"s3_uri": ..., "sha256": ...}]
+    """
     source_path = Path(source_path).resolve()
     if not source_path.is_file():
         raise FileNotFoundError(f"SOURCE_MAPPING_FILE_NOT_FOUND: {source_path}")
@@ -113,37 +155,41 @@ def load_expected_mapping(source_path: Path, bucket: str = "japan-earthquake") -
     with open(source_path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
-    raw_items: List[Tuple[str, str]] = []
+    raw_items: List[Tuple[str, str, Optional[str]]] = []
 
     if isinstance(data, dict):
         if "checksums" in data and isinstance(data["checksums"], dict):
             for k, v in data["checksums"].items():
-                raw_items.append((k, str(v).strip().lower()))
+                raw_items.append((k, str(v).strip().lower(), None))
         elif "objects" in data and isinstance(data["objects"], list):
             for item in data["objects"]:
-                p = item.get("s3_uri") or item.get("path") or item.get("archive_path")
-                sha = item.get("sha256")
+                # Support uri, s3_uri, path, archive_path
+                p = item.get("uri") or item.get("s3_uri") or item.get("path") or item.get("archive_path")
+                sha = item.get("sha256") or item.get("sha") or item.get("checksum")
+                kind = item.get("kind") or item.get("category")
                 if p and sha:
-                    raw_items.append((p, str(sha).strip().lower()))
+                    raw_items.append((str(p), str(sha).strip().lower(), str(kind) if kind else None))
         elif "required_objects" in data and isinstance(data["required_objects"], list):
             for item in data["required_objects"]:
-                p = item.get("s3_uri") or item.get("path") or item.get("archive_path")
-                sha = item.get("sha256")
+                p = item.get("uri") or item.get("s3_uri") or item.get("path") or item.get("archive_path")
+                sha = item.get("sha256") or item.get("sha") or item.get("checksum")
+                kind = item.get("kind") or item.get("category")
                 if p and sha:
-                    raw_items.append((p, str(sha).strip().lower()))
+                    raw_items.append((str(p), str(sha).strip().lower(), str(kind) if kind else None))
         else:
             # Flat dict
             for k, v in data.items():
                 if isinstance(v, str) and re.fullmatch(r"[0-9a-fA-F]{64}", v.strip()):
-                    raw_items.append((k, v.strip().lower()))
+                    raw_items.append((k, v.strip().lower(), None))
 
     elif isinstance(data, list):
         for item in data:
             if isinstance(item, dict):
-                p = item.get("s3_uri") or item.get("path") or item.get("archive_path")
-                sha = item.get("sha256")
+                p = item.get("uri") or item.get("s3_uri") or item.get("path") or item.get("archive_path")
+                sha = item.get("sha256") or item.get("sha") or item.get("checksum")
+                kind = item.get("kind") or item.get("category")
                 if p and sha:
-                    raw_items.append((p, str(sha).strip().lower()))
+                    raw_items.append((str(p), str(sha).strip().lower(), str(kind) if kind else None))
 
     if not raw_items:
         raise ValueError(f"EMPTY_OR_UNRECOGNIZED_SOURCE_MAPPING: {source_path}")
@@ -151,13 +197,16 @@ def load_expected_mapping(source_path: Path, bucket: str = "japan-earthquake") -
     items: List[Dict[str, Any]] = []
     seen_keys: Set[str] = set()
 
-    for raw_p, exp_sha in sorted(raw_items, key=lambda x: x[0]):
-        s3_uri, key = normalize_s3_key(raw_p, bucket=bucket)
+    for raw_p, exp_sha, raw_kind in sorted(raw_items, key=lambda x: x[0]):
+        s3_uri, key = parse_uri_or_key(raw_p, default_bucket=bucket)
         if key in seen_keys:
             raise ValueError(f"DUPLICATE_KEY_IN_MAPPING: {key}")
         seen_keys.add(key)
+        cat = resolve_category(key, kind=raw_kind)
         items.append({
-            "category": categorize_key(key),
+            "category": cat,
+            "kind": cat,
+            "uri": s3_uri,
             "s3_uri": s3_uri,
             "archive_path": key,
             "path": key,
@@ -259,6 +308,8 @@ def extract_and_pack_provenance(
 
         manifest_items.append({
             "category": item["category"],
+            "kind": item["kind"],
+            "uri": item["uri"],
             "s3_uri": item["s3_uri"],
             "archive_path": key,
             "path": key,
@@ -305,6 +356,19 @@ def extract_and_pack_provenance(
             "zip_sha256": zip_sha,
             "manifest_sha256": manifest_sha,
             "counts": package_manifest["counts_by_category"],
+            "objects": [
+                {
+                    "uri": item["uri"],
+                    "s3_uri": item["s3_uri"],
+                    "archive_path": item["archive_path"],
+                    "path": item["path"],
+                    "kind": item["kind"],
+                    "category": item["category"],
+                    "bytes": item["bytes"],
+                    "sha256": item["sha256"],
+                }
+                for item in manifest_items
+            ],
             "checksums": {item["archive_path"]: item["sha256"] for item in manifest_items},
         }
         output_manifest.write_text(json.dumps(manifest_meta, indent=2), encoding="utf-8")

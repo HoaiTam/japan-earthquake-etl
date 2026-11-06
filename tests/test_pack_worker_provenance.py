@@ -34,6 +34,34 @@ class TestPackWorkerProvenance(unittest.TestCase):
         self.assertEqual(provenance.WORKER_PROVENANCE_SPECS["rosy179"]["silver_manifest_count"], 23)
         self.assertEqual(provenance.WORKER_PROVENANCE_SPECS["rosy179"]["registry_json_count"], 23)
 
+    def test_check_raw_path_safety(self):
+        # Safe relative paths
+        self.assertTrue(provenance.check_raw_path_safety("bronze/manifest_01.json")[0])
+        self.assertTrue(provenance.check_raw_path_safety("silver/bundles/run=1/manifest.json")[0])
+
+        # Absolute paths
+        safe, reason = provenance.check_raw_path_safety("/etc/passwd")
+        self.assertFalse(safe)
+        self.assertEqual(reason, "ABSOLUTE_PATH_LEADING_SLASH")
+
+        safe, reason = provenance.check_raw_path_safety("\\windows\\system32")
+        self.assertFalse(safe)
+        self.assertEqual(reason, "ABSOLUTE_PATH_LEADING_SLASH")
+
+        safe, reason = provenance.check_raw_path_safety("C:/secret.json")
+        self.assertFalse(safe)
+        self.assertEqual(reason, "ABSOLUTE_PATH_DRIVE_LETTER")
+
+        # Path traversal
+        safe, reason = provenance.check_raw_path_safety("bronze/../../secret.json")
+        self.assertFalse(safe)
+        self.assertEqual(reason, "PATH_TRAVERSAL_DOT_DOT")
+
+        # Empty segments / double slashes
+        safe, reason = provenance.check_raw_path_safety("bronze//manifest.json")
+        self.assertFalse(safe)
+        self.assertEqual(reason, "EMPTY_PATH_SEGMENT_OR_CONSECUTIVE_SLASH")
+
     def test_generate_plan_rosy179(self):
         plan = provenance.generate_expected_provenance_manifest("rosy179")
         self.assertEqual(plan["owner"], "rosy179")
@@ -96,36 +124,100 @@ class TestPackWorkerProvenance(unittest.TestCase):
             self.assertEqual(res_trusted["verification_level"], "trusted_provenance")
             self.assertEqual(res_trusted["trusted_objects_verified"], 83)
 
-    def test_one_file_repetition_bypass_rejected(self):
-        """Regression test for Review P1: Manifest repeating same file 75 or 83 times must fail-closed."""
+    def test_duplicate_zip_member_same_bytes_rejected(self):
+        """Regression test for Review P1/P2: ZIP with duplicate member name having same bytes fails before reading."""
+        import warnings
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp = Path(tmpdir)
-            zip_out = tmp / "bypass.zip"
+            zip_out = tmp / "dup_same.zip"
 
-            # Create ZIP with only 1 file
-            manifest_items = []
-            dummy_sha = provenance.compute_sha256(b"{}")
-            for i in range(75):
-                cat = "bronze_manifest" if i < 37 else ("silver_bundle_manifest" if i < 56 else "registry_json")
-                manifest_items.append({
-                    "category": cat,
-                    "path": "same.json",
-                    "archive_path": "same.json",
-                    "sha256": dummy_sha,
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", UserWarning)
+                with zipfile.ZipFile(zip_out, "w") as zf:
+                    zf.writestr("manifest.json", json.dumps({"owner": "rosy179", "objects": []}))
+                    zf.writestr("item_01.json", b"same_content")
+                    zf.writestr("item_01.json", b"same_content")  # Duplicate member
+
+            res = provenance.verify_provenance_archive("rosy179", zip_out)
+            self.assertEqual(res["status"], "FAIL")
+            self.assertEqual(res["reason"], "DUPLICATE_ZIP_MEMBER")
+            self.assertIn("item_01.json", res["duplicate_members"])
+
+    def test_duplicate_zip_member_diff_bytes_rejected(self):
+        """Regression test for Review P1/P2: ZIP with duplicate member name having different bytes fails before reading."""
+        import warnings
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+            zip_out = tmp / "dup_diff.zip"
+
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", UserWarning)
+                with zipfile.ZipFile(zip_out, "w") as zf:
+                    zf.writestr("manifest.json", json.dumps({"owner": "rosy179", "objects": []}))
+                    zf.writestr("item_01.json", b"content_a")
+                    zf.writestr("item_01.json", b"content_b")  # Duplicate member with different bytes
+
+            res = provenance.verify_provenance_archive("rosy179", zip_out)
+            self.assertEqual(res["status"], "FAIL")
+            self.assertEqual(res["reason"], "DUPLICATE_ZIP_MEMBER")
+            self.assertIn("item_01.json", res["duplicate_members"])
+
+    def test_zip_leading_slash_member_rejected_raw(self):
+        """Regression test for Review P1/P2: ZIP member starting with '/' must fail before normalization."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+            zip_out = tmp / "leading_slash.zip"
+
+            with zipfile.ZipFile(zip_out, "w") as zf:
+                zf.writestr("manifest.json", json.dumps({"owner": "rosy179", "objects": []}))
+                zf.writestr("/etc/passwd", b"root:x:0:0")
+
+            res = provenance.verify_provenance_archive("rosy179", zip_out)
+            self.assertEqual(res["status"], "FAIL")
+            self.assertEqual(res["reason"], "UNSAFE_ZIP_MEMBER")
+            self.assertEqual(res["error"], "ABSOLUTE_PATH_LEADING_SLASH")
+
+    def test_checkpoint_schema_uri_sha256_kind_trusted_verification(self):
+        """Regression test for Review P1: Verifier must natively support checkpoint schema with uri/sha256/kind."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+            src_dir = tmp / "staging"
+            zip_out = tmp / "rosy179-provenance.zip"
+            checkpoint_file = tmp / "rosy179-checkpoint-pinned.json"
+
+            # Create mock 83 objects
+            plan = provenance.generate_expected_provenance_manifest("rosy179")
+            checkpoint_objects = []
+            for item in plan["required_objects"]:
+                fpath = src_dir / item["path"]
+                fpath.parent.mkdir(parents=True, exist_ok=True)
+                content = json.dumps({"object": item["path"], "owner": "rosy179"}).encode("utf-8")
+                fpath.write_bytes(content)
+                sha = provenance.compute_sha256(content)
+
+                # Format matching exact checkpoint format: uri, sha256, kind
+                checkpoint_objects.append({
+                    "uri": f"s3://japan-earthquake/{item['path']}",
+                    "sha256": sha,
+                    "kind": item["category"],
                 })
 
-            manifest_content = {
-                "owner": "ThanhTris",
-                "objects": manifest_items,
-            }
-            with zipfile.ZipFile(zip_out, "w") as zf:
-                zf.writestr("manifest.json", json.dumps(manifest_content))
-                zf.writestr("same.json", b"{}")
+            checkpoint_file.write_text(json.dumps({"objects": checkpoint_objects}, indent=2), encoding="utf-8")
 
-            res = provenance.verify_provenance_archive("ThanhTris", zip_out)
-            self.assertEqual(res["status"], "FAIL")
-            self.assertEqual(res["reason"], "DUPLICATE_OBJECT_PATH")
-            self.assertIn("duplicate_paths", res)
+            # Pack
+            res_pack = provenance.pack_provenance_archive("rosy179", src_dir, zip_out)
+            self.assertEqual(res_pack["status"], "PASS")
+
+            # Verify with checkpoint file containing uri/sha256/kind schema
+            res_trusted = provenance.verify_provenance_archive(
+                owner="rosy179",
+                zip_path=zip_out,
+                expected_checksums=checkpoint_file,
+                require_trusted=True,
+            )
+            self.assertEqual(res_trusted["status"], "PASS")
+            self.assertEqual(res_trusted["verification_level"], "trusted_provenance")
+            self.assertEqual(res_trusted["trusted_objects_verified"], 83)
 
     def test_missing_trusted_checksum_key_fails_closed(self):
         """Regression test for Review P1: Verification with missing keys in external checksums must fail-closed."""
@@ -154,31 +246,6 @@ class TestPackWorkerProvenance(unittest.TestCase):
             self.assertEqual(res["reason"], "INCOMPLETE_TRUSTED_CHECKSUMS")
             self.assertEqual(res["missing_count"], 74)
 
-    def test_unsafe_path_traversal_rejected(self):
-        """Regression test for Review P1: Objects with unsafe relative paths must fail."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            tmp = Path(tmpdir)
-            zip_out = tmp / "unsafe.zip"
-
-            manifest_items = []
-            for i in range(75):
-                cat = "bronze_manifest" if i < 37 else ("silver_bundle_manifest" if i < 56 else "registry_json")
-                path = f"../secret/file_{i}.json" if i == 0 else f"file_{i}.json"
-                manifest_items.append({
-                    "category": cat,
-                    "path": path,
-                    "sha256": "a" * 64,
-                })
-
-            with zipfile.ZipFile(zip_out, "w") as zf:
-                zf.writestr("manifest.json", json.dumps({"owner": "ThanhTris", "objects": manifest_items}))
-                for item in manifest_items:
-                    zf.writestr(item["path"], b"abc")
-
-            res = provenance.verify_provenance_archive("ThanhTris", zip_out)
-            self.assertEqual(res["status"], "FAIL")
-            self.assertEqual(res["reason"], "UNSAFE_OBJECT_PATH")
-
     def test_category_breakdown_mismatch_rejected(self):
         """Regression test for Review P1: ZIP with incorrect category breakdown fails."""
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -187,18 +254,17 @@ class TestPackWorkerProvenance(unittest.TestCase):
 
             manifest_items = []
             # 41 bronze, 21 silver, 21 reg (the old wrong spec for rosy179)
-            for i in range(83):
-                cat = "bronze_manifest" if i < 41 else ("silver_bundle_manifest" if i < 62 else "registry_json")
-                manifest_items.append({
-                    "category": cat,
-                    "path": f"item_{i:02d}.json",
-                    "sha256": provenance.compute_sha256(b"content"),
-                })
-
             with zipfile.ZipFile(zip_out, "w") as zf:
+                for i in range(83):
+                    cat = "bronze_manifest" if i < 41 else ("silver_bundle_manifest" if i < 62 else "registry_json")
+                    fname = f"item_{i:02d}.json"
+                    manifest_items.append({
+                        "category": cat,
+                        "path": fname,
+                        "sha256": provenance.compute_sha256(b"content"),
+                    })
+                    zf.writestr(fname, b"content")
                 zf.writestr("manifest.json", json.dumps({"owner": "rosy179", "objects": manifest_items}))
-                for item in manifest_items:
-                    zf.writestr(item["path"], b"content")
 
             res = provenance.verify_provenance_archive("rosy179", zip_out)
             self.assertEqual(res["status"], "FAIL")

@@ -7,8 +7,9 @@ Silver bundle manifests, snapshot registry JSONs) for worker nodes
 
 Fail-Closed Policy:
 - Missing required manifests or registry records fail verification immediately.
-- Tampered, empty, or duplicate files are strictly rejected.
-- Paths with directory traversal (..) or absolute paths are strictly rejected.
+- Tampered, empty, or duplicate files in ZIP are strictly rejected.
+- ZIP members with duplicate names (same or different bytes) fail before reading.
+- Paths with directory traversal (..), absolute paths (/ or C:), or symlinks are strictly rejected.
 - Self-integrity mode validates ZIP consistency against internal manifest.
 - Trusted provenance mode validates against external pinned requirement mapping;
   missing keys, count mismatches, or checksum mismatches fail immediately.
@@ -64,53 +65,120 @@ def compute_file_sha256(file_path: Path) -> str:
     return h.hexdigest()
 
 
-def is_safe_relpath(path_str: str) -> bool:
-    """Validate that path is relative, normalized, and cannot escape root."""
-    if not path_str or not isinstance(path_str, str):
-        return False
-    if "\0" in path_str:
-        return False
-    norm = path_str.replace("\\", "/")
-    if norm.startswith("/") or re.match(r"^[a-zA-Z]:", norm):
-        return False
+def check_raw_path_safety(raw_path: str) -> Tuple[bool, str]:
+    """Validate raw path string strictly before any stripping or modification.
+
+    Rejects:
+    - Empty, None, or non-string
+    - Null bytes (\\0)
+    - Absolute paths starting with / or \\
+    - Absolute paths with Windows drive letter (e.g. C:)
+    - Path traversal with .. components
+    - Current directory . components
+    - Empty components (// or trailing slash)
+    """
+    if not raw_path or not isinstance(raw_path, str):
+        return False, "EMPTY_OR_NON_STRING_PATH"
+    if "\0" in raw_path:
+        return False, "NULL_BYTE_IN_PATH"
+    if raw_path.startswith("/") or raw_path.startswith("\\"):
+        return False, "ABSOLUTE_PATH_LEADING_SLASH"
+    if re.match(r"^[a-zA-Z]:", raw_path):
+        return False, "ABSOLUTE_PATH_DRIVE_LETTER"
+
+    norm = raw_path.replace("\\", "/")
     parts = norm.split("/")
-    if ".." in parts or "." in parts or "" in parts:
-        return False
-    return True
+    if any(p == ".." for p in parts):
+        return False, "PATH_TRAVERSAL_DOT_DOT"
+    if any(p == "." for p in parts):
+        return False, "PATH_SEGMENT_DOT"
+    if any(p == "" for p in parts):
+        return False, "EMPTY_PATH_SEGMENT_OR_CONSECUTIVE_SLASH"
+
+    return True, "SAFE"
 
 
-def normalize_relpath(path_str: str) -> str:
-    """Normalize path string to forward-slash relative path."""
-    clean = str(path_str).replace("\\", "/").strip("/")
-    if clean.startswith("s3://japan-earthquake/"):
-        clean = clean[len("s3://japan-earthquake/"):]
-    return clean
+def parse_uri_or_key(raw_input: str, default_bucket: str = "japan-earthquake") -> Tuple[str, str]:
+    """Parse raw URI or relative path into (s3_uri, rel_key) with fail-closed safety.
+
+    Validates path safety BEFORE any stripping.
+    """
+    if not raw_input or not isinstance(raw_input, str):
+        raise ValueError(f"INVALID_INPUT: {raw_input}")
+
+    clean = raw_input.strip()
+    prefix = f"s3://{default_bucket}/"
+    if clean.startswith(prefix):
+        rel_key = clean[len(prefix):]
+        s3_uri = clean
+    elif clean.startswith("s3://"):
+        parts = clean[5:].split("/", 1)
+        if len(parts) == 2 and parts[0] == default_bucket:
+            rel_key = parts[1]
+            s3_uri = clean
+        else:
+            raise ValueError(f"UNRECOGNIZED_S3_URI: {clean}")
+    else:
+        rel_key = clean
+        s3_uri = f"s3://{default_bucket}/{clean}"
+
+    safe, reason = check_raw_path_safety(rel_key)
+    if not safe:
+        raise ValueError(f"UNSAFE_PATH: {rel_key} ({reason})")
+
+    return s3_uri, rel_key.replace("\\", "/")
 
 
-def parse_trusted_checksums(data: Any) -> Dict[str, str]:
-    """Parse trusted checksum mapping from various JSON formats into {relpath: sha256}.
+def resolve_category(key: str, kind: Optional[str] = None) -> str:
+    """Normalize object category from kind or path."""
+    k = (kind or "").strip().lower()
+    if k in ("bronze_manifest", "bronze"):
+        return "bronze_manifest"
+    if k in ("silver_bundle_manifest", "silver_bundle", "silver"):
+        return "silver_bundle_manifest"
+    if k in ("registry_json", "registry", "snapshot_registry"):
+        return "registry_json"
+
+    # Derive from key path
+    if key.startswith("bronze/"):
+        return "bronze_manifest"
+    elif "bundles/" in key or key.startswith("silver/bundles/"):
+        return "silver_bundle_manifest"
+    elif "full-month/" in key or key.startswith("silver/full-month/") or "registry" in key:
+        return "registry_json"
+    return "unknown"
+
+
+def parse_trusted_checksums(data: Any, default_bucket: str = "japan-earthquake") -> Dict[str, Dict[str, Any]]:
+    """Parse trusted checksum mapping from various JSON formats into {relpath: {sha256, kind, s3_uri}}.
 
     Supported input formats:
     - Path or str pointing to JSON file
-    - Dict of {path_or_uri: sha256}
-    - Dict with "checksums": {path: sha256}
-    - Dict with "objects": [{"path"|"archive_path"|"s3_uri": ..., "sha256": ...}]
-    - List of [{"path"|"archive_path"|"s3_uri": ..., "sha256": ...}]
+    - Pinned checkpoint schema: {"objects": [{"uri": ..., "sha256": ..., "kind": ...}]}
+    - Package manifest schema: {"objects": [{"path"|"archive_path"|"s3_uri": ..., "sha256": ...}]}
+    - Required provenance schema: {"checksums": {path: sha256}}
+    - Flat dict: {path_or_uri: sha256}
+    - List of objects: [{"uri"|"path"|"s3_uri": ..., "sha256": ...}]
     """
     if isinstance(data, (str, Path)):
         p = Path(data).resolve()
-        if p.is_file():
-            with open(p, "r", encoding="utf-8") as f:
-                data = json.load(f)
+        if not p.is_file():
+            raise FileNotFoundError(f"TRUSTED_CHECKSUMS_FILE_NOT_FOUND: {p}")
+        with open(p, "r", encoding="utf-8") as f:
+            data = json.load(f)
 
-    mapping: Dict[str, str] = {}
+    mapping: Dict[str, Dict[str, Any]] = {}
 
     if isinstance(data, dict):
         if "checksums" in data and isinstance(data["checksums"], dict):
-            raw_map = data["checksums"]
-            for k, v in raw_map.items():
-                norm = normalize_relpath(k)
-                mapping[norm] = str(v).strip().lower()
+            for k, v in data["checksums"].items():
+                s3_uri, rel_key = parse_uri_or_key(k, default_bucket=default_bucket)
+                mapping[rel_key] = {
+                    "sha256": str(v).strip().lower(),
+                    "kind": resolve_category(rel_key),
+                    "s3_uri": s3_uri,
+                    "archive_path": rel_key,
+                }
             return mapping
 
         if "objects" in data and isinstance(data["objects"], list):
@@ -118,11 +186,16 @@ def parse_trusted_checksums(data: Any) -> Dict[str, str]:
         elif "required_objects" in data and isinstance(data["required_objects"], list):
             data = data["required_objects"]
         else:
-            # Assume flat {key: sha}
+            # Check if flat {key: sha}
             for k, v in data.items():
                 if isinstance(v, str) and re.fullmatch(r"[0-9a-fA-F]{64}", v.strip()):
-                    norm = normalize_relpath(k)
-                    mapping[norm] = v.strip().lower()
+                    s3_uri, rel_key = parse_uri_or_key(k, default_bucket=default_bucket)
+                    mapping[rel_key] = {
+                        "sha256": v.strip().lower(),
+                        "kind": resolve_category(rel_key),
+                        "s3_uri": s3_uri,
+                        "archive_path": rel_key,
+                    }
             if mapping:
                 return mapping
 
@@ -130,11 +203,19 @@ def parse_trusted_checksums(data: Any) -> Dict[str, str]:
         for item in data:
             if not isinstance(item, dict):
                 continue
-            p = item.get("path") or item.get("archive_path") or item.get("s3_uri")
-            sha = item.get("sha256")
-            if p and sha:
-                norm = normalize_relpath(p)
-                mapping[norm] = str(sha).strip().lower()
+            # Look for all candidate path / URI keys (including uri!)
+            raw_p = item.get("uri") or item.get("s3_uri") or item.get("path") or item.get("archive_path")
+            sha = item.get("sha256") or item.get("sha") or item.get("checksum")
+            kind = item.get("kind") or item.get("category")
+            if raw_p and sha:
+                s3_uri, rel_key = parse_uri_or_key(str(raw_p), default_bucket=default_bucket)
+                resolved_cat = resolve_category(rel_key, kind=str(kind) if kind else None)
+                mapping[rel_key] = {
+                    "sha256": str(sha).strip().lower(),
+                    "kind": resolved_cat,
+                    "s3_uri": s3_uri,
+                    "archive_path": rel_key,
+                }
 
     return mapping
 
@@ -154,8 +235,11 @@ def generate_expected_provenance_manifest(owner: str) -> Dict[str, Any]:
         rel = f"bronze/manifest_{i:02d}.json"
         objects.append({
             "category": "bronze_manifest",
+            "kind": "bronze_manifest",
             "path": rel,
             "archive_path": rel,
+            "uri": f"s3://japan-earthquake/{rel}",
+            "s3_uri": f"s3://japan-earthquake/{rel}",
             "required": True,
         })
 
@@ -164,8 +248,11 @@ def generate_expected_provenance_manifest(owner: str) -> Dict[str, Any]:
         rel = f"silver/bundle_manifest_{i:02d}.json"
         objects.append({
             "category": "silver_bundle_manifest",
+            "kind": "silver_bundle_manifest",
             "path": rel,
             "archive_path": rel,
+            "uri": f"s3://japan-earthquake/{rel}",
+            "s3_uri": f"s3://japan-earthquake/{rel}",
             "required": True,
         })
 
@@ -174,8 +261,11 @@ def generate_expected_provenance_manifest(owner: str) -> Dict[str, Any]:
         rel = f"registry/snapshot_registry_{i:02d}.json"
         objects.append({
             "category": "registry_json",
+            "kind": "registry_json",
             "path": rel,
             "archive_path": rel,
+            "uri": f"s3://japan-earthquake/{rel}",
+            "s3_uri": f"s3://japan-earthquake/{rel}",
             "required": True,
         })
 
@@ -217,12 +307,30 @@ def pack_provenance_archive(
     required_count = spec["total_required_objects"]
 
     if expected_spec_file and Path(expected_spec_file).is_file():
-        with open(expected_spec_file, "r", encoding="utf-8") as f:
-            template = json.load(f)
+        trusted_map = parse_trusted_checksums(expected_spec_file)
+        if len(trusted_map) != required_count:
+            raise ValueError(
+                f"INVALID_SPEC_COUNT: expected {required_count} objects for {owner}, got {len(trusted_map)}"
+            )
+        raw_objects = []
+        for rel_k, meta in sorted(trusted_map.items()):
+            raw_objects.append({
+                "category": meta["kind"],
+                "kind": meta["kind"],
+                "path": rel_k,
+                "archive_path": rel_k,
+                "uri": meta["s3_uri"],
+                "s3_uri": meta["s3_uri"],
+                "sha256": meta["sha256"],
+            })
+        template = {
+            "range": f"{spec['range'][0]}..{spec['range'][1]}",
+            "month_count": spec["month_count"],
+        }
     else:
         template = generate_expected_provenance_manifest(owner)
+        raw_objects = template["required_objects"]
 
-    raw_objects = template.get("required_objects") or template.get("objects", [])
     if len(raw_objects) != required_count:
         raise ValueError(
             f"INVALID_SPEC_COUNT: expected {required_count} objects for {owner}, got {len(raw_objects)}"
@@ -232,21 +340,25 @@ def pack_provenance_archive(
     seen_paths: Set[str] = set()
     expected_objects: List[Dict[str, Any]] = []
     for item in raw_objects:
-        rel_path = normalize_relpath(item.get("path") or item.get("archive_path", ""))
-        if not is_safe_relpath(rel_path):
-            raise ValueError(f"UNSAFE_OBJECT_PATH: {rel_path}")
+        raw_p = item.get("uri") or item.get("path") or item.get("archive_path") or item.get("s3_uri")
+        s3_uri, rel_path = parse_uri_or_key(str(raw_p))
         if rel_path in seen_paths:
             raise ValueError(f"DUPLICATE_OBJECT_PATH_IN_SPEC: {rel_path}")
         seen_paths.add(rel_path)
+        cat = resolve_category(rel_path, kind=item.get("kind") or item.get("category"))
         expected_objects.append({
-            "category": item.get("category", "unknown"),
+            "category": cat,
+            "kind": cat,
             "path": rel_path,
             "archive_path": rel_path,
-            "s3_uri": item.get("s3_uri"),
+            "uri": s3_uri,
+            "s3_uri": s3_uri,
+            "expected_sha": item.get("sha256"),
         })
 
     missing_files: List[str] = []
     empty_files: List[str] = []
+    sha_mismatches: List[str] = []
     packaged_items: List[Dict[str, Any]] = []
 
     for item in expected_objects:
@@ -261,24 +373,30 @@ def pack_provenance_archive(
             continue
 
         sha = compute_file_sha256(fpath)
+        if item.get("expected_sha") and sha != item["expected_sha"]:
+            sha_mismatches.append(f"{rel_path}: computed={sha}, expected={item['expected_sha']}")
+
         packaged_items.append({
-            "category": item.get("category", "unknown"),
+            "category": item["category"],
+            "kind": item["category"],
             "path": rel_path,
             "archive_path": rel_path,
-            "s3_uri": item.get("s3_uri") or f"s3://japan-earthquake/{rel_path}",
+            "uri": item["uri"],
+            "s3_uri": item["s3_uri"],
             "bytes": st.st_size,
             "sha256": sha,
         })
 
-    if missing_files or empty_files:
+    if missing_files or empty_files or sha_mismatches:
         return {
             "status": "FAIL",
             "owner": owner,
-            "error": "INCOMPLETE_PROVENANCE_OBJECTS",
+            "error": "INCOMPLETE_OR_CORRUPT_PROVENANCE_OBJECTS",
             "missing_count": len(missing_files),
             "missing_files": missing_files,
             "empty_count": len(empty_files),
             "empty_files": empty_files,
+            "sha_mismatches": sha_mismatches,
             "packaged_count": len(packaged_items),
             "required_count": required_count,
         }
@@ -326,17 +444,17 @@ def pack_provenance_archive(
 def verify_provenance_archive(
     owner: str,
     zip_path: Path,
-    expected_checksums: Optional[Union[Dict[str, Any], Sequence[Any]]] = None,
+    expected_checksums: Optional[Union[Dict[str, Any], Sequence[Any], Path, str]] = None,
     require_trusted: bool = False,
 ) -> Dict[str, Any]:
     """Verify that a packaged provenance zip matches all contract, safety, and hash constraints.
 
     Verification levels:
-    - self_integrity: validates zip structure, unique member paths, non-empty files,
-      and object hashes against zip internal manifest.
+    - self_integrity: validates zip structure, infolist unique member names, non-empty files,
+      absence of symlinks/directories, and object hashes against zip internal manifest.
     - trusted_provenance: in addition to self-integrity, validates all required objects
-      against an external pinned trusted checksum mapping (fail-closed if any required
-      key is missing or hash mismatches).
+      against an external pinned trusted checksum mapping (supporting checkpoint schema
+      with uri/sha256/kind). Fail-closed if any required key is missing or hash mismatches.
     """
     if owner not in WORKER_PROVENANCE_SPECS:
         return {
@@ -356,11 +474,67 @@ def verify_provenance_archive(
 
     try:
         with zipfile.ZipFile(zip_path, "r") as zf:
-            namelist = set(zf.namelist())
-            if "manifest.json" not in namelist:
+            infolist = zf.infolist()
+            raw_names = [info.filename for info in infolist]
+
+            # 1. Enforce strict uniqueness of ZIP member names BEFORE any reading
+            seen_zip_members: Set[str] = set()
+            duplicate_zip_members: Set[str] = set()
+            for name in raw_names:
+                if name in seen_zip_members:
+                    duplicate_zip_members.add(name)
+                seen_zip_members.add(name)
+
+            if duplicate_zip_members:
+                return {
+                    "status": "FAIL",
+                    "reason": "DUPLICATE_ZIP_MEMBER",
+                    "duplicate_count": len(duplicate_zip_members),
+                    "duplicate_members": sorted(list(duplicate_zip_members)),
+                }
+
+            # 2. Check for symlinks and directories in ZIP members
+            for info in infolist:
+                mode = info.external_attr >> 16
+                if mode and (mode & 0o170000 == 0o120000):
+                    return {
+                        "status": "FAIL",
+                        "reason": "SYMLINK_MEMBER_FORBIDDEN",
+                        "member": info.filename,
+                    }
+                if info.is_dir():
+                    return {
+                        "status": "FAIL",
+                        "reason": "DIRECTORY_MEMBER_FORBIDDEN",
+                        "member": info.filename,
+                    }
+
+            # 3. Check raw path safety of EVERY member in ZIP BEFORE any normalization
+            for info in infolist:
+                safe, err_reason = check_raw_path_safety(info.filename)
+                if not safe:
+                    return {
+                        "status": "FAIL",
+                        "reason": "UNSAFE_ZIP_MEMBER",
+                        "member": info.filename,
+                        "error": err_reason,
+                    }
+
+            # 4. Check presence of manifest.json
+            if "manifest.json" not in seen_zip_members:
                 return {
                     "status": "FAIL",
                     "reason": "MISSING_MANIFEST_JSON_IN_ZIP",
+                }
+
+            # 5. Check exact member count: manifest.json + required_count files
+            expected_total_zip_entries = required_count + 1
+            if len(raw_names) != expected_total_zip_entries:
+                return {
+                    "status": "FAIL",
+                    "reason": f"ZIP_MEMBER_COUNT_MISMATCH: expected {expected_total_zip_entries} members, got {len(raw_names)}",
+                    "expected_count": expected_total_zip_entries,
+                    "actual_count": len(raw_names),
                 }
 
             manifest_content = zf.read("manifest.json")
@@ -381,59 +555,64 @@ def verify_provenance_archive(
                     "expected_count": required_count,
                 }
 
-            # 1. Enforce strict uniqueness and safety of object paths
-            seen_paths: Set[str] = set()
-            duplicate_paths: List[str] = []
-            unsafe_paths: List[str] = []
+            # 6. Validate uniqueness and safety of object paths in manifest
+            seen_manifest_paths: Set[str] = set()
+            duplicate_manifest_paths: List[str] = []
             normalized_objects: List[Dict[str, Any]] = []
 
             for obj in objects:
-                raw_path = obj.get("path") or obj.get("archive_path")
+                raw_path = obj.get("uri") or obj.get("path") or obj.get("archive_path") or obj.get("s3_uri")
                 if not raw_path:
                     return {
                         "status": "FAIL",
                         "reason": "OBJECT_MISSING_PATH_IN_MANIFEST",
                         "sample_object": obj,
                     }
-                norm_p = normalize_relpath(str(raw_path))
-                if not is_safe_relpath(norm_p):
-                    unsafe_paths.append(str(raw_path))
-                    continue
-                if norm_p in seen_paths:
-                    duplicate_paths.append(norm_p)
-                seen_paths.add(norm_p)
+                try:
+                    s3_uri, rel_key = parse_uri_or_key(str(raw_path))
+                except Exception as ex:
+                    return {
+                        "status": "FAIL",
+                        "reason": f"UNSAFE_OBJECT_PATH: {raw_path} ({ex})",
+                    }
 
+                if rel_key in seen_manifest_paths:
+                    duplicate_manifest_paths.append(rel_key)
+                seen_manifest_paths.add(rel_key)
+
+                cat = resolve_category(rel_key, kind=obj.get("kind") or obj.get("category"))
                 normalized_objects.append({
-                    "category": obj.get("category"),
-                    "path": norm_p,
-                    "archive_path": norm_p,
-                    "s3_uri": obj.get("s3_uri"),
+                    "category": cat,
+                    "kind": cat,
+                    "path": rel_key,
+                    "archive_path": rel_key,
+                    "uri": s3_uri,
+                    "s3_uri": s3_uri,
                     "bytes": obj.get("bytes"),
                     "sha256": str(obj.get("sha256", "")).strip().lower(),
                 })
 
-            if unsafe_paths:
-                return {
-                    "status": "FAIL",
-                    "reason": "UNSAFE_OBJECT_PATH",
-                    "unsafe_paths": unsafe_paths,
-                }
-
-            if duplicate_paths:
+            if duplicate_manifest_paths:
                 return {
                     "status": "FAIL",
                     "reason": "DUPLICATE_OBJECT_PATH",
-                    "duplicate_count": len(duplicate_paths),
-                    "duplicate_paths": duplicate_paths,
+                    "duplicate_count": len(duplicate_manifest_paths),
+                    "duplicate_paths": duplicate_manifest_paths,
                 }
 
-            if len(seen_paths) != required_count:
+            # 7. Check policy: ZIP members must EXACTLY equal manifest paths + manifest.json
+            manifest_expected_members = set(seen_manifest_paths) | {"manifest.json"}
+            if seen_zip_members != manifest_expected_members:
+                unexpected = list(seen_zip_members - manifest_expected_members)
+                missing = list(manifest_expected_members - seen_zip_members)
                 return {
                     "status": "FAIL",
-                    "reason": f"UNIQUE_PATH_COUNT_MISMATCH: expected {required_count} unique paths, got {len(seen_paths)}",
+                    "reason": "ZIP_MEMBER_POLICY_VIOLATION",
+                    "unexpected_members": unexpected,
+                    "missing_members": missing,
                 }
 
-            # 2. Check counts by category
+            # 8. Check counts by category
             bronze_cnt = sum(1 for o in normalized_objects if o.get("category") == "bronze_manifest")
             silver_cnt = sum(1 for o in normalized_objects if o.get("category") == "silver_bundle_manifest")
             reg_cnt = sum(1 for o in normalized_objects if o.get("category") == "registry_json")
@@ -453,19 +632,13 @@ def verify_provenance_archive(
                     },
                 }
 
-            # 3. Verify member existence and self-integrity SHA-256 for each object
+            # 9. Verify member self-integrity SHA-256 and non-empty size
             hash_mismatches: List[str] = []
-            missing_members: List[str] = []
             empty_members: List[str] = []
-
             actual_hashes: Dict[str, str] = {}
 
             for obj in normalized_objects:
                 rel_path = obj["path"]
-                if rel_path not in namelist:
-                    missing_members.append(rel_path)
-                    continue
-
                 raw = zf.read(rel_path)
                 if len(raw) == 0:
                     empty_members.append(rel_path)
@@ -480,16 +653,15 @@ def verify_provenance_archive(
                         f"SELF_HASH_MISMATCH:{rel_path}: computed={computed_sha}, manifest={expected_sha}"
                     )
 
-            if missing_members or empty_members or hash_mismatches:
+            if empty_members or hash_mismatches:
                 return {
                     "status": "FAIL",
                     "reason": "SELF_INTEGRITY_VERIFICATION_FAILED",
-                    "missing_members": missing_members,
                     "empty_members": empty_members,
                     "hash_mismatches": hash_mismatches,
                 }
 
-            # 4. Trusted Provenance Verification against external trusted mapping
+            # 10. Trusted Provenance Verification against external trusted mapping
             trusted_verified = False
             trusted_objects_verified = 0
 
@@ -504,11 +676,12 @@ def verify_provenance_archive(
                 if not trusted_map:
                     return {
                         "status": "FAIL",
-                        "reason": "EMPTY_TRUSTED_CHECKSUMS_MAP: Pinned requirements map is empty.",
+                        "reason": "EMPTY_TRUSTED_CHECKSUMS_MAP: Pinned requirements map is empty or unrecognized format.",
                     }
 
                 missing_trusted_keys: List[str] = []
                 trusted_hash_mismatches: List[str] = []
+                category_mismatches: List[str] = []
 
                 for obj in normalized_objects:
                     rel_path = obj["path"]
@@ -516,14 +689,23 @@ def verify_provenance_archive(
                         missing_trusted_keys.append(rel_path)
                         continue
 
-                    trusted_sha = trusted_map[rel_path]
+                    trusted_entry = trusted_map[rel_path]
+                    trusted_sha = trusted_entry["sha256"]
                     computed_sha = actual_hashes[rel_path]
+
                     if computed_sha != trusted_sha:
                         trusted_hash_mismatches.append(
                             f"TRUSTED_HASH_MISMATCH:{rel_path}: computed={computed_sha}, trusted={trusted_sha}"
                         )
                     else:
                         trusted_objects_verified += 1
+
+                    # If trusted entry specifies kind, verify category matches
+                    exp_cat = trusted_entry.get("kind")
+                    if exp_cat and exp_cat != "unknown" and obj["category"] != exp_cat:
+                        category_mismatches.append(
+                            f"CATEGORY_MISMATCH:{rel_path}: manifest={obj['category']}, trusted={exp_cat}"
+                        )
 
                 if missing_trusted_keys:
                     return {
@@ -539,6 +721,13 @@ def verify_provenance_archive(
                         "reason": "TRUSTED_PROVENANCE_HASH_MISMATCH",
                         "mismatch_count": len(trusted_hash_mismatches),
                         "mismatches": trusted_hash_mismatches,
+                    }
+
+                if category_mismatches:
+                    return {
+                        "status": "FAIL",
+                        "reason": "TRUSTED_CATEGORY_MISMATCH",
+                        "mismatches": category_mismatches,
                     }
 
                 trusted_verified = True

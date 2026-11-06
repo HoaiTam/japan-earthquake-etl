@@ -24,24 +24,27 @@ pack_spec.loader.exec_module(pack_provenance)
 
 
 class TestExtractMinioProvenance(unittest.TestCase):
-    def test_normalize_s3_key_and_category(self):
-        uri, key = extractor.normalize_s3_key("s3://japan-earthquake/bronze/jma/year=2000/manifest.json")
+    def test_parse_uri_or_key_and_category(self):
+        uri, key = extractor.parse_uri_or_key("s3://japan-earthquake/bronze/jma/year=2000/manifest.json")
         self.assertEqual(key, "bronze/jma/year=2000/manifest.json")
-        self.assertEqual(extractor.categorize_key(key), "bronze_manifest")
+        self.assertEqual(extractor.resolve_category(key), "bronze_manifest")
 
-        uri, key = extractor.normalize_s3_key("silver/bundles/run=1/manifest.json")
+        uri, key = extractor.parse_uri_or_key("silver/bundles/run=1/manifest.json")
         self.assertEqual(key, "silver/bundles/run=1/manifest.json")
-        self.assertEqual(extractor.categorize_key(key), "silver_bundle_manifest")
+        self.assertEqual(extractor.resolve_category(key), "silver_bundle_manifest")
 
-        uri, key = extractor.normalize_s3_key("silver/full-month/m=2020-01/registry.json")
+        uri, key = extractor.parse_uri_or_key("silver/full-month/m=2020-01/registry.json")
         self.assertEqual(key, "silver/full-month/m=2020-01/registry.json")
-        self.assertEqual(extractor.categorize_key(key), "registry_json")
+        self.assertEqual(extractor.resolve_category(key), "registry_json")
 
     def test_unsafe_s3_key_rejected(self):
         with self.assertRaises(ValueError):
-            extractor.normalize_s3_key("s3://japan-earthquake/../secret/file.txt")
+            extractor.parse_uri_or_key("s3://japan-earthquake/../secret/file.txt")
         with self.assertRaises(ValueError):
-            extractor.normalize_s3_key("bronze/../../etc/passwd")
+            extractor.parse_uri_or_key("bronze/../../etc/passwd")
+        # Leading slash rejected before normalization
+        with self.assertRaises(ValueError):
+            extractor.parse_uri_or_key("/etc/passwd")
 
     def test_load_mapping_formats(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -57,7 +60,7 @@ class TestExtractMinioProvenance(unittest.TestCase):
             self.assertEqual(len(items1), 1)
             self.assertEqual(items1[0]["archive_path"], "bronze/manifest_01.json")
 
-            # Format 2: objects list
+            # Format 2: objects list with s3_uri
             p2 = tmp / "format2.json"
             p2.write_text(json.dumps({
                 "objects": [{"s3_uri": "s3://japan-earthquake/silver/bundles/01/manifest.json", "sha256": dummy_sha}]
@@ -66,14 +69,45 @@ class TestExtractMinioProvenance(unittest.TestCase):
             self.assertEqual(len(items2), 1)
             self.assertEqual(items2[0]["category"], "silver_bundle_manifest")
 
-            # Format 3: flat dict
-            p3 = tmp / "format3.json"
+            # Format 3: exact checkpoint schema with uri, sha256, kind
+            p3 = tmp / "checkpoint.json"
             p3.write_text(json.dumps({
-                "silver/full-month/reg_01.json": dummy_sha
+                "objects": [
+                    {
+                        "uri": "s3://japan-earthquake/silver/full-month/m=2020-01/registry.json",
+                        "sha256": dummy_sha,
+                        "kind": "registry_json",
+                    }
+                ]
             }), encoding="utf-8")
             items3 = extractor.load_expected_mapping(p3)
             self.assertEqual(len(items3), 1)
             self.assertEqual(items3[0]["category"], "registry_json")
+            self.assertEqual(items3[0]["kind"], "registry_json")
+            self.assertEqual(items3[0]["uri"], "s3://japan-earthquake/silver/full-month/m=2020-01/registry.json")
+
+            # Format 4: flat dict
+            p4 = tmp / "format4.json"
+            p4.write_text(json.dumps({
+                "silver/full-month/reg_01.json": dummy_sha
+            }), encoding="utf-8")
+            items4 = extractor.load_expected_mapping(p4)
+            self.assertEqual(len(items4), 1)
+            self.assertEqual(items4[0]["category"], "registry_json")
+
+    def test_duplicate_key_in_mapping_fails_closed(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+            p = tmp / "dup.json"
+            p.write_text(json.dumps({
+                "objects": [
+                    {"uri": "s3://japan-earthquake/bronze/manifest_01.json", "sha256": "a" * 64},
+                    {"uri": "s3://japan-earthquake/bronze/manifest_01.json", "sha256": "a" * 64},
+                ]
+            }), encoding="utf-8")
+            with self.assertRaises(ValueError) as ctx:
+                extractor.load_expected_mapping(p)
+            self.assertIn("DUPLICATE_KEY_IN_MAPPING", str(ctx.exception))
 
     def test_immutability_guard_rejects_overwrite_by_default(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -99,8 +133,8 @@ class TestExtractMinioProvenance(unittest.TestCase):
             out_zip = tmp / "rosy179-provenance.zip"
             out_manifest = tmp / "required-provenance.json"
 
-            # Create mock requirements for rosy179: 37 bronze, 23 silver, 23 registry = 83 total
-            mock_data = {}
+            # Create mock requirements for rosy179 with exact checkpoint uri/sha256/kind format
+            mock_objects = []
             mock_bodies = {}
 
             # 37 bronze
@@ -108,7 +142,11 @@ class TestExtractMinioProvenance(unittest.TestCase):
                 key = f"bronze/jma/year=2000/run={i:02d}/manifest.json"
                 body = f"bronze_content_{i}".encode("utf-8")
                 sha = hashlib.sha256(body).hexdigest()
-                mock_data[key] = sha
+                mock_objects.append({
+                    "uri": f"s3://japan-earthquake/{key}",
+                    "sha256": sha,
+                    "kind": "bronze_manifest",
+                })
                 mock_bodies[key] = body
 
             # 23 silver bundles
@@ -116,7 +154,11 @@ class TestExtractMinioProvenance(unittest.TestCase):
                 key = f"silver/bundles/run={i:02d}/manifest.json"
                 body = f"silver_content_{i}".encode("utf-8")
                 sha = hashlib.sha256(body).hexdigest()
-                mock_data[key] = sha
+                mock_objects.append({
+                    "uri": f"s3://japan-earthquake/{key}",
+                    "sha256": sha,
+                    "kind": "silver_bundle_manifest",
+                })
                 mock_bodies[key] = body
 
             # 23 registry
@@ -124,11 +166,15 @@ class TestExtractMinioProvenance(unittest.TestCase):
                 key = f"silver/full-month/m=2020-{i:02d}/registry.json"
                 body = f"reg_content_{i}".encode("utf-8")
                 sha = hashlib.sha256(body).hexdigest()
-                mock_data[key] = sha
+                mock_objects.append({
+                    "uri": f"s3://japan-earthquake/{key}",
+                    "sha256": sha,
+                    "kind": "registry_json",
+                })
                 mock_bodies[key] = body
 
-            self.assertEqual(len(mock_data), 83)
-            mapping_file.write_text(json.dumps({"checksums": mock_data}), encoding="utf-8")
+            self.assertEqual(len(mock_objects), 83)
+            mapping_file.write_text(json.dumps({"objects": mock_objects}), encoding="utf-8")
 
             # Mock S3 client
             mock_s3 = MagicMock()
@@ -163,11 +209,11 @@ class TestExtractMinioProvenance(unittest.TestCase):
             self.assertEqual(verify_res["silver_manifests"], 23)
             self.assertEqual(verify_res["registry_records"], 23)
 
-            # 2. Trusted provenance
+            # 2. Trusted provenance using the checkpoint file directly!
             trusted_res = pack_provenance.verify_provenance_archive(
                 owner="rosy179",
                 zip_path=out_zip,
-                expected_checksums=out_manifest,
+                expected_checksums=mapping_file,
                 require_trusted=True,
             )
             self.assertEqual(trusted_res["status"], "PASS")
