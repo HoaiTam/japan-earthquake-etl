@@ -3,9 +3,9 @@
 ## 1. Thông tin Thực nghiệm và Dữ liệu Đầu vào
 
 - **Mã Task:** [EXP-04](../task/tasks/EXP-04.md) (Tuần 7, Khối H - Experiment)
-- **Thời điểm đánh giá (UTC):** `2026-11-05T16:48:37Z`
+- **Thời điểm đánh giá (UTC):** `2026-11-06T02:30:33Z`
 - **Pilot Dataset ID:** `pilot_196b6d4081d347e1c289e331022658fbbe572dd33181ad987900895c1f1b189c`
-- **Git Commit Pin:** `887d1b5640c7e89b6a8b853f90135dd791d79d3c` (clean)
+- **Git Commit Pin:** `e6c9e5ad1a2cfc8e63d35afccc547a8321b148ba` (clean)
 - **Random Seed:** `42`
 - **Số lượng ứng viên đầu vào:** `279` dòng (ở grain mainshock/candidate)
 - **Số lượng cửa sổ Mainshock:** `2` cửa sổ
@@ -13,19 +13,31 @@
 - **Phạm vi dữ liệu:** `DEVELOPMENT_ONLY`, `research_ready=false` (Pilot 14 ngày, độ phủ `PARTIAL`)
 
 ### Cấu hình thuật toán (Config Pins):
-- **WINDOW:** `config/ml/models/window_baseline_v1.json` (Version: `window-baseline-v1`, SHA: `78feda8112fd4a68...`)
-- **DBSCAN:** `config/ml/models/dbscan_global_dev_v1.json` (Version: `dbscan-global-dev-v1`, SHA: `f089d928f4ace1c6...`)
-- **HDBSCAN_GLOBAL:** `config/ml/models/hdbscan_global_dev_v1.json` (Version: `hdbscan-global-dev-v1`, SHA: `10d2b375d66c8c95...`)
-- **HDBSCAN_ADAPTIVE:** `config/ml/models/hdbscan_adaptive_dev_v1.json` (Version: `hdbscan-adaptive-dev-v1`, SHA: `41a4232ad6e4ae50...`)
+- **WINDOW:** `config/ml/models/window_baseline_v1.json` (Version: `window-baseline-v1`, File SHA: `78feda8112fd4a68...`, Canonical SHA: `2307ac48bb5583f0...`)
+- **DBSCAN:** `config/ml/models/dbscan_global_dev_v1.json` (Version: `dbscan-global-dev-v1`, File SHA: `f089d928f4ace1c6...`, Canonical SHA: `0f280869d059dd2d...`)
+- **HDBSCAN_GLOBAL:** `config/ml/models/hdbscan_global_dev_v1.json` (Version: `hdbscan-global-dev-v1`, File SHA: `10d2b375d66c8c95...`, Canonical SHA: `52672a9974954e05...`)
+- **HDBSCAN_ADAPTIVE:** `config/ml/models/hdbscan_adaptive_dev_v1.json` (Version: `hdbscan-adaptive-dev-v1`, File SHA: `41a4232ad6e4ae50...`, Canonical SHA: `55c8077ef11023de...`)
+
+### Mã nguồn & Kiểm chứng Đa Nền tảng (Cross-Platform Verification):
+- **Git Commit:** `e6c9e5ad1a2cfc8e63d35afccc547a8321b148ba` (`is_clean_code=True`)
+- **Lưu ý kiểm chứng đa nền tảng:** Working-tree hashes depend on local filesystem line endings (CRLF on Windows vs LF on Unix/macOS). For cross-platform reproducibility, verify against git_blob_hashes (via `git hash-object <file>`) or normalized_lf_code_hashes (via `sha256sum` after LF conversion).
+
+| Tệp nguồn | Working Tree SHA-256 (Local OS) | Normalized LF SHA-256 | Git Blob SHA-1 | Line Ending |
+| :--- | :--- | :--- | :--- | :--- |
+| `notebooks/evaluation.py` | `61905d0992658623...` | `c93341fcba3d06c7...` | `766fb03ff679a4e8...` | CRLF |
+| `scripts/evaluate-models.py` | `5b1648d10f39bac0...` | `ccaf7fc39f4742c9...` | `5f28b4243aebf598...` | CRLF |
+| `notebooks/baseline_models.py` | `c699a18436123c7c...` | `81ac29e4b661f398...` | `461f94aa3a64d6b7...` | CRLF |
+| `notebooks/adaptive_hdbscan.py` | `87f6cd61024015d2...` | `59727c0fdf8a3caa...` | `eeed0de72414654d...` | CRLF |
+| `notebooks/experiment_harness.py` | `f0b81a29176342ad...` | `408004c5e751e4f4...` | `3bb9a6b96f81b7a6...` | CRLF |
 
 ## 2. Bảng Đối soát So sánh 4 Thuật toán (Reproduction Comparison Table)
 
 | Algorithm | Total Windows | Success Windows | Failure Windows | Failure Rate | Total Aftershocks | Mean Noise Ratio | Mean DBCV | Mean Omori p | Omori Fitted Windows | Mean Jaccard Stability | Mean ARI Stability | Runtime (s) |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| WINDOW | 2 | 2 | 0 | 0.0% | 255 | 0.0% | N/A | 0.89 | 1/2 | 1.0000 | 1.0000 | 0.98 |
-| DBSCAN | 2 | 1 | 1 | 50.0% | 240 | 2.9% | 0.1676 | 0.92 | 1/2 | 0.9880 | 0.9483 | 0.90 |
-| HDBSCAN_GLOBAL | 2 | 0 | 2 | 100.0% | 0 | N/A | 0.1509 | N/A | 0/2 | 0.5977 | 0.6339 | 0.91 |
-| HDBSCAN_ADAPTIVE | 2 | 0 | 2 | 100.0% | 0 | N/A | N/A | N/A | 0/2 | 1.0000 | 0.6714 | 0.88 |
+| WINDOW | 2 | 2 | 0 | 0.0% | 255 | 0.0% | N/A | 0.89 | 1/2 | 1.0000 | 1.0000 | 1.17 |
+| DBSCAN | 2 | 1 | 1 | 50.0% | 240 | 2.9% | 0.1676 | 0.92 | 1/2 | 0.9880 | 0.9483 | 0.91 |
+| HDBSCAN_GLOBAL | 2 | 0 | 2 | 100.0% | 0 | N/A | 0.1509 | N/A | 0/2 | 0.5977 | 0.6339 | 0.87 |
+| HDBSCAN_ADAPTIVE | 2 | 0 | 2 | 100.0% | 0 | N/A | N/A | N/A | 0/2 | 1.0000 | 0.6714 | 0.86 |
 
 ### Ghi chú quy tắc đánh giá:
 - **Tuyệt đối không dùng Accuracy / F1:** Bài toán phân cụm chuỗi sau chấn là phân cụm mật độ không nhãn, không có ground-truth tuyệt đối.
@@ -46,7 +58,7 @@
 - **Modified Omori decay exponent p:** `0.89` (R^2 fit: `1.00`, số cửa sổ fit: `1/2`)
 - **Độ ổn định Jaccard (Mean Jaccard):** `1.0000`
 - **Độ ổn định ARI (Mean ARI):** `1.0000`
-- **Thời gian thực thi:** `0.98` giây
+- **Thời gian thực thi:** `1.17` giây
 
 ### DBSCAN
 
@@ -58,7 +70,7 @@
 - **Modified Omori decay exponent p:** `0.92` (R^2 fit: `1.00`, số cửa sổ fit: `1/2`)
 - **Độ ổn định Jaccard (Mean Jaccard):** `0.9880`
 - **Độ ổn định ARI (Mean ARI):** `0.9483`
-- **Thời gian thực thi:** `0.90` giây
+- **Thời gian thực thi:** `0.91` giây
 
 ### HDBSCAN_GLOBAL
 
@@ -70,7 +82,7 @@
 - **Modified Omori decay exponent p:** `N/A` (R^2 fit: `N/A`, số cửa sổ fit: `0/2`)
 - **Độ ổn định Jaccard (Mean Jaccard):** `0.5977`
 - **Độ ổn định ARI (Mean ARI):** `0.6339`
-- **Thời gian thực thi:** `0.91` giây
+- **Thời gian thực thi:** `0.87` giây
 
 ### HDBSCAN_ADAPTIVE
 
@@ -82,7 +94,7 @@
 - **Modified Omori decay exponent p:** `N/A` (R^2 fit: `N/A`, số cửa sổ fit: `0/2`)
 - **Độ ổn định Jaccard (Mean Jaccard):** `1.0000`
 - **Độ ổn định ARI (Mean ARI):** `0.6714`
-- **Thời gian thực thi:** `0.88` giây
+- **Thời gian thực thi:** `0.86` giây
 
 ## 4. Nhận xét và Giới hạn Thực nghiệm (Pilot Limitations)
 
