@@ -9,8 +9,9 @@ across the three worker/catalog boundaries:
 
 Fail-Closed Policy:
 - Missing inputs, unverified empty months, or absent boundary data return NOT_CHECKED / INCOMPLETE.
-- Overall status PASS is strictly prohibited unless real package manifests and boundary events
-  are provided and pass all contiguity, timestamp, and ID disjointness audits.
+- Overall status PASS and gate_status VERIFIED_PASS are strictly prohibited unless real
+  trusted package manifests and boundary events are provided and pass all contiguity,
+  two-sided timestamp extrema, and ID disjointness audits.
 """
 
 from __future__ import annotations
@@ -22,7 +23,7 @@ import json
 from pathlib import Path
 import re
 import sys
-from typing import Any, Dict, List, Optional, Sequence, Set
+from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -56,6 +57,37 @@ EXPECTED_SEGMENTS = [
         "expected_months": 63,
     },
 ]
+
+OFFICIAL_PACKAGES = {
+    "catalog_base_101": {
+        "aliases": {"catalog_base_101", "pkg_base_101", "pkg1"},
+        "start_month": "2000-01",
+        "end_month": "2008-05",
+        "expected_months": 101,
+        "owner": "Catalog nền",
+    },
+    "hoaitam_62": {
+        "aliases": {"hoaitam_62", "pkg_hoaitam_62", "pkg_hoaitam", "pkg2"},
+        "start_month": "2008-06",
+        "end_month": "2013-07",
+        "expected_months": 62,
+        "owner": "HoaiTam",
+    },
+    "thanhtris_62": {
+        "aliases": {"thanhtris_62", "pkg_thanhtris_62", "pkg_thanhtris", "pkg3"},
+        "start_month": "2013-08",
+        "end_month": "2018-09",
+        "expected_months": 62,
+        "owner": "ThanhTris",
+    },
+    "rosy179_63": {
+        "aliases": {"rosy179_63", "pkg_rosy179_63", "pkg_rosy179", "pkg4"},
+        "start_month": "2018-10",
+        "end_month": "2023-12",
+        "expected_months": 63,
+        "owner": "rosy179",
+    },
+}
 
 EXPECTED_BOUNDARIES = [
     {
@@ -105,12 +137,38 @@ def expand_month_range(start: str, end_inclusive: str) -> List[str]:
     return [int_to_month(i) for i in range(a, b + 1)]
 
 
-def verify_manifest_contiguity(manifests: Optional[Sequence[Dict[str, Any]]]) -> Dict[str, Any]:
+def get_month_boundaries_utc(m_str: str) -> Tuple[datetime, datetime]:
+    """Return (start_utc, end_utc) for a given YYYY-MM month."""
+    m_int = month_to_int(m_str)
+    start_dt = datetime.fromisoformat(f"{m_str}-01T00:00:00+00:00")
+    next_m_str = int_to_month(m_int + 1)
+    end_dt = datetime.fromisoformat(f"{next_m_str}-01T00:00:00+00:00")
+    return start_dt, end_dt
+
+
+def resolve_package_segment(package_id: str) -> Optional[str]:
+    """Resolve given package_id to standard segment key if matching official aliases."""
+    for seg_key, info in OFFICIAL_PACKAGES.items():
+        if package_id in info["aliases"]:
+            return seg_key
+    return None
+
+
+def verify_manifest_contiguity(
+    manifests: Optional[Sequence[Dict[str, Any]]],
+    require_trusted_registry: bool = True,
+    require_row_count: bool = False,
+    require_manifest_bytes: bool = False,
+) -> Dict[str, Any]:
     """Verify that actual package manifests cover 2000-01 to 2023-12 without gaps or overlaps.
 
     Fail-closed policy:
     - If manifests is None or empty: returns NOT_CHECKED.
-    - If any manifest has SHA mismatch or missing fields: returns FAIL.
+    - If require_trusted_registry is True:
+        - Must contain exactly 4 packages matching the 4 official segment registry pins.
+        - Fabricated single packages claiming the whole range are rejected.
+    - Each manifest must supply covered_months explicitly.
+    - SHA validation computes SHA-256 safely from str, bytes, or manifest_file without TypeError.
     """
     if not manifests:
         return {
@@ -122,19 +180,38 @@ def verify_manifest_contiguity(manifests: Optional[Sequence[Dict[str, Any]]]) ->
             "overlapping_months": [],
             "unexpected_months": [],
             "packages": [],
+            "violations": ["MISSING_PACKAGE_MANIFESTS"],
         }
+
+    violations: List[str] = []
+
+    if require_trusted_registry:
+        if len(manifests) != 4:
+            violations.append(
+                f"UNEXPECTED_PACKAGE_COUNT: expected 4 official packages, got {len(manifests)}"
+            )
+        recognized_segs: Set[str] = set()
+        for p in manifests:
+            p_id = p.get("package_id", "")
+            seg_key = resolve_package_segment(p_id)
+            if not seg_key:
+                violations.append(f"UNTRUSTED_OR_UNKNOWN_PACKAGE_ID: {p_id}")
+            else:
+                if seg_key in recognized_segs:
+                    violations.append(f"DUPLICATE_PACKAGE_SEGMENT: {seg_key} ({p_id})")
+                recognized_segs.add(seg_key)
 
     all_months: List[str] = []
     seen_months: Set[str] = set()
     overlaps: List[str] = []
     package_details = []
-    violations = []
 
     for pkg in manifests:
         pkg_id = pkg.get("package_id", "unknown_pkg")
         start_m = pkg.get("start_month")
         end_m = pkg.get("end_month")
         cov_months = pkg.get("covered_months")
+        row_count = pkg.get("row_count")
 
         if not start_m or not end_m:
             violations.append(f"PACKAGE_MISSING_MONTH_RANGE:{pkg_id}")
@@ -146,22 +223,69 @@ def verify_manifest_contiguity(manifests: Optional[Sequence[Dict[str, Any]]]) ->
             violations.append(f"INVALID_MONTH_RANGE:{pkg_id}:{ex}")
             continue
 
-        if cov_months is not None:
-            if list(cov_months) != expected_range:
-                violations.append(
-                    f"COVERED_MONTHS_MISMATCH:{pkg_id}: expected {len(expected_range)} months, got {len(cov_months)}"
-                )
-            m_list = list(cov_months)
+        if cov_months is None:
+            violations.append(f"MISSING_COVERED_MONTHS_LIST:{pkg_id}: covered_months must be an explicit list")
+            m_list = []
         else:
-            m_list = expected_range
+            m_list = list(cov_months)
+            if m_list != expected_range:
+                violations.append(
+                    f"COVERED_MONTHS_MISMATCH:{pkg_id}: expected {len(expected_range)} months, got {len(m_list)}"
+                )
 
-        # SHA-256 validation if raw_bytes or expected_sha is provided
-        expected_sha = pkg.get("package_sha256")
+        if require_row_count:
+            if row_count is None:
+                violations.append(f"MISSING_ROW_COUNT:{pkg_id}: manifest must state certified row_count")
+            elif not isinstance(row_count, int) or row_count < 0:
+                violations.append(f"INVALID_ROW_COUNT:{pkg_id}: {row_count}")
+
+        # Resolve raw bytes safely from str, bytes, or file
         manifest_bytes = pkg.get("manifest_bytes")
-        if expected_sha and manifest_bytes:
-            computed_sha = hashlib.sha256(manifest_bytes).hexdigest()
-            if computed_sha != expected_sha:
-                violations.append(f"MANIFEST_SHA256_MISMATCH:{pkg_id}: expected {expected_sha}, computed {computed_sha}")
+        manifest_content = pkg.get("manifest_content")
+        manifest_file = pkg.get("manifest_file")
+
+        raw_b: Optional[bytes] = None
+        if manifest_file:
+            mf_path = Path(manifest_file)
+            if mf_path.is_file():
+                raw_b = mf_path.read_bytes()
+            else:
+                violations.append(f"MANIFEST_FILE_NOT_FOUND:{pkg_id}:{manifest_file}")
+        elif manifest_bytes is not None:
+            if isinstance(manifest_bytes, str):
+                raw_b = manifest_bytes.encode("utf-8")
+            elif isinstance(manifest_bytes, (bytes, bytearray)):
+                raw_b = bytes(manifest_bytes)
+            else:
+                violations.append(f"INVALID_MANIFEST_BYTES_TYPE:{pkg_id}:{type(manifest_bytes).__name__}")
+        elif manifest_content is not None:
+            raw_b = str(manifest_content).encode("utf-8")
+
+        expected_manifest_sha = pkg.get("manifest_sha256")
+        expected_pkg_sha = pkg.get("package_sha256")
+
+        if require_manifest_bytes:
+            if raw_b is None:
+                violations.append(
+                    f"MISSING_MANIFEST_BYTES:{pkg_id}: official catalog gate requires raw manifest bytes or file"
+                )
+            if not expected_manifest_sha and not expected_pkg_sha:
+                violations.append(
+                    f"MISSING_MANIFEST_SHA256:{pkg_id}: official catalog gate requires trusted manifest_sha256 pin"
+                )
+
+        if expected_manifest_sha and raw_b is not None:
+            computed_sha = hashlib.sha256(raw_b).hexdigest()
+            if computed_sha != expected_manifest_sha:
+                violations.append(
+                    f"MANIFEST_SHA256_MISMATCH:{pkg_id}: expected {expected_manifest_sha}, computed {computed_sha}"
+                )
+        elif expected_pkg_sha and raw_b is not None:
+            computed_sha = hashlib.sha256(raw_b).hexdigest()
+            if computed_sha != expected_pkg_sha:
+                violations.append(
+                    f"MANIFEST_SHA256_MISMATCH:{pkg_id}: expected {expected_pkg_sha}, computed {computed_sha}"
+                )
 
         for m in m_list:
             if m in seen_months:
@@ -175,8 +299,9 @@ def verify_manifest_contiguity(manifests: Optional[Sequence[Dict[str, Any]]]) ->
             "start_month": start_m,
             "end_month": end_m,
             "month_count": len(m_list),
-            "row_count": pkg.get("row_count"),
-            "package_sha256": expected_sha,
+            "row_count": row_count,
+            "manifest_sha256": expected_manifest_sha,
+            "package_sha256": expected_pkg_sha,
         })
 
     expected_full = expand_month_range("2000-01", "2023-12")
@@ -204,11 +329,7 @@ def verify_manifest_contiguity(manifests: Optional[Sequence[Dict[str, Any]]]) ->
 
 
 def verify_segment_contiguity(segments: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
-    """Verify that a sequence of segment descriptors covers 2000-01 to 2023-12 without gaps or overlaps.
-
-    Note: This validates theoretical calendar contiguity. For manifest-backed package contiguity,
-    use verify_manifest_contiguity.
-    """
+    """Verify that a sequence of segment descriptors covers 2000-01 to 2023-12 without gaps or overlaps."""
     all_months: List[str] = []
     seen_months: Set[str] = set()
     overlaps: List[str] = []
@@ -277,6 +398,7 @@ def verify_id_disjointness(
             "id_type": id_type,
             "status": "NOT_CHECKED",
             "reason": "MISSING_ID_SETS",
+            "duplicate_check_scope": "ADJACENT_BOUNDARY_MONTHS",
             "duplicate_count": 0,
             "sample_duplicates": [],
         }
@@ -289,6 +411,7 @@ def verify_id_disjointness(
             "id_type": id_type,
             "status": "FAIL",
             "reason": "UNVERIFIED_EMPTY_INPUT: Boundary check requires non-empty event ID sets unless explicitly verified empty by manifest",
+            "duplicate_check_scope": "ADJACENT_BOUNDARY_MONTHS",
             "duplicate_count": 0,
             "sample_duplicates": [],
         }
@@ -298,6 +421,7 @@ def verify_id_disjointness(
         "id_type": id_type,
         "status": "PASS" if not intersection else "FAIL",
         "reason": None if not intersection else "DUPLICATE_EVENT_IDS",
+        "duplicate_check_scope": "ADJACENT_BOUNDARY_MONTHS",
         "duplicate_count": len(intersection),
         "sample_duplicates": sorted(list(intersection))[:5],
     }
@@ -308,61 +432,116 @@ def verify_boundary_time_window(
     max_prev_dt_iso: Optional[str],
     next_month: str,
     min_next_dt_iso: Optional[str],
+    min_prev_dt_iso: Optional[str] = None,
+    max_next_dt_iso: Optional[str] = None,
     allow_empty: bool = False,
+    prev_month_certified_empty: bool = False,
+    next_month_certified_empty: bool = False,
+    certified_empty: bool = False,
 ) -> Dict[str, Any]:
-    """Verify that event timestamps in adjacent months conform to UTC month boundaries.
+    """Verify that event timestamps in adjacent months conform to two-sided UTC boundaries.
 
-    Fail-closed policy:
-    - If timestamps are missing and allow_empty is False, returns NOT_CHECKED.
-    - If max_prev_dt >= next_month_start, returns FAIL (PREV_MONTH_OVERFLOW).
-    - If min_next_dt < next_month_start, returns FAIL (NEXT_MONTH_UNDERFLOW).
-    - If max_prev_dt > min_next_dt, returns FAIL (TIMESTAMP_INVERSION).
+    Two-sided extrema checks:
+    - prev_month [prev_start, prev_end):
+        min_prev >= prev_start (PREV_MONTH_UNDERFLOW)
+        max_prev < prev_end (PREV_MONTH_OVERFLOW)
+        min_prev <= max_prev (PREV_EXTREMA_INVERSION)
+    - next_month [next_start, next_end):
+        min_next >= next_start (NEXT_MONTH_UNDERFLOW)
+        max_next < next_end (NEXT_MONTH_OVERFLOW)
+        min_next <= max_next (NEXT_EXTREMA_INVERSION)
+    - cross-boundary monotonicity:
+        max_prev <= min_next (TIMESTAMP_INVERSION)
     """
     results: Dict[str, Any] = {
         "prev_month": prev_month,
         "next_month": next_month,
         "status": "PASS",
+        "timezone": "UTC",
         "violations": [],
     }
 
-    if not max_prev_dt_iso or not min_next_dt_iso:
-        if allow_empty:
-            results["status"] = "PASS"
-            results["note"] = "VERIFIED_EMPTY_MONTH_TIMESTAMP_SKIPPED"
+    missing_prev = not max_prev_dt_iso
+    missing_next = not min_next_dt_iso
+
+    can_empty_prev = allow_empty and (certified_empty or prev_month_certified_empty)
+    can_empty_next = allow_empty and (certified_empty or next_month_certified_empty)
+
+    if missing_prev or missing_next:
+        if missing_prev and not can_empty_prev:
+            results["status"] = "NOT_CHECKED"
+            results["violations"].append("MISSING_BOUNDARY_TIMESTAMPS")
             return results
-        results["status"] = "NOT_CHECKED"
-        results["violations"].append("MISSING_BOUNDARY_TIMESTAMPS")
+        if missing_next and not can_empty_next:
+            results["status"] = "NOT_CHECKED"
+            results["violations"].append("MISSING_BOUNDARY_TIMESTAMPS")
+            return results
+
+    if missing_prev and missing_next and can_empty_prev and can_empty_next:
+        results["status"] = "PASS"
+        results["note"] = "VERIFIED_EMPTY_MONTH_TIMESTAMP_SKIPPED"
         return results
 
     try:
-        dt_prev = datetime.fromisoformat(max_prev_dt_iso.replace("Z", "+00:00"))
-        dt_next = datetime.fromisoformat(min_next_dt_iso.replace("Z", "+00:00"))
-        next_month_start = datetime.fromisoformat(f"{next_month}-01T00:00:00+00:00")
+        prev_start, prev_end = get_month_boundaries_utc(prev_month)
+        next_start, next_end = get_month_boundaries_utc(next_month)
+
+        dt_max_prev = datetime.fromisoformat(max_prev_dt_iso.replace("Z", "+00:00")) if max_prev_dt_iso else None
+        dt_min_prev = datetime.fromisoformat(min_prev_dt_iso.replace("Z", "+00:00")) if min_prev_dt_iso else None
+        dt_min_next = datetime.fromisoformat(min_next_dt_iso.replace("Z", "+00:00")) if min_next_dt_iso else None
+        dt_max_next = datetime.fromisoformat(max_next_dt_iso.replace("Z", "+00:00")) if max_next_dt_iso else None
     except Exception as ex:
         results["status"] = "FAIL"
         results["violations"].append(f"INVALID_TIMESTAMP_FORMAT: {ex}")
         return results
 
-    # 1. Overflow check
-    if dt_prev >= next_month_start:
-        results["status"] = "FAIL"
-        results["violations"].append(
-            f"PREV_MONTH_OVERFLOW: max timestamp {max_prev_dt_iso} exceeds {prev_month} cutoff"
-        )
+    # 1. Previous month boundaries
+    if dt_min_prev is not None:
+        if dt_min_prev < prev_start:
+            results["status"] = "FAIL"
+            results["violations"].append(
+                f"PREV_MONTH_UNDERFLOW: min timestamp {min_prev_dt_iso} is before {prev_month} start {prev_start.isoformat()}"
+            )
+    if dt_max_prev is not None:
+        if dt_max_prev >= prev_end:
+            results["status"] = "FAIL"
+            results["violations"].append(
+                f"PREV_MONTH_OVERFLOW: max timestamp {max_prev_dt_iso} exceeds {prev_month} cutoff {prev_end.isoformat()}"
+            )
+    if dt_min_prev is not None and dt_max_prev is not None:
+        if dt_min_prev > dt_max_prev:
+            results["status"] = "FAIL"
+            results["violations"].append(
+                f"PREV_EXTREMA_INVERSION: min timestamp {min_prev_dt_iso} > max timestamp {max_prev_dt_iso}"
+            )
 
-    # 2. Underflow check
-    if dt_next < next_month_start:
-        results["status"] = "FAIL"
-        results["violations"].append(
-            f"NEXT_MONTH_UNDERFLOW: min timestamp {min_next_dt_iso} is before {next_month} start"
-        )
+    # 2. Next month boundaries
+    if dt_min_next is not None:
+        if dt_min_next < next_start:
+            results["status"] = "FAIL"
+            results["violations"].append(
+                f"NEXT_MONTH_UNDERFLOW: min timestamp {min_next_dt_iso} is before {next_month} start {next_start.isoformat()}"
+            )
+    if dt_max_next is not None:
+        if dt_max_next >= next_end:
+            results["status"] = "FAIL"
+            results["violations"].append(
+                f"NEXT_MONTH_OVERFLOW: max timestamp {max_next_dt_iso} exceeds {next_month} cutoff {next_end.isoformat()}"
+            )
+    if dt_min_next is not None and dt_max_next is not None:
+        if dt_min_next > dt_max_next:
+            results["status"] = "FAIL"
+            results["violations"].append(
+                f"NEXT_EXTREMA_INVERSION: min timestamp {min_next_dt_iso} > max timestamp {max_next_dt_iso}"
+            )
 
-    # 3. Monotonicity check
-    if dt_prev > dt_next:
-        results["status"] = "FAIL"
-        results["violations"].append(
-            f"TIMESTAMP_INVERSION: max prev timestamp {max_prev_dt_iso} is later than min next timestamp {min_next_dt_iso}"
-        )
+    # 3. Cross-boundary monotonicity
+    if dt_max_prev is not None and dt_min_next is not None:
+        if dt_max_prev > dt_min_next:
+            results["status"] = "FAIL"
+            results["violations"].append(
+                f"TIMESTAMP_INVERSION: max prev timestamp {max_prev_dt_iso} > min next timestamp {min_next_dt_iso}"
+            )
 
     return results
 
@@ -370,18 +549,30 @@ def verify_boundary_time_window(
 def verify_all_boundaries(
     boundary_records: Optional[Dict[str, Dict[str, Any]]] = None,
     package_manifests: Optional[Sequence[Dict[str, Any]]] = None,
+    audit_scope: str = "OFFICIAL_CATALOG_GATE",
 ) -> Dict[str, Any]:
     """Execute end-to-end audit for the 3 boundaries across the 4 catalog segments.
 
     Fail-closed policy:
     - If boundary_records is None or empty: returns NOT_CHECKED.
-    - If package_manifests is provided, audits manifest contiguity; otherwise checks theoretical contiguity.
-    - Requires all 3 boundaries to be verified with PASS to yield overall PASS.
+    - If package_manifests is provided, audits manifest contiguity with trusted package registry.
+    - Requires all 3 boundaries and contiguity to PASS.
+    - Only returns gate_status: VERIFIED_PASS if:
+        - overall status is PASS,
+        - audit_scope is OFFICIAL_CATALOG_GATE,
+        - real verified package manifests are provided (not theoretical-only).
+    - Otherwise gate_status remains PENDING_CATALOG_MERGE or FIXTURE_PASS.
     """
+    is_official_scope = (audit_scope == "OFFICIAL_CATALOG_GATE")
+
     if package_manifests is not None:
-        contiguity = verify_manifest_contiguity(package_manifests)
+        contiguity = verify_manifest_contiguity(
+            package_manifests,
+            require_trusted_registry=is_official_scope,
+            require_row_count=is_official_scope,
+            require_manifest_bytes=is_official_scope,
+        )
     else:
-        # Theoretical calendar verification
         theo = verify_segment_contiguity(EXPECTED_SEGMENTS)
         contiguity = {
             "status": "PASS_THEORETICAL",
@@ -392,6 +583,7 @@ def verify_all_boundaries(
             "overlapping_months": theo["overlapping_months"],
             "unexpected_months": theo["unexpected_months"],
             "segments": theo["segments"],
+            "violations": [],
         }
 
     if not boundary_records:
@@ -410,11 +602,27 @@ def verify_all_boundaries(
         return {
             "status": "NOT_CHECKED",
             "gate_status": "PENDING_CATALOG_MERGE",
+            "audit_scope": audit_scope,
             "reason": "NO_BOUNDARY_RECORDS_PROVIDED: Cross-boundary deduplication and timestamp checks require boundary input data.",
             "contiguity": contiguity,
             "boundaries": boundary_results,
             "checked_at_utc": datetime.now(timezone.utc).isoformat(),
         }
+
+    # Map package row counts by month to certify empty months if needed
+    certified_empty_months: Set[str] = set()
+    if package_manifests is not None:
+        for pkg in package_manifests:
+            pkg_sha = pkg.get("manifest_sha256") or pkg.get("package_sha256")
+            has_bytes = (
+                (pkg.get("manifest_bytes") is not None)
+                or (pkg.get("manifest_file") is not None)
+                or (pkg.get("manifest_content") is not None)
+            )
+            # Under official scope, only certified if row_count == 0 AND manifest has verified SHA/bytes
+            if pkg.get("row_count") == 0 and pkg.get("covered_months"):
+                if not is_official_scope or (pkg_sha and has_bytes):
+                    certified_empty_months.update(pkg.get("covered_months"))
 
     boundary_results = []
     for b in EXPECTED_BOUNDARIES:
@@ -435,19 +643,38 @@ def verify_all_boundaries(
         prev_ids = data.get("prev_ids")
         next_ids = data.get("next_ids")
         allow_empty = bool(data.get("allow_empty", False))
+        prev_m = b["prev_month"]
+        next_m = b["next_month"]
+
+        if is_official_scope:
+            # Under official gate: caller self-declared certified_empty is strictly rejected without verified manifest proof
+            prev_certified_empty = (prev_m in certified_empty_months)
+            next_certified_empty = (next_m in certified_empty_months)
+            certified_empty = False
+            effective_allow_empty = allow_empty and (prev_certified_empty or next_certified_empty)
+        else:
+            prev_certified_empty = bool(data.get("prev_certified_empty", False)) or (prev_m in certified_empty_months)
+            next_certified_empty = bool(data.get("next_certified_empty", False)) or (next_m in certified_empty_months)
+            certified_empty = bool(data.get("certified_empty", False))
+            effective_allow_empty = allow_empty and (prev_certified_empty or next_certified_empty or certified_empty)
 
         disjoint_res = verify_id_disjointness(
             prev_ids=prev_ids,
             next_ids=next_ids,
-            allow_empty=allow_empty,
+            allow_empty=effective_allow_empty,
         )
 
         time_res = verify_boundary_time_window(
-            prev_month=b["prev_month"],
+            prev_month=prev_m,
             max_prev_dt_iso=data.get("max_prev_time_utc"),
-            next_month=b["next_month"],
+            next_month=next_m,
             min_next_dt_iso=data.get("min_next_time_utc"),
-            allow_empty=allow_empty,
+            min_prev_dt_iso=data.get("min_prev_time_utc"),
+            max_next_dt_iso=data.get("max_next_time_utc"),
+            allow_empty=effective_allow_empty,
+            prev_month_certified_empty=prev_certified_empty,
+            next_month_certified_empty=next_certified_empty,
+            certified_empty=certified_empty,
         )
 
         b_pass = disjoint_res["status"] == "PASS" and time_res["status"] == "PASS"
@@ -458,8 +685,8 @@ def verify_all_boundaries(
         boundary_results.append({
             "boundary": b_name,
             "status": boundary_status,
-            "prev_month": b["prev_month"],
-            "next_month": b["next_month"],
+            "prev_month": prev_m,
+            "next_month": next_m,
             "disjointness": disjoint_res,
             "time_window": time_res,
         })
@@ -474,9 +701,31 @@ def verify_all_boundaries(
     else:
         overall_status = "PASS"
 
+    # Only assign VERIFIED_PASS if real manifests with valid SHA/bytes are verified and audit scope is official
+    if overall_status == "PASS":
+        all_pkgs_verified = False
+        if package_manifests is not None and len(package_manifests) == 4:
+            all_pkgs_verified = all(
+                (p.get("manifest_sha256") or p.get("package_sha256")) is not None
+                and (
+                    (p.get("manifest_bytes") is not None)
+                    or (p.get("manifest_file") is not None)
+                    or (p.get("manifest_content") is not None)
+                )
+                for p in package_manifests
+            )
+
+        if package_manifests is not None and is_official_scope and all_pkgs_verified:
+            gate_status = "VERIFIED_PASS"
+        else:
+            gate_status = "FIXTURE_PASS"
+    else:
+        gate_status = "PENDING_CATALOG_MERGE"
+
     return {
         "status": overall_status,
-        "gate_status": "VERIFIED_PASS" if overall_status == "PASS" else "PENDING_CATALOG_MERGE",
+        "gate_status": gate_status,
+        "audit_scope": audit_scope,
         "contiguity": contiguity,
         "boundaries": boundary_results,
         "checked_at_utc": datetime.now(timezone.utc).isoformat(),
@@ -498,6 +747,12 @@ def main() -> int:
         help="Path to JSON file containing list of 4 package manifests.",
     )
     parser.add_argument(
+        "--audit-scope",
+        type=str,
+        default="OFFICIAL_CATALOG_GATE",
+        help="Audit scope (OFFICIAL_CATALOG_GATE or DESCRIPTOR_FIXTURE).",
+    )
+    parser.add_argument(
         "--json-output",
         type=Path,
         default=None,
@@ -510,18 +765,27 @@ def main() -> int:
         if not args.boundary_data.is_file():
             print(f"ERROR: Boundary data file not found: {args.boundary_data}", file=sys.stderr)
             return 1
-        boundary_records = json.loads(args.boundary_data.read_text(encoding="utf-8"))
+        try:
+            boundary_records = json.loads(args.boundary_data.read_text(encoding="utf-8"))
+        except Exception as ex:
+            print(f"ERROR: Failed to parse boundary data JSON: {ex}", file=sys.stderr)
+            return 1
 
     package_manifests = None
     if args.manifests_file:
         if not args.manifests_file.is_file():
             print(f"ERROR: Manifests file not found: {args.manifests_file}", file=sys.stderr)
             return 1
-        package_manifests = json.loads(args.manifests_file.read_text(encoding="utf-8"))
+        try:
+            package_manifests = json.loads(args.manifests_file.read_text(encoding="utf-8"))
+        except Exception as ex:
+            print(f"ERROR: Failed to parse manifests file JSON: {ex}", file=sys.stderr)
+            return 1
 
     report = verify_all_boundaries(
         boundary_records=boundary_records,
         package_manifests=package_manifests,
+        audit_scope=args.audit_scope,
     )
     formatted = json.dumps(report, indent=2)
     print(formatted)
