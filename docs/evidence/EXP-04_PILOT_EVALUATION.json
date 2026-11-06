@@ -20,9 +20,9 @@
       "nbformat": "5.10.4",
       "nbclient": "0.10.2"
     },
-    "code_version": "e6c9e5ad1a2cfc8e63d35afccc547a8321b148ba",
+    "code_version": "5bc1aff7617b99e3eb219c8b14ac148153657fd4",
     "random_seed": 42,
-    "timestamp_utc": "2026-11-06T02:30:28.208662+00:00",
+    "timestamp_utc": "2026-11-06T12:21:50.239525+00:00",
     "vector_columns": [
       "x_scaled",
       "y_scaled",
@@ -31,44 +31,62 @@
     ],
     "is_clean_code": true,
     "critical_code_hashes": {
-      "notebooks/evaluation.py": "61905d099265862399d5a9a78fc8ac87535b53eabefa1d6c111c5ebea3c6f07e",
-      "scripts/evaluate-models.py": "5b1648d10f39bac073ed3429a68036275f88652d9eb7c7bc6eaf737c60282e54",
+      "notebooks/evaluation.py": "bca277db1edd5d07ad61cb881f956676f9128795efe0b9c90b64a565b17b532e",
+      "scripts/evaluate-models.py": "11e377c5ccf6321f00e1bef4ab7a67aae0fe734dfad387d39b3de92745c454cf",
       "notebooks/baseline_models.py": "c699a18436123c7c5efd15b85d3e4726cccb66f5319f3909d0b7e69db44a3037",
       "notebooks/adaptive_hdbscan.py": "87f6cd61024015d231f21c784fed722847933aa671c2591a0b83c8fd97575943",
       "notebooks/experiment_harness.py": "f0b81a29176342ad056513c8eb13234db6189be488985e2d6de98142f0b188cc"
     }
   },
   "code_provenance": {
-    "git_commit": "e6c9e5ad1a2cfc8e63d35afccc547a8321b148ba",
+    "git_commit": "5bc1aff7617b99e3eb219c8b14ac148153657fd4",
     "is_clean_code": true,
+    "clean_verification_status": "VERIFIED_CLEAN",
     "dirty_files": [],
+    "missing_files": [],
+    "blob_mismatches": [],
     "critical_code_hashes": {
-      "notebooks/evaluation.py": "61905d099265862399d5a9a78fc8ac87535b53eabefa1d6c111c5ebea3c6f07e",
-      "scripts/evaluate-models.py": "5b1648d10f39bac073ed3429a68036275f88652d9eb7c7bc6eaf737c60282e54",
+      "notebooks/evaluation.py": "bca277db1edd5d07ad61cb881f956676f9128795efe0b9c90b64a565b17b532e",
+      "scripts/evaluate-models.py": "11e377c5ccf6321f00e1bef4ab7a67aae0fe734dfad387d39b3de92745c454cf",
       "notebooks/baseline_models.py": "c699a18436123c7c5efd15b85d3e4726cccb66f5319f3909d0b7e69db44a3037",
       "notebooks/adaptive_hdbscan.py": "87f6cd61024015d231f21c784fed722847933aa671c2591a0b83c8fd97575943",
       "notebooks/experiment_harness.py": "f0b81a29176342ad056513c8eb13234db6189be488985e2d6de98142f0b188cc"
     },
     "working_tree_code_hashes": {
-      "notebooks/evaluation.py": "61905d099265862399d5a9a78fc8ac87535b53eabefa1d6c111c5ebea3c6f07e",
-      "scripts/evaluate-models.py": "5b1648d10f39bac073ed3429a68036275f88652d9eb7c7bc6eaf737c60282e54",
+      "notebooks/evaluation.py": "bca277db1edd5d07ad61cb881f956676f9128795efe0b9c90b64a565b17b532e",
+      "scripts/evaluate-models.py": "11e377c5ccf6321f00e1bef4ab7a67aae0fe734dfad387d39b3de92745c454cf",
       "notebooks/baseline_models.py": "c699a18436123c7c5efd15b85d3e4726cccb66f5319f3909d0b7e69db44a3037",
       "notebooks/adaptive_hdbscan.py": "87f6cd61024015d231f21c784fed722847933aa671c2591a0b83c8fd97575943",
       "notebooks/experiment_harness.py": "f0b81a29176342ad056513c8eb13234db6189be488985e2d6de98142f0b188cc"
     },
     "normalized_lf_code_hashes": {
-      "notebooks/evaluation.py": "c93341fcba3d06c72146241c074de0436515a4d3194db3f0c1fecb4bcc71c4e8",
-      "scripts/evaluate-models.py": "ccaf7fc39f4742c9230782796af0ae39f0e5ddfbff23be9225157f3c9b82830a",
+      "notebooks/evaluation.py": "e02c0633177f5c2a8d24453cb7ad3fd5b5d5549413f739bbd32c29d1d53000cf",
+      "scripts/evaluate-models.py": "715f5a84d588b47070ce7e3ae5b809d4c336624095cfef0b342f95eb7eccb2ec",
       "notebooks/baseline_models.py": "81ac29e4b661f3985a12576a37f09570d7f8f0c6d0093950c886e308958d0546",
       "notebooks/adaptive_hdbscan.py": "59727c0fdf8a3caa0956c58eacae9a566f5d2cb8b52dedc1ba1ab7f94ebd5277",
       "notebooks/experiment_harness.py": "408004c5e751e4f4b6a8c3c6b504ab43a49baa74e825c87fad9d601e7273b903"
     },
     "git_blob_hashes": {
-      "notebooks/evaluation.py": "766fb03ff679a4e85b6359982637ccc9115d81b7",
-      "scripts/evaluate-models.py": "5f28b4243aebf598fe0a0707fac68f6b730a16f4",
-      "notebooks/baseline_models.py": "461f94aa3a64d6b769e800974850d5cf1189ba43",
-      "notebooks/adaptive_hdbscan.py": "eeed0de72414654d4886ccefe8ed0f0dbed695aa",
-      "notebooks/experiment_harness.py": "3bb9a6b96f81b7a6a2702db08183dede34aade43"
+      "notebooks/evaluation.py": "52ed9dd8cff595fc5e9397238810f24eab541fa6",
+      "scripts/evaluate-models.py": "4fd2006abc820c3812b621b05873c4ebdc720505",
+      "notebooks/baseline_models.py": "e3bc799763663f51df58dba38b8cc9d74a3c6b1a",
+      "notebooks/adaptive_hdbscan.py": "0611002c83fff6757461478908645b5c03db5852",
+      "notebooks/experiment_harness.py": "092aaea1fd862c9b893f5e07876404078baa944d",
+      "config/ml/models/window_baseline_v1.json": "2c5dd1877c74dc8551610941df6e59d46b11f618",
+      "config/ml/models/dbscan_global_dev_v1.json": "13cfc6c04dbae9717a4530649a87504f14885c25",
+      "config/ml/models/hdbscan_global_dev_v1.json": "eeb8a0cdc4db7224391c858de5272e77a5e08183",
+      "config/ml/models/hdbscan_adaptive_dev_v1.json": "042f3d1359e8b038ddd68963049bcd46f9ac405c"
+    },
+    "head_blob_hashes": {
+      "notebooks/evaluation.py": "52ed9dd8cff595fc5e9397238810f24eab541fa6",
+      "scripts/evaluate-models.py": "4fd2006abc820c3812b621b05873c4ebdc720505",
+      "notebooks/baseline_models.py": "e3bc799763663f51df58dba38b8cc9d74a3c6b1a",
+      "notebooks/adaptive_hdbscan.py": "0611002c83fff6757461478908645b5c03db5852",
+      "notebooks/experiment_harness.py": "092aaea1fd862c9b893f5e07876404078baa944d",
+      "config/ml/models/window_baseline_v1.json": "2c5dd1877c74dc8551610941df6e59d46b11f618",
+      "config/ml/models/dbscan_global_dev_v1.json": "13cfc6c04dbae9717a4530649a87504f14885c25",
+      "config/ml/models/hdbscan_global_dev_v1.json": "eeb8a0cdc4db7224391c858de5272e77a5e08183",
+      "config/ml/models/hdbscan_adaptive_dev_v1.json": "042f3d1359e8b038ddd68963049bcd46f9ac405c"
     },
     "detected_line_endings": {
       "notebooks/evaluation.py": "crlf",
@@ -121,7 +139,7 @@
   },
   "evaluation_summary": {
     "pilot_id": "pilot_196b6d4081d347e1c289e331022658fbbe572dd33181ad987900895c1f1b189c",
-    "evaluated_at_utc": "2026-11-06T02:30:33Z",
+    "evaluated_at_utc": "2026-11-06T12:21:57Z",
     "comparison_table": [
       {
         "Algorithm": "WINDOW",
@@ -136,7 +154,7 @@
         "Omori Fitted Windows": "1/2",
         "Mean Jaccard Stability": "1.0000",
         "Mean ARI Stability": "1.0000",
-        "Runtime (s)": "1.17"
+        "Runtime (s)": "1.76"
       },
       {
         "Algorithm": "DBSCAN",
@@ -151,7 +169,7 @@
         "Omori Fitted Windows": "1/2",
         "Mean Jaccard Stability": "0.9880",
         "Mean ARI Stability": "0.9483",
-        "Runtime (s)": "0.91"
+        "Runtime (s)": "1.39"
       },
       {
         "Algorithm": "HDBSCAN_GLOBAL",
@@ -166,7 +184,7 @@
         "Omori Fitted Windows": "0/2",
         "Mean Jaccard Stability": "0.5977",
         "Mean ARI Stability": "0.6339",
-        "Runtime (s)": "0.87"
+        "Runtime (s)": "1.54"
       },
       {
         "Algorithm": "HDBSCAN_ADAPTIVE",
@@ -181,7 +199,7 @@
         "Omori Fitted Windows": "0/2",
         "Mean Jaccard Stability": "1.0000",
         "Mean ARI Stability": "0.6714",
-        "Runtime (s)": "0.86"
+        "Runtime (s)": "0.97"
       }
     ],
     "algorithm_details": {
@@ -204,7 +222,7 @@
         "mean_jaccard_stability": 1.0,
         "mean_ari_stability": 1.0,
         "stability_computed_windows": 2,
-        "runtime_seconds": 1.1653,
+        "runtime_seconds": 1.7556,
         "window_evaluations": [
           {
             "mainshock_id": "evt_d47fcaaf451cc2e5c3dcc8f016a999be",
@@ -237,6 +255,7 @@
               "min_ari": 1.0,
               "max_ari": 1.0,
               "repeats": 5,
+              "requested_repeats": 5,
               "sigma": 0.01,
               "seed": 42,
               "attempted_repeats": 5,
@@ -278,6 +297,7 @@
               "min_ari": 1.0,
               "max_ari": 1.0,
               "repeats": 5,
+              "requested_repeats": 5,
               "sigma": 0.01,
               "seed": 42,
               "attempted_repeats": 5,
@@ -313,7 +333,7 @@
         "mean_jaccard_stability": 0.988,
         "mean_ari_stability": 0.9483,
         "stability_computed_windows": 2,
-        "runtime_seconds": 0.9052,
+        "runtime_seconds": 1.3888,
         "window_evaluations": [
           {
             "mainshock_id": "evt_d47fcaaf451cc2e5c3dcc8f016a999be",
@@ -346,6 +366,7 @@
               "min_ari": 1.0,
               "max_ari": 1.0,
               "repeats": 5,
+              "requested_repeats": 5,
               "sigma": 0.01,
               "seed": 42,
               "attempted_repeats": 5,
@@ -385,6 +406,7 @@
               "min_ari": 0.7413,
               "max_ari": 1.0,
               "repeats": 5,
+              "requested_repeats": 5,
               "sigma": 0.01,
               "seed": 42,
               "attempted_repeats": 5,
@@ -421,7 +443,7 @@
         "mean_jaccard_stability": 0.5977,
         "mean_ari_stability": 0.6339,
         "stability_computed_windows": 2,
-        "runtime_seconds": 0.8713,
+        "runtime_seconds": 1.5419,
         "window_evaluations": [
           {
             "mainshock_id": "evt_d47fcaaf451cc2e5c3dcc8f016a999be",
@@ -454,6 +476,7 @@
               "min_ari": 1.0,
               "max_ari": 1.0,
               "repeats": 5,
+              "requested_repeats": 5,
               "sigma": 0.01,
               "seed": 42,
               "attempted_repeats": 5,
@@ -495,6 +518,7 @@
               "min_ari": 0.0646,
               "max_ari": 0.7741,
               "repeats": 5,
+              "requested_repeats": 5,
               "sigma": 0.01,
               "seed": 42,
               "attempted_repeats": 5,
@@ -531,7 +555,7 @@
         "mean_jaccard_stability": 1.0,
         "mean_ari_stability": 0.6714,
         "stability_computed_windows": 2,
-        "runtime_seconds": 0.8617,
+        "runtime_seconds": 0.9743,
         "window_evaluations": [
           {
             "mainshock_id": "evt_d47fcaaf451cc2e5c3dcc8f016a999be",
@@ -564,6 +588,7 @@
               "min_ari": 1.0,
               "max_ari": 1.0,
               "repeats": 5,
+              "requested_repeats": 5,
               "sigma": 0.01,
               "seed": 42,
               "attempted_repeats": 5,
@@ -607,6 +632,7 @@
               "min_ari": 0.1411,
               "max_ari": 0.6587,
               "repeats": 5,
+              "requested_repeats": 5,
               "sigma": 0.01,
               "seed": 42,
               "attempted_repeats": 5,
