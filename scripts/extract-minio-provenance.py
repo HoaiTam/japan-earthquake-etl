@@ -282,16 +282,54 @@ def extract_and_pack_provenance(
             region_name=reg,
         )
 
-    staging_dir = Path(temp_dir).resolve() if temp_dir else (output_zip.parent / f".tmp_{owner}_provenance")
-    staging_dir.mkdir(parents=True, exist_ok=True)
+    # 1. Resolve unique, isolated staging directory
+    if temp_dir:
+        staging_dir = Path(temp_dir).resolve()
+        if staging_dir.exists() and not overwrite:
+            existing_files = [p for p in staging_dir.rglob("*") if p.is_file() or p.is_symlink() or os.path.islink(p)]
+            if existing_files:
+                raise FileExistsError(
+                    f"STAGING_DIR_NOT_EMPTY: {staging_dir} contains {len(existing_files)} existing files. "
+                    "Refusing to reuse staging without overwrite=True."
+                )
+        staging_dir.mkdir(parents=True, exist_ok=True)
+    else:
+        import uuid
+        run_id = f"{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}_{uuid.uuid4().hex[:8]}"
+        staging_dir = (output_zip.parent / f".tmp_{owner}_{run_id}").resolve()
+        staging_dir.mkdir(parents=True, exist_ok=False)
 
+    abs_staging = staging_dir.resolve()
     manifest_items: List[Dict[str, Any]] = []
 
     for item in expected_items:
         key = item["archive_path"]
         expected_sha = item["expected_sha256"]
+        target_p = staging_dir / key
 
-        # Fetch from S3
+        # 2. Path traversal boundary check: target must remain strictly inside staging_dir
+        try:
+            target_p.resolve().relative_to(abs_staging)
+        except ValueError:
+            raise ValueError(f"PATH_OUTSIDE_STAGING: {target_p} escapes {abs_staging}")
+
+        # 3. Symlink guard: check target and all parent components between target and staging
+        curr = target_p
+        while curr != staging_dir and curr != curr.parent:
+            if curr.is_symlink() or os.path.islink(curr):
+                raise ValueError(f"SYMLINK_IN_STAGING_FORBIDDEN: {curr} is a symlink")
+            curr = curr.parent
+
+        if target_p.is_symlink() or os.path.islink(target_p):
+            raise ValueError(f"SYMLINK_IN_STAGING_FORBIDDEN: {target_p} is a symlink")
+
+        # 4. Immutability guard: refuse to overwrite existing staging file unless explicit
+        if target_p.exists() and not overwrite:
+            raise FileExistsError(
+                f"STAGING_FILE_ALREADY_EXISTS: {target_p}. Set overwrite=True to allow replacement."
+            )
+
+        # 5. Fetch from S3
         obj = s3_client.get_object(Bucket=bucket, Key=key)
         body = obj["Body"].read()
 
@@ -301,10 +339,9 @@ def extract_and_pack_provenance(
                 f"SHA_MISMATCH for key {key}: expected {expected_sha}, retrieved {actual_sha}"
             )
 
-        # Save to local staging
-        local_p = staging_dir / key
-        local_p.parent.mkdir(parents=True, exist_ok=True)
-        local_p.write_bytes(body)
+        # Save to local staging safely
+        target_p.parent.mkdir(parents=True, exist_ok=True)
+        target_p.write_bytes(body)
 
         manifest_items.append({
             "category": item["category"],

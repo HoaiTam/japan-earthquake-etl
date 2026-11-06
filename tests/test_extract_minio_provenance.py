@@ -251,6 +251,119 @@ class TestExtractMinioProvenance(unittest.TestCase):
                 )
             self.assertIn("SHA_MISMATCH", str(ctx.exception))
 
+    def test_staging_file_already_exists_fails_without_overwrite(self):
+        """Regression test for Review P1: Pre-existing staging file must not be overwritten when overwrite=False."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+            mapping_file = tmp / "requirements.json"
+            staging_dir = tmp / "staging"
+            staging_dir.mkdir(parents=True, exist_ok=True)
+            out_zip = tmp / "output.zip"
+
+            # Create requirements
+            mock_data = {}
+            for i in range(1, 38):
+                mock_data[f"bronze/item_{i:02d}.json"] = "a" * 64
+            for i in range(1, 24):
+                mock_data[f"silver/bundles/item_{i:02d}.json"] = "b" * 64
+            for i in range(1, 24):
+                mock_data[f"silver/full-month/item_{i:02d}.json"] = "c" * 64
+            mapping_file.write_text(json.dumps(mock_data), encoding="utf-8")
+
+            # Create pre-existing file in staging with canary content
+            target_p = staging_dir / "bronze/item_01.json"
+            target_p.parent.mkdir(parents=True, exist_ok=True)
+            canary_bytes = b"ORIGINAL_CANARY_CONTENT_DO_NOT_OVERWRITE"
+            target_p.write_bytes(canary_bytes)
+
+            mock_s3 = MagicMock()
+            m = MagicMock()
+            m["Body"].read.return_value = b"new_incoming_content"
+            mock_s3.get_object.return_value = m
+
+            with self.assertRaises(FileExistsError) as ctx:
+                extractor.extract_and_pack_provenance(
+                    owner="rosy179",
+                    source_mapping_path=mapping_file,
+                    output_zip=out_zip,
+                    temp_dir=staging_dir,
+                    s3_client=mock_s3,
+                    overwrite=False,
+                )
+            self.assertIn("STAGING_DIR_NOT_EMPTY", str(ctx.exception))
+            # Verify the pre-existing file was NOT touched or overwritten
+            self.assertEqual(target_p.read_bytes(), canary_bytes)
+
+    def test_symlink_in_staging_rejected_and_outside_file_untouched(self):
+        """Regression test for Review P1: Symlink in staging pointing outside must be rejected without writing to target."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+            mapping_file = tmp / "requirements.json"
+            staging_dir = tmp / "staging"
+            staging_dir.mkdir(parents=True, exist_ok=True)
+            out_zip = tmp / "output.zip"
+
+            mock_data = {}
+            for i in range(1, 38):
+                mock_data[f"bronze/item_{i:02d}.json"] = "a" * 64
+            for i in range(1, 24):
+                mock_data[f"silver/bundles/item_{i:02d}.json"] = "b" * 64
+            for i in range(1, 24):
+                mock_data[f"silver/full-month/item_{i:02d}.json"] = "c" * 64
+            mapping_file.write_text(json.dumps(mock_data), encoding="utf-8")
+
+            # Create sensitive outside file
+            outside_dir = tmp / "outside"
+            outside_dir.mkdir()
+            outside_file = outside_dir / "critical_data.txt"
+            outside_canary = b"SUPER_SENSITIVE_OUTSIDE_DATA"
+            outside_file.write_bytes(outside_canary)
+
+            # Try to create symlink at target path
+            target_link = staging_dir / "bronze/item_01.json"
+            target_link.parent.mkdir(parents=True, exist_ok=True)
+
+            mock_s3 = MagicMock()
+            m = MagicMock()
+            m["Body"].read.return_value = b"attacker_payload"
+            mock_s3.get_object.return_value = m
+
+            has_real_symlink = False
+            try:
+                target_link.symlink_to(outside_file)
+                has_real_symlink = True
+            except OSError:
+                # Windows without privilege; simulate symlink
+                pass
+
+            if has_real_symlink:
+                with self.assertRaises(ValueError) as ctx:
+                    extractor.extract_and_pack_provenance(
+                        owner="rosy179",
+                        source_mapping_path=mapping_file,
+                        output_zip=out_zip,
+                        temp_dir=staging_dir,
+                        s3_client=mock_s3,
+                        overwrite=True,
+                    )
+                self.assertIn("SYMLINK_IN_STAGING_FORBIDDEN", str(ctx.exception))
+                self.assertEqual(outside_file.read_bytes(), outside_canary)
+            else:
+                # Mock is_symlink on Path to verify fail-closed branch
+                from unittest.mock import patch
+                with patch("pathlib.Path.is_symlink", return_value=True):
+                    with self.assertRaises(ValueError) as ctx:
+                        extractor.extract_and_pack_provenance(
+                            owner="rosy179",
+                            source_mapping_path=mapping_file,
+                            output_zip=out_zip,
+                            temp_dir=staging_dir,
+                            s3_client=mock_s3,
+                            overwrite=True,
+                        )
+                    self.assertIn("SYMLINK_IN_STAGING_FORBIDDEN", str(ctx.exception))
+                self.assertEqual(outside_file.read_bytes(), outside_canary)
+
 
 if __name__ == "__main__":
     unittest.main()
