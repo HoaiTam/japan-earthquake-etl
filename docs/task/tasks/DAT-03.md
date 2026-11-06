@@ -203,7 +203,9 @@ release đủ gate. Không tạo dependency ngược từ DAT-03 sang EXP-02.
   19 registry JSON) khớp 100% SHA-256. [Evidence](../../evidence/DAT-03_INTEGRATION_EVIDENCE_288_MONTHS.md).
   Còn 4 cổng kỹ thuật để Done: nhận 83 provenance rosy179, tích hợp catalog
   và khử trùng ranh giới, official ML export cho 2 split REPRODUCTION/EXTENSION
-  và đóng gói release kèm đủ 3 receipts. Giữ In Progress.
+  và đóng gói release kèm đủ 3 receipts. Đã bổ sung công cụ `scripts/pack-worker-provenance.py`
+  và bộ kiểm thử `tests/test_pack_worker_provenance.py` để hỗ trợ rosy179 đóng gói
+  83 objects (41 Bronze, 21 Silver, 21 registry). Giữ In Progress.
 
 - **29/10 — recovery range sau sleep:** branch `fix/dat-03-range-sleep-recovery`
   từ main `ec7431244df1e5858fc0d148ec71755d36915033`; thêm helper publication-only,

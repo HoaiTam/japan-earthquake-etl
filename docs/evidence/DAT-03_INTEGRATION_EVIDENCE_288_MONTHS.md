@@ -33,6 +33,11 @@ Hoài Tâm đã tải về và đối chiếu độc lập trên máy host:
 ## 3. Các Điểm nghẽn Còn lại Trước khi Hoàn tất DAT-03
 
 1. **Provenance worker rosy179:** Thư mục worker của Trang trên Drive hiện chưa có gói provenance tương ứng (yêu cầu 83 objects first-hop).
+   - **Cấu trúc phân loại 83 objects:**
+     - **41 Bronze manifests** (JMA archives 2018–2023, 12 captures USGS 2023-01–2023-12 và bronze descriptors).
+     - **21 Silver bundle manifests** (bao phủ 63 tháng 2018-10 đến 2023-12).
+     - **21 registry JSON** xác nhận snapshot metadata.
+   - **Tooling:** Đã bổ sung công cụ đóng gói và kiểm tra tự động [`scripts/pack-worker-provenance.py`](../../scripts/pack-worker-provenance.py) và bộ kiểm thử [`tests/test_pack_worker_provenance.py`](../../tests/test_pack_worker_provenance.py). rosy179 có thể dùng lệnh `plan`, `pack` và `verify` để chuẩn bị gói `rosy179-dat03-provenance-metadata.zip`.
 2. **Release nghiên cứu cuối:** Thư mục `accepted/` trên Drive chưa có release cuối cùng. Hai receipt hiện có trong thư mục `receipts/` là receipt chạy dải tháng cá nhân của Trí, chưa phải xác nhận của 3 thành viên nhận cùng một dataset nghiên cứu chính thức.
 3. **Catalog Gold hợp nhất:** Chưa thực hiện merge 4 gói vào Iceberg catalog chung để kiểm tra liên kết ranh giới và chạy Trino verification queries.
 4. **Official ML Export:** Chưa chạy build job chính thức cho 2 split `REPRODUCTION` và `EXTENSION` từ snapshot Gold chung.

@@ -97,7 +97,7 @@ current-month-gold: ## Opt-in MinIO Silver -> operational Gold/Trino; prebuilt J
 current-month-local: ## Opt-in live USGS -> isolated local Bronze/Silver; không Docker, Gold hoặc scheduler mutation
 	@test -n "$(CURRENT_MONTH_REQUEST)" || { echo 'Set CURRENT_MONTH_REQUEST to an exact request JSON'; exit 2; }
 	@python3 scripts/current-month.py --request "$(CURRENT_MONTH_REQUEST)" --root "$(CURRENT_MONTH_ROOT)"
-.PHONY: check-docs test-docs test-dat03-team-setup test-dat03-range-worker
+.PHONY: check-docs test-docs test-dat03-team-setup test-dat03-range-worker test-dat03-boundaries test-dat03-provenance
 
 test-dat03-range-worker: ## DAT-03 isolated range control/input guards; no Docker/network
 	@python3 -B -m unittest discover -s tests -p 'test_dat03_range_worker.py'
@@ -105,6 +105,12 @@ test-dat03-range-worker: ## DAT-03 isolated range control/input guards; no Docke
 
 test-dat03-team-setup: ## DAT-03 offline assignment/pin/readiness regression; không Docker/network
 	@python3 -B -m unittest discover -s tests -p 'test_dat03_team_setup.py'
+
+test-dat03-boundaries: ## DAT-03 cross-boundary catalog integration verification regression
+	@python3 -B -m unittest discover -s tests -p 'test_catalog_boundaries.py'
+
+test-dat03-provenance: ## DAT-03 worker provenance packaging/verification regression
+	@python3 -B -m unittest discover -s tests -p 'test_pack_worker_provenance.py'
 .PHONY: test-mli-import smoke-mli-import smoke-mli-import-acceptance smoke-mli-import-dag up-ml
 .PHONY: test-qa-04 smoke-qa-04
 .PHONY: test-mli-build check-mli-build-runtime
