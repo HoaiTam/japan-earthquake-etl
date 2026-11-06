@@ -12,6 +12,13 @@ Fail-Closed Policy:
 - Overall status PASS and gate_status VERIFIED_PASS are strictly prohibited unless real
   trusted package manifests and boundary events are provided and pass all contiguity,
   two-sided timestamp extrema, and ID disjointness audits.
+- Caller-declared manifest bytes and self-computed hashes are NOT trusted without independent
+  registry pins. Empty manifest JSON `{}` is strictly rejected.
+- Non-empty boundary months require all 4 timestamp extrema (min_prev, max_prev, min_next, max_next)
+  with explicit timezone offsets.
+- Distinguishes manifest_sha256 (hash of manifest JSON) from package_sha256 (hash of archive ZIP).
+- Descriptors or fixtures without verified independent registry pins yield FIXTURE_PASS or
+  NOT_CHECKED, never VERIFIED_PASS.
 """
 
 from __future__ import annotations
@@ -146,6 +153,20 @@ def get_month_boundaries_utc(m_str: str) -> Tuple[datetime, datetime]:
     return start_dt, end_dt
 
 
+def parse_iso_utc(ts_str: Any, field_name: str) -> datetime:
+    """Parse an ISO timestamp and verify it has an explicit timezone offset, converting to UTC."""
+    if not isinstance(ts_str, str):
+        raise ValueError(f"NON_STRING_TIMESTAMP:{field_name}:{type(ts_str).__name__}")
+    s = ts_str.strip()
+    if not re.search(r"(Z|[+-]\d{2}:?\d{2})$", s):
+        raise ValueError(
+            f"MISSING_TIMEZONE_OFFSET:{field_name}:'{s}' requires explicit timezone offset (e.g. 'Z' or '+00:00')"
+        )
+    iso_clean = s[:-1] + "+00:00" if s.endswith("Z") else s
+    dt = datetime.fromisoformat(iso_clean)
+    return dt.astimezone(timezone.utc)
+
+
 def resolve_package_segment(package_id: str) -> Optional[str]:
     """Resolve given package_id to standard segment key if matching official aliases."""
     for seg_key, info in OFFICIAL_PACKAGES.items():
@@ -159,6 +180,7 @@ def verify_manifest_contiguity(
     require_trusted_registry: bool = True,
     require_row_count: bool = False,
     require_manifest_bytes: bool = False,
+    trusted_registry_pins: Optional[Dict[str, str]] = None,
 ) -> Dict[str, Any]:
     """Verify that actual package manifests cover 2000-01 to 2023-12 without gaps or overlaps.
 
@@ -168,7 +190,11 @@ def verify_manifest_contiguity(
         - Must contain exactly 4 packages matching the 4 official segment registry pins.
         - Fabricated single packages claiming the whole range are rejected.
     - Each manifest must supply covered_months explicitly.
-    - SHA validation computes SHA-256 safely from str, bytes, or manifest_file without TypeError.
+    - Raw manifest bytes must be parsed as a valid non-empty JSON object.
+    - An empty JSON object `{}` is strictly rejected.
+    - package_id, coverage, and certified row count inside parsed manifest are cross-verified.
+    - Distinguishes manifest_sha256 (hash of manifest JSON) from package_sha256 (hash of archive ZIP).
+    - If trusted_registry_pins is supplied, hashes are checked against the independent trusted pins.
     """
     if not manifests:
         return {
@@ -208,6 +234,7 @@ def verify_manifest_contiguity(
 
     for pkg in manifests:
         pkg_id = pkg.get("package_id", "unknown_pkg")
+        seg_key = resolve_package_segment(pkg_id)
         start_m = pkg.get("start_month")
         end_m = pkg.get("end_month")
         cov_months = pkg.get("covered_months")
@@ -261,30 +288,124 @@ def verify_manifest_contiguity(
         elif manifest_content is not None:
             raw_b = str(manifest_content).encode("utf-8")
 
+        # Parse manifest payload JSON (Blocker 1 requirement: reject empty {} or unparsed content)
+        parsed_payload: Optional[Dict[str, Any]] = None
+        certified_empty_for_pkg: Set[str] = set()
+
+        if raw_b is not None:
+            try:
+                parsed_raw = json.loads(raw_b.decode("utf-8"))
+            except Exception as ex:
+                violations.append(f"MANIFEST_JSON_PARSE_ERROR:{pkg_id}:{ex}")
+                parsed_raw = None
+
+            if parsed_raw is not None:
+                if not isinstance(parsed_raw, dict):
+                    violations.append(f"MANIFEST_PAYLOAD_NOT_OBJECT:{pkg_id}: manifest JSON root must be an object/dict")
+                elif len(parsed_raw) == 0:
+                    violations.append(f"EMPTY_MANIFEST_PAYLOAD:{pkg_id}: manifest JSON payload is empty {{}}")
+                else:
+                    parsed_payload = parsed_raw
+                    # Check package identity inside manifest payload
+                    if "package_id" in parsed_payload or "segment_id" in parsed_payload:
+                        parsed_p_id = str(parsed_payload.get("package_id") or parsed_payload.get("segment_id"))
+                        parsed_seg = resolve_package_segment(parsed_p_id)
+                        if parsed_p_id != pkg_id and parsed_seg != seg_key:
+                            violations.append(
+                                f"MANIFEST_PACKAGE_ID_MISMATCH:{pkg_id}: manifest payload declares {parsed_p_id}, descriptor is {pkg_id}"
+                            )
+
+                    # Check covered months or range inside payload
+                    if "covered_months" in parsed_payload:
+                        parsed_m_list = list(parsed_payload["covered_months"])
+                        if parsed_m_list != expected_range:
+                            violations.append(
+                                f"MANIFEST_COVERED_MONTHS_MISMATCH:{pkg_id}: payload covered_months does not match expected range"
+                            )
+                    elif "start_month" in parsed_payload and "end_month" in parsed_payload:
+                        if parsed_payload["start_month"] != start_m or parsed_payload["end_month"] != end_m:
+                            violations.append(
+                                f"MANIFEST_RANGE_MISMATCH:{pkg_id}: payload range {parsed_payload['start_month']}..{parsed_payload['end_month']} != {start_m}..{end_m}"
+                            )
+
+                    # Check row count
+                    parsed_rows = None
+                    if "row_count" in parsed_payload:
+                        parsed_rows = parsed_payload.get("row_count")
+                    elif "total_rows" in parsed_payload:
+                        parsed_rows = parsed_payload.get("total_rows")
+
+                    if parsed_rows is not None and row_count is not None and parsed_rows != row_count:
+                        violations.append(
+                            f"MANIFEST_ROW_COUNT_MISMATCH:{pkg_id}: descriptor={row_count}, manifest payload={parsed_rows}"
+                        )
+
+                    # Certified empty evidence per month from manifest payload
+                    effective_rows = parsed_rows if parsed_rows is not None else row_count
+                    if effective_rows == 0:
+                        certified_empty_for_pkg.update(expected_range)
+
+                    monthly_counts = parsed_payload.get("monthly_counts") or parsed_payload.get("months_row_counts") or {}
+                    if isinstance(monthly_counts, dict):
+                        for m_key, c_val in monthly_counts.items():
+                            if c_val == 0:
+                                certified_empty_for_pkg.add(m_key)
+
+                    if "empty_months" in parsed_payload and isinstance(parsed_payload["empty_months"], list):
+                        certified_empty_for_pkg.update(parsed_payload["empty_months"])
+
+        # Distinguish manifest_sha256 from package_sha256 (Blocker 1 requirement)
         expected_manifest_sha = pkg.get("manifest_sha256")
         expected_pkg_sha = pkg.get("package_sha256")
+
+        if expected_pkg_sha and not expected_manifest_sha and raw_b is not None:
+            violations.append(
+                f"SEPARATE_SHA_REQUIRED:{pkg_id}: manifest_bytes cannot be validated against package_sha256; manifest_sha256 is required"
+            )
 
         if require_manifest_bytes:
             if raw_b is None:
                 violations.append(
                     f"MISSING_MANIFEST_BYTES:{pkg_id}: official catalog gate requires raw manifest bytes or file"
                 )
-            if not expected_manifest_sha and not expected_pkg_sha:
+            if not expected_manifest_sha and not (trusted_registry_pins and seg_key in trusted_registry_pins):
                 violations.append(
                     f"MISSING_MANIFEST_SHA256:{pkg_id}: official catalog gate requires trusted manifest_sha256 pin"
                 )
 
-        if expected_manifest_sha and raw_b is not None:
-            computed_sha = hashlib.sha256(raw_b).hexdigest()
-            if computed_sha != expected_manifest_sha:
+        computed_manifest_sha: Optional[str] = None
+        if raw_b is not None:
+            computed_manifest_sha = hashlib.sha256(raw_b).hexdigest()
+
+        # Cross-reference against trusted registry pins if supplied
+        expected_trusted_sha: Optional[str] = None
+        if trusted_registry_pins is not None:
+            if seg_key and seg_key in trusted_registry_pins:
+                expected_trusted_sha = trusted_registry_pins[seg_key]
+            elif pkg_id in trusted_registry_pins:
+                expected_trusted_sha = trusted_registry_pins[pkg_id]
+            elif seg_key and seg_key in OFFICIAL_PACKAGES:
+                for al in OFFICIAL_PACKAGES[seg_key]["aliases"]:
+                    if al in trusted_registry_pins:
+                        expected_trusted_sha = trusted_registry_pins[al]
+                        break
+
+            if not expected_trusted_sha:
+                violations.append(f"UNPINNED_PACKAGE:{pkg_id}: missing trusted registry pin in trusted_registry_pins")
+            elif computed_manifest_sha and computed_manifest_sha != expected_trusted_sha:
                 violations.append(
-                    f"MANIFEST_SHA256_MISMATCH:{pkg_id}: expected {expected_manifest_sha}, computed {computed_sha}"
+                    f"MANIFEST_SHA256_MISMATCH_WITH_TRUSTED_REGISTRY:{pkg_id}: expected {expected_trusted_sha}, computed {computed_manifest_sha}"
                 )
-        elif expected_pkg_sha and raw_b is not None:
-            computed_sha = hashlib.sha256(raw_b).hexdigest()
-            if computed_sha != expected_pkg_sha:
+
+        # Cross-reference against descriptor's declared manifest_sha256
+        if expected_manifest_sha and computed_manifest_sha:
+            if computed_manifest_sha != expected_manifest_sha:
                 violations.append(
-                    f"MANIFEST_SHA256_MISMATCH:{pkg_id}: expected {expected_pkg_sha}, computed {computed_sha}"
+                    f"MANIFEST_SHA256_MISMATCH:{pkg_id}: descriptor expected {expected_manifest_sha}, computed {computed_manifest_sha}"
+                )
+            if expected_trusted_sha and expected_manifest_sha != expected_trusted_sha:
+                violations.append(
+                    f"CALLER_PIN_DISAGREEMENT_WITH_TRUSTED_REGISTRY:{pkg_id}: caller declared {expected_manifest_sha}, trusted pin is {expected_trusted_sha}"
                 )
 
         for m in m_list:
@@ -300,8 +421,15 @@ def verify_manifest_contiguity(
             "end_month": end_m,
             "month_count": len(m_list),
             "row_count": row_count,
-            "manifest_sha256": expected_manifest_sha,
+            "manifest_sha256": expected_manifest_sha or expected_trusted_sha,
+            "computed_manifest_sha256": computed_manifest_sha,
             "package_sha256": expected_pkg_sha,
+            "certified_empty_months": sorted(list(certified_empty_for_pkg)),
+            "trusted_pin_verified": (
+                expected_trusted_sha is not None
+                and computed_manifest_sha == expected_trusted_sha
+                and parsed_payload is not None
+            ),
         })
 
     expected_full = expand_month_range("2000-01", "2023-12")
@@ -441,6 +569,12 @@ def verify_boundary_time_window(
 ) -> Dict[str, Any]:
     """Verify that event timestamps in adjacent months conform to two-sided UTC boundaries.
 
+    Mandatory 4-extrema checks for non-empty months:
+    - If prev_month is not certified empty: requires BOTH min_prev_time_utc and max_prev_time_utc.
+    - If next_month is not certified empty: requires BOTH min_next_time_utc and max_next_time_utc.
+    - Missing any required extremum returns status NOT_CHECKED.
+    - All timestamps must have explicit timezone offsets (e.g. 'Z' or '+00:00').
+
     Two-sided extrema checks:
     - prev_month [prev_start, prev_end):
         min_prev >= prev_start (PREV_MONTH_UNDERFLOW)
@@ -461,23 +595,38 @@ def verify_boundary_time_window(
         "violations": [],
     }
 
-    missing_prev = not max_prev_dt_iso
-    missing_next = not min_next_dt_iso
-
     can_empty_prev = allow_empty and (certified_empty or prev_month_certified_empty)
     can_empty_next = allow_empty and (certified_empty or next_month_certified_empty)
 
-    if missing_prev or missing_next:
-        if missing_prev and not can_empty_prev:
-            results["status"] = "NOT_CHECKED"
-            results["violations"].append("MISSING_BOUNDARY_TIMESTAMPS")
-            return results
-        if missing_next and not can_empty_next:
-            results["status"] = "NOT_CHECKED"
-            results["violations"].append("MISSING_BOUNDARY_TIMESTAMPS")
-            return results
+    # Check for missing extrema in previous month
+    missing_prev = []
+    if not can_empty_prev:
+        if not min_prev_dt_iso:
+            missing_prev.append("min_prev_time_utc")
+        if not max_prev_dt_iso:
+            missing_prev.append("max_prev_time_utc")
 
-    if missing_prev and missing_next and can_empty_prev and can_empty_next:
+    # Check for missing extrema in next month
+    missing_next = []
+    if not can_empty_next:
+        if not min_next_dt_iso:
+            missing_next.append("min_next_time_utc")
+        if not max_next_dt_iso:
+            missing_next.append("max_next_time_utc")
+
+    if missing_prev or missing_next:
+        results["status"] = "NOT_CHECKED"
+        if missing_prev:
+            results["violations"].append(
+                f"MISSING_PREV_MONTH_EXTREMA:{prev_month}: non-empty prev_month requires both min and max ({', '.join(missing_prev)} missing)"
+            )
+        if missing_next:
+            results["violations"].append(
+                f"MISSING_NEXT_MONTH_EXTREMA:{next_month}: non-empty next_month requires both min and max ({', '.join(missing_next)} missing)"
+            )
+        return results
+
+    if can_empty_prev and can_empty_next and not (min_prev_dt_iso or max_prev_dt_iso or min_next_dt_iso or max_next_dt_iso):
         results["status"] = "PASS"
         results["note"] = "VERIFIED_EMPTY_MONTH_TIMESTAMP_SKIPPED"
         return results
@@ -486,10 +635,10 @@ def verify_boundary_time_window(
         prev_start, prev_end = get_month_boundaries_utc(prev_month)
         next_start, next_end = get_month_boundaries_utc(next_month)
 
-        dt_max_prev = datetime.fromisoformat(max_prev_dt_iso.replace("Z", "+00:00")) if max_prev_dt_iso else None
-        dt_min_prev = datetime.fromisoformat(min_prev_dt_iso.replace("Z", "+00:00")) if min_prev_dt_iso else None
-        dt_min_next = datetime.fromisoformat(min_next_dt_iso.replace("Z", "+00:00")) if min_next_dt_iso else None
-        dt_max_next = datetime.fromisoformat(max_next_dt_iso.replace("Z", "+00:00")) if max_next_dt_iso else None
+        dt_min_prev = parse_iso_utc(min_prev_dt_iso, "min_prev_time_utc") if min_prev_dt_iso else None
+        dt_max_prev = parse_iso_utc(max_prev_dt_iso, "max_prev_time_utc") if max_prev_dt_iso else None
+        dt_min_next = parse_iso_utc(min_next_dt_iso, "min_next_time_utc") if min_next_dt_iso else None
+        dt_max_next = parse_iso_utc(max_next_dt_iso, "max_next_time_utc") if max_next_dt_iso else None
     except Exception as ex:
         results["status"] = "FAIL"
         results["violations"].append(f"INVALID_TIMESTAMP_FORMAT: {ex}")
@@ -543,6 +692,9 @@ def verify_boundary_time_window(
                 f"TIMESTAMP_INVERSION: max prev timestamp {max_prev_dt_iso} > min next timestamp {min_next_dt_iso}"
             )
 
+    if results["violations"]:
+        results["status"] = "FAIL"
+
     return results
 
 
@@ -550,6 +702,7 @@ def verify_all_boundaries(
     boundary_records: Optional[Dict[str, Dict[str, Any]]] = None,
     package_manifests: Optional[Sequence[Dict[str, Any]]] = None,
     audit_scope: str = "OFFICIAL_CATALOG_GATE",
+    trusted_registry_pins: Optional[Dict[str, str]] = None,
 ) -> Dict[str, Any]:
     """Execute end-to-end audit for the 3 boundaries across the 4 catalog segments.
 
@@ -560,7 +713,9 @@ def verify_all_boundaries(
     - Only returns gate_status: VERIFIED_PASS if:
         - overall status is PASS,
         - audit_scope is OFFICIAL_CATALOG_GATE,
-        - real verified package manifests are provided (not theoretical-only).
+        - real verified package manifests are provided with valid non-empty JSON payloads,
+        - trusted_registry_pins is supplied and covers all 4 official segments,
+        - boundary timestamps supply all 4 mandatory extrema with explicit timezones.
     - Otherwise gate_status remains PENDING_CATALOG_MERGE or FIXTURE_PASS.
     """
     is_official_scope = (audit_scope == "OFFICIAL_CATALOG_GATE")
@@ -571,6 +726,7 @@ def verify_all_boundaries(
             require_trusted_registry=is_official_scope,
             require_row_count=is_official_scope,
             require_manifest_bytes=is_official_scope,
+            trusted_registry_pins=trusted_registry_pins,
         )
     else:
         theo = verify_segment_contiguity(EXPECTED_SEGMENTS)
@@ -609,20 +765,16 @@ def verify_all_boundaries(
             "checked_at_utc": datetime.now(timezone.utc).isoformat(),
         }
 
-    # Map package row counts by month to certify empty months if needed
+    # Map verified empty months from packages with verified manifest payloads
     certified_empty_months: Set[str] = set()
-    if package_manifests is not None:
-        for pkg in package_manifests:
-            pkg_sha = pkg.get("manifest_sha256") or pkg.get("package_sha256")
-            has_bytes = (
-                (pkg.get("manifest_bytes") is not None)
-                or (pkg.get("manifest_file") is not None)
-                or (pkg.get("manifest_content") is not None)
-            )
-            # Under official scope, only certified if row_count == 0 AND manifest has verified SHA/bytes
-            if pkg.get("row_count") == 0 and pkg.get("covered_months"):
-                if not is_official_scope or (pkg_sha and has_bytes):
-                    certified_empty_months.update(pkg.get("covered_months"))
+    if package_manifests is not None and contiguity.get("status") == "PASS":
+        for p_info in contiguity.get("packages", []):
+            if is_official_scope:
+                # Under official scope: only certify empty months if trusted registry pin was verified
+                if trusted_registry_pins and p_info.get("trusted_pin_verified"):
+                    certified_empty_months.update(p_info.get("certified_empty_months", []))
+            else:
+                certified_empty_months.update(p_info.get("certified_empty_months", []))
 
     boundary_results = []
     for b in EXPECTED_BOUNDARIES:
@@ -701,21 +853,16 @@ def verify_all_boundaries(
     else:
         overall_status = "PASS"
 
-    # Only assign VERIFIED_PASS if real manifests with valid SHA/bytes are verified and audit scope is official
+    # Only assign VERIFIED_PASS if real manifests with verified trusted registry pins are supplied
     if overall_status == "PASS":
-        all_pkgs_verified = False
-        if package_manifests is not None and len(package_manifests) == 4:
-            all_pkgs_verified = all(
-                (p.get("manifest_sha256") or p.get("package_sha256")) is not None
-                and (
-                    (p.get("manifest_bytes") is not None)
-                    or (p.get("manifest_file") is not None)
-                    or (p.get("manifest_content") is not None)
-                )
-                for p in package_manifests
+        all_trusted_pins_verified = False
+        if package_manifests is not None and len(package_manifests) == 4 and trusted_registry_pins:
+            pkgs = contiguity.get("packages", [])
+            all_trusted_pins_verified = len(pkgs) == 4 and all(
+                p.get("trusted_pin_verified") is True for p in pkgs
             )
 
-        if package_manifests is not None and is_official_scope and all_pkgs_verified:
+        if package_manifests is not None and is_official_scope and all_trusted_pins_verified:
             gate_status = "VERIFIED_PASS"
         else:
             gate_status = "FIXTURE_PASS"
@@ -745,6 +892,12 @@ def main() -> int:
         type=Path,
         default=None,
         help="Path to JSON file containing list of 4 package manifests.",
+    )
+    parser.add_argument(
+        "--trusted-pins-file",
+        type=Path,
+        default=None,
+        help="Path to JSON file containing trusted manifest SHA-256 pins for the official packages.",
     )
     parser.add_argument(
         "--audit-scope",
@@ -782,10 +935,22 @@ def main() -> int:
             print(f"ERROR: Failed to parse manifests file JSON: {ex}", file=sys.stderr)
             return 1
 
+    trusted_pins = None
+    if args.trusted_pins_file:
+        if not args.trusted_pins_file.is_file():
+            print(f"ERROR: Trusted pins file not found: {args.trusted_pins_file}", file=sys.stderr)
+            return 1
+        try:
+            trusted_pins = json.loads(args.trusted_pins_file.read_text(encoding="utf-8"))
+        except Exception as ex:
+            print(f"ERROR: Failed to parse trusted pins JSON: {ex}", file=sys.stderr)
+            return 1
+
     report = verify_all_boundaries(
         boundary_records=boundary_records,
         package_manifests=package_manifests,
         audit_scope=args.audit_scope,
+        trusted_registry_pins=trusted_pins,
     )
     formatted = json.dumps(report, indent=2)
     print(formatted)

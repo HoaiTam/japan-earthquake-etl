@@ -1,5 +1,6 @@
 """Unit and regression tests for DAT-03 cross-boundary catalog integration verification harness."""
 
+from datetime import datetime, timezone
 import hashlib
 import importlib.util
 import io
@@ -123,7 +124,7 @@ class TestCatalogBoundaries(unittest.TestCase):
         self.assertIn("2013-08", res_gap["missing_months"])
 
     def test_verify_manifest_contiguity_detects_sha_mismatch(self):
-        raw = b'{"package": "test"}'
+        raw = b'{"package_id": "pkg_tampered", "start_month": "2000-01", "end_month": "2008-05"}'
         manifests = [
             {
                 "package_id": "pkg_tampered",
@@ -131,7 +132,7 @@ class TestCatalogBoundaries(unittest.TestCase):
                 "end_month": "2008-05",
                 "covered_months": boundaries.expand_month_range("2000-01", "2008-05"),
                 "manifest_bytes": raw,
-                "package_sha256": "bad_sha_0000000000000000000000000000000000000000000000000000000000",
+                "manifest_sha256": "bad_sha_0000000000000000000000000000000000000000000000000000000000",
             }
         ]
         res = boundaries.verify_manifest_contiguity(manifests)
@@ -176,44 +177,52 @@ class TestCatalogBoundaries(unittest.TestCase):
         self.assertEqual(res_allowed["status"], "PASS")
 
     # -------------------------------------------------------------------------
-    # Boundary Time Window & Monotonicity Checks
+    # Boundary Time Window & Monotonicity Checks (Mandatory 4 Extrema)
     # -------------------------------------------------------------------------
     def test_verify_boundary_time_window_passes_clean_timestamps(self):
         res = boundaries.verify_boundary_time_window(
-            "2008-05",
-            "2008-05-31T23:59:58Z",
-            "2008-06",
-            "2008-06-01T00:00:05Z",
+            prev_month="2008-05",
+            min_prev_dt_iso="2008-05-01T00:00:00Z",
+            max_prev_dt_iso="2008-05-31T23:59:58Z",
+            next_month="2008-06",
+            min_next_dt_iso="2008-06-01T00:00:05Z",
+            max_next_dt_iso="2008-06-30T23:59:59Z",
         )
         self.assertEqual(res["status"], "PASS")
         self.assertEqual(len(res["violations"]), 0)
 
     def test_verify_boundary_time_window_detects_overflow(self):
         res = boundaries.verify_boundary_time_window(
-            "2008-05",
-            "2008-06-01T00:00:01Z",  # Overflow into next month
-            "2008-06",
-            "2008-06-01T00:05:00Z",
+            prev_month="2008-05",
+            min_prev_dt_iso="2008-05-01T00:00:00Z",
+            max_prev_dt_iso="2008-06-01T00:00:01Z",  # Overflow into next month
+            next_month="2008-06",
+            min_next_dt_iso="2008-06-01T00:05:00Z",
+            max_next_dt_iso="2008-06-30T23:59:59Z",
         )
         self.assertEqual(res["status"], "FAIL")
         self.assertTrue(any("PREV_MONTH_OVERFLOW" in v for v in res["violations"]))
 
     def test_verify_boundary_time_window_detects_underflow(self):
         res = boundaries.verify_boundary_time_window(
-            "2013-07",
-            "2013-07-31T23:00:00Z",
-            "2013-08",
-            "2013-07-31T23:59:59Z",  # Underflow from previous month
+            prev_month="2013-07",
+            min_prev_dt_iso="2013-07-01T00:00:00Z",
+            max_prev_dt_iso="2013-07-31T23:00:00Z",
+            next_month="2013-08",
+            min_next_dt_iso="2013-07-31T23:59:59Z",  # Underflow from previous month
+            max_next_dt_iso="2013-08-31T23:59:59Z",
         )
         self.assertEqual(res["status"], "FAIL")
         self.assertTrue(any("NEXT_MONTH_UNDERFLOW" in v for v in res["violations"]))
 
     def test_verify_boundary_time_window_detects_inversion(self):
         res = boundaries.verify_boundary_time_window(
-            "2018-09",
-            "2018-09-30T23:50:00Z",
-            "2018-10",
-            "2018-09-30T23:40:00Z",  # Inverted timestamps
+            prev_month="2018-09",
+            min_prev_dt_iso="2018-09-01T00:00:00Z",
+            max_prev_dt_iso="2018-09-30T23:50:00Z",
+            next_month="2018-10",
+            min_next_dt_iso="2018-09-30T23:40:00Z",  # Inverted timestamps
+            max_next_dt_iso="2018-10-31T23:59:59Z",
         )
         self.assertEqual(res["status"], "FAIL")
         self.assertTrue(any("TIMESTAMP_INVERSION" in v for v in res["violations"]))
@@ -221,7 +230,7 @@ class TestCatalogBoundaries(unittest.TestCase):
     def test_verify_boundary_time_window_missing_timestamp_returns_not_checked(self):
         res = boundaries.verify_boundary_time_window("2008-05", None, "2008-06", None)
         self.assertEqual(res["status"], "NOT_CHECKED")
-        self.assertIn("MISSING_BOUNDARY_TIMESTAMPS", res["violations"])
+        self.assertTrue(any("MISSING_PREV_MONTH_EXTREMA" in v or "MISSING_NEXT_MONTH_EXTREMA" in v for v in res["violations"]))
 
     # -------------------------------------------------------------------------
     # End-to-End Boundary Verification Fail-Closed Tests
@@ -241,14 +250,18 @@ class TestCatalogBoundaries(unittest.TestCase):
             "Boundary 1 (Base -> HoaiTam)": {
                 "prev_ids": ["b_01"],
                 "next_ids": ["ht_01"],
+                "min_prev_time_utc": "2008-05-01T00:00:00Z",
                 "max_prev_time_utc": "2008-05-31T23:00:00Z",
                 "min_next_time_utc": "2008-06-01T01:00:00Z",
+                "max_next_time_utc": "2008-06-30T23:59:00Z",
             },
             "Boundary 2 (HoaiTam -> ThanhTris)": {
                 "prev_ids": ["ht_02"],
                 "next_ids": ["tt_01"],
+                "min_prev_time_utc": "2013-07-01T00:00:00Z",
                 "max_prev_time_utc": "2013-07-31T23:00:00Z",
                 "min_next_time_utc": "2013-08-01T01:00:00Z",
+                "max_next_time_utc": "2013-08-31T23:59:00Z",
             },
         }
         report = boundaries.verify_all_boundaries(partial_data)
@@ -257,38 +270,61 @@ class TestCatalogBoundaries(unittest.TestCase):
         self.assertEqual(b3["status"], "NOT_CHECKED")
 
     def test_verify_all_boundaries_full_valid_inputs_passes(self):
-        """When all 3 boundaries and 4 manifests are clean and verified, returns PASS."""
+        """When all 3 boundaries and 4 manifests are clean, verified with trusted pins, returns VERIFIED_PASS."""
         valid_data = {
             "Boundary 1 (Base -> HoaiTam)": {
                 "prev_ids": ["b_01", "b_02"],
                 "next_ids": ["ht_01", "ht_02"],
+                "min_prev_time_utc": "2008-05-01T00:00:00Z",
                 "max_prev_time_utc": "2008-05-31T23:50:00Z",
                 "min_next_time_utc": "2008-06-01T00:10:00Z",
+                "max_next_time_utc": "2008-06-30T23:59:00Z",
             },
             "Boundary 2 (HoaiTam -> ThanhTris)": {
                 "prev_ids": ["ht_99"],
                 "next_ids": ["tt_01"],
+                "min_prev_time_utc": "2013-07-01T00:00:00Z",
                 "max_prev_time_utc": "2013-07-31T22:00:00Z",
                 "min_next_time_utc": "2013-08-01T01:00:00Z",
+                "max_next_time_utc": "2013-08-31T23:59:00Z",
             },
             "Boundary 3 (ThanhTris -> rosy179)": {
                 "prev_ids": ["tt_99"],
                 "next_ids": ["r_01"],
+                "min_prev_time_utc": "2018-09-01T00:00:00Z",
                 "max_prev_time_utc": "2018-09-30T23:45:00Z",
                 "min_next_time_utc": "2018-10-01T00:05:00Z",
+                "max_next_time_utc": "2018-10-31T23:59:00Z",
             },
         }
-        m1 = b'{"package": "pkg1", "rows": 1064869}'
-        m2 = b'{"package": "pkg2", "rows": 381049}'
-        m3 = b'{"package": "pkg3", "rows": 400000}'
-        m4 = b'{"package": "pkg4", "rows": 420000}'
+        m1 = b'{"package_id": "catalog_base_101", "start_month": "2000-01", "end_month": "2008-05", "row_count": 1064869}'
+        m2 = b'{"package_id": "hoaitam_62", "start_month": "2008-06", "end_month": "2013-07", "row_count": 381049}'
+        m3 = b'{"package_id": "thanhtris_62", "start_month": "2013-08", "end_month": "2018-09", "row_count": 400000}'
+        m4 = b'{"package_id": "rosy179_63", "start_month": "2018-10", "end_month": "2023-12", "row_count": 420000}'
+
+        sha1 = hashlib.sha256(m1).hexdigest()
+        sha2 = hashlib.sha256(m2).hexdigest()
+        sha3 = hashlib.sha256(m3).hexdigest()
+        sha4 = hashlib.sha256(m4).hexdigest()
+
+        trusted_pins = {
+            "catalog_base_101": sha1,
+            "hoaitam_62": sha2,
+            "thanhtris_62": sha3,
+            "rosy179_63": sha4,
+        }
+
         manifests = [
-            {"package_id": "pkg1", "start_month": "2000-01", "end_month": "2008-05", "covered_months": boundaries.expand_month_range("2000-01", "2008-05"), "row_count": 1064869, "manifest_bytes": m1, "manifest_sha256": hashlib.sha256(m1).hexdigest()},
-            {"package_id": "pkg2", "start_month": "2008-06", "end_month": "2013-07", "covered_months": boundaries.expand_month_range("2008-06", "2013-07"), "row_count": 381049, "manifest_bytes": m2, "manifest_sha256": hashlib.sha256(m2).hexdigest()},
-            {"package_id": "pkg3", "start_month": "2013-08", "end_month": "2018-09", "covered_months": boundaries.expand_month_range("2013-08", "2018-09"), "row_count": 400000, "manifest_bytes": m3, "manifest_sha256": hashlib.sha256(m3).hexdigest()},
-            {"package_id": "pkg4", "start_month": "2018-10", "end_month": "2023-12", "covered_months": boundaries.expand_month_range("2018-10", "2023-12"), "row_count": 420000, "manifest_bytes": m4, "manifest_sha256": hashlib.sha256(m4).hexdigest()},
+            {"package_id": "catalog_base_101", "start_month": "2000-01", "end_month": "2008-05", "covered_months": boundaries.expand_month_range("2000-01", "2008-05"), "row_count": 1064869, "manifest_bytes": m1, "manifest_sha256": sha1},
+            {"package_id": "hoaitam_62", "start_month": "2008-06", "end_month": "2013-07", "covered_months": boundaries.expand_month_range("2008-06", "2013-07"), "row_count": 381049, "manifest_bytes": m2, "manifest_sha256": sha2},
+            {"package_id": "thanhtris_62", "start_month": "2013-08", "end_month": "2018-09", "covered_months": boundaries.expand_month_range("2013-08", "2018-09"), "row_count": 400000, "manifest_bytes": m3, "manifest_sha256": sha3},
+            {"package_id": "rosy179_63", "start_month": "2018-10", "end_month": "2023-12", "covered_months": boundaries.expand_month_range("2018-10", "2023-12"), "row_count": 420000, "manifest_bytes": m4, "manifest_sha256": sha4},
         ]
-        report = boundaries.verify_all_boundaries(boundary_records=valid_data, package_manifests=manifests)
+        report = boundaries.verify_all_boundaries(
+            boundary_records=valid_data,
+            package_manifests=manifests,
+            trusted_registry_pins=trusted_pins,
+        )
         self.assertEqual(report["status"], "PASS")
         self.assertEqual(report["gate_status"], "VERIFIED_PASS")
         self.assertEqual(report["contiguity"]["status"], "PASS")
@@ -300,9 +336,8 @@ class TestCatalogBoundaries(unittest.TestCase):
             code = boundaries.main()
             self.assertEqual(code, 2)
 
-
     # -------------------------------------------------------------------------
-    # Regressions for HoaiTam Review (Head 26e8e92)
+    # Regressions for HoaiTam Review
     # -------------------------------------------------------------------------
     def test_verify_all_boundaries_rejects_single_fabricated_manifest_and_empty_boundary(self):
         """Fabricated single 288-month manifest with empty boundary and allow_empty must FAIL, not VERIFIED_PASS."""
@@ -339,16 +374,29 @@ class TestCatalogBoundaries(unittest.TestCase):
             self.assertIn("UNVERIFIED_EMPTY_INPUT", b["disjointness"]["reason"])
 
     def test_verify_all_boundaries_honors_certified_empty_month_from_manifest(self):
-        """When manifest certifies row_count=0, allow_empty=True is permitted and passes."""
-        m1 = b'{"package": "pkg1", "rows": 0}'
-        m2 = b'{"package": "pkg2", "rows": 381049}'
-        m3 = b'{"package": "pkg3", "rows": 400000}'
-        m4 = b'{"package": "pkg4", "rows": 420000}'
+        """When manifest certifies row_count=0 with trusted pin and valid payload, allow_empty=True is permitted."""
+        m1 = b'{"package_id": "catalog_base_101", "start_month": "2000-01", "end_month": "2008-05", "row_count": 0}'
+        m2 = b'{"package_id": "hoaitam_62", "start_month": "2008-06", "end_month": "2013-07", "row_count": 381049}'
+        m3 = b'{"package_id": "thanhtris_62", "start_month": "2013-08", "end_month": "2018-09", "row_count": 400000}'
+        m4 = b'{"package_id": "rosy179_63", "start_month": "2018-10", "end_month": "2023-12", "row_count": 420000}'
+
+        sha1 = hashlib.sha256(m1).hexdigest()
+        sha2 = hashlib.sha256(m2).hexdigest()
+        sha3 = hashlib.sha256(m3).hexdigest()
+        sha4 = hashlib.sha256(m4).hexdigest()
+
+        trusted_pins = {
+            "catalog_base_101": sha1,
+            "hoaitam_62": sha2,
+            "thanhtris_62": sha3,
+            "rosy179_63": sha4,
+        }
+
         manifests = [
-            {"package_id": "pkg1", "start_month": "2000-01", "end_month": "2008-05", "covered_months": boundaries.expand_month_range("2000-01", "2008-05"), "row_count": 0, "manifest_bytes": m1, "manifest_sha256": hashlib.sha256(m1).hexdigest()},
-            {"package_id": "pkg2", "start_month": "2008-06", "end_month": "2013-07", "covered_months": boundaries.expand_month_range("2008-06", "2013-07"), "row_count": 381049, "manifest_bytes": m2, "manifest_sha256": hashlib.sha256(m2).hexdigest()},
-            {"package_id": "pkg3", "start_month": "2013-08", "end_month": "2018-09", "covered_months": boundaries.expand_month_range("2013-08", "2018-09"), "row_count": 400000, "manifest_bytes": m3, "manifest_sha256": hashlib.sha256(m3).hexdigest()},
-            {"package_id": "pkg4", "start_month": "2018-10", "end_month": "2023-12", "covered_months": boundaries.expand_month_range("2018-10", "2023-12"), "row_count": 420000, "manifest_bytes": m4, "manifest_sha256": hashlib.sha256(m4).hexdigest()},
+            {"package_id": "catalog_base_101", "start_month": "2000-01", "end_month": "2008-05", "covered_months": boundaries.expand_month_range("2000-01", "2008-05"), "row_count": 0, "manifest_bytes": m1, "manifest_sha256": sha1},
+            {"package_id": "hoaitam_62", "start_month": "2008-06", "end_month": "2013-07", "covered_months": boundaries.expand_month_range("2008-06", "2013-07"), "row_count": 381049, "manifest_bytes": m2, "manifest_sha256": sha2},
+            {"package_id": "thanhtris_62", "start_month": "2013-08", "end_month": "2018-09", "covered_months": boundaries.expand_month_range("2013-08", "2018-09"), "row_count": 400000, "manifest_bytes": m3, "manifest_sha256": sha3},
+            {"package_id": "rosy179_63", "start_month": "2018-10", "end_month": "2023-12", "covered_months": boundaries.expand_month_range("2018-10", "2023-12"), "row_count": 420000, "manifest_bytes": m4, "manifest_sha256": sha4},
         ]
         boundaries_data = {
             "Boundary 1 (Base -> HoaiTam)": {
@@ -357,24 +405,30 @@ class TestCatalogBoundaries(unittest.TestCase):
                 "allow_empty": True,
                 "max_prev_time_utc": None,
                 "min_next_time_utc": "2008-06-01T01:00:00Z",
+                "max_next_time_utc": "2008-06-30T23:59:00Z",
             },
             "Boundary 2 (HoaiTam -> ThanhTris)": {
                 "prev_ids": ["ht_99"],
                 "next_ids": ["tt_01"],
+                "min_prev_time_utc": "2013-07-01T00:00:00Z",
                 "max_prev_time_utc": "2013-07-31T22:00:00Z",
                 "min_next_time_utc": "2013-08-01T01:00:00Z",
+                "max_next_time_utc": "2013-08-31T23:59:00Z",
             },
             "Boundary 3 (ThanhTris -> rosy179)": {
                 "prev_ids": ["tt_99"],
                 "next_ids": ["r_01"],
+                "min_prev_time_utc": "2018-09-01T00:00:00Z",
                 "max_prev_time_utc": "2018-09-30T23:45:00Z",
                 "min_next_time_utc": "2018-10-01T00:05:00Z",
+                "max_next_time_utc": "2018-10-31T23:59:00Z",
             },
         }
 
         report = boundaries.verify_all_boundaries(
             boundary_records=boundaries_data,
             package_manifests=manifests,
+            trusted_registry_pins=trusted_pins,
         )
         self.assertEqual(report["status"], "PASS")
         self.assertEqual(report["gate_status"], "VERIFIED_PASS")
@@ -383,7 +437,7 @@ class TestCatalogBoundaries(unittest.TestCase):
 
     def test_verify_manifest_contiguity_string_bytes_from_cli_json_no_type_error(self):
         """manifest_bytes as string in JSON manifests file must not raise TypeError."""
-        manifest_text = '{"package": "content"}'
+        manifest_text = '{"package_id": "catalog_base_101", "start_month": "2000-01", "end_month": "2008-05", "row_count": 100}'
         expected_sha = hashlib.sha256(manifest_text.encode("utf-8")).hexdigest()
 
         manifests = [
@@ -428,10 +482,11 @@ class TestCatalogBoundaries(unittest.TestCase):
         # 1. min_prev underflow
         res1 = boundaries.verify_boundary_time_window(
             prev_month="2008-05",
+            min_prev_dt_iso="2008-04-30T23:59:59Z",  # Underflow!
             max_prev_dt_iso="2008-05-31T23:00:00Z",
             next_month="2008-06",
             min_next_dt_iso="2008-06-01T01:00:00Z",
-            min_prev_dt_iso="2008-04-30T23:59:59Z",  # Underflow!
+            max_next_dt_iso="2008-06-30T23:59:59Z",
         )
         self.assertEqual(res1["status"], "FAIL")
         self.assertTrue(any("PREV_MONTH_UNDERFLOW" in v for v in res1["violations"]))
@@ -439,6 +494,7 @@ class TestCatalogBoundaries(unittest.TestCase):
         # 2. max_next overflow
         res2 = boundaries.verify_boundary_time_window(
             prev_month="2008-05",
+            min_prev_dt_iso="2008-05-01T00:00:00Z",
             max_prev_dt_iso="2008-05-31T23:00:00Z",
             next_month="2008-06",
             min_next_dt_iso="2008-06-01T01:00:00Z",
@@ -450,10 +506,11 @@ class TestCatalogBoundaries(unittest.TestCase):
         # 3. min_prev > max_prev inversion
         res3 = boundaries.verify_boundary_time_window(
             prev_month="2008-05",
+            min_prev_dt_iso="2008-05-20T12:00:00Z",  # min > max!
             max_prev_dt_iso="2008-05-10T12:00:00Z",
             next_month="2008-06",
             min_next_dt_iso="2008-06-01T01:00:00Z",
-            min_prev_dt_iso="2008-05-20T12:00:00Z",  # min > max!
+            max_next_dt_iso="2008-06-30T23:59:59Z",
         )
         self.assertEqual(res3["status"], "FAIL")
         self.assertTrue(any("PREV_EXTREMA_INVERSION" in v for v in res3["violations"]))
@@ -523,6 +580,196 @@ class TestCatalogBoundaries(unittest.TestCase):
         )
         for b in report["boundaries"]:
             self.assertIn(b["status"], ["FAIL", "NOT_CHECKED"])
+
+    # -------------------------------------------------------------------------
+    # Regressions specifically for HoaiTam Review Blockers (Head da8d107)
+    # -------------------------------------------------------------------------
+    def test_verify_all_boundaries_rejects_empty_json_manifest_bytes_with_self_computed_sha(self):
+        """[Blocker 1 Regression] 4 descriptors with manifest_bytes='{}', self-computed SHA, row_count=0,
+
+        and empty IDs with allow_empty=True must FAIL closed and never evaluate to VERIFIED_PASS.
+        """
+        raw_empty = b"{}"
+        self_sha = hashlib.sha256(raw_empty).hexdigest()
+
+        fabricated_manifests = [
+            {
+                "package_id": "catalog_base_101",
+                "start_month": "2000-01",
+                "end_month": "2008-05",
+                "covered_months": boundaries.expand_month_range("2000-01", "2008-05"),
+                "manifest_bytes": raw_empty,
+                "manifest_sha256": self_sha,
+                "row_count": 0,
+            },
+            {
+                "package_id": "hoaitam_62",
+                "start_month": "2008-06",
+                "end_month": "2013-07",
+                "covered_months": boundaries.expand_month_range("2008-06", "2013-07"),
+                "manifest_bytes": raw_empty,
+                "manifest_sha256": self_sha,
+                "row_count": 0,
+            },
+            {
+                "package_id": "thanhtris_62",
+                "start_month": "2013-08",
+                "end_month": "2018-09",
+                "covered_months": boundaries.expand_month_range("2013-08", "2018-09"),
+                "manifest_bytes": raw_empty,
+                "manifest_sha256": self_sha,
+                "row_count": 0,
+            },
+            {
+                "package_id": "rosy179_63",
+                "start_month": "2018-10",
+                "end_month": "2023-12",
+                "covered_months": boundaries.expand_month_range("2018-10", "2023-12"),
+                "manifest_bytes": raw_empty,
+                "manifest_sha256": self_sha,
+                "row_count": 0,
+            },
+        ]
+
+        fabricated_boundaries = {
+            "Boundary 1 (Base -> HoaiTam)": {"prev_ids": [], "next_ids": [], "allow_empty": True},
+            "Boundary 2 (HoaiTam -> ThanhTris)": {"prev_ids": [], "next_ids": [], "allow_empty": True},
+            "Boundary 3 (ThanhTris -> rosy179)": {"prev_ids": [], "next_ids": [], "allow_empty": True},
+        }
+
+        report = boundaries.verify_all_boundaries(
+            boundary_records=fabricated_boundaries,
+            package_manifests=fabricated_manifests,
+            audit_scope="OFFICIAL_CATALOG_GATE",
+        )
+
+        # Must strictly FAIL and reject VERIFIED_PASS
+        self.assertEqual(report["status"], "FAIL")
+        self.assertEqual(report["gate_status"], "PENDING_CATALOG_MERGE")
+        self.assertNotEqual(report["gate_status"], "VERIFIED_PASS")
+
+        # Contiguity must detect EMPTY_MANIFEST_PAYLOAD
+        violations = report["contiguity"]["violations"]
+        self.assertTrue(any("EMPTY_MANIFEST_PAYLOAD" in v for v in violations))
+
+        # Boundaries must fail disjointness check because allow_empty has no verified evidence
+        for b in report["boundaries"]:
+            self.assertEqual(b["disjointness"]["status"], "FAIL")
+            self.assertIn("UNVERIFIED_EMPTY_INPUT", b["disjointness"]["reason"])
+
+    def test_verify_boundary_time_window_missing_single_extremum_returns_not_checked(self):
+        """[Blocker 2 Regression] Omitting any of the 4 extrema for a non-empty boundary must return NOT_CHECKED."""
+        base_kwargs = {
+            "prev_month": "2008-05",
+            "min_prev_dt_iso": "2008-05-01T00:00:00Z",
+            "max_prev_dt_iso": "2008-05-31T23:59:58Z",
+            "next_month": "2008-06",
+            "min_next_dt_iso": "2008-06-01T00:00:05Z",
+            "max_next_dt_iso": "2008-06-30T23:59:59Z",
+        }
+
+        # 1. Missing min_prev_dt_iso
+        kw1 = dict(base_kwargs, min_prev_dt_iso=None)
+        res1 = boundaries.verify_boundary_time_window(**kw1)
+        self.assertEqual(res1["status"], "NOT_CHECKED")
+        self.assertTrue(any("MISSING_PREV_MONTH_EXTREMA" in v for v in res1["violations"]))
+
+        # 2. Missing max_prev_dt_iso
+        kw2 = dict(base_kwargs, max_prev_dt_iso=None)
+        res2 = boundaries.verify_boundary_time_window(**kw2)
+        self.assertEqual(res2["status"], "NOT_CHECKED")
+        self.assertTrue(any("MISSING_PREV_MONTH_EXTREMA" in v for v in res2["violations"]))
+
+        # 3. Missing min_next_dt_iso
+        kw3 = dict(base_kwargs, min_next_dt_iso=None)
+        res3 = boundaries.verify_boundary_time_window(**kw3)
+        self.assertEqual(res3["status"], "NOT_CHECKED")
+        self.assertTrue(any("MISSING_NEXT_MONTH_EXTREMA" in v for v in res3["violations"]))
+
+        # 4. Missing max_next_dt_iso
+        kw4 = dict(base_kwargs, max_next_dt_iso=None)
+        res4 = boundaries.verify_boundary_time_window(**kw4)
+        self.assertEqual(res4["status"], "NOT_CHECKED")
+        self.assertTrue(any("MISSING_NEXT_MONTH_EXTREMA" in v for v in res4["violations"]))
+
+    def test_verify_boundary_time_window_requires_explicit_timezone(self):
+        """[Blocker 2 Regression] Naive timestamps without timezone offset must be rejected with FAIL."""
+        res = boundaries.verify_boundary_time_window(
+            prev_month="2008-05",
+            min_prev_dt_iso="2008-05-01 00:00:00",  # Missing timezone!
+            max_prev_dt_iso="2008-05-31T23:59:58Z",
+            next_month="2008-06",
+            min_next_dt_iso="2008-06-01T00:00:05Z",
+            max_next_dt_iso="2008-06-30T23:59:59Z",
+        )
+        self.assertEqual(res["status"], "FAIL")
+        self.assertTrue(any("MISSING_TIMEZONE_OFFSET" in v for v in res["violations"]))
+
+    def test_distinguish_manifest_sha256_from_package_sha256(self):
+        """[Blocker 1 Regression] manifest_bytes cannot be evaluated against package_sha256."""
+        raw = b'{"package_id": "pkg_base_101", "start_month": "2000-01", "end_month": "2008-05"}'
+        manifests = [
+            {
+                "package_id": "pkg_base_101",
+                "start_month": "2000-01",
+                "end_month": "2008-05",
+                "covered_months": boundaries.expand_month_range("2000-01", "2008-05"),
+                "manifest_bytes": raw,
+                "package_sha256": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",  # Package archive hash, NOT manifest hash
+            }
+        ]
+        res = boundaries.verify_manifest_contiguity(manifests)
+        self.assertEqual(res["status"], "FAIL")
+        self.assertTrue(any("SEPARATE_SHA_REQUIRED" in v for v in res["violations"]))
+
+    def test_verify_all_boundaries_without_trusted_pins_yields_fixture_pass_never_verified_pass(self):
+        """[Blocker 1 Regression] Valid descriptors without independent trusted registry pins return FIXTURE_PASS, never VERIFIED_PASS."""
+        valid_data = {
+            "Boundary 1 (Base -> HoaiTam)": {
+                "prev_ids": ["b_01"],
+                "next_ids": ["ht_01"],
+                "min_prev_time_utc": "2008-05-01T00:00:00Z",
+                "max_prev_time_utc": "2008-05-31T23:50:00Z",
+                "min_next_time_utc": "2008-06-01T00:10:00Z",
+                "max_next_time_utc": "2008-06-30T23:59:00Z",
+            },
+            "Boundary 2 (HoaiTam -> ThanhTris)": {
+                "prev_ids": ["ht_99"],
+                "next_ids": ["tt_01"],
+                "min_prev_time_utc": "2013-07-01T00:00:00Z",
+                "max_prev_time_utc": "2013-07-31T22:00:00Z",
+                "min_next_time_utc": "2013-08-01T01:00:00Z",
+                "max_next_time_utc": "2013-08-31T23:59:00Z",
+            },
+            "Boundary 3 (ThanhTris -> rosy179)": {
+                "prev_ids": ["tt_99"],
+                "next_ids": ["r_01"],
+                "min_prev_time_utc": "2018-09-01T00:00:00Z",
+                "max_prev_time_utc": "2018-09-30T23:45:00Z",
+                "min_next_time_utc": "2018-10-01T00:05:00Z",
+                "max_next_time_utc": "2018-10-31T23:59:00Z",
+            },
+        }
+        m1 = b'{"package_id": "catalog_base_101", "start_month": "2000-01", "end_month": "2008-05", "row_count": 100}'
+        m2 = b'{"package_id": "hoaitam_62", "start_month": "2008-06", "end_month": "2013-07", "row_count": 100}'
+        m3 = b'{"package_id": "thanhtris_62", "start_month": "2013-08", "end_month": "2018-09", "row_count": 100}'
+        m4 = b'{"package_id": "rosy179_63", "start_month": "2018-10", "end_month": "2023-12", "row_count": 100}'
+
+        manifests = [
+            {"package_id": "catalog_base_101", "start_month": "2000-01", "end_month": "2008-05", "covered_months": boundaries.expand_month_range("2000-01", "2008-05"), "row_count": 100, "manifest_bytes": m1, "manifest_sha256": hashlib.sha256(m1).hexdigest()},
+            {"package_id": "hoaitam_62", "start_month": "2008-06", "end_month": "2013-07", "covered_months": boundaries.expand_month_range("2008-06", "2013-07"), "row_count": 100, "manifest_bytes": m2, "manifest_sha256": hashlib.sha256(m2).hexdigest()},
+            {"package_id": "thanhtris_62", "start_month": "2013-08", "end_month": "2018-09", "covered_months": boundaries.expand_month_range("2013-08", "2018-09"), "row_count": 100, "manifest_bytes": m3, "manifest_sha256": hashlib.sha256(m3).hexdigest()},
+            {"package_id": "rosy179_63", "start_month": "2018-10", "end_month": "2023-12", "covered_months": boundaries.expand_month_range("2018-10", "2023-12"), "row_count": 100, "manifest_bytes": m4, "manifest_sha256": hashlib.sha256(m4).hexdigest()},
+        ]
+        # Calling without trusted_registry_pins
+        report = boundaries.verify_all_boundaries(
+            boundary_records=valid_data,
+            package_manifests=manifests,
+            audit_scope="OFFICIAL_CATALOG_GATE",
+        )
+        self.assertEqual(report["status"], "PASS")
+        self.assertEqual(report["gate_status"], "FIXTURE_PASS")
+        self.assertNotEqual(report["gate_status"], "VERIFIED_PASS")
 
 
 if __name__ == "__main__":
