@@ -345,11 +345,15 @@ class TestScientificEvaluation(unittest.TestCase):
         res_empty = run_window_stability_analysis([], "main_missing", "DBSCAN", repeats=3)
         self.assertIsNone(res_empty["mean_jaccard"])
         self.assertIsNone(res_empty["mean_ari"])
+        self.assertEqual(res_empty["requested_repeats"], 3)
+        self.assertEqual(res_empty["attempted_repeats"], 0)
         self.assertEqual(res_empty["valid_repeats"], 0)
-        self.assertEqual(res_empty["attempted_repeats"], 3)
+        self.assertEqual(res_empty["failed_repeats"], 0)
+        self.assertEqual(res_empty["attempted_pairs"], 0)
         self.assertEqual(res_empty["valid_pairs"], 0)
+        self.assertEqual(res_empty["failed_repeat_details"], [])
         self.assertIn(METRIC_NOT_APPLICABLE, res_empty["metric_reason_codes"])
-        self.assertEqual(res_empty["note"], "EMPTY_WINDOW_CANDIDATES")
+        self.assertEqual(res_empty["note"], "EMPTY_WINDOW_CANDIDATES / NOT_RUN")
 
         # 2. Candidate list present but mainshock_id not found
         cands = [
@@ -358,11 +362,15 @@ class TestScientificEvaluation(unittest.TestCase):
         res_missing_main = run_window_stability_analysis(cands, "non_existent_main", "DBSCAN", repeats=3)
         self.assertIsNone(res_missing_main["mean_jaccard"])
         self.assertIsNone(res_missing_main["mean_ari"])
+        self.assertEqual(res_missing_main["requested_repeats"], 3)
+        self.assertEqual(res_missing_main["attempted_repeats"], 0)
         self.assertEqual(res_missing_main["valid_repeats"], 0)
-        self.assertEqual(res_missing_main["attempted_repeats"], 3)
+        self.assertEqual(res_missing_main["failed_repeats"], 0)
+        self.assertEqual(res_missing_main["attempted_pairs"], 0)
         self.assertEqual(res_missing_main["valid_pairs"], 0)
+        self.assertEqual(res_missing_main["failed_repeat_details"], [])
         self.assertIn(METRIC_NOT_APPLICABLE, res_missing_main["metric_reason_codes"])
-        self.assertEqual(res_missing_main["note"], "MAINSHOCK_NOT_IN_CANDIDATES")
+        self.assertEqual(res_missing_main["note"], "MAINSHOCK_NOT_IN_CANDIDATES / NOT_RUN")
 
     def test_evaluate_model_respects_custom_config_and_pins(self):
         """Custom configs (e.g. changing eps or adaptive policy) must propagate to model execution and alter outcomes."""
@@ -506,8 +514,11 @@ class TestScientificEvaluation(unittest.TestCase):
         }
 
         real_dispatch = evaluation._dispatch_fit_model
+        import collections
+        dispatch_call_counts = collections.defaultdict(int)
 
         def mock_dispatch(algorithm_name, window_candidates, mainshock_id, config=None):
+            dispatch_call_counts[mainshock_id] += 1
             if mainshock_id == "m_fail":
                 raise RuntimeError("simulated primary fit crash")
             return real_dispatch(algorithm_name, window_candidates, mainshock_id, config=config)
@@ -525,14 +536,29 @@ class TestScientificEvaluation(unittest.TestCase):
         self.assertEqual(res["failure_rate"], 0.5)
         self.assertTrue(any("simulated primary fit crash" in r for r in res["failure_reasons"]))
 
+        # Verify call counts: primary fit crash calls dispatch exactly 1 time (0 stability repeats)
+        self.assertEqual(dispatch_call_counts["m_fail"], 1)
+        # m_ok succeeded on primary fit: 1 primary + 2 repeats = 3 calls
+        self.assertEqual(dispatch_call_counts["m_ok"], 3)
+
         # Window evaluations detail
         win_evals = {w["mainshock_id"]: w for w in res["window_evaluations"]}
         self.assertEqual(win_evals["m_fail"]["window_result_status"], "FAILURE")
         self.assertIn("simulated primary fit crash", win_evals["m_fail"]["fit_exception"])
         self.assertIsNone(win_evals["m_fail"]["dbcv_score"])
         self.assertIsNone(win_evals["m_fail"]["stability"]["mean_jaccard"])
+        self.assertEqual(win_evals["m_fail"]["stability"]["requested_repeats"], 2)
+        self.assertEqual(win_evals["m_fail"]["stability"]["attempted_repeats"], 0)
+        self.assertEqual(win_evals["m_fail"]["stability"]["failed_repeats"], 0)
+        self.assertEqual(win_evals["m_fail"]["stability"]["attempted_pairs"], 0)
+        self.assertEqual(win_evals["m_fail"]["stability"]["valid_pairs"], 0)
+        self.assertEqual(win_evals["m_fail"]["stability"]["failed_repeat_details"], [])
+        self.assertIn("PRIMARY_FIT_FAILED", win_evals["m_fail"]["stability"]["note"])
+        self.assertIn("NOT_RUN", win_evals["m_fail"]["stability"]["note"])
 
         self.assertEqual(win_evals["m_ok"]["window_result_status"], "SUCCESS")
+        self.assertEqual(win_evals["m_ok"]["stability"]["attempted_repeats"], 2)
+        self.assertEqual(win_evals["m_ok"]["stability"]["valid_repeats"], 2)
 
     def test_evaluate_model_on_bundle_all_windows_fit_crashed(self):
         """When all primary fits crash, evaluate_model_on_bundle must not raise and report 100% failure rate with null metrics."""
@@ -606,6 +632,142 @@ class TestScientificEvaluation(unittest.TestCase):
             self.assertEqual(len(prov["normalized_lf_code_hashes"][rel_path]), 64)
             self.assertEqual(len(prov["git_blob_hashes"][rel_path]), 40)
             self.assertIn(prov["detected_line_endings"][rel_path], ["crlf", "lf"])
+
+    def test_code_provenance_detects_dirty_experiment_harness_in_temp_repo(self):
+        """Modifying experiment_harness.py in a git repo must cause is_clean_code=False and report dirty status."""
+        import tempfile
+        import subprocess
+        import importlib
+        eval_script = importlib.import_module("scripts.evaluate-models")
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir)
+            # Initialize git repo
+            subprocess.run(["git", "init"], cwd=str(tmp_path), check=True, capture_output=True)
+            subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=str(tmp_path), check=True, capture_output=True)
+            subprocess.run(["git", "config", "user.name", "Test Runner"], cwd=str(tmp_path), check=True, capture_output=True)
+
+            # Create the 5 critical files and 4 model configs
+            for f_rel in [
+                "notebooks/evaluation.py",
+                "scripts/evaluate-models.py",
+                "notebooks/baseline_models.py",
+                "notebooks/adaptive_hdbscan.py",
+                "notebooks/experiment_harness.py",
+                "config/ml/models/window_baseline_v1.json",
+                "config/ml/models/dbscan_global_dev_v1.json",
+                "config/ml/models/hdbscan_global_dev_v1.json",
+                "config/ml/models/hdbscan_adaptive_dev_v1.json",
+            ]:
+                p = tmp_path / f_rel
+                p.parent.mkdir(parents=True, exist_ok=True)
+                p.write_text("initial content\n", encoding="utf-8")
+
+            # Commit clean state
+            subprocess.run(["git", "add", "."], cwd=str(tmp_path), check=True, capture_output=True)
+            subprocess.run(["git", "commit", "-m", "initial commit"], cwd=str(tmp_path), check=True, capture_output=True)
+
+            # 1. Clean verification
+            prov_clean = eval_script.get_code_provenance(tmp_path)
+            self.assertTrue(prov_clean["is_clean_code"])
+            self.assertEqual(prov_clean["dirty_files"], [])
+            self.assertEqual(prov_clean["missing_files"], [])
+            self.assertEqual(prov_clean["blob_mismatches"], [])
+            self.assertEqual(prov_clean["clean_verification_status"], "VERIFIED_CLEAN")
+
+            # 2. Modify ONLY notebooks/experiment_harness.py
+            (tmp_path / "notebooks/experiment_harness.py").write_text("modified content\n", encoding="utf-8")
+
+            prov_dirty = eval_script.get_code_provenance(tmp_path)
+            self.assertFalse(prov_dirty["is_clean_code"])
+            self.assertTrue(any("notebooks/experiment_harness.py" in f for f in prov_dirty["dirty_files"]))
+            self.assertIn("notebooks/experiment_harness.py", prov_dirty["blob_mismatches"])
+
+            # 3. Add untracked file under config/ml/models/ -> must be dirty (-uall check)
+            (tmp_path / "notebooks/experiment_harness.py").write_text("initial content\n", encoding="utf-8")
+            (tmp_path / "config/ml/models/untracked_cfg.json").write_text("{}", encoding="utf-8")
+
+            prov_untracked = eval_script.get_code_provenance(tmp_path)
+            self.assertFalse(prov_untracked["is_clean_code"])
+            self.assertTrue(any("untracked_cfg.json" in f for f in prov_untracked["dirty_files"]))
+
+            # 4. Remove a critical file -> missing file -> fail-closed
+            (tmp_path / "config/ml/models/untracked_cfg.json").unlink()
+            (tmp_path / "notebooks/experiment_harness.py").unlink()
+
+            prov_missing = eval_script.get_code_provenance(tmp_path)
+            self.assertFalse(prov_missing["is_clean_code"])
+            self.assertIn("notebooks/experiment_harness.py", prov_missing["missing_files"])
+
+
+    def test_distinguish_primary_fit_failure_from_repeat_fit_failure(self):
+        """Rigorous contrast between primary fit failure (0 repeats attempted) and repeat fit failure (all repeats attempted)."""
+        bundle = {
+            "windows": {
+                "win_primary_fail": [
+                    {"candidate_event_id": "win_primary_fail", "x_scaled": 0.0, "y_scaled": 0.0, "z_scaled": 0.0, "time_scaled": 0.0, "delta_time_hours": 0.0},
+                    {"candidate_event_id": "c1", "x_scaled": 0.1, "y_scaled": 0.1, "z_scaled": 0.0, "time_scaled": 1.0, "delta_time_hours": 1.0},
+                ],
+                "win_repeat_fail": [
+                    {"candidate_event_id": "win_repeat_fail", "x_scaled": 0.0, "y_scaled": 0.0, "z_scaled": 0.0, "time_scaled": 0.0, "delta_time_hours": 0.0},
+                    {"candidate_event_id": "c2", "x_scaled": 0.001, "y_scaled": 0.001, "z_scaled": 0.0, "time_scaled": 0.5, "delta_time_hours": 0.5},
+                ],
+            }
+        }
+
+        real_dispatch = evaluation._dispatch_fit_model
+        import collections
+        call_counts = collections.defaultdict(int)
+
+        def mock_dispatch(algorithm_name, window_candidates, mainshock_id, config=None):
+            call_counts[mainshock_id] += 1
+            # Primary fit for win_primary_fail fails immediately
+            if mainshock_id == "win_primary_fail":
+                raise RuntimeError("primary fit crashed")
+
+            # Primary fit for win_repeat_fail succeeds (call 1), but repeat 2 (call 3) crashes
+            if mainshock_id == "win_repeat_fail" and call_counts[mainshock_id] == 3:
+                raise RuntimeError("repeat fit 1 crashed")
+
+            return real_dispatch(algorithm_name, window_candidates, mainshock_id, config=config)
+
+        with unittest.mock.patch.object(evaluation, "_dispatch_fit_model", side_effect=mock_dispatch):
+            res = evaluation.evaluate_model_on_bundle(
+                bundle=bundle,
+                algorithm_name="WINDOW",
+                repeats=3,
+            )
+
+        win_evals = {w["mainshock_id"]: w for w in res["window_evaluations"]}
+
+        # 1. win_primary_fail: 1 primary call, 0 stability repeats attempted
+        self.assertEqual(call_counts["win_primary_fail"], 1)
+        stab_prim = win_evals["win_primary_fail"]["stability"]
+        self.assertEqual(stab_prim["requested_repeats"], 3)
+        self.assertEqual(stab_prim["attempted_repeats"], 0)
+        self.assertEqual(stab_prim["valid_repeats"], 0)
+        self.assertEqual(stab_prim["failed_repeats"], 0)
+        self.assertEqual(stab_prim["attempted_pairs"], 0)
+        self.assertEqual(stab_prim["valid_pairs"], 0)
+        self.assertEqual(stab_prim["failed_repeat_details"], [])
+        self.assertIn("PRIMARY_FIT_FAILED", stab_prim["note"])
+        self.assertIn("NOT_RUN", stab_prim["note"])
+
+        # 2. win_repeat_fail: 1 primary + 3 repeats = 4 calls total
+        self.assertEqual(call_counts["win_repeat_fail"], 4)
+        stab_rep = win_evals["win_repeat_fail"]["stability"]
+        self.assertEqual(stab_rep["requested_repeats"], 3)
+        self.assertEqual(stab_rep["attempted_repeats"], 3)
+        self.assertEqual(stab_rep["valid_repeats"], 2)
+        self.assertEqual(stab_rep["failed_repeats"], 1)
+        self.assertEqual(stab_rep["attempted_pairs"], 3)  # 3 * 2 // 2
+        self.assertEqual(stab_rep["valid_pairs"], 1)      # 2 * 1 // 2
+        self.assertEqual(len(stab_rep["failed_repeat_details"]), 1)
+        self.assertEqual(stab_rep["failed_repeat_details"][0]["repeat_index"], 1)
+        self.assertIn("repeat fit 1 crashed", stab_rep["failed_repeat_details"][0]["error_message"])
+        self.assertIsNotNone(stab_rep["mean_jaccard"])
+        self.assertIn("PARTIAL_FIT_FAILURES", stab_rep["metric_reason_codes"])
+
 
 if __name__ == "__main__":
     unittest.main()

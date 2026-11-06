@@ -61,10 +61,22 @@ def get_code_provenance(project_root: Optional[Path] = None) -> Dict[str, Any]:
         "notebooks/adaptive_hdbscan.py",
         "notebooks/experiment_harness.py",
     ]
+    model_config_files = [
+        "config/ml/models/window_baseline_v1.json",
+        "config/ml/models/dbscan_global_dev_v1.json",
+        "config/ml/models/hdbscan_global_dev_v1.json",
+        "config/ml/models/hdbscan_adaptive_dev_v1.json",
+    ]
+    all_monitored_files = critical_files + model_config_files
+
     raw_file_hashes: Dict[str, str] = {}
     lf_file_hashes: Dict[str, str] = {}
     git_blob_hashes: Dict[str, str] = {}
+    head_blob_hashes: Dict[str, str] = {}
     detected_line_endings: Dict[str, str] = {}
+
+    missing_files: List[str] = []
+    blob_mismatches: List[str] = []
 
     for rel_path in critical_files:
         f = root / rel_path
@@ -78,7 +90,16 @@ def get_code_provenance(project_root: Optional[Path] = None) -> Dict[str, Any]:
             git_blob = "unknown"
             try:
                 res = subprocess.run(
-                    ["git", "-C", str(root), "hash-object", str(f)],
+                    [
+                        "git",
+                        "-C",
+                        str(root),
+                        "-c",
+                        "core.autocrlf=true",
+                        "hash-object",
+                        f"--path={rel_path}",
+                        str(f),
+                    ],
                     capture_output=True,
                     text=True,
                     check=True,
@@ -94,9 +115,39 @@ def get_code_provenance(project_root: Optional[Path] = None) -> Dict[str, Any]:
             lf_file_hashes[rel_path] = "MISSING"
             git_blob_hashes[rel_path] = "MISSING"
             detected_line_endings[rel_path] = "unknown"
+            missing_files.append(rel_path)
+
+    for rel_path in model_config_files:
+        f = root / rel_path
+        if f.is_file():
+            git_blob = "unknown"
+            try:
+                res = subprocess.run(
+                    [
+                        "git",
+                        "-C",
+                        str(root),
+                        "-c",
+                        "core.autocrlf=true",
+                        "hash-object",
+                        f"--path={rel_path}",
+                        str(f),
+                    ],
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                )
+                blob_candidate = res.stdout.strip()
+                if re.fullmatch(r"[a-f0-9]{40}", blob_candidate):
+                    git_blob = blob_candidate
+            except Exception:
+                pass
+            git_blob_hashes[rel_path] = git_blob
+        else:
+            git_blob_hashes[rel_path] = "MISSING"
+            missing_files.append(rel_path)
 
     git_commit = "unknown"
-    is_dirty = True
     dirty_files: List[str] = []
     try:
         res = subprocess.run(
@@ -109,6 +160,28 @@ def get_code_provenance(project_root: Optional[Path] = None) -> Dict[str, Any]:
         if re.fullmatch(r"[a-f0-9]{40}", c):
             git_commit = c
 
+        # Query committed HEAD blob for all monitored files
+        for rel_path in all_monitored_files:
+            try:
+                head_res = subprocess.run(
+                    ["git", "-C", str(root), "rev-parse", f"HEAD:{rel_path}"],
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                )
+                hb = head_res.stdout.strip()
+                if re.fullmatch(r"[a-f0-9]{40}", hb):
+                    head_blob_hashes[rel_path] = hb
+                else:
+                    head_blob_hashes[rel_path] = "UNKNOWN"
+            except Exception:
+                head_blob_hashes[rel_path] = "UNCOMMITTED"
+
+            wt_blob = git_blob_hashes.get(rel_path)
+            if wt_blob != head_blob_hashes[rel_path] or wt_blob in ("unknown", "MISSING"):
+                blob_mismatches.append(rel_path)
+
+        # Run git status with -uall across critical files, experiment loader, and model configs
         status_res = subprocess.run(
             [
                 "git",
@@ -120,12 +193,13 @@ def get_code_provenance(project_root: Optional[Path] = None) -> Dict[str, Any]:
                 "core.fileMode=false",
                 "status",
                 "--porcelain",
-                "-uno",
+                "-uall",
                 "--",
                 "notebooks/evaluation.py",
                 "scripts/evaluate-models.py",
                 "notebooks/baseline_models.py",
                 "notebooks/adaptive_hdbscan.py",
+                "notebooks/experiment_harness.py",
                 "config/ml/models/",
             ],
             capture_output=True,
@@ -133,19 +207,40 @@ def get_code_provenance(project_root: Optional[Path] = None) -> Dict[str, Any]:
             check=True,
         )
         status_lines = [line.strip() for line in status_res.stdout.splitlines() if line.strip()]
-        dirty_files = [line.split()[-1] for line in status_lines]
-        is_dirty = len(dirty_files) > 0
+        for line in status_lines:
+            parts = line.split(maxsplit=1)
+            if len(parts) >= 2:
+                dirty_files.append(parts[1].strip())
+            else:
+                dirty_files.append(line)
     except Exception:
         pass
 
+    has_valid_commit = bool(re.fullmatch(r"[a-f0-9]{40}", git_commit))
+    has_dirty_status = len(dirty_files) > 0
+    has_missing_files = len(missing_files) > 0
+    has_blob_mismatches = len(blob_mismatches) > 0
+
+    is_clean_code = (
+        has_valid_commit
+        and not has_dirty_status
+        and not has_missing_files
+        and not has_blob_mismatches
+    )
+    all_dirty_or_mismatched = sorted(list(set(dirty_files + blob_mismatches + missing_files)))
+
     return {
         "git_commit": git_commit,
-        "is_clean_code": not is_dirty,
-        "dirty_files": dirty_files,
+        "is_clean_code": is_clean_code,
+        "clean_verification_status": "VERIFIED_CLEAN" if is_clean_code else "DIRTY_OR_UNVERIFIED",
+        "dirty_files": all_dirty_or_mismatched,
+        "missing_files": missing_files,
+        "blob_mismatches": blob_mismatches,
         "critical_code_hashes": raw_file_hashes,
         "working_tree_code_hashes": raw_file_hashes,
         "normalized_lf_code_hashes": lf_file_hashes,
         "git_blob_hashes": git_blob_hashes,
+        "head_blob_hashes": head_blob_hashes,
         "detected_line_endings": detected_line_endings,
         "cross_platform_verification_note": (
             "Working-tree hashes depend on local filesystem line endings (CRLF on Windows vs LF on Unix/macOS). "

@@ -398,16 +398,17 @@ def run_window_stability_analysis(
             "min_ari": None,
             "max_ari": None,
             "repeats": repeats,
+            "requested_repeats": repeats,
             "sigma": sigma,
             "seed": seed,
-            "attempted_repeats": repeats,
+            "attempted_repeats": 0,
             "valid_repeats": 0,
             "failed_repeats": 0,
             "attempted_pairs": 0,
             "valid_pairs": 0,
             "metric_reason_codes": [METRIC_NOT_APPLICABLE],
             "failed_repeat_details": [],
-            "note": "INVALID_REPEATS_LESS_THAN_2",
+            "note": "INVALID_REPEATS_LESS_THAN_2 / NOT_RUN",
         }
 
     if not math.isfinite(sigma) or sigma < 0.0:
@@ -421,16 +422,17 @@ def run_window_stability_analysis(
             "min_ari": None,
             "max_ari": None,
             "repeats": repeats,
+            "requested_repeats": repeats,
             "sigma": sigma,
             "seed": seed,
-            "attempted_repeats": repeats,
+            "attempted_repeats": 0,
             "valid_repeats": 0,
             "failed_repeats": 0,
-            "attempted_pairs": repeats * (repeats - 1) // 2,
+            "attempted_pairs": 0,
             "valid_pairs": 0,
             "metric_reason_codes": [METRIC_NOT_APPLICABLE],
             "failed_repeat_details": [],
-            "note": "INVALID_SIGMA",
+            "note": "INVALID_SIGMA / NOT_RUN",
         }
 
     if not window_candidates:
@@ -444,16 +446,17 @@ def run_window_stability_analysis(
             "min_ari": None,
             "max_ari": None,
             "repeats": repeats,
+            "requested_repeats": repeats,
             "sigma": sigma,
             "seed": seed,
-            "attempted_repeats": repeats,
+            "attempted_repeats": 0,
             "valid_repeats": 0,
             "failed_repeats": 0,
-            "attempted_pairs": repeats * (repeats - 1) // 2,
+            "attempted_pairs": 0,
             "valid_pairs": 0,
             "metric_reason_codes": [METRIC_NOT_APPLICABLE],
             "failed_repeat_details": [],
-            "note": "EMPTY_WINDOW_CANDIDATES",
+            "note": "EMPTY_WINDOW_CANDIDATES / NOT_RUN",
         }
 
     mainshock_present = any(
@@ -471,16 +474,17 @@ def run_window_stability_analysis(
             "min_ari": None,
             "max_ari": None,
             "repeats": repeats,
+            "requested_repeats": repeats,
             "sigma": sigma,
             "seed": seed,
-            "attempted_repeats": repeats,
+            "attempted_repeats": 0,
             "valid_repeats": 0,
             "failed_repeats": 0,
-            "attempted_pairs": repeats * (repeats - 1) // 2,
+            "attempted_pairs": 0,
             "valid_pairs": 0,
             "metric_reason_codes": [METRIC_NOT_APPLICABLE],
             "failed_repeat_details": [],
-            "note": "MAINSHOCK_NOT_IN_CANDIDATES",
+            "note": "MAINSHOCK_NOT_IN_CANDIDATES / NOT_RUN",
         }
 
     valid_runs: List[Tuple[Set[str], List[int]]] = []
@@ -534,6 +538,7 @@ def run_window_stability_analysis(
             "min_ari": None,
             "max_ari": None,
             "repeats": repeats,
+            "requested_repeats": repeats,
             "sigma": sigma,
             "seed": seed,
             "attempted_repeats": repeats,
@@ -583,6 +588,7 @@ def run_window_stability_analysis(
         "min_ari": round(min_a, 4),
         "max_ari": round(max_a, 4),
         "repeats": repeats,
+        "requested_repeats": repeats,
         "sigma": sigma,
         "seed": seed,
         "attempted_repeats": repeats,
@@ -757,18 +763,17 @@ def evaluate_model_on_bundle(
                 "min_ari": None,
                 "max_ari": None,
                 "repeats": repeats,
+                "requested_repeats": repeats,
                 "sigma": sigma,
                 "seed": seed,
-                "attempted_repeats": repeats,
+                "attempted_repeats": 0,
                 "valid_repeats": 0,
-                "failed_repeats": repeats,
-                "attempted_pairs": repeats * (repeats - 1) // 2 if repeats >= 2 else 0,
+                "failed_repeats": 0,
+                "attempted_pairs": 0,
                 "valid_pairs": 0,
                 "metric_reason_codes": [METRIC_FIT_FAILED],
-                "failed_repeat_details": [
-                    {"repeat": 0, "error": str(fit_exception), "error_type": type(fit_exception).__name__}
-                ],
-                "note": f"PRIMARY_FIT_FAILED: {type(fit_exception).__name__}",
+                "failed_repeat_details": [],
+                "note": f"PRIMARY_FIT_FAILED: {type(fit_exception).__name__} / NOT_RUN",
             }
         else:
             stability_res = run_window_stability_analysis(
