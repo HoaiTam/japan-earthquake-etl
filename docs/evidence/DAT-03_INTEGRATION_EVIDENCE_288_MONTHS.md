@@ -49,7 +49,7 @@ rosy179 đã trích xuất từ MinIO local, đối chiếu và đóng gói thà
 
 ## 3. Các Điểm nghẽn Còn lại Trước khi Hoàn tất DAT-03
 
-1. **Provenance worker rosy179:** Đã đóng gói xong 83/83 objects (`rosy179-dat03-provenance-metadata.zip`), sẵn sàng đưa lên Drive thư mục `workers/rosy179/` để Tâm đối soát tự động.
+1. **Provenance worker rosy179:** Đã đưa gói `rosy179-dat03-provenance-metadata.zip` lên Google Drive (thư mục `workers/rosy179/`). Hoài Tâm đã tải độc lập và đối chiếu với `rosy179-required-provenance.json` (pin từ checkpoint 02/11), xác nhận 83/83 object first-hop khớp SHA-256 (37 Bronze manifests, 23 Silver bundle manifests, 23 snapshot registry JSONs). Tuy nhiên, **Cổng 1 chưa hoàn tất vì còn chờ đối soát transitive lineage / transitive closure** của cả hai phần (ThanhTris và rosy179) đến các frozen archives.
 2. **Release nghiên cứu cuối:** Thư mục `accepted/` trên Drive chưa có release cuối cùng. Hai receipt hiện có trong thư mục `receipts/` là receipt chạy dải tháng cá nhân của Trí, chưa phải xác nhận của 3 thành viên nhận cùng một dataset nghiên cứu chính thức.
 3. **Catalog Gold hợp nhất:** Chưa thực hiện merge 4 gói vào Iceberg catalog chung để kiểm tra liên kết ranh giới và chạy Trino verification queries.
 4. **Official ML Export:** Chưa chạy build job chính thức cho 2 split `REPRODUCTION` và `EXTENSION` từ snapshot Gold chung.
@@ -76,7 +76,7 @@ rosy179 đã trích xuất từ MinIO local, đối chiếu và đóng gói thà
 DAT-03 CHÍNH THỨC HOÀN TẤT (DONE)
 ```
 
-1. **Cổng 1 — Hoàn tất đối soát Provenance:** Nhận và đối soát 83 object của rosy179; kiểm tra transitive closure đến các nguồn frozen archives.
+1. **Cổng 1 — Hoàn tất đối soát Provenance:** First-hop provenance cho cả hai worker (ThanhTris: 75/75 objects, rosy179: 83/83 objects) đã được đưa lên Google Drive và đối chiếu độc lập khớp 100% SHA-256. Cổng 1 hiện đang chờ kiểm tra transitive closure và lineage sâu hơn của cả hai phần đến các frozen archives trước khi hoàn tất Cổng 1.
 2. **Cổng 2 — Tích hợp Catalog & Khử trùng Ranh giới:** Tích hợp 4 gói Parquet vào catalog Gold, kiểm tra tại 3 điểm ranh giới (`2008-05/06`, `2013-07/08`, `2018-09/10`) đảm bảo không trùng lặp `canonical_event_id`, chạy Trino query audit count.
 3. **Cổng 3 — Xuất bản Official ML Feature Export:** Kích hoạt `ResearchDatasetBuildJob` cho hai tập:
    - `REPRODUCTION`: [2000-01-01, 2018-10-01) UTC (225 tháng, Mc cutoff theo contract).
@@ -90,6 +90,6 @@ DAT-03 CHÍNH THỨC HOÀN TẤT (DONE)
 
 ## 5. Trạng thái Audit Ranh giới Catalog (Boundary Gate Audit)
 
-- Công cụ kiểm tra ranh giới [`scripts/verify-catalog-boundaries.py`](../../scripts/verify-catalog-boundaries.py) đã được xây dựng với cơ chế fail-closed chặt chẽ và kiểm thử độc lập qua unit tests [`tests/test_catalog_boundaries.py`](../../tests/test_catalog_boundaries.py).
-- **Hiện trạng kiểm tra:** Trạng thái cổng ranh giới là `NOT_CHECKED` / `PENDING_CATALOG_MERGE` tại [DAT-03_BOUNDARY_INTEGRATION_AUDIT.json](DAT-03_BOUNDARY_INTEGRATION_AUDIT.json).
+- Công cụ kiểm tra ranh giới cross-boundary catalog integration harness được quản lý và hoàn thiện trong PR #122 (`feat/dat-03-integration-completion`).
+- PR #123 (`feat/dat-03-rosy179-provenance`) tập trung và giới hạn phạm vi vào bộ công cụ đóng gói / trích xuất / xác thực provenance first-hop (`scripts/pack-worker-provenance.py`, `scripts/extract-minio-provenance.py`), cùng bằng chứng kiểm tra 83 objects của rosy179.
 - **Nguyên tắc kỹ thuật:** Đối soát 288 tháng ở trên là đối soát phân bổ tháng trên các gói độc lập riêng lẻ. Việc khử trùng lặp và xác minh ranh giới thực tế giữa các bản ghi `canonical_event_id` chỉ được công nhận `PASS` khi cả 4 gói được hợp nhất vào catalog Gold Iceberg và đối soát qua Trino theo Cổng 2. Không coi việc kiểm tra lịch tháng hoặc giả định không input là chứng nhận chống trùng thành công.

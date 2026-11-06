@@ -25,9 +25,11 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 **DAT-03 05/11 — đối soát 288 tháng và 75/75 provenance ThanhTris:** đối soát offline
 xác nhận đủ 288/288 tháng qua 4 gói phân đoạn (101 nền, 62 HoaiTam, 62 ThanhTris,
 63 rosy179), 0 gap và 0 overlap. Provenance ThanhTris đạt 75/75 objects khớp 100%
-SHA-256. [Evidence](../../evidence/DAT-03_INTEGRATION_EVIDENCE_288_MONTHS.md). Còn 4 cổng
-kỹ thuật: nhận 83 provenance rosy179, tích hợp catalog/khử trùng ranh giới, official
-ML export cho 2 split REPRODUCTION/EXTENSION và 3 receipts. Task In Progress.
+SHA-256. [Evidence](../../evidence/DAT-03_INTEGRATION_EVIDENCE_288_MONTHS.md).
+Cả hai worker đã đưa đủ first-hop provenance lên Drive (ThanhTris: 75/75, rosy179: 83/83)
+và được đối chiếu độc lập khớp 100% SHA-256. Còn 4 cổng kỹ thuật: đối soát transitive lineage
+(Cổng 1), tích hợp catalog/khử trùng ranh giới (Cổng 2), official ML export cho 2 split
+REPRODUCTION/EXTENSION (Cổng 3) và 3 receipts (Cổng 4). Task In Progress.
 
 **DAT-03 29/10 — range recovery:** có [bản vá và hướng dẫn máy rosy179](../../runbooks/DAT-03_RANGE_RECOVERY.md)
 cho session952973b42c8d4570b653ece99c79ed78 bị ngắt ở Verify sau COMMITTED.
