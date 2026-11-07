@@ -1,6 +1,6 @@
 ---
 task_id: "COL-04"
-status: "Backlog"
+status: "Done"
 week: 7
 block: "H - Experiment"
 workstream: "Adaptive edge-case regression"
@@ -41,12 +41,12 @@ Python model environment, không cần Docker hoặc chờ baseline cloud của 
 
 ## Tiêu chí nghiệm thu
 
-- [ ] Test mới nhỏ, deterministic, không network/credential/Docker.
-- [ ] Không giảm test cũ hoặc sửa expected chỉ để PASS; báo exact test counts.
-- [ ] Fixture không được gọi là pilot thật; pilot input giữ nguyên checksum.
-- [ ] Rerun/overlap/noise/tie được đối soát theo contract, failure reasons rõ.
-- [ ] Development output không official `_SUCCESS.json` hoặc import `ml.*`.
-- [ ] Báo test matrix và giới hạn chưa cover; notebook source sạch output.
+- [x] Test mới nhỏ, deterministic, không network/credential/Docker.
+- [x] Không giảm test cũ hoặc sửa expected chỉ để PASS; báo exact test counts.
+- [x] Fixture không được gọi là pilot thật; pilot input giữ nguyên checksum.
+- [x] Rerun/overlap/noise/tie được đối soát theo contract, failure reasons rõ.
+- [x] Development output không official `_SUCCESS.json` hoặc import `ml.*`.
+- [x] Báo test matrix và giới hạn chưa cover; notebook source sạch output.
 
 ## Dependency / song song / giới hạn
 
@@ -57,7 +57,7 @@ Nghiệm thu COL-04 không thay official reproduction run của EXP-03.
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
+- **Trạng thái:** Done
 - **Assignee:** ThanhTris
 - **Reviewer:** unassigned
-- **Evidence / PR:** Chưa triển khai; chưa có test/evidence mới tuần 7.
+- **Evidence / PR:** Đồng bộ inspector hardened và 8 gate hardening tests từ PR #113 (commit `35f640e`), kết hợp cùng 12 edge-case/overlap/rerun regression tests của COL-04 nâng tổng số lên **52 tests (100% PASS offline trong 16.22s)** trong `tests/test_adaptive_hdbscan.py`. Đã xác minh fail-closed cho các negative probes (missing handoff archive path, smoke status FAILED, tampered source SHA/config). Chạy fresh-kernel `inspect-exp03-notebook.py --pilot-bundle staging/ml-pilot/pilot-kit/bundle --output-json docs/evidence/COL-04-local-smoke.json` đạt `RESTART_RUN_ALL_PASSED` (8.41s) với exact pinned run ID `pilot_run_cfe24f4de7704819ac1c6116360e1aae`, xác thực pilot thật `pilot_196b6d4081d347e1c289e331022658fbbe572dd33181ad987900895c1f1b189c` (279 candidate rows, 2 mainshocks, feature SHA `3baddf613f237d2117248ad9095230ec17e428ea47f73d499623035d3097d2e6`), gate EXP-02 ở chế độ `REPORT_ONLY_VERIFIED`; xuất evidence thực tế tại [COL-04-local-smoke.json](../../evidence/COL-04-local-smoke.json) và đồng bộ [EXP-03-local-smoke.json](../../evidence/EXP-03-local-smoke.json); notebook source sạch output. PR #116 trên branch `feat/col-04-adaptive-edge-regression`.

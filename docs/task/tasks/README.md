@@ -22,6 +22,15 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 
 ## Tổng quan
 
+**DAT-03 05/11 — đối soát 288 tháng và 75/75 provenance ThanhTris:** đối soát offline
+xác nhận đủ 288/288 tháng qua 4 gói phân đoạn (101 nền, 62 HoaiTam, 62 ThanhTris,
+63 rosy179), 0 gap và 0 overlap. Provenance ThanhTris đạt 75/75 objects khớp 100%
+SHA-256. [Evidence](../../evidence/DAT-03_INTEGRATION_EVIDENCE_288_MONTHS.md).
+Cả hai worker đã đưa đủ first-hop provenance lên Drive (ThanhTris: 75/75, rosy179: 83/83)
+và được đối chiếu độc lập khớp 100% SHA-256. Còn 4 cổng kỹ thuật: đối soát transitive lineage
+(Cổng 1), tích hợp catalog/khử trùng ranh giới (Cổng 2), official ML export cho 2 split
+REPRODUCTION/EXTENSION (Cổng 3) và 3 receipts (Cổng 4). Task In Progress.
+
 **DAT-03 29/10 — range recovery:** có [bản vá và hướng dẫn máy rosy179](../../runbooks/DAT-03_RANGE_RECOVERY.md)
 cho session952973b42c8d4570b653ece99c79ed78 bị ngắt ở Verify sau COMMITTED.
 Giữ failed evidence, không quarantine/skip. Báo cáo33/63 của chủ máy chưa
@@ -33,8 +42,16 @@ Giữ failed evidence, không quarantine/skip. Báo cáo33/63 của chủ máy c
 (DAT-03 pilot/EXP-01/COL-01/DOC-01/SEC-01), rosy179 khối2
 (EXP-02/COL-02/COL-03), ThanhTris khối3 (EXP-03/COL-04/EXP-04/MLI-04).
 EXP-01 Done cho cloud harness01/11 qua Colab CPU thật/ba parity/output readback;
-local nghiệm thu cũ vẫn giữ. Bốn COL
-mới Backlog, EXP-03 chuyển owner ThanhTris; không claim Colab đã chạy từ plan.
+local nghiệm thu cũ vẫn giữ. COL-01 Done ngày02/11 sau fresh Colab Run all và
+[output ZIP readback](../../evidence/COL-01_PILOT_EDA_20261102.md).
+COL-02 Done ngày 05/11: fresh Colab CPU đạt 9 configs + DBSCAN_C1 rerun;
+actual notebook và ZIP đã tải về, independent readback đủ 75 files/10 parity đạt.
+[Evidence và pins](../../evidence/COL-02_COLAB_20261104.md),
+[runbook](../../runbooks/COL-02_COLAB_ACCEPTANCE.md). Chỉ development pilot,
+không scientific approval hoặc receipt chạy của cả nhóm.
+Trạng thái COL-03/04 theo file task và bảng bên dưới, không suy ra từ kế hoạch gốc.
+EXP-03 chuyển owner ThanhTris; kế hoạch không tự
+chứng nhận các task đã chạy Colab.
 Week metadata task cũ là lịch triển khai gốc, carryover tuần7 tại kế hoạch mới.
 Các ghi chú phân công tuần5 bên dưới giữ làm lịch sử, không là roster hiện hành.
 
@@ -283,12 +300,12 @@ portable merge, full catalog và official export/receipts. Không suy unit PASS 
 | [EXP-01](./EXP-01.md) - Tạo Jupyter harness và chuẩn bị chuyển sang Colab | 5 | Jupyter-first harness | Core | P0 | 5h | Done |
 | [EXP-02](./EXP-02.md) - Chạy Window, DBSCAN và HDBSCAN global | 5 | Baseline algorithms | Core | P0 | 7h | In Progress |
 | [EXP-03](./EXP-03.md) - Xây HDBSCAN adaptive và giải quyết multi-sequence | 5 | Adaptive HDBSCAN | Core | P0 | 6h | In Progress |
-| [EXP-04](./EXP-04.md) - Đánh giá quality, physical consistency và stability | 7 | Scientific evaluation | Core | P0 | 7h | Backlog |
+| [EXP-04](./EXP-04.md) - Đánh giá quality, physical consistency và stability | 7 | Scientific evaluation | Core | P0 | 7h | In Progress |
 | [EXP-05](./EXP-05.md) - Chạy out-of-period extension 2018-2023 | 7 | Out-of-period evaluation | Core | P0 | 5h | Backlog |
-| [COL-01](./COL-01.md) - Khảo sát và giải thích pilot trên Colab | 7 | Colab pilot data inspection | Core | P1 | 3h | Backlog |
-| [COL-02](./COL-02.md) - Sweep tham số baseline giới hạn trên pilot | 7 | Bounded baseline parameter sweep | Core | P1 | 4h | Backlog |
-| [COL-03](./COL-03.md) - Metrics và trực quan hóa baseline pilot | 7 | Pilot baseline metrics and plots | Core | P1 | 4h | Done |
-| [COL-04](./COL-04.md) - Kiểm thử biên, multi-sequence và rerun adaptive | 7 | Adaptive edge-case regression | Core | P1 | 3h | Backlog |
+| [COL-01](./COL-01.md) - Khảo sát và giải thích pilot trên Colab | 7 | Colab pilot data inspection | Core | P1 | 3h | Done |
+| [COL-02](./COL-02.md) - Sweep tham số baseline giới hạn trên pilot | 7 | Bounded baseline parameter sweep | Core | P1 | 4h | Done |
+| [COL-03](./COL-03.md) - Metrics và trực quan hóa baseline pilot | 7 | Pilot baseline metrics and plots | Core | P1 | 4h | In Progress |
+| [COL-04](./COL-04.md) - Kiểm thử biên, multi-sequence và rerun adaptive | 7 | Adaptive edge-case regression | Core | P1 | 3h | Done |
 
 ## I - ML Integration
 

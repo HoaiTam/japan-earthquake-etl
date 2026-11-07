@@ -97,7 +97,7 @@ current-month-gold: ## Opt-in MinIO Silver -> operational Gold/Trino; prebuilt J
 current-month-local: ## Opt-in live USGS -> isolated local Bronze/Silver; không Docker, Gold hoặc scheduler mutation
 	@test -n "$(CURRENT_MONTH_REQUEST)" || { echo 'Set CURRENT_MONTH_REQUEST to an exact request JSON'; exit 2; }
 	@python3 scripts/current-month.py --request "$(CURRENT_MONTH_REQUEST)" --root "$(CURRENT_MONTH_ROOT)"
-.PHONY: check-docs test-docs test-dat03-team-setup test-dat03-range-worker
+.PHONY: check-docs test-docs test-dat03-team-setup test-dat03-range-worker test-dat03-provenance
 
 test-dat03-range-worker: ## DAT-03 isolated range control/input guards; no Docker/network
 	@python3 -B -m unittest discover -s tests -p 'test_dat03_range_worker.py'
@@ -105,6 +105,10 @@ test-dat03-range-worker: ## DAT-03 isolated range control/input guards; no Docke
 
 test-dat03-team-setup: ## DAT-03 offline assignment/pin/readiness regression; không Docker/network
 	@python3 -B -m unittest discover -s tests -p 'test_dat03_team_setup.py'
+
+test-dat03-provenance: ## DAT-03 worker provenance packaging/verification regression
+	@python3 -B -m unittest discover -s tests -p 'test_pack_worker_provenance.py'
+	@python3 -B -m unittest discover -s tests -p 'test_extract_minio_provenance.py'
 .PHONY: test-mli-import smoke-mli-import smoke-mli-import-acceptance smoke-mli-import-dag up-ml
 .PHONY: test-qa-04 smoke-qa-04
 .PHONY: test-mli-build check-mli-build-runtime
@@ -490,6 +494,17 @@ test-pilot: ## Pilot/model regression; cần pyarrow/model deps và loopback Jup
 	@$(MAKE) test-catalog-prefix-kit PILOT_PYTHON="$(PILOT_PYTHON)"
 	@$(PILOT_PYTHON) -m unittest tests/test_baseline_algorithms.py
 	@$(PILOT_PYTHON) -m unittest tests/test_adaptive_hdbscan.py
+	@$(MAKE) test-col01 PILOT_PYTHON="$(PILOT_PYTHON)"
+	@$(MAKE) test-col02 PILOT_PYTHON="$(PILOT_PYTHON)"
+
+.PHONY: test-col01
+test-col01: ## COL-01 offline EDA/guard/real PNG regression; cần notebooks/requirements-col01-lock.txt, không Docker
+	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_col_01_eda.py'
+
+.PHONY: test-col02
+test-col02: ## COL-02 parameter sweep regression; không Docker
+	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_parameter_sweep.py'
+	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_col02_colab.py'
 
 inspect-pilot: ## Fresh Jupyter kernel Run All; PILOT_BUNDLE=exact local directory, không Docker/API
 	@test -n "$(PILOT_BUNDLE)" || { echo 'Set PILOT_BUNDLE=staging/ml-pilot/pilot_id=<exact-id>'; exit 2; }
@@ -683,6 +698,7 @@ ci-docs: ## Docs/contracts/secret hygiene/Compose tĩnh; không đọc .env riê
 ci-docs-base: ## Always-on CI guards; pilot tests được chọn riêng theo impact, không Docker daemon
 	@$(MAKE) test-dat03-team-setup
 	@$(MAKE) test-dat03-range-worker
+	@$(MAKE) test-dat03-provenance
 	@$(MAKE) check-docs test-docs test-jma-source-handoff
 	@$(MAKE) test-contracts
 	@python3 -m unittest discover -s tests -p 'test_real_etl_cli.py'

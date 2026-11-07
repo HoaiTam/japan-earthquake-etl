@@ -1,5 +1,15 @@
 # Tuần 7 — Setup pilot Drive → local gate → Google Colab
 
+## COL-01 — khảo sát pilot
+
+Sau khi tải code phiên bản có COL-01 và verify pilot theo hướng dẫn bên dưới,
+đọc [runbook COL-01](./COL-01_PILOT_EDA.md). CLI `scripts/col01-eda.py pack`
+đóng exact source allowlist và năm file bundle, in SHA tin cậy từ máy local.
+Upload ZIP cùng notebook `notebooks/col_01_pilot_eda.ipynb` vào Colab CPU mới,
+nhập path/SHA rồi Run all. Notebook kiểm bytes trước chạy, cài venv riêng theo
+`requirements-col01-lock.txt`, không đổi host packages hoặc mount Drive.
+Output JSON/CSV/PNG/checksums được tải về; PARTIAL/DEVELOPMENT_ONLY giữ nguyên.
+
 Áp dụng cho [phân công tuần 7](../task/WEEK_7_COLAB_PLAN.md), 02–08/11/2026.
 Đây là **hướng dẫn để thực hiện**, chưa là bằng chứng đã chạy cloud. Không cần
 Docker/Java/Airflow/MinIO hoặc `.env` để đọc pilot và fit các thuật toán.
@@ -350,7 +360,10 @@ luôn có hoặc tự chạy qua đêm không giới hạn.
 Mỗi PR: notebook source sạch outputs/execution counts, config/tests, evidence
 metadata nhỏ, command/setup và expected outputs thật. Không commit data ZIP,
 Parquet thật, credentials, mount authorization, private logs hoặc OAuth JSON.
-Chưa có Make targets COL-01..04, không ghi lệnh chạy chưa triển khai. Tests có
+COL-01 có `make test-col01 PILOT_PYTHON=<python-của-venv>` (xem runbook COL-01).
+COL-02 có `make test-col02 PILOT_PYTHON=<python-của-venv>` và
+[runbook Colab riêng](./COL-02_COLAB_ACCEPTANCE.md), không dùng cell thủ công
+mục4–9 thay nghiệm thu. Tests có
 sẵn: `make test-exp01`, `make test-exp02`, `make test-exp03` với model venv
 đã activate (targets này gọi python3, không dùng PILOT_PYTHON); không gọi Docker.
 Windows không có Make có thể dùng Python của venv với
