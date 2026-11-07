@@ -6,8 +6,13 @@ and spatial/temporal plots. Provides formal handoff outputs for EXP-04 (ThanhTri
 Adheres strictly to:
 - No manual data entry; all figures and tables trace directly to exact parquet/json artifacts.
 - Exact candidate grain matching (279 rows, 2 mainshock windows on DAT-02 pilot).
-- Null policy: WINDOW has null DBCV with WINDOW_BASELINE_NOT_DENSITY_BASED; noise/failed windows
-  record null DBCV with NO_PRODUCTIVE_CLUSTERS or INSUFFICIENT_CLUSTER_SAMPLES. Never output 0 or NaN JSON.
+- Fail-closed validation: unknown candidate grain, duplicate grains, missing or non-finite features
+  immediately raise ValueError before any metric calculation or plotting.
+- Genuine DBCV calculation (Moulavi et al., 2014) evaluated on 4-D spatio-temporal coordinates.
+  DBCV requires at least 2 clusters; single clusters or non-density baselines (WINDOW) return null
+  with explicit reasons. Failed windows (NO_PRODUCTIVE_SEQUENCE) strictly yield null DBCV.
+  Silhouette score is tracked in separate fields (silhouette_score / silhouette_reason) if available,
+  never substituted for DBCV.
 - Spatial visualization in relative km (dx_km, dy_km) and time (delta_time_hours) vs depth (km).
   Never use raw longitude/latitude degrees as Euclidean features without units.
 - Non-claim of causal aftershocks or model superiority across different hardware.
@@ -27,6 +32,8 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import numpy as np
 import pyarrow as pa
 import pyarrow.parquet as pq
+from scipy.spatial.distance import cdist
+from scipy.sparse.csgraph import minimum_spanning_tree
 
 # Configure Matplotlib headless backend
 import matplotlib
@@ -47,40 +54,175 @@ from experiment_harness import (
 )
 
 
+def compute_dbcv(
+    X: np.ndarray,
+    labels: np.ndarray,
+    dim: Optional[int] = None,
+) -> Tuple[Optional[float], str]:
+    """Computes exact Density-Based Clustering Validation (DBCV) index (Moulavi et al., 2014).
+
+    Evaluates cluster validity on spatio-temporal coordinates X (shape N x D) and labels (shape N,).
+    Noise points are marked as -1.
+    Requires at least 2 distinct clusters with label >= 0.
+    """
+    valid_mask = labels >= 0
+    valid_labels = labels[valid_mask]
+    valid_X = X[valid_mask]
+    unique_clusters = np.unique(valid_labels)
+
+    if len(unique_clusters) < 1:
+        return None, "NO_PRODUCTIVE_CLUSTERS"
+
+    if len(unique_clusters) < 2:
+        return None, "DBCV_REQUIRES_AT_LEAST_TWO_CLUSTERS"
+
+    d = dim if dim is not None else X.shape[1]
+    clusters_pts = {}
+    clusters_core_dist = {}
+
+    for c in unique_clusters:
+        pts = valid_X[valid_labels == c]
+        n_pts = len(pts)
+        if n_pts < 2:
+            return None, "INSUFFICIENT_CLUSTER_SAMPLES"
+        clusters_pts[c] = pts
+        dist_mat = cdist(pts, pts)
+        np.fill_diagonal(dist_mat, np.inf)
+        inv_d = np.power(np.maximum(dist_mat, 1e-12), -d)
+        core_dists = np.power(np.sum(inv_d, axis=1) / (n_pts - 1), -1.0 / d)
+        clusters_core_dist[c] = core_dists
+
+    # Density Sparseness of Cluster (DSC) via MST of Mutual Reachability Distances
+    dsc = {}
+    for c in unique_clusters:
+        pts = clusters_pts[c]
+        cd = clusters_core_dist[c]
+        dist_mat = cdist(pts, pts)
+        mrd_mat = np.maximum(dist_mat, np.maximum(cd[:, None], cd[None, :]))
+        mst = minimum_spanning_tree(mrd_mat)
+        dsc[c] = float(np.max(mst.data)) if mst.nnz > 0 else 0.0
+
+    # Density Separation of Pair of Clusters (DSPC)
+    dspc = {}
+    for i, c1 in enumerate(unique_clusters):
+        for c2 in unique_clusters[i + 1:]:
+            pts1 = clusters_pts[c1]
+            pts2 = clusters_pts[c2]
+            cd1 = clusters_core_dist[c1]
+            cd2 = clusters_core_dist[c2]
+            dist_mat = cdist(pts1, pts2)
+            mrd_mat = np.maximum(dist_mat, np.maximum(cd1[:, None], cd2[None, :]))
+            min_sep = float(np.min(mrd_mat))
+            dspc[(c1, c2)] = min_sep
+            dspc[(c2, c1)] = min_sep
+
+    # Validity index for each cluster and overall weighted average
+    total_pts = len(valid_X)
+    v_c = {}
+    for c in unique_clusters:
+        min_sep = min(dspc[(c, other)] for other in unique_clusters if other != c)
+        c_dsc = dsc[c]
+        denom = max(min_sep, c_dsc)
+        v_c[c] = (min_sep - c_dsc) / denom if denom > 1e-12 else 0.0
+
+    dbcv_score = sum((len(clusters_pts[c]) / total_pts) * v_c[c] for c in unique_clusters)
+    if math.isnan(dbcv_score) or math.isinf(dbcv_score):
+        return None, "METRIC_FIT_FAILED"
+
+    return round(float(dbcv_score), 4), "VALID_DBCV_SCORE"
+
+
 def compute_density_metric(
     vectors: np.ndarray,
     labels: np.ndarray,
     algorithm_name: str,
 ) -> Dict[str, Any]:
-    """Computes density-based clustering validation metric or records explicit null with reason."""
-    if algorithm_name == "WINDOW":
-        return {"score": None, "reason": "WINDOW_BASELINE_NOT_DENSITY_BASED"}
+    """Computes genuine density-based clustering validation (DBCV) or records explicit null with reason.
 
-    # Filter out noise points (-1)
+    Also tracks secondary silhouette metrics in separate fields; never substitutes silhouette for DBCV.
+    """
+    algo_upper = str(algorithm_name).upper()
+    if "WINDOW" in algo_upper:
+        return {
+            "score": None,
+            "reason": "WINDOW_BASELINE_NOT_DENSITY_BASED",
+            "silhouette_score": None,
+            "silhouette_reason": "WINDOW_BASELINE_NOT_DENSITY_BASED",
+        }
+
+    if vectors is None or len(vectors) == 0 or labels is None or len(labels) == 0:
+        return {
+            "score": None,
+            "reason": "NO_PRODUCTIVE_CLUSTERS",
+            "silhouette_score": None,
+            "silhouette_reason": "NO_PRODUCTIVE_CLUSTERS",
+        }
+
     valid_mask = labels >= 0
-    unique_clusters = set(labels[valid_mask])
+    unique_clusters = np.unique(labels[valid_mask])
 
     if len(unique_clusters) < 1:
-        return {"score": None, "reason": "NO_PRODUCTIVE_CLUSTERS"}
+        return {
+            "score": None,
+            "reason": "NO_PRODUCTIVE_CLUSTERS",
+            "silhouette_score": None,
+            "silhouette_reason": "NO_PRODUCTIVE_CLUSTERS",
+        }
 
     cluster_points = vectors[valid_mask]
     if len(cluster_points) < 3:
-        return {"score": None, "reason": "INSUFFICIENT_CLUSTER_SAMPLES"}
+        return {
+            "score": None,
+            "reason": "INSUFFICIENT_CLUSTER_SAMPLES",
+            "silhouette_score": None,
+            "silhouette_reason": "INSUFFICIENT_CLUSTER_SAMPLES",
+        }
 
-    # Calculate density separation / compactness score
+    # 1. Compute Genuine DBCV Metric
+    dbcv_val = None
+    dbcv_reason = "METRIC_FIT_FAILED"
+    try:
+        try:
+            import hdbscan.validity as hdb_validity
+            X_contig = np.ascontiguousarray(cluster_points, dtype=np.float64)
+            labels_int = np.ascontiguousarray(labels[valid_mask], dtype=np.int64)
+            if len(unique_clusters) >= 2:
+                raw_score = float(hdb_validity.validity_index(X_contig, labels_int))
+                if not (math.isnan(raw_score) or math.isinf(raw_score)):
+                    dbcv_val = round(raw_score, 4)
+                    dbcv_reason = "VALID_DBCV_SCORE"
+                else:
+                    dbcv_val, dbcv_reason = compute_dbcv(vectors, labels)
+            else:
+                dbcv_val = None
+                dbcv_reason = "DBCV_REQUIRES_AT_LEAST_TWO_CLUSTERS"
+        except (ImportError, Exception):
+            dbcv_val, dbcv_reason = compute_dbcv(vectors, labels)
+    except Exception as e:
+        dbcv_val = None
+        dbcv_reason = f"METRIC_FIT_FAILED: {str(e)}"
+
+    # 2. Compute Separate Silhouette Metric (explicitly separate from DBCV)
+    sil_val = None
+    sil_reason = "NO_PRODUCTIVE_CLUSTERS"
     try:
         from sklearn.metrics import silhouette_score
-        if len(unique_clusters) >= 2:
-            score = float(silhouette_score(cluster_points, labels[valid_mask]))
-            return {"score": round(score, 4), "reason": "VALID_MULTI_CLUSTER_SCORE"}
+        if len(unique_clusters) >= 2 and len(cluster_points) > len(unique_clusters):
+            sil_val = round(float(silhouette_score(cluster_points, labels[valid_mask])), 4)
+            sil_reason = "VALID_MULTI_CLUSTER_SCORE"
         else:
-            # Single cluster: calculate internal relative dispersion (compactness)
-            center = np.mean(cluster_points, axis=0)
-            dispersion = float(np.mean(np.linalg.norm(cluster_points - center, axis=1)))
-            score = max(0.0, 1.0 / (1.0 + dispersion))
-            return {"score": round(score, 4), "reason": "VALID_SINGLE_CLUSTER_COMPACTNESS"}
+            sil_val = None
+            sil_reason = "SILHOUETTE_REQUIRES_AT_LEAST_TWO_CLUSTERS"
     except Exception as e:
-        return {"score": None, "reason": f"METRIC_FIT_FAILED: {str(e)}"}
+        sil_val = None
+        sil_reason = f"SILHOUETTE_FAILED: {str(e)}"
+
+    return {
+        "score": dbcv_val,
+        "reason": dbcv_reason,
+        "silhouette_score": sil_val,
+        "silhouette_reason": sil_reason,
+    }
 
 
 def extract_baseline_metrics(
@@ -91,10 +233,33 @@ def extract_baseline_metrics(
     results_dir = Path(results_dir).resolve()
     require(results_dir.is_dir(), f"RESULTS_DIRECTORY_NOT_FOUND: {results_dir}")
 
+    # 1. Validate Feature Bundle and build candidate lookup (Fail-Closed)
     features_table = bundle["features_table"]
     features_df = features_table.to_pandas()
-    candidate_lookup = {(r["mainshock_event_id"], r["candidate_event_id"]): r
-                        for _, r in features_df.iterrows()}
+
+    feat_grains = list(zip(features_df["mainshock_event_id"], features_df["candidate_event_id"]))
+    if len(feat_grains) != len(set(feat_grains)):
+        raise ValueError("DUPLICATE_GRAIN_DETECTED: Feature bundle contains duplicate (mainshock_event_id, candidate_event_id) grains")
+
+    for col in VECTOR_COLUMNS:
+        if col not in features_df.columns:
+            raise ValueError(f"MISSING_REQUIRED_FEATURE_COLUMN: Column '{col}' not found in feature bundle")
+        vals = features_df[col].to_numpy()
+        if np.any(np.isnan(vals)) or np.any(np.isinf(vals)):
+            raise ValueError(f"NON_FINITE_FEATURE_DETECTED: Column '{col}' contains NaN or infinite values in feature bundle")
+
+    candidate_lookup = {}
+    for _, r in features_df.iterrows():
+        k = (r["mainshock_event_id"], r["candidate_event_id"])
+        vec = []
+        for col in VECTOR_COLUMNS:
+            v = r[col]
+            if v is None or not (isinstance(v, (int, float, np.floating, np.integer)) and math.isfinite(v)):
+                raise ValueError(f"NON_FINITE_OR_MISSING_FEATURE: Column '{col}' in candidate '{r['candidate_event_id']}' is missing or non-finite ({v})")
+            vec.append(float(v))
+        candidate_lookup[k] = vec
+
+    feat_set = set(candidate_lookup.keys())
 
     table_rows = []
 
@@ -116,6 +281,20 @@ def extract_baseline_metrics(
         mem_df = mem_table.to_pandas()
         algo_name = config.get("algorithm_name", sdir.name.upper())
         cfg_version = config.get("model_config_version", "unknown")
+
+        # 2. Strict grain parity check between memberships and feature bundle (Fail-Closed)
+        mem_grains = list(zip(mem_df["mainshock_event_id"], mem_df["candidate_event_id"]))
+        if len(mem_grains) != len(set(mem_grains)):
+            raise ValueError(f"DUPLICATE_GRAIN_DETECTED: Result '{sdir.name}' contains duplicate grains in memberships.parquet")
+
+        mem_set = set(mem_grains)
+        unknown_in_mem = mem_set - feat_set
+        if unknown_in_mem:
+            raise ValueError(f"UNKNOWN_CANDIDATE_GRAIN: Result '{sdir.name}' contains {len(unknown_in_mem)} unknown candidate grains not present in feature bundle: {list(unknown_in_mem)[:3]}")
+
+        missing_in_mem = feat_set - mem_set
+        if missing_in_mem:
+            raise ValueError(f"MISSING_CANDIDATE_GRAIN: Result '{sdir.name}' is missing {len(missing_in_mem)} candidate grains present in feature bundle: {list(missing_in_mem)[:3]}")
 
         for s_row in summary_table.to_pylist():
             ms_id = s_row["mainshock_event_id"]
@@ -139,14 +318,23 @@ def extract_baseline_metrics(
             window_keys = [(ms_id, cid) for cid in window_mems["candidate_event_id"]]
             vec_list = []
             for k in window_keys:
-                f_row = candidate_lookup.get(k, {})
-                vec = [float(f_row.get(col, 0.0)) for col in VECTOR_COLUMNS]
-                vec_list.append(vec)
+                if k not in candidate_lookup:
+                    raise ValueError(f"UNKNOWN_CANDIDATE_GRAIN: Candidate '{k[1]}' for mainshock '{k[0]}' not found in feature bundle")
+                vec_list.append(candidate_lookup[k])
 
             vec_arr = np.array(vec_list, dtype=np.float64)
             labels_arr = np.array([int(c) if (c is not None and not (isinstance(c, (float, np.floating)) and math.isnan(c))) else -1 for c in window_mems["cluster_id"]], dtype=np.int32)
 
-            density_res = compute_density_metric(vec_arr, labels_arr, algo_name)
+            # Fail-closed null policy for failed/no-productive windows:
+            if status_str != "SUCCESS":
+                density_res = {
+                    "score": None,
+                    "reason": "NO_PRODUCTIVE_CLUSTERS",
+                    "silhouette_score": None,
+                    "silhouette_reason": "NO_PRODUCTIVE_CLUSTERS",
+                }
+            else:
+                density_res = compute_density_metric(vec_arr, labels_arr, algo_name)
 
             table_rows.append({
                 "algorithm_name": algo_name,
@@ -161,6 +349,8 @@ def extract_baseline_metrics(
                 "failure_reason": failure_reason,
                 "dbcv_score": density_res["score"],
                 "dbcv_reason": density_res["reason"],
+                "silhouette_score": density_res.get("silhouette_score"),
+                "silhouette_reason": density_res.get("silhouette_reason"),
                 "runtime_seconds": round(float(s_row.get("runtime_seconds", 0.0)), 4),
             })
 
@@ -182,7 +372,9 @@ def export_metrics_table(
         "algorithm_name", "model_config_version", "mainshock_event_id",
         "total_candidates", "sequence_members", "aftershocks", "noise_candidates",
         "is_mainshock_noise", "window_status", "failure_reason",
-        "dbcv_score", "dbcv_reason", "runtime_seconds",
+        "dbcv_score", "dbcv_reason",
+        "silhouette_score", "silhouette_reason",
+        "runtime_seconds",
     ]
 
     with csv_path.open("w", encoding="utf-8", newline="") as f:
@@ -215,7 +407,23 @@ def plot_spatial_and_temporal_views(
     features_df = bundle["features_table"].to_pandas()
     mem_df = pq.read_table(memberships_parquet).to_pandas()
 
+    feat_grains = set(zip(features_df["mainshock_event_id"], features_df["candidate_event_id"]))
+    mem_grains = set(zip(mem_df["mainshock_event_id"], mem_df["candidate_event_id"]))
+
+    if len(mem_grains) != len(mem_df):
+        raise ValueError("DUPLICATE_GRAIN_DETECTED: memberships.parquet contains duplicate grains")
+
+    unknown_grains = mem_grains - feat_grains
+    if unknown_grains:
+        raise ValueError(f"UNKNOWN_CANDIDATE_GRAIN: memberships.parquet contains grains not found in feature bundle: {list(unknown_grains)[:3]}")
+
+    missing_grains = feat_grains - mem_grains
+    if missing_grains:
+        raise ValueError(f"MISSING_CANDIDATE_GRAIN: memberships.parquet is missing feature grains: {list(missing_grains)[:3]}")
+
     merged = features_df.merge(mem_df, on=["mainshock_event_id", "candidate_event_id"], suffixes=("", "_mem"))
+    if len(merged) != len(features_df):
+        raise ValueError(f"MERGE_ROW_COUNT_MISMATCH: Expected {len(features_df)} rows, got {len(merged)}")
 
     # Plot 1: Spatial relative coordinates (dx_km vs dy_km)
     fig, ax = plt.subplots(figsize=(8, 7), dpi=150)
