@@ -307,13 +307,7 @@ def extract_and_pack_provenance(
         expected_sha = item["expected_sha256"]
         target_p = staging_dir / key
 
-        # 2. Path traversal boundary check: target must remain strictly inside staging_dir
-        try:
-            target_p.resolve().relative_to(abs_staging)
-        except ValueError:
-            raise ValueError(f"PATH_OUTSIDE_STAGING: {target_p} escapes {abs_staging}")
-
-        # 3. Symlink guard: check target and all parent components between target and staging
+        # 2. Symlink guard: check target and all parent components between target and staging FIRST
         curr = target_p
         while curr != staging_dir and curr != curr.parent:
             if curr.is_symlink() or os.path.islink(curr):
@@ -322,6 +316,12 @@ def extract_and_pack_provenance(
 
         if target_p.is_symlink() or os.path.islink(target_p):
             raise ValueError(f"SYMLINK_IN_STAGING_FORBIDDEN: {target_p} is a symlink")
+
+        # 3. Path traversal boundary check: target must remain strictly inside staging_dir
+        try:
+            target_p.resolve().relative_to(abs_staging)
+        except ValueError:
+            raise ValueError(f"PATH_OUTSIDE_STAGING: {target_p} escapes {abs_staging}")
 
         # 4. Immutability guard: refuse to overwrite existing staging file unless explicit
         if target_p.exists() and not overwrite:

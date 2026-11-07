@@ -698,6 +698,7 @@ ci-docs: ## Docs/contracts/secret hygiene/Compose tĩnh; không đọc .env riê
 ci-docs-base: ## Always-on CI guards; pilot tests được chọn riêng theo impact, không Docker daemon
 	@$(MAKE) test-dat03-team-setup
 	@$(MAKE) test-dat03-range-worker
+	@$(MAKE) test-dat03-provenance
 	@$(MAKE) check-docs test-docs test-jma-source-handoff
 	@$(MAKE) test-contracts
 	@python3 -m unittest discover -s tests -p 'test_real_etl_cli.py'
