@@ -369,20 +369,84 @@ def verify_manifest_contiguity(
                             violations.append(err)
                             pkg_violations.append(err)
 
+                    # 4. Validate monthly_counts & empty_months
+                    raw_monthly_counts = parsed_payload.get("monthly_counts") or parsed_payload.get("months_row_counts")
+                    monthly_counts: Dict[str, int] = {}
+                    if raw_monthly_counts is not None:
+                        if not isinstance(raw_monthly_counts, dict):
+                            err = f"INVALID_MONTHLY_COUNTS_TYPE:{pkg_id}: monthly_counts must be an object/dict"
+                            violations.append(err)
+                            pkg_violations.append(err)
+                        else:
+                            for m_key, c_val in raw_monthly_counts.items():
+                                if not isinstance(m_key, str) or m_key not in expected_range:
+                                    err = f"MANIFEST_MONTHLY_COUNT_OUT_OF_RANGE:{pkg_id}: monthly_counts key '{m_key}' is outside package range {start_m}..{end_m}"
+                                    violations.append(err)
+                                    pkg_violations.append(err)
+                                elif not isinstance(c_val, int) or isinstance(c_val, bool) or c_val < 0:
+                                    err = f"INVALID_MONTHLY_COUNT_VALUE:{pkg_id}: count for month '{m_key}' must be non-negative integer, got {c_val!r}"
+                                    violations.append(err)
+                                    pkg_violations.append(err)
+                                else:
+                                    monthly_counts[m_key] = c_val
+
+                    raw_empty_months = parsed_payload.get("empty_months")
+                    empty_months_set: Set[str] = set()
+                    if raw_empty_months is not None:
+                        if not isinstance(raw_empty_months, list):
+                            err = f"INVALID_EMPTY_MONTHS_TYPE:{pkg_id}: empty_months must be a list"
+                            violations.append(err)
+                            pkg_violations.append(err)
+                        else:
+                            for em in raw_empty_months:
+                                if not isinstance(em, str) or em not in expected_range:
+                                    err = f"MANIFEST_EMPTY_MONTH_OUT_OF_RANGE:{pkg_id}: empty_months contains '{em}' which is outside package range {start_m}..{end_m}"
+                                    violations.append(err)
+                                    pkg_violations.append(err)
+                                else:
+                                    empty_months_set.add(em)
+
+                    # Check for conflicting claims between empty_months and monthly_counts
+                    for em in empty_months_set:
+                        if em in monthly_counts and monthly_counts[em] > 0:
+                            err = f"MANIFEST_CONFLICTING_EMPTY_CLAIM:{pkg_id}: month '{em}' declared in empty_months but monthly_counts has {monthly_counts[em]} rows"
+                            violations.append(err)
+                            pkg_violations.append(err)
+
+                    # Check if all months are claimed empty while total rows > 0
+                    if parsed_rows is not None and parsed_rows > 0:
+                        if len(empty_months_set) == len(expected_range):
+                            err = f"MANIFEST_CONFLICTING_EMPTY_CLAIM:{pkg_id}: all {len(expected_range)} months declared in empty_months but total row_count is {parsed_rows}"
+                            violations.append(err)
+                            pkg_violations.append(err)
+
+                    # Check if total row_count == 0 but monthly_counts has rows > 0
+                    if parsed_rows == 0:
+                        for m_k, c_v in monthly_counts.items():
+                            if c_v > 0:
+                                err = f"MANIFEST_CONFLICTING_EMPTY_CLAIM:{pkg_id}: total row_count is 0 but month '{m_k}' has {c_v} rows"
+                                violations.append(err)
+                                pkg_violations.append(err)
+
+                    # Check sum of monthly_counts against parsed_rows if all months in package are provided
+                    if parsed_rows is not None and len(monthly_counts) == len(expected_range):
+                        sum_counts = sum(monthly_counts.values())
+                        if sum_counts != parsed_rows:
+                            err = f"MANIFEST_MONTHLY_COUNTS_SUM_MISMATCH:{pkg_id}: sum of monthly_counts ({sum_counts}) != total row_count ({parsed_rows})"
+                            violations.append(err)
+                            pkg_violations.append(err)
+
                     # Certified empty evidence per month from manifest payload strictly
                     # Strictly NO fallback to descriptor row_count to certify empty months!
-                    if parsed_rows == 0:
-                        certified_empty_for_pkg.update(expected_range)
-
-                    monthly_counts = parsed_payload.get("monthly_counts") or parsed_payload.get("months_row_counts") or {}
-                    if isinstance(monthly_counts, dict):
+                    # If this package has ANY schema violations, certified_empty_for_pkg MUST remain empty!
+                    if len(pkg_violations) == 0:
+                        if parsed_rows == 0:
+                            certified_empty_for_pkg.update(expected_range)
                         for m_key, c_val in monthly_counts.items():
-                            if isinstance(c_val, int) and c_val == 0:
+                            if c_val == 0:
                                 certified_empty_for_pkg.add(m_key)
-
-                    if "empty_months" in parsed_payload and isinstance(parsed_payload["empty_months"], list):
-                        for em in parsed_payload["empty_months"]:
-                            if isinstance(em, str):
+                        for em in empty_months_set:
+                            if monthly_counts.get(em, 0) == 0:
                                 certified_empty_for_pkg.add(em)
 
         # Distinguish manifest_sha256 from package_sha256 (Blocker 1 requirement)

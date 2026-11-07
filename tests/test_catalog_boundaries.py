@@ -904,6 +904,132 @@ class TestCatalogBoundaries(unittest.TestCase):
         self.assertEqual(res_no_cov["status"], "FAIL")
         self.assertTrue(any("MANIFEST_PAYLOAD_MISSING_COVERAGE" in v for v in res_no_cov["violations"]))
 
+    def test_verify_all_boundaries_rejects_conflicting_empty_months_and_out_of_range(self):
+        """[HoaiTam Blocker Regression] Pinned manifest claiming empty_months that contradict
+
+        monthly_counts > 0 or lie outside package range must FAIL closed and never achieve VERIFIED_PASS.
+        """
+        # Exact probe: package base 101 has row_count=100, monthly_counts={"2008-05": 1},
+        # but empty_months lists "2008-05" (conflicting!) and "2013-07" (out of range!)
+        m1 = (
+            b'{"package_id": "catalog_base_101", "start_month": "2000-01", "end_month": "2008-05", '
+            b'"row_count": 100, "monthly_counts": {"2008-05": 1}, '
+            b'"empty_months": ["2008-05", "2013-07"]}'
+        )
+        m2 = b'{"package_id": "hoaitam_62", "start_month": "2008-06", "end_month": "2013-07", "row_count": 100}'
+        m3 = b'{"package_id": "thanhtris_62", "start_month": "2013-08", "end_month": "2018-09", "row_count": 100}'
+        m4 = b'{"package_id": "rosy179_63", "start_month": "2018-10", "end_month": "2023-12", "row_count": 100}'
+
+        sha1 = hashlib.sha256(m1).hexdigest()
+        sha2 = hashlib.sha256(m2).hexdigest()
+        sha3 = hashlib.sha256(m3).hexdigest()
+        sha4 = hashlib.sha256(m4).hexdigest()
+
+        trusted_pins = {
+            "catalog_base_101": sha1,
+            "hoaitam_62": sha2,
+            "thanhtris_62": sha3,
+            "rosy179_63": sha4,
+        }
+
+        manifests = [
+            {"package_id": "catalog_base_101", "start_month": "2000-01", "end_month": "2008-05", "covered_months": boundaries.expand_month_range("2000-01", "2008-05"), "row_count": 100, "manifest_bytes": m1, "manifest_sha256": sha1},
+            {"package_id": "hoaitam_62", "start_month": "2008-06", "end_month": "2013-07", "covered_months": boundaries.expand_month_range("2008-06", "2013-07"), "row_count": 100, "manifest_bytes": m2, "manifest_sha256": sha2},
+            {"package_id": "thanhtris_62", "start_month": "2013-08", "end_month": "2018-09", "covered_months": boundaries.expand_month_range("2013-08", "2018-09"), "row_count": 100, "manifest_bytes": m3, "manifest_sha256": sha3},
+            {"package_id": "rosy179_63", "start_month": "2018-10", "end_month": "2023-12", "covered_months": boundaries.expand_month_range("2018-10", "2023-12"), "row_count": 100, "manifest_bytes": m4, "manifest_sha256": sha4},
+        ]
+
+        boundaries_data = {
+            "Boundary 1 (Base -> HoaiTam)": {"prev_ids": [], "next_ids": [], "allow_empty": True},
+            "Boundary 2 (HoaiTam -> ThanhTris)": {"prev_ids": [], "next_ids": [], "allow_empty": True},
+            "Boundary 3 (ThanhTris -> rosy179)": {"prev_ids": [], "next_ids": [], "allow_empty": True},
+        }
+
+        report = boundaries.verify_all_boundaries(
+            boundary_records=boundaries_data,
+            package_manifests=manifests,
+            audit_scope="OFFICIAL_CATALOG_GATE",
+            trusted_registry_pins=trusted_pins,
+        )
+
+        self.assertEqual(report["status"], "FAIL")
+        self.assertEqual(report["gate_status"], "PENDING_CATALOG_MERGE")
+        self.assertNotEqual(report["gate_status"], "VERIFIED_PASS")
+        self.assertEqual(report["contiguity"]["status"], "FAIL")
+
+        # Must report conflicting empty claim and out of range violations
+        violations = report["contiguity"]["violations"]
+        self.assertTrue(any("MANIFEST_CONFLICTING_EMPTY_CLAIM" in v for v in violations))
+        self.assertTrue(any("MANIFEST_EMPTY_MONTH_OUT_OF_RANGE" in v for v in violations))
+
+        # Boundary 1 must fail with UNVERIFIED_EMPTY_INPUT because 2008-05 cannot be certified empty
+        b1 = report["boundaries"][0]
+        self.assertEqual(b1["status"], "FAIL")
+        self.assertEqual(b1["disjointness"]["status"], "FAIL")
+        self.assertIn("UNVERIFIED_EMPTY_INPUT", b1["disjointness"]["reason"])
+
+    def test_verify_manifest_contiguity_validates_monthly_counts_types_and_ranges(self):
+        """Monthly counts with invalid types, negative numbers, or out-of-range keys must be rejected."""
+        # 1. Invalid monthly_counts type (not a dict)
+        raw_bad_type = b'{"package_id": "catalog_base_101", "start_month": "2000-01", "end_month": "2008-05", "row_count": 100, "monthly_counts": [1, 2, 3]}'
+        sha_bad_type = hashlib.sha256(raw_bad_type).hexdigest()
+        res1 = boundaries.verify_manifest_contiguity(
+            [{
+                "package_id": "catalog_base_101",
+                "start_month": "2000-01",
+                "end_month": "2008-05",
+                "covered_months": boundaries.expand_month_range("2000-01", "2008-05"),
+                "row_count": 100,
+                "manifest_bytes": raw_bad_type,
+                "manifest_sha256": sha_bad_type,
+            }],
+            require_trusted_registry=False,
+            require_row_count=True,
+            trusted_registry_pins={"catalog_base_101": sha_bad_type},
+        )
+        self.assertEqual(res1["status"], "FAIL")
+        self.assertTrue(any("INVALID_MONTHLY_COUNTS_TYPE" in v for v in res1["violations"]))
+
+        # 2. Out-of-range monthly_counts key
+        raw_bad_key = b'{"package_id": "catalog_base_101", "start_month": "2000-01", "end_month": "2008-05", "row_count": 100, "monthly_counts": {"1999-12": 10}}'
+        sha_bad_key = hashlib.sha256(raw_bad_key).hexdigest()
+        res2 = boundaries.verify_manifest_contiguity(
+            [{
+                "package_id": "catalog_base_101",
+                "start_month": "2000-01",
+                "end_month": "2008-05",
+                "covered_months": boundaries.expand_month_range("2000-01", "2008-05"),
+                "row_count": 100,
+                "manifest_bytes": raw_bad_key,
+                "manifest_sha256": sha_bad_key,
+            }],
+            require_trusted_registry=False,
+            require_row_count=True,
+            trusted_registry_pins={"catalog_base_101": sha_bad_key},
+        )
+        self.assertEqual(res2["status"], "FAIL")
+        self.assertTrue(any("MANIFEST_MONTHLY_COUNT_OUT_OF_RANGE" in v for v in res2["violations"]))
+
+        # 3. Invalid negative monthly count value
+        raw_neg = b'{"package_id": "catalog_base_101", "start_month": "2000-01", "end_month": "2008-05", "row_count": 100, "monthly_counts": {"2000-01": -5}}'
+        sha_neg = hashlib.sha256(raw_neg).hexdigest()
+        res3 = boundaries.verify_manifest_contiguity(
+            [{
+                "package_id": "catalog_base_101",
+                "start_month": "2000-01",
+                "end_month": "2008-05",
+                "covered_months": boundaries.expand_month_range("2000-01", "2008-05"),
+                "row_count": 100,
+                "manifest_bytes": raw_neg,
+                "manifest_sha256": sha_neg,
+            }],
+            require_trusted_registry=False,
+            require_row_count=True,
+            trusted_registry_pins={"catalog_base_101": sha_neg},
+        )
+        self.assertEqual(res3["status"], "FAIL")
+        self.assertTrue(any("INVALID_MONTHLY_COUNT_VALUE" in v for v in res3["violations"]))
+
 
 if __name__ == "__main__":
     unittest.main()
