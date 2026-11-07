@@ -1,0 +1,208 @@
+{
+  "task_id": "SEC-01",
+  "status": "IN_PROGRESS_CLOUD_ACCEPTANCE_PENDING",
+  "base_commit": "bd71d1911f5219072a3d184e44be5e938c22e251",
+  "branch": "chore/sec-01-cloud-handoff-audit",
+  "observed_at_utc": "2026-11-02T12:25:22.511117+00:00",
+  "raw_report_sha256": "48e4277a6df8fbc09a964bb4e96c525de5822eba2ffa6e54ad821a0f90658e14",
+  "findings_count": 0,
+  "pending_count": 9,
+  "can_mark_done": false,
+  "scoped_bytes_passed": true,
+  "artifacts_count": 8,
+  "leaf_file_scan_occurrences": 93,
+  "scanned_compressed_and_decoded_input_bytes": 1100485,
+  "artifacts": [
+    {
+      "artifact_index": 0,
+      "sha256": "27a56e4e00796c994c65fd07f7b31aa0b1c0c16c6ec724e566bcabd1e7bc497b",
+      "passed": true,
+      "leaf_file_count": 50
+    },
+    {
+      "artifact_index": 1,
+      "sha256": "2ea2edc425d2871e2c03b60de124c9de11a074dfe55b92bffe12b5c415b684f6",
+      "passed": true,
+      "leaf_file_count": 25
+    },
+    {
+      "artifact_index": 2,
+      "sha256": "e0a8c6f922c3a94abcd9bf7fa5816b929fced3055b3ff5b5e8b56d482f194425",
+      "passed": true,
+      "leaf_file_count": 10
+    },
+    {
+      "artifact_index": 3,
+      "sha256": "8da3256ffcb39a13ec800f29199614c6c0dea99659c64b1059359e85b45c6142",
+      "passed": true,
+      "leaf_file_count": 4
+    },
+    {
+      "artifact_index": 4,
+      "sha256": "151ea4c3fba7e1f73ada153f8d75604b9c2a621d5f0f2e1bc9e958b8f1d15fcb",
+      "passed": true,
+      "leaf_file_count": 1
+    },
+    {
+      "artifact_index": 5,
+      "sha256": "bf84a315395df502ae482c134b4f5b5671abdc284c65e2cb0920dc0214de0b18",
+      "passed": true,
+      "leaf_file_count": 1
+    },
+    {
+      "artifact_index": 6,
+      "sha256": "fc4dd600ab414eb934ebde4b4c77b3911c73c6533ca935f27575bf26340e0043",
+      "passed": true,
+      "leaf_file_count": 1
+    },
+    {
+      "artifact_index": 7,
+      "sha256": "c5ee5e9517d757b038fa6962f22737a3afd8500a9037202e5c7b67f457d4c2f7",
+      "passed": true,
+      "leaf_file_count": 1
+    }
+  ],
+  "acl": [
+    {
+      "id": "17Wntw5LIRvFdzaU0RpnBRL60gzsRdFTB",
+      "mime_type": "application/vnd.google-apps.folder",
+      "pending": [
+        "private_roster_mapping_not_confirmed"
+      ],
+      "restricted_to_users": true,
+      "roles": {
+        "owner": 1,
+        "writer": 3
+      }
+    },
+    {
+      "id": "1b7m-DE6f3OcM4Qm8wQf46U0T8O2whLQb",
+      "mime_type": "application/vnd.google-apps.folder",
+      "pending": [
+        "private_roster_mapping_not_confirmed"
+      ],
+      "restricted_to_users": true,
+      "roles": {
+        "owner": 1,
+        "writer": 4
+      }
+    },
+    {
+      "id": "12eLvQJzEkBuT0WYaxHYvb9KZlk5MK_vb",
+      "mime_type": "application/zip",
+      "pending": [
+        "private_roster_mapping_not_confirmed"
+      ],
+      "restricted_to_users": true,
+      "roles": {
+        "owner": 1,
+        "writer": 4
+      }
+    },
+    {
+      "id": "1zBGvnNBG8GOOru630puti8KnhMk1VL_c",
+      "mime_type": "text/markdown",
+      "pending": [
+        "private_roster_mapping_not_confirmed"
+      ],
+      "restricted_to_users": true,
+      "roles": {
+        "owner": 1,
+        "writer": 4
+      }
+    },
+    {
+      "id": "1MIxaR4Yge0HX9xSXqt8_I5zls0Dn1hR1",
+      "mime_type": "application/octet-stream",
+      "pending": [
+        "private_roster_mapping_not_confirmed"
+      ],
+      "restricted_to_users": true,
+      "roles": {
+        "owner": 1,
+        "writer": 4
+      }
+    },
+    {
+      "id": "1s0ks3zYLZy3FX5uHOjSTnP35yHPlvtce",
+      "mime_type": "application/json",
+      "pending": [
+        "private_roster_mapping_not_confirmed"
+      ],
+      "restricted_to_users": true,
+      "roles": {
+        "owner": 1,
+        "writer": 4
+      }
+    },
+    {
+      "actual_notebook": {
+        "code_sources_sha256": "b46a453d27ba3236f4666af7c891d619918607b85839d1bf7d7cf2a8ed2c975c",
+        "executed_code_cells": 4,
+        "findings": [],
+        "passed": true,
+        "pending": [],
+        "scanned_bytes": 67262,
+        "scanned_items": 1,
+        "sha256": "7447ba1368306b0e4a058ce83d8a91d84eb4eadb5394557e6eee2ea32ba1f609"
+      },
+      "id": "1R-E8DVh0c79KXK2CLLvLyvmmjPO-2QGn",
+      "mime_type": "application/vnd.google.colaboratory",
+      "pending": [
+        "private_roster_mapping_not_confirmed"
+      ],
+      "restricted_to_users": true,
+      "roles": {
+        "owner": 1
+      }
+    },
+    {
+      "actual_notebook": {
+        "code_sources_sha256": "253e671716405f91d56ab7b9ebf393bcf1be9ae560abbd5ae9ad5c4cf83b7782",
+        "executed_code_cells": 4,
+        "findings": [],
+        "passed": true,
+        "pending": [],
+        "scanned_bytes": 55908,
+        "scanned_items": 1,
+        "sha256": "c26a1d7f13edf1c61dca8756b2a1372358aa6ef6f0ab121bfbb085cd68ce9cc3"
+      },
+      "id": "10FAialkfontu8mJZQ6igLvPHzgC_vuA9",
+      "mime_type": "application/vnd.google.colaboratory",
+      "pending": [
+        "private_roster_mapping_not_confirmed"
+      ],
+      "restricted_to_users": true,
+      "roles": {
+        "owner": 1
+      }
+    }
+  ],
+  "embedded_receipts": [
+    {
+      "containing_artifact_sha256": "fc4dd600ab414eb934ebde4b4c77b3911c73c6533ca935f27575bf26340e0043",
+      "identity_authenticated": false,
+      "local_vs_colab_not_proven_by_this_receipt_schema": true,
+      "recipient": "rosy179",
+      "recipient_self_reported": true,
+      "representation": "canonical_embedded_json_not_original_receipt_file",
+      "sha256": "c08722e0ec8229bc925cfdedf7b7f64174299560d8b281dff3f040d80dc39e80"
+    }
+  ],
+  "cloud_mutations": false,
+  "docker_runtime_reaudited": false,
+  "local_acceptance_preserved": "2026-10-23",
+  "tests": {
+    "security": 63,
+    "docs": 17
+  },
+  "collector_sha256": "9a332a72d67614dd645368b8a69b3fafd7fdad3106d0cd8b1dd530e24e4cdaaa",
+  "scanner_sha256": "01118b2db4521e590f448ca2ff7b88b63185756815682787fb4658e8cf8482fb",
+  "limitations": [
+    "Bounded exact objects only; no full-account scan or OCR",
+    "No recipient identity inferred from self-reported receipts",
+    "No cloud output ZIP for rosy179/ThanhTris available for independent readback",
+    "Private roster and extra principals require owner confirmation",
+    "Historical local runtime/permission acceptance was not rerun"
+  ]
+}
