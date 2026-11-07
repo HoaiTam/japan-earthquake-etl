@@ -1,0 +1,686 @@
+{
+  "task_id": "EXP-04",
+  "evaluation_scope": "PILOT_DEVELOPMENT",
+  "pilot_verification": {
+    "pilot_id": "pilot_196b6d4081d347e1c289e331022658fbbe572dd33181ad987900895c1f1b189c",
+    "source_dataset_id": "ds_98d4837dcb142bad1fb0ba2e77ad7524193056e57ca1b9a68269cc4b814022f5",
+    "candidate_rows": 279,
+    "mainshock_count": 2,
+    "features_sha256": "3baddf613f237d2117248ad9095230ec17e428ea47f73d499623035d3097d2e6"
+  },
+  "runtime_metadata": {
+    "schema_version": "1.0",
+    "python_version": "3.12.16",
+    "package_versions": {
+      "pyarrow": "21.0.0",
+      "numpy": "2.2.2",
+      "scipy": "1.15.1",
+      "scikit-learn": "1.6.1",
+      "hdbscan": "0.8.40",
+      "nbformat": "5.10.4",
+      "nbclient": "0.10.2"
+    },
+    "code_version": "5bc1aff7617b99e3eb219c8b14ac148153657fd4",
+    "random_seed": 42,
+    "timestamp_utc": "2026-11-06T12:21:50.239525+00:00",
+    "vector_columns": [
+      "x_scaled",
+      "y_scaled",
+      "z_scaled",
+      "time_scaled"
+    ],
+    "is_clean_code": true,
+    "critical_code_hashes": {
+      "notebooks/evaluation.py": "bca277db1edd5d07ad61cb881f956676f9128795efe0b9c90b64a565b17b532e",
+      "scripts/evaluate-models.py": "11e377c5ccf6321f00e1bef4ab7a67aae0fe734dfad387d39b3de92745c454cf",
+      "notebooks/baseline_models.py": "c699a18436123c7c5efd15b85d3e4726cccb66f5319f3909d0b7e69db44a3037",
+      "notebooks/adaptive_hdbscan.py": "87f6cd61024015d231f21c784fed722847933aa671c2591a0b83c8fd97575943",
+      "notebooks/experiment_harness.py": "f0b81a29176342ad056513c8eb13234db6189be488985e2d6de98142f0b188cc"
+    }
+  },
+  "code_provenance": {
+    "git_commit": "5bc1aff7617b99e3eb219c8b14ac148153657fd4",
+    "is_clean_code": true,
+    "clean_verification_status": "VERIFIED_CLEAN",
+    "dirty_files": [],
+    "missing_files": [],
+    "blob_mismatches": [],
+    "critical_code_hashes": {
+      "notebooks/evaluation.py": "bca277db1edd5d07ad61cb881f956676f9128795efe0b9c90b64a565b17b532e",
+      "scripts/evaluate-models.py": "11e377c5ccf6321f00e1bef4ab7a67aae0fe734dfad387d39b3de92745c454cf",
+      "notebooks/baseline_models.py": "c699a18436123c7c5efd15b85d3e4726cccb66f5319f3909d0b7e69db44a3037",
+      "notebooks/adaptive_hdbscan.py": "87f6cd61024015d231f21c784fed722847933aa671c2591a0b83c8fd97575943",
+      "notebooks/experiment_harness.py": "f0b81a29176342ad056513c8eb13234db6189be488985e2d6de98142f0b188cc"
+    },
+    "working_tree_code_hashes": {
+      "notebooks/evaluation.py": "bca277db1edd5d07ad61cb881f956676f9128795efe0b9c90b64a565b17b532e",
+      "scripts/evaluate-models.py": "11e377c5ccf6321f00e1bef4ab7a67aae0fe734dfad387d39b3de92745c454cf",
+      "notebooks/baseline_models.py": "c699a18436123c7c5efd15b85d3e4726cccb66f5319f3909d0b7e69db44a3037",
+      "notebooks/adaptive_hdbscan.py": "87f6cd61024015d231f21c784fed722847933aa671c2591a0b83c8fd97575943",
+      "notebooks/experiment_harness.py": "f0b81a29176342ad056513c8eb13234db6189be488985e2d6de98142f0b188cc"
+    },
+    "normalized_lf_code_hashes": {
+      "notebooks/evaluation.py": "e02c0633177f5c2a8d24453cb7ad3fd5b5d5549413f739bbd32c29d1d53000cf",
+      "scripts/evaluate-models.py": "715f5a84d588b47070ce7e3ae5b809d4c336624095cfef0b342f95eb7eccb2ec",
+      "notebooks/baseline_models.py": "81ac29e4b661f3985a12576a37f09570d7f8f0c6d0093950c886e308958d0546",
+      "notebooks/adaptive_hdbscan.py": "59727c0fdf8a3caa0956c58eacae9a566f5d2cb8b52dedc1ba1ab7f94ebd5277",
+      "notebooks/experiment_harness.py": "408004c5e751e4f4b6a8c3c6b504ab43a49baa74e825c87fad9d601e7273b903"
+    },
+    "git_blob_hashes": {
+      "notebooks/evaluation.py": "52ed9dd8cff595fc5e9397238810f24eab541fa6",
+      "scripts/evaluate-models.py": "4fd2006abc820c3812b621b05873c4ebdc720505",
+      "notebooks/baseline_models.py": "e3bc799763663f51df58dba38b8cc9d74a3c6b1a",
+      "notebooks/adaptive_hdbscan.py": "0611002c83fff6757461478908645b5c03db5852",
+      "notebooks/experiment_harness.py": "092aaea1fd862c9b893f5e07876404078baa944d",
+      "config/ml/models/window_baseline_v1.json": "2c5dd1877c74dc8551610941df6e59d46b11f618",
+      "config/ml/models/dbscan_global_dev_v1.json": "13cfc6c04dbae9717a4530649a87504f14885c25",
+      "config/ml/models/hdbscan_global_dev_v1.json": "eeb8a0cdc4db7224391c858de5272e77a5e08183",
+      "config/ml/models/hdbscan_adaptive_dev_v1.json": "042f3d1359e8b038ddd68963049bcd46f9ac405c"
+    },
+    "head_blob_hashes": {
+      "notebooks/evaluation.py": "52ed9dd8cff595fc5e9397238810f24eab541fa6",
+      "scripts/evaluate-models.py": "4fd2006abc820c3812b621b05873c4ebdc720505",
+      "notebooks/baseline_models.py": "e3bc799763663f51df58dba38b8cc9d74a3c6b1a",
+      "notebooks/adaptive_hdbscan.py": "0611002c83fff6757461478908645b5c03db5852",
+      "notebooks/experiment_harness.py": "092aaea1fd862c9b893f5e07876404078baa944d",
+      "config/ml/models/window_baseline_v1.json": "2c5dd1877c74dc8551610941df6e59d46b11f618",
+      "config/ml/models/dbscan_global_dev_v1.json": "13cfc6c04dbae9717a4530649a87504f14885c25",
+      "config/ml/models/hdbscan_global_dev_v1.json": "eeb8a0cdc4db7224391c858de5272e77a5e08183",
+      "config/ml/models/hdbscan_adaptive_dev_v1.json": "042f3d1359e8b038ddd68963049bcd46f9ac405c"
+    },
+    "detected_line_endings": {
+      "notebooks/evaluation.py": "crlf",
+      "scripts/evaluate-models.py": "crlf",
+      "notebooks/baseline_models.py": "crlf",
+      "notebooks/adaptive_hdbscan.py": "crlf",
+      "notebooks/experiment_harness.py": "crlf"
+    },
+    "cross_platform_verification_note": "Working-tree hashes depend on local filesystem line endings (CRLF on Windows vs LF on Unix/macOS). For cross-platform reproducibility, verify against git_blob_hashes (via `git hash-object <file>`) or normalized_lf_code_hashes (via `sha256sum` after LF conversion)."
+  },
+  "algorithm_config_pins": {
+    "WINDOW": {
+      "config_path": "config/ml/models/window_baseline_v1.json",
+      "model_config_version": "window-baseline-v1",
+      "algorithm_version": "1.0.0",
+      "config_sha256": "78feda8112fd4a687be8383cc100faa20fdc0f0ae7a9d54a312a4868d703ad40",
+      "file_bytes_sha256": "78feda8112fd4a687be8383cc100faa20fdc0f0ae7a9d54a312a4868d703ad40",
+      "canonical_config_sha256": "2307ac48bb5583f0f01ec8a02b108138718d1ddd3dea9ef8802a61988466a934"
+    },
+    "DBSCAN": {
+      "config_path": "config/ml/models/dbscan_global_dev_v1.json",
+      "model_config_version": "dbscan-global-dev-v1",
+      "algorithm_version": "1.0.0",
+      "config_sha256": "f089d928f4ace1c695207b1b4200f03c34e782a9fef3069f9da4518fcf5dcba1",
+      "file_bytes_sha256": "f089d928f4ace1c695207b1b4200f03c34e782a9fef3069f9da4518fcf5dcba1",
+      "canonical_config_sha256": "0f280869d059dd2d61790a33695f17d3ef55d75e90a6e768d6ac6dc34592b451"
+    },
+    "HDBSCAN_GLOBAL": {
+      "config_path": "config/ml/models/hdbscan_global_dev_v1.json",
+      "model_config_version": "hdbscan-global-dev-v1",
+      "algorithm_version": "1.0.0",
+      "config_sha256": "10d2b375d66c8c95a6388c8dbda068dfebc1a492bcfd27df8bd5e1c8a20829f2",
+      "file_bytes_sha256": "10d2b375d66c8c95a6388c8dbda068dfebc1a492bcfd27df8bd5e1c8a20829f2",
+      "canonical_config_sha256": "52672a9974954e055022fabe8beb433d044b0df836bb5e6eed95a57685906a72"
+    },
+    "HDBSCAN_ADAPTIVE": {
+      "config_path": "config/ml/models/hdbscan_adaptive_dev_v1.json",
+      "model_config_version": "hdbscan-adaptive-dev-v1",
+      "algorithm_version": "1.0.0",
+      "config_sha256": "41a4232ad6e4ae50505f14f8af2ea5cbd9353c0dc43ce6f3776d539977adbd65",
+      "file_bytes_sha256": "41a4232ad6e4ae50505f14f8af2ea5cbd9353c0dc43ce6f3776d539977adbd65",
+      "canonical_config_sha256": "55c8077ef11023de79a9e2d9935d3168bce9c4b3fa9b32c23bad3ade79f57a3d"
+    }
+  },
+  "evaluation_parameters": {
+    "stability_repeats": 5,
+    "perturbation_sigma": 0.01,
+    "random_seed": 42,
+    "min_omori_aftershocks": 5
+  },
+  "evaluation_summary": {
+    "pilot_id": "pilot_196b6d4081d347e1c289e331022658fbbe572dd33181ad987900895c1f1b189c",
+    "evaluated_at_utc": "2026-11-06T12:21:57Z",
+    "comparison_table": [
+      {
+        "Algorithm": "WINDOW",
+        "Total Windows": 2,
+        "Success Windows": 2,
+        "Failure Windows": 0,
+        "Failure Rate": "0.0%",
+        "Total Aftershocks": 255,
+        "Mean Noise Ratio": "0.0%",
+        "Mean DBCV": "N/A",
+        "Mean Omori p": "0.89",
+        "Omori Fitted Windows": "1/2",
+        "Mean Jaccard Stability": "1.0000",
+        "Mean ARI Stability": "1.0000",
+        "Runtime (s)": "1.76"
+      },
+      {
+        "Algorithm": "DBSCAN",
+        "Total Windows": 2,
+        "Success Windows": 1,
+        "Failure Windows": 1,
+        "Failure Rate": "50.0%",
+        "Total Aftershocks": 240,
+        "Mean Noise Ratio": "2.9%",
+        "Mean DBCV": "0.1676",
+        "Mean Omori p": "0.92",
+        "Omori Fitted Windows": "1/2",
+        "Mean Jaccard Stability": "0.9880",
+        "Mean ARI Stability": "0.9483",
+        "Runtime (s)": "1.39"
+      },
+      {
+        "Algorithm": "HDBSCAN_GLOBAL",
+        "Total Windows": 2,
+        "Success Windows": 0,
+        "Failure Windows": 2,
+        "Failure Rate": "100.0%",
+        "Total Aftershocks": 0,
+        "Mean Noise Ratio": "N/A",
+        "Mean DBCV": "0.1509",
+        "Mean Omori p": "N/A",
+        "Omori Fitted Windows": "0/2",
+        "Mean Jaccard Stability": "0.5977",
+        "Mean ARI Stability": "0.6339",
+        "Runtime (s)": "1.54"
+      },
+      {
+        "Algorithm": "HDBSCAN_ADAPTIVE",
+        "Total Windows": 2,
+        "Success Windows": 0,
+        "Failure Windows": 2,
+        "Failure Rate": "100.0%",
+        "Total Aftershocks": 0,
+        "Mean Noise Ratio": "N/A",
+        "Mean DBCV": "N/A",
+        "Mean Omori p": "N/A",
+        "Omori Fitted Windows": "0/2",
+        "Mean Jaccard Stability": "1.0000",
+        "Mean ARI Stability": "0.6714",
+        "Runtime (s)": "0.97"
+      }
+    ],
+    "algorithm_details": {
+      "WINDOW": {
+        "algorithm_name": "WINDOW",
+        "model_config_version": "window-baseline-v1",
+        "total_windows": 2,
+        "success_windows": 2,
+        "failure_windows": 0,
+        "failure_rate": 0.0,
+        "failure_reasons": [],
+        "total_candidates": 279,
+        "total_aftershocks": 255,
+        "mean_noise_ratio": 0.0,
+        "mean_dbcv_score": null,
+        "dbcv_computed_windows": 0,
+        "mean_omori_p": 0.8913,
+        "mean_omori_r2": 0.9972,
+        "omori_fitted_windows": 1,
+        "mean_jaccard_stability": 1.0,
+        "mean_ari_stability": 1.0,
+        "stability_computed_windows": 2,
+        "runtime_seconds": 1.7556,
+        "window_evaluations": [
+          {
+            "mainshock_id": "evt_d47fcaaf451cc2e5c3dcc8f016a999be",
+            "candidate_count": 1,
+            "window_result_status": "SUCCESS",
+            "failure_reason_code": null,
+            "aftershock_count": 0,
+            "noise_ratio": 0.0,
+            "dbcv_score": null,
+            "dbcv_reason_codes": [
+              "METRIC_NOT_APPLICABLE"
+            ],
+            "omori_fit": {
+              "omori_k": null,
+              "omori_c": null,
+              "omori_p": null,
+              "omori_fit_metric": null,
+              "metric_reason_codes": [
+                "METRIC_INSUFFICIENT_MEMBERS"
+              ],
+              "aftershock_sample_size": 0
+            },
+            "stability": {
+              "mean_jaccard": 1.0,
+              "std_jaccard": 0.0,
+              "min_jaccard": 1.0,
+              "max_jaccard": 1.0,
+              "mean_ari": 1.0,
+              "std_ari": 0.0,
+              "min_ari": 1.0,
+              "max_ari": 1.0,
+              "repeats": 5,
+              "requested_repeats": 5,
+              "sigma": 0.01,
+              "seed": 42,
+              "attempted_repeats": 5,
+              "valid_repeats": 5,
+              "failed_repeats": 0,
+              "attempted_pairs": 10,
+              "valid_pairs": 10,
+              "metric_reason_codes": [],
+              "failed_repeat_details": []
+            },
+            "fit_exception": null
+          },
+          {
+            "mainshock_id": "evt_f0300848e0b73b5ce9497a70a74a5905",
+            "candidate_count": 278,
+            "window_result_status": "SUCCESS",
+            "failure_reason_code": null,
+            "aftershock_count": 255,
+            "noise_ratio": 0.0,
+            "dbcv_score": null,
+            "dbcv_reason_codes": [
+              "METRIC_NOT_APPLICABLE"
+            ],
+            "omori_fit": {
+              "omori_k": 32.6,
+              "omori_c": 0.4267,
+              "omori_p": 0.8913,
+              "omori_fit_metric": 0.9972,
+              "metric_reason_codes": [],
+              "aftershock_sample_size": 255
+            },
+            "stability": {
+              "mean_jaccard": 1.0,
+              "std_jaccard": 0.0,
+              "min_jaccard": 1.0,
+              "max_jaccard": 1.0,
+              "mean_ari": 1.0,
+              "std_ari": 0.0,
+              "min_ari": 1.0,
+              "max_ari": 1.0,
+              "repeats": 5,
+              "requested_repeats": 5,
+              "sigma": 0.01,
+              "seed": 42,
+              "attempted_repeats": 5,
+              "valid_repeats": 5,
+              "failed_repeats": 0,
+              "attempted_pairs": 10,
+              "valid_pairs": 10,
+              "metric_reason_codes": [],
+              "failed_repeat_details": []
+            },
+            "fit_exception": null
+          }
+        ]
+      },
+      "DBSCAN": {
+        "algorithm_name": "DBSCAN",
+        "model_config_version": "dbscan-global-dev-v1",
+        "total_windows": 2,
+        "success_windows": 1,
+        "failure_windows": 1,
+        "failure_rate": 0.5,
+        "failure_reasons": [
+          "EXP_MAINSHOCK_CLASSIFIED_AS_NOISE"
+        ],
+        "total_candidates": 279,
+        "total_aftershocks": 240,
+        "mean_noise_ratio": 0.0288,
+        "mean_dbcv_score": 0.1676,
+        "dbcv_computed_windows": 1,
+        "mean_omori_p": 0.9239,
+        "mean_omori_r2": 0.9975,
+        "omori_fitted_windows": 1,
+        "mean_jaccard_stability": 0.988,
+        "mean_ari_stability": 0.9483,
+        "stability_computed_windows": 2,
+        "runtime_seconds": 1.3888,
+        "window_evaluations": [
+          {
+            "mainshock_id": "evt_d47fcaaf451cc2e5c3dcc8f016a999be",
+            "candidate_count": 1,
+            "window_result_status": "FAILED",
+            "failure_reason_code": "EXP_MAINSHOCK_CLASSIFIED_AS_NOISE",
+            "aftershock_count": 0,
+            "noise_ratio": null,
+            "dbcv_score": null,
+            "dbcv_reason_codes": [
+              "METRIC_INSUFFICIENT_MEMBERS"
+            ],
+            "omori_fit": {
+              "omori_k": null,
+              "omori_c": null,
+              "omori_p": null,
+              "omori_fit_metric": null,
+              "metric_reason_codes": [
+                "METRIC_INSUFFICIENT_MEMBERS"
+              ],
+              "aftershock_sample_size": 0
+            },
+            "stability": {
+              "mean_jaccard": 1.0,
+              "std_jaccard": 0.0,
+              "min_jaccard": 1.0,
+              "max_jaccard": 1.0,
+              "mean_ari": 1.0,
+              "std_ari": 0.0,
+              "min_ari": 1.0,
+              "max_ari": 1.0,
+              "repeats": 5,
+              "requested_repeats": 5,
+              "sigma": 0.01,
+              "seed": 42,
+              "attempted_repeats": 5,
+              "valid_repeats": 5,
+              "failed_repeats": 0,
+              "attempted_pairs": 10,
+              "valid_pairs": 10,
+              "metric_reason_codes": [],
+              "failed_repeat_details": []
+            },
+            "fit_exception": null
+          },
+          {
+            "mainshock_id": "evt_f0300848e0b73b5ce9497a70a74a5905",
+            "candidate_count": 278,
+            "window_result_status": "SUCCESS",
+            "failure_reason_code": null,
+            "aftershock_count": 240,
+            "noise_ratio": 0.02877697841726619,
+            "dbcv_score": 0.1676,
+            "dbcv_reason_codes": [],
+            "omori_fit": {
+              "omori_k": 33.3461,
+              "omori_c": 0.4471,
+              "omori_p": 0.9239,
+              "omori_fit_metric": 0.9975,
+              "metric_reason_codes": [],
+              "aftershock_sample_size": 240
+            },
+            "stability": {
+              "mean_jaccard": 0.9761,
+              "std_jaccard": 0.0293,
+              "min_jaccard": 0.9402,
+              "max_jaccard": 1.0,
+              "mean_ari": 0.8965,
+              "std_ari": 0.1268,
+              "min_ari": 0.7413,
+              "max_ari": 1.0,
+              "repeats": 5,
+              "requested_repeats": 5,
+              "sigma": 0.01,
+              "seed": 42,
+              "attempted_repeats": 5,
+              "valid_repeats": 5,
+              "failed_repeats": 0,
+              "attempted_pairs": 10,
+              "valid_pairs": 10,
+              "metric_reason_codes": [],
+              "failed_repeat_details": []
+            },
+            "fit_exception": null
+          }
+        ]
+      },
+      "HDBSCAN_GLOBAL": {
+        "algorithm_name": "HDBSCAN_GLOBAL",
+        "model_config_version": "hdbscan-global-dev-v1",
+        "total_windows": 2,
+        "success_windows": 0,
+        "failure_windows": 2,
+        "failure_rate": 1.0,
+        "failure_reasons": [
+          "EXP_MAINSHOCK_CLASSIFIED_AS_NOISE",
+          "EXP_MAINSHOCK_CLASSIFIED_AS_NOISE"
+        ],
+        "total_candidates": 279,
+        "total_aftershocks": 0,
+        "mean_noise_ratio": null,
+        "mean_dbcv_score": 0.1509,
+        "dbcv_computed_windows": 1,
+        "mean_omori_p": null,
+        "mean_omori_r2": null,
+        "omori_fitted_windows": 0,
+        "mean_jaccard_stability": 0.5977,
+        "mean_ari_stability": 0.6339,
+        "stability_computed_windows": 2,
+        "runtime_seconds": 1.5419,
+        "window_evaluations": [
+          {
+            "mainshock_id": "evt_d47fcaaf451cc2e5c3dcc8f016a999be",
+            "candidate_count": 1,
+            "window_result_status": "FAILED",
+            "failure_reason_code": "EXP_MAINSHOCK_CLASSIFIED_AS_NOISE",
+            "aftershock_count": 0,
+            "noise_ratio": null,
+            "dbcv_score": null,
+            "dbcv_reason_codes": [
+              "METRIC_INSUFFICIENT_MEMBERS"
+            ],
+            "omori_fit": {
+              "omori_k": null,
+              "omori_c": null,
+              "omori_p": null,
+              "omori_fit_metric": null,
+              "metric_reason_codes": [
+                "METRIC_INSUFFICIENT_MEMBERS"
+              ],
+              "aftershock_sample_size": 0
+            },
+            "stability": {
+              "mean_jaccard": 1.0,
+              "std_jaccard": 0.0,
+              "min_jaccard": 1.0,
+              "max_jaccard": 1.0,
+              "mean_ari": 1.0,
+              "std_ari": 0.0,
+              "min_ari": 1.0,
+              "max_ari": 1.0,
+              "repeats": 5,
+              "requested_repeats": 5,
+              "sigma": 0.01,
+              "seed": 42,
+              "attempted_repeats": 5,
+              "valid_repeats": 5,
+              "failed_repeats": 0,
+              "attempted_pairs": 10,
+              "valid_pairs": 10,
+              "metric_reason_codes": [],
+              "failed_repeat_details": []
+            },
+            "fit_exception": null
+          },
+          {
+            "mainshock_id": "evt_f0300848e0b73b5ce9497a70a74a5905",
+            "candidate_count": 278,
+            "window_result_status": "FAILED",
+            "failure_reason_code": "EXP_MAINSHOCK_CLASSIFIED_AS_NOISE",
+            "aftershock_count": 0,
+            "noise_ratio": null,
+            "dbcv_score": 0.1509,
+            "dbcv_reason_codes": [],
+            "omori_fit": {
+              "omori_k": null,
+              "omori_c": null,
+              "omori_p": null,
+              "omori_fit_metric": null,
+              "metric_reason_codes": [
+                "METRIC_INSUFFICIENT_MEMBERS"
+              ],
+              "aftershock_sample_size": 0
+            },
+            "stability": {
+              "mean_jaccard": 0.1954,
+              "std_jaccard": 0.3846,
+              "min_jaccard": 0.0,
+              "max_jaccard": 1.0,
+              "mean_ari": 0.2677,
+              "std_ari": 0.2333,
+              "min_ari": 0.0646,
+              "max_ari": 0.7741,
+              "repeats": 5,
+              "requested_repeats": 5,
+              "sigma": 0.01,
+              "seed": 42,
+              "attempted_repeats": 5,
+              "valid_repeats": 5,
+              "failed_repeats": 0,
+              "attempted_pairs": 10,
+              "valid_pairs": 10,
+              "metric_reason_codes": [],
+              "failed_repeat_details": []
+            },
+            "fit_exception": null
+          }
+        ]
+      },
+      "HDBSCAN_ADAPTIVE": {
+        "algorithm_name": "HDBSCAN_ADAPTIVE",
+        "model_config_version": "hdbscan-adaptive-dev-v1",
+        "total_windows": 2,
+        "success_windows": 0,
+        "failure_windows": 2,
+        "failure_rate": 1.0,
+        "failure_reasons": [
+          "EXP_MAINSHOCK_CLASSIFIED_AS_NOISE",
+          "EXP_MAINSHOCK_CLASSIFIED_AS_NOISE"
+        ],
+        "total_candidates": 279,
+        "total_aftershocks": 0,
+        "mean_noise_ratio": null,
+        "mean_dbcv_score": null,
+        "dbcv_computed_windows": 0,
+        "mean_omori_p": null,
+        "mean_omori_r2": null,
+        "omori_fitted_windows": 0,
+        "mean_jaccard_stability": 1.0,
+        "mean_ari_stability": 0.6714,
+        "stability_computed_windows": 2,
+        "runtime_seconds": 0.9743,
+        "window_evaluations": [
+          {
+            "mainshock_id": "evt_d47fcaaf451cc2e5c3dcc8f016a999be",
+            "candidate_count": 1,
+            "window_result_status": "FAILED",
+            "failure_reason_code": "EXP_MAINSHOCK_CLASSIFIED_AS_NOISE",
+            "aftershock_count": 0,
+            "noise_ratio": null,
+            "dbcv_score": null,
+            "dbcv_reason_codes": [
+              "METRIC_INSUFFICIENT_MEMBERS"
+            ],
+            "omori_fit": {
+              "omori_k": null,
+              "omori_c": null,
+              "omori_p": null,
+              "omori_fit_metric": null,
+              "metric_reason_codes": [
+                "METRIC_INSUFFICIENT_MEMBERS"
+              ],
+              "aftershock_sample_size": 0
+            },
+            "stability": {
+              "mean_jaccard": 1.0,
+              "std_jaccard": 0.0,
+              "min_jaccard": 1.0,
+              "max_jaccard": 1.0,
+              "mean_ari": 1.0,
+              "std_ari": 0.0,
+              "min_ari": 1.0,
+              "max_ari": 1.0,
+              "repeats": 5,
+              "requested_repeats": 5,
+              "sigma": 0.01,
+              "seed": 42,
+              "attempted_repeats": 5,
+              "valid_repeats": 5,
+              "failed_repeats": 0,
+              "attempted_pairs": 10,
+              "valid_pairs": 10,
+              "metric_reason_codes": [],
+              "failed_repeat_details": []
+            },
+            "fit_exception": null
+          },
+          {
+            "mainshock_id": "evt_f0300848e0b73b5ce9497a70a74a5905",
+            "candidate_count": 278,
+            "window_result_status": "FAILED",
+            "failure_reason_code": "EXP_MAINSHOCK_CLASSIFIED_AS_NOISE",
+            "aftershock_count": 0,
+            "noise_ratio": null,
+            "dbcv_score": null,
+            "dbcv_reason_codes": [
+              "METRIC_FIT_FAILED"
+            ],
+            "omori_fit": {
+              "omori_k": null,
+              "omori_c": null,
+              "omori_p": null,
+              "omori_fit_metric": null,
+              "metric_reason_codes": [
+                "METRIC_INSUFFICIENT_MEMBERS"
+              ],
+              "aftershock_sample_size": 0
+            },
+            "stability": {
+              "mean_jaccard": 1.0,
+              "std_jaccard": 0.0,
+              "min_jaccard": 1.0,
+              "max_jaccard": 1.0,
+              "mean_ari": 0.3428,
+              "std_ari": 0.1723,
+              "min_ari": 0.1411,
+              "max_ari": 0.6587,
+              "repeats": 5,
+              "requested_repeats": 5,
+              "sigma": 0.01,
+              "seed": 42,
+              "attempted_repeats": 5,
+              "valid_repeats": 5,
+              "failed_repeats": 0,
+              "attempted_pairs": 10,
+              "valid_pairs": 10,
+              "metric_reason_codes": [],
+              "failed_repeat_details": []
+            },
+            "fit_exception": null
+          }
+        ]
+      }
+    },
+    "algorithm_config_pins": {
+      "WINDOW": {
+        "config_path": "config/ml/models/window_baseline_v1.json",
+        "model_config_version": "window-baseline-v1",
+        "algorithm_version": "1.0.0",
+        "config_sha256": "78feda8112fd4a687be8383cc100faa20fdc0f0ae7a9d54a312a4868d703ad40",
+        "file_bytes_sha256": "78feda8112fd4a687be8383cc100faa20fdc0f0ae7a9d54a312a4868d703ad40",
+        "canonical_config_sha256": "2307ac48bb5583f0f01ec8a02b108138718d1ddd3dea9ef8802a61988466a934"
+      },
+      "DBSCAN": {
+        "config_path": "config/ml/models/dbscan_global_dev_v1.json",
+        "model_config_version": "dbscan-global-dev-v1",
+        "algorithm_version": "1.0.0",
+        "config_sha256": "f089d928f4ace1c695207b1b4200f03c34e782a9fef3069f9da4518fcf5dcba1",
+        "file_bytes_sha256": "f089d928f4ace1c695207b1b4200f03c34e782a9fef3069f9da4518fcf5dcba1",
+        "canonical_config_sha256": "0f280869d059dd2d61790a33695f17d3ef55d75e90a6e768d6ac6dc34592b451"
+      },
+      "HDBSCAN_GLOBAL": {
+        "config_path": "config/ml/models/hdbscan_global_dev_v1.json",
+        "model_config_version": "hdbscan-global-dev-v1",
+        "algorithm_version": "1.0.0",
+        "config_sha256": "10d2b375d66c8c95a6388c8dbda068dfebc1a492bcfd27df8bd5e1c8a20829f2",
+        "file_bytes_sha256": "10d2b375d66c8c95a6388c8dbda068dfebc1a492bcfd27df8bd5e1c8a20829f2",
+        "canonical_config_sha256": "52672a9974954e055022fabe8beb433d044b0df836bb5e6eed95a57685906a72"
+      },
+      "HDBSCAN_ADAPTIVE": {
+        "config_path": "config/ml/models/hdbscan_adaptive_dev_v1.json",
+        "model_config_version": "hdbscan-adaptive-dev-v1",
+        "algorithm_version": "1.0.0",
+        "config_sha256": "41a4232ad6e4ae50505f14f8af2ea5cbd9353c0dc43ce6f3776d539977adbd65",
+        "file_bytes_sha256": "41a4232ad6e4ae50505f14f8af2ea5cbd9353c0dc43ce6f3776d539977adbd65",
+        "canonical_config_sha256": "55c8077ef11023de79a9e2d9935d3168bce9c4b3fa9b32c23bad3ade79f57a3d"
+      }
+    }
+  }
+}

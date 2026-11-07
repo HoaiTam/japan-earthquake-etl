@@ -201,9 +201,15 @@ release đủ gate. Không tạo dependency ngược từ DAT-03 sang EXP-02.
   0 overlap. Gói ZIP provenance của ThanhTris trên Drive đã được tải về và kiểm
   tra đạt 75/75 first-hop objects (37 Bronze manifests, 19 Silver manifests,
   19 registry JSON) khớp 100% SHA-256. [Evidence](../../evidence/DAT-03_INTEGRATION_EVIDENCE_288_MONTHS.md).
-  Còn 4 cổng kỹ thuật để Done: nhận 83 provenance rosy179, tích hợp catalog
-  và khử trùng ranh giới, official ML export cho 2 split REPRODUCTION/EXTENSION
-  và đóng gói release kèm đủ 3 receipts. Giữ In Progress.
+  Còn 4 cổng kỹ thuật để Done: hoàn tất đối soát transitive lineage (Cổng 1),
+  tích hợp catalog và khử trùng ranh giới (Cổng 2), official ML export cho 2 split
+  REPRODUCTION/EXTENSION (Cổng 3) và đóng gói release kèm đủ 3 receipts (Cổng 4).
+  Phần việc first-hop của rosy179 (63 tháng 2018-10..2023-12) đã hoàn thành: đã đóng gói
+  và tải lên Google Drive gói `rosy179-dat03-provenance-metadata.zip`, Hoài Tâm đã xác
+  nhận khớp 100% SHA-256 cho 83/83 first-hop objects (37 Bronze manifests, 23 Silver bundle
+  manifests, 23 snapshot registry JSONs). Đã hoàn thiện công cụ `scripts/pack-worker-provenance.py`
+  (enforce fail-closed, unique paths, phân biệt self-integrity và trusted provenance) và
+  `scripts/extract-minio-provenance.py` kèm bộ kiểm thử tự động. Giữ In Progress.
 
 - **29/10 — recovery range sau sleep:** branch `fix/dat-03-range-sleep-recovery`
   từ main `ec7431244df1e5858fc0d148ec71755d36915033`; thêm helper publication-only,

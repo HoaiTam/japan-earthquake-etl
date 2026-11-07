@@ -22,6 +22,7 @@ class SuitePolicyTest(unittest.TestCase):
         self.assertIn("ie212.earthquake.spark.usgs.ResearchCatalogRecoveryJobTest", groups["orc-07-real-adapters"])
         self.assertIn("test-research-e2e", (ROOT / "Makefile").read_text().split("ci-docs-base:", 1)[1])
         self.assertIn("test_research_catalog_recovery.py", (ROOT / "Makefile").read_text().split("ci-docs-base:", 1)[1])
+        self.assertIn("test-dat03-provenance", (ROOT / "Makefile").read_text().split("ci-docs-base:", 1)[1])
 
     def test_strict_split_policy_regression_is_visible_in_window_suite_and_local_target(self):
         groups = impact.inventory("java")

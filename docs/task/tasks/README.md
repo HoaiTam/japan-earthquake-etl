@@ -22,6 +22,15 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 
 ## Tổng quan
 
+**DAT-03 05/11 — đối soát 288 tháng và 75/75 provenance ThanhTris:** đối soát offline
+xác nhận đủ 288/288 tháng qua 4 gói phân đoạn (101 nền, 62 HoaiTam, 62 ThanhTris,
+63 rosy179), 0 gap và 0 overlap. Provenance ThanhTris đạt 75/75 objects khớp 100%
+SHA-256. [Evidence](../../evidence/DAT-03_INTEGRATION_EVIDENCE_288_MONTHS.md).
+Cả hai worker đã đưa đủ first-hop provenance lên Drive (ThanhTris: 75/75, rosy179: 83/83)
+và được đối chiếu độc lập khớp 100% SHA-256. Còn 4 cổng kỹ thuật: đối soát transitive lineage
+(Cổng 1), tích hợp catalog/khử trùng ranh giới (Cổng 2), official ML export cho 2 split
+REPRODUCTION/EXTENSION (Cổng 3) và 3 receipts (Cổng 4). Task In Progress.
+
 **DAT-03 29/10 — range recovery:** có [bản vá và hướng dẫn máy rosy179](../../runbooks/DAT-03_RANGE_RECOVERY.md)
 cho session952973b42c8d4570b653ece99c79ed78 bị ngắt ở Verify sau COMMITTED.
 Giữ failed evidence, không quarantine/skip. Báo cáo33/63 của chủ máy chưa
@@ -291,7 +300,7 @@ portable merge, full catalog và official export/receipts. Không suy unit PASS 
 | [EXP-01](./EXP-01.md) - Tạo Jupyter harness và chuẩn bị chuyển sang Colab | 5 | Jupyter-first harness | Core | P0 | 5h | Done |
 | [EXP-02](./EXP-02.md) - Chạy Window, DBSCAN và HDBSCAN global | 5 | Baseline algorithms | Core | P0 | 7h | In Progress |
 | [EXP-03](./EXP-03.md) - Xây HDBSCAN adaptive và giải quyết multi-sequence | 5 | Adaptive HDBSCAN | Core | P0 | 6h | In Progress |
-| [EXP-04](./EXP-04.md) - Đánh giá quality, physical consistency và stability | 7 | Scientific evaluation | Core | P0 | 7h | Backlog |
+| [EXP-04](./EXP-04.md) - Đánh giá quality, physical consistency và stability | 7 | Scientific evaluation | Core | P0 | 7h | In Progress |
 | [EXP-05](./EXP-05.md) - Chạy out-of-period extension 2018-2023 | 7 | Out-of-period evaluation | Core | P0 | 5h | Backlog |
 | [COL-01](./COL-01.md) - Khảo sát và giải thích pilot trên Colab | 7 | Colab pilot data inspection | Core | P1 | 3h | Done |
 | [COL-02](./COL-02.md) - Sweep tham số baseline giới hạn trên pilot | 7 | Bounded baseline parameter sweep | Core | P1 | 4h | Done |

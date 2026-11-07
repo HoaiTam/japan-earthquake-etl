@@ -1,6 +1,6 @@
 ---
 task_id: "EXP-04"
-status: "Backlog"
+status: "In Progress"
 week: 7
 block: "H - Experiment"
 workstream: "Scientific evaluation"
@@ -79,10 +79,10 @@ gốc. Dependencies và tiêu chí gốc phía trên giữ nguyên.
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
+- **Trạng thái:** In Progress
 - **Assignee:** ThanhTris
 - **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Evidence / PR:** Bắt đầu triển khai evaluation harness, unit tests và pilot comparison report trên branch `feat/exp-04-scientific-evaluation`. Bằng chứng pilot tại [EXP-04_PILOT_EVALUATION.json](../../evidence/EXP-04_PILOT_EVALUATION.json) và [EXP-04_PILOT_EVALUATION.md](../../evidence/EXP-04_PILOT_EVALUATION.md). Giữ `In Progress` cho official research evaluation.
 - **Kỹ năng phù hợp:** Clustering evaluation, seismology statistics, experiment design
 
 ## Checklist bàn giao
