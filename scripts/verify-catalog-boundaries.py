@@ -291,87 +291,118 @@ def verify_manifest_contiguity(
         # Parse manifest payload JSON (Blocker 1 requirement: reject empty {} or unparsed content)
         parsed_payload: Optional[Dict[str, Any]] = None
         certified_empty_for_pkg: Set[str] = set()
+        parsed_rows: Optional[int] = None
+        payload_has_id: bool = False
+        payload_has_cov: bool = False
+        pkg_violations: List[str] = []
 
         if raw_b is not None:
             try:
                 parsed_raw = json.loads(raw_b.decode("utf-8"))
             except Exception as ex:
-                violations.append(f"MANIFEST_JSON_PARSE_ERROR:{pkg_id}:{ex}")
+                err = f"MANIFEST_JSON_PARSE_ERROR:{pkg_id}:{ex}"
+                violations.append(err)
+                pkg_violations.append(err)
                 parsed_raw = None
 
             if parsed_raw is not None:
                 if not isinstance(parsed_raw, dict):
-                    violations.append(f"MANIFEST_PAYLOAD_NOT_OBJECT:{pkg_id}: manifest JSON root must be an object/dict")
+                    err = f"MANIFEST_PAYLOAD_NOT_OBJECT:{pkg_id}: manifest JSON root must be an object/dict"
+                    violations.append(err)
+                    pkg_violations.append(err)
                 elif len(parsed_raw) == 0:
-                    violations.append(f"EMPTY_MANIFEST_PAYLOAD:{pkg_id}: manifest JSON payload is empty {{}}")
+                    err = f"EMPTY_MANIFEST_PAYLOAD:{pkg_id}: manifest JSON payload is empty {{}}"
+                    violations.append(err)
+                    pkg_violations.append(err)
                 else:
                     parsed_payload = parsed_raw
                     # Check package identity inside manifest payload
                     if "package_id" in parsed_payload or "segment_id" in parsed_payload:
+                        payload_has_id = True
                         parsed_p_id = str(parsed_payload.get("package_id") or parsed_payload.get("segment_id"))
                         parsed_seg = resolve_package_segment(parsed_p_id)
                         if parsed_p_id != pkg_id and parsed_seg != seg_key:
-                            violations.append(
-                                f"MANIFEST_PACKAGE_ID_MISMATCH:{pkg_id}: manifest payload declares {parsed_p_id}, descriptor is {pkg_id}"
-                            )
+                            err = f"MANIFEST_PACKAGE_ID_MISMATCH:{pkg_id}: manifest payload declares {parsed_p_id}, descriptor is {pkg_id}"
+                            violations.append(err)
+                            pkg_violations.append(err)
+                    elif require_trusted_registry:
+                        err = f"MANIFEST_PAYLOAD_MISSING_PACKAGE_ID:{pkg_id}: manifest JSON payload must declare 'package_id' or 'segment_id'"
+                        violations.append(err)
+                        pkg_violations.append(err)
 
                     # Check covered months or range inside payload
                     if "covered_months" in parsed_payload:
+                        payload_has_cov = True
                         parsed_m_list = list(parsed_payload["covered_months"])
                         if parsed_m_list != expected_range:
-                            violations.append(
-                                f"MANIFEST_COVERED_MONTHS_MISMATCH:{pkg_id}: payload covered_months does not match expected range"
-                            )
+                            err = f"MANIFEST_COVERED_MONTHS_MISMATCH:{pkg_id}: payload covered_months does not match expected range"
+                            violations.append(err)
+                            pkg_violations.append(err)
                     elif "start_month" in parsed_payload and "end_month" in parsed_payload:
+                        payload_has_cov = True
                         if parsed_payload["start_month"] != start_m or parsed_payload["end_month"] != end_m:
-                            violations.append(
-                                f"MANIFEST_RANGE_MISMATCH:{pkg_id}: payload range {parsed_payload['start_month']}..{parsed_payload['end_month']} != {start_m}..{end_m}"
-                            )
+                            err = f"MANIFEST_RANGE_MISMATCH:{pkg_id}: payload range {parsed_payload['start_month']}..{parsed_payload['end_month']} != {start_m}..{end_m}"
+                            violations.append(err)
+                            pkg_violations.append(err)
+                    elif require_trusted_registry:
+                        err = f"MANIFEST_PAYLOAD_MISSING_COVERAGE:{pkg_id}: manifest JSON payload must declare 'covered_months' or ('start_month' and 'end_month')"
+                        violations.append(err)
+                        pkg_violations.append(err)
 
                     # Check row count
-                    parsed_rows = None
                     if "row_count" in parsed_payload:
                         parsed_rows = parsed_payload.get("row_count")
                     elif "total_rows" in parsed_payload:
                         parsed_rows = parsed_payload.get("total_rows")
 
-                    if parsed_rows is not None and row_count is not None and parsed_rows != row_count:
-                        violations.append(
-                            f"MANIFEST_ROW_COUNT_MISMATCH:{pkg_id}: descriptor={row_count}, manifest payload={parsed_rows}"
-                        )
+                    if require_row_count and parsed_rows is None:
+                        err = f"MANIFEST_PAYLOAD_MISSING_ROW_COUNT:{pkg_id}: manifest JSON payload must declare certified 'row_count' or 'total_rows'"
+                        violations.append(err)
+                        pkg_violations.append(err)
+                    elif parsed_rows is not None:
+                        if not isinstance(parsed_rows, int) or parsed_rows < 0:
+                            err = f"INVALID_MANIFEST_PAYLOAD_ROW_COUNT:{pkg_id}: payload row_count must be non-negative integer, got {parsed_rows}"
+                            violations.append(err)
+                            pkg_violations.append(err)
+                        if row_count is not None and parsed_rows != row_count:
+                            err = f"MANIFEST_ROW_COUNT_MISMATCH:{pkg_id}: descriptor={row_count}, manifest payload={parsed_rows}"
+                            violations.append(err)
+                            pkg_violations.append(err)
 
-                    # Certified empty evidence per month from manifest payload
-                    effective_rows = parsed_rows if parsed_rows is not None else row_count
-                    if effective_rows == 0:
+                    # Certified empty evidence per month from manifest payload strictly
+                    # Strictly NO fallback to descriptor row_count to certify empty months!
+                    if parsed_rows == 0:
                         certified_empty_for_pkg.update(expected_range)
 
                     monthly_counts = parsed_payload.get("monthly_counts") or parsed_payload.get("months_row_counts") or {}
                     if isinstance(monthly_counts, dict):
                         for m_key, c_val in monthly_counts.items():
-                            if c_val == 0:
+                            if isinstance(c_val, int) and c_val == 0:
                                 certified_empty_for_pkg.add(m_key)
 
                     if "empty_months" in parsed_payload and isinstance(parsed_payload["empty_months"], list):
-                        certified_empty_for_pkg.update(parsed_payload["empty_months"])
+                        for em in parsed_payload["empty_months"]:
+                            if isinstance(em, str):
+                                certified_empty_for_pkg.add(em)
 
         # Distinguish manifest_sha256 from package_sha256 (Blocker 1 requirement)
         expected_manifest_sha = pkg.get("manifest_sha256")
         expected_pkg_sha = pkg.get("package_sha256")
 
         if expected_pkg_sha and not expected_manifest_sha and raw_b is not None:
-            violations.append(
-                f"SEPARATE_SHA_REQUIRED:{pkg_id}: manifest_bytes cannot be validated against package_sha256; manifest_sha256 is required"
-            )
+            err = f"SEPARATE_SHA_REQUIRED:{pkg_id}: manifest_bytes cannot be validated against package_sha256; manifest_sha256 is required"
+            violations.append(err)
+            pkg_violations.append(err)
 
         if require_manifest_bytes:
             if raw_b is None:
-                violations.append(
-                    f"MISSING_MANIFEST_BYTES:{pkg_id}: official catalog gate requires raw manifest bytes or file"
-                )
+                err = f"MISSING_MANIFEST_BYTES:{pkg_id}: official catalog gate requires raw manifest bytes or file"
+                violations.append(err)
+                pkg_violations.append(err)
             if not expected_manifest_sha and not (trusted_registry_pins and seg_key in trusted_registry_pins):
-                violations.append(
-                    f"MISSING_MANIFEST_SHA256:{pkg_id}: official catalog gate requires trusted manifest_sha256 pin"
-                )
+                err = f"MISSING_MANIFEST_SHA256:{pkg_id}: official catalog gate requires trusted manifest_sha256 pin"
+                violations.append(err)
+                pkg_violations.append(err)
 
         computed_manifest_sha: Optional[str] = None
         if raw_b is not None:
@@ -391,28 +422,39 @@ def verify_manifest_contiguity(
                         break
 
             if not expected_trusted_sha:
-                violations.append(f"UNPINNED_PACKAGE:{pkg_id}: missing trusted registry pin in trusted_registry_pins")
+                err = f"UNPINNED_PACKAGE:{pkg_id}: missing trusted registry pin in trusted_registry_pins"
+                violations.append(err)
+                pkg_violations.append(err)
             elif computed_manifest_sha and computed_manifest_sha != expected_trusted_sha:
-                violations.append(
-                    f"MANIFEST_SHA256_MISMATCH_WITH_TRUSTED_REGISTRY:{pkg_id}: expected {expected_trusted_sha}, computed {computed_manifest_sha}"
-                )
+                err = f"MANIFEST_SHA256_MISMATCH_WITH_TRUSTED_REGISTRY:{pkg_id}: expected {expected_trusted_sha}, computed {computed_manifest_sha}"
+                violations.append(err)
+                pkg_violations.append(err)
 
         # Cross-reference against descriptor's declared manifest_sha256
         if expected_manifest_sha and computed_manifest_sha:
             if computed_manifest_sha != expected_manifest_sha:
-                violations.append(
-                    f"MANIFEST_SHA256_MISMATCH:{pkg_id}: descriptor expected {expected_manifest_sha}, computed {computed_manifest_sha}"
-                )
+                err = f"MANIFEST_SHA256_MISMATCH:{pkg_id}: descriptor expected {expected_manifest_sha}, computed {computed_manifest_sha}"
+                violations.append(err)
+                pkg_violations.append(err)
             if expected_trusted_sha and expected_manifest_sha != expected_trusted_sha:
-                violations.append(
-                    f"CALLER_PIN_DISAGREEMENT_WITH_TRUSTED_REGISTRY:{pkg_id}: caller declared {expected_manifest_sha}, trusted pin is {expected_trusted_sha}"
-                )
+                err = f"CALLER_PIN_DISAGREEMENT_WITH_TRUSTED_REGISTRY:{pkg_id}: caller declared {expected_manifest_sha}, trusted pin is {expected_trusted_sha}"
+                violations.append(err)
+                pkg_violations.append(err)
 
         for m in m_list:
             if m in seen_months:
                 overlaps.append(m)
             seen_months.add(m)
             all_months.append(m)
+
+        trusted_pin_verified = (
+            expected_trusted_sha is not None
+            and computed_manifest_sha == expected_trusted_sha
+            and parsed_payload is not None
+            and (not require_trusted_registry or (payload_has_id and payload_has_cov))
+            and (not require_row_count or (parsed_rows is not None and isinstance(parsed_rows, int) and parsed_rows >= 0 and (row_count is None or parsed_rows == row_count)))
+            and len(pkg_violations) == 0
+        )
 
         package_details.append({
             "package_id": pkg_id,
@@ -425,11 +467,7 @@ def verify_manifest_contiguity(
             "computed_manifest_sha256": computed_manifest_sha,
             "package_sha256": expected_pkg_sha,
             "certified_empty_months": sorted(list(certified_empty_for_pkg)),
-            "trusted_pin_verified": (
-                expected_trusted_sha is not None
-                and computed_manifest_sha == expected_trusted_sha
-                and parsed_payload is not None
-            ),
+            "trusted_pin_verified": trusted_pin_verified,
         })
 
     expected_full = expand_month_range("2000-01", "2023-12")
@@ -513,12 +551,15 @@ def verify_id_disjointness(
     next_ids: Optional[Sequence[str]],
     id_type: str = "canonical_event_id",
     allow_empty: bool = False,
+    allow_empty_prev: Optional[bool] = None,
+    allow_empty_next: Optional[bool] = None,
 ) -> Dict[str, Any]:
     """Verify that ID sets across two adjacent packages have no collision.
 
     Fail-closed policy:
     - If either ID set is None, returns NOT_CHECKED.
-    - If an ID set is empty and allow_empty is False, returns FAIL (UNVERIFIED_EMPTY_INPUT).
+    - If prev_ids is empty and not allowed, returns FAIL (UNVERIFIED_EMPTY_INPUT).
+    - If next_ids is empty and not allowed, returns FAIL (UNVERIFIED_EMPTY_INPUT).
     - If duplicates exist, returns FAIL.
     """
     if prev_ids is None or next_ids is None:
@@ -534,11 +575,24 @@ def verify_id_disjointness(
     s_prev = set(prev_ids)
     s_next = set(next_ids)
 
-    if not allow_empty and (len(s_prev) == 0 or len(s_next) == 0):
+    can_prev_be_empty = allow_empty if allow_empty_prev is None else allow_empty_prev
+    can_next_be_empty = allow_empty if allow_empty_next is None else allow_empty_next
+
+    if len(s_prev) == 0 and not can_prev_be_empty:
         return {
             "id_type": id_type,
             "status": "FAIL",
-            "reason": "UNVERIFIED_EMPTY_INPUT: Boundary check requires non-empty event ID sets unless explicitly verified empty by manifest",
+            "reason": "UNVERIFIED_EMPTY_INPUT: Boundary check requires non-empty event ID sets unless explicitly verified empty by manifest (prev month is empty without certified empty proof)",
+            "duplicate_check_scope": "ADJACENT_BOUNDARY_MONTHS",
+            "duplicate_count": 0,
+            "sample_duplicates": [],
+        }
+
+    if len(s_next) == 0 and not can_next_be_empty:
+        return {
+            "id_type": id_type,
+            "status": "FAIL",
+            "reason": "UNVERIFIED_EMPTY_INPUT: Boundary check requires non-empty event ID sets unless explicitly verified empty by manifest (next month is empty without certified empty proof)",
             "duplicate_check_scope": "ADJACENT_BOUNDARY_MONTHS",
             "duplicate_count": 0,
             "sample_duplicates": [],
@@ -803,17 +857,23 @@ def verify_all_boundaries(
             prev_certified_empty = (prev_m in certified_empty_months)
             next_certified_empty = (next_m in certified_empty_months)
             certified_empty = False
+            can_empty_prev = allow_empty and prev_certified_empty
+            can_empty_next = allow_empty and next_certified_empty
             effective_allow_empty = allow_empty and (prev_certified_empty or next_certified_empty)
         else:
             prev_certified_empty = bool(data.get("prev_certified_empty", False)) or (prev_m in certified_empty_months)
             next_certified_empty = bool(data.get("next_certified_empty", False)) or (next_m in certified_empty_months)
             certified_empty = bool(data.get("certified_empty", False))
+            can_empty_prev = allow_empty and (prev_certified_empty or certified_empty)
+            can_empty_next = allow_empty and (next_certified_empty or certified_empty)
             effective_allow_empty = allow_empty and (prev_certified_empty or next_certified_empty or certified_empty)
 
         disjoint_res = verify_id_disjointness(
             prev_ids=prev_ids,
             next_ids=next_ids,
             allow_empty=effective_allow_empty,
+            allow_empty_prev=can_empty_prev,
+            allow_empty_next=can_empty_next,
         )
 
         time_res = verify_boundary_time_window(
@@ -829,10 +889,15 @@ def verify_all_boundaries(
             certified_empty=certified_empty,
         )
 
-        b_pass = disjoint_res["status"] == "PASS" and time_res["status"] == "PASS"
-        b_not_checked = disjoint_res["status"] == "NOT_CHECKED" or time_res["status"] == "NOT_CHECKED"
+        b_has_fail = disjoint_res["status"] == "FAIL" or time_res["status"] == "FAIL"
+        b_has_not_checked = disjoint_res["status"] == "NOT_CHECKED" or time_res["status"] == "NOT_CHECKED"
 
-        boundary_status = "PASS" if b_pass else ("NOT_CHECKED" if b_not_checked else "FAIL")
+        if b_has_fail:
+            boundary_status = "FAIL"
+        elif b_has_not_checked:
+            boundary_status = "NOT_CHECKED"
+        else:
+            boundary_status = "PASS"
 
         boundary_results.append({
             "boundary": b_name,

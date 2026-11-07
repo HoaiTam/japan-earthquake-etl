@@ -771,6 +771,139 @@ class TestCatalogBoundaries(unittest.TestCase):
         self.assertEqual(report["gate_status"], "FIXTURE_PASS")
         self.assertNotEqual(report["gate_status"], "VERIFIED_PASS")
 
+    def test_verify_all_boundaries_rejects_pinned_manifest_without_row_count_claiming_empty_in_descriptor(self):
+        """[HoaiTam Probe Regression] 4 pinned manifests lacking row_count inside payload,
+
+        with caller descriptor declaring row_count=0 and allow_empty=True, MUST FAIL closed
+        and return PENDING_CATALOG_MERGE, never VERIFIED_PASS.
+        """
+        # Exact payload structure from HoaiTam probe: identity + range, NO row_count or count evidence!
+        m1 = b'{"package_id": "catalog_base_101", "start_month": "2000-01", "end_month": "2008-05"}'
+        m2 = b'{"package_id": "hoaitam_62", "start_month": "2008-06", "end_month": "2013-07"}'
+        m3 = b'{"package_id": "thanhtris_62", "start_month": "2013-08", "end_month": "2018-09"}'
+        m4 = b'{"package_id": "rosy179_63", "start_month": "2018-10", "end_month": "2023-12"}'
+
+        sha1 = hashlib.sha256(m1).hexdigest()
+        sha2 = hashlib.sha256(m2).hexdigest()
+        sha3 = hashlib.sha256(m3).hexdigest()
+        sha4 = hashlib.sha256(m4).hexdigest()
+
+        trusted_pins = {
+            "catalog_base_101": sha1,
+            "hoaitam_62": sha2,
+            "thanhtris_62": sha3,
+            "rosy179_63": sha4,
+        }
+
+        # Descriptors declare row_count=0
+        manifests = [
+            {"package_id": "catalog_base_101", "start_month": "2000-01", "end_month": "2008-05", "covered_months": boundaries.expand_month_range("2000-01", "2008-05"), "row_count": 0, "manifest_bytes": m1, "manifest_sha256": sha1},
+            {"package_id": "hoaitam_62", "start_month": "2008-06", "end_month": "2013-07", "covered_months": boundaries.expand_month_range("2008-06", "2013-07"), "row_count": 0, "manifest_bytes": m2, "manifest_sha256": sha2},
+            {"package_id": "thanhtris_62", "start_month": "2013-08", "end_month": "2018-09", "covered_months": boundaries.expand_month_range("2013-08", "2018-09"), "row_count": 0, "manifest_bytes": m3, "manifest_sha256": sha3},
+            {"package_id": "rosy179_63", "start_month": "2018-10", "end_month": "2023-12", "covered_months": boundaries.expand_month_range("2018-10", "2023-12"), "row_count": 0, "manifest_bytes": m4, "manifest_sha256": sha4},
+        ]
+
+        # 3 boundaries declare empty ID sets and allow_empty=True
+        boundaries_data = {
+            "Boundary 1 (Base -> HoaiTam)": {"prev_ids": [], "next_ids": [], "allow_empty": True},
+            "Boundary 2 (HoaiTam -> ThanhTris)": {"prev_ids": [], "next_ids": [], "allow_empty": True},
+            "Boundary 3 (ThanhTris -> rosy179)": {"prev_ids": [], "next_ids": [], "allow_empty": True},
+        }
+
+        report = boundaries.verify_all_boundaries(
+            boundary_records=boundaries_data,
+            package_manifests=manifests,
+            audit_scope="OFFICIAL_CATALOG_GATE",
+            trusted_registry_pins=trusted_pins,
+        )
+
+        self.assertEqual(report["status"], "FAIL")
+        self.assertEqual(report["gate_status"], "PENDING_CATALOG_MERGE")
+        self.assertNotEqual(report["gate_status"], "VERIFIED_PASS")
+        self.assertEqual(report["contiguity"]["status"], "FAIL")
+        self.assertTrue(
+            any("MANIFEST_PAYLOAD_MISSING_ROW_COUNT" in v for v in report["contiguity"]["violations"])
+        )
+        for b in report["boundaries"]:
+            self.assertEqual(b["status"], "FAIL")
+            self.assertEqual(b["disjointness"]["status"], "FAIL")
+            self.assertIn("UNVERIFIED_EMPTY_INPUT", b["disjointness"]["reason"])
+
+    def test_tampered_descriptor_row_count_with_positive_pinned_payload_cannot_certify_empty(self):
+        """[Tampered Descriptor Regression] Modifying row_count in caller descriptor to 0
+
+        against a pinned payload declaring row_count=100 must fail closed with MANIFEST_ROW_COUNT_MISMATCH.
+        """
+        m1 = b'{"package_id": "catalog_base_101", "start_month": "2000-01", "end_month": "2008-05", "row_count": 100}'
+        sha1 = hashlib.sha256(m1).hexdigest()
+
+        manifests = [
+            {
+                "package_id": "catalog_base_101",
+                "start_month": "2000-01",
+                "end_month": "2008-05",
+                "covered_months": boundaries.expand_month_range("2000-01", "2008-05"),
+                "row_count": 0,  # Descriptor tampered to 0!
+                "manifest_bytes": m1,
+                "manifest_sha256": sha1,
+            }
+        ]
+
+        res = boundaries.verify_manifest_contiguity(
+            manifests,
+            require_trusted_registry=False,
+            require_row_count=True,
+            trusted_registry_pins={"catalog_base_101": sha1},
+        )
+        self.assertEqual(res["status"], "FAIL")
+        self.assertTrue(any("MANIFEST_ROW_COUNT_MISMATCH" in v for v in res["violations"]))
+        # No months should be certified empty
+        pkg_detail = res["packages"][0]
+        self.assertEqual(len(pkg_detail["certified_empty_months"]), 0)
+        self.assertFalse(pkg_detail["trusted_pin_verified"])
+
+    def test_manifest_payload_missing_package_id_or_coverage_metadata_rejected(self):
+        """[Manifest Schema Completeness] Pinned payloads missing package_id or coverage metadata must be rejected."""
+        # 1. Missing package_id
+        m_no_id = b'{"start_month": "2000-01", "end_month": "2008-05", "row_count": 100}'
+        sha_no_id = hashlib.sha256(m_no_id).hexdigest()
+        res_no_id = boundaries.verify_manifest_contiguity(
+            [{
+                "package_id": "catalog_base_101",
+                "start_month": "2000-01",
+                "end_month": "2008-05",
+                "covered_months": boundaries.expand_month_range("2000-01", "2008-05"),
+                "row_count": 100,
+                "manifest_bytes": m_no_id,
+                "manifest_sha256": sha_no_id,
+            }],
+            require_trusted_registry=True,
+            require_row_count=True,
+            trusted_registry_pins={"catalog_base_101": sha_no_id},
+        )
+        self.assertEqual(res_no_id["status"], "FAIL")
+        self.assertTrue(any("MANIFEST_PAYLOAD_MISSING_PACKAGE_ID" in v for v in res_no_id["violations"]))
+
+        # 2. Missing coverage metadata
+        m_no_cov = b'{"package_id": "catalog_base_101", "row_count": 100}'
+        sha_no_cov = hashlib.sha256(m_no_cov).hexdigest()
+        res_no_cov = boundaries.verify_manifest_contiguity(
+            [{
+                "package_id": "catalog_base_101",
+                "start_month": "2000-01",
+                "end_month": "2008-05",
+                "covered_months": boundaries.expand_month_range("2000-01", "2008-05"),
+                "row_count": 100,
+                "manifest_bytes": m_no_cov,
+                "manifest_sha256": sha_no_cov,
+            }],
+            require_trusted_registry=True,
+            require_row_count=True,
+            trusted_registry_pins={"catalog_base_101": sha_no_cov},
+        )
+        self.assertEqual(res_no_cov["status"], "FAIL")
+        self.assertTrue(any("MANIFEST_PAYLOAD_MISSING_COVERAGE" in v for v in res_no_cov["violations"]))
+
 
 if __name__ == "__main__":
     unittest.main()
