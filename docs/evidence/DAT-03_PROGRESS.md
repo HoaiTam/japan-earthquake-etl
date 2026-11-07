@@ -1,6 +1,18 @@
-# DAT-03 — Tiến độ thực tế (cập nhật 27/10/2026)
+# DAT-03 — Tiến độ thực tế (cập nhật 05/11/2026)
 
-## Bổ sung28/10 — range worker và USGS frozen cho thành viên
+## Cập nhật 06/11/2026 — Đối soát 288 tháng và Provenance First-hop của ThanhTris (75/75) và rosy179 (83/83)
+
+Theo kiểm tra offline ngày 02/11/2026 và cập nhật đối soát từ Hoài Tâm:
+- **Dữ liệu 288 tháng:** Đã phủ kín 288/288 tháng qua 4 gói phân đoạn độc lập (101 catalog nền + 62 HoaiTam + 62 ThanhTris + 63 rosy179), không có gap và không có overlap. Chi tiết tại [báo cáo đối soát 288 tháng](DAT-03_INTEGRATION_EVIDENCE_288_MONTHS.md).
+- **Provenance ThanhTris:** Hoài Tâm đã tải và xác minh gói `ThanhTris-dat03-provenance-metadata.zip`: **75/75 objects first-hop khớp 100% SHA-256** (37 Bronze manifests, 19 Silver manifests, 19 registry JSON).
+- **Provenance rosy179:** rosy179 đã trích xuất, đóng gói và tải lên Google Drive gói `rosy179-dat03-provenance-metadata.zip` (SHA-256 `f818ba4697d3915376420ad66cd040c542853333a31bc2b4e4a5d0b4115d859e`). Hoài Tâm đã tải độc lập từ Drive và đối chiếu với `rosy179-required-provenance.json`: **83/83 objects first-hop khớp 100% SHA-256** (37 Bronze manifests, 23 Silver bundle manifests, 23 registry JSON).
+- **Tiến độ còn lại (4 Cổng Kỹ thuật):**
+  1. *Cổng 1:* Hoàn tất đối soát transitive lineage / transitive closure đến frozen archives (hiện cả hai worker mới hoàn thành first-hop).
+  2. *Cổng 2:* Tích hợp 4 gói vào catalog Gold Iceberg chung, kiểm tra khử trùng ranh giới và chạy Trino verification queries.
+  3. *Cổng 3:* Chạy official ML export hai tập REPRODUCTION (225m) và EXTENSION (63m).
+  4. *Cổng 4:* Đóng gói release chung vào `accepted/` và thu thập đủ 3 receipt độc lập để chuyển task sang Done.
+
+## Bổ sung 28/10 — range worker và USGS frozen cho thành viên
 
 [Worker runbook](../runbooks/DAT-03_RANGE_WORKER.md) thay blocker thiếu
 implementation của setup PR #106: controller/Spark range và37frozen sources

@@ -17,9 +17,9 @@ fail() {
 count=0
 for task_file in "$tasks_dir"/*-[0-9][0-9].md; do
     [ -f "$task_file" ] || fail 'no task files found'
-    task_id=$(sed -n 's/^task_id: "\([^"]*\)"$/\1/p' "$task_file")
-    status=$(sed -n 's/^status: "\([^"]*\)"$/\1/p' "$task_file")
-    tracking=$(sed -n 's/^- \*\*Trạng thái:\*\* //p' "$task_file")
+    task_id=$(tr -d '\r' < "$task_file" | sed -n 's/^task_id: "\([^"]*\)"$/\1/p')
+    status=$(tr -d '\r' < "$task_file" | sed -n 's/^status: "\([^"]*\)"$/\1/p')
+    tracking=$(tr -d '\r' < "$task_file" | sed -n 's/^- \*\*Trạng thái:\*\* //p')
     [ "${task_file##*/}" = "$task_id.md" ] || fail "invalid task_id in $task_file"
     case "$status" in
         Backlog|Ready|In\ Progress|Review|Blocked|Needs\ Update|Done) ;;
