@@ -1,4 +1,4 @@
-# DAT-03 — Tiến độ thực tế (cập nhật 05/11/2026)
+# DAT-03 — Tiến độ thực tế (cập nhật 06/11/2026)
 
 ## Cập nhật 06/11/2026 — Đối soát 288 tháng và Provenance First-hop của ThanhTris (75/75) và rosy179 (83/83)
 
