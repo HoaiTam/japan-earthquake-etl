@@ -486,7 +486,7 @@ class TestMli04ViewsAndReport(unittest.TestCase):
 
         # 2. Empty runs list in official mode
         empty_runs_payload = {
-            "metadata": {"dataset_id": "ds_official", "research_ready": True},
+            "metadata": {"dataset_id": "ds_official", "git_commit": "c1", "research_ready": True},
             "runs": [],
             "comparison_table": [],
         }
@@ -496,12 +496,19 @@ class TestMli04ViewsAndReport(unittest.TestCase):
 
         # 3. Payload with TRAINING_EXTERNAL run in official mode
         unapproved_payload = {
-            "metadata": {"dataset_id": "ds_official", "research_ready": True},
+            "metadata": {"dataset_id": "ds_official", "git_commit": "c1", "research_ready": True},
             "runs": [
-                {"experiment_run_id": "exp_ok", "status": "APPROVED"},
-                {"experiment_run_id": "exp_bad", "status": "TRAINING_EXTERNAL"},
+                {"experiment_run_id": "exp_ok", "status": "APPROVED", "dataset_id": "ds_official"},
+                {"experiment_run_id": "exp_bad", "status": "TRAINING_EXTERNAL", "dataset_id": "ds_official"},
             ],
-            "comparison_table": [{"algorithm": "WINDOW", "status": "APPROVED"}],
+            "comparison_table": [{
+                "algorithm": "WINDOW",
+                "experiment_run_id": "exp_ok",
+                "dataset_id": "ds_official",
+                "total_aftershocks": 10,
+                "runtime_seconds": 1.0,
+                "model_config_version": "v1",
+            }],
         }
         with self.assertRaises(ValueError) as ctx:
             report_gen.build_markdown_report(unapproved_payload, mode="official")
@@ -511,6 +518,269 @@ class TestMli04ViewsAndReport(unittest.TestCase):
         with self.assertRaises(ValueError) as ctx:
             report_gen.build_markdown_report(unapproved_payload, mode="auto")
         self.assertIn("PUBLICATION_GATE_VIOLATION", str(ctx.exception))
+
+    def test_publication_gate_rejects_missing_metadata(self):
+        """Verify that official mode strictly rejects missing or UNKNOWN_DATASET metadata."""
+        # Missing dataset_id
+        payload_no_ds = {
+            "metadata": {"git_commit": "commit_123", "research_ready": True},
+            "runs": [{"experiment_run_id": "exp_ok", "status": "APPROVED"}],
+            "comparison_table": [{
+                "algorithm": "WINDOW",
+                "experiment_run_id": "exp_ok",
+                "total_aftershocks": 5,
+                "runtime_seconds": 0.5,
+                "model_config_version": "v1",
+            }],
+        }
+        with self.assertRaises(ValueError) as ctx:
+            report_gen.build_markdown_report(payload_no_ds, mode="official")
+        self.assertIn("PUBLICATION_GATE_VIOLATION", str(ctx.exception))
+        self.assertIn("dataset_id", str(ctx.exception))
+
+        # UNKNOWN_DATASET
+        payload_unk_ds = {
+            "metadata": {"dataset_id": "UNKNOWN_DATASET", "git_commit": "commit_123", "research_ready": True},
+            "runs": [{"experiment_run_id": "exp_ok", "status": "APPROVED"}],
+            "comparison_table": [{
+                "algorithm": "WINDOW",
+                "experiment_run_id": "exp_ok",
+                "dataset_id": "UNKNOWN_DATASET",
+                "total_aftershocks": 5,
+                "runtime_seconds": 0.5,
+                "model_config_version": "v1",
+            }],
+        }
+        with self.assertRaises(ValueError) as ctx:
+            report_gen.build_markdown_report(payload_unk_ds, mode="official")
+        self.assertIn("PUBLICATION_GATE_VIOLATION", str(ctx.exception))
+
+    def test_publication_gate_rejects_foreign_or_cross_dataset_rows(self):
+        """Verify that official mode rejects rows from foreign runs, cross-datasets, or unapproved runs."""
+        # Case 1: Row has experiment_run_id from another run not declared in approved runs
+        foreign_row_payload = {
+            "metadata": {"dataset_id": "ds_A", "git_commit": "commit_abc", "research_ready": True},
+            "runs": [{"experiment_run_id": "exp_approved_1", "status": "APPROVED", "dataset_id": "ds_A"}],
+            "comparison_table": [
+                {
+                    "algorithm": "DBSCAN",
+                    "experiment_run_id": "exp_foreign_unapproved",
+                    "dataset_id": "ds_A",
+                    "total_aftershocks": 20,
+                    "runtime_seconds": 1.2,
+                    "model_config_version": "v1",
+                }
+            ],
+        }
+        with self.assertRaises(ValueError) as ctx:
+            report_gen.build_markdown_report(foreign_row_payload, mode="official")
+        self.assertIn("PUBLICATION_GATE_VIOLATION", str(ctx.exception))
+        self.assertIn("exp_foreign_unapproved", str(ctx.exception))
+
+        # Case 2: Row belongs to dataset_B while report metadata is dataset_A (cross-dataset)
+        cross_ds_row_payload = {
+            "metadata": {"dataset_id": "ds_A", "git_commit": "commit_abc", "research_ready": True},
+            "runs": [{"experiment_run_id": "exp_1", "status": "APPROVED", "dataset_id": "ds_A"}],
+            "comparison_table": [
+                {
+                    "algorithm": "DBSCAN",
+                    "experiment_run_id": "exp_1",
+                    "dataset_id": "ds_B",
+                    "total_aftershocks": 20,
+                    "runtime_seconds": 1.2,
+                    "model_config_version": "v1",
+                }
+            ],
+        }
+        with self.assertRaises(ValueError) as ctx:
+            report_gen.build_markdown_report(cross_ds_row_payload, mode="official")
+        self.assertIn("CROSS_DATASET_VIOLATION", str(ctx.exception))
+
+        # Case 3: Row has unapproved status directly (when runs list is omitted)
+        unapproved_row_payload = {
+            "metadata": {"dataset_id": "ds_A", "git_commit": "commit_abc", "research_ready": True},
+            "comparison_table": [
+                {
+                    "algorithm": "DBSCAN",
+                    "experiment_run_id": "exp_rej",
+                    "dataset_id": "ds_A",
+                    "experiment_status": "REJECTED",
+                    "total_aftershocks": 20,
+                    "runtime_seconds": 1.2,
+                    "model_config_version": "v1",
+                }
+            ],
+        }
+        with self.assertRaises(ValueError) as ctx:
+            report_gen.build_markdown_report(unapproved_row_payload, mode="official")
+        self.assertIn("PUBLICATION_GATE_VIOLATION", str(ctx.exception))
+        self.assertIn("REJECTED", str(ctx.exception))
+
+    def test_normalize_row_missing_required_fields_fails_closed(self):
+        """Verify that normalize_comparison_row strictly fails-closed on missing required fields."""
+        # Missing algorithm
+        with self.assertRaises(ValueError) as ctx:
+            report_gen.normalize_comparison_row({"total_aftershocks": 10, "runtime_seconds": 1.0})
+        self.assertIn("algorithm", str(ctx.exception).lower())
+
+        # Missing aftershocks
+        with self.assertRaises(ValueError) as ctx:
+            report_gen.normalize_comparison_row({"algorithm_name": "DBSCAN", "avg_runtime_seconds": 1.0})
+        self.assertIn("aftershocks", str(ctx.exception).lower())
+
+        # Missing runtime
+        with self.assertRaises(ValueError) as ctx:
+            report_gen.normalize_comparison_row({"algorithm_name": "DBSCAN", "raw_aftershock_memberships": 10})
+        self.assertIn("runtime", str(ctx.exception).lower())
+
+    def test_sql_view_to_report_integration(self):
+        """Integration test: query v_algorithm_comparison directly from SQLite fixture and pipe into report generator."""
+        conn = sqlite3.connect(":memory:")
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+
+        # Create schema matching SparkMlIcebergWriter
+        cursor.executescript("""
+        CREATE TABLE dataset_manifest (
+            dataset_id TEXT PRIMARY KEY,
+            dataset_split TEXT,
+            gold_table_name TEXT,
+            gold_snapshot_id INTEGER,
+            period_start_utc TEXT,
+            period_end_utc_exclusive TEXT,
+            code_version TEXT
+        );
+
+        CREATE TABLE experiment_run (
+            experiment_run_id TEXT PRIMARY KEY,
+            dataset_id TEXT,
+            algorithm_name TEXT,
+            model_config_version TEXT,
+            code_version TEXT,
+            random_seed INTEGER,
+            experiment_status TEXT,
+            result_artifact_uri TEXT,
+            result_ready_at_utc TEXT,
+            created_at_utc TEXT
+        );
+
+        CREATE TABLE sequence_summary (
+            experiment_run_id TEXT,
+            dataset_id TEXT,
+            mainshock_event_id TEXT,
+            algorithm_name TEXT,
+            model_config_version TEXT,
+            window_result_status TEXT,
+            candidate_count INTEGER,
+            sequence_member_count INTEGER,
+            aftershock_count INTEGER,
+            foreshock_candidate_count INTEGER,
+            noise_ratio REAL,
+            dbcv_score REAL,
+            omori_p REAL,
+            failure_reason_code TEXT,
+            runtime_seconds REAL,
+            peak_memory_mb REAL
+        );
+        """)
+
+        # Adapt and execute view DDL
+        sql_file = self.sql_dir / "v_algorithm_comparison.sql"
+        sqlite_ddl = adapt_trino_view_sql_for_sqlite(sql_file.read_text(encoding="utf-8"), "v_algorithm_comparison")
+        cursor.execute(sqlite_ddl)
+
+        cursor.executescript("""
+        INSERT INTO dataset_manifest (dataset_id, dataset_split, gold_table_name, gold_snapshot_id, period_start_utc, period_end_utc_exclusive, code_version)
+        VALUES ('ds_official_prod', 'REPRODUCTION', 'iceberg.gold.earthquake_event_current', 99999, '2018-01-01', '2018-10-01', 'git_sha_prod');
+
+        INSERT INTO experiment_run (experiment_run_id, dataset_id, algorithm_name, model_config_version, code_version, random_seed, experiment_status, result_artifact_uri, result_ready_at_utc, created_at_utc)
+        VALUES
+        ('run_dbscan_01', 'ds_official_prod', 'DBSCAN', 'dbscan-v1', 'git_sha_prod', 42, 'APPROVED', 's3://art/dbs', '2026-11-01', '2026-11-01'),
+        ('run_hdbscan_01', 'ds_official_prod', 'HDBSCAN_GLOBAL', 'hdbscan-v1', 'git_sha_prod', 42, 'APPROVED', 's3://art/hdb', '2026-11-01', '2026-11-01');
+
+        INSERT INTO sequence_summary (experiment_run_id, dataset_id, mainshock_event_id, algorithm_name, model_config_version, window_result_status, candidate_count, sequence_member_count, aftershock_count, foreshock_candidate_count, noise_ratio, dbcv_score, omori_p, failure_reason_code, runtime_seconds, peak_memory_mb)
+        VALUES
+        ('run_dbscan_01', 'ds_official_prod', 'm1', 'DBSCAN', 'dbscan-v1', 'SUCCESS', 15, 12, 12, 0, 0.05, 0.42, 0.95, NULL, 1.5, 120.0),
+        ('run_dbscan_01', 'ds_official_prod', 'm2', 'DBSCAN', 'dbscan-v1', 'FAILED', 10, 0, 0, 0, NULL, NULL, NULL, 'EXP_MAINSHOCK_CLASSIFIED_AS_NOISE', 0.5, 100.0),
+        ('run_hdbscan_01', 'ds_official_prod', 'm1', 'HDBSCAN_GLOBAL', 'hdbscan-v1', 'SUCCESS', 15, 10, 10, 0, 0.08, 0.38, 0.91, NULL, 2.0, 150.0),
+        ('run_hdbscan_01', 'ds_official_prod', 'm2', 'HDBSCAN_GLOBAL', 'hdbscan-v1', 'SUCCESS', 10, 8, 8, 0, 0.10, 0.35, 0.88, NULL, 1.8, 140.0);
+        """)
+
+        # Execute query against real view definition
+        cursor.execute("SELECT * FROM v_algorithm_comparison ORDER BY algorithm_name")
+        view_rows = [dict(r) for r in cursor.fetchall()]
+        conn.close()
+
+        self.assertEqual(len(view_rows), 2)
+        # Directly pass view output rows into report generator
+        payload = {
+            "metadata": {
+                "dataset_id": "ds_official_prod",
+                "git_commit": "git_sha_prod",
+                "research_ready": True,
+                "data_scope": "OFFICIAL",
+            },
+            "comparison_table": view_rows,
+        }
+
+        # Render report in official mode
+        md = report_gen.build_markdown_report(payload, mode="official")
+
+        # 1. Verify algorithm names are not UNKNOWN
+        self.assertNotIn("**UNKNOWN**", md)
+        self.assertIn("**DBSCAN**", md)
+        self.assertIn("**HDBSCAN_GLOBAL**", md)
+
+        # 2. Verify Run IDs, configs, seeds are clearly visible
+        self.assertIn("`run_dbscan_01`", md)
+        self.assertIn("`run_hdbscan_01`", md)
+        self.assertIn("`dbscan-v1`", md)
+        self.assertIn("`hdbscan-v1`", md)
+        self.assertIn("`42`", md)
+
+        # 3. Verify exact aftershock counts from raw_aftershock_memberships
+        # DBSCAN: 12 memberships
+        # HDBSCAN_GLOBAL: 10 + 8 = 18 memberships
+        self.assertIn("| **DBSCAN** | `run_dbscan_01` | `dbscan-v1` | `42` | 2 | 1 | 1 | 50.0% | 12 | 5.0% | 0.4200 | 0.95 | 1/2 |", md)
+        self.assertIn("| **HDBSCAN_GLOBAL** | `run_hdbscan_01` | `hdbscan-v1` | `42` | 2 | 2 | 0 | 0.0% | 18 | 9.0% | 0.3650 | 0.90 | 2/2 |", md)
+
+        # 4. Verify truthful parity: without explicit verification_evidence, must be marked PENDING
+        self.assertIn("CHƯA ĐỐI SOÁT (PENDING READBACK / NOT VERIFIED)", md)
+        self.assertNotIn("ĐÃ ĐỐI SOÁT (VERIFIED)", md)
+
+    def test_official_report_marks_parity_verified_with_evidence(self):
+        """Verify that official report outputs VERIFIED only when valid verification evidence is supplied."""
+        payload = {
+            "metadata": {
+                "dataset_id": "ds_official_prod",
+                "git_commit": "git_sha_prod",
+                "research_ready": True,
+            },
+            "comparison_table": [{
+                "algorithm": "DBSCAN",
+                "experiment_run_id": "run_1",
+                "dataset_id": "ds_official_prod",
+                "model_config_version": "v1",
+                "random_seed": 42,
+                "status": "APPROVED",
+                "total_windows": 1,
+                "success_windows": 1,
+                "failure_windows": 0,
+                "raw_aftershock_memberships": 10,
+                "avg_runtime_seconds": 1.0,
+            }],
+            "verification_evidence": {
+                "status": "PASSED",
+                "dataset_id": "ds_official_prod",
+                "membership_snapshot_id": 123456789,
+                "summary_snapshot_id": 987654321,
+            }
+        }
+        md = report_gen.build_markdown_report(payload, mode="official")
+        self.assertIn("ĐÃ ĐỐI SOÁT (VERIFIED)", md)
+        self.assertIn("123456789", md)
+        self.assertIn("987654321", md)
+        self.assertNotIn("CHƯA ĐỐI SOÁT", md)
 
     def test_development_mode_truthful_parity_statement(self):
         """Verify that development pilot report explicitly marks SQL parity as CHƯA NGHIỆM THU."""

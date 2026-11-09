@@ -496,6 +496,11 @@ test-pilot: ## Pilot/model regression; cần pyarrow/model deps và loopback Jup
 	@$(PILOT_PYTHON) -m unittest tests/test_adaptive_hdbscan.py
 	@$(MAKE) test-col01 PILOT_PYTHON="$(PILOT_PYTHON)"
 	@$(MAKE) test-col02 PILOT_PYTHON="$(PILOT_PYTHON)"
+	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_mli04_views_and_report.py'
+
+.PHONY: test-mli04
+test-mli04: ## MLI-04 Trino views, verification SQL và static report regression; offline
+	@python3 -m unittest discover -s tests -p 'test_mli04_views_and_report.py'
 
 .PHONY: test-col01
 test-col01: ## COL-01 offline EDA/guard/real PNG regression; cần notebooks/requirements-col01-lock.txt, không Docker
@@ -719,6 +724,7 @@ ci-docs-base: ## Always-on CI guards; pilot tests được chọn riêng theo im
 	@python3 -m unittest discover -s tests -p 'test_research_usgs_captures.py'
 	@$(MAKE) test-research-trino-profile
 	@$(MAKE) test-research-light-session
+	@$(MAKE) test-mli04
 	@$(MAKE) test-security-audit
 	@$(MAKE) test-docker-runtime
 	@$(MAKE) check-config ENV_FILE=/dev/null

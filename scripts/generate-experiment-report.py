@@ -9,11 +9,13 @@ Generates reproducible static comparative reports across:
 
 Enforces Core Requirements:
 - Publication Gate: Official runs must have status CANDIDATE or APPROVED.
-- Fail-Closed Gate: Empty runs or unapproved states cannot produce OFFICIAL_PUBLICATION.
-- Development Separation: Development pilot runs are labeled DEVELOPMENT_ONLY (research_ready=false).
+- Strict Row-level Gate: Every row rendered in comparison table must belong to an approved run of the exact dataset.
+- Fail-Closed: Missing metadata, cross-dataset rows, foreign runs, or unapproved states cannot produce OFFICIAL_PUBLICATION.
+- Schema Compatibility: Seamlessly accepts output from v_algorithm_comparison (SQL view) or EXP-04 pilot format.
 - Denominator Integrity: Failed/skipped windows are preserved in total window count.
 - Honest NULL Policy: DBCV and Omori parameters are NEVER replaced with 0 if inapplicable/unfitted.
 - Metric Zero Integrity: Legitimate 0.0 numeric values are strictly preserved, not coerced to N/A.
+- Truthful Parity Status: SQL parity is marked VERIFIED only with verified snapshot evidence, otherwise PENDING/CHƯA NGHIỆM THU.
 - Scientific Guardrails: Output explicitly disclaims earthquake prediction and physical causality.
 - Strictly NO Accuracy or F1 scores (unlabeled density clustering).
 """
@@ -49,7 +51,7 @@ def get_git_commit(root: Optional[Path] = None) -> str:
 
 
 def get_field(d: Optional[Dict[str, Any]], *keys: str, default: Any = None) -> Any:
-    """Extract first non-None key value from dict, preserving falsy 0.0 values."""
+    """Extract first non-None key value from dict, strictly preserving falsy 0.0 values."""
     if not d or not isinstance(d, dict):
         return default
     for k in keys:
@@ -84,26 +86,146 @@ def format_metric(
     return str(val)
 
 
-def validate_publication_gate(runs: List[Dict[str, Any]], mode: str = "official") -> None:
-    """Enforce publication gate on experiment runs (fail-closed)."""
+def normalize_comparison_row(row: Dict[str, Any]) -> Dict[str, Any]:
+    """Normalize a single comparison row from either v_algorithm_comparison SQL view or EXP-04 pilot format."""
+    algo = get_field(row, "algorithm_name", "Algorithm", "algorithm")
+    if not algo:
+        raise ValueError(f"Missing required algorithm field ('algorithm_name' or 'algorithm') in row: {row}")
+
+    run_id = get_field(row, "experiment_run_id", "Run ID", "run_id")
+    dataset_id = get_field(row, "dataset_id")
+    config_ver = get_field(row, "model_config_version", "model_config", "config_version")
+    code_ver = get_field(row, "code_version")
+    seed = get_field(row, "random_seed")
+    status = get_field(row, "experiment_status", "status")
+
+    tot_win = get_field(row, "total_windows", "Total Windows", default=0)
+    succ_win = get_field(row, "success_windows", "Success Windows", default=0)
+    fail_win = get_field(row, "failure_windows", "Failure Windows", default=0)
+    skipped_win = get_field(row, "skipped_windows", "Skipped Windows", default=0)
+    fail_rate = get_field(row, "failure_rate", "Failure Rate", default=0.0)
+
+    tot_after = get_field(row, "raw_aftershock_memberships", "total_aftershocks", "Total Aftershocks")
+    if tot_after is None:
+        raise ValueError(f"Missing required aftershocks field ('raw_aftershock_memberships' or 'total_aftershocks') in row: {row}")
+
+    mean_noise = get_field(row, "avg_noise_ratio", "mean_noise_ratio", "Mean Noise Ratio")
+    mean_dbcv = get_field(row, "avg_dbcv_score", "mean_dbcv_score", "mean_dbcv", "Mean DBCV")
+    mean_omori_p = get_field(row, "avg_omori_p", "mean_omori_p", "Mean Omori p")
+    omori_win = get_field(row, "omori_fitted_windows", "Omori Fitted Windows")
+    mean_jaccard = get_field(row, "mean_jaccard_stability", "Mean Jaccard Stability")
+    mean_ari = get_field(row, "mean_ari_stability", "Mean ARI Stability")
+
+    runtime = get_field(row, "avg_runtime_seconds", "runtime_seconds", "Runtime (s)")
+    if runtime is None:
+        raise ValueError(f"Missing required runtime field ('avg_runtime_seconds' or 'runtime_seconds') in row: {row}")
+
+    return {
+        "algorithm": str(algo),
+        "experiment_run_id": run_id,
+        "dataset_id": dataset_id,
+        "model_config_version": config_ver,
+        "code_version": code_ver,
+        "random_seed": seed,
+        "experiment_status": status,
+        "total_windows": tot_win,
+        "success_windows": succ_win,
+        "failure_windows": fail_win,
+        "skipped_windows": skipped_win,
+        "failure_rate": fail_rate,
+        "total_aftershocks": tot_after,
+        "mean_noise_ratio": mean_noise,
+        "mean_dbcv": mean_dbcv,
+        "mean_omori_p": mean_omori_p,
+        "omori_fitted_windows": omori_win,
+        "mean_jaccard_stability": mean_jaccard,
+        "mean_ari_stability": mean_ari,
+        "runtime_seconds": runtime,
+    }
+
+
+def validate_publication_gate(
+    metadata: Dict[str, Any],
+    comparison_table: List[Dict[str, Any]],
+    runs: Optional[List[Dict[str, Any]]] = None,
+    mode: str = "official",
+) -> None:
+    """Enforce strict publication gate and row-level consistency (fail-closed)."""
     if mode == "development":
         return
 
-    if not runs or len(runs) == 0:
+    # 1. Require valid non-empty dataset ID and code pin in metadata
+    dataset_id = metadata.get("dataset_id")
+    if not dataset_id or dataset_id in ("UNKNOWN_DATASET", "unknown", ""):
         raise ValueError(
-            "PUBLICATION_GATE_VIOLATION: Official report requires a non-empty list of experiment runs. "
-            "Empty run list cannot be published as OFFICIAL_PUBLICATION."
+            "PUBLICATION_GATE_VIOLATION: Official report requires a valid, registered dataset_id in metadata. "
+            f"Found '{dataset_id}'."
         )
 
-    for run in runs:
-        if not isinstance(run, dict):
-            raise ValueError(f"PUBLICATION_GATE_VIOLATION: Invalid run payload: {run}")
-        status = run.get("status") or run.get("experiment_status")
-        if status not in ("CANDIDATE", "APPROVED"):
+    git_commit = metadata.get("git_commit")
+    if not git_commit or git_commit in ("unknown", ""):
+        raise ValueError(
+            "PUBLICATION_GATE_VIOLATION: Official report requires a valid git_commit or code_version pin in metadata. "
+            f"Found '{git_commit}'."
+        )
+
+    # 2. Require non-empty comparison table
+    if not comparison_table or len(comparison_table) == 0:
+        raise ValueError(
+            "PUBLICATION_GATE_VIOLATION: Official report requires a non-empty list of comparison rows. "
+            "Empty run results cannot be published as OFFICIAL_PUBLICATION."
+        )
+
+    # 3. If explicit runs list is provided, validate each run
+    valid_run_map: Dict[str, Dict[str, Any]] = {}
+    if runs:
+        for run in runs:
+            run_id = run.get("experiment_run_id")
+            if not run_id:
+                raise ValueError("PUBLICATION_GATE_VIOLATION: Run entry missing experiment_run_id.")
+            status = run.get("status") or run.get("experiment_status")
+            if status not in ("CANDIDATE", "APPROVED"):
+                raise ValueError(
+                    f"PUBLICATION_GATE_VIOLATION: Run '{run_id}' has unapproved status '{status}'. "
+                    "Only 'CANDIDATE' or 'APPROVED' runs may be included in official reports."
+                )
+            run_dataset = run.get("dataset_id")
+            if run_dataset and run_dataset != dataset_id:
+                raise ValueError(
+                    f"CROSS_DATASET_VIOLATION: Run '{run_id}' belongs to dataset '{run_dataset}', "
+                    f"which does not match report dataset '{dataset_id}'."
+                )
+            valid_run_map[run_id] = run
+
+    # 4. Strictly validate every single row rendered in comparison_table
+    for idx, row in enumerate(comparison_table):
+        row_run_id = row.get("experiment_run_id")
+        if not row_run_id:
             raise ValueError(
-                f"PUBLICATION_GATE_VIOLATION: Run '{run.get('experiment_run_id', 'unknown')}' "
-                f"has status '{status}'. Official serving views and reports only accept 'CANDIDATE' or 'APPROVED'."
+                f"PUBLICATION_GATE_VIOLATION: Comparison row #{idx + 1} ({row.get('algorithm')}) "
+                "missing required experiment_run_id in official report."
             )
+
+        row_dataset = row.get("dataset_id")
+        if row_dataset and row_dataset != dataset_id:
+            raise ValueError(
+                f"CROSS_DATASET_VIOLATION: Row for run '{row_run_id}' has dataset '{row_dataset}', "
+                f"which does not match report dataset '{dataset_id}'."
+            )
+
+        # If runs list was provided, row must belong to an approved run in the list
+        if valid_run_map:
+            if row_run_id not in valid_run_map:
+                raise ValueError(
+                    f"PUBLICATION_GATE_VIOLATION: Row references run '{row_run_id}' not declared in verified runs list."
+                )
+        else:
+            # Check row-level status directly
+            row_status = row.get("experiment_status")
+            if row_status and row_status not in ("CANDIDATE", "APPROVED"):
+                raise ValueError(
+                    f"PUBLICATION_GATE_VIOLATION: Row for run '{row_run_id}' has unapproved status '{row_status}'."
+                )
 
 
 def extract_normalized_payload(raw_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -139,39 +261,7 @@ def extract_normalized_payload(raw_data: Dict[str, Any]) -> Dict[str, Any]:
 
         # Normalize comparison table
         raw_table = eval_sum.get("comparison_table", [])
-        norm_table = []
-        for row in raw_table:
-            algo = get_field(row, "Algorithm", "algorithm")
-            tot_win = get_field(row, "Total Windows", "total_windows", default=0)
-            succ_win = get_field(row, "Success Windows", "success_windows", default=0)
-            fail_win = get_field(row, "Failure Windows", "failure_windows", default=0)
-            fail_rate = get_field(row, "Failure Rate", "failure_rate", default=0.0)
-            tot_after = get_field(row, "Total Aftershocks", "total_aftershocks", default=0)
-            mean_noise = get_field(row, "Mean Noise Ratio", "mean_noise_ratio")
-            mean_dbcv = get_field(row, "Mean DBCV", "mean_dbcv", "mean_dbcv_score")
-            mean_omori_p = get_field(row, "Mean Omori p", "mean_omori_p")
-            omori_win = get_field(row, "Omori Fitted Windows", "omori_fitted_windows")
-            mean_jaccard = get_field(row, "Mean Jaccard Stability", "mean_jaccard_stability")
-            mean_ari = get_field(row, "Mean ARI Stability", "mean_ari_stability")
-            runtime = get_field(row, "Runtime (s)", "runtime_seconds", default=0.0)
-            run_id = get_field(row, "experiment_run_id", "run_id", default=None)
-
-            norm_table.append({
-                "algorithm": algo,
-                "experiment_run_id": run_id,
-                "total_windows": tot_win,
-                "success_windows": succ_win,
-                "failure_windows": fail_win,
-                "failure_rate": fail_rate,
-                "total_aftershocks": tot_after,
-                "mean_noise_ratio": mean_noise,
-                "mean_dbcv": mean_dbcv,
-                "mean_omori_p": mean_omori_p,
-                "omori_fitted_windows": omori_win,
-                "mean_jaccard_stability": mean_jaccard,
-                "mean_ari_stability": mean_ari,
-                "runtime_seconds": runtime,
-            })
+        norm_table = [normalize_comparison_row(row) for row in raw_table]
 
         # Normalize model details
         raw_details = eval_sum.get("algorithm_details", {})
@@ -219,16 +309,33 @@ def extract_normalized_payload(raw_data: Dict[str, Any]) -> Dict[str, Any]:
             "model_analyses": norm_details,
             "code_provenance": code_prov,
             "runs": raw_data.get("runs", []),
+            "verification_evidence": raw_data.get("verification_evidence"),
         }
 
-    # Standard format
-    metadata = raw_data.get("metadata", {})
+    # Standard / Trino SQL export format
+    raw_metadata = raw_data.get("metadata", {})
+    raw_table = raw_data.get("comparison_table", [])
+    norm_table = [normalize_comparison_row(row) for row in raw_table]
+
+    norm_metadata = {
+        "dataset_id": get_field(raw_metadata, "dataset_id") or (norm_table[0].get("dataset_id") if norm_table else None),
+        "evaluation_timestamp_utc": get_field(raw_metadata, "evaluation_timestamp_utc") or datetime.now(timezone.utc).isoformat(),
+        "git_commit": get_field(raw_metadata, "git_commit") or (norm_table[0].get("code_version") if norm_table else None) or get_git_commit(),
+        "random_seed": get_field(raw_metadata, "random_seed", default=42),
+        "total_input_candidates": get_field(raw_metadata, "total_input_candidates", default="N/A"),
+        "total_mainshocks": get_field(raw_metadata, "total_mainshocks", default=len(norm_table)),
+        "research_ready": raw_metadata.get("research_ready", True),
+        "data_scope": raw_metadata.get("data_scope", "OFFICIAL"),
+        "configs": raw_metadata.get("configs", {}),
+    }
+
     return {
-        "metadata": metadata,
-        "comparison_table": raw_data.get("comparison_table", []),
+        "metadata": norm_metadata,
+        "comparison_table": norm_table,
         "model_analyses": raw_data.get("model_analyses", {}),
         "code_provenance": raw_data.get("code_provenance", {}),
         "runs": raw_data.get("runs", []),
+        "verification_evidence": raw_data.get("verification_evidence") or raw_data.get("trino_verification"),
     }
 
 
@@ -243,6 +350,8 @@ def build_markdown_report(
     comparison_table = normalized.get("comparison_table", [])
     model_analyses = normalized.get("model_analyses", {})
     code_provenance = normalized.get("code_provenance", {})
+    runs = normalized.get("runs", [])
+    verification_evidence = normalized.get("verification_evidence")
 
     # Detect whether dataset is development pilot
     is_development = (
@@ -260,13 +369,11 @@ def build_markdown_report(
                 "OFFICIAL_MODE_CONFLICT: Mode is set to 'official', but dataset is labeled DEVELOPMENT_ONLY/pilot. "
                 "Pilot experiments cannot be published under official mode."
             )
-        runs_to_check = normalized.get("runs") or comparison_table
-        validate_publication_gate(runs_to_check, mode="official")
+        validate_publication_gate(metadata, comparison_table, runs=runs, mode="official")
     elif mode == "auto":
         if not is_development:
             # In auto mode, if input is not development, enforce gate fail-closed
-            runs_to_check = normalized.get("runs") or comparison_table
-            validate_publication_gate(runs_to_check, mode="official")
+            validate_publication_gate(metadata, comparison_table, runs=runs, mode="official")
 
     scope_badge = "DEVELOPMENT_ONLY (research_ready=false)" if is_development else "OFFICIAL_PUBLICATION"
     timestamp_utc = metadata.get("evaluation_timestamp_utc") or datetime.now(timezone.utc).isoformat()
@@ -314,12 +421,20 @@ def build_markdown_report(
     lines.append("> 4. **Bảo toàn mẫu số (Denominator Integrity):** Toàn bộ các cửa sổ thất bại được giữ nguyên trong mẫu số tính tỷ lệ lỗi, không bị ẩn khỏi báo cáo.")
 
     # Comparative Table
+    has_runs = any(r.get("experiment_run_id") for r in comparison_table)
     lines.append("\n## 2. Bảng Đối soát So sánh 4 Thuật toán (Algorithm Comparison Table)\n")
-    lines.append("| Thuật toán | Tổng Cửa sổ | Thành công | Thất bại | Tỷ lệ Lỗi | Tổng Sau chấn | Nhiễu TB | DBCV TB | Omori p TB | Cửa sổ Omori | Độ ổn định Jaccard | Độ ổn định ARI | Thời gian (s) |")
-    lines.append("| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |")
+    if has_runs:
+        lines.append("| Thuật toán | Run ID | Cấu hình | Seed | Tổng Cửa sổ | Thành công | Thất bại | Tỷ lệ Lỗi | Tổng Sau chấn | Nhiễu TB | DBCV TB | Omori p TB | Cửa sổ Omori | Độ ổn định Jaccard | Độ ổn định ARI | Thời gian (s) |")
+        lines.append("| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |")
+    else:
+        lines.append("| Thuật toán | Tổng Cửa sổ | Thành công | Thất bại | Tỷ lệ Lỗi | Tổng Sau chấn | Nhiễu TB | DBCV TB | Omori p TB | Cửa sổ Omori | Độ ổn định Jaccard | Độ ổn định ARI | Thời gian (s) |")
+        lines.append("| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |")
 
     for row in comparison_table:
         algo = row.get("algorithm", "UNKNOWN")
+        run_id_str = row.get("experiment_run_id") or "N/A"
+        cfg_str = row.get("model_config_version") or "N/A"
+        seed_str = str(row.get("random_seed")) if row.get("random_seed") is not None else "N/A"
         tot_win = row.get("total_windows", 0)
         succ_win = row.get("success_windows", 0)
         fail_win = row.get("failure_windows", 0)
@@ -329,56 +444,84 @@ def build_markdown_report(
         noise_str = format_metric(row.get("mean_noise_ratio"), fmt=".1f", suffix="%")
         dbcv_str = format_metric(row.get("mean_dbcv"), fmt=".4f")
         omori_p_str = format_metric(row.get("mean_omori_p"), fmt=".2f")
-        omori_fitted = row.get("omori_fitted_windows", f"{row.get('omori_fitted_count', 0)}/{tot_win}")
+        omori_fitted = row.get("omori_fitted_windows")
+        if omori_fitted is None:
+            omori_fitted = f"{row.get('omori_fitted_count', 0)}/{tot_win}"
+        elif isinstance(omori_fitted, (int, float)):
+            omori_fitted = f"{int(omori_fitted)}/{tot_win}"
+        else:
+            omori_fitted = str(omori_fitted)
 
         jaccard_str = format_metric(row.get("mean_jaccard_stability"), fmt=".4f")
         ari_str = format_metric(row.get("mean_ari_stability"), fmt=".4f")
         runtime_str = format_metric(row.get("runtime_seconds"), fmt=".2f")
 
-        lines.append(
-            f"| **{algo}** | {tot_win} | {succ_win} | {fail_win} | {fail_rate} | {tot_after} | {noise_str} | {dbcv_str} | {omori_p_str} | {omori_fitted} | {jaccard_str} | {ari_str} | {runtime_str} |"
-        )
+        if has_runs:
+            lines.append(
+                f"| **{algo}** | `{run_id_str}` | `{cfg_str}` | `{seed_str}` | {tot_win} | {succ_win} | {fail_win} | {fail_rate} | {tot_after} | {noise_str} | {dbcv_str} | {omori_p_str} | {omori_fitted} | {jaccard_str} | {ari_str} | {runtime_str} |"
+            )
+        else:
+            lines.append(
+                f"| **{algo}** | {tot_win} | {succ_win} | {fail_win} | {fail_rate} | {tot_after} | {noise_str} | {dbcv_str} | {omori_p_str} | {omori_fitted} | {jaccard_str} | {ari_str} | {runtime_str} |"
+            )
 
     # Detailed Analysis
-    lines.append("\n## 3. Phân tích Chi tiết Từng Mô hình\n")
-    for algo, detail in sorted(model_analyses.items()):
-        lines.append(f"### Mô hình {algo}\n")
-        tot = detail.get("total_windows", 0)
-        succ = detail.get("success_windows", 0)
-        fail = detail.get("failure_windows", 0)
-        fail_rate = format_metric(detail.get("failure_rate"), fmt=".1f", suffix="%")
+    if model_analyses:
+        lines.append("\n## 3. Phân tích Chi tiết Từng Mô hình\n")
+        for algo, detail in sorted(model_analyses.items()):
+            lines.append(f"### Mô hình {algo}\n")
+            tot = detail.get("total_windows", 0)
+            succ = detail.get("success_windows", 0)
+            fail = detail.get("failure_windows", 0)
+            fail_rate = format_metric(detail.get("failure_rate"), fmt=".1f", suffix="%")
 
-        lines.append(f"- **Tổng số cửa sổ:** `{tot}` (Thành công: `{succ}`, Thất bại: `{fail}`, Tỷ lệ lỗi: `{fail_rate}`)")
-        reasons = detail.get("failure_reasons_observed", []) or ["Không có"]
-        lines.append(f"- **Lý do thất bại ghi nhận:** `{reasons}`")
-        lines.append(f"- **Tổng số sau chấn (POST sequence members):** `{detail.get('total_aftershocks_found', 0)}`")
+            lines.append(f"- **Tổng số cửa sổ:** `{tot}` (Thành công: `{succ}`, Thất bại: `{fail}`, Tỷ lệ lỗi: `{fail_rate}`)")
+            reasons = detail.get("failure_reasons_observed", []) or ["Không có"]
+            lines.append(f"- **Lý do thất bại ghi nhận:** `{reasons}`")
+            lines.append(f"- **Tổng số sau chấn (POST sequence members):** `{detail.get('total_aftershocks_found', 0)}`")
 
-        noise_str = format_metric(detail.get("mean_noise_ratio"), fmt=".1f", suffix="%")
-        lines.append(f"- **Tỷ lệ nhiễu trung bình:** `{noise_str}`")
+            noise_str = format_metric(detail.get("mean_noise_ratio"), fmt=".1f", suffix="%")
+            lines.append(f"- **Tỷ lệ nhiễu trung bình:** `{noise_str}`")
 
-        dbcv_str = format_metric(detail.get("mean_dbcv"), fmt=".4f")
-        lines.append(f"- **DBCV trung bình:** `{dbcv_str}` (Cửa sổ tính được: `{detail.get('dbcv_computed_windows', 'N/A')}`)")
+            dbcv_str = format_metric(detail.get("mean_dbcv"), fmt=".4f")
+            lines.append(f"- **DBCV trung bình:** `{dbcv_str}` (Cửa sổ tính được: `{detail.get('dbcv_computed_windows', 'N/A')}`)")
 
-        omori_p = format_metric(detail.get("mean_omori_p"), fmt=".2f")
-        omori_r2 = format_metric(detail.get("mean_omori_r2"), fmt=".2f")
-        lines.append(f"- **Modified Omori law decay exponent p:** `{omori_p}` (R² fit: `{omori_r2}`, Cửa sổ fit: `{detail.get('omori_fitted_windows', 'N/A')}`)")
+            omori_p = format_metric(detail.get("mean_omori_p"), fmt=".2f")
+            omori_r2 = format_metric(detail.get("mean_omori_r2"), fmt=".2f")
+            lines.append(f"- **Modified Omori law decay exponent p:** `{omori_p}` (R² fit: `{omori_r2}`, Cửa sổ fit: `{detail.get('omori_fitted_windows', 'N/A')}`)")
 
-        lines.append(f"- **Độ ổn định Jaccard (Feature Perturbation):** `{format_metric(detail.get('mean_jaccard_stability'), fmt='.4f')}`")
-        lines.append(f"- **Độ ổn định ARI (Cluster Partitioning):** `{format_metric(detail.get('mean_ari_stability'), fmt='.4f')}`")
-        lines.append(f"- **Thời gian thực thi:** `{format_metric(detail.get('runtime_seconds'), fmt='.2f')}` giây\n")
+            lines.append(f"- **Độ ổn định Jaccard (Feature Perturbation):** `{format_metric(detail.get('mean_jaccard_stability'), fmt='.4f')}`")
+            lines.append(f"- **Độ ổn định ARI (Cluster Partitioning):** `{format_metric(detail.get('mean_ari_stability'), fmt='.4f')}`")
+            lines.append(f"- **Thời gian thực thi:** `{format_metric(detail.get('runtime_seconds'), fmt='.2f')}` giây\n")
 
     # Disclaimers & Notes
     lines.append("## 4. Đối soát Trino Views và Phân giải Đa chuỗi (Lineage & Resolution Notes)\n")
+
+    # Check whether explicit verified evidence exists
+    has_verified_parity = (
+        isinstance(verification_evidence, dict)
+        and verification_evidence.get("status") == "PASSED"
+        and verification_evidence.get("membership_snapshot_id")
+        and verification_evidence.get("summary_snapshot_id")
+        and (not verification_evidence.get("dataset_id") or verification_evidence.get("dataset_id") == dataset_id)
+    )
 
     if is_development:
         lines.append("1. **Trạng thái Đối soát Trino Views (SQL Parity):**")
         lines.append("   - **Trạng thái: CHƯA NGHIỆM THU (PENDING OFFICIAL IMPORT).**")
         lines.append("   - Báo cáo này được kết xuất trong môi trường thử nghiệm (development pilot) trên local/Colab và chưa được đối soát trực tiếp với bảng Iceberg `ml.*` qua Trino.")
         lines.append("   - Việc kiểm chứng count parity và SQL readback chính thức chỉ được chứng nhận khi dataset chính thức và kết quả thực nghiệm được import vào Iceberg thông qua [MLQ-01](../task/tasks/MLQ-01.md).")
+    elif has_verified_parity:
+        lines.append("1. **Khớp nối Trino Serving Views (SQL Parity):**")
+        lines.append("   - **Trạng thái: ĐÃ ĐỐI SOÁT (VERIFIED).**")
+        lines.append("   - Toàn bộ các chỉ số trong bảng đối soát trên khớp chính xác với kết quả truy vấn từ các serving view `iceberg.ml.v_algorithm_comparison` và `iceberg.ml.v_experiment_runs` cho exact snapshots đã commit:")
+        lines.append(f"     - Membership snapshot: `{verification_evidence.get('membership_snapshot_id')}`")
+        lines.append(f"     - Summary snapshot: `{verification_evidence.get('summary_snapshot_id')}`")
     else:
-        lines.append("1. **Khớp nối Trino Serving Views:**")
-        lines.append("   - Toàn bộ các chỉ số trong bảng đối soát trên khớp với kết quả truy vấn từ các serving view `iceberg.ml.v_algorithm_comparison` và `iceberg.ml.v_experiment_runs` cho snapshot đã commit.")
-        lines.append("   - Cổng công bố `experiment_status IN ('CANDIDATE', 'APPROVED')` ngăn ngừa rò rỉ dữ liệu thử nghiệm chưa kiểm định vào lớp phục vụ.")
+        lines.append("1. **Khớp nối Trino Serving Views (SQL Parity):**")
+        lines.append("   - **Trạng thái: CHƯA ĐỐI SOÁT (PENDING READBACK / NOT VERIFIED).**")
+        lines.append("   - Báo cáo này tổng hợp từ kết quả thực nghiệm và chưa có bằng chứng kiểm định readback trên Iceberg snapshot.")
+        lines.append("   - Cổng công bố `experiment_status IN ('CANDIDATE', 'APPROVED')` đảm bảo tư cách xuất bản của các run, nhưng tính toàn vẹn count parity với serving views cần được kiểm chứng độc lập qua [MLQ-01](../task/tasks/MLQ-01.md).")
 
     lines.append("2. **Phân giải Đa chuỗi (Multi-Sequence Resolution):**")
     lines.append("   - Báo cáo phân biệt rõ giữa **Raw Aftershock Memberships** (tổng số lần gán nhãn POST độc lập theo từng cửa sổ) và **Unique Resolved Aftershocks** (`resolution_rank = 1` gán cho một mainshock duy nhất).")
