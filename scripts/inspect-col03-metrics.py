@@ -39,6 +39,9 @@ def main():
     if args.pilot_bundle and args.pilot_bundle.is_dir():
         bundle_path = args.pilot_bundle.resolve()
         print(f"Loading real pilot bundle from: {bundle_path}")
+    elif (ROOT / "staging/ml-pilot/pilot-kit/bundle").is_dir():
+        bundle_path = (ROOT / "staging/ml-pilot/pilot-kit/bundle").resolve()
+        print(f"Loading real pilot bundle from default repo path: {bundle_path}")
     else:
         temp_bundle_dir = tempfile.TemporaryDirectory()
         bundle_path = Path(temp_bundle_dir.name) / "bundle"

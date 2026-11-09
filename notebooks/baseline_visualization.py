@@ -62,13 +62,19 @@ def compute_dbcv(
     """Computes exact Density-Based Clustering Validation (DBCV) index (Moulavi et al., 2014).
 
     Evaluates cluster validity on spatio-temporal coordinates X (shape N x D) and labels (shape N,).
-    Noise points are marked as -1.
-    Requires at least 2 distinct clusters with label >= 0.
+    Noise points are marked as -1. The denominator for cluster weighting uses the entire population N
+    (including noise), preserving exact scientific semantics and parity with hdbscan.validity.
+    Requires at least 2 distinct clusters with label >= 0, and at least 2 samples per cluster.
     """
+    if X is None or len(X) == 0 or labels is None or len(labels) == 0:
+        return None, "NO_PRODUCTIVE_CLUSTERS"
+
+    labels = np.asarray(labels, dtype=np.int64)
+    X = np.asarray(X, dtype=np.float64)
+    n_samples = float(len(X))
+
     valid_mask = labels >= 0
-    valid_labels = labels[valid_mask]
-    valid_X = X[valid_mask]
-    unique_clusters = np.unique(valid_labels)
+    unique_clusters = np.unique(labels[valid_mask])
 
     if len(unique_clusters) < 1:
         return None, "NO_PRODUCTIVE_CLUSTERS"
@@ -76,60 +82,73 @@ def compute_dbcv(
     if len(unique_clusters) < 2:
         return None, "DBCV_REQUIRES_AT_LEAST_TWO_CLUSTERS"
 
-    d = dim if dim is not None else X.shape[1]
-    clusters_pts = {}
-    clusters_core_dist = {}
-
     for c in unique_clusters:
-        pts = valid_X[valid_labels == c]
-        n_pts = len(pts)
-        if n_pts < 2:
+        if np.sum(labels == c) < 2:
             return None, "INSUFFICIENT_CLUSTER_SAMPLES"
-        clusters_pts[c] = pts
-        dist_mat = cdist(pts, pts)
-        np.fill_diagonal(dist_mat, np.inf)
-        inv_d = np.power(np.maximum(dist_mat, 1e-12), -d)
-        core_dists = np.power(np.sum(inv_d, axis=1) / (n_pts - 1), -1.0 / d)
-        clusters_core_dist[c] = core_dists
 
-    # Density Sparseness of Cluster (DSC) via MST of Mutual Reachability Distances
-    dsc = {}
+    d = dim if dim is not None else X.shape[1]
+    core_distances = {}
+    density_sparseness = {}
+    mst_internal_nodes = {}
+
     for c in unique_clusters:
-        pts = clusters_pts[c]
-        cd = clusters_core_dist[c]
+        pts = X[labels == c]
+        n_c = len(pts)
         dist_mat = cdist(pts, pts)
-        mrd_mat = np.maximum(dist_mat, np.maximum(cd[:, None], cd[None, :]))
-        mst = minimum_spanning_tree(mrd_mat)
-        dsc[c] = float(np.max(mst.data)) if mst.nnz > 0 else 0.0
+        inv_d_mat = np.zeros_like(dist_mat)
+        mask = dist_mat != 0
+        inv_d_mat[mask] = (1.0 / dist_mat[mask]) ** d
+        sum_inv = inv_d_mat.sum(axis=1) / (n_c - 1)
+        cd = np.zeros(n_c)
+        pos = sum_inv > 0
+        cd[pos] = sum_inv[pos] ** (-1.0 / d)
+        core_distances[c] = cd
 
-    # Density Separation of Pair of Clusters (DSPC)
-    dspc = {}
-    for i, c1 in enumerate(unique_clusters):
-        for c2 in unique_clusters[i + 1:]:
-            pts1 = clusters_pts[c1]
-            pts2 = clusters_pts[c2]
-            cd1 = clusters_core_dist[c1]
-            cd2 = clusters_core_dist[c2]
-            dist_mat = cdist(pts1, pts2)
-            mrd_mat = np.maximum(dist_mat, np.maximum(cd1[:, None], cd2[None, :]))
-            min_sep = float(np.min(mrd_mat))
-            dspc[(c1, c2)] = min_sep
-            dspc[(c2, c1)] = min_sep
+        mrd = np.maximum(dist_mat, np.maximum(cd[:, None], cd[None, :]))
+        mst = minimum_spanning_tree(mrd).toarray()
+        adj = (mst > 0) | (mst.T > 0)
+        deg = adj.sum(axis=1)
+        internal_nodes = np.where(deg > 1)[0]
+        if len(internal_nodes) == 0:
+            internal_nodes = np.array([0])
+        mst_internal_nodes[c] = internal_nodes
 
-    # Validity index for each cluster and overall weighted average
-    total_pts = len(valid_X)
-    v_c = {}
+        internal_mask = np.zeros((n_c, n_c), dtype=bool)
+        internal_mask[np.ix_(internal_nodes, internal_nodes)] = True
+        internal_edges_weights = mst[(mst > 0) & (internal_mask | internal_mask.T)]
+        if len(internal_edges_weights) > 0:
+            density_sparseness[c] = float(np.max(internal_edges_weights))
+        else:
+            density_sparseness[c] = float(np.max(mst[mst > 0])) if np.any(mst > 0) else 0.0
+
+    min_density_sep = {}
     for c in unique_clusters:
-        min_sep = min(dspc[(c, other)] for other in unique_clusters if other != c)
-        c_dsc = dsc[c]
-        denom = max(min_sep, c_dsc)
-        v_c[c] = (min_sep - c_dsc) / denom if denom > 1e-12 else 0.0
+        seps = []
+        for other in unique_clusters:
+            if other == c:
+                continue
+            pts_c = X[labels == c][mst_internal_nodes[c]]
+            pts_other = X[labels == other][mst_internal_nodes[other]]
+            dist_cross = cdist(pts_c, pts_other)
+            cd_c = core_distances[c][mst_internal_nodes[c]]
+            cd_other = core_distances[other][mst_internal_nodes[other]]
+            mr_cross = np.maximum(dist_cross, np.maximum(cd_c[:, None], cd_other[None, :]))
+            seps.append(np.min(mr_cross))
+        min_density_sep[c] = min(seps)
 
-    dbcv_score = sum((len(clusters_pts[c]) / total_pts) * v_c[c] for c in unique_clusters)
-    if math.isnan(dbcv_score) or math.isinf(dbcv_score):
+    result = 0.0
+    for c in unique_clusters:
+        sep = min_density_sep[c]
+        dsc = density_sparseness[c]
+        denom = max(sep, dsc)
+        val = (sep - dsc) / denom if denom > 1e-12 else 0.0
+        c_size = float(np.sum(labels == c))
+        result += (c_size / n_samples) * val
+
+    if math.isnan(result) or math.isinf(result):
         return None, "METRIC_FIT_FAILED"
 
-    return round(float(dbcv_score), 4), "VALID_DBCV_SCORE"
+    return round(float(result), 4), "VALID_DBCV_SCORE"
 
 
 def compute_density_metric(
@@ -140,6 +159,8 @@ def compute_density_metric(
     """Computes genuine density-based clustering validation (DBCV) or records explicit null with reason.
 
     Also tracks secondary silhouette metrics in separate fields; never substitutes silhouette for DBCV.
+    Evaluates DBCV on the entire window population (including noise as -1), maintaining exact scientific
+    semantics and parity with Moulavi et al. (2014) and hdbscan.validity.
     """
     algo_upper = str(algorithm_name).upper()
     if "WINDOW" in algo_upper:
@@ -158,6 +179,9 @@ def compute_density_metric(
             "silhouette_reason": "NO_PRODUCTIVE_CLUSTERS",
         }
 
+    labels = np.asarray(labels, dtype=np.int64)
+    vectors = np.asarray(vectors, dtype=np.float64)
+
     valid_mask = labels >= 0
     unique_clusters = np.unique(labels[valid_mask])
 
@@ -169,46 +193,53 @@ def compute_density_metric(
             "silhouette_reason": "NO_PRODUCTIVE_CLUSTERS",
         }
 
-    cluster_points = vectors[valid_mask]
-    if len(cluster_points) < 3:
+    if len(unique_clusters) < 2:
         return {
             "score": None,
-            "reason": "INSUFFICIENT_CLUSTER_SAMPLES",
+            "reason": "DBCV_REQUIRES_AT_LEAST_TWO_CLUSTERS",
             "silhouette_score": None,
-            "silhouette_reason": "INSUFFICIENT_CLUSTER_SAMPLES",
+            "silhouette_reason": "SILHOUETTE_REQUIRES_AT_LEAST_TWO_CLUSTERS",
         }
 
-    # 1. Compute Genuine DBCV Metric
+    cluster_points = vectors[valid_mask]
+    cluster_labels = labels[valid_mask]
+
+    for c in unique_clusters:
+        if np.sum(labels == c) < 2:
+            return {
+                "score": None,
+                "reason": "INSUFFICIENT_CLUSTER_SAMPLES",
+                "silhouette_score": None,
+                "silhouette_reason": "INSUFFICIENT_CLUSTER_SAMPLES",
+            }
+
+    # 1. Compute Genuine DBCV Metric on entire window (vectors and labels with -1 for noise)
     dbcv_val = None
     dbcv_reason = "METRIC_FIT_FAILED"
     try:
         try:
             import hdbscan.validity as hdb_validity
-            X_contig = np.ascontiguousarray(cluster_points, dtype=np.float64)
-            labels_int = np.ascontiguousarray(labels[valid_mask], dtype=np.int64)
-            if len(unique_clusters) >= 2:
-                raw_score = float(hdb_validity.validity_index(X_contig, labels_int))
-                if not (math.isnan(raw_score) or math.isinf(raw_score)):
-                    dbcv_val = round(raw_score, 4)
-                    dbcv_reason = "VALID_DBCV_SCORE"
-                else:
-                    dbcv_val, dbcv_reason = compute_dbcv(vectors, labels)
+            X_contig = np.ascontiguousarray(vectors, dtype=np.float64)
+            labels_int = np.ascontiguousarray(labels, dtype=np.int64)
+            raw_score = float(hdb_validity.validity_index(X_contig, labels_int))
+            if not (math.isnan(raw_score) or math.isinf(raw_score)):
+                dbcv_val = round(raw_score, 4)
+                dbcv_reason = "VALID_DBCV_SCORE"
             else:
-                dbcv_val = None
-                dbcv_reason = "DBCV_REQUIRES_AT_LEAST_TWO_CLUSTERS"
+                dbcv_val, dbcv_reason = compute_dbcv(vectors, labels)
         except (ImportError, Exception):
             dbcv_val, dbcv_reason = compute_dbcv(vectors, labels)
     except Exception as e:
         dbcv_val = None
         dbcv_reason = f"METRIC_FIT_FAILED: {str(e)}"
 
-    # 2. Compute Separate Silhouette Metric (explicitly separate from DBCV)
+    # 2. Compute Separate Silhouette Metric (explicitly separate from DBCV, on clustered points only)
     sil_val = None
     sil_reason = "NO_PRODUCTIVE_CLUSTERS"
     try:
         from sklearn.metrics import silhouette_score
         if len(unique_clusters) >= 2 and len(cluster_points) > len(unique_clusters):
-            sil_val = round(float(silhouette_score(cluster_points, labels[valid_mask])), 4)
+            sil_val = round(float(silhouette_score(cluster_points, cluster_labels)), 4)
             sil_reason = "VALID_MULTI_CLUSTER_SCORE"
         else:
             sil_val = None

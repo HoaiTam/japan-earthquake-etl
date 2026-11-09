@@ -1,6 +1,6 @@
 ---
 task_id: "COL-03"
-status: "In Progress"
+status: "Done"
 week: 7
 block: "H - Experiment"
 workstream: "Pilot baseline metrics and plots"
@@ -58,7 +58,7 @@ Trino report của [MLI-04](./MLI-04.md).
 
 ## Theo dõi
 
-- **Trạng thái:** In Progress
+- **Trạng thái:** Done
 - **Assignee:** rosy179
 - **Reviewer:** unassigned
 - **Evidence / PR:** [COL-03 Baseline Metrics and Plots Evidence](../../evidence/COL-03_BASELINE_METRICS_PLOTS_20261102.md)

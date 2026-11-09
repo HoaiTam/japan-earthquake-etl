@@ -104,6 +104,92 @@ class TestBaselineVisualization(unittest.TestCase):
         self.assertIsNotNone(res["silhouette_score"])
         self.assertEqual(res["silhouette_reason"], "VALID_MULTI_CLUSTER_SCORE")
 
+    def test_dbcv_noise_population_impact_probe(self):
+        """Regression test from reviewer probe: DBCV score must penalize noise population across entire window."""
+        rng = np.random.RandomState(7)
+        c1 = rng.normal(loc=0.0, scale=0.1, size=(20, 4))
+        c2 = rng.normal(loc=5.0, scale=0.1, size=(20, 4))
+        noise = rng.uniform(low=20.0, high=30.0, size=(40, 4))
+
+        X_clean = np.vstack([c1, c2])
+        y_clean = np.array([0] * 20 + [1] * 20)
+
+        X_noisy = np.vstack([c1, c2, noise])
+        y_noisy = np.array([0] * 20 + [1] * 20 + [-1] * 40)
+
+        # 1. Test via compute_density_metric
+        res_clean = compute_density_metric(X_clean, y_clean, "DBSCAN")
+        res_noisy = compute_density_metric(X_noisy, y_noisy, "DBSCAN")
+
+        self.assertIsNotNone(res_clean["score"])
+        self.assertIsNotNone(res_noisy["score"])
+        self.assertAlmostEqual(res_clean["score"], 0.9748, places=3)
+        self.assertAlmostEqual(res_noisy["score"], 0.4874, places=3)
+        # Noise (40/80 = 50%) scales validity down by exactly half
+        self.assertAlmostEqual(res_noisy["score"], res_clean["score"] * 0.5, places=3)
+
+        # 2. Test via fallback compute_dbcv
+        fb_clean, fb_clean_reason = compute_dbcv(X_clean, y_clean)
+        fb_noisy, fb_noisy_reason = compute_dbcv(X_noisy, y_noisy)
+        self.assertEqual(fb_clean_reason, "VALID_DBCV_SCORE")
+        self.assertEqual(fb_noisy_reason, "VALID_DBCV_SCORE")
+        self.assertAlmostEqual(fb_clean, 0.9748, places=3)
+        self.assertAlmostEqual(fb_noisy, 0.4874, places=3)
+
+    def test_dbcv_fallback_parity_with_reference(self):
+        """Verifies parity between fallback compute_dbcv and reference implementation across diverse cluster structures."""
+        try:
+            import hdbscan.validity as hdb_validity
+            has_hdbscan = True
+        except ImportError:
+            has_hdbscan = False
+
+        test_cases = [
+            # (seed, n_clusters, dim, n_noise)
+            (42, 2, 4, 0),
+            (101, 2, 4, 30),
+            (202, 3, 3, 20),
+            (303, 4, 5, 40),
+        ]
+
+        for seed, n_clusters, dim, n_noise in test_cases:
+            rng = np.random.RandomState(seed)
+            pts_list = []
+            labels_list = []
+            for c in range(n_clusters):
+                c_size = rng.randint(10, 25)
+                center = rng.uniform(-10, 10, size=dim)
+                pts_list.append(rng.normal(loc=center, scale=0.15, size=(c_size, dim)))
+                labels_list.extend([c] * c_size)
+            if n_noise > 0:
+                pts_list.append(rng.uniform(-30, 30, size=(n_noise, dim)))
+                labels_list.extend([-1] * n_noise)
+
+            X = np.vstack(pts_list)
+            y = np.array(labels_list)
+
+            fb_score, fb_reason = compute_dbcv(X, y)
+            self.assertEqual(fb_reason, "VALID_DBCV_SCORE")
+            self.assertIsNotNone(fb_score)
+            self.assertTrue(-1.0 <= fb_score <= 1.0)
+
+            if has_hdbscan:
+                ref_score = float(hdb_validity.validity_index(X, y))
+                self.assertAlmostEqual(fb_score, ref_score, places=3)
+
+    def test_dbcv_insufficient_samples_per_cluster(self):
+        """Verifies that a cluster with only 1 sample returns INSUFFICIENT_CLUSTER_SAMPLES."""
+        vecs = np.array([
+            [0.0, 0.0, 0.0, 0.0],
+            [0.1, 0.1, 0.0, 0.0],
+            [0.2, 0.1, 0.0, 0.0],
+            [5.0, 5.0, 5.0, 5.0],  # only 1 sample for cluster 1
+        ])
+        labels = np.array([0, 0, 0, 1])
+        score, reason = compute_dbcv(vecs, labels)
+        self.assertIsNone(score)
+        self.assertEqual(reason, "INSUFFICIENT_CLUSTER_SAMPLES")
+
     def test_extract_and_export_metrics_table(self):
         """Verifies metrics extraction across result directories and export to valid CSV and JSON."""
         rows = extract_baseline_metrics(self.results_dir, self.bundle)

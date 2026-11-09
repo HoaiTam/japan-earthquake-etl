@@ -1,6 +1,6 @@
 # COL-03 — Pilot Baseline Metrics and Plots Evidence
 
-- **Ngày kiểm chứng:** 2026-11-02 (Cập nhật phản hồi review: 2026-11-07)
+- **Ngày kiểm chứng:** 2026-11-02 (Cập nhật phản hồi review: 2026-11-09)
 - **Tuần thực hiện:** Tuần 7 (02–08/11/2026), Khối 2
 - **Assignee:** `rosy179`
 - **Reviewer:** `unassigned`
@@ -23,6 +23,11 @@ Toàn bộ quy trình tuân thủ nghiêm ngặt nguyên tắc: **100% số li�
 ## 2. Chính sách số liệu định lượng và chỉ số DBCV
 
 - **Tính khả thi của DBCV:** Chỉ số kiểm định phân cụm dựa trên mật độ (DBCV, Moulavi et al. 2014) chỉ được tính toán khi thuật toán có bản chất phân cụm mật độ (`DBSCAN`, `HDBSCAN_GLOBAL`), cửa sổ thành công và tồn tại ít nhất 2 cụm hợp lệ để đánh giá độ tách biệt mật độ ($DSPC$).
+- **Trọng số quần thể mẫu bao gồm Noise (Noise Population Parity):**
+  - Theo đúng định nghĩa gốc của Moulavi et al. (2014) và cài đặt chuẩn `hdbscan.validity.validity_index`, trọng số tổng hợp của từng cụm được chuẩn hóa trên **toàn bộ kích thước cửa sổ $N$** (bao gồm cả các điểm nhiễu mang nhãn `-1`):
+    $$\text{DBCV} = \sum_{i} \frac{|C_i|}{N} V_C(C_i)$$
+  - Việc đưa toàn bộ vector và nhãn (giữ nguyên `-1` cho nhiễu) vào đánh giá đảm bảo mô hình gán quá nhiều điểm thành nhiễu sẽ bị phạt tỷ lệ nghịch chính xác theo tỷ lệ nhiễu, không bị đánh đồng với mô hình bảo toàn được dữ liệu.
+  - Cài đặt fallback tự viết `compute_dbcv` tuân thủ đúng định nghĩa đồ thị MST nội bộ (`internal_nodes` có bậc $> 1$) và đạt độ tương đương tuyệt đối ($\Delta < 10^{-14}$) với `hdbscan.validity.validity_index`.
 - **Chính sách giá trị NULL minh bạch:**
   - Thuật toán `WINDOW`: Thuần túy là quy tắc đếm thời gian, không có bản chất mật độ không gian -> `dbcv_score = null` kèm lý do giải thích `WINDOW_BASELINE_NOT_DENSITY_BASED`. Tuyệt đối không so sánh DBCV của Window như một giá trị có thật.
   - Các cửa sổ thất bại (mainshock rơi vào nhiễu hoặc không có chuỗi sau chấn / empty sequence): `dbcv_score = null` kèm lý do `NO_PRODUCTIVE_CLUSTERS`. Tuyệt đối không thay thế bằng 0, NaN JSON hoặc tính score trên các cụm độc lập khi chuỗi chính đã thất bại.
@@ -44,21 +49,21 @@ Toàn bộ quy trình tuân thủ nghiêm ngặt nguyên tắc: **100% số li�
 | Thuật toán | Phiên bản cấu hình | Mã chấn chính | Ứng viên | Thành viên chuỗi | Dư chấn | Điểm nhiễu | Chỉ số DBCV | Trạng thái cửa sổ | Lý do nếu không thành công |
 |---|---|---|---:|---:|---:|---:|:---:|:---:|---|
 | **DBSCAN** | `dbscan-sweep-c1-v1` | `evt_d47fcaaf451c..` | 1 | 0 | 0 | 1 | `null` | `NO_PRODUCTIVE_SEQUENCE` | `EMPTY_SEQUENCE` *(null: NO_PRODUCTIVE_CLUSTERS)* |
-| **DBSCAN** | `dbscan-sweep-c1-v1` | `evt_f0300848e0b7..` | 278 | 240 | 240 | 8 | **-0.3639** | `SUCCESS` | — |
+| **DBSCAN** | `dbscan-sweep-c1-v1` | `evt_f0300848e0b7..` | 278 | 240 | 240 | 8 | **0.1676** | `SUCCESS` | — |
 | **DBSCAN** | `dbscan-sweep-c2-v1` | `evt_d47fcaaf451c..` | 1 | 0 | 0 | 1 | `null` | `NO_PRODUCTIVE_SEQUENCE` | `EMPTY_SEQUENCE` *(null: NO_PRODUCTIVE_CLUSTERS)* |
-| **DBSCAN** | `dbscan-sweep-c2-v1` | `evt_f0300848e0b7..` | 278 | 240 | 240 | 17 | **-0.0346** | `SUCCESS` | — |
+| **DBSCAN** | `dbscan-sweep-c2-v1` | `evt_f0300848e0b7..` | 278 | 240 | 240 | 17 | **0.4073** | `SUCCESS` | — |
 | **DBSCAN** | `dbscan-sweep-c3-v1` | `evt_d47fcaaf451c..` | 1 | 0 | 0 | 1 | `null` | `NO_PRODUCTIVE_SEQUENCE` | `EMPTY_SEQUENCE` *(null: NO_PRODUCTIVE_CLUSTERS)* |
-| **DBSCAN** | `dbscan-sweep-c3-v1` | `evt_f0300848e0b7..` | 278 | 229 | 229 | 25 | **0.0862** | `SUCCESS` | — |
+| **DBSCAN** | `dbscan-sweep-c3-v1` | `evt_f0300848e0b7..` | 278 | 229 | 229 | 25 | **0.3237** | `SUCCESS` | — |
 | **DBSCAN** | `dbscan-sweep-c4-v1` | `evt_d47fcaaf451c..` | 1 | 0 | 0 | 1 | `null` | `NO_PRODUCTIVE_SEQUENCE` | `EMPTY_SEQUENCE` *(null: NO_PRODUCTIVE_CLUSTERS)* |
-| **DBSCAN** | `dbscan-sweep-c4-v1` | `evt_f0300848e0b7..` | 278 | 252 | 252 | 3 | **-0.4788** | `SUCCESS` | — |
+| **DBSCAN** | `dbscan-sweep-c4-v1` | `evt_f0300848e0b7..` | 278 | 252 | 252 | 3 | **0.1271** | `SUCCESS` | — |
 | **HDBSCAN** | `hdbscan-sweep-c1-v1` | `evt_d47fcaaf451c..` | 1 | 0 | 0 | 1 | `null` | `NO_PRODUCTIVE_SEQUENCE` | `EMPTY_SEQUENCE` *(null: NO_PRODUCTIVE_CLUSTERS)* |
 | **HDBSCAN** | `hdbscan-sweep-c1-v1` | `evt_f0300848e0b7..` | 278 | 0 | 0 | 107 | `null` | `NO_PRODUCTIVE_SEQUENCE` | `EMPTY_SEQUENCE` *(null: NO_PRODUCTIVE_CLUSTERS)* |
 | **HDBSCAN** | `hdbscan-sweep-c2-v1` | `evt_d47fcaaf451c..` | 1 | 0 | 0 | 1 | `null` | `NO_PRODUCTIVE_SEQUENCE` | `EMPTY_SEQUENCE` *(null: NO_PRODUCTIVE_CLUSTERS)* |
-| **HDBSCAN** | `hdbscan-sweep-c2-v1` | `evt_f0300848e0b7..` | 278 | 215 | 215 | 18 | **-0.3853** | `SUCCESS` | — |
+| **HDBSCAN** | `hdbscan-sweep-c2-v1` | `evt_f0300848e0b7..` | 278 | 215 | 215 | 18 | **0.2044** | `SUCCESS` | — |
 | **HDBSCAN** | `hdbscan-sweep-c3-v1` | `evt_d47fcaaf451c..` | 1 | 0 | 0 | 1 | `null` | `NO_PRODUCTIVE_SEQUENCE` | `EMPTY_SEQUENCE` *(null: NO_PRODUCTIVE_CLUSTERS)* |
-| **HDBSCAN** | `hdbscan-sweep-c3-v1` | `evt_f0300848e0b7..` | 278 | 216 | 216 | 18 | **-0.4048** | `SUCCESS` | — |
+| **HDBSCAN** | `hdbscan-sweep-c3-v1` | `evt_f0300848e0b7..` | 278 | 216 | 216 | 18 | **-0.0196** | `SUCCESS` | — |
 | **HDBSCAN** | `hdbscan-sweep-c4-v1` | `evt_d47fcaaf451c..` | 1 | 0 | 0 | 1 | `null` | `NO_PRODUCTIVE_SEQUENCE` | `EMPTY_SEQUENCE` *(null: NO_PRODUCTIVE_CLUSTERS)* |
-| **HDBSCAN** | `hdbscan-sweep-c4-v1` | `evt_f0300848e0b7..` | 278 | 215 | 215 | 25 | **-0.3776** | `SUCCESS` | — |
+| **HDBSCAN** | `hdbscan-sweep-c4-v1` | `evt_f0300848e0b7..` | 278 | 215 | 215 | 25 | **0.2051** | `SUCCESS` | — |
 | **WINDOW** | `window-baseline-v1` | `evt_d47fcaaf451c..` | 1 | 0 | 0 | 0 | `null` | `NO_PRODUCTIVE_SEQUENCE` | `EMPTY_SEQUENCE` *(null: WINDOW_BASELINE_NOT_DENSITY_BASED)* |
 | **WINDOW** | `window-baseline-v1` | `evt_f0300848e0b7..` | 278 | 255 | 255 | 0 | `null` | `SUCCESS` | *(null: WINDOW_BASELINE_NOT_DENSITY_BASED)* |
 
@@ -82,8 +87,8 @@ Tất cả biểu đồ được sinh tự động và lưu trữ tại `staging
 
 File `staging/ml-experiments/col03-metrics-plots/handoff_manifest.json` ghi nhận đầy đủ chữ ký kiểm chứng mã băm SHA-256 cho toàn bộ 11 artifacts phục vụ task [EXP-04](../task/tasks/EXP-04.md):
 
-* `baseline_metrics_table.csv` — `6f2c3b3fe54d428db18535301ae5830e38197a74dccaa0f854eb02ce90a6e8b1`
-* `baseline_metrics_table.json` — `9bbd0ecfdd52c06f71f566606c857aac1f092e789732bdf7e2e65719af6680e9`
+* `baseline_metrics_table.csv` — `5f681d3bb72c4dc20bcf5ad1710cbc9fd718a0ba9f2e1b1cfcd99ac06eec0d16`
+* `baseline_metrics_table.json` — `62daac6d3655c26323afcea8481757c030ff1d86dcca97cb4f2e6b2724a49e49`
 * `spatial_distribution_dbscan_c1.png` — `fa86d64e0d6a5ba2b6e1ea95864806cda379273a05121f454e06f1b498be2063`
 * `timeline_depth_dbscan_c1.png` — `623e8e2838a56799e7cda23f2dd56f75555d2fa0ccfd751575156f1de63b33cd`
 * `spatial_distribution_dbscan_c2.png` — `a43a9d0bf256270a04dce124322222b24b7b51b82a51ca3383bb1d8cc758bfeb`
@@ -93,6 +98,7 @@ File `staging/ml-experiments/col03-metrics-plots/handoff_manifest.json` ghi nh�
 * `spatial_distribution_dbscan_c4.png` — `215c32a1e9041d0931c8d2286a35645b13c5bb5ddbad37ddcc237b2c9615299c`
 * `timeline_depth_dbscan_c4.png` — `fb09628207f0b67d3615e5af3bee36c731a91344a5a33a269522fb99483c7618`
 * `baseline_comparison_summary.png` — `177634e496391bbbd6374bb9228806cd2ac276fa61cd204a350c472e03c52f68`
+* `handoff_manifest.json` — `f19d8453a5c50ce7e2f7a25b1c4ea2122f6247b0b220ff6274e98d22b2bafe52`
 
 ---
 
@@ -103,7 +109,7 @@ File `staging/ml-experiments/col03-metrics-plots/handoff_manifest.json` ghi nh�
   - Notebook: `notebooks/col_03_baseline_metrics_plots.ipynb`
   - Script Headless Runner: `scripts/inspect-col03-metrics.py`
 - **Bộ kiểm thử tự động:**
-  - `tests/test_baseline_visualization.py` (12/12 tests PASS).
+  - `tests/test_baseline_visualization.py` (15/15 tests PASS).
 - **Metadata Bằng chứng:**
   - JSON Metadata: [COL-03_BASELINE_METRICS_PLOTS_20261102.json](./COL-03_BASELINE_METRICS_PLOTS_20261102.json)
 
