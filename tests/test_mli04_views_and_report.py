@@ -1000,6 +1000,197 @@ class TestMli04ViewsAndReport(unittest.TestCase):
         self.assertIn("CHƯA ĐỐI SOÁT (PENDING READBACK / NOT VERIFIED)", md)
         self.assertNotIn("ĐÃ ĐỐI SOÁT (VERIFIED)", md)
 
+    def test_sql_parity_negative_wrong_row_pins_without_registry(self):
+        """Negative test: row declares snapshot pins 111/222, but evidence has 999/888 without registry -> PENDING."""
+        payload = {
+            "metadata": {
+                "dataset_id": "ds_official_prod",
+                "git_commit": "git_sha_prod",
+                "research_ready": True,
+            },
+            "comparison_table": [{
+                "algorithm": "DBSCAN",
+                "experiment_run_id": "run_1",
+                "dataset_id": "ds_official_prod",
+                "model_config_version": "v1",
+                "status": "APPROVED",
+                "raw_aftershock_memberships": 10,
+                "avg_runtime_seconds": 1.0,
+                "membership_snapshot_id": 111111,
+                "summary_snapshot_id": 222222,
+            }],
+            "verification_evidence": {
+                "status": "PASSED",
+                "dataset_id": "ds_official_prod",
+                "membership_snapshot_id": 999999,
+                "summary_snapshot_id": 888888,
+                "verified_runs": ["run_1"],
+            }
+        }
+        md = report_gen.build_markdown_report(payload, mode="official")
+        self.assertIn("CHƯA ĐỐI SOÁT (PENDING READBACK / NOT VERIFIED)", md)
+        self.assertNotIn("ĐÃ ĐỐI SOÁT (VERIFIED)", md)
+
+    def test_sql_parity_negative_missing_pins(self):
+        """Negative test: neither registry nor row has snapshot pins -> fail-closed to PENDING."""
+        payload = {
+            "metadata": {
+                "dataset_id": "ds_official_prod",
+                "git_commit": "git_sha_prod",
+                "research_ready": True,
+            },
+            "comparison_table": [{
+                "algorithm": "DBSCAN",
+                "experiment_run_id": "run_1",
+                "dataset_id": "ds_official_prod",
+                "model_config_version": "v1",
+                "status": "APPROVED",
+                "raw_aftershock_memberships": 10,
+                "avg_runtime_seconds": 1.0,
+            }],
+            "verification_evidence": {
+                "status": "PASSED",
+                "dataset_id": "ds_official_prod",
+                "membership_snapshot_id": 123456789,
+                "summary_snapshot_id": 987654321,
+                "verified_runs": ["run_1"],
+            }
+        }
+        md = report_gen.build_markdown_report(payload, mode="official")
+        self.assertIn("CHƯA ĐỐI SOÁT (PENDING READBACK / NOT VERIFIED)", md)
+        self.assertNotIn("ĐÃ ĐỐI SOÁT (VERIFIED)", md)
+
+    def test_sql_parity_negative_missing_verified_runs(self):
+        """Negative test: verification evidence missing verified_runs key -> PENDING."""
+        payload = {
+            "metadata": {
+                "dataset_id": "ds_official_prod",
+                "git_commit": "git_sha_prod",
+                "research_ready": True,
+            },
+            "comparison_table": [{
+                "algorithm": "DBSCAN",
+                "experiment_run_id": "run_1",
+                "dataset_id": "ds_official_prod",
+                "model_config_version": "v1",
+                "status": "APPROVED",
+                "raw_aftershock_memberships": 10,
+                "avg_runtime_seconds": 1.0,
+                "membership_snapshot_id": 123456789,
+                "summary_snapshot_id": 987654321,
+            }],
+            "verification_evidence": {
+                "status": "PASSED",
+                "dataset_id": "ds_official_prod",
+                "membership_snapshot_id": 123456789,
+                "summary_snapshot_id": 987654321,
+            }
+        }
+        md = report_gen.build_markdown_report(payload, mode="official")
+        self.assertIn("CHƯA ĐỐI SOÁT (PENDING READBACK / NOT VERIFIED)", md)
+        self.assertNotIn("ĐÃ ĐỐI SOÁT (VERIFIED)", md)
+
+    def test_sql_parity_negative_empty_verified_runs(self):
+        """Negative test: verification evidence with empty verified_runs list -> PENDING."""
+        payload = {
+            "metadata": {
+                "dataset_id": "ds_official_prod",
+                "git_commit": "git_sha_prod",
+                "research_ready": True,
+            },
+            "comparison_table": [{
+                "algorithm": "DBSCAN",
+                "experiment_run_id": "run_1",
+                "dataset_id": "ds_official_prod",
+                "model_config_version": "v1",
+                "status": "APPROVED",
+                "raw_aftershock_memberships": 10,
+                "avg_runtime_seconds": 1.0,
+                "membership_snapshot_id": 123456789,
+                "summary_snapshot_id": 987654321,
+            }],
+            "verification_evidence": {
+                "status": "PASSED",
+                "dataset_id": "ds_official_prod",
+                "membership_snapshot_id": 123456789,
+                "summary_snapshot_id": 987654321,
+                "verified_runs": [],
+            }
+        }
+        md = report_gen.build_markdown_report(payload, mode="official")
+        self.assertIn("CHƯA ĐỐI SOÁT (PENDING READBACK / NOT VERIFIED)", md)
+        self.assertNotIn("ĐÃ ĐỐI SOÁT (VERIFIED)", md)
+
+    def test_sql_parity_negative_invalid_snapshot_ids(self):
+        """Negative test: snapshot IDs that are negative, zero, or non-integer -> PENDING."""
+        invalid_ids = [-1, 0, -999, "invalid", "0", "-5", 12.34, None, False]
+        for invalid_id in invalid_ids:
+            payload = {
+                "metadata": {
+                    "dataset_id": "ds_official_prod",
+                    "git_commit": "git_sha_prod",
+                    "research_ready": True,
+                },
+                "comparison_table": [{
+                    "algorithm": "DBSCAN",
+                    "experiment_run_id": "run_1",
+                    "dataset_id": "ds_official_prod",
+                    "model_config_version": "v1",
+                    "status": "APPROVED",
+                    "raw_aftershock_memberships": 10,
+                    "avg_runtime_seconds": 1.0,
+                    "membership_snapshot_id": 123456789,
+                    "summary_snapshot_id": 987654321,
+                }],
+                "verification_evidence": {
+                    "status": "PASSED",
+                    "dataset_id": "ds_official_prod",
+                    "membership_snapshot_id": invalid_id,
+                    "summary_snapshot_id": 987654321,
+                    "verified_runs": ["run_1"],
+                }
+            }
+            md = report_gen.build_markdown_report(payload, mode="official")
+            self.assertIn("CHƯA ĐỐI SOÁT (PENDING READBACK / NOT VERIFIED)", md, f"Failed for snapshot id {invalid_id}")
+            self.assertNotIn("ĐÃ ĐỐI SOÁT (VERIFIED)", md, f"Failed for snapshot id {invalid_id}")
+
+    def test_official_report_marks_parity_verified_from_row_pins_without_registry(self):
+        """Positive test: row itself declares valid snapshot pins matching evidence without registry -> VERIFIED."""
+        payload = {
+            "metadata": {
+                "dataset_id": "ds_official_prod",
+                "git_commit": "git_sha_prod",
+                "research_ready": True,
+            },
+            "comparison_table": [{
+                "algorithm": "DBSCAN",
+                "experiment_run_id": "run_1",
+                "dataset_id": "ds_official_prod",
+                "model_config_version": "v1",
+                "random_seed": 42,
+                "status": "APPROVED",
+                "total_windows": 1,
+                "success_windows": 1,
+                "failure_windows": 0,
+                "raw_aftershock_memberships": 10,
+                "avg_runtime_seconds": 1.0,
+                "membership_snapshot_id": 123456789,
+                "summary_snapshot_id": 987654321,
+            }],
+            "verification_evidence": {
+                "status": "PASSED",
+                "dataset_id": "ds_official_prod",
+                "membership_snapshot_id": 123456789,
+                "summary_snapshot_id": 987654321,
+                "verified_runs": ["run_1"],
+            }
+        }
+        md = report_gen.build_markdown_report(payload, mode="official")
+        self.assertIn("ĐÃ ĐỐI SOÁT (VERIFIED)", md)
+        self.assertIn("123456789", md)
+        self.assertIn("987654321", md)
+        self.assertNotIn("CHƯA ĐỐI SOÁT", md)
+
     def test_development_mode_truthful_parity_statement(self):
         """Verify that development pilot report explicitly marks SQL parity as CHƯA NGHIỆM THU."""
         with open(self.pilot_eval_json, "r", encoding="utf-8") as f:

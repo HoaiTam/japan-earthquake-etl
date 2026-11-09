@@ -63,6 +63,17 @@ def has_any_key(d: Any, *keys: str) -> bool:
     return False
 
 
+def is_valid_snapshot_id(val: Any) -> bool:
+    """Validate snapshot ID: must be an integer (or int digit string) strictly greater than 0."""
+    if val is None or isinstance(val, bool):
+        return False
+    if isinstance(val, int):
+        return val > 0
+    if isinstance(val, str) and val.strip().isdigit():
+        return int(val.strip()) > 0
+    return False
+
+
 def get_field(d: Optional[Dict[str, Any]], *keys: str, default: Any = None) -> Any:
     """Extract first non-None key value from dict, strictly preserving falsy 0.0 values."""
     if not d or not isinstance(d, dict):
@@ -137,6 +148,9 @@ def normalize_comparison_row(row: Dict[str, Any]) -> Dict[str, Any]:
         raise ValueError(f"Missing required runtime field ('avg_runtime_seconds' or 'runtime_seconds') in row: {row}")
     runtime = get_field(row, "avg_runtime_seconds", "runtime_seconds", "Runtime (s)")
 
+    mem_snap = get_field(row, "membership_snapshot_id", "membership_snapshot")
+    sum_snap = get_field(row, "summary_snapshot_id", "summary_snapshot")
+
     return {
         "algorithm": str(algo),
         "experiment_run_id": run_id,
@@ -158,6 +172,8 @@ def normalize_comparison_row(row: Dict[str, Any]) -> Dict[str, Any]:
         "mean_jaccard_stability": mean_jaccard,
         "mean_ari_stability": mean_ari,
         "runtime_seconds": runtime,
+        "membership_snapshot_id": mem_snap,
+        "summary_snapshot_id": sum_snap,
     }
 
 
@@ -307,7 +323,7 @@ def check_sql_parity_verification(
     comparison_table: List[Dict[str, Any]],
     runs: Optional[List[Dict[str, Any]]] = None,
 ) -> bool:
-    """Validate verification evidence against dataset, runs, and committed snapshot pins."""
+    """Validate verification evidence against dataset, runs, and committed snapshot pins (fail-closed)."""
     if not isinstance(verification_evidence, dict):
         return False
     if verification_evidence.get("status") != "PASSED":
@@ -318,10 +334,10 @@ def check_sql_parity_verification(
     if not ev_dataset or ev_dataset in ("UNKNOWN_DATASET", "unknown") or ev_dataset != dataset_id:
         return False
 
-    # 2. Must contain valid positive snapshot IDs
+    # 2. Must contain valid positive snapshot IDs (> 0)
     ev_mem_snap = verification_evidence.get("membership_snapshot_id")
     ev_sum_snap = verification_evidence.get("summary_snapshot_id")
-    if not ev_mem_snap or not ev_sum_snap:
+    if not is_valid_snapshot_id(ev_mem_snap) or not is_valid_snapshot_id(ev_sum_snap):
         return False
 
     # 3. Coverage of rendered runs:
@@ -329,38 +345,54 @@ def check_sql_parity_verification(
     if not rendered_run_ids:
         return False
 
-    # Check run coverage in evidence if specified
-    ev_runs = verification_evidence.get("verified_runs") or verification_evidence.get("runs")
-    if ev_runs is not None:
-        if isinstance(ev_runs, list):
-            ev_run_set = {
-                r.get("experiment_run_id") if isinstance(r, dict) else str(r)
-                for r in ev_runs
-            }
-            if not rendered_run_ids.issubset(ev_run_set):
-                return False
-        else:
-            return False
+    # Evidence MUST explicitly declare verified runs, non-empty, covering 100% of rendered runs
+    if "verified_runs" in verification_evidence:
+        ev_runs = verification_evidence["verified_runs"]
+    elif "runs" in verification_evidence:
+        ev_runs = verification_evidence["runs"]
+    else:
+        return False
+
+    if not isinstance(ev_runs, list) or len(ev_runs) == 0:
+        return False
+
+    ev_run_set = {
+        r.get("experiment_run_id") if isinstance(r, dict) else str(r)
+        for r in ev_runs
+        if (r.get("experiment_run_id") if isinstance(r, dict) else str(r))
+    }
+    if not rendered_run_ids.issubset(ev_run_set):
+        return False
 
     # 4. Cross-check snapshots with run registry / table pins
     run_pin_map: Dict[str, Dict[str, Any]] = {}
     if runs:
         for r in runs:
             if isinstance(r, dict) and r.get("experiment_run_id"):
-                run_pin_map[r["experiment_run_id"]] = r
+                run_pin_map[r["experiment_run_id"]] = dict(r)
     for r in comparison_table:
         rid = r.get("experiment_run_id")
-        if rid and rid not in run_pin_map:
-            run_pin_map[rid] = r
+        if rid:
+            if rid not in run_pin_map:
+                run_pin_map[rid] = dict(r)
+            else:
+                if not run_pin_map[rid].get("membership_snapshot_id") and r.get("membership_snapshot_id"):
+                    run_pin_map[rid]["membership_snapshot_id"] = r.get("membership_snapshot_id")
+                if not run_pin_map[rid].get("summary_snapshot_id") and r.get("summary_snapshot_id"):
+                    run_pin_map[rid]["summary_snapshot_id"] = r.get("summary_snapshot_id")
 
+    # Fail-closed: Every rendered run must have valid snapshot pins to check against
     for rid in rendered_run_ids:
         run_info = run_pin_map.get(rid, {})
         reg_mem_snap = run_info.get("membership_snapshot_id")
         reg_sum_snap = run_info.get("summary_snapshot_id")
 
-        if reg_mem_snap is not None and str(reg_mem_snap) != str(ev_mem_snap):
+        if not is_valid_snapshot_id(reg_mem_snap) or not is_valid_snapshot_id(reg_sum_snap):
             return False
-        if reg_sum_snap is not None and str(reg_sum_snap) != str(ev_sum_snap):
+
+        if str(reg_mem_snap) != str(ev_mem_snap):
+            return False
+        if str(reg_sum_snap) != str(ev_sum_snap):
             return False
 
     return True
