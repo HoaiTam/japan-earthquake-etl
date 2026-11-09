@@ -25,14 +25,17 @@ EXP_FILES = {
     "notebooks/research_collection.py",
     "notebooks/baseline_models.py",
     "notebooks/adaptive_hdbscan.py",
+    "notebooks/baseline_visualization.py",
     "notebooks/exp_01_harness_smoke.ipynb",
     "notebooks/exp_02_baseline_algorithms.ipynb",
     "notebooks/exp_03_adaptive_hdbscan.ipynb",
+    "notebooks/col_03_baseline_metrics_plots.ipynb",
 }
 EXP_SCRIPTS = {
     "scripts/inspect-exp01-notebook.py",
     "scripts/inspect-exp02-notebook.py",
     "scripts/inspect-exp03-notebook.py",
+    "scripts/inspect-col03-metrics.py",
 }
 EXP_CONFIGS = {
     "config/ml/models/window_baseline_v1.json",
@@ -76,7 +79,7 @@ def classify(changes, root=ROOT):
             return full("unusual-path", len(changes))
         # Contract specifications may influence readers and SQL even without code changes.
         if path.startswith(("docs/specs/", "docs/contracts/")): return full("shared-contract", len(changes))
-        if path in {"README.md", "LICENSE", "LICENSE.md"} or (path.startswith("docs/") and path.endswith(".md")):
+        if path in {"README.md", "LICENSE", "LICENSE.md"} or (path.startswith("docs/") and path.endswith((".md", ".json"))):
             reasons.add("documentation"); continue
         if path in TEAM_PILOT_FILES:
             pilot = "full"; reasons.add("team-pilot-handoff"); continue
@@ -85,7 +88,7 @@ def classify(changes, root=ROOT):
             or path in PILOT_SCRIPTS
             or path in EXP_FILES
             or path in EXP_SCRIPTS
-            or re.fullmatch(r"tests/test_(pilot_[a-z0-9_]+|experiment_harness|baseline_algorithms|adaptive_hdbscan|research_collection_loader)\.py", path)
+            or re.fullmatch(r"tests/test_(pilot_[a-z0-9_]+|experiment_harness|baseline_algorithms|baseline_visualization|adaptive_hdbscan|research_collection_loader)\.py", path)
         ):
             pilot = "full"
             reasons.add("pilot-python")
@@ -238,7 +241,7 @@ def emit(result, output=None, summary=None, root=ROOT):
             file.write("\n| Component | Functional/task suite | Test classes/modules |\n|---|---|---|\n")
             for component, groups in matrices.items():
                 for group, tests in groups.items(): file.write(f"| {component} | {group} | {len(tests)} |\n")
-            if result["pilot"] != "none": file.write("| Python | DAT-02/EXP-01/EXP-02/EXP-03 pilot, baselines & adaptive + DAT-03 handoff | test_pilot_*.py, test_team_pilot.py, test_experiment_harness.py, test_baseline_algorithms.py, test_adaptive_hdbscan.py |\n")
+            if result["pilot"] != "none": file.write("| Python | DAT-02/EXP-01/EXP-02/EXP-03/COL-03 pilot, baselines, adaptive & visualization + DAT-03 handoff | test_pilot_*.py, test_team_pilot.py, test_experiment_harness.py, test_baseline_algorithms.py, test_adaptive_hdbscan.py, test_baseline_visualization.py |\n")
 
 
 def commands(result, component):

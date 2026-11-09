@@ -68,9 +68,9 @@ def main():
     out_dir = args.output_dir.resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    # 1. Extract and export metrics table
+    # 1. Extract and export metrics table with source provenance
     print("\n--- 1. Extracting Verified Baseline Metrics Table ---")
-    metrics_rows = extract_baseline_metrics(res_dir, bundle)
+    metrics_rows, source_provenance = extract_baseline_metrics(res_dir, bundle, return_provenance=True)
     csv_p, json_p = export_metrics_table(metrics_rows, out_dir)
     print(f"Exported CSV:  {csv_p}")
     print(f"Exported JSON: {json_p}")
@@ -107,6 +107,7 @@ def main():
         pilot_id=bundle["bundle_id"],
         exported_files=all_handoff_files,
         recipient="ThanhTris",
+        source_provenance=source_provenance,
     )
     print(f"Handoff Manifest created: {manifest_p}")
 

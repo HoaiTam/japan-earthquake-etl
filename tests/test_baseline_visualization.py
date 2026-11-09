@@ -19,6 +19,7 @@ from experiment_harness import (
     load_feature_bundle,
     MODE_DEVELOPMENT,
     VECTOR_COLUMNS,
+    sha256_bytes,
 )
 from baseline_models import run_baseline_experiment
 from baseline_visualization import (
@@ -29,6 +30,7 @@ from baseline_visualization import (
     plot_spatial_and_temporal_views,
     plot_algorithm_comparison_summary,
     create_handoff_manifest,
+    verify_result_bundle,
 )
 from test_experiment_harness import create_pilot_fixture
 
@@ -46,10 +48,24 @@ class TestBaselineVisualization(unittest.TestCase):
         # Generate a sample baseline result inside temporary work_dir
         self.results_dir = self.work_dir / "results"
         cfg_win = {"algorithm_name": "WINDOW", "algorithm_version": "1.0.0", "model_config_version": "win-v1"}
-        cfg_db = {"algorithm_name": "DBSCAN", "algorithm_version": "1.0.0", "model_config_version": "db-v1", "eps": 0.5, "min_samples": 3, "metric": "euclidean"}
+        cfg_db = {"algorithm_name": "DBSCAN", "algorithm_version": "1.0.0", "model_config_version": "db-v1", "eps": 5.0, "min_samples": 1, "metric": "euclidean"}
 
         run_baseline_experiment(self.bundle, "WINDOW", cfg_win, "win-v1", self.results_dir / "window", mode=MODE_DEVELOPMENT)
         run_baseline_experiment(self.bundle, "DBSCAN", cfg_db, "db-v1", self.results_dir / "dbscan", mode=MODE_DEVELOPMENT)
+
+    def _sync_manifest_checksums(self, target_dir: Path):
+        """Synchronizes artifact SHA-256 checksums in pilot_result_manifest.json."""
+        manifest_p = target_dir / "pilot_result_manifest.json"
+        if not manifest_p.is_file():
+            return
+        manifest = json.loads(manifest_p.read_text(encoding="utf-8"))
+        checksums = {}
+        for art in ["memberships.parquet", "sequence_summary.parquet", "experiment_config.json", "experiment_metrics.json"]:
+            f = target_dir / art
+            if f.is_file():
+                checksums[art] = sha256_bytes(f.read_bytes())
+        manifest["checksums"] = checksums
+        manifest_p.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
 
     def test_density_metric_null_policies(self):
         """Verifies null metric policy: WINDOW has null with reason; noise has null with reason."""
@@ -221,24 +237,30 @@ class TestBaselineVisualization(unittest.TestCase):
 
     def test_failed_window_dbcv_is_strictly_null(self):
         """Verifies that a failed window (e.g. mainshock classified as noise or empty sequence) yields strictly null DBCV."""
-        # Create a mock failed window where is_mainshock_noise = True
         fail_dir = self.work_dir / "results_fail"
         fail_dir.mkdir(parents=True, exist_ok=True)
         sub_fail = fail_dir / "dbscan_fail"
-        sub_fail.mkdir(parents=True, exist_ok=True)
-
-        # Copy original memberships and config
-        orig_mem = self.results_dir / "dbscan/memberships.parquet"
-        orig_cfg = self.results_dir / "dbscan/experiment_config.json"
         import shutil
-        shutil.copy(orig_mem, sub_fail / "memberships.parquet")
-        shutil.copy(orig_cfg, sub_fail / "experiment_config.json")
+        shutil.copytree(self.results_dir / "dbscan", sub_fail, dirs_exist_ok=True)
 
-        # Create a sequence_summary with is_mainshock_noise = True
-        orig_sum = pq.read_table(self.results_dir / "dbscan/sequence_summary.parquet").to_pandas()
+        mem_df = pq.read_table(sub_fail / "memberships.parquet").to_pandas()
+        ms_id = mem_df["mainshock_event_id"].iloc[0]
+        mem_df["is_noise"] = True
+        mem_df["cluster_id"] = -1
+        mem_df["is_sequence_member"] = False
+        mem_df["is_mainshock_cluster_member"] = False
+        pq.write_table(pa.Table.from_pandas(mem_df), sub_fail / "memberships.parquet")
+
+        orig_sum = pq.read_table(sub_fail / "sequence_summary.parquet").to_pandas()
         orig_sum["is_mainshock_noise"] = True
+        orig_sum["window_result_status"] = "FAILED"
+        orig_sum["failure_reason_code"] = "EXP_MAINSHOCK_CLASSIFIED_AS_NOISE"
         orig_sum["aftershock_count"] = 0
+        orig_sum["sequence_member_count"] = 0
+        orig_sum["noise_count"] = len(mem_df)
         pq.write_table(pa.Table.from_pandas(orig_sum), sub_fail / "sequence_summary.parquet")
+
+        self._sync_manifest_checksums(sub_fail)
 
         rows = extract_baseline_metrics(fail_dir, self.bundle)
         for r in rows:
@@ -251,16 +273,13 @@ class TestBaselineVisualization(unittest.TestCase):
         bad_dir = self.work_dir / "results_bad_candidate"
         bad_dir.mkdir(parents=True, exist_ok=True)
         sub = bad_dir / "dbscan_bad"
-        sub.mkdir(parents=True, exist_ok=True)
-
         import shutil
-        shutil.copy(self.results_dir / "dbscan/experiment_config.json", sub / "experiment_config.json")
-        shutil.copy(self.results_dir / "dbscan/sequence_summary.parquet", sub / "sequence_summary.parquet")
+        shutil.copytree(self.results_dir / "dbscan", sub, dirs_exist_ok=True)
 
-        # Mutate one candidate_event_id in memberships.parquet
-        mem_df = pq.read_table(self.results_dir / "dbscan/memberships.parquet").to_pandas()
+        mem_df = pq.read_table(sub / "memberships.parquet").to_pandas()
         mem_df.loc[0, "candidate_event_id"] = "unknown_probe_event_99999"
         pq.write_table(pa.Table.from_pandas(mem_df), sub / "memberships.parquet")
+        self._sync_manifest_checksums(sub)
 
         with self.assertRaises(ValueError) as ctx:
             extract_baseline_metrics(bad_dir, self.bundle)
@@ -271,16 +290,13 @@ class TestBaselineVisualization(unittest.TestCase):
         dup_dir = self.work_dir / "results_dup"
         dup_dir.mkdir(parents=True, exist_ok=True)
         sub = dup_dir / "dbscan_dup"
-        sub.mkdir(parents=True, exist_ok=True)
-
         import shutil
-        shutil.copy(self.results_dir / "dbscan/experiment_config.json", sub / "experiment_config.json")
-        shutil.copy(self.results_dir / "dbscan/sequence_summary.parquet", sub / "sequence_summary.parquet")
+        shutil.copytree(self.results_dir / "dbscan", sub, dirs_exist_ok=True)
 
-        # Duplicate row 0 in memberships
-        mem_df = pq.read_table(self.results_dir / "dbscan/memberships.parquet").to_pandas()
+        mem_df = pq.read_table(sub / "memberships.parquet").to_pandas()
         dup_df = mem_df._append(mem_df.iloc[0], ignore_index=True)
         pq.write_table(pa.Table.from_pandas(dup_df), sub / "memberships.parquet")
+        self._sync_manifest_checksums(sub)
 
         with self.assertRaises(ValueError) as ctx:
             extract_baseline_metrics(dup_dir, self.bundle)
@@ -316,11 +332,15 @@ class TestBaselineVisualization(unittest.TestCase):
     def test_plotting_fails_on_grain_mismatch(self):
         """Negative test: Plotting must fail-closed if memberships contain unknown grains."""
         out_plots = self.work_dir / "plots_out_bad"
-        bad_mem_p = self.work_dir / "bad_memberships.parquet"
+        bad_dir = self.work_dir / "dbscan_plot_bad"
+        import shutil
+        shutil.copytree(self.results_dir / "dbscan", bad_dir, dirs_exist_ok=True)
+        bad_mem_p = bad_dir / "memberships.parquet"
 
-        mem_df = pq.read_table(self.results_dir / "dbscan/memberships.parquet").to_pandas()
+        mem_df = pq.read_table(bad_mem_p).to_pandas()
         mem_df.loc[0, "candidate_event_id"] = "unknown_event_plot_999"
         pq.write_table(pa.Table.from_pandas(mem_df), bad_mem_p)
+        self._sync_manifest_checksums(bad_dir)
 
         with self.assertRaises(ValueError) as ctx:
             plot_spatial_and_temporal_views(
@@ -356,6 +376,308 @@ class TestBaselineVisualization(unittest.TestCase):
         manifest = json.loads(manifest_p.read_text(encoding="utf-8"))
         self.assertEqual(manifest["intended_recipient"], "ThanhTris")
         self.assertIn("test_a.txt", manifest["files"])
+
+    def test_missing_result_manifest_raises_error(self):
+        """Negative test: Missing pilot_result_manifest.json must fail closed."""
+        target_dir = self.work_dir / "results_no_manifest"
+        import shutil
+        shutil.copytree(self.results_dir / "dbscan", target_dir, dirs_exist_ok=True)
+        (target_dir / "pilot_result_manifest.json").unlink()
+
+        with self.assertRaises(ValueError) as ctx:
+            verify_result_bundle(target_dir, self.bundle)
+        self.assertIn("MISSING_RESULT_MANIFEST", str(ctx.exception))
+
+    def test_foreign_pilot_id_raises_error(self):
+        """Negative test: Manifest with foreign pilot_id must fail closed."""
+        target_dir = self.work_dir / "results_foreign_pilot"
+        import shutil
+        shutil.copytree(self.results_dir / "dbscan", target_dir, dirs_exist_ok=True)
+        manifest_p = target_dir / "pilot_result_manifest.json"
+        manifest = json.loads(manifest_p.read_text(encoding="utf-8"))
+        manifest["pilot_id"] = "foreign_pilot_id_999"
+        manifest_p.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+
+        with self.assertRaises(ValueError) as ctx:
+            verify_result_bundle(target_dir, self.bundle)
+        self.assertIn("FOREIGN_PILOT_ID", str(ctx.exception))
+
+    def test_checksum_mismatch_raises_error(self):
+        """Negative test: Artifact content altered without updating checksum in manifest must fail closed."""
+        target_dir = self.work_dir / "results_stale_checksum"
+        import shutil
+        shutil.copytree(self.results_dir / "dbscan", target_dir, dirs_exist_ok=True)
+        cfg_p = target_dir / "experiment_config.json"
+        cfg = json.loads(cfg_p.read_text(encoding="utf-8"))
+        cfg["tampered"] = True
+        cfg_p.write_text(json.dumps(cfg), encoding="utf-8")
+
+        with self.assertRaises(ValueError) as ctx:
+            verify_result_bundle(target_dir, self.bundle)
+        self.assertIn("CHECKSUM_MISMATCH", str(ctx.exception))
+
+    def test_missing_required_artifact_in_manifest_raises_error(self):
+        """Negative test: Manifest missing required artifact checksum must fail closed."""
+        target_dir = self.work_dir / "results_missing_artifact_entry"
+        import shutil
+        shutil.copytree(self.results_dir / "dbscan", target_dir, dirs_exist_ok=True)
+        manifest_p = target_dir / "pilot_result_manifest.json"
+        manifest = json.loads(manifest_p.read_text(encoding="utf-8"))
+        del manifest["checksums"]["sequence_summary.parquet"]
+        manifest_p.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+
+        with self.assertRaises(ValueError) as ctx:
+            verify_result_bundle(target_dir, self.bundle)
+        self.assertIn("MISSING_REQUIRED_ARTIFACT_IN_MANIFEST", str(ctx.exception))
+
+    def test_corrupt_manifest_raises_error(self):
+        """Negative test: Corrupt manifest JSON must fail closed."""
+        target_dir = self.work_dir / "results_corrupt_manifest"
+        import shutil
+        shutil.copytree(self.results_dir / "dbscan", target_dir, dirs_exist_ok=True)
+        manifest_p = target_dir / "pilot_result_manifest.json"
+        manifest_p.write_text("NOT_VALID_JSON{{{", encoding="utf-8")
+
+        with self.assertRaises(ValueError) as ctx:
+            verify_result_bundle(target_dir, self.bundle)
+        self.assertIn("CORRUPT_RESULT_MANIFEST", str(ctx.exception))
+
+    def test_missing_or_corrupt_config_raises_error(self):
+        """Negative test: Empty or invalid config must fail closed."""
+        target_dir = self.work_dir / "results_empty_config"
+        import shutil
+        shutil.copytree(self.results_dir / "dbscan", target_dir, dirs_exist_ok=True)
+        cfg_p = target_dir / "experiment_config.json"
+        cfg_p.write_text("{}", encoding="utf-8")
+        self._sync_manifest_checksums(target_dir)
+
+        with self.assertRaises(ValueError) as ctx:
+            verify_result_bundle(target_dir, self.bundle)
+        self.assertIn("INVALID_OR_EMPTY_CONFIG", str(ctx.exception))
+
+    def test_config_manifest_algo_mismatch_raises_error(self):
+        """Negative test: Algorithm name mismatch between config and manifest must fail closed."""
+        target_dir = self.work_dir / "results_algo_mismatch"
+        import shutil
+        shutil.copytree(self.results_dir / "dbscan", target_dir, dirs_exist_ok=True)
+        cfg_p = target_dir / "experiment_config.json"
+        cfg = json.loads(cfg_p.read_text(encoding="utf-8"))
+        cfg["algorithm_name"] = "HDBSCAN_GLOBAL"
+        cfg_p.write_text(json.dumps(cfg), encoding="utf-8")
+        self._sync_manifest_checksums(target_dir)
+
+        with self.assertRaises(ValueError) as ctx:
+            verify_result_bundle(target_dir, self.bundle)
+        self.assertIn("ALGORITHM_NAME_MISMATCH", str(ctx.exception))
+
+    def test_empty_summary_raises_error(self):
+        """Negative test: sequence_summary.parquet being empty must fail closed."""
+        target_dir = self.work_dir / "results_empty_summary"
+        target_dir.mkdir(parents=True, exist_ok=True)
+        sub = target_dir / "dbscan_empty_sum"
+        import shutil
+        shutil.copytree(self.results_dir / "dbscan", sub, dirs_exist_ok=True)
+
+        orig_sum = pq.read_table(sub / "sequence_summary.parquet").to_pandas()
+        pq.write_table(pa.Table.from_pandas(orig_sum.iloc[0:0]), sub / "sequence_summary.parquet")
+        self._sync_manifest_checksums(sub)
+
+        with self.assertRaises(ValueError) as ctx:
+            extract_baseline_metrics(target_dir, self.bundle)
+        self.assertIn("EMPTY_SUMMARY_TABLE", str(ctx.exception))
+
+    def test_unknown_summary_window_raises_error(self):
+        """Negative test: sequence_summary containing unknown mainshock window must fail closed."""
+        target_dir = self.work_dir / "results_unknown_window"
+        target_dir.mkdir(parents=True, exist_ok=True)
+        sub = target_dir / "dbscan_unknown"
+        import shutil
+        shutil.copytree(self.results_dir / "dbscan", sub, dirs_exist_ok=True)
+
+        orig_sum = pq.read_table(sub / "sequence_summary.parquet").to_pandas()
+        orig_sum.loc[0, "mainshock_event_id"] = "unknown_ms_9999"
+        pq.write_table(pa.Table.from_pandas(orig_sum), sub / "sequence_summary.parquet")
+        self._sync_manifest_checksums(sub)
+
+        with self.assertRaises(ValueError) as ctx:
+            extract_baseline_metrics(target_dir, self.bundle)
+        self.assertIn("UNKNOWN_SUMMARY_WINDOW", str(ctx.exception))
+
+    def test_missing_summary_window_raises_error(self):
+        """Negative test: sequence_summary missing expected mainshock window must fail closed."""
+        target_dir = self.work_dir / "results_missing_window"
+        target_dir.mkdir(parents=True, exist_ok=True)
+        sub = target_dir / "dbscan_missing"
+        import shutil
+        shutil.copytree(self.results_dir / "dbscan", sub, dirs_exist_ok=True)
+
+        # Create bundle with an extra expected mainshock
+        bundle_multi = dict(self.bundle)
+        feat_df = bundle_multi["features_table"].to_pandas()
+        feat_df2 = feat_df.copy()
+        feat_df2["mainshock_event_id"] = "ms_extra_expected"
+        bundle_multi["features_table"] = pa.Table.from_pandas(feat_df._append(feat_df2, ignore_index=True))
+
+        with self.assertRaises(ValueError) as ctx:
+            extract_baseline_metrics(target_dir, bundle_multi)
+        self.assertIn("MISSING_SUMMARY_WINDOW", str(ctx.exception))
+
+    def test_duplicate_summary_window_raises_error(self):
+        """Negative test: sequence_summary containing duplicate mainshock windows must fail closed."""
+        target_dir = self.work_dir / "results_dup_summary"
+        target_dir.mkdir(parents=True, exist_ok=True)
+        sub = target_dir / "dbscan_dup_win"
+        import shutil
+        shutil.copytree(self.results_dir / "dbscan", sub, dirs_exist_ok=True)
+
+        orig_sum = pq.read_table(sub / "sequence_summary.parquet").to_pandas()
+        dup_sum = orig_sum._append(orig_sum.iloc[0], ignore_index=True)
+        pq.write_table(pa.Table.from_pandas(dup_sum), sub / "sequence_summary.parquet")
+        self._sync_manifest_checksums(sub)
+
+        with self.assertRaises(ValueError) as ctx:
+            extract_baseline_metrics(target_dir, self.bundle)
+        self.assertIn("DUPLICATE_SUMMARY_WINDOW", str(ctx.exception))
+
+    def test_candidate_count_reconciliation_mismatch_raises_error(self):
+        """Negative test: summary candidate_count != actual memberships count must fail closed."""
+        target_dir = self.work_dir / "results_cand_mismatch"
+        target_dir.mkdir(parents=True, exist_ok=True)
+        sub = target_dir / "dbscan_cm"
+        import shutil
+        shutil.copytree(self.results_dir / "dbscan", sub, dirs_exist_ok=True)
+
+        orig_sum = pq.read_table(sub / "sequence_summary.parquet").to_pandas()
+        orig_sum.loc[0, "candidate_count"] = 99999
+        pq.write_table(pa.Table.from_pandas(orig_sum), sub / "sequence_summary.parquet")
+        self._sync_manifest_checksums(sub)
+
+        with self.assertRaises(ValueError) as ctx:
+            extract_baseline_metrics(target_dir, self.bundle)
+        self.assertIn("CANDIDATE_COUNT_RECONCILIATION_FAILED", str(ctx.exception))
+
+    def test_sequence_member_count_reconciliation_mismatch_raises_error(self):
+        """Negative test: summary sequence_member_count != actual count in memberships must fail closed."""
+        target_dir = self.work_dir / "results_seq_mismatch"
+        target_dir.mkdir(parents=True, exist_ok=True)
+        sub = target_dir / "dbscan_sm"
+        import shutil
+        shutil.copytree(self.results_dir / "dbscan", sub, dirs_exist_ok=True)
+
+        orig_sum = pq.read_table(sub / "sequence_summary.parquet").to_pandas()
+        orig_sum.loc[0, "sequence_member_count"] = 99999
+        pq.write_table(pa.Table.from_pandas(orig_sum), sub / "sequence_summary.parquet")
+        self._sync_manifest_checksums(sub)
+
+        with self.assertRaises(ValueError) as ctx:
+            extract_baseline_metrics(target_dir, self.bundle)
+        self.assertIn("SEQUENCE_MEMBER_COUNT_RECONCILIATION_FAILED", str(ctx.exception))
+
+    def test_aftershock_count_reconciliation_mismatch_raises_error(self):
+        """Negative test: summary aftershock_count != actual aftershocks count must fail closed."""
+        target_dir = self.work_dir / "results_af_mismatch"
+        target_dir.mkdir(parents=True, exist_ok=True)
+        sub = target_dir / "dbscan_af"
+        import shutil
+        shutil.copytree(self.results_dir / "dbscan", sub, dirs_exist_ok=True)
+
+        orig_sum = pq.read_table(sub / "sequence_summary.parquet").to_pandas()
+        orig_sum.loc[0, "aftershock_count"] = 99999
+        pq.write_table(pa.Table.from_pandas(orig_sum), sub / "sequence_summary.parquet")
+        self._sync_manifest_checksums(sub)
+
+        with self.assertRaises(ValueError) as ctx:
+            extract_baseline_metrics(target_dir, self.bundle)
+        self.assertIn("AFTERSHOCK_COUNT_RECONCILIATION_FAILED", str(ctx.exception))
+
+    def test_noise_count_reconciliation_mismatch_raises_error(self):
+        """Negative test: summary noise_count != actual noise count in memberships must fail closed."""
+        target_dir = self.work_dir / "results_noise_mismatch"
+        target_dir.mkdir(parents=True, exist_ok=True)
+        sub = target_dir / "dbscan_nm"
+        import shutil
+        shutil.copytree(self.results_dir / "dbscan", sub, dirs_exist_ok=True)
+
+        orig_sum = pq.read_table(sub / "sequence_summary.parquet").to_pandas()
+        orig_sum.loc[0, "noise_count"] = 99999
+        pq.write_table(pa.Table.from_pandas(orig_sum), sub / "sequence_summary.parquet")
+        self._sync_manifest_checksums(sub)
+
+        with self.assertRaises(ValueError) as ctx:
+            extract_baseline_metrics(target_dir, self.bundle)
+        self.assertIn("NOISE_COUNT_RECONCILIATION_FAILED", str(ctx.exception))
+
+    def test_mainshock_noise_reconciliation_mismatch_raises_error(self):
+        """Negative test: summary is_mainshock_noise != actual memberships status must fail closed."""
+        target_dir = self.work_dir / "results_ms_noise_mismatch"
+        target_dir.mkdir(parents=True, exist_ok=True)
+        sub = target_dir / "dbscan_mnm"
+        import shutil
+        shutil.copytree(self.results_dir / "dbscan", sub, dirs_exist_ok=True)
+
+        orig_sum = pq.read_table(sub / "sequence_summary.parquet").to_pandas()
+        orig_sum.loc[0, "is_mainshock_noise"] = True
+        pq.write_table(pa.Table.from_pandas(orig_sum), sub / "sequence_summary.parquet")
+        self._sync_manifest_checksums(sub)
+
+        with self.assertRaises(ValueError) as ctx:
+            extract_baseline_metrics(target_dir, self.bundle)
+        self.assertIn("MAINSHOCK_NOISE_RECONCILIATION_FAILED", str(ctx.exception))
+
+    def test_status_mismatch_raises_error(self):
+        """Negative test: summary claims FAILED but memberships has valid aftershocks must fail closed."""
+        target_dir = self.work_dir / "results_status_mismatch"
+        target_dir.mkdir(parents=True, exist_ok=True)
+        sub = target_dir / "dbscan_stat"
+        import shutil
+        shutil.copytree(self.results_dir / "dbscan", sub, dirs_exist_ok=True)
+
+        orig_sum = pq.read_table(sub / "sequence_summary.parquet").to_pandas()
+        orig_sum.loc[0, "window_result_status"] = "FAILED"
+        pq.write_table(pa.Table.from_pandas(orig_sum), sub / "sequence_summary.parquet")
+        self._sync_manifest_checksums(sub)
+
+        with self.assertRaises(ValueError) as ctx:
+            extract_baseline_metrics(target_dir, self.bundle)
+        self.assertIn("STATUS_RECONCILIATION_FAILED", str(ctx.exception))
+
+    def test_empty_handoff_files_raises_error(self):
+        """Negative test: Creating handoff manifest with empty files list must fail closed."""
+        out_handoff = self.work_dir / "handoff_empty"
+        out_handoff.mkdir(parents=True, exist_ok=True)
+        with self.assertRaises(ValueError) as ctx:
+            create_handoff_manifest(
+                output_dir=out_handoff,
+                pilot_id="pilot_test",
+                exported_files=[],
+                recipient="ThanhTris",
+            )
+        self.assertIn("EMPTY_HANDOFF_FILES", str(ctx.exception))
+
+    def test_handoff_manifest_source_provenance(self):
+        """Verifies source provenance embedding into handoff_manifest.json."""
+        out_handoff = self.work_dir / "handoff_prov"
+        out_handoff.mkdir(parents=True, exist_ok=True)
+        file_a = out_handoff / "test.csv"
+        file_a.write_text("data", encoding="utf-8")
+
+        mock_prov = {
+            "window": {
+                "algorithm_name": "WINDOW",
+                "model_config_version": "win-v1",
+                "manifest_sha256": "abc123",
+            }
+        }
+        manifest_p = create_handoff_manifest(
+            output_dir=out_handoff,
+            pilot_id="pilot_test",
+            exported_files=[file_a],
+            recipient="ThanhTris",
+            source_provenance=mock_prov,
+        )
+        data = json.loads(manifest_p.read_text(encoding="utf-8"))
+        self.assertIn("source_provenance", data)
+        self.assertEqual(data["source_provenance"], mock_prov)
 
 
 if __name__ == "__main__":

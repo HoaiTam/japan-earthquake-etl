@@ -256,10 +256,100 @@ def compute_density_metric(
     }
 
 
+def verify_result_bundle(
+    result_dir: Path,
+    bundle: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Verifies result manifest, artifact checksums, pilot identity, and config integrity.
+
+    Fails closed if:
+    - pilot_result_manifest.json is missing or corrupted.
+    - Foreign pilot ID (manifest pilot_id does not match feature bundle).
+    - Missing required artifact files (memberships, sequence_summary, config, metrics).
+    - Any artifact SHA-256 checksum does not match manifest.
+    - Config is missing, empty, or conflicts with manifest metadata.
+    """
+    result_dir = Path(result_dir).resolve()
+    manifest_p = result_dir / "pilot_result_manifest.json"
+    require(manifest_p.is_file() and not manifest_p.is_symlink(), f"MISSING_RESULT_MANIFEST: Result '{result_dir.name}' is missing pilot_result_manifest.json")
+
+    try:
+        manifest_bytes = manifest_p.read_bytes()
+        manifest_data = json.loads(manifest_bytes.decode("utf-8"))
+    except Exception as e:
+        raise ValueError(f"CORRUPT_RESULT_MANIFEST: Result '{result_dir.name}' has invalid JSON: {str(e)}")
+
+    require(isinstance(manifest_data, dict) and bool(manifest_data), f"INVALID_RESULT_MANIFEST: Result '{result_dir.name}' manifest is empty or not a dict")
+
+    # 1. Pilot ID Verification
+    bundle_pid = bundle.get("bundle_id")
+    res_pid = manifest_data.get("pilot_id")
+    require(bool(res_pid), f"MISSING_PILOT_ID: Result '{result_dir.name}' manifest is missing pilot_id")
+    if bundle_pid:
+        require(res_pid == bundle_pid, f"FOREIGN_PILOT_ID: Result '{result_dir.name}' pilot_id '{res_pid}' does not match feature bundle pilot_id '{bundle_pid}'")
+
+    # 2. Checksum Verification of Artifacts
+    checksums = manifest_data.get("checksums")
+    require(isinstance(checksums, dict) and bool(checksums), f"MISSING_MANIFEST_CHECKSUMS: Result '{result_dir.name}' has no checksums map")
+
+    required_artifacts = ["memberships.parquet", "sequence_summary.parquet", "experiment_config.json", "experiment_metrics.json"]
+    for art in required_artifacts:
+        require(art in checksums, f"MISSING_REQUIRED_ARTIFACT_IN_MANIFEST: '{art}' not in checksums of '{result_dir.name}'")
+
+    for fname, expected_hash in checksums.items():
+        target_f = result_dir / fname
+        require(target_f.is_file() and not target_f.is_symlink(), f"MISSING_MANIFEST_FILE: Result '{result_dir.name}' is missing '{fname}'")
+        actual_hash = sha256_bytes(target_f.read_bytes())
+        require(actual_hash == expected_hash, f"CHECKSUM_MISMATCH: Result '{result_dir.name}' file '{fname}': expected {expected_hash}, got {actual_hash}")
+
+    # 3. Experiment Config & Metrics Verification
+    cfg_p = result_dir / "experiment_config.json"
+    require(cfg_p.is_file(), f"MISSING_CONFIG_FILE: Result '{result_dir.name}' missing experiment_config.json")
+    try:
+        config = json.loads(cfg_p.read_text(encoding="utf-8"))
+    except Exception as e:
+        raise ValueError(f"CORRUPT_CONFIG_FILE: Result '{result_dir.name}' config is invalid JSON: {str(e)}")
+    require(isinstance(config, dict) and bool(config), f"INVALID_OR_EMPTY_CONFIG: Result '{result_dir.name}' has empty or invalid config")
+
+    algo_name = config.get("algorithm_name")
+    require(bool(algo_name), f"MISSING_ALGORITHM_NAME_IN_CONFIG: Result '{result_dir.name}'")
+    require(algo_name == manifest_data.get("algorithm_name"), f"ALGORITHM_NAME_MISMATCH: config '{algo_name}' != manifest '{manifest_data.get('algorithm_name')}' in '{result_dir.name}'")
+
+    cfg_version = config.get("model_config_version")
+    require(bool(cfg_version), f"MISSING_MODEL_CONFIG_VERSION_IN_CONFIG: Result '{result_dir.name}'")
+    require(cfg_version == manifest_data.get("model_config_version"), f"MODEL_CONFIG_VERSION_MISMATCH: config '{cfg_version}' != manifest '{manifest_data.get('model_config_version')}' in '{result_dir.name}'")
+
+    metrics_p = result_dir / "experiment_metrics.json"
+    require(metrics_p.is_file(), f"MISSING_METRICS_FILE: Result '{result_dir.name}' missing experiment_metrics.json")
+    try:
+        metrics = json.loads(metrics_p.read_text(encoding="utf-8"))
+    except Exception as e:
+        raise ValueError(f"CORRUPT_METRICS_FILE: Result '{result_dir.name}' metrics is invalid JSON: {str(e)}")
+    require(isinstance(metrics, dict), f"INVALID_METRICS_FILE: Result '{result_dir.name}' metrics is not a dict")
+
+    run_id = manifest_data.get("pilot_run_id") or manifest_data.get("experiment_run_id")
+    if metrics.get("experiment_run_id"):
+        require(metrics.get("experiment_run_id") == run_id, f"RUN_ID_MISMATCH: metrics '{metrics.get('experiment_run_id')}' != manifest '{run_id}' in '{result_dir.name}'")
+
+    return {
+        "algorithm_name": algo_name,
+        "model_config_version": cfg_version,
+        "pilot_run_id": run_id,
+        "pilot_id": res_pid,
+        "code_version": manifest_data.get("code_version", "unknown"),
+        "manifest_sha256": sha256_bytes(manifest_bytes),
+        "config_sha256": checksums.get("experiment_config.json"),
+        "metrics_sha256": checksums.get("experiment_metrics.json"),
+        "memberships_sha256": checksums.get("memberships.parquet"),
+        "sequence_summary_sha256": checksums.get("sequence_summary.parquet"),
+    }
+
+
 def extract_baseline_metrics(
     results_dir: Path,
     bundle: Dict[str, Any],
-) -> List[Dict[str, Any]]:
+    return_provenance: bool = False,
+) -> Union[List[Dict[str, Any]], Tuple[List[Dict[str, Any]], Dict[str, Any]]]:
     """Extracts verified metrics per window and algorithm from standard result directories."""
     results_dir = Path(results_dir).resolve()
     require(results_dir.is_dir(), f"RESULTS_DIRECTORY_NOT_FOUND: {results_dir}")
@@ -292,28 +382,50 @@ def extract_baseline_metrics(
 
     feat_set = set(candidate_lookup.keys())
 
+    expected_mainshocks = set(features_df["mainshock_event_id"].unique())
+    if bundle.get("mainshocks_table"):
+        expected_mainshocks.update(bundle["mainshocks_table"].to_pandas()["mainshock_event_id"].unique())
+    require(len(expected_mainshocks) > 0, "NO_EXPECTED_MAINSHOCKS: Feature bundle has no mainshock windows")
+
     table_rows = []
+    source_provenance = {}
 
     # Discover candidate result subdirectories
     subdirs = [p for p in results_dir.iterdir() if p.is_dir() and (p / "memberships.parquet").is_file()]
     require(len(subdirs) > 0, f"NO_VALID_RESULT_DIRECTORIES_IN: {results_dir}")
 
     for sdir in sorted(subdirs, key=lambda p: p.name):
-        cfg_path = sdir / "experiment_config.json"
-        metrics_path = sdir / "experiment_metrics.json"
+        prov = verify_result_bundle(sdir, bundle)
+        source_provenance[sdir.name] = prov
+
         summary_path = sdir / "sequence_summary.parquet"
         mem_path = sdir / "memberships.parquet"
 
-        config = json.loads(cfg_path.read_text(encoding="utf-8")) if cfg_path.is_file() else {}
-        metrics = json.loads(metrics_path.read_text(encoding="utf-8")) if metrics_path.is_file() else {}
         summary_table = pq.read_table(summary_path)
         mem_table = pq.read_table(mem_path)
 
         mem_df = mem_table.to_pandas()
-        algo_name = config.get("algorithm_name", sdir.name.upper())
-        cfg_version = config.get("model_config_version", "unknown")
+        summary_rows = summary_table.to_pylist()
 
-        # 2. Strict grain parity check between memberships and feature bundle (Fail-Closed)
+        algo_name = prov["algorithm_name"]
+        cfg_version = prov["model_config_version"]
+
+        # Summary completeness and parity
+        require(len(summary_rows) > 0, f"EMPTY_SUMMARY_TABLE: Result '{sdir.name}' has empty sequence_summary.parquet")
+
+        summary_mids = [r["mainshock_event_id"] for r in summary_rows]
+        if len(summary_mids) != len(set(summary_mids)):
+            raise ValueError(f"DUPLICATE_SUMMARY_WINDOW: Result '{sdir.name}' contains duplicate mainshocks in sequence_summary: {summary_mids}")
+
+        unknown_mids = set(summary_mids) - expected_mainshocks
+        if unknown_mids:
+            raise ValueError(f"UNKNOWN_SUMMARY_WINDOW: Result '{sdir.name}' contains unknown mainshock in sequence_summary: {list(unknown_mids)}")
+
+        missing_mids = expected_mainshocks - set(summary_mids)
+        if missing_mids:
+            raise ValueError(f"MISSING_SUMMARY_WINDOW: Result '{sdir.name}' is missing expected mainshocks in sequence_summary: {list(missing_mids)}")
+
+        # Strict grain parity check between memberships and feature bundle (Fail-Closed)
         mem_grains = list(zip(mem_df["mainshock_event_id"], mem_df["candidate_event_id"]))
         if len(mem_grains) != len(set(mem_grains)):
             raise ValueError(f"DUPLICATE_GRAIN_DETECTED: Result '{sdir.name}' contains duplicate grains in memberships.parquet")
@@ -327,23 +439,55 @@ def extract_baseline_metrics(
         if missing_in_mem:
             raise ValueError(f"MISSING_CANDIDATE_GRAIN: Result '{sdir.name}' is missing {len(missing_in_mem)} candidate grains present in feature bundle: {list(missing_in_mem)[:3]}")
 
-        for s_row in summary_table.to_pylist():
+        # Reconciliation between summary and memberships
+        for s_row in summary_rows:
             ms_id = s_row["mainshock_event_id"]
             window_mems = mem_df[mem_df["mainshock_event_id"] == ms_id]
+            require(len(window_mems) > 0, f"EMPTY_WINDOW_MEMBERSHIPS: Result '{sdir.name}' window '{ms_id}' has no rows in memberships")
 
             total_cands = len(window_mems)
-            raw_seq = s_row.get("total_sequence_candidates")
-            if raw_seq is None:
-                raw_seq = s_row.get("aftershock_count")
-            seq_members = int(raw_seq) if raw_seq is not None else 0
+            sum_cands = s_row.get("candidate_count")
+            if sum_cands is not None and not (isinstance(sum_cands, float) and math.isnan(sum_cands)):
+                if int(sum_cands) != total_cands:
+                    raise ValueError(f"CANDIDATE_COUNT_RECONCILIATION_FAILED: Result '{sdir.name}' window '{ms_id}': summary candidate_count={sum_cands} != memberships={total_cands}")
 
-            raw_af = s_row.get("aftershock_count")
-            aftershocks = int(raw_af) if raw_af is not None else 0
-            is_noise = s_row.get("is_mainshock_noise", False)
-            noise_cands = int((window_mems["is_noise"] == True).sum()) if "is_noise" in window_mems else 0
+            actual_seq_mems = int((window_mems["is_sequence_member"] == True).sum())
+            actual_aftershocks = int(((window_mems["is_sequence_member"] == True) & (window_mems["event_role_candidate"] == "POST")).sum())
+            actual_noise = int((window_mems["is_noise"] == True).sum()) if "is_noise" in window_mems else 0
 
-            status_str = "SUCCESS" if not is_noise and seq_members > 0 else "NO_PRODUCTIVE_SEQUENCE"
-            failure_reason = "MAINSHOCK_CLASSIFIED_AS_NOISE" if is_noise else ("EMPTY_SEQUENCE" if seq_members == 0 else None)
+            ms_cand = window_mems[(window_mems["event_role_candidate"] == "MAINSHOCK") | (window_mems["candidate_event_id"] == ms_id)]
+            if not ms_cand.empty and "is_noise" in ms_cand:
+                val = ms_cand["is_noise"].values[0]
+                actual_ms_noise = bool(val) if (val is not None and not (isinstance(val, (float, np.floating)) and math.isnan(val))) else False
+            else:
+                actual_ms_noise = False
+            sum_ms_noise = bool(s_row.get("is_mainshock_noise", False)) or (s_row.get("failure_reason_code") == "EXP_MAINSHOCK_CLASSIFIED_AS_NOISE")
+            if actual_ms_noise != sum_ms_noise:
+                raise ValueError(f"MAINSHOCK_NOISE_RECONCILIATION_FAILED: Result '{sdir.name}' window '{ms_id}': summary is_mainshock_noise={sum_ms_noise} != memberships actual_ms_noise={actual_ms_noise}")
+
+            sum_status = s_row.get("window_result_status")
+            if sum_status == "SUCCESS":
+                if actual_ms_noise:
+                    raise ValueError(f"STATUS_RECONCILIATION_FAILED: Result '{sdir.name}' window '{ms_id}': summary claims SUCCESS but mainshock is noise in memberships")
+                sum_seq = s_row.get("sequence_member_count") if s_row.get("sequence_member_count") is not None else s_row.get("total_sequence_candidates")
+                if sum_seq is not None and not (isinstance(sum_seq, float) and math.isnan(sum_seq)):
+                    if int(sum_seq) != actual_seq_mems:
+                        raise ValueError(f"SEQUENCE_MEMBER_COUNT_RECONCILIATION_FAILED: Result '{sdir.name}' window '{ms_id}': summary sequence_member_count={sum_seq} != memberships={actual_seq_mems}")
+                sum_af = s_row.get("aftershock_count")
+                if sum_af is not None and not (isinstance(sum_af, float) and math.isnan(sum_af)):
+                    if int(sum_af) != actual_aftershocks:
+                        raise ValueError(f"AFTERSHOCK_COUNT_RECONCILIATION_FAILED: Result '{sdir.name}' window '{ms_id}': summary aftershock_count={sum_af} != memberships={actual_aftershocks}")
+                sum_noise = s_row.get("noise_count")
+                if sum_noise is not None and not (isinstance(sum_noise, float) and math.isnan(sum_noise)):
+                    if int(sum_noise) != actual_noise:
+                        raise ValueError(f"NOISE_COUNT_RECONCILIATION_FAILED: Result '{sdir.name}' window '{ms_id}': summary noise_count={sum_noise} != memberships={actual_noise}")
+            elif sum_status in {"FAILED", "NO_PRODUCTIVE_SEQUENCE"}:
+                if not actual_ms_noise and actual_aftershocks > 0:
+                    raise ValueError(f"STATUS_RECONCILIATION_FAILED: Result '{sdir.name}' window '{ms_id}': summary claims {sum_status} but memberships contain valid aftershocks ({actual_aftershocks})")
+
+            # Determine window status and failure reason for tabular metrics
+            status_str = "SUCCESS" if (not actual_ms_noise and actual_aftershocks > 0) or (not actual_ms_noise and algo_name == "WINDOW" and actual_seq_mems > 0) else "NO_PRODUCTIVE_SEQUENCE"
+            failure_reason = "MAINSHOCK_CLASSIFIED_AS_NOISE" if actual_ms_noise else ("EMPTY_SEQUENCE" if (actual_seq_mems == 0 or actual_aftershocks == 0) else None)
 
             # Compute density metric on 4-D features for this window
             window_keys = [(ms_id, cid) for cid in window_mems["candidate_event_id"]]
@@ -372,10 +516,10 @@ def extract_baseline_metrics(
                 "model_config_version": cfg_version,
                 "mainshock_event_id": ms_id,
                 "total_candidates": total_cands,
-                "sequence_members": seq_members,
-                "aftershocks": aftershocks,
-                "noise_candidates": noise_cands,
-                "is_mainshock_noise": is_noise,
+                "sequence_members": actual_seq_mems,
+                "aftershocks": actual_aftershocks,
+                "noise_candidates": actual_noise,
+                "is_mainshock_noise": actual_ms_noise,
                 "window_status": status_str,
                 "failure_reason": failure_reason,
                 "dbcv_score": density_res["score"],
@@ -385,6 +529,8 @@ def extract_baseline_metrics(
                 "runtime_seconds": round(float(s_row.get("runtime_seconds", 0.0)), 4),
             })
 
+    if return_provenance:
+        return table_rows, source_provenance
     return table_rows
 
 
@@ -434,6 +580,10 @@ def plot_spatial_and_temporal_views(
     """Generates relative space (dx_km, dy_km) and time (delta_time_hours) vs depth plots."""
     output_dir = Path(output_dir).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
+    memberships_parquet = Path(memberships_parquet).resolve()
+
+    # Strict physical artifact verification
+    verify_result_bundle(memberships_parquet.parent, bundle)
 
     features_df = bundle["features_table"].to_pandas()
     mem_df = pq.read_table(memberships_parquet).to_pandas()
@@ -556,8 +706,10 @@ def create_handoff_manifest(
     pilot_id: str,
     exported_files: List[Path],
     recipient: str = "ThanhTris",
+    source_provenance: Optional[Dict[str, Any]] = None,
 ) -> Path:
     """Creates handoff_manifest.json with strict checksums and pins for EXP-04."""
+    require(len(exported_files) > 0, "EMPTY_HANDOFF_FILES: Cannot create handoff manifest with empty files list")
     output_dir = Path(output_dir).resolve()
     manifest_path = output_dir / "handoff_manifest.json"
 
@@ -586,6 +738,8 @@ def create_handoff_manifest(
         "official_exported": False,
         "scientific_approval": False,
     }
+    if source_provenance:
+        payload["source_provenance"] = source_provenance
 
     manifest_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     return manifest_path

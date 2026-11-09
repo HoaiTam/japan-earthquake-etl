@@ -49,23 +49,23 @@ Toàn bộ quy trình tuân thủ nghiêm ngặt nguyên tắc: **100% số li�
 | Thuật toán | Phiên bản cấu hình | Mã chấn chính | Ứng viên | Thành viên chuỗi | Dư chấn | Điểm nhiễu | Chỉ số DBCV | Trạng thái cửa sổ | Lý do nếu không thành công |
 |---|---|---|---:|---:|---:|---:|:---:|:---:|---|
 | **DBSCAN** | `dbscan-sweep-c1-v1` | `evt_d47fcaaf451c..` | 1 | 0 | 0 | 1 | `null` | `NO_PRODUCTIVE_SEQUENCE` | `EMPTY_SEQUENCE` *(null: NO_PRODUCTIVE_CLUSTERS)* |
-| **DBSCAN** | `dbscan-sweep-c1-v1` | `evt_f0300848e0b7..` | 278 | 240 | 240 | 8 | **0.1676** | `SUCCESS` | — |
+| **DBSCAN** | `dbscan-sweep-c1-v1` | `evt_f0300848e0b7..` | 278 | 251 | 240 | 8 | **0.1676** | `SUCCESS` | — |
 | **DBSCAN** | `dbscan-sweep-c2-v1` | `evt_d47fcaaf451c..` | 1 | 0 | 0 | 1 | `null` | `NO_PRODUCTIVE_SEQUENCE` | `EMPTY_SEQUENCE` *(null: NO_PRODUCTIVE_CLUSTERS)* |
-| **DBSCAN** | `dbscan-sweep-c2-v1` | `evt_f0300848e0b7..` | 278 | 240 | 240 | 17 | **0.4073** | `SUCCESS` | — |
+| **DBSCAN** | `dbscan-sweep-c2-v1` | `evt_f0300848e0b7..` | 278 | 251 | 240 | 17 | **0.4073** | `SUCCESS` | — |
 | **DBSCAN** | `dbscan-sweep-c3-v1` | `evt_d47fcaaf451c..` | 1 | 0 | 0 | 1 | `null` | `NO_PRODUCTIVE_SEQUENCE` | `EMPTY_SEQUENCE` *(null: NO_PRODUCTIVE_CLUSTERS)* |
-| **DBSCAN** | `dbscan-sweep-c3-v1` | `evt_f0300848e0b7..` | 278 | 229 | 229 | 25 | **0.3237** | `SUCCESS` | — |
+| **DBSCAN** | `dbscan-sweep-c3-v1` | `evt_f0300848e0b7..` | 278 | 231 | 229 | 25 | **0.3237** | `SUCCESS` | — |
 | **DBSCAN** | `dbscan-sweep-c4-v1` | `evt_d47fcaaf451c..` | 1 | 0 | 0 | 1 | `null` | `NO_PRODUCTIVE_SEQUENCE` | `EMPTY_SEQUENCE` *(null: NO_PRODUCTIVE_CLUSTERS)* |
-| **DBSCAN** | `dbscan-sweep-c4-v1` | `evt_f0300848e0b7..` | 278 | 252 | 252 | 3 | **0.1271** | `SUCCESS` | — |
+| **DBSCAN** | `dbscan-sweep-c4-v1` | `evt_f0300848e0b7..` | 278 | 270 | 252 | 3 | **0.1271** | `SUCCESS` | — |
 | **HDBSCAN** | `hdbscan-sweep-c1-v1` | `evt_d47fcaaf451c..` | 1 | 0 | 0 | 1 | `null` | `NO_PRODUCTIVE_SEQUENCE` | `EMPTY_SEQUENCE` *(null: NO_PRODUCTIVE_CLUSTERS)* |
 | **HDBSCAN** | `hdbscan-sweep-c1-v1` | `evt_f0300848e0b7..` | 278 | 0 | 0 | 107 | `null` | `NO_PRODUCTIVE_SEQUENCE` | `EMPTY_SEQUENCE` *(null: NO_PRODUCTIVE_CLUSTERS)* |
 | **HDBSCAN** | `hdbscan-sweep-c2-v1` | `evt_d47fcaaf451c..` | 1 | 0 | 0 | 1 | `null` | `NO_PRODUCTIVE_SEQUENCE` | `EMPTY_SEQUENCE` *(null: NO_PRODUCTIVE_CLUSTERS)* |
-| **HDBSCAN** | `hdbscan-sweep-c2-v1` | `evt_f0300848e0b7..` | 278 | 215 | 215 | 18 | **0.2044** | `SUCCESS` | — |
+| **HDBSCAN** | `hdbscan-sweep-c2-v1` | `evt_f0300848e0b7..` | 278 | 216 | 215 | 18 | **0.2044** | `SUCCESS` | — |
 | **HDBSCAN** | `hdbscan-sweep-c3-v1` | `evt_d47fcaaf451c..` | 1 | 0 | 0 | 1 | `null` | `NO_PRODUCTIVE_SEQUENCE` | `EMPTY_SEQUENCE` *(null: NO_PRODUCTIVE_CLUSTERS)* |
-| **HDBSCAN** | `hdbscan-sweep-c3-v1` | `evt_f0300848e0b7..` | 278 | 216 | 216 | 18 | **-0.0196** | `SUCCESS` | — |
+| **HDBSCAN** | `hdbscan-sweep-c3-v1` | `evt_f0300848e0b7..` | 278 | 217 | 216 | 18 | **-0.0196** | `SUCCESS` | — |
 | **HDBSCAN** | `hdbscan-sweep-c4-v1` | `evt_d47fcaaf451c..` | 1 | 0 | 0 | 1 | `null` | `NO_PRODUCTIVE_SEQUENCE` | `EMPTY_SEQUENCE` *(null: NO_PRODUCTIVE_CLUSTERS)* |
-| **HDBSCAN** | `hdbscan-sweep-c4-v1` | `evt_f0300848e0b7..` | 278 | 215 | 215 | 25 | **0.2051** | `SUCCESS` | — |
-| **WINDOW** | `window-baseline-v1` | `evt_d47fcaaf451c..` | 1 | 0 | 0 | 0 | `null` | `NO_PRODUCTIVE_SEQUENCE` | `EMPTY_SEQUENCE` *(null: WINDOW_BASELINE_NOT_DENSITY_BASED)* |
-| **WINDOW** | `window-baseline-v1` | `evt_f0300848e0b7..` | 278 | 255 | 255 | 0 | `null` | `SUCCESS` | *(null: WINDOW_BASELINE_NOT_DENSITY_BASED)* |
+| **HDBSCAN** | `hdbscan-sweep-c4-v1` | `evt_f0300848e0b7..` | 278 | 216 | 215 | 25 | **0.2051** | `SUCCESS` | — |
+| **WINDOW** | `window-baseline-v1` | `evt_d47fcaaf451c..` | 1 | 1 | 0 | 0 | `null` | `SUCCESS` | *(null: WINDOW_BASELINE_NOT_DENSITY_BASED)* |
+| **WINDOW** | `window-baseline-v1` | `evt_f0300848e0b7..` | 278 | 256 | 255 | 0 | `null` | `SUCCESS` | *(null: WINDOW_BASELINE_NOT_DENSITY_BASED)* |
 
 ---
 
@@ -87,8 +87,8 @@ Tất cả biểu đồ được sinh tự động và lưu trữ tại `staging
 
 File `staging/ml-experiments/col03-metrics-plots/handoff_manifest.json` ghi nhận đầy đủ chữ ký kiểm chứng mã băm SHA-256 cho toàn bộ 11 artifacts phục vụ task [EXP-04](../task/tasks/EXP-04.md):
 
-* `baseline_metrics_table.csv` — `5f681d3bb72c4dc20bcf5ad1710cbc9fd718a0ba9f2e1b1cfcd99ac06eec0d16`
-* `baseline_metrics_table.json` — `62daac6d3655c26323afcea8481757c030ff1d86dcca97cb4f2e6b2724a49e49`
+* `baseline_metrics_table.csv` — `9465f7a237e72b6ae4ac275feb946b920217fef19e765ef9f7817c09a92424c7`
+* `baseline_metrics_table.json` — `a9de962aac742e3ab8cafd87df4beba5c0326c244b93150bc269e30a9271ded9`
 * `spatial_distribution_dbscan_c1.png` — `fa86d64e0d6a5ba2b6e1ea95864806cda379273a05121f454e06f1b498be2063`
 * `timeline_depth_dbscan_c1.png` — `623e8e2838a56799e7cda23f2dd56f75555d2fa0ccfd751575156f1de63b33cd`
 * `spatial_distribution_dbscan_c2.png` — `a43a9d0bf256270a04dce124322222b24b7b51b82a51ca3383bb1d8cc758bfeb`
@@ -98,7 +98,7 @@ File `staging/ml-experiments/col03-metrics-plots/handoff_manifest.json` ghi nh�
 * `spatial_distribution_dbscan_c4.png` — `215c32a1e9041d0931c8d2286a35645b13c5bb5ddbad37ddcc237b2c9615299c`
 * `timeline_depth_dbscan_c4.png` — `fb09628207f0b67d3615e5af3bee36c731a91344a5a33a269522fb99483c7618`
 * `baseline_comparison_summary.png` — `177634e496391bbbd6374bb9228806cd2ac276fa61cd204a350c472e03c52f68`
-* `handoff_manifest.json` — `f19d8453a5c50ce7e2f7a25b1c4ea2122f6247b0b220ff6274e98d22b2bafe52`
+* `handoff_manifest.json` — `1beab143e318f6dfaaf3628f8bc6320d09a8d26e77810513547fe1331a37c4f2`
 
 ---
 
@@ -109,7 +109,7 @@ File `staging/ml-experiments/col03-metrics-plots/handoff_manifest.json` ghi nh�
   - Notebook: `notebooks/col_03_baseline_metrics_plots.ipynb`
   - Script Headless Runner: `scripts/inspect-col03-metrics.py`
 - **Bộ kiểm thử tự động:**
-  - `tests/test_baseline_visualization.py` (15/15 tests PASS).
+  - `tests/test_baseline_visualization.py` (34/34 tests PASS).
 - **Metadata Bằng chứng:**
   - JSON Metadata: [COL-03_BASELINE_METRICS_PLOTS_20261102.json](./COL-03_BASELINE_METRICS_PLOTS_20261102.json)
 
