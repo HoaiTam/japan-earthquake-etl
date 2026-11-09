@@ -50,6 +50,19 @@ def get_git_commit(root: Optional[Path] = None) -> str:
         return "UNKNOWN_COMMIT"
 
 
+def has_any_key(d: Any, *keys: str) -> bool:
+    """Return True if any of the specified keys exist in mapping d, even if value is None."""
+    if d is None:
+        return False
+    for k in keys:
+        try:
+            if k in d:
+                return True
+        except TypeError:
+            pass
+    return False
+
+
 def get_field(d: Optional[Dict[str, Any]], *keys: str, default: Any = None) -> Any:
     """Extract first non-None key value from dict, strictly preserving falsy 0.0 values."""
     if not d or not isinstance(d, dict):
@@ -88,6 +101,8 @@ def format_metric(
 
 def normalize_comparison_row(row: Dict[str, Any]) -> Dict[str, Any]:
     """Normalize a single comparison row from either v_algorithm_comparison SQL view or EXP-04 pilot format."""
+    if not has_any_key(row, "algorithm_name", "Algorithm", "algorithm"):
+        raise ValueError(f"Missing required algorithm field ('algorithm_name' or 'algorithm') in row: {row}")
     algo = get_field(row, "algorithm_name", "Algorithm", "algorithm")
     if not algo:
         raise ValueError(f"Missing required algorithm field ('algorithm_name' or 'algorithm') in row: {row}")
@@ -105,9 +120,10 @@ def normalize_comparison_row(row: Dict[str, Any]) -> Dict[str, Any]:
     skipped_win = get_field(row, "skipped_windows", "Skipped Windows", default=0)
     fail_rate = get_field(row, "failure_rate", "Failure Rate", default=0.0)
 
-    tot_after = get_field(row, "raw_aftershock_memberships", "total_aftershocks", "Total Aftershocks")
-    if tot_after is None:
+    # Distinguish field absence from legitimate NULL (e.g. all windows failed)
+    if not has_any_key(row, "raw_aftershock_memberships", "total_aftershocks", "Total Aftershocks"):
         raise ValueError(f"Missing required aftershocks field ('raw_aftershock_memberships' or 'total_aftershocks') in row: {row}")
+    tot_after = get_field(row, "raw_aftershock_memberships", "total_aftershocks", "Total Aftershocks")
 
     mean_noise = get_field(row, "avg_noise_ratio", "mean_noise_ratio", "Mean Noise Ratio")
     mean_dbcv = get_field(row, "avg_dbcv_score", "mean_dbcv_score", "mean_dbcv", "Mean DBCV")
@@ -116,9 +132,10 @@ def normalize_comparison_row(row: Dict[str, Any]) -> Dict[str, Any]:
     mean_jaccard = get_field(row, "mean_jaccard_stability", "Mean Jaccard Stability")
     mean_ari = get_field(row, "mean_ari_stability", "Mean ARI Stability")
 
-    runtime = get_field(row, "avg_runtime_seconds", "runtime_seconds", "Runtime (s)")
-    if runtime is None:
+    # Distinguish field absence from legitimate NULL runtime
+    if not has_any_key(row, "avg_runtime_seconds", "runtime_seconds", "Runtime (s)"):
         raise ValueError(f"Missing required runtime field ('avg_runtime_seconds' or 'runtime_seconds') in row: {row}")
+    runtime = get_field(row, "avg_runtime_seconds", "runtime_seconds", "Runtime (s)")
 
     return {
         "algorithm": str(algo),
@@ -213,19 +230,140 @@ def validate_publication_gate(
                 f"which does not match report dataset '{dataset_id}'."
             )
 
-        # If runs list was provided, row must belong to an approved run in the list
+        # If runs list was provided, cross-check row against registry run
         if valid_run_map:
             if row_run_id not in valid_run_map:
                 raise ValueError(
                     f"PUBLICATION_GATE_VIOLATION: Row references run '{row_run_id}' not declared in verified runs list."
                 )
-        else:
-            # Check row-level status directly
-            row_status = row.get("experiment_status")
+            reg_run = valid_run_map[row_run_id]
+
+            # 1. Status check: cannot be REJECTED or unapproved; must match registry if specified
+            row_status = row.get("experiment_status") or row.get("status")
+            reg_status = reg_run.get("experiment_status") or reg_run.get("status")
+            if row_status and row_status != reg_status:
+                raise ValueError(
+                    f"PUBLICATION_GATE_VIOLATION: Row for run '{row_run_id}' has conflicting status '{row_status}', "
+                    f"does not match registry run status '{reg_status}'."
+                )
             if row_status and row_status not in ("CANDIDATE", "APPROVED"):
                 raise ValueError(
                     f"PUBLICATION_GATE_VIOLATION: Row for run '{row_run_id}' has unapproved status '{row_status}'."
                 )
+
+            # 2. Algorithm check
+            reg_algo = reg_run.get("algorithm_name") or reg_run.get("algorithm")
+            row_algo = row.get("algorithm") or row.get("algorithm_name")
+            if reg_algo and row_algo and str(reg_algo).upper() != str(row_algo).upper():
+                raise ValueError(
+                    f"PUBLICATION_GATE_VIOLATION: Row for run '{row_run_id}' has conflicting algorithm '{row_algo}', "
+                    f"registry has '{reg_algo}'."
+                )
+
+            # 3. Model config version check
+            reg_config = reg_run.get("model_config_version") or reg_run.get("config_version")
+            row_config = row.get("model_config_version") or row.get("config_version")
+            if reg_config and row_config and reg_config != row_config:
+                raise ValueError(
+                    f"PUBLICATION_GATE_VIOLATION: Row for run '{row_run_id}' has conflicting config version '{row_config}', "
+                    f"registry has '{reg_config}'."
+                )
+
+            # 4. Code version check
+            reg_code = reg_run.get("code_version")
+            row_code = row.get("code_version")
+            if reg_code and row_code and reg_code != row_code:
+                raise ValueError(
+                    f"PUBLICATION_GATE_VIOLATION: Row for run '{row_run_id}' has conflicting code version '{row_code}', "
+                    f"registry has '{reg_code}'."
+                )
+
+            # 5. Random seed check
+            reg_seed = reg_run.get("random_seed")
+            row_seed = row.get("random_seed")
+            if reg_seed is not None and row_seed is not None and reg_seed != row_seed:
+                raise ValueError(
+                    f"PUBLICATION_GATE_VIOLATION: Row for run '{row_run_id}' has conflicting random seed '{row_seed}', "
+                    f"registry has '{reg_seed}'."
+                )
+        else:
+            # When NO registry runs list is provided:
+            # Row MUST have explicit status CANDIDATE or APPROVED, and mandatory identity
+            row_status = row.get("experiment_status") or row.get("status")
+            if not row_status or row_status not in ("CANDIDATE", "APPROVED"):
+                raise ValueError(
+                    f"PUBLICATION_GATE_VIOLATION: Row for run '{row_run_id}' missing or invalid experiment_status: '{row_status}'. "
+                    "Official report without external registry requires explicit 'CANDIDATE' or 'APPROVED' status on every row."
+                )
+            if not row.get("model_config_version") and not metadata.get("configs"):
+                raise ValueError(
+                    f"PUBLICATION_GATE_VIOLATION: Row for run '{row_run_id}' missing required model_config_version."
+                )
+
+
+def check_sql_parity_verification(
+    verification_evidence: Optional[Dict[str, Any]],
+    dataset_id: Optional[str],
+    comparison_table: List[Dict[str, Any]],
+    runs: Optional[List[Dict[str, Any]]] = None,
+) -> bool:
+    """Validate verification evidence against dataset, runs, and committed snapshot pins."""
+    if not isinstance(verification_evidence, dict):
+        return False
+    if verification_evidence.get("status") != "PASSED":
+        return False
+
+    # 1. Dataset binding: dataset_id is mandatory and must match report dataset_id
+    ev_dataset = verification_evidence.get("dataset_id")
+    if not ev_dataset or ev_dataset in ("UNKNOWN_DATASET", "unknown") or ev_dataset != dataset_id:
+        return False
+
+    # 2. Must contain valid positive snapshot IDs
+    ev_mem_snap = verification_evidence.get("membership_snapshot_id")
+    ev_sum_snap = verification_evidence.get("summary_snapshot_id")
+    if not ev_mem_snap or not ev_sum_snap:
+        return False
+
+    # 3. Coverage of rendered runs:
+    rendered_run_ids = {r.get("experiment_run_id") for r in comparison_table if r.get("experiment_run_id")}
+    if not rendered_run_ids:
+        return False
+
+    # Check run coverage in evidence if specified
+    ev_runs = verification_evidence.get("verified_runs") or verification_evidence.get("runs")
+    if ev_runs is not None:
+        if isinstance(ev_runs, list):
+            ev_run_set = {
+                r.get("experiment_run_id") if isinstance(r, dict) else str(r)
+                for r in ev_runs
+            }
+            if not rendered_run_ids.issubset(ev_run_set):
+                return False
+        else:
+            return False
+
+    # 4. Cross-check snapshots with run registry / table pins
+    run_pin_map: Dict[str, Dict[str, Any]] = {}
+    if runs:
+        for r in runs:
+            if isinstance(r, dict) and r.get("experiment_run_id"):
+                run_pin_map[r["experiment_run_id"]] = r
+    for r in comparison_table:
+        rid = r.get("experiment_run_id")
+        if rid and rid not in run_pin_map:
+            run_pin_map[rid] = r
+
+    for rid in rendered_run_ids:
+        run_info = run_pin_map.get(rid, {})
+        reg_mem_snap = run_info.get("membership_snapshot_id")
+        reg_sum_snap = run_info.get("summary_snapshot_id")
+
+        if reg_mem_snap is not None and str(reg_mem_snap) != str(ev_mem_snap):
+            return False
+        if reg_sum_snap is not None and str(reg_sum_snap) != str(ev_sum_snap):
+            return False
+
+    return True
 
 
 def extract_normalized_payload(raw_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -439,7 +577,13 @@ def build_markdown_report(
         succ_win = row.get("success_windows", 0)
         fail_win = row.get("failure_windows", 0)
         fail_rate = format_metric(row.get("failure_rate", 0), fmt=".1f", suffix="%")
-        tot_after = row.get("total_aftershocks", 0)
+        tot_after = row.get("total_aftershocks")
+        if tot_after is None:
+            tot_after_str = "N/A"
+        elif isinstance(tot_after, (int, float)):
+            tot_after_str = str(int(tot_after))
+        else:
+            tot_after_str = str(tot_after)
 
         noise_str = format_metric(row.get("mean_noise_ratio"), fmt=".1f", suffix="%")
         dbcv_str = format_metric(row.get("mean_dbcv"), fmt=".4f")
@@ -454,15 +598,16 @@ def build_markdown_report(
 
         jaccard_str = format_metric(row.get("mean_jaccard_stability"), fmt=".4f")
         ari_str = format_metric(row.get("mean_ari_stability"), fmt=".4f")
-        runtime_str = format_metric(row.get("runtime_seconds"), fmt=".2f")
+        runtime = row.get("runtime_seconds")
+        runtime_str = format_metric(runtime, fmt=".2f")
 
         if has_runs:
             lines.append(
-                f"| **{algo}** | `{run_id_str}` | `{cfg_str}` | `{seed_str}` | {tot_win} | {succ_win} | {fail_win} | {fail_rate} | {tot_after} | {noise_str} | {dbcv_str} | {omori_p_str} | {omori_fitted} | {jaccard_str} | {ari_str} | {runtime_str} |"
+                f"| **{algo}** | `{run_id_str}` | `{cfg_str}` | `{seed_str}` | {tot_win} | {succ_win} | {fail_win} | {fail_rate} | {tot_after_str} | {noise_str} | {dbcv_str} | {omori_p_str} | {omori_fitted} | {jaccard_str} | {ari_str} | {runtime_str} |"
             )
         else:
             lines.append(
-                f"| **{algo}** | {tot_win} | {succ_win} | {fail_win} | {fail_rate} | {tot_after} | {noise_str} | {dbcv_str} | {omori_p_str} | {omori_fitted} | {jaccard_str} | {ari_str} | {runtime_str} |"
+                f"| **{algo}** | {tot_win} | {succ_win} | {fail_win} | {fail_rate} | {tot_after_str} | {noise_str} | {dbcv_str} | {omori_p_str} | {omori_fitted} | {jaccard_str} | {ari_str} | {runtime_str} |"
             )
 
     # Detailed Analysis
@@ -497,13 +642,12 @@ def build_markdown_report(
     # Disclaimers & Notes
     lines.append("## 4. Đối soát Trino Views và Phân giải Đa chuỗi (Lineage & Resolution Notes)\n")
 
-    # Check whether explicit verified evidence exists
-    has_verified_parity = (
-        isinstance(verification_evidence, dict)
-        and verification_evidence.get("status") == "PASSED"
-        and verification_evidence.get("membership_snapshot_id")
-        and verification_evidence.get("summary_snapshot_id")
-        and (not verification_evidence.get("dataset_id") or verification_evidence.get("dataset_id") == dataset_id)
+    # Check whether explicit verified evidence exists adhering to contract
+    has_verified_parity = check_sql_parity_verification(
+        verification_evidence=verification_evidence,
+        dataset_id=dataset_id,
+        comparison_table=comparison_table,
+        runs=runs,
     )
 
     if is_development:

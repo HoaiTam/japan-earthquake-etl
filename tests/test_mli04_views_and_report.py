@@ -555,6 +555,64 @@ class TestMli04ViewsAndReport(unittest.TestCase):
             report_gen.build_markdown_report(payload_unk_ds, mode="official")
         self.assertIn("PUBLICATION_GATE_VIOLATION", str(ctx.exception))
 
+    def test_publication_gate_rejects_missing_status_without_registry(self):
+        """Verify that official mode rejects rows missing experiment_status when no registry is provided."""
+        payload = {
+            "metadata": {"dataset_id": "ds_A", "git_commit": "c1", "research_ready": True},
+            "comparison_table": [{
+                "algorithm": "WINDOW",
+                "experiment_run_id": "exp_no_status",
+                "dataset_id": "ds_A",
+                "model_config_version": "v1",
+                "total_aftershocks": 10,
+                "runtime_seconds": 1.0,
+            }],
+        }
+        with self.assertRaises(ValueError) as ctx:
+            report_gen.build_markdown_report(payload, mode="official")
+        self.assertIn("PUBLICATION_GATE_VIOLATION", str(ctx.exception))
+        self.assertIn("experiment_status", str(ctx.exception))
+
+    def test_publication_gate_rejects_conflicting_status_with_registry(self):
+        """Verify that official mode rejects row status conflicting with registry run status."""
+        payload = {
+            "metadata": {"dataset_id": "ds_A", "git_commit": "c1", "research_ready": True},
+            "runs": [{"experiment_run_id": "exp_1", "status": "APPROVED", "dataset_id": "ds_A", "model_config_version": "v1"}],
+            "comparison_table": [{
+                "algorithm": "WINDOW",
+                "experiment_run_id": "exp_1",
+                "dataset_id": "ds_A",
+                "experiment_status": "REJECTED",
+                "model_config_version": "v1",
+                "total_aftershocks": 10,
+                "runtime_seconds": 1.0,
+            }],
+        }
+        with self.assertRaises(ValueError) as ctx:
+            report_gen.build_markdown_report(payload, mode="official")
+        self.assertIn("PUBLICATION_GATE_VIOLATION", str(ctx.exception))
+        self.assertIn("conflicting status", str(ctx.exception))
+
+    def test_publication_gate_rejects_conflicting_config_with_registry(self):
+        """Verify that official mode rejects row config conflicting with registry run config."""
+        payload = {
+            "metadata": {"dataset_id": "ds_A", "git_commit": "c1", "research_ready": True},
+            "runs": [{"experiment_run_id": "exp_1", "status": "APPROVED", "dataset_id": "ds_A", "model_config_version": "v1"}],
+            "comparison_table": [{
+                "algorithm": "WINDOW",
+                "experiment_run_id": "exp_1",
+                "dataset_id": "ds_A",
+                "experiment_status": "APPROVED",
+                "model_config_version": "v2_conflicting",
+                "total_aftershocks": 10,
+                "runtime_seconds": 1.0,
+            }],
+        }
+        with self.assertRaises(ValueError) as ctx:
+            report_gen.build_markdown_report(payload, mode="official")
+        self.assertIn("PUBLICATION_GATE_VIOLATION", str(ctx.exception))
+        self.assertIn("conflicting config version", str(ctx.exception))
+
     def test_publication_gate_rejects_foreign_or_cross_dataset_rows(self):
         """Verify that official mode rejects rows from foreign runs, cross-datasets, or unapproved runs."""
         # Case 1: Row has experiment_run_id from another run not declared in approved runs
@@ -633,6 +691,47 @@ class TestMli04ViewsAndReport(unittest.TestCase):
             report_gen.normalize_comparison_row({"algorithm_name": "DBSCAN", "raw_aftershock_memberships": 10})
         self.assertIn("runtime", str(ctx.exception).lower())
 
+    def test_adapter_preserves_legitimate_null_when_all_windows_fail(self):
+        """Verify that adapter accepts legitimate NULL aftershocks and preserves failure counts when all windows fail."""
+        all_failed_row = {
+            "algorithm_name": "WINDOW",
+            "experiment_run_id": "run_all_failed",
+            "dataset_id": "ds_fail_test",
+            "model_config_version": "win-v1",
+            "code_version": "git_sha",
+            "random_seed": 42,
+            "experiment_status": "APPROVED",
+            "total_windows": 2,
+            "success_windows": 0,
+            "failure_windows": 2,
+            "skipped_windows": 0,
+            "failure_rate": 1.0,
+            "raw_aftershock_memberships": None,  # Legitimate NULL from SQL view when all windows fail
+            "avg_noise_ratio": None,
+            "avg_dbcv_score": None,
+            "avg_omori_p": None,
+            "omori_fitted_windows": 0,
+            "avg_runtime_seconds": 0.5,
+        }
+        # Normalization must succeed and preserve NULL
+        norm = report_gen.normalize_comparison_row(all_failed_row)
+        self.assertEqual(norm["algorithm"], "WINDOW")
+        self.assertIsNone(norm["total_aftershocks"])
+        self.assertEqual(norm["failure_rate"], 1.0)
+        self.assertEqual(norm["failure_windows"], 2)
+
+        # Markdown report rendering must succeed and show N/A for aftershocks while preserving counts
+        payload = {
+            "metadata": {
+                "dataset_id": "ds_fail_test",
+                "git_commit": "git_sha",
+                "research_ready": True,
+            },
+            "comparison_table": [norm],
+        }
+        md = report_gen.build_markdown_report(payload, mode="official")
+        self.assertIn("| **WINDOW** | `run_all_failed` | `win-v1` | `42` | 2 | 0 | 2 | 100.0% | N/A |", md)
+
     def test_sql_view_to_report_integration(self):
         """Integration test: query v_algorithm_comparison directly from SQLite fixture and pipe into report generator."""
         conn = sqlite3.connect(":memory:")
@@ -696,14 +795,17 @@ class TestMli04ViewsAndReport(unittest.TestCase):
         INSERT INTO experiment_run (experiment_run_id, dataset_id, algorithm_name, model_config_version, code_version, random_seed, experiment_status, result_artifact_uri, result_ready_at_utc, created_at_utc)
         VALUES
         ('run_dbscan_01', 'ds_official_prod', 'DBSCAN', 'dbscan-v1', 'git_sha_prod', 42, 'APPROVED', 's3://art/dbs', '2026-11-01', '2026-11-01'),
-        ('run_hdbscan_01', 'ds_official_prod', 'HDBSCAN_GLOBAL', 'hdbscan-v1', 'git_sha_prod', 42, 'APPROVED', 's3://art/hdb', '2026-11-01', '2026-11-01');
+        ('run_hdbscan_01', 'ds_official_prod', 'HDBSCAN_GLOBAL', 'hdbscan-v1', 'git_sha_prod', 42, 'APPROVED', 's3://art/hdb', '2026-11-01', '2026-11-01'),
+        ('run_window_01', 'ds_official_prod', 'WINDOW', 'win-v1', 'git_sha_prod', 42, 'APPROVED', 's3://art/win', '2026-11-01', '2026-11-01');
 
         INSERT INTO sequence_summary (experiment_run_id, dataset_id, mainshock_event_id, algorithm_name, model_config_version, window_result_status, candidate_count, sequence_member_count, aftershock_count, foreshock_candidate_count, noise_ratio, dbcv_score, omori_p, failure_reason_code, runtime_seconds, peak_memory_mb)
         VALUES
         ('run_dbscan_01', 'ds_official_prod', 'm1', 'DBSCAN', 'dbscan-v1', 'SUCCESS', 15, 12, 12, 0, 0.05, 0.42, 0.95, NULL, 1.5, 120.0),
         ('run_dbscan_01', 'ds_official_prod', 'm2', 'DBSCAN', 'dbscan-v1', 'FAILED', 10, 0, 0, 0, NULL, NULL, NULL, 'EXP_MAINSHOCK_CLASSIFIED_AS_NOISE', 0.5, 100.0),
         ('run_hdbscan_01', 'ds_official_prod', 'm1', 'HDBSCAN_GLOBAL', 'hdbscan-v1', 'SUCCESS', 15, 10, 10, 0, 0.08, 0.38, 0.91, NULL, 2.0, 150.0),
-        ('run_hdbscan_01', 'ds_official_prod', 'm2', 'HDBSCAN_GLOBAL', 'hdbscan-v1', 'SUCCESS', 10, 8, 8, 0, 0.10, 0.35, 0.88, NULL, 1.8, 140.0);
+        ('run_hdbscan_01', 'ds_official_prod', 'm2', 'HDBSCAN_GLOBAL', 'hdbscan-v1', 'SUCCESS', 10, 8, 8, 0, 0.10, 0.35, 0.88, NULL, 1.8, 140.0),
+        ('run_window_01', 'ds_official_prod', 'm1', 'WINDOW', 'win-v1', 'FAILED', 10, 0, NULL, 0, NULL, NULL, NULL, 'EXP_MAINSHOCK_CLASSIFIED_AS_NOISE', 0.4, 80.0),
+        ('run_window_01', 'ds_official_prod', 'm2', 'WINDOW', 'win-v1', 'FAILED', 5, 0, NULL, 0, NULL, NULL, NULL, 'EXP_MAINSHOCK_CLASSIFIED_AS_NOISE', 0.3, 75.0);
         """)
 
         # Execute query against real view definition
@@ -711,7 +813,7 @@ class TestMli04ViewsAndReport(unittest.TestCase):
         view_rows = [dict(r) for r in cursor.fetchall()]
         conn.close()
 
-        self.assertEqual(len(view_rows), 2)
+        self.assertEqual(len(view_rows), 3)
         # Directly pass view output rows into report generator
         payload = {
             "metadata": {
@@ -730,19 +832,24 @@ class TestMli04ViewsAndReport(unittest.TestCase):
         self.assertNotIn("**UNKNOWN**", md)
         self.assertIn("**DBSCAN**", md)
         self.assertIn("**HDBSCAN_GLOBAL**", md)
+        self.assertIn("**WINDOW**", md)
 
         # 2. Verify Run IDs, configs, seeds are clearly visible
         self.assertIn("`run_dbscan_01`", md)
         self.assertIn("`run_hdbscan_01`", md)
+        self.assertIn("`run_window_01`", md)
         self.assertIn("`dbscan-v1`", md)
         self.assertIn("`hdbscan-v1`", md)
+        self.assertIn("`win-v1`", md)
         self.assertIn("`42`", md)
 
-        # 3. Verify exact aftershock counts from raw_aftershock_memberships
-        # DBSCAN: 12 memberships
-        # HDBSCAN_GLOBAL: 10 + 8 = 18 memberships
+        # 3. Verify exact aftershock counts from raw_aftershock_memberships (mixed and all-failed)
+        # DBSCAN: 12 memberships (mixed: 1 success, 1 fail)
+        # HDBSCAN_GLOBAL: 10 + 8 = 18 memberships (all success)
+        # WINDOW: N/A memberships (all failed: 0 success, 2 fail)
         self.assertIn("| **DBSCAN** | `run_dbscan_01` | `dbscan-v1` | `42` | 2 | 1 | 1 | 50.0% | 12 | 5.0% | 0.4200 | 0.95 | 1/2 |", md)
         self.assertIn("| **HDBSCAN_GLOBAL** | `run_hdbscan_01` | `hdbscan-v1` | `42` | 2 | 2 | 0 | 0.0% | 18 | 9.0% | 0.3650 | 0.90 | 2/2 |", md)
+        self.assertIn("| **WINDOW** | `run_window_01` | `win-v1` | `42` | 2 | 0 | 2 | 100.0% | N/A |", md)
 
         # 4. Verify truthful parity: without explicit verification_evidence, must be marked PENDING
         self.assertIn("CHƯA ĐỐI SOÁT (PENDING READBACK / NOT VERIFIED)", md)
@@ -756,6 +863,13 @@ class TestMli04ViewsAndReport(unittest.TestCase):
                 "git_commit": "git_sha_prod",
                 "research_ready": True,
             },
+            "runs": [{
+                "experiment_run_id": "run_1",
+                "dataset_id": "ds_official_prod",
+                "status": "APPROVED",
+                "membership_snapshot_id": 123456789,
+                "summary_snapshot_id": 987654321,
+            }],
             "comparison_table": [{
                 "algorithm": "DBSCAN",
                 "experiment_run_id": "run_1",
@@ -774,6 +888,7 @@ class TestMli04ViewsAndReport(unittest.TestCase):
                 "dataset_id": "ds_official_prod",
                 "membership_snapshot_id": 123456789,
                 "summary_snapshot_id": 987654321,
+                "verified_runs": ["run_1"],
             }
         }
         md = report_gen.build_markdown_report(payload, mode="official")
@@ -781,6 +896,109 @@ class TestMli04ViewsAndReport(unittest.TestCase):
         self.assertIn("123456789", md)
         self.assertIn("987654321", md)
         self.assertNotIn("CHƯA ĐỐI SOÁT", md)
+
+    def test_sql_parity_negative_wrong_snapshots(self):
+        """Negative test: verification evidence with mismatching snapshot IDs keeps parity PENDING."""
+        payload = {
+            "metadata": {
+                "dataset_id": "ds_official_prod",
+                "git_commit": "git_sha_prod",
+                "research_ready": True,
+            },
+            "runs": [{
+                "experiment_run_id": "run_1",
+                "dataset_id": "ds_official_prod",
+                "status": "APPROVED",
+                "membership_snapshot_id": 111111,
+                "summary_snapshot_id": 222222,
+            }],
+            "comparison_table": [{
+                "algorithm": "DBSCAN",
+                "experiment_run_id": "run_1",
+                "dataset_id": "ds_official_prod",
+                "model_config_version": "v1",
+                "status": "APPROVED",
+                "raw_aftershock_memberships": 10,
+                "avg_runtime_seconds": 1.0,
+            }],
+            "verification_evidence": {
+                "status": "PASSED",
+                "dataset_id": "ds_official_prod",
+                "membership_snapshot_id": 999999,  # Mismatched snapshot
+                "summary_snapshot_id": 888888,    # Mismatched snapshot
+            }
+        }
+        md = report_gen.build_markdown_report(payload, mode="official")
+        self.assertIn("CHƯA ĐỐI SOÁT (PENDING READBACK / NOT VERIFIED)", md)
+        self.assertNotIn("ĐÃ ĐỐI SOÁT (VERIFIED)", md)
+
+    def test_sql_parity_negative_missing_dataset_binding(self):
+        """Negative test: verification evidence missing dataset_id or with mismatched dataset keeps parity PENDING."""
+        payload = {
+            "metadata": {
+                "dataset_id": "ds_official_prod",
+                "git_commit": "git_sha_prod",
+                "research_ready": True,
+            },
+            "comparison_table": [{
+                "algorithm": "DBSCAN",
+                "experiment_run_id": "run_1",
+                "dataset_id": "ds_official_prod",
+                "model_config_version": "v1",
+                "status": "APPROVED",
+                "raw_aftershock_memberships": 10,
+                "avg_runtime_seconds": 1.0,
+            }],
+            "verification_evidence": {
+                "status": "PASSED",
+                "dataset_id": "ds_different",  # Mismatched dataset
+                "membership_snapshot_id": 123456789,
+                "summary_snapshot_id": 987654321,
+            }
+        }
+        md = report_gen.build_markdown_report(payload, mode="official")
+        self.assertIn("CHƯA ĐỐI SOÁT (PENDING READBACK / NOT VERIFIED)", md)
+        self.assertNotIn("ĐÃ ĐỐI SOÁT (VERIFIED)", md)
+
+    def test_sql_parity_negative_partial_evidence(self):
+        """Negative test: partial verification evidence not covering all rendered runs keeps parity PENDING."""
+        payload = {
+            "metadata": {
+                "dataset_id": "ds_official_prod",
+                "git_commit": "git_sha_prod",
+                "research_ready": True,
+            },
+            "comparison_table": [
+                {
+                    "algorithm": "DBSCAN",
+                    "experiment_run_id": "run_1",
+                    "dataset_id": "ds_official_prod",
+                    "model_config_version": "v1",
+                    "status": "APPROVED",
+                    "raw_aftershock_memberships": 10,
+                    "avg_runtime_seconds": 1.0,
+                },
+                {
+                    "algorithm": "HDBSCAN_GLOBAL",
+                    "experiment_run_id": "run_2",
+                    "dataset_id": "ds_official_prod",
+                    "model_config_version": "v1",
+                    "status": "APPROVED",
+                    "raw_aftershock_memberships": 15,
+                    "avg_runtime_seconds": 1.2,
+                },
+            ],
+            "verification_evidence": {
+                "status": "PASSED",
+                "dataset_id": "ds_official_prod",
+                "membership_snapshot_id": 123456789,
+                "summary_snapshot_id": 987654321,
+                "verified_runs": ["run_1"],  # Missing run_2!
+            }
+        }
+        md = report_gen.build_markdown_report(payload, mode="official")
+        self.assertIn("CHƯA ĐỐI SOÁT (PENDING READBACK / NOT VERIFIED)", md)
+        self.assertNotIn("ĐÃ ĐỐI SOÁT (VERIFIED)", md)
 
     def test_development_mode_truthful_parity_statement(self):
         """Verify that development pilot report explicitly marks SQL parity as CHƯA NGHIỆM THU."""
