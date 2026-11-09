@@ -1,7 +1,7 @@
 -- Trino ML Serving View: v_experiment_runs
 -- Exposes valid experiment runs joined with dataset manifest and Gold snapshot lineage.
 -- Enforces publication gate: only runs with status 'CANDIDATE' or 'APPROVED' are visible.
--- Compatible with Iceberg catalog in Trino (iceberg.ml.*).
+-- Schema strictly reflects the production ml.experiment_run table committed by SparkMlIcebergWriter.
 
 CREATE OR REPLACE VIEW iceberg.ml.v_experiment_runs AS
 SELECT
@@ -9,8 +9,9 @@ SELECT
     e.algorithm_name,
     e.model_config_version,
     e.algorithm_version,
-    e.package_version,
     e.code_version,
+    e.requirements_lock_sha256,
+    e.random_seed,
     e.experiment_status,
     d.dataset_id,
     d.dataset_split,
@@ -22,9 +23,12 @@ SELECT
     d.scaling_config_version,
     e.membership_row_count,
     e.summary_row_count,
-    e.artifact_uri,
+    e.membership_snapshot_id,
+    e.summary_snapshot_id,
+    e.result_artifact_uri,
     e.result_bundle_sha256,
-    e.completed_at_utc,
+    e.result_ready_at_utc,
+    e.imported_at_utc,
     e.created_at_utc
 FROM iceberg.ml.experiment_run e
 JOIN iceberg.ml.dataset_manifest d

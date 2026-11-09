@@ -9,9 +9,11 @@ Generates reproducible static comparative reports across:
 
 Enforces Core Requirements:
 - Publication Gate: Official runs must have status CANDIDATE or APPROVED.
+- Fail-Closed Gate: Empty runs or unapproved states cannot produce OFFICIAL_PUBLICATION.
 - Development Separation: Development pilot runs are labeled DEVELOPMENT_ONLY (research_ready=false).
 - Denominator Integrity: Failed/skipped windows are preserved in total window count.
 - Honest NULL Policy: DBCV and Omori parameters are NEVER replaced with 0 if inapplicable/unfitted.
+- Metric Zero Integrity: Legitimate 0.0 numeric values are strictly preserved, not coerced to N/A.
 - Scientific Guardrails: Output explicitly disclaims earthquake prediction and physical causality.
 - Strictly NO Accuracy or F1 scores (unlabeled density clustering).
 """
@@ -46,34 +48,56 @@ def get_git_commit(root: Optional[Path] = None) -> str:
         return "UNKNOWN_COMMIT"
 
 
+def get_field(d: Optional[Dict[str, Any]], *keys: str, default: Any = None) -> Any:
+    """Extract first non-None key value from dict, preserving falsy 0.0 values."""
+    if not d or not isinstance(d, dict):
+        return default
+    for k in keys:
+        if k in d and d[k] is not None:
+            return d[k]
+    return default
+
+
 def format_metric(
     val: Any,
     metric_reason: Optional[str] = None,
     fmt: str = ".4f",
     suffix: str = "",
 ) -> str:
-    """Format metrics, preserving honest NULLs and metric reason codes."""
+    """Format metrics, strictly preserving honest NULLs and valid 0.0 values."""
     if val is None or val == "None":
         if metric_reason:
             return f"N/A ({metric_reason})"
         return "N/A"
-    if isinstance(val, str):
-        return val
-    if isinstance(val, (float, int)):
+    if isinstance(val, bool):
+        return str(val)
+    if isinstance(val, (int, float)):
         if isinstance(val, float) and (math.isnan(val) or math.isinf(val)):
             return f"N/A ({metric_reason})" if metric_reason else "N/A"
         if fmt == ".1f" and suffix == "%":
-            return f"{val * 100:.1f}%" if val <= 1.0 else f"{val:.1f}%"
+            if abs(val) <= 1.0 and val != 0.0:
+                return f"{val * 100:.1f}%"
+            return f"{val:.1f}%"
         return f"{val:{fmt}}{suffix}"
+    if isinstance(val, str):
+        return val
     return str(val)
 
 
-def validate_publication_gate(runs: List[Dict[str, Any]], mode: str) -> None:
-    """Enforce publication gate on experiment runs."""
+def validate_publication_gate(runs: List[Dict[str, Any]], mode: str = "official") -> None:
+    """Enforce publication gate on experiment runs (fail-closed)."""
     if mode == "development":
         return
 
+    if not runs or len(runs) == 0:
+        raise ValueError(
+            "PUBLICATION_GATE_VIOLATION: Official report requires a non-empty list of experiment runs. "
+            "Empty run list cannot be published as OFFICIAL_PUBLICATION."
+        )
+
     for run in runs:
+        if not isinstance(run, dict):
+            raise ValueError(f"PUBLICATION_GATE_VIOLATION: Invalid run payload: {run}")
         status = run.get("status") or run.get("experiment_status")
         if status not in ("CANDIDATE", "APPROVED"):
             raise ValueError(
@@ -84,7 +108,7 @@ def validate_publication_gate(runs: List[Dict[str, Any]], mode: str) -> None:
 
 def extract_normalized_payload(raw_data: Dict[str, Any]) -> Dict[str, Any]:
     """Normalize input JSON from EXP-04 pilot format or standard Trino export format."""
-    # Check if EXP-04 format
+    # Check if EXP-04 pilot format
     if "evaluation_summary" in raw_data:
         eval_sum = raw_data["evaluation_summary"]
         pilot_ver = raw_data.get("pilot_verification", {})
@@ -97,13 +121,17 @@ def extract_normalized_payload(raw_data: Dict[str, Any]) -> Dict[str, Any]:
             or str(pilot_ver.get("pilot_id", "")).startswith("pilot_")
         )
 
+        dataset_id = get_field(pilot_ver, "pilot_id") or get_field(eval_sum, "pilot_id") or "pilot_dev"
+        timestamp = get_field(eval_sum, "evaluated_at_utc") or datetime.now(timezone.utc).isoformat()
+        git_commit = get_field(code_prov, "git_commit") or get_field(runtime_meta, "code_version")
+
         norm_metadata = {
-            "dataset_id": pilot_ver.get("pilot_id") or eval_sum.get("pilot_id") or "pilot_dev",
-            "evaluation_timestamp_utc": eval_sum.get("evaluated_at_utc") or datetime.now(timezone.utc).isoformat(),
-            "git_commit": code_prov.get("git_commit") or runtime_meta.get("code_version"),
-            "random_seed": raw_data.get("evaluation_parameters", {}).get("random_seed", 42),
-            "total_input_candidates": pilot_ver.get("candidate_rows", "N/A"),
-            "total_mainshocks": pilot_ver.get("mainshock_count", "N/A"),
+            "dataset_id": dataset_id,
+            "evaluation_timestamp_utc": timestamp,
+            "git_commit": git_commit,
+            "random_seed": get_field(raw_data.get("evaluation_parameters", {}), "random_seed", default=42),
+            "total_input_candidates": get_field(pilot_ver, "candidate_rows", default="N/A"),
+            "total_mainshocks": get_field(pilot_ver, "mainshock_count", default="N/A"),
             "research_ready": not is_pilot,
             "data_scope": "DEVELOPMENT_ONLY" if is_pilot else "OFFICIAL",
             "configs": config_pins,
@@ -113,48 +141,76 @@ def extract_normalized_payload(raw_data: Dict[str, Any]) -> Dict[str, Any]:
         raw_table = eval_sum.get("comparison_table", [])
         norm_table = []
         for row in raw_table:
+            algo = get_field(row, "Algorithm", "algorithm")
+            tot_win = get_field(row, "Total Windows", "total_windows", default=0)
+            succ_win = get_field(row, "Success Windows", "success_windows", default=0)
+            fail_win = get_field(row, "Failure Windows", "failure_windows", default=0)
+            fail_rate = get_field(row, "Failure Rate", "failure_rate", default=0.0)
+            tot_after = get_field(row, "Total Aftershocks", "total_aftershocks", default=0)
+            mean_noise = get_field(row, "Mean Noise Ratio", "mean_noise_ratio")
+            mean_dbcv = get_field(row, "Mean DBCV", "mean_dbcv", "mean_dbcv_score")
+            mean_omori_p = get_field(row, "Mean Omori p", "mean_omori_p")
+            omori_win = get_field(row, "Omori Fitted Windows", "omori_fitted_windows")
+            mean_jaccard = get_field(row, "Mean Jaccard Stability", "mean_jaccard_stability")
+            mean_ari = get_field(row, "Mean ARI Stability", "mean_ari_stability")
+            runtime = get_field(row, "Runtime (s)", "runtime_seconds", default=0.0)
+            run_id = get_field(row, "experiment_run_id", "run_id", default=None)
+
             norm_table.append({
-                "algorithm": row.get("Algorithm") or row.get("algorithm"),
-                "total_windows": row.get("Total Windows") or row.get("total_windows", 0),
-                "success_windows": row.get("Success Windows") or row.get("success_windows", 0),
-                "failure_windows": row.get("Failure Windows") or row.get("failure_windows", 0),
-                "failure_rate": row.get("Failure Rate") or row.get("failure_rate", "0.0%"),
-                "total_aftershocks": row.get("Total Aftershocks") or row.get("total_aftershocks", 0),
-                "mean_noise_ratio": row.get("Mean Noise Ratio") or row.get("mean_noise_ratio", "N/A"),
-                "mean_dbcv": row.get("Mean DBCV") or row.get("mean_dbcv", "N/A"),
-                "mean_omori_p": row.get("Mean Omori p") or row.get("mean_omori_p", "N/A"),
-                "omori_fitted_windows": row.get("Omori Fitted Windows") or row.get("omori_fitted_windows", "N/A"),
-                "mean_jaccard_stability": row.get("Mean Jaccard Stability") or row.get("mean_jaccard_stability", "N/A"),
-                "mean_ari_stability": row.get("Mean ARI Stability") or row.get("mean_ari_stability", "N/A"),
-                "runtime_seconds": row.get("Runtime (s)") or row.get("runtime_seconds", 0.0),
+                "algorithm": algo,
+                "experiment_run_id": run_id,
+                "total_windows": tot_win,
+                "success_windows": succ_win,
+                "failure_windows": fail_win,
+                "failure_rate": fail_rate,
+                "total_aftershocks": tot_after,
+                "mean_noise_ratio": mean_noise,
+                "mean_dbcv": mean_dbcv,
+                "mean_omori_p": mean_omori_p,
+                "omori_fitted_windows": omori_win,
+                "mean_jaccard_stability": mean_jaccard,
+                "mean_ari_stability": mean_ari,
+                "runtime_seconds": runtime,
             })
 
         # Normalize model details
         raw_details = eval_sum.get("algorithm_details", {})
         norm_details = {}
         for algo, d in raw_details.items():
-            dbcv_val = d.get("mean_dbcv_score") if d.get("mean_dbcv_score") is not None else d.get("mean_dbcv")
-            noise_val = d.get("mean_noise_ratio")
-            omori_p_val = d.get("mean_omori_p")
-            omori_r2_val = d.get("mean_omori_r2")
-            fail_rate_val = d.get("failure_rate")
+            dbcv_val = get_field(d, "mean_dbcv_score", "mean_dbcv")
+            noise_val = get_field(d, "mean_noise_ratio")
+            omori_p_val = get_field(d, "mean_omori_p")
+            omori_r2_val = get_field(d, "mean_omori_r2")
+            fail_rate_val = get_field(d, "failure_rate", default=0.0)
+            jaccard_val = get_field(d, "mean_jaccard_stability")
+            ari_val = get_field(d, "mean_ari_stability")
+            fitted_win = get_field(d, "omori_fitted_windows", default=0)
+            tot_win = get_field(d, "total_windows", default=0)
+
+            fail_rate_str = f"{fail_rate_val * 100:.1f}%" if isinstance(fail_rate_val, (int, float)) else str(fail_rate_val)
+            noise_str = format_metric(noise_val, fmt=".1f", suffix="%")
+            dbcv_str = format_metric(dbcv_val, fmt=".4f")
+            omori_p_str = format_metric(omori_p_val, fmt=".2f")
+            omori_r2_str = format_metric(omori_r2_val, fmt=".2f")
+            jaccard_str = format_metric(jaccard_val, fmt=".4f")
+            ari_str = format_metric(ari_val, fmt=".4f")
 
             norm_details[algo] = {
-                "total_windows": d.get("total_windows", 0),
-                "success_windows": d.get("success_windows", 0),
-                "failure_windows": d.get("failure_windows", 0),
-                "failure_rate": f"{fail_rate_val * 100:.1f}%" if isinstance(fail_rate_val, (int, float)) else str(fail_rate_val),
-                "failure_reasons_observed": d.get("failure_reasons", []),
-                "total_aftershocks_found": d.get("total_aftershocks", 0),
-                "mean_noise_ratio": f"{noise_val * 100:.1f}%" if isinstance(noise_val, (int, float)) else "N/A",
-                "mean_dbcv": f"{dbcv_val:.4f}" if isinstance(dbcv_val, (int, float)) else "N/A",
-                "dbcv_computed_windows": d.get("dbcv_computed_windows", "N/A"),
-                "mean_omori_p": f"{omori_p_val:.2f}" if isinstance(omori_p_val, (int, float)) else "N/A",
-                "mean_omori_r2": f"{omori_r2_val:.2f}" if isinstance(omori_r2_val, (int, float)) else "N/A",
-                "omori_fitted_windows": f"{d.get('omori_fitted_windows', 0)}/{d.get('total_windows', 0)}",
-                "mean_jaccard_stability": f"{d.get('mean_jaccard_stability'):.4f}" if isinstance(d.get("mean_jaccard_stability"), (int, float)) else str(d.get("mean_jaccard_stability")),
-                "mean_ari_stability": f"{d.get('mean_ari_stability'):.4f}" if isinstance(d.get("mean_ari_stability"), (int, float)) else str(d.get("mean_ari_stability")),
-                "runtime_seconds": d.get("runtime_seconds", 0.0),
+                "total_windows": tot_win,
+                "success_windows": get_field(d, "success_windows", default=0),
+                "failure_windows": get_field(d, "failure_windows", default=0),
+                "failure_rate": fail_rate_str,
+                "failure_reasons_observed": get_field(d, "failure_reasons", default=[]),
+                "total_aftershocks_found": get_field(d, "total_aftershocks", default=0),
+                "mean_noise_ratio": noise_str,
+                "mean_dbcv": dbcv_str,
+                "dbcv_computed_windows": get_field(d, "dbcv_computed_windows", default="N/A"),
+                "mean_omori_p": omori_p_str,
+                "mean_omori_r2": omori_r2_str,
+                "omori_fitted_windows": f"{fitted_win}/{tot_win}",
+                "mean_jaccard_stability": jaccard_str,
+                "mean_ari_stability": ari_str,
+                "runtime_seconds": get_field(d, "runtime_seconds", default=0.0),
             }
 
         return {
@@ -162,6 +218,7 @@ def extract_normalized_payload(raw_data: Dict[str, Any]) -> Dict[str, Any]:
             "comparison_table": norm_table,
             "model_analyses": norm_details,
             "code_provenance": code_prov,
+            "runs": raw_data.get("runs", []),
         }
 
     # Standard format
@@ -171,6 +228,7 @@ def extract_normalized_payload(raw_data: Dict[str, Any]) -> Dict[str, Any]:
         "comparison_table": raw_data.get("comparison_table", []),
         "model_analyses": raw_data.get("model_analyses", {}),
         "code_provenance": raw_data.get("code_provenance", {}),
+        "runs": raw_data.get("runs", []),
     }
 
 
@@ -186,13 +244,29 @@ def build_markdown_report(
     model_analyses = normalized.get("model_analyses", {})
     code_provenance = normalized.get("code_provenance", {})
 
-    # Detect or validate mode
+    # Detect whether dataset is development pilot
     is_development = (
         mode == "development"
         or metadata.get("research_ready") is False
         or "DEVELOPMENT" in str(metadata.get("data_scope", "")).upper()
         or str(metadata.get("dataset_id", "")).startswith("pilot_")
+        or eval_data.get("evaluation_scope") == "PILOT_DEVELOPMENT"
     )
+
+    # Fail-closed publication gate check
+    if mode == "official":
+        if is_development:
+            raise ValueError(
+                "OFFICIAL_MODE_CONFLICT: Mode is set to 'official', but dataset is labeled DEVELOPMENT_ONLY/pilot. "
+                "Pilot experiments cannot be published under official mode."
+            )
+        runs_to_check = normalized.get("runs") or comparison_table
+        validate_publication_gate(runs_to_check, mode="official")
+    elif mode == "auto":
+        if not is_development:
+            # In auto mode, if input is not development, enforce gate fail-closed
+            runs_to_check = normalized.get("runs") or comparison_table
+            validate_publication_gate(runs_to_check, mode="official")
 
     scope_badge = "DEVELOPMENT_ONLY (research_ready=false)" if is_development else "OFFICIAL_PUBLICATION"
     timestamp_utc = metadata.get("evaluation_timestamp_utc") or datetime.now(timezone.utc).isoformat()
@@ -211,7 +285,7 @@ def build_markdown_report(
     lines: List[str] = []
     lines.append(f"# {title}\n")
     lines.append("## 1. Siêu dữ liệu Thực nghiệm và Cổng Kiểm định (Metadata & Publication Gate)\n")
-    lines.append(f"- **Mã Task:** [MLI-04](../task/tasks/MLI-04.md) / [EXP-04](../task/tasks/EXP-04.md)")
+    lines.append("- **Mã Task:** [MLI-04](../task/tasks/MLI-04.md) / [EXP-04](../task/tasks/EXP-04.md)")
     lines.append(f"- **Phạm vi Báo cáo:** `{scope_badge}`")
     lines.append(f"- **Thời điểm Khởi tạo (UTC):** `{timestamp_utc}`")
     lines.append(f"- **Dataset ID:** `{dataset_id}`")
@@ -249,14 +323,14 @@ def build_markdown_report(
         tot_win = row.get("total_windows", 0)
         succ_win = row.get("success_windows", 0)
         fail_win = row.get("failure_windows", 0)
-        fail_rate = format_metric(row.get("failure_rate", 0))
+        fail_rate = format_metric(row.get("failure_rate", 0), fmt=".1f", suffix="%")
         tot_after = row.get("total_aftershocks", 0)
-        
-        noise_str = format_metric(row.get("mean_noise_ratio"))
+
+        noise_str = format_metric(row.get("mean_noise_ratio"), fmt=".1f", suffix="%")
         dbcv_str = format_metric(row.get("mean_dbcv"), fmt=".4f")
         omori_p_str = format_metric(row.get("mean_omori_p"), fmt=".2f")
         omori_fitted = row.get("omori_fitted_windows", f"{row.get('omori_fitted_count', 0)}/{tot_win}")
-        
+
         jaccard_str = format_metric(row.get("mean_jaccard_stability"), fmt=".4f")
         ari_str = format_metric(row.get("mean_ari_stability"), fmt=".4f")
         runtime_str = format_metric(row.get("runtime_seconds"), fmt=".2f")
@@ -272,35 +346,43 @@ def build_markdown_report(
         tot = detail.get("total_windows", 0)
         succ = detail.get("success_windows", 0)
         fail = detail.get("failure_windows", 0)
-        fail_rate = format_metric(detail.get("failure_rate"))
-        
+        fail_rate = format_metric(detail.get("failure_rate"), fmt=".1f", suffix="%")
+
         lines.append(f"- **Tổng số cửa sổ:** `{tot}` (Thành công: `{succ}`, Thất bại: `{fail}`, Tỷ lệ lỗi: `{fail_rate}`)")
         reasons = detail.get("failure_reasons_observed", []) or ["Không có"]
         lines.append(f"- **Lý do thất bại ghi nhận:** `{reasons}`")
         lines.append(f"- **Tổng số sau chấn (POST sequence members):** `{detail.get('total_aftershocks_found', 0)}`")
-        
-        noise_str = format_metric(detail.get("mean_noise_ratio"))
+
+        noise_str = format_metric(detail.get("mean_noise_ratio"), fmt=".1f", suffix="%")
         lines.append(f"- **Tỷ lệ nhiễu trung bình:** `{noise_str}`")
-        
+
         dbcv_str = format_metric(detail.get("mean_dbcv"), fmt=".4f")
         lines.append(f"- **DBCV trung bình:** `{dbcv_str}` (Cửa sổ tính được: `{detail.get('dbcv_computed_windows', 'N/A')}`)")
-        
+
         omori_p = format_metric(detail.get("mean_omori_p"), fmt=".2f")
         omori_r2 = format_metric(detail.get("mean_omori_r2"), fmt=".2f")
         lines.append(f"- **Modified Omori law decay exponent p:** `{omori_p}` (R² fit: `{omori_r2}`, Cửa sổ fit: `{detail.get('omori_fitted_windows', 'N/A')}`)")
-        
+
         lines.append(f"- **Độ ổn định Jaccard (Feature Perturbation):** `{format_metric(detail.get('mean_jaccard_stability'), fmt='.4f')}`")
         lines.append(f"- **Độ ổn định ARI (Cluster Partitioning):** `{format_metric(detail.get('mean_ari_stability'), fmt='.4f')}`")
         lines.append(f"- **Thời gian thực thi:** `{format_metric(detail.get('runtime_seconds'), fmt='.2f')}` giây\n")
 
     # Disclaimers & Notes
     lines.append("## 4. Đối soát Trino Views và Phân giải Đa chuỗi (Lineage & Resolution Notes)\n")
-    lines.append("1. **Khớp nối Trino Serving Views:**")
-    lines.append("   - Toàn bộ các chỉ số trong bảng đối soát trên khớp chính xác với kết quả truy vấn từ các serving view `iceberg.ml.v_algorithm_comparison` và `iceberg.ml.v_experiment_runs`.")
-    lines.append("   - Cổng công bố `experiment_status IN ('CANDIDATE', 'APPROVED')` ngăn ngừa rò rỉ dữ liệu thử nghiệm chưa kiểm định vào lớp phục vụ.")
+
+    if is_development:
+        lines.append("1. **Trạng thái Đối soát Trino Views (SQL Parity):**")
+        lines.append("   - **Trạng thái: CHƯA NGHIỆM THU (PENDING OFFICIAL IMPORT).**")
+        lines.append("   - Báo cáo này được kết xuất trong môi trường thử nghiệm (development pilot) trên local/Colab và chưa được đối soát trực tiếp với bảng Iceberg `ml.*` qua Trino.")
+        lines.append("   - Việc kiểm chứng count parity và SQL readback chính thức chỉ được chứng nhận khi dataset chính thức và kết quả thực nghiệm được import vào Iceberg thông qua [MLQ-01](../task/tasks/MLQ-01.md).")
+    else:
+        lines.append("1. **Khớp nối Trino Serving Views:**")
+        lines.append("   - Toàn bộ các chỉ số trong bảng đối soát trên khớp với kết quả truy vấn từ các serving view `iceberg.ml.v_algorithm_comparison` và `iceberg.ml.v_experiment_runs` cho snapshot đã commit.")
+        lines.append("   - Cổng công bố `experiment_status IN ('CANDIDATE', 'APPROVED')` ngăn ngừa rò rỉ dữ liệu thử nghiệm chưa kiểm định vào lớp phục vụ.")
+
     lines.append("2. **Phân giải Đa chuỗi (Multi-Sequence Resolution):**")
     lines.append("   - Báo cáo phân biệt rõ giữa **Raw Aftershock Memberships** (tổng số lần gán nhãn POST độc lập theo từng cửa sổ) và **Unique Resolved Aftershocks** (`resolution_rank = 1` gán cho một mainshock duy nhất).")
-    lines.append("   - Không dùng `COUNT(*)` đơn thuần để suy ra tổng số dư chấn duy nhất trên toàn danh mục.")
+    lines.append("   - Các trường hợp không thể phân giải dứt khoát (`multi_sequence_status = 'AMBIGUOUS'`) có `resolution_rank = NULL` và tuyệt đối không được tính vào số dư chấn duy nhất đã phân giải.")
     lines.append("3. **Bảo tồn Trạng thái Thất bại:**")
     lines.append("   - Các cửa sổ có mainshock bị phân cụm mật độ gán nhãn `-1` (nhiễu) được ghi nhận mã `EXP_MAINSHOCK_CLASSIFIED_AS_NOISE` và bảo toàn trong mẫu số.")
 
@@ -355,17 +437,12 @@ def main() -> int:
         print(f"ERROR: Failed to read input JSON: {e}", file=sys.stderr)
         return 1
 
-    # In official mode, validate publication gate
-    if args.mode == "official":
-        runs = eval_data.get("runs") or eval_data.get("comparison_table") or []
-        try:
-            validate_publication_gate(runs, mode="official")
-        except ValueError as err:
-            print(f"ERROR: {err}", file=sys.stderr)
-            return 2
-
-    # Render report
-    md_content = build_markdown_report(eval_data, mode=args.mode, report_title=args.title)
+    # Render report (which enforces fail-closed publication gate)
+    try:
+        md_content = build_markdown_report(eval_data, mode=args.mode, report_title=args.title)
+    except ValueError as err:
+        print(f"ERROR: {err}", file=sys.stderr)
+        return 2
 
     # Ensure parent directory exists
     args.output_md.parent.mkdir(parents=True, exist_ok=True)

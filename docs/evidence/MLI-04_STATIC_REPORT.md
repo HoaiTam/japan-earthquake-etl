@@ -85,11 +85,12 @@
 
 ## 4. Đối soát Trino Views và Phân giải Đa chuỗi (Lineage & Resolution Notes)
 
-1. **Khớp nối Trino Serving Views:**
-   - Toàn bộ các chỉ số trong bảng đối soát trên khớp chính xác với kết quả truy vấn từ các serving view `iceberg.ml.v_algorithm_comparison` và `iceberg.ml.v_experiment_runs`.
-   - Cổng công bố `experiment_status IN ('CANDIDATE', 'APPROVED')` ngăn ngừa rò rỉ dữ liệu thử nghiệm chưa kiểm định vào lớp phục vụ.
+1. **Trạng thái Đối soát Trino Views (SQL Parity):**
+   - **Trạng thái: CHƯA NGHIỆM THU (PENDING OFFICIAL IMPORT).**
+   - Báo cáo này được kết xuất trong môi trường thử nghiệm (development pilot) trên local/Colab và chưa được đối soát trực tiếp với bảng Iceberg `ml.*` qua Trino.
+   - Việc kiểm chứng count parity và SQL readback chính thức chỉ được chứng nhận khi dataset chính thức và kết quả thực nghiệm được import vào Iceberg thông qua [MLQ-01](../task/tasks/MLQ-01.md).
 2. **Phân giải Đa chuỗi (Multi-Sequence Resolution):**
    - Báo cáo phân biệt rõ giữa **Raw Aftershock Memberships** (tổng số lần gán nhãn POST độc lập theo từng cửa sổ) và **Unique Resolved Aftershocks** (`resolution_rank = 1` gán cho một mainshock duy nhất).
-   - Không dùng `COUNT(*)` đơn thuần để suy ra tổng số dư chấn duy nhất trên toàn danh mục.
+   - Các trường hợp không thể phân giải dứt khoát (`multi_sequence_status = 'AMBIGUOUS'`) có `resolution_rank = NULL` và tuyệt đối không được tính vào số dư chấn duy nhất đã phân giải.
 3. **Bảo tồn Trạng thái Thất bại:**
    - Các cửa sổ có mainshock bị phân cụm mật độ gán nhãn `-1` (nhiễu) được ghi nhận mã `EXP_MAINSHOCK_CLASSIFIED_AS_NOISE` và bảo toàn trong mẫu số.

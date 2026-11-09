@@ -35,7 +35,7 @@ MVP phụ thuộc Power BI hoặc notebook output.
 ## Tiêu chí hoàn thành
 
 - [x] Query chỉ đọc experiment `CANDIDATE`/`APPROVED` theo filter rõ.
-- [x] Count/summary/metric trong report khớp SQL cùng dataset/run.
+- [ ] Count/summary/metric trong report khớp SQL cùng dataset/run.
 - [x] Failure/noise/sample size không bị ẩn khỏi bảng so sánh.
 - [x] Report dùng từ candidate và nêu rõ không dự đoán/causal.
 
@@ -76,13 +76,13 @@ Task cũ chưa làm giữ Backlog; không đổi hard dependencies để pilot �
 - **Trạng thái:** In Progress
 - **Assignee:** ThanhTris
 - **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Triển khai hoàn tất Trino ML views (`sql/ml/`), verification queries (`sql/ml/ml_verification_queries.sql`), static report generator (`scripts/generate-experiment-report.py`), data dictionary (`docs/specs/ML_REPORT_DATA_DICTIONARY.md`), báo cáo tĩnh mẫu (`docs/evidence/MLI-04_STATIC_REPORT.md`), và unit/smoke test suite (`tests/test_mli04_views_and_report.py`) với 9/9 tests PASS trên branch `feat/mli-04-trino-views-static-report`. Giữ `In Progress` chờ official snapshot readback sau khi hoàn tất official dataset export.
+- **Evidence / PR:** Triển khai Trino ML views (`sql/ml/`), verification queries (`sql/ml/ml_verification_queries.sql`), static report generator (`scripts/generate-experiment-report.py`), data dictionary (`docs/specs/ML_REPORT_DATA_DICTIONARY.md`), báo cáo tĩnh mẫu (`docs/evidence/MLI-04_STATIC_REPORT.md`), và regression test suite (`tests/test_mli04_views_and_report.py`) trên branch `feat/mli-04-trino-views-static-report` ([PR #124](https://github.com/HoaiTam/japan-earthquake-etl/pull/124)). Giữ `In Progress` chờ nghiệm thu SQL readback và count parity chính thức trên exact snapshot khi hoàn tất export official.
 - **Kỹ năng phù hợp:** Trino SQL, reproducible reporting, data validation
 
 ## Checklist bàn giao
 
 - [x] Deliverable và test/evidence tồn tại trong repository.
-- [x] Acceptance criteria đã được kiểm tra.
+- [ ] Acceptance criteria đã được kiểm tra.
 - [x] Contract/docs đã cập nhật và không chứa secret/data dump.
 - [x] Reviewer độc lập được khuyến nghị cho P0.
 

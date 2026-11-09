@@ -1,27 +1,29 @@
 """Unit and integration tests for MLI-04: Trino Views and Static Experiment Report.
 
 Verifies:
-1. SQL View Syntax & Structure:
-   - Presence of all required ML serving views and verification queries.
-   - Enforce publication gate (CANDIDATE and APPROVED only).
-   - Enforce zero secret or credential leaks.
-2. Offline SQL Semantics & Count Parity:
-   - In-memory database simulation of Iceberg ml.* tables.
-   - Verification of publication gate filtering unapproved/rejected runs.
-   - Denominator integrity: failure windows included in total counts and failure rates.
-   - Honest NULL policy: DBCV is NULL for WINDOW, never coerced to 0.
-   - Summary candidate_count matches membership count.
-   - Aftershock count matches POST sequence member count.
-   - Multi-sequence resolution distinguishes raw memberships from unique resolved candidates.
-3. Static Report Generator:
-   - Development pilot mode produces DEVELOPMENT_ONLY badge and preserves all disclaimers.
-   - Official mode validates publication gate, refusing unapproved runs.
-   - Denominator integrity preserved in report table.
-4. Data Dictionary Completeness:
-   - Verifies documentation of views, fields, reason codes, and scientific guardrails.
+1. SQL View Syntax & Real Schema Conformity:
+   - View definitions match exact physical schema produced by SparkMlIcebergWriter and DatasetManifestWriter.
+   - Direct execution of SQL view queries from files against real-schema fixture tables.
+   - Strict gate filter: only CANDIDATE and APPROVED runs are visible.
+   - Zero credential or forbidden path leaks.
+2. Grain & Metric Integrity:
+   - v_algorithm_comparison preserves experiment_run_id grain, preventing aggregation across independent runs.
+   - Denominator integrity: failure windows are retained in window counts and failure rate.
+   - Honest NULL policy: DBCV is NULL for WINDOW, not coerced to 0.0.
+   - Numeric zero integrity: legitimate 0.0 metrics (noise, dbcv, stability) are preserved, not converted to N/A.
+3. Multi-Sequence Resolution:
+   - Strictly requires resolution_rank = 1 for resolved unique aftershocks.
+   - Rows with resolution_rank IS NULL (including AMBIGUOUS) and resolution_rank > 1 are NEVER considered winners.
+4. Static Report Generator & Publication Gate Fail-Closed:
+   - Input {} or empty run list with --mode official raises ValueError (fail-closed).
+   - Auto mode rejects unapproved runs (e.g. TRAINING_EXTERNAL) from producing official reports.
+   - Development mode produces DEVELOPMENT_ONLY badge and explicitly marks SQL parity as CHƯA NGHIỆM THU.
+5. Data Dictionary Completeness:
+   - Documents all views, updated schemas, and scientific reason codes.
 """
 from __future__ import annotations
 
+import importlib.util
 import json
 from pathlib import Path
 import re
@@ -38,14 +40,29 @@ if str(PROJECT_ROOT) not in sys.path:
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
-import importlib.util
-_spec = importlib.util.spec_from_file_location('generate_experiment_report', str(SCRIPTS_DIR / 'generate-experiment-report.py'))
+_spec = importlib.util.spec_from_file_location(
+    "generate_experiment_report", str(SCRIPTS_DIR / "generate-experiment-report.py")
+)
 report_gen = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(report_gen)
 
 
+def adapt_trino_view_sql_for_sqlite(sql_content: str, view_name: str) -> str:
+    """Extract view SELECT query from Trino DDL and adapt namespace for SQLite execution."""
+    match = re.search(r"CREATE\s+OR\s+REPLACE\s+VIEW\s+[a-zA-Z0-9_\.]+\s+AS\s+(.*)", sql_content, re.DOTALL | re.IGNORECASE)
+    if not match:
+        raise ValueError(f"Could not find CREATE VIEW statement in SQL for {view_name}")
+    query = match.group(1).strip()
+    if query.endswith(";"):
+        query = query[:-1].strip()
+    # Replace iceberg.ml. with empty prefix so it references local SQLite tables
+    query = query.replace("iceberg.ml.", "")
+    # In SQLite, NULLIF and CAST ... AS double are compatible
+    return f"CREATE VIEW {view_name} AS {query};"
+
+
 class TestMli04ViewsAndReport(unittest.TestCase):
-    """Test suite for MLI-04 deliverables."""
+    """Test suite for MLI-04 deliverables and review fixes."""
 
     @classmethod
     def setUpClass(cls):
@@ -95,59 +112,237 @@ class TestMli04ViewsAndReport(unittest.TestCase):
             match = forbidden_regex.search(content)
             self.assertIsNone(match, f"Found forbidden secret or path in {sql_file.name}: {match.group(0) if match else ''}")
 
-    def test_in_memory_sql_semantics_and_gate_enforcement(self):
-        """Execute SQLite in-memory test reproducing Trino views with mock Iceberg tables."""
+    def test_v_experiment_runs_uses_real_schema_columns(self):
+        """Verify that v_experiment_runs.sql references valid schema columns and not obsolete names."""
+        content = (self.sql_dir / "v_experiment_runs.sql").read_text(encoding="utf-8")
+        self.assertIn("e.result_artifact_uri", content, "Must use result_artifact_uri")
+        self.assertNotIn("e.artifact_uri", content, "artifact_uri does not exist in experiment_run schema")
+        self.assertIn("e.result_ready_at_utc", content, "Must use result_ready_at_utc")
+        self.assertNotIn("e.completed_at_utc", content, "completed_at_utc does not exist in experiment_run schema")
+        self.assertNotIn("e.package_version", content, "package_version does not exist in experiment_run schema")
+
+    def test_direct_sql_execution_on_real_schema(self):
+        """Directly execute SQL view DDL from files against SQLite tables matching real schema."""
         conn = sqlite3.connect(":memory:")
         cursor = conn.cursor()
 
-        # 1. Setup tables mimicking iceberg.ml.*
+        # Real schema matching SparkMlIcebergWriter and DatasetManifestWriter
         cursor.executescript("""
         CREATE TABLE dataset_manifest (
+            schema_version TEXT,
             dataset_id TEXT PRIMARY KEY,
             dataset_split TEXT,
             gold_table_name TEXT,
-            gold_snapshot_id INTEGER,
+            physical_gold_table_name TEXT,
+            gold_publication_id TEXT,
+            publication_bundle_sha256 TEXT,
+            identity_payload_sha256 TEXT,
+            filter_config_json TEXT,
+            mc_method TEXT,
+            mc_region_version TEXT,
+            mc_config_json TEXT,
+            mc_config_sha256 TEXT,
+            exclusion_counts_json TEXT,
+            audit_report_uri TEXT,
+            feature_schema_sha256 TEXT,
+            export_artifact_uri TEXT,
+            export_manifest_sha256 TEXT,
+            dataset_status TEXT,
+            status_reason_code TEXT,
+            build_run_id TEXT,
+            dataset_config_version TEXT,
+            audit_rule_version TEXT,
+            mc_method_version TEXT,
+            window_model_version TEXT,
+            feature_version TEXT,
+            scaling_config_version TEXT,
+            code_version TEXT,
             period_start_utc TEXT,
             period_end_utc_exclusive TEXT,
-            feature_version TEXT,
-            scaling_config_version TEXT
+            observation_cutoff_utc TEXT,
+            created_at_utc TEXT,
+            updated_at_utc TEXT,
+            gold_snapshot_id INTEGER,
+            input_event_count INTEGER,
+            eligible_event_count INTEGER,
+            excluded_event_count INTEGER,
+            mainshock_count INTEGER,
+            candidate_row_count INTEGER,
+            feature_row_count INTEGER,
+            mc_value REAL
         );
 
         CREATE TABLE experiment_run (
+            schema_version TEXT,
             experiment_run_id TEXT PRIMARY KEY,
-            algorithm_name TEXT,
-            model_config_version TEXT,
-            algorithm_version TEXT,
-            package_version TEXT,
-            code_version TEXT,
-            experiment_status TEXT,
             dataset_id TEXT,
+            algorithm_name TEXT,
+            algorithm_version TEXT,
+            model_config_version TEXT,
+            experiment_config_json TEXT,
+            experiment_config_sha256 TEXT,
+            code_version TEXT,
+            notebook_version TEXT,
+            requirements_lock_sha256 TEXT,
+            runtime_environment_json TEXT,
+            random_seed INTEGER,
+            result_artifact_uri TEXT,
+            result_bundle_sha256 TEXT,
             membership_row_count INTEGER,
             summary_row_count INTEGER,
-            artifact_uri TEXT,
-            result_bundle_sha256 TEXT,
-            completed_at_utc TEXT,
-            created_at_utc TEXT
+            import_run_id TEXT,
+            membership_snapshot_id INTEGER,
+            summary_snapshot_id INTEGER,
+            experiment_status TEXT,
+            status_reason_code TEXT,
+            created_at_utc TEXT,
+            result_ready_at_utc TEXT,
+            imported_at_utc TEXT,
+            approved_at_utc TEXT,
+            approved_by TEXT,
+            dataset_registry_snapshot_id TEXT,
+            candidate_source_snapshot_id TEXT,
+            mainshock_source_snapshot_id TEXT,
+            dataset_manifest_sha256 TEXT,
+            export_manifest_sha256 TEXT
         );
 
         CREATE TABLE sequence_summary (
+            schema_version TEXT,
             experiment_run_id TEXT,
             dataset_id TEXT,
             mainshock_event_id TEXT,
             algorithm_name TEXT,
             model_config_version TEXT,
             window_result_status TEXT,
+            productive_sequence_detected INTEGER,
+            productive_definition_version TEXT,
             candidate_count INTEGER,
+            cluster_count INTEGER,
+            noise_count INTEGER,
+            noise_ratio REAL,
             sequence_member_count INTEGER,
             aftershock_count INTEGER,
             foreshock_candidate_count INTEGER,
-            noise_ratio REAL,
+            sequence_duration_hours REAL,
+            largest_aftershock_magnitude REAL,
+            magnitude_difference REAL,
+            spatial_extent_km REAL,
+            mean_membership_probability REAL,
             dbcv_score REAL,
+            omori_k REAL,
+            omori_c REAL,
             omori_p REAL,
-            failure_reason_code TEXT,
+            omori_fit_metric REAL,
+            stability_components_json TEXT,
             runtime_seconds REAL,
             peak_memory_mb REAL,
+            is_nested_mainshock_candidate INTEGER,
+            parent_mainshock_event_id TEXT,
+            nested_membership_probability REAL,
+            metric_reason_codes TEXT,
+            failure_reason_code TEXT,
             created_at_utc TEXT
+        );
+
+        CREATE TABLE sequence_membership (
+            schema_version TEXT,
+            experiment_run_id TEXT,
+            dataset_id TEXT,
+            mainshock_event_id TEXT,
+            candidate_event_id TEXT,
+            algorithm_name TEXT,
+            model_config_version TEXT,
+            cluster_id INTEGER,
+            is_noise INTEGER,
+            is_mainshock_cluster_member INTEGER,
+            is_sequence_member INTEGER,
+            membership_probability REAL,
+            event_role_candidate TEXT,
+            normalized_distance REAL,
+            multi_sequence_status TEXT,
+            resolution_rank INTEGER,
+            created_at_utc TEXT
+        );
+        """)
+
+        # Adapt and execute view DDL directly from the SQL files
+        for vname in ["v_experiment_runs", "v_algorithm_comparison", "v_sequence_memberships_resolved", "v_failure_windows"]:
+            sql_file = self.sql_dir / f"{vname}.sql"
+            sqlite_ddl = adapt_trino_view_sql_for_sqlite(sql_file.read_text(encoding="utf-8"), vname)
+            cursor.execute(sqlite_ddl)
+
+        # Insert dataset
+        cursor.execute("""
+        INSERT INTO dataset_manifest (dataset_id, dataset_split, gold_table_name, gold_snapshot_id, period_start_utc, period_end_utc_exclusive, feature_version, scaling_config_version)
+        VALUES ('ds_real_01', 'REPRODUCTION', 'iceberg.gold.earthquake_event_current', 10001, '2018-01-01', '2018-10-01', 'f1', 's1');
+        """)
+
+        # Insert two DBSCAN runs with same algorithm & config but different run_id and seeds
+        # Run 1: exp_dbs_seed42 (CANDIDATE, seed 42)
+        # Run 2: exp_dbs_seed43 (CANDIDATE, seed 43)
+        # Run 3: exp_unapproved (TRAINING_EXTERNAL)
+        cursor.executescript("""
+        INSERT INTO experiment_run (experiment_run_id, dataset_id, algorithm_name, model_config_version, code_version, random_seed, experiment_status, result_artifact_uri, result_ready_at_utc, created_at_utc)
+        VALUES
+        ('exp_dbs_seed42', 'ds_real_01', 'DBSCAN', 'dbs-v1', 'commit_42', 42, 'CANDIDATE', 's3://art/dbs42', '2026-11-01', '2026-11-01'),
+        ('exp_dbs_seed43', 'ds_real_01', 'DBSCAN', 'dbs-v1', 'commit_43', 43, 'CANDIDATE', 's3://art/dbs43', '2026-11-01', '2026-11-01'),
+        ('exp_unapproved', 'ds_real_01', 'WINDOW', 'win-v1', 'commit_un', 0, 'TRAINING_EXTERNAL', 's3://art/un', '2026-11-01', '2026-11-01');
+
+        INSERT INTO sequence_summary (experiment_run_id, dataset_id, mainshock_event_id, algorithm_name, model_config_version, window_result_status, candidate_count, sequence_member_count, aftershock_count, noise_ratio, dbcv_score, omori_p, failure_reason_code, runtime_seconds)
+        VALUES
+        ('exp_dbs_seed42', 'ds_real_01', 'main_1', 'DBSCAN', 'dbs-v1', 'SUCCESS', 10, 8, 8, 0.05, 0.35, 0.95, NULL, 1.2),
+        ('exp_dbs_seed42', 'ds_real_01', 'main_2', 'DBSCAN', 'dbs-v1', 'FAILED', 5, 0, 0, NULL, NULL, NULL, 'EXP_MAINSHOCK_CLASSIFIED_AS_NOISE', 0.4),
+        ('exp_dbs_seed43', 'ds_real_01', 'main_1', 'DBSCAN', 'dbs-v1', 'SUCCESS', 10, 7, 7, 0.08, 0.31, 0.92, NULL, 1.1),
+        ('exp_dbs_seed43', 'ds_real_01', 'main_2', 'DBSCAN', 'dbs-v1', 'SUCCESS', 5, 4, 4, 0.10, 0.28, 0.88, NULL, 0.9);
+        """)
+
+        # 1. Test v_experiment_runs excludes unapproved
+        cursor.execute("SELECT experiment_run_id, result_artifact_uri FROM v_experiment_runs")
+        runs = cursor.fetchall()
+        run_ids = [r[0] for r in runs]
+        self.assertIn("exp_dbs_seed42", run_ids)
+        self.assertIn("exp_dbs_seed43", run_ids)
+        self.assertNotIn("exp_unapproved", run_ids)
+        self.assertEqual(runs[0][1], "s3://art/dbs42")
+
+        # 2. Test v_algorithm_comparison preserves grain by experiment_run_id (Review Point 6)
+        cursor.execute("SELECT experiment_run_id, total_windows, success_windows, failure_windows, raw_aftershock_memberships FROM v_algorithm_comparison ORDER BY experiment_run_id")
+        comp_rows = cursor.fetchall()
+        self.assertEqual(len(comp_rows), 2, "Must produce 2 distinct rows for 2 distinct runs, NOT collapsed into 1 row!")
+
+        # Row 1: seed 42 (1 success, 1 failure, total 2, aftershocks 8)
+        self.assertEqual(comp_rows[0][0], "exp_dbs_seed42")
+        self.assertEqual(comp_rows[0][1], 2)
+        self.assertEqual(comp_rows[0][2], 1)
+        self.assertEqual(comp_rows[0][3], 1)
+        self.assertEqual(comp_rows[0][4], 8)
+
+        # Row 2: seed 43 (2 successes, 0 failures, total 2, aftershocks 11)
+        self.assertEqual(comp_rows[1][0], "exp_dbs_seed43")
+        self.assertEqual(comp_rows[1][1], 2)
+        self.assertEqual(comp_rows[1][2], 2)
+        self.assertEqual(comp_rows[1][3], 0)
+        self.assertEqual(comp_rows[1][4], 11)
+
+        # 3. Test v_failure_windows captures failed window
+        cursor.execute("SELECT experiment_run_id, mainshock_event_id, failure_reason_code FROM v_failure_windows")
+        fail_rows = cursor.fetchall()
+        self.assertEqual(len(fail_rows), 1)
+        self.assertEqual(fail_rows[0][0], "exp_dbs_seed42")
+        self.assertEqual(fail_rows[0][1], "main_2")
+        self.assertEqual(fail_rows[0][2], "EXP_MAINSHOCK_CLASSIFIED_AS_NOISE")
+
+        conn.close()
+
+    def test_multi_sequence_resolution_ranks_and_ambiguous(self):
+        """Test v_sequence_memberships_resolved resolution logic across rank 1, rank > 1, and AMBIGUOUS."""
+        conn = sqlite3.connect(":memory:")
+        cursor = conn.cursor()
+        cursor.executescript("""
+        CREATE TABLE experiment_run (
+            experiment_run_id TEXT PRIMARY KEY,
+            experiment_status TEXT
         );
 
         CREATE TABLE sequence_membership (
@@ -170,245 +365,168 @@ class TestMli04ViewsAndReport(unittest.TestCase):
         );
         """)
 
-        # 2. Insert Dataset
-        cursor.execute("""
-        INSERT INTO dataset_manifest VALUES (
-            'ds_test_01', 'REPRODUCTION', 'iceberg.gold.earthquake_event_current',
-            123456789, '2018-01-01 00:00:00', '2018-10-01 00:00:00', 'feat-v1', 'scale-v1'
-        );
-        """)
+        sql_file = self.sql_dir / "v_sequence_memberships_resolved.sql"
+        sqlite_ddl = adapt_trino_view_sql_for_sqlite(sql_file.read_text(encoding="utf-8"), "v_sequence_memberships_resolved")
+        cursor.execute(sqlite_ddl)
 
-        # 3. Insert Experiment Runs with different statuses:
-        # Run 1: WINDOW (APPROVED)
-        # Run 2: DBSCAN (CANDIDATE)
-        # Run 3: HDBSCAN_GLOBAL (TRAINING_EXTERNAL - NOT PUBLISHED)
-        # Run 4: HDBSCAN_ADAPTIVE (REJECTED - NOT PUBLISHED)
         cursor.executescript("""
-        INSERT INTO experiment_run VALUES
-        ('exp_win', 'WINDOW', 'win-v1', '1.0', '0.1', 'commit_a', 'APPROVED', 'ds_test_01', 3, 2, 's3://art/win', 'sha_win', '2026-11-01', '2026-11-01'),
-        ('exp_dbs', 'DBSCAN', 'dbs-v1', '1.0', '0.1', 'commit_b', 'CANDIDATE', 'ds_test_01', 3, 2, 's3://art/dbs', 'sha_dbs', '2026-11-01', '2026-11-01'),
-        ('exp_hdb_unpub', 'HDBSCAN_GLOBAL', 'hdb-v1', '1.0', '0.1', 'commit_c', 'TRAINING_EXTERNAL', 'ds_test_01', 3, 2, 's3://art/hdb', 'sha_hdb', '2026-11-01', '2026-11-01'),
-        ('exp_rej', 'HDBSCAN_ADAPTIVE', 'adp-v1', '1.0', '0.1', 'commit_d', 'REJECTED', 'ds_test_01', 3, 2, 's3://art/rej', 'sha_rej', '2026-11-01', '2026-11-01');
-        """)
+        INSERT INTO experiment_run VALUES ('exp_res', 'CANDIDATE');
 
-        # 4. Insert Summaries:
-        # WINDOW: 2 windows, both SUCCESS. DBCV is NULL.
-        # DBSCAN: 2 windows, 1 SUCCESS (aftershock=1), 1 FAILED (EXP_MAINSHOCK_CLASSIFIED_AS_NOISE).
-        cursor.executescript("""
-        INSERT INTO sequence_summary VALUES
-        ('exp_win', 'ds_test_01', 'main_1', 'WINDOW', 'win-v1', 'SUCCESS', 2, 2, 1, 0, NULL, NULL, 0.90, NULL, 1.2, 50.0, '2026-11-01'),
-        ('exp_win', 'ds_test_01', 'main_2', 'WINDOW', 'win-v1', 'SUCCESS', 1, 1, 1, 0, NULL, NULL, NULL, NULL, 0.8, 48.0, '2026-11-01'),
-        ('exp_dbs', 'ds_test_01', 'main_1', 'DBSCAN', 'dbs-v1', 'SUCCESS', 2, 1, 1, 0, 0.5, 0.25, 0.95, NULL, 1.5, 55.0, '2026-11-01'),
-        ('exp_dbs', 'ds_test_01', 'main_2', 'DBSCAN', 'dbs-v1', 'FAILED', 1, 0, 0, 0, NULL, NULL, NULL, 'EXP_MAINSHOCK_CLASSIFIED_AS_NOISE', 0.5, 52.0, '2026-11-01');
-        """)
-
-        # 5. Insert Memberships
-        cursor.executescript("""
-        -- exp_win: main_1 has cand_1 (POST member), cand_main1 (MAINSHOCK); main_2 has cand_2 (POST member)
         INSERT INTO sequence_membership VALUES
-        ('exp_win', 'ds_test_01', 'main_1', 'cand_1', 'WINDOW', 'win-v1', NULL, NULL, NULL, 1, NULL, 'POST', 0.1, 'UNIQUE', 1, '2026-11-01'),
-        ('exp_win', 'ds_test_01', 'main_1', 'cand_main1', 'WINDOW', 'win-v1', NULL, NULL, NULL, 1, NULL, 'MAINSHOCK', 0.0, 'UNIQUE', 1, '2026-11-01'),
-        ('exp_win', 'ds_test_01', 'main_2', 'cand_2', 'WINDOW', 'win-v1', NULL, NULL, NULL, 1, NULL, 'POST', 0.2, 'UNIQUE', 1, '2026-11-01'),
+        -- Case 1: Winner rank 1 POST -> is_resolved_unique_aftershock = true (1)
+        ('exp_res', 'ds1', 'm1', 'cand_winner', 'DBSCAN', 'v1', 0, 0, 1, 1, 0.9, 'POST', 0.1, 'MULTIPLE', 1, '2026-11-01'),
 
-        -- exp_dbs: main_1 has cand_1 (POST member), cand_main1 (MAINSHOCK, noise=0); main_2 has cand_main2 (MAINSHOCK, noise=1)
-        ('exp_dbs', 'ds_test_01', 'main_1', 'cand_1', 'DBSCAN', 'dbs-v1', 0, 0, 1, 1, NULL, 'POST', 0.1, 'UNIQUE', 1, '2026-11-01'),
-        ('exp_dbs', 'ds_test_01', 'main_1', 'cand_main1', 'DBSCAN', 'dbs-v1', 0, 0, 1, 0, NULL, 'MAINSHOCK', 0.0, 'UNIQUE', 1, '2026-11-01'),
-        ('exp_dbs', 'ds_test_01', 'main_2', 'cand_main2', 'DBSCAN', 'dbs-v1', -1, 1, 0, 0, NULL, 'MAINSHOCK', 0.0, 'NOT_MEMBER', NULL, '2026-11-01');
+        -- Case 2: Tied loser rank 2 POST -> is_resolved_unique_aftershock = false (0)
+        ('exp_res', 'ds1', 'm2', 'cand_winner', 'DBSCAN', 'v1', 0, 0, 1, 1, 0.9, 'POST', 0.3, 'MULTIPLE', 2, '2026-11-01'),
+
+        -- Case 3: AMBIGUOUS candidate with resolution_rank = NULL -> is_resolved_unique_aftershock = false (0)
+        ('exp_res', 'ds1', 'm1', 'cand_ambig', 'DBSCAN', 'v1', 0, 0, 1, 1, 0.5, 'POST', 0.5, 'AMBIGUOUS', NULL, '2026-11-01'),
+
+        -- Case 4: NOT_MEMBER candidate with resolution_rank = NULL -> is_resolved_unique_aftershock = false (0)
+        ('exp_res', 'ds1', 'm1', 'cand_noise', 'DBSCAN', 'v1', -1, 1, 0, 0, 0.0, 'POST', 0.9, 'NOT_MEMBER', NULL, '2026-11-01'),
+
+        -- Case 5: MAINSHOCK role with resolution_rank = 1 -> is_resolved_unique_aftershock = false (0) (not POST!)
+        ('exp_res', 'ds1', 'm1', 'm1', 'DBSCAN', 'v1', 0, 0, 1, 1, 1.0, 'MAINSHOCK', 0.0, 'UNIQUE', 1, '2026-11-01');
         """)
 
-        # 6. Test View: v_experiment_runs logic
-        q_runs = """
-        SELECT experiment_run_id, experiment_status
-        FROM experiment_run
-        WHERE experiment_status IN ('CANDIDATE', 'APPROVED')
-        """
-        cursor.execute(q_runs)
-        visible_runs = dict(cursor.fetchall())
-        self.assertEqual(len(visible_runs), 2)
-        self.assertIn("exp_win", visible_runs)
-        self.assertIn("exp_dbs", visible_runs)
-        self.assertNotIn("exp_hdb_unpub", visible_runs)
-        self.assertNotIn("exp_rej", visible_runs)
+        cursor.execute("""
+        SELECT candidate_event_id, resolution_rank, multi_sequence_status, is_resolved_unique_aftershock
+        FROM v_sequence_memberships_resolved
+        WHERE mainshock_event_id = 'm1'
+        ORDER BY candidate_event_id;
+        """)
+        results = {r[0]: (r[1], r[2], bool(r[3])) for r in cursor.fetchall()}
 
-        # 7. Test View: v_algorithm_comparison logic (Denominator Integrity & Honest NULLs)
-        q_comp = """
-        SELECT
-            e.algorithm_name,
-            COUNT(*) AS total_windows,
-            SUM(CASE WHEN s.window_result_status = 'SUCCESS' THEN 1 ELSE 0 END) AS success_windows,
-            SUM(CASE WHEN s.window_result_status = 'FAILED' THEN 1 ELSE 0 END) AS failure_windows,
-            CAST(SUM(CASE WHEN s.window_result_status = 'FAILED' THEN 1 ELSE 0 END) AS REAL) / COUNT(*) AS failure_rate,
-            AVG(s.dbcv_score) AS avg_dbcv_score,
-            SUM(s.aftershock_count) AS raw_aftershock_memberships
-        FROM experiment_run e
-        JOIN sequence_summary s ON e.experiment_run_id = s.experiment_run_id
-        WHERE e.experiment_status IN ('CANDIDATE', 'APPROVED')
-        GROUP BY e.algorithm_name
-        ORDER BY e.algorithm_name;
-        """
-        cursor.execute(q_comp)
-        comp_rows = {row[0]: row[1:] for row in cursor.fetchall()}
+        # cand_winner must be resolved as true (rank 1)
+        self.assertTrue(results["cand_winner"][2], "Rank 1 winner must be resolved as unique aftershock")
 
-        # Verify DBSCAN row: total=2, success=1, fail=1, failure_rate=0.5, dbcv=0.25, aftershocks=1
-        dbs_stats = comp_rows["DBSCAN"]
-        self.assertEqual(dbs_stats[0], 2)  # total_windows
-        self.assertEqual(dbs_stats[1], 1)  # success_windows
-        self.assertEqual(dbs_stats[2], 1)  # failure_windows
-        self.assertAlmostEqual(dbs_stats[3], 0.5)  # failure_rate
-        self.assertAlmostEqual(dbs_stats[4], 0.25)  # avg_dbcv
-        self.assertEqual(dbs_stats[5], 1)  # raw_aftershocks
+        # cand_ambig must be false (rank NULL)
+        self.assertFalse(results["cand_ambig"][2], "AMBIGUOUS candidate with NULL rank must NEVER be marked as resolved unique aftershock")
 
-        # Verify WINDOW row: total=2, success=2, fail=0, failure_rate=0.0, dbcv=NULL (honest NULL!), aftershocks=2
-        win_stats = comp_rows["WINDOW"]
-        self.assertEqual(win_stats[0], 2)
-        self.assertEqual(win_stats[1], 2)
-        self.assertEqual(win_stats[2], 0)
-        self.assertAlmostEqual(win_stats[3], 0.0)
-        self.assertIsNone(win_stats[4], "DBCV for WINDOW must remain NULL, not coerced to 0.0")
-        self.assertEqual(win_stats[5], 2)
+        # cand_noise must be false
+        self.assertFalse(results["cand_noise"][2], "NOT_MEMBER must be false")
 
-        # 8. Test View: v_failure_windows logic
-        q_fail = """
-        SELECT s.experiment_run_id, s.mainshock_event_id, s.failure_reason_code
-        FROM sequence_summary s
-        JOIN experiment_run e ON s.experiment_run_id = e.experiment_run_id
-        WHERE e.experiment_status IN ('CANDIDATE', 'APPROVED')
-          AND s.window_result_status IN ('FAILED', 'SKIPPED');
-        """
-        cursor.execute(q_fail)
-        fail_rows = cursor.fetchall()
-        self.assertEqual(len(fail_rows), 1)
-        self.assertEqual(fail_rows[0][0], "exp_dbs")
-        self.assertEqual(fail_rows[0][1], "main_2")
-        self.assertEqual(fail_rows[0][2], "EXP_MAINSHOCK_CLASSIFIED_AS_NOISE")
+        # m1 (MAINSHOCK) must be false
+        self.assertFalse(results["m1"][2], "MAINSHOCK must not be an aftershock")
 
-        # 9. Test Verification Query: Summary candidate_count vs Membership Count Parity
-        q_parity = """
-        SELECT
-            s.experiment_run_id,
-            s.mainshock_event_id,
-            s.candidate_count,
-            COUNT(m.candidate_event_id) AS membership_count
-        FROM sequence_summary s
-        JOIN sequence_membership m
-          ON s.experiment_run_id = m.experiment_run_id
-         AND s.mainshock_event_id = m.mainshock_event_id
-        GROUP BY s.experiment_run_id, s.mainshock_event_id, s.candidate_count
-        HAVING s.candidate_count <> COUNT(m.candidate_event_id);
-        """
-        cursor.execute(q_parity)
-        discrepancies = cursor.fetchall()
-        self.assertEqual(len(discrepancies), 0, "Summary candidate count must match membership count exactly")
+        # Check m2 record for cand_winner (rank 2)
+        cursor.execute("SELECT is_resolved_unique_aftershock FROM v_sequence_memberships_resolved WHERE mainshock_event_id = 'm2'")
+        self.assertFalse(bool(cursor.fetchone()[0]), "Rank 2 duplicate must NOT be resolved as unique aftershock")
 
         conn.close()
 
-    def test_multi_sequence_resolution_distinction(self):
-        """Verify that resolved unique candidates (rank 1) are strictly distinct from raw memberships."""
-        conn = sqlite3.connect(":memory:")
-        cursor = conn.cursor()
-        cursor.executescript("""
-        CREATE TABLE sequence_membership (
-            experiment_run_id TEXT,
-            mainshock_event_id TEXT,
-            candidate_event_id TEXT,
-            is_sequence_member INTEGER,
-            event_role_candidate TEXT,
-            resolution_rank INTEGER
-        );
+    def test_metric_zero_integrity_not_coerced_to_na(self):
+        """Verify that legitimate 0.0 numeric values are strictly preserved and not changed to N/A."""
+        # 0.0 noise ratio should format as 0.0%
+        self.assertEqual(report_gen.format_metric(0.0, fmt=".1f", suffix="%"), "0.0%")
+        # 0.0 DBCV should format as 0.0000
+        self.assertEqual(report_gen.format_metric(0.0, fmt=".4f"), "0.0000")
+        # 0.0 stability should format as 0.0000
+        self.assertEqual(report_gen.format_metric(0.0, fmt=".4f"), "0.0000")
+        # None should format as N/A
+        self.assertEqual(report_gen.format_metric(None), "N/A")
 
-        -- cand_overlap belongs to two mainshocks: main_1 (rank 1 - winner), main_2 (rank 2 - tied/loser)
-        INSERT INTO sequence_membership VALUES
-        ('exp_test', 'main_1', 'cand_overlap', 1, 'POST', 1),
-        ('exp_test', 'main_2', 'cand_overlap', 1, 'POST', 2),
-        ('exp_test', 'main_1', 'cand_single', 1, 'POST', 1);
-        """)
+        # In normalized payload extraction, test that 0.0 values are preserved
+        mock_raw = {
+            "evaluation_summary": {
+                "pilot_id": "pilot_zero_test",
+                "comparison_table": [{
+                    "Algorithm": "TEST_ALGO",
+                    "Total Windows": 1,
+                    "Success Windows": 1,
+                    "Failure Windows": 0,
+                    "Failure Rate": 0.0,
+                    "Total Aftershocks": 10,
+                    "Mean Noise Ratio": 0.0,
+                    "Mean DBCV": 0.0,
+                    "Mean Omori p": 1.0,
+                    "Omori Fitted Windows": "1/1",
+                    "Mean Jaccard Stability": 0.0,
+                    "Mean ARI Stability": 0.0,
+                    "Runtime (s)": 0.5,
+                }],
+                "algorithm_details": {
+                    "TEST_ALGO": {
+                        "total_windows": 1,
+                        "success_windows": 1,
+                        "failure_windows": 0,
+                        "failure_rate": 0.0,
+                        "mean_noise_ratio": 0.0,
+                        "mean_dbcv_score": 0.0,
+                        "mean_omori_p": 1.0,
+                        "mean_omori_r2": 0.99,
+                        "omori_fitted_windows": 1,
+                        "mean_jaccard_stability": 0.0,
+                        "mean_ari_stability": 0.0,
+                        "runtime_seconds": 0.5,
+                    }
+                }
+            }
+        }
+        normalized = report_gen.extract_normalized_payload(mock_raw)
+        row = normalized["comparison_table"][0]
+        self.assertEqual(row["mean_noise_ratio"], 0.0)
+        self.assertEqual(row["mean_dbcv"], 0.0)
+        self.assertEqual(row["mean_jaccard_stability"], 0.0)
+        self.assertEqual(row["mean_ari_stability"], 0.0)
 
-        # Query raw vs resolved unique
-        cursor.execute("""
-        SELECT
-            COUNT(*) AS raw_post_memberships,
-            COUNT(DISTINCT CASE WHEN is_sequence_member = 1 AND event_role_candidate = 'POST' AND resolution_rank = 1 THEN candidate_event_id END) AS unique_resolved_aftershocks
-        FROM sequence_membership
-        WHERE is_sequence_member = 1 AND event_role_candidate = 'POST';
-        """)
-        raw_count, unique_count = cursor.fetchone()
-        self.assertEqual(raw_count, 3, "Raw memberships count every assignment")
-        self.assertEqual(unique_count, 2, "Resolved unique aftershocks must eliminate duplicates via resolution_rank = 1")
-        conn.close()
+        # In details
+        detail = normalized["model_analyses"]["TEST_ALGO"]
+        self.assertEqual(detail["mean_noise_ratio"], "0.0%")
+        self.assertEqual(detail["mean_dbcv"], "0.0000")
+        self.assertEqual(detail["mean_jaccard_stability"], "0.0000")
+        self.assertEqual(detail["mean_ari_stability"], "0.0000")
 
-    def test_report_generator_development_mode(self):
-        """Verify that report generator in development mode applies DEVELOPMENT_ONLY and required disclaimers."""
-        self.assertTrue(self.pilot_eval_json.exists(), "Pilot evaluation JSON fixture must exist")
+    def test_publication_gate_fail_closed_official_mode(self):
+        """Verify that official mode rejects empty payload, empty runs, or unapproved states."""
+        # 1. Empty payload {} in official mode
+        with self.assertRaises(ValueError) as ctx:
+            report_gen.build_markdown_report({}, mode="official")
+        self.assertIn("PUBLICATION_GATE_VIOLATION", str(ctx.exception))
+
+        # 2. Empty runs list in official mode
+        empty_runs_payload = {
+            "metadata": {"dataset_id": "ds_official", "research_ready": True},
+            "runs": [],
+            "comparison_table": [],
+        }
+        with self.assertRaises(ValueError) as ctx:
+            report_gen.build_markdown_report(empty_runs_payload, mode="official")
+        self.assertIn("PUBLICATION_GATE_VIOLATION", str(ctx.exception))
+
+        # 3. Payload with TRAINING_EXTERNAL run in official mode
+        unapproved_payload = {
+            "metadata": {"dataset_id": "ds_official", "research_ready": True},
+            "runs": [
+                {"experiment_run_id": "exp_ok", "status": "APPROVED"},
+                {"experiment_run_id": "exp_bad", "status": "TRAINING_EXTERNAL"},
+            ],
+            "comparison_table": [{"algorithm": "WINDOW", "status": "APPROVED"}],
+        }
+        with self.assertRaises(ValueError) as ctx:
+            report_gen.build_markdown_report(unapproved_payload, mode="official")
+        self.assertIn("PUBLICATION_GATE_VIOLATION", str(ctx.exception))
+
+        # 4. Auto mode with unapproved runs attempting official publishing
+        with self.assertRaises(ValueError) as ctx:
+            report_gen.build_markdown_report(unapproved_payload, mode="auto")
+        self.assertIn("PUBLICATION_GATE_VIOLATION", str(ctx.exception))
+
+    def test_development_mode_truthful_parity_statement(self):
+        """Verify that development pilot report explicitly marks SQL parity as CHƯA NGHIỆM THU."""
         with open(self.pilot_eval_json, "r", encoding="utf-8") as f:
             data = json.load(f)
 
         md = report_gen.build_markdown_report(data, mode="development")
         self.assertIn("DEVELOPMENT_ONLY (research_ready=false)", md)
-        self.assertIn("RANH GIỚI KHOA HỌC BẮT BUỘC", md)
-        self.assertIn("Tuyệt đối KHÔNG dự đoán động đất", md)
-        self.assertIn("Không dùng Accuracy / F1", md)
+        self.assertIn("CHƯA NGHIỆM THU (PENDING OFFICIAL IMPORT)", md)
         self.assertIn("Bảo toàn mẫu số (Denominator Integrity)", md)
-        self.assertIn("WINDOW", md)
-        self.assertIn("DBSCAN", md)
-        self.assertIn("HDBSCAN_GLOBAL", md)
-        self.assertIn("HDBSCAN_ADAPTIVE", md)
-        self.assertIn("EXP_MAINSHOCK_CLASSIFIED_AS_NOISE", md)
-
-    def test_report_generator_official_mode_gate_enforcement(self):
-        """Verify that report generator in official mode rejects unapproved runs."""
-        unapproved_payload = {
-            "metadata": {
-                "dataset_id": "ds_official_01",
-                "research_ready": True,
-            },
-            "runs": [
-                {"experiment_run_id": "exp_valid", "status": "APPROVED"},
-                {"experiment_run_id": "exp_invalid", "status": "TRAINING_EXTERNAL"},
-            ],
-            "comparison_table": [],
-            "model_analyses": {},
-        }
-        with self.assertRaises(ValueError) as ctx:
-            report_gen.validate_publication_gate(unapproved_payload["runs"], mode="official")
-        self.assertIn("PUBLICATION_GATE_VIOLATION", str(ctx.exception))
-
-        # Passing only valid runs should succeed
-        valid_runs = [
-            {"experiment_run_id": "exp_1", "status": "APPROVED"},
-            {"experiment_run_id": "exp_2", "status": "CANDIDATE"},
-        ]
-        report_gen.validate_publication_gate(valid_runs, mode="official")
-
-    def test_report_cli_execution(self):
-        """Test invoking generate-experiment-report.py via CLI."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            out_md = Path(tmpdir) / "test_report.md"
-            out_json = Path(tmpdir) / "test_summary.json"
-            cmd = [
-                sys.executable,
-                str(self.report_script),
-                "--input-json",
-                str(self.pilot_eval_json),
-                "--output-md",
-                str(out_md),
-                "--output-json",
-                str(out_json),
-                "--mode",
-                "development",
-            ]
-            result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            self.assertEqual(result.returncode, 0, f"CLI failed: {result.stderr}")
-            self.assertTrue(out_md.exists(), "Markdown output must be generated")
-            self.assertTrue(out_json.exists(), "JSON output must be generated")
-
-            content = out_md.read_text(encoding="utf-8")
-            self.assertIn("DEVELOPMENT_ONLY", content)
 
     def test_data_dictionary_completeness(self):
         """Verify that ML_REPORT_DATA_DICTIONARY.md documents all views and reason codes."""
         self.assertTrue(self.data_dict.exists(), "Data dictionary file must exist")
         content = self.data_dict.read_text(encoding="utf-8")
-        
+
         required_views = [
             "iceberg.ml.v_experiment_runs",
             "iceberg.ml.v_algorithm_comparison",

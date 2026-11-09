@@ -2,6 +2,8 @@
 -- Granular sequence membership view linked to candidate event lineage.
 -- Enforces publication gate (CANDIDATE/APPROVED only).
 -- Separates raw membership records from resolved unique aftershocks to avoid double-counting.
+-- Winner definition: strictly requires is_sequence_member = true, event_role_candidate = 'POST', and resolution_rank = 1.
+-- Rows with resolution_rank IS NULL (e.g. AMBIGUOUS or unassigned) or resolution_rank > 1 are NEVER considered winners.
 
 CREATE OR REPLACE VIEW iceberg.ml.v_sequence_memberships_resolved AS
 SELECT
@@ -23,7 +25,7 @@ SELECT
     CASE
         WHEN m.is_sequence_member = true
          AND m.event_role_candidate = 'POST'
-         AND COALESCE(m.resolution_rank, 1) = 1
+         AND m.resolution_rank = 1
         THEN true
         ELSE false
     END AS is_resolved_unique_aftershock,

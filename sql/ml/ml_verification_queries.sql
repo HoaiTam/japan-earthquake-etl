@@ -76,11 +76,12 @@ WHERE algorithm_name = 'WINDOW'
   AND dbcv_score IS NOT NULL;
 
 -- Q6. Multi-Sequence Resolution Audit: Raw Memberships vs Unique Candidates.
--- Verifies that resolved unique aftershocks (rank 1) are strictly <= raw memberships.
+-- Verifies that resolved unique aftershocks strictly require resolution_rank = 1.
+-- Rows with resolution_rank IS NULL (e.g. AMBIGUOUS) or rank > 1 are not counted.
 SELECT
     m.experiment_run_id,
     COUNT(CASE WHEN m.is_sequence_member = true AND m.event_role_candidate = 'POST' THEN 1 END) AS raw_post_memberships,
-    COUNT(DISTINCT CASE WHEN m.is_sequence_member = true AND m.event_role_candidate = 'POST' AND COALESCE(m.resolution_rank, 1) = 1 THEN m.candidate_event_id END) AS unique_resolved_aftershocks
+    COUNT(DISTINCT CASE WHEN m.is_sequence_member = true AND m.event_role_candidate = 'POST' AND m.resolution_rank = 1 THEN m.candidate_event_id END) AS unique_resolved_aftershocks
 FROM iceberg.ml.sequence_membership m
 JOIN iceberg.ml.experiment_run e
   ON m.experiment_run_id = e.experiment_run_id
