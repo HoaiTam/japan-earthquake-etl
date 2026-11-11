@@ -1,6 +1,6 @@
 ---
 task_id: "EXP-02"
-status: "In Progress"
+status: "Needs Update"
 week: 5
 block: "H - Experiment"
 workstream: "Baseline algorithms"
@@ -13,6 +13,20 @@ dependencies: ["EXP-01", "DAT-02", "DAT-03", "MLD-05"]
 ---
 
 # EXP-02 - Chạy Window, DBSCAN và HDBSCAN global
+
+## Giao việc hiện hành — 11/11/2026
+
+- **Owner:** rosy179; **status:** Needs Update.
+- **Làm phần gì / dùng để làm gì:** Baseline official.
+- **Bắt đầu độc lập:** Tái dùng code/local–Colab parity đã merge #114; khóa runner/config theo release.
+- **Đầu ra và điều kiện Done:** WINDOW/DBSCAN/HDBSCAN global per-mainshock trên REPRODUCTION EXPORTED; artifact/pins/counts/environment thật, giữ failures.
+- **Lịch:** chuẩn bị 11–15/11, nghiệm thu tuần9 16–22/11; xem
+  [kế hoạch và setup](../WEEK_9_REPLAN_20261111.md). Giữ hard dependencies,
+  scope/effort lịch sử; các mục tuần cũ dưới đây là lịch sử.
+
+Owner yêu cầu11/11: In Progress → Needs Update cho phần đã triển khai nhưng
+chưa đủ acceptance. Không khẳng định từng Done toàn task hoặc mất code.
+[Đối soát](../../evidence/TASK_STATUS_AUDIT_20261111.md).
 
 ## Mục đích
 
@@ -101,7 +115,7 @@ release thật EXPORTED. Colab pilot đạt chưa chuyển toàn EXP-02 Done.
 
 ## Theo dõi
 
-- **Trạng thái:** In Progress
+- **Trạng thái:** Needs Update
 - **Assignee:** rosy179
 - **Reviewer:** unassigned
 - **Evidence / PR:** [EXP-02 Local Evidence](../../evidence/EXP-02.md) và [EXP-02 Colab Parity Evidence](../../evidence/EXP-02_COLAB_PARITY_20261102.md)

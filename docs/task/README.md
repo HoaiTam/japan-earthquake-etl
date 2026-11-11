@@ -1,9 +1,13 @@
 # Kế hoạch task 8 tuần
 
+> **Hiện hành11/11/2026:** [phân công tuần9 — 16–22/11](./WEEK_9_REPLAN_20261111.md).
+> 63 Done / 6 Needs Update / 12 Backlog;18task,6task/người.
+> Roster/effort tuần cũ bên dưới là lịch sử. [Đối soát](../evidence/TASK_STATUS_AUDIT_20261111.md).
+
 Backlog được lưu hoàn toàn bằng Markdown. Mỗi task có một file độc lập trong
 [danh mục task](./tasks/README.md); phạm vi, thành phần và mục đích của từng
 khối được giải thích tại [Các khối công việc sau Foundation](./WORK_BLOCKS.md).
-Phân công gần nhất là [tuần7 — pilot trên Colab](./WEEK_7_COLAB_PLAN.md),
+Phân công lịch sử [tuần7 — pilot trên Colab](./WEEK_7_COLAB_PLAN.md),
 02–08/11/2026: HoaiTam khối1, rosy179 khối2, ThanhTris khối3;
 [setup đầy đủ](../runbooks/WEEK_7_COLAB_SETUP.md). Có4task COL mới/14h,
 backlog hiện **81task/416h**, Core73/Stretch8. Tuần7 budget54h là phần còn

@@ -7,12 +7,22 @@ workstream: "Out-of-period evaluation"
 scope: "Core"
 priority: "P0"
 effort_hours: 5
-assignee: "unassigned"
+assignee: "rosy179"
 reviewer: "unassigned"
 dependencies: ["EXP-04"]
 ---
 
 # EXP-05 - Chạy out-of-period extension 2018-2023
+
+## Giao việc hiện hành — 11/11/2026
+
+- **Owner:** rosy179; **status:** Backlog.
+- **Làm phần gì / dùng để làm gì:** Extension 2018–2023.
+- **Bắt đầu độc lập:** Chuẩn bị runner/comparison schema bằng fixture, chưa tune extension.
+- **Đầu ra và điều kiện Done:** Sau EXP-04 freeze: bốn thuật toán trên EXTENSION, cùng rule đã khóa; report reproduction-vs-extension có reasons/drift/sample size.
+- **Lịch:** chuẩn bị 11–15/11, nghiệm thu tuần9 16–22/11; xem
+  [kế hoạch và setup](../WEEK_9_REPLAN_20261111.md). Giữ hard dependencies,
+  scope/effort lịch sử; các mục tuần cũ dưới đây là lịch sử.
 
 ## Mục đích
 
@@ -57,7 +67,7 @@ sau khi reproduction rule/config đã freeze.
 ## Theo dõi
 
 - **Trạng thái:** Backlog
-- **Assignee:** Chưa ghi lại
+- **Assignee:** rosy179
 - **Reviewer:** Chưa ghi lại
 - **Evidence / PR:** Chưa có
 - **Kỹ năng phù hợp:** Temporal validation, experiment analysis, HDBSCAN

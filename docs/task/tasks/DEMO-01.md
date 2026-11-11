@@ -7,12 +7,22 @@ workstream: "Demo"
 scope: "Core"
 priority: "P0"
 effort_hours: 4
-assignee: "unassigned"
+assignee: "ThanhTris"
 reviewer: "unassigned"
 dependencies: ["QA-01", "MLQ-01", "MLI-04"]
 ---
 
 # DEMO-01 - Chuẩn bị dữ liệu và kịch bản demo
+
+## Giao việc hiện hành — 11/11/2026
+
+- **Owner:** ThanhTris; **status:** Backlog.
+- **Làm phần gì / dùng để làm gì:** Kịch bản demo.
+- **Bắt đầu độc lập:** Soạn luồng source → lakehouse → ML → report và fallback có nhãn rõ.
+- **Đầu ra và điều kiện Done:** Sau QA-01/MLQ-01/MLI-04: demo package với exact runs/query/pins, không chạy lại toàn catalog trên sân khấu.
+- **Lịch:** chuẩn bị 11–15/11, nghiệm thu tuần9 16–22/11; xem
+  [kế hoạch và setup](../WEEK_9_REPLAN_20261111.md). Giữ hard dependencies,
+  scope/effort lịch sử; các mục tuần cũ dưới đây là lịch sử.
 
 ## Mục đích
 
@@ -66,7 +76,7 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 ## Theo dõi
 
 - **Trạng thái:** Backlog
-- **Assignee:** Chưa ghi lại
+- **Assignee:** ThanhTris
 - **Reviewer:** Chưa ghi lại
 - **Evidence / PR:** Chưa có
 - **Kỹ năng phù hợp:** Demo, communication, QA
