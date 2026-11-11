@@ -1,6 +1,6 @@
 ---
 task_id: "DAT-03"
-status: "In Progress"
+status: "Needs Update"
 week: 6
 block: "A - Hợp đồng dữ liệu"
 workstream: "Verified research data and team handoff"
@@ -13,6 +13,20 @@ dependencies: ["ORC-07", "MLD-05", "MLI-02", "EXP-01"]
 ---
 
 # DAT-03 - Chuẩn bị catalog nghiên cứu thật và bàn giao dataset dùng chung
+
+## Giao việc hiện hành — 11/11/2026
+
+- **Owner:** HoaiTam; **status:** Needs Update.
+- **Làm phần gì / dùng để làm gì:** Lineage → catalog tích hợp → official export.
+- **Bắt đầu độc lập:** Đối chiếu bytes/SHA tầng tiếp theo của Trí/Trang; không chạy lại ETL đã accepted.
+- **Đầu ra và điều kiện Done:** Catalog thống nhất có boundary/reconciliation, Gold/Trino pins; REPRODUCTION/EXTENSION EXPORTED, loader/rerun và receipts ba máy.
+- **Lịch:** chuẩn bị 11–15/11, nghiệm thu tuần9 16–22/11; xem
+  [kế hoạch và setup](../WEEK_9_REPLAN_20261111.md). Giữ hard dependencies,
+  scope/effort lịch sử; các mục tuần cũ dưới đây là lịch sử.
+
+Owner yêu cầu11/11: In Progress → Needs Update cho phần đã triển khai nhưng
+chưa đủ acceptance. Không khẳng định từng Done toàn task hoặc mất code.
+[Đối soát](../../evidence/TASK_STATUS_AUDIT_20261111.md).
 
 ## Mục đích
 
@@ -234,7 +248,7 @@ release đủ gate. Không tạo dependency ngược từ DAT-03 sang EXP-02.
   [Evidence](../../evidence/DAT-03_DRIVE_RANGES_20261028.md). Giữ In Progress;
   các mốc101/113 bên dưới là lịch sử, chưa officialMLexport/receipts ba máy.
 
-- **Trạng thái:** In Progress
+- **Trạng thái:** Needs Update
 - **Assignee:** HoaiTam
 - **Reviewer:** unassigned
 - **Cập nhật tối27/10:** đã hủy automation, mở lại Docker và benchmark chỉ đọc

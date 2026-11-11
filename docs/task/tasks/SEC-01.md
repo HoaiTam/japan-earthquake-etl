@@ -14,6 +14,19 @@ dependencies: ["ORC-05"]
 
 # SEC-01 - Review secret và bề mặt truy cập
 
+## Giao việc hiện hành — 11/11/2026
+
+- **Owner:** HoaiTam; **status:** Needs Update.
+- **Làm phần gì / dùng để làm gì:** Bảo mật Drive/Colab.
+- **Bắt đầu độc lập:** Tiếp tục PR #119; scan exact notebooks/output đã có, kiểm ACL và xác nhận roster riêng.
+- **Đầu ra và điều kiện Done:** Hết finding/pending trong scope; actual session/recipient evidence ba người, không suy quyền nhận từ CI hoặc tên file.
+- **Lịch:** chuẩn bị 11–15/11, nghiệm thu tuần9 16–22/11; xem
+  [kế hoạch và setup](../WEEK_9_REPLAN_20261111.md). Giữ hard dependencies,
+  scope/effort lịch sử; các mục tuần cũ dưới đây là lịch sử.
+
+PR [#119](https://github.com/HoaiTam/japan-earthquake-etl/pull/119) còn Draft;
+không coi audit cloud đã merge hoặc audit local23/10 là cloud PASS.
+
 ## Mục đích
 
 Dùng để bảo đảm source credentials và storage không bị lộ khi nhóm chia sẻ repository/demo.

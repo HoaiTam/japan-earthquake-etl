@@ -1,6 +1,6 @@
 ---
 task_id: "COL-03"
-status: "In Progress"
+status: "Done"
 week: 7
 block: "H - Experiment"
 workstream: "Pilot baseline metrics and plots"
@@ -58,7 +58,16 @@ Trino report của [MLI-04](./MLI-04.md).
 
 ## Theo dõi
 
-- **Trạng thái:** In Progress
+- **Trạng thái:** Done
 - **Assignee:** rosy179
 - **Reviewer:** unassigned
 - **Evidence / PR:** [COL-03 Baseline Metrics and Plots Evidence](../../evidence/COL-03_BASELINE_METRICS_PLOTS_20261102.md)
+
+## Chốt nghiệm thu — 11/11/2026
+
+[PR #117](https://github.com/HoaiTam/japan-earthquake-etl/pull/117) đã merge;
+review head2fc5129 xác nhận39/39 tests COL-03,21/21 GitHub checks, notebook
+provenance và biểu đồ đủ nhóm candidate/đại diện ba thuật toán. Evidence pilot
+và checksum giữ tại tài liệu liên kết phía trên. Done scope DEVELOPMENT_ONLY/
+PARTIAL; không thay DAT-03/EXP-04 official acceptance. Reviewer unassigned,
+không điền approval thay người.

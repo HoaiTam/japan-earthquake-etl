@@ -7,12 +7,22 @@ workstream: "Aggregates"
 scope: "Stretch"
 priority: "P2"
 effort_hours: 4
-assignee: "Trang"
+assignee: "ThanhTris"
 reviewer: "unassigned"
 dependencies: ["CON-03", "GLD-01"]
 ---
 
 # GLD-02 - Tạo aggregate phục vụ dashboard
+
+## Giao việc hiện hành — 11/11/2026
+
+- **Owner:** ThanhTris; **status:** Backlog.
+- **Làm phần gì / dùng để làm gì:** Aggregate dashboard.
+- **Bắt đầu độc lập:** Thiết kế aggregate theo fact/date/region/bands và fixture tests.
+- **Đầu ra và điều kiện Done:** Aggregate khớp fact cùng filters, không double count từ source bridge; không làm hard dependency giả cho ML.
+- **Lịch:** chuẩn bị 11–15/11, nghiệm thu tuần9 16–22/11; xem
+  [kế hoạch và setup](../WEEK_9_REPLAN_20261111.md). Giữ hard dependencies,
+  scope/effort lịch sử; các mục tuần cũ dưới đây là lịch sử.
 
 ## Mục đích
 
@@ -72,7 +82,7 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 ## Theo dõi
 
 - **Trạng thái:** Backlog
-- **Assignee:** Trang
+- **Assignee:** ThanhTris
 - **Reviewer:** Chưa ghi lại
 - **Evidence / PR:** Chưa có
 - **Kỹ năng phù hợp:** Spark SQL, aggregation

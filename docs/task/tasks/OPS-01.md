@@ -7,12 +7,22 @@ workstream: "Backup and restore"
 scope: "Stretch"
 priority: "P2"
 effort_hours: 4
-assignee: "unassigned"
+assignee: "HoaiTam"
 reviewer: "unassigned"
 dependencies: ["GLD-03", "ORC-05"]
 ---
 
 # OPS-01 - Smoke test backup và restore metadata
+
+## Giao việc hiện hành — 11/11/2026
+
+- **Owner:** HoaiTam; **status:** Backlog.
+- **Làm phần gì / dùng để làm gì:** Backup/restore.
+- **Bắt đầu độc lập:** Inventory metadata và chuẩn bị restore procedure trong namespace thử.
+- **Đầu ra và điều kiện Done:** Restore đọc được Gold và ML lineage/registry; backup chia sẻ không chứa secret, không restore đè deployment gốc.
+- **Lịch:** chuẩn bị 11–15/11, nghiệm thu tuần9 16–22/11; xem
+  [kế hoạch và setup](../WEEK_9_REPLAN_20261111.md). Giữ hard dependencies,
+  scope/effort lịch sử; các mục tuần cũ dưới đây là lịch sử.
 
 ## Mục đích
 
@@ -64,7 +74,7 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 ## Theo dõi
 
 - **Trạng thái:** Backlog
-- **Assignee:** Chưa ghi lại
+- **Assignee:** HoaiTam
 - **Reviewer:** Chưa ghi lại
 - **Evidence / PR:** Chưa có
 - **Kỹ năng phù hợp:** Backup, MinIO, operations

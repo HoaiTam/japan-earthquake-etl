@@ -1,5 +1,9 @@
 # Các khối công việc sau Foundation
 
+> **Hiện hành11/11/2026:** [phân công tuần9 — 16–22/11](./WEEK_9_REPLAN_20261111.md).
+> 63 Done / 6 Needs Update / 12 Backlog;18task,6task/người.
+> Roster/effort tuần cũ bên dưới là lịch sử. [Đối soát](../evidence/TASK_STATUS_AUDIT_20261111.md).
+
 Tài liệu này giải thích các task từ tuần 2 đến tuần 8 theo ba câu hỏi: **làm phần gì**, **có những gì** và **dùng để làm gì**. Danh sách task chi tiết, effort, assignee, reviewer và status nằm trong [danh mục task Markdown](./tasks/README.md); mỗi mã task dẫn đến một file riêng.
 
 **Phân công hiện hành:** [tuần7 — Colab pilot](./WEEK_7_COLAB_PLAN.md),

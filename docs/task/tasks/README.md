@@ -22,6 +22,13 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 
 ## Tổng quan
 
+**Hiện hành11/11:** 63/81 Done,6 Needs Update,12 Backlog,0 In Progress.
+[Kế hoạch tuần9,6task/người](../WEEK_9_REPLAN_20261111.md),
+[đối soát PR/acceptance](../../evidence/TASK_STATUS_AUDIT_20261111.md).
+COL-03 Done sau #117; #124 merge implementation, MLI-04 còn official parity.
+Các mốc bên dưới là lịch sử. Năm task dở chuyển Needs Update theo yêu cầu
+owner11/11, không sửa lịch sử thành từng Done; khi thực sự tiếp tục đổi In Progress.
+
 **DAT-03 05/11 — đối soát 288 tháng và 75/75 provenance ThanhTris:** đối soát offline
 xác nhận đủ 288/288 tháng qua 4 gói phân đoạn (101 nền, 62 HoaiTam, 62 ThanhTris,
 63 rosy179), 0 gap và 0 overlap. Provenance ThanhTris đạt 75/75 objects khớp 100%
@@ -36,7 +43,7 @@ cho session952973b42c8d4570b653ece99c79ed78 bị ngắt ở Verify sau COMMITTED
 Giữ failed evidence, không quarantine/skip. Báo cáo33/63 của chủ máy chưa
 được cộng thành acceptance; chờ actual recovery trên máy đó. Task In Progress.
 
-**Phân công hiện hành — tuần7, 02–08/11/2026:**
+**Phân công lịch sử — tuần7, 02–08/11/2026:**
 [kế hoạch Colab ba khối](../WEEK_7_COLAB_PLAN.md) và
 [setup đầy đủ](../../runbooks/WEEK_7_COLAB_SETUP.md). HoaiTam khối1
 (DAT-03 pilot/EXP-01/COL-01/DOC-01/SEC-01), rosy179 khối2
@@ -88,7 +95,7 @@ full catalog/export/receipts ba máy.
 
 - Tổng số task: **81**.
 - Foundation: **9 task `Done`**, FND-01 đã nghiệm thu runtime của lifecycle mới ngày 2026-10-15.
-- Task còn ở trạng thái `Needs Update`: **1** — SEC-01; EXP-01 cloud harness tuần7 đã Done, không thay security/session audit.
+- Task còn ở trạng thái `Needs Update`: **6** — DAT-03, EXP-02/03/04, MLI-04, SEC-01; EXP-01 cloud harness tuần7 đã Done, không thay security/session audit.
 - Core: **73 task**.
 - Stretch: **8 task**.
 - Tổng effort task: **416 giờ**; baseline 364h + ORC-06/07 16h + DAT-02 6h + DAT-03 16h + COL-01..04 14h.
@@ -221,7 +228,7 @@ fixture/inventory; assignee `HoaiTam`, reviewer `unassigned`. Xem
 | [CON-03](./CON-03.md) - Thiết kế mô hình dữ liệu Silver, Gold và ML | 2 | Data model contract | Core | P0 | 6h | Done |
 | [DAT-01](./DAT-01.md) - Chuẩn bị bộ dữ liệu mẫu thật từ USGS và JMA | 3 | Shared real samples | Core | P0 | 3h | Done |
 | [DAT-02](./DAT-02.md) - Tạo dataset pilot nhỏ để test trên Jupyter | 5 | Jupyter development pilot | Core | P0 | 6h | Done |
-| [DAT-03](./DAT-03.md) - Chuẩn bị catalog nghiên cứu thật và bàn giao dataset dùng chung | 6 | Verified research data and team handoff | Core | P0 | 16h | In Progress |
+| [DAT-03](./DAT-03.md) - Chuẩn bị catalog nghiên cứu thật và bàn giao dataset dùng chung | 6 | Verified research data and team handoff | Core | P0 | 16h | Needs Update |
 
 DAT-03: [range worker + frozen USGS2023](../../runbooks/DAT-03_RANGE_WORKER.md)
 đã có code/transport; còn một tháng runtime acceptance trên từng máy,
@@ -298,13 +305,13 @@ portable merge, full catalog và official export/receipts. Không suy unit PASS 
 | Task | Tuần | Workstream | Scope | Priority | Effort | Trạng thái |
 |---|---:|---|---|---|---:|---|
 | [EXP-01](./EXP-01.md) - Tạo Jupyter harness và chuẩn bị chuyển sang Colab | 5 | Jupyter-first harness | Core | P0 | 5h | Done |
-| [EXP-02](./EXP-02.md) - Chạy Window, DBSCAN và HDBSCAN global | 5 | Baseline algorithms | Core | P0 | 7h | In Progress |
-| [EXP-03](./EXP-03.md) - Xây HDBSCAN adaptive và giải quyết multi-sequence | 5 | Adaptive HDBSCAN | Core | P0 | 6h | In Progress |
-| [EXP-04](./EXP-04.md) - Đánh giá quality, physical consistency và stability | 7 | Scientific evaluation | Core | P0 | 7h | In Progress |
+| [EXP-02](./EXP-02.md) - Chạy Window, DBSCAN và HDBSCAN global | 5 | Baseline algorithms | Core | P0 | 7h | Needs Update |
+| [EXP-03](./EXP-03.md) - Xây HDBSCAN adaptive và giải quyết multi-sequence | 5 | Adaptive HDBSCAN | Core | P0 | 6h | Needs Update |
+| [EXP-04](./EXP-04.md) - Đánh giá quality, physical consistency và stability | 7 | Scientific evaluation | Core | P0 | 7h | Needs Update |
 | [EXP-05](./EXP-05.md) - Chạy out-of-period extension 2018-2023 | 7 | Out-of-period evaluation | Core | P0 | 5h | Backlog |
 | [COL-01](./COL-01.md) - Khảo sát và giải thích pilot trên Colab | 7 | Colab pilot data inspection | Core | P1 | 3h | Done |
 | [COL-02](./COL-02.md) - Sweep tham số baseline giới hạn trên pilot | 7 | Bounded baseline parameter sweep | Core | P1 | 4h | Done |
-| [COL-03](./COL-03.md) - Metrics và trực quan hóa baseline pilot | 7 | Pilot baseline metrics and plots | Core | P1 | 4h | In Progress |
+| [COL-03](./COL-03.md) - Metrics và trực quan hóa baseline pilot | 7 | Pilot baseline metrics and plots | Core | P1 | 4h | Done |
 | [COL-04](./COL-04.md) - Kiểm thử biên, multi-sequence và rerun adaptive | 7 | Adaptive edge-case regression | Core | P1 | 3h | Done |
 
 ## I - ML Integration
@@ -314,7 +321,7 @@ portable merge, full catalog và official export/receipts. Không suy unit PASS 
 | [MLI-01](./MLI-01.md) - Khóa result bundle và experiment lifecycle | 4 | Result bundle contract | Core | P0 | 5h | Done |
 | [MLI-02](./MLI-02.md) - Tạo Airflow DAG build ML dataset | 5 | Dataset build orchestration | Core | P0 | 5h | Done |
 | [MLI-03](./MLI-03.md) - Validate/import kết quả và commit bảng ML Iceberg | 5 | Result import and Iceberg publish | Core | P0 | 7h | Done |
-| [MLI-04](./MLI-04.md) - Tạo Trino views và static report cho experiment | 8 | ML serving and report | Core | P0 | 4h | In Progress |
+| [MLI-04](./MLI-04.md) - Tạo Trino views và static report cho experiment | 8 | ML serving and report | Core | P0 | 4h | Needs Update |
 | [MLQ-01](./MLQ-01.md) - Chạy E2E Gold snapshot đến ML report | 8 | ML end-to-end QA | Core | P0 | 6h | Backlog |
 
 ## J - Power BI tùy chọn

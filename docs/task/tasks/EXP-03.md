@@ -1,6 +1,6 @@
 ---
 task_id: "EXP-03"
-status: "In Progress"
+status: "Needs Update"
 week: 5
 block: "H - Experiment"
 workstream: "Adaptive HDBSCAN"
@@ -13,6 +13,20 @@ dependencies: ["EXP-02"]
 ---
 
 # EXP-03 - Xây HDBSCAN adaptive và giải quyết multi-sequence
+
+## Giao việc hiện hành — 11/11/2026
+
+- **Owner:** ThanhTris; **status:** Needs Update.
+- **Làm phần gì / dùng để làm gì:** Adaptive và multi-sequence.
+- **Bắt đầu độc lập:** Tái dùng #113/#116; bổ sung actual Colab notebook/output/session cho SEC-01 sau local gate.
+- **Đầu ra và điều kiện Done:** Sau EXP-02 official: adaptive REPRODUCTION bundle, raw/resolved membership, ambiguous/nested counts; khóa config trước extension.
+- **Lịch:** chuẩn bị 11–15/11, nghiệm thu tuần9 16–22/11; xem
+  [kế hoạch và setup](../WEEK_9_REPLAN_20261111.md). Giữ hard dependencies,
+  scope/effort lịch sử; các mục tuần cũ dưới đây là lịch sử.
+
+Owner yêu cầu11/11: In Progress → Needs Update cho phần đã triển khai nhưng
+chưa đủ acceptance. Không khẳng định từng Done toàn task hoặc mất code.
+[Đối soát](../../evidence/TASK_STATUS_AUDIT_20261111.md).
 
 ## Mục đích
 
@@ -72,7 +86,7 @@ evidence cũ thành nghiệm thu của người mới. Giữ In Progress và har
 
 ## Theo dõi
 
-- **Trạng thái:** In Progress
+- **Trạng thái:** Needs Update
 - **Assignee:** ThanhTris
 - **Reviewer:** unassigned
 - **02/11/2026 — local smoke gate update & real pilot identity verification:** Hoàn thiện theo review của @HoaiTam (PR #113):

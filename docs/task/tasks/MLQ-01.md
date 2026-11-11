@@ -7,12 +7,22 @@ workstream: "ML end-to-end QA"
 scope: "Core"
 priority: "P0"
 effort_hours: 6
-assignee: "unassigned"
+assignee: "HoaiTam"
 reviewer: "unassigned"
 dependencies: ["QA-01", "MLI-02", "MLI-04", "EXP-05"]
 ---
 
 # MLQ-01 - Chạy E2E Gold snapshot đến ML report
+
+## Giao việc hiện hành — 11/11/2026
+
+- **Owner:** HoaiTam; **status:** Backlog.
+- **Làm phần gì / dùng để làm gì:** Nghiệm thu ML E2E.
+- **Bắt đầu độc lập:** Viết test plan, negative fixtures và reconciliation queries ngay.
+- **Đầu ra và điều kiện Done:** Sau hard dependencies: truy vết Gold → dataset → experiment → import/report; reject bundle lỗi và rerun không duplicate.
+- **Lịch:** chuẩn bị 11–15/11, nghiệm thu tuần9 16–22/11; xem
+  [kế hoạch và setup](../WEEK_9_REPLAN_20261111.md). Giữ hard dependencies,
+  scope/effort lịch sử; các mục tuần cũ dưới đây là lịch sử.
 
 ## Mục đích
 
@@ -61,7 +71,7 @@ trạng thái `Done` mới buộc output thật của mọi hard dependency.
 ## Theo dõi
 
 - **Trạng thái:** Backlog
-- **Assignee:** Chưa ghi lại
+- **Assignee:** HoaiTam
 - **Reviewer:** Chưa ghi lại
 - **Evidence / PR:** Chưa có
 - **Kỹ năng phù hợp:** Integration testing, reconciliation, ML reproducibility

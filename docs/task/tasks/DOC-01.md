@@ -110,3 +110,9 @@ HoaiTam tiếp tục bổ sung expected outputs/known issues theo đúng evidenc
 - [Kế hoạch 8 tuần](../README.md)
 - [Các khối công việc](../WORK_BLOCKS.md)
 - [Baseline MVP, KPI và Definition of Done](../../specs/MVP_SCOPE_KPI_AND_DOD.md)
+
+## Bảo trì11/11/2026
+
+[Đối soát](../../evidence/TASK_STATUS_AUDIT_20261111.md) và
+[phân công tuần9](../WEEK_9_REPLAN_20261111.md) theo yêu cầu owner. Giữ Done
+scope docs; không chạy ETL/cloud audit hoặc chứng nhận scientific acceptance.

@@ -1,6 +1,6 @@
 ---
 task_id: "EXP-04"
-status: "In Progress"
+status: "Needs Update"
 week: 7
 block: "H - Experiment"
 workstream: "Scientific evaluation"
@@ -13,6 +13,20 @@ dependencies: ["EXP-02", "EXP-03"]
 ---
 
 # EXP-04 - Đánh giá quality, physical consistency và stability
+
+## Giao việc hiện hành — 11/11/2026
+
+- **Owner:** ThanhTris; **status:** Needs Update.
+- **Làm phần gì / dùng để làm gì:** Đánh giá khoa học.
+- **Bắt đầu độc lập:** Tái dùng evaluation harness/pilot #121 và COL-03 #117; chuẩn bị evaluator/config.
+- **Đầu ra và điều kiện Done:** Sau EXP-02/03 official: DBCV/noise/Omori/stability với sample/failure/N/A reasons; freeze rule trước EXP-05, không kết luận từ pilot.
+- **Lịch:** chuẩn bị 11–15/11, nghiệm thu tuần9 16–22/11; xem
+  [kế hoạch và setup](../WEEK_9_REPLAN_20261111.md). Giữ hard dependencies,
+  scope/effort lịch sử; các mục tuần cũ dưới đây là lịch sử.
+
+Owner yêu cầu11/11: In Progress → Needs Update cho phần đã triển khai nhưng
+chưa đủ acceptance. Không khẳng định từng Done toàn task hoặc mất code.
+[Đối soát](../../evidence/TASK_STATUS_AUDIT_20261111.md).
 
 ## Mục đích
 
@@ -79,7 +93,7 @@ gốc. Dependencies và tiêu chí gốc phía trên giữ nguyên.
 
 ## Theo dõi
 
-- **Trạng thái:** In Progress
+- **Trạng thái:** Needs Update
 - **Assignee:** ThanhTris
 - **Reviewer:** Chưa ghi lại
 - **Evidence / PR:** Bắt đầu triển khai evaluation harness, unit tests và pilot comparison report trên branch `feat/exp-04-scientific-evaluation`. Bằng chứng pilot tại [EXP-04_PILOT_EVALUATION.json](../../evidence/EXP-04_PILOT_EVALUATION.json) và [EXP-04_PILOT_EVALUATION.md](../../evidence/EXP-04_PILOT_EVALUATION.md). Giữ `In Progress` cho official research evaluation.
