@@ -176,10 +176,14 @@ class SuitePolicyTest(unittest.TestCase):
     def test_adaptive_hdbscan_changes_trigger_full_pilot_python(self):
         paths = [
             "notebooks/adaptive_hdbscan.py",
+            "notebooks/baseline_visualization.py",
             "notebooks/exp_03_adaptive_hdbscan.ipynb",
+            "notebooks/col_03_baseline_metrics_plots.ipynb",
             "scripts/inspect-exp03-notebook.py",
+            "scripts/inspect-col03-metrics.py",
             "config/ml/models/hdbscan_adaptive_dev_v1.json",
             "tests/test_adaptive_hdbscan.py",
+            "tests/test_baseline_visualization.py",
         ]
         for p in paths:
             with self.subTest(path=p):
