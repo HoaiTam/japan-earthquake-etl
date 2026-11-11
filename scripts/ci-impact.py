@@ -36,6 +36,7 @@ EXP_SCRIPTS = {
     "scripts/inspect-exp02-notebook.py",
     "scripts/inspect-exp03-notebook.py",
     "scripts/inspect-col03-metrics.py",
+    "scripts/generate-experiment-report.py",
 }
 EXP_CONFIGS = {
     "config/ml/models/window_baseline_v1.json",
@@ -88,7 +89,7 @@ def classify(changes, root=ROOT):
             or path in PILOT_SCRIPTS
             or path in EXP_FILES
             or path in EXP_SCRIPTS
-            or re.fullmatch(r"tests/test_(pilot_[a-z0-9_]+|experiment_harness|baseline_algorithms|baseline_visualization|adaptive_hdbscan|research_collection_loader)\.py", path)
+            or re.fullmatch(r"tests/test_(pilot_[a-z0-9_]+|experiment_harness|baseline_algorithms|baseline_visualization|adaptive_hdbscan|research_collection_loader|mli04_views_and_report)\.py", path)
         ):
             pilot = "full"
             reasons.add("pilot-python")

@@ -1,6 +1,6 @@
 ---
 task_id: "MLI-04"
-status: "Backlog"
+status: "In Progress"
 week: 8
 block: "I - ML Integration"
 workstream: "ML serving and report"
@@ -34,10 +34,10 @@ MVP phụ thuộc Power BI hoặc notebook output.
 
 ## Tiêu chí hoàn thành
 
-- [ ] Query chỉ đọc experiment `CANDIDATE`/`APPROVED` theo filter rõ.
+- [x] Query chỉ đọc experiment `CANDIDATE`/`APPROVED` theo filter rõ.
 - [ ] Count/summary/metric trong report khớp SQL cùng dataset/run.
-- [ ] Failure/noise/sample size không bị ẩn khỏi bảng so sánh.
-- [ ] Report dùng từ candidate và nêu rõ không dự đoán/causal.
+- [x] Failure/noise/sample size không bị ẩn khỏi bảng so sánh.
+- [x] Report dùng từ candidate và nêu rõ không dự đoán/causal.
 
 ## Hard dependency
 
@@ -73,18 +73,18 @@ Task cũ chưa làm giữ Backlog; không đổi hard dependencies để pilot �
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
+- **Trạng thái:** In Progress
 - **Assignee:** ThanhTris
 - **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Evidence / PR:** Triển khai Trino ML views (`sql/ml/`), verification queries (`sql/ml/ml_verification_queries.sql`), static report generator (`scripts/generate-experiment-report.py`), data dictionary (`docs/specs/ML_REPORT_DATA_DICTIONARY.md`), báo cáo tĩnh mẫu (`docs/evidence/MLI-04_STATIC_REPORT.md`), và regression test suite (`tests/test_mli04_views_and_report.py`) trên branch `feat/mli-04-trino-views-static-report` ([PR #124](https://github.com/HoaiTam/japan-earthquake-etl/pull/124)). Giữ `In Progress` chờ nghiệm thu SQL readback và count parity chính thức trên exact snapshot khi hoàn tất export official.
 - **Kỹ năng phù hợp:** Trino SQL, reproducible reporting, data validation
 
 ## Checklist bàn giao
 
-- [ ] Deliverable và test/evidence tồn tại trong repository.
+- [x] Deliverable và test/evidence tồn tại trong repository.
 - [ ] Acceptance criteria đã được kiểm tra.
-- [ ] Contract/docs đã cập nhật và không chứa secret/data dump.
-- [ ] Reviewer độc lập được khuyến nghị cho P0.
+- [x] Contract/docs đã cập nhật và không chứa secret/data dump.
+- [x] Reviewer độc lập được khuyến nghị cho P0.
 
 ## Tài liệu liên quan
 
