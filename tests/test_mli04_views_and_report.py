@@ -1469,6 +1469,90 @@ class TestMli04ViewsAndReport(unittest.TestCase):
         self.assertIn("987654321", md)
         self.assertNotIn("CHƯA ĐỐI SOÁT", md)
 
+    def test_q2_denominator_integrity_detects_missing_and_partial_memberships(self):
+        """Verify that verification query Q2 directly executed from SQL file detects windows with missing or partial memberships."""
+        sql_file = self.sql_dir / "ml_verification_queries.sql"
+        content = sql_file.read_text(encoding="utf-8")
+
+        # Extract Q2 query from file
+        match = re.search(r"-- Q2\..*?(SELECT.*?)(?:-- Q3\.|\Z)", content, re.DOTALL)
+        self.assertIsNotNone(match, "Q2 query must exist in ml_verification_queries.sql")
+        q2_sql = match.group(1).strip()
+        if q2_sql.endswith(";"):
+            q2_sql = q2_sql[:-1].strip()
+        # Adapt for SQLite execution
+        q2_sql = q2_sql.replace("iceberg.ml.", "")
+
+        conn = sqlite3.connect(":memory:")
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+
+        cursor.executescript("""
+        CREATE TABLE experiment_run (
+            experiment_run_id TEXT PRIMARY KEY,
+            experiment_status TEXT
+        );
+
+        CREATE TABLE sequence_summary (
+            experiment_run_id TEXT,
+            mainshock_event_id TEXT,
+            candidate_count INTEGER
+        );
+
+        CREATE TABLE sequence_membership (
+            experiment_run_id TEXT,
+            mainshock_event_id TEXT,
+            candidate_event_id TEXT
+        );
+
+        -- Approved run
+        INSERT INTO experiment_run (experiment_run_id, experiment_status)
+        VALUES ('run_app', 'APPROVED'), ('run_unapproved', 'REJECTED');
+
+        -- Summary windows
+        INSERT INTO sequence_summary (experiment_run_id, mainshock_event_id, candidate_count)
+        VALUES
+        ('run_app', 'ms_missing_all', 2),
+        ('run_app', 'ms_missing_partial', 5),
+        ('run_app', 'ms_matching', 3),
+        ('run_app', 'ms_zero', 0),
+        ('run_unapproved', 'ms_unapp', 4);
+
+        -- Memberships
+        INSERT INTO sequence_membership (experiment_run_id, mainshock_event_id, candidate_event_id)
+        VALUES
+        ('run_app', 'ms_missing_partial', 'c1'),
+        ('run_app', 'ms_missing_partial', 'c2'),
+        ('run_app', 'ms_missing_partial', 'c3'),
+        ('run_app', 'ms_matching', 'm1'),
+        ('run_app', 'ms_matching', 'm2'),
+        ('run_app', 'ms_matching', 'm3');
+        """)
+
+        cursor.execute(q2_sql)
+        mismatch_rows = [dict(r) for r in cursor.fetchall()]
+        conn.close()
+
+        # Should return exactly 2 mismatch rows: ms_missing_all and ms_missing_partial
+        self.assertEqual(len(mismatch_rows), 2)
+
+        mismatch_by_ms = {r["mainshock_event_id"]: r for r in mismatch_rows}
+
+        # 1. Window with candidate_count > 0 but 0 memberships: detected with count=2, memberships=0
+        self.assertIn("ms_missing_all", mismatch_by_ms)
+        self.assertEqual(mismatch_by_ms["ms_missing_all"]["summary_candidate_count"], 2)
+        self.assertEqual(mismatch_by_ms["ms_missing_all"]["membership_row_count"], 0)
+
+        # 2. Window with partial memberships: detected with count=5, memberships=3
+        self.assertIn("ms_missing_partial", mismatch_by_ms)
+        self.assertEqual(mismatch_by_ms["ms_missing_partial"]["summary_candidate_count"], 5)
+        self.assertEqual(mismatch_by_ms["ms_missing_partial"]["membership_row_count"], 3)
+
+        # 3. Matching counts and zero counts must NOT be in mismatches
+        self.assertNotIn("ms_matching", mismatch_by_ms)
+        self.assertNotIn("ms_zero", mismatch_by_ms)
+        self.assertNotIn("ms_unapp", mismatch_by_ms)
+
     def test_development_mode_truthful_parity_statement(self):
         """Verify that development pilot report explicitly marks SQL parity as CHƯA NGHIỆM THU."""
         with open(self.pilot_eval_json, "r", encoding="utf-8") as f:

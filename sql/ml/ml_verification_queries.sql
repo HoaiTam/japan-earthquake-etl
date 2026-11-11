@@ -22,7 +22,7 @@ SELECT
     s.candidate_count AS summary_candidate_count,
     COUNT(m.candidate_event_id) AS membership_row_count
 FROM iceberg.ml.sequence_summary s
-JOIN iceberg.ml.sequence_membership m
+LEFT JOIN iceberg.ml.sequence_membership m
   ON s.experiment_run_id = m.experiment_run_id
  AND s.mainshock_event_id = m.mainshock_event_id
 JOIN iceberg.ml.experiment_run e
