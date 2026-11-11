@@ -1191,6 +1191,284 @@ class TestMli04ViewsAndReport(unittest.TestCase):
         self.assertIn("987654321", md)
         self.assertNotIn("CHƯA ĐỐI SOÁT", md)
 
+    def test_sql_parity_negative_conflict_membership_snapshot_between_registry_and_row(self):
+        """Negative test: membership snapshot conflicts between registry and comparison row -> PENDING."""
+        payload = {
+            "metadata": {
+                "dataset_id": "ds_official_prod",
+                "git_commit": "git_sha_prod",
+                "research_ready": True,
+            },
+            "runs": [{
+                "experiment_run_id": "run_1",
+                "dataset_id": "ds_official_prod",
+                "status": "APPROVED",
+                "membership_snapshot_id": 111111,
+                "summary_snapshot_id": 222222,
+            }],
+            "comparison_table": [{
+                "algorithm": "DBSCAN",
+                "experiment_run_id": "run_1",
+                "dataset_id": "ds_official_prod",
+                "model_config_version": "v1",
+                "status": "APPROVED",
+                "raw_aftershock_memberships": 10,
+                "avg_runtime_seconds": 1.0,
+                "membership_snapshot_id": 999999,  # Conflict on membership!
+                "summary_snapshot_id": 222222,
+            }],
+            "verification_evidence": {
+                "status": "PASSED",
+                "dataset_id": "ds_official_prod",
+                "membership_snapshot_id": 111111,
+                "summary_snapshot_id": 222222,
+                "verified_runs": ["run_1"],
+            }
+        }
+        md = report_gen.build_markdown_report(payload, mode="official")
+        self.assertIn("CHƯA ĐỐI SOÁT (PENDING READBACK / NOT VERIFIED)", md)
+        self.assertNotIn("ĐÃ ĐỐI SOÁT (VERIFIED)", md)
+
+    def test_sql_parity_negative_conflict_summary_snapshot_between_registry_and_row(self):
+        """Negative test: summary snapshot conflicts between registry and comparison row -> PENDING."""
+        payload = {
+            "metadata": {
+                "dataset_id": "ds_official_prod",
+                "git_commit": "git_sha_prod",
+                "research_ready": True,
+            },
+            "runs": [{
+                "experiment_run_id": "run_1",
+                "dataset_id": "ds_official_prod",
+                "status": "APPROVED",
+                "membership_snapshot_id": 111111,
+                "summary_snapshot_id": 222222,
+            }],
+            "comparison_table": [{
+                "algorithm": "DBSCAN",
+                "experiment_run_id": "run_1",
+                "dataset_id": "ds_official_prod",
+                "model_config_version": "v1",
+                "status": "APPROVED",
+                "raw_aftershock_memberships": 10,
+                "avg_runtime_seconds": 1.0,
+                "membership_snapshot_id": 111111,
+                "summary_snapshot_id": 888888,  # Conflict on summary!
+            }],
+            "verification_evidence": {
+                "status": "PASSED",
+                "dataset_id": "ds_official_prod",
+                "membership_snapshot_id": 111111,
+                "summary_snapshot_id": 222222,
+                "verified_runs": ["run_1"],
+            }
+        }
+        md = report_gen.build_markdown_report(payload, mode="official")
+        self.assertIn("CHƯA ĐỐI SOÁT (PENDING READBACK / NOT VERIFIED)", md)
+        self.assertNotIn("ĐÃ ĐỐI SOÁT (VERIFIED)", md)
+
+    def test_sql_parity_negative_conflict_both_snapshots_between_registry_and_row(self):
+        """Negative test: both snapshots conflict between registry and comparison row -> PENDING."""
+        payload = {
+            "metadata": {
+                "dataset_id": "ds_official_prod",
+                "git_commit": "git_sha_prod",
+                "research_ready": True,
+            },
+            "runs": [{
+                "experiment_run_id": "run_1",
+                "dataset_id": "ds_official_prod",
+                "status": "APPROVED",
+                "membership_snapshot_id": 111111,
+                "summary_snapshot_id": 222222,
+            }],
+            "comparison_table": [{
+                "algorithm": "DBSCAN",
+                "experiment_run_id": "run_1",
+                "dataset_id": "ds_official_prod",
+                "model_config_version": "v1",
+                "status": "APPROVED",
+                "raw_aftershock_memberships": 10,
+                "avg_runtime_seconds": 1.0,
+                "membership_snapshot_id": 999999,  # Conflict on membership!
+                "summary_snapshot_id": 888888,     # Conflict on summary!
+            }],
+            "verification_evidence": {
+                "status": "PASSED",
+                "dataset_id": "ds_official_prod",
+                "membership_snapshot_id": 111111,
+                "summary_snapshot_id": 222222,
+                "verified_runs": ["run_1"],
+            }
+        }
+        md = report_gen.build_markdown_report(payload, mode="official")
+        self.assertIn("CHƯA ĐỐI SOÁT (PENDING READBACK / NOT VERIFIED)", md)
+        self.assertNotIn("ĐÃ ĐỐI SOÁT (VERIFIED)", md)
+
+    def test_sql_parity_negative_registry_missing_one_pin_and_row_conflicts_on_other(self):
+        """Negative test: registry missing one pin, row supplements it but conflicts on the other -> PENDING."""
+        # Case A: Registry missing summary pin, row supplements summary but conflicts on membership
+        payload_a = {
+            "metadata": {
+                "dataset_id": "ds_official_prod",
+                "git_commit": "git_sha_prod",
+                "research_ready": True,
+            },
+            "runs": [{
+                "experiment_run_id": "run_1",
+                "dataset_id": "ds_official_prod",
+                "status": "APPROVED",
+                "membership_snapshot_id": 111111,
+                # summary_snapshot_id is missing in registry
+            }],
+            "comparison_table": [{
+                "algorithm": "DBSCAN",
+                "experiment_run_id": "run_1",
+                "dataset_id": "ds_official_prod",
+                "model_config_version": "v1",
+                "status": "APPROVED",
+                "raw_aftershock_memberships": 10,
+                "avg_runtime_seconds": 1.0,
+                "membership_snapshot_id": 999999,  # Conflicting membership!
+                "summary_snapshot_id": 222222,     # Supplements summary pin
+            }],
+            "verification_evidence": {
+                "status": "PASSED",
+                "dataset_id": "ds_official_prod",
+                "membership_snapshot_id": 111111,
+                "summary_snapshot_id": 222222,
+                "verified_runs": ["run_1"],
+            }
+        }
+        md_a = report_gen.build_markdown_report(payload_a, mode="official")
+        self.assertIn("CHƯA ĐỐI SOÁT (PENDING READBACK / NOT VERIFIED)", md_a)
+        self.assertNotIn("ĐÃ ĐỐI SOÁT (VERIFIED)", md_a)
+
+        # Case B: Registry missing membership pin, row supplements membership but conflicts on summary
+        payload_b = {
+            "metadata": {
+                "dataset_id": "ds_official_prod",
+                "git_commit": "git_sha_prod",
+                "research_ready": True,
+            },
+            "runs": [{
+                "experiment_run_id": "run_1",
+                "dataset_id": "ds_official_prod",
+                "status": "APPROVED",
+                "summary_snapshot_id": 222222,
+                # membership_snapshot_id is missing in registry
+            }],
+            "comparison_table": [{
+                "algorithm": "DBSCAN",
+                "experiment_run_id": "run_1",
+                "dataset_id": "ds_official_prod",
+                "model_config_version": "v1",
+                "status": "APPROVED",
+                "raw_aftershock_memberships": 10,
+                "avg_runtime_seconds": 1.0,
+                "membership_snapshot_id": 111111,  # Supplements membership pin
+                "summary_snapshot_id": 888888,     # Conflicting summary!
+            }],
+            "verification_evidence": {
+                "status": "PASSED",
+                "dataset_id": "ds_official_prod",
+                "membership_snapshot_id": 111111,
+                "summary_snapshot_id": 222222,
+                "verified_runs": ["run_1"],
+            }
+        }
+        md_b = report_gen.build_markdown_report(payload_b, mode="official")
+        self.assertIn("CHƯA ĐỐI SOÁT (PENDING READBACK / NOT VERIFIED)", md_b)
+        self.assertNotIn("ĐÃ ĐỐI SOÁT (VERIFIED)", md_b)
+
+    def test_sql_parity_positive_both_registry_and_row_consistent(self):
+        """Positive test: registry and row both declare consistent snapshot pins matching evidence -> VERIFIED."""
+        payload = {
+            "metadata": {
+                "dataset_id": "ds_official_prod",
+                "git_commit": "git_sha_prod",
+                "research_ready": True,
+            },
+            "runs": [{
+                "experiment_run_id": "run_1",
+                "dataset_id": "ds_official_prod",
+                "status": "APPROVED",
+                "membership_snapshot_id": 123456789,
+                "summary_snapshot_id": 987654321,
+            }],
+            "comparison_table": [{
+                "algorithm": "DBSCAN",
+                "experiment_run_id": "run_1",
+                "dataset_id": "ds_official_prod",
+                "model_config_version": "v1",
+                "random_seed": 42,
+                "status": "APPROVED",
+                "total_windows": 1,
+                "success_windows": 1,
+                "failure_windows": 0,
+                "raw_aftershock_memberships": 10,
+                "avg_runtime_seconds": 1.0,
+                "membership_snapshot_id": 123456789,  # Consistent with registry!
+                "summary_snapshot_id": 987654321,     # Consistent with registry!
+            }],
+            "verification_evidence": {
+                "status": "PASSED",
+                "dataset_id": "ds_official_prod",
+                "membership_snapshot_id": 123456789,
+                "summary_snapshot_id": 987654321,
+                "verified_runs": ["run_1"],
+            }
+        }
+        md = report_gen.build_markdown_report(payload, mode="official")
+        self.assertIn("ĐÃ ĐỐI SOÁT (VERIFIED)", md)
+        self.assertIn("123456789", md)
+        self.assertIn("987654321", md)
+        self.assertNotIn("CHƯA ĐỐI SOÁT", md)
+
+    def test_sql_parity_positive_row_supplements_registry_consistently(self):
+        """Positive test: registry missing one pin, row supplements it with matching other pin -> VERIFIED."""
+        payload = {
+            "metadata": {
+                "dataset_id": "ds_official_prod",
+                "git_commit": "git_sha_prod",
+                "research_ready": True,
+            },
+            "runs": [{
+                "experiment_run_id": "run_1",
+                "dataset_id": "ds_official_prod",
+                "status": "APPROVED",
+                "membership_snapshot_id": 123456789,
+                # summary_snapshot_id omitted in registry
+            }],
+            "comparison_table": [{
+                "algorithm": "DBSCAN",
+                "experiment_run_id": "run_1",
+                "dataset_id": "ds_official_prod",
+                "model_config_version": "v1",
+                "random_seed": 42,
+                "status": "APPROVED",
+                "total_windows": 1,
+                "success_windows": 1,
+                "failure_windows": 0,
+                "raw_aftershock_memberships": 10,
+                "avg_runtime_seconds": 1.0,
+                "membership_snapshot_id": 123456789,  # Matches registry
+                "summary_snapshot_id": 987654321,     # Supplements missing pin
+            }],
+            "verification_evidence": {
+                "status": "PASSED",
+                "dataset_id": "ds_official_prod",
+                "membership_snapshot_id": 123456789,
+                "summary_snapshot_id": 987654321,
+                "verified_runs": ["run_1"],
+            }
+        }
+        md = report_gen.build_markdown_report(payload, mode="official")
+        self.assertIn("ĐÃ ĐỐI SOÁT (VERIFIED)", md)
+        self.assertIn("123456789", md)
+        self.assertIn("987654321", md)
+        self.assertNotIn("CHƯA ĐỐI SOÁT", md)
+
     def test_development_mode_truthful_parity_statement(self):
         """Verify that development pilot report explicitly marks SQL parity as CHƯA NGHIỆM THU."""
         with open(self.pilot_eval_json, "r", encoding="utf-8") as f:

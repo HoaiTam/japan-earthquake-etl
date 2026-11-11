@@ -370,16 +370,38 @@ def check_sql_parity_verification(
         for r in runs:
             if isinstance(r, dict) and r.get("experiment_run_id"):
                 run_pin_map[r["experiment_run_id"]] = dict(r)
+
     for r in comparison_table:
         rid = r.get("experiment_run_id")
-        if rid:
-            if rid not in run_pin_map:
-                run_pin_map[rid] = dict(r)
-            else:
-                if not run_pin_map[rid].get("membership_snapshot_id") and r.get("membership_snapshot_id"):
-                    run_pin_map[rid]["membership_snapshot_id"] = r.get("membership_snapshot_id")
-                if not run_pin_map[rid].get("summary_snapshot_id") and r.get("summary_snapshot_id"):
-                    run_pin_map[rid]["summary_snapshot_id"] = r.get("summary_snapshot_id")
+        if not rid:
+            continue
+
+        row_mem_snap = r.get("membership_snapshot_id")
+        row_sum_snap = r.get("summary_snapshot_id")
+
+        if rid not in run_pin_map:
+            run_pin_map[rid] = {
+                "membership_snapshot_id": row_mem_snap,
+                "summary_snapshot_id": row_sum_snap,
+            }
+        else:
+            existing = run_pin_map[rid]
+            ex_mem = existing.get("membership_snapshot_id")
+            ex_sum = existing.get("summary_snapshot_id")
+
+            # Check membership snapshot consistency
+            if ex_mem is not None and str(ex_mem).strip() != "" and row_mem_snap is not None and str(row_mem_snap).strip() != "":
+                if str(ex_mem).strip() != str(row_mem_snap).strip():
+                    return False
+            elif (ex_mem is None or str(ex_mem).strip() == "") and row_mem_snap is not None and str(row_mem_snap).strip() != "":
+                existing["membership_snapshot_id"] = row_mem_snap
+
+            # Check summary snapshot consistency
+            if ex_sum is not None and str(ex_sum).strip() != "" and row_sum_snap is not None and str(row_sum_snap).strip() != "":
+                if str(ex_sum).strip() != str(row_sum_snap).strip():
+                    return False
+            elif (ex_sum is None or str(ex_sum).strip() == "") and row_sum_snap is not None and str(row_sum_snap).strip() != "":
+                existing["summary_snapshot_id"] = row_sum_snap
 
     # Fail-closed: Every rendered run must have valid snapshot pins to check against
     for rid in rendered_run_ids:
@@ -390,9 +412,9 @@ def check_sql_parity_verification(
         if not is_valid_snapshot_id(reg_mem_snap) or not is_valid_snapshot_id(reg_sum_snap):
             return False
 
-        if str(reg_mem_snap) != str(ev_mem_snap):
+        if str(reg_mem_snap).strip() != str(ev_mem_snap).strip():
             return False
-        if str(reg_sum_snap) != str(ev_sum_snap):
+        if str(reg_sum_snap).strip() != str(ev_sum_snap).strip():
             return False
 
     return True
