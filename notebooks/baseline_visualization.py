@@ -571,6 +571,121 @@ def export_metrics_table(
     return csv_path, json_path
 
 
+CANONICAL_ALGORITHM_ORDER = ("WINDOW", "DBSCAN", "HDBSCAN_GLOBAL")
+
+
+def select_plot_result_dirs(
+    results_dir: Path,
+    bundle: Optional[Dict[str, Any]] = None,
+    max_dirs: Optional[int] = 4,
+) -> List[Path]:
+    """Selects representative result subdirectories for spatial and timeline plotting.
+
+    Groups candidate result directories by `algorithm_name` declared in `pilot_result_manifest.json`
+    (verified via `verify_result_bundle` when `bundle` is provided), orders algorithm families in
+    canonical baseline order (WINDOW, DBSCAN, HDBSCAN_GLOBAL, then others alphabetically),
+    prioritizes configurations with at least one SUCCESS window in `sequence_summary.parquet`,
+    and interleaves (round-robin) across algorithm families so alphabetical directory names
+    never crowd out WINDOW or HDBSCAN_GLOBAL.
+    """
+    results_dir = Path(results_dir).resolve()
+    require(results_dir.is_dir(), f"RESULTS_DIRECTORY_NOT_FOUND: {results_dir}")
+
+    subdirs = sorted(
+        [p for p in results_dir.iterdir() if p.is_dir() and (p / "memberships.parquet").is_file()],
+        key=lambda p: p.name,
+    )
+    require(len(subdirs) > 0, f"NO_VALID_RESULT_DIRECTORIES_IN: {results_dir}")
+
+    buckets: Dict[str, List[Tuple[bool, str, Path]]] = {}
+    for sdir in subdirs:
+        if bundle is not None:
+            prov = verify_result_bundle(sdir, bundle)
+            algo_name = str(prov["algorithm_name"]).upper()
+        else:
+            manifest_p = sdir / "pilot_result_manifest.json"
+            require(manifest_p.is_file(), f"MISSING_RESULT_MANIFEST: Result '{sdir.name}' is missing pilot_result_manifest.json")
+            manifest_data = json.loads(manifest_p.read_text(encoding="utf-8"))
+            algo_name = str(manifest_data.get("algorithm_name") or "").upper()
+            require(bool(algo_name), f"MISSING_ALGORITHM_NAME_IN_MANIFEST: Result '{sdir.name}'")
+
+        has_success = False
+        summary_p = sdir / "sequence_summary.parquet"
+        if summary_p.is_file():
+            summary_rows = pq.read_table(summary_p).to_pylist()
+            has_success = any(r.get("window_result_status") == "SUCCESS" for r in summary_rows)
+
+        buckets.setdefault(algo_name, []).append((not has_success, sdir.name, sdir))
+
+    for algo_name in buckets:
+        buckets[algo_name].sort(key=lambda item: (item[0], item[1]))
+
+    ordered_algos: List[str] = [a for a in CANONICAL_ALGORITHM_ORDER if a in buckets]
+    ordered_algos.extend(sorted(a for a in buckets if a not in CANONICAL_ALGORITHM_ORDER))
+
+    selected: List[Path] = []
+    round_idx = 0
+    while True:
+        added_in_round = False
+        for algo_name in ordered_algos:
+            items = buckets[algo_name]
+            if round_idx < len(items):
+                selected.append(items[round_idx][2])
+                added_in_round = True
+                if max_dirs is not None and len(selected) >= max_dirs:
+                    return selected
+        if not added_in_round:
+            break
+        round_idx += 1
+
+    return selected
+
+
+def classify_candidate_plot_groups(merged_df: Any) -> Dict[str, Any]:
+    """Partitions merged candidate feature+membership rows into 5 mutually exclusive,
+    collectively exhaustive display groups so every candidate grain is represented once:
+    - 'noise': non-mainshock candidates with is_noise == True
+    - 'post_non_sequence': non-mainshock, non-noise, non-sequence POST candidates
+    - 'pre_candidates': non-mainshock, non-noise PRE candidates (foreshock candidates)
+    - 'sequence_members': non-mainshock, non-noise sequence member POST candidates
+    - 'mainshock': mainshock candidates (event_role_candidate == 'MAINSHOCK' or self-id)
+    """
+    role_series = merged_df["event_role_candidate"].fillna("POST").astype(str)
+    is_ms = (role_series == "MAINSHOCK") | (
+        merged_df["candidate_event_id"].astype(str) == merged_df["mainshock_event_id"].astype(str)
+    )
+    if "is_noise" in merged_df.columns:
+        is_noise_raw = merged_df["is_noise"].map(lambda v: bool(v) if (v is not None and not (isinstance(v, (float, np.floating)) and math.isnan(v))) else False)
+    else:
+        is_noise_raw = merged_df.index.map(lambda _: False)
+    is_noise = is_noise_raw & (~is_ms)
+
+    is_pre = (~is_ms) & (~is_noise) & (role_series == "PRE")
+
+    if "is_sequence_member" in merged_df.columns:
+        is_seq_raw = merged_df["is_sequence_member"].map(lambda v: bool(v) if (v is not None and not (isinstance(v, (float, np.floating)) and math.isnan(v))) else False)
+    else:
+        is_seq_raw = merged_df.index.map(lambda _: False)
+
+    is_seq = (~is_ms) & (~is_noise) & (~is_pre) & is_seq_raw
+    is_post_non_seq = (~is_ms) & (~is_noise) & (~is_pre) & (~is_seq)
+
+    groups = {
+        "noise": merged_df[is_noise],
+        "post_non_sequence": merged_df[is_post_non_seq],
+        "pre_candidates": merged_df[is_pre],
+        "sequence_members": merged_df[is_seq],
+        "mainshock": merged_df[is_ms],
+    }
+
+    total_partitioned = sum(len(df) for df in groups.values())
+    require(
+        total_partitioned == len(merged_df),
+        f"PLOT_GROUP_PARTITION_COUNT_MISMATCH: Partitioned {total_partitioned} rows vs {len(merged_df)} merged rows",
+    )
+    return groups
+
+
 def plot_spatial_and_temporal_views(
     bundle: Dict[str, Any],
     memberships_parquet: Path,
@@ -606,18 +721,38 @@ def plot_spatial_and_temporal_views(
     if len(merged) != len(features_df):
         raise ValueError(f"MERGE_ROW_COUNT_MISMATCH: Expected {len(features_df)} rows, got {len(merged)}")
 
+    groups = classify_candidate_plot_groups(merged)
+    noise_pts = groups["noise"]
+    post_non_seq_pts = groups["post_non_sequence"]
+    pre_pts = groups["pre_candidates"]
+    seq_pts = groups["sequence_members"]
+    ms_pts = groups["mainshock"]
+
+    partition_grains = set()
+    for gdf in groups.values():
+        g_set = set(zip(gdf["mainshock_event_id"], gdf["candidate_event_id"]))
+        require(len(partition_grains & g_set) == 0, "OVERLAPPING_PLOT_GROUP_GRAINS: Candidate grain appears in multiple plot groups")
+        partition_grains.update(g_set)
+    require(partition_grains == feat_grains, "PLOT_GROUP_GRAIN_MISMATCH: Plot groups do not cover exact feature grains")
+
     # Plot 1: Spatial relative coordinates (dx_km vs dy_km)
     fig, ax = plt.subplots(figsize=(8, 7), dpi=150)
-    noise_pts = merged[merged["is_noise"] == True]
-    seq_pts = merged[merged["is_sequence_member"] == True]
-    ms_pts = merged[merged["event_role_candidate"] == "MAINSHOCK"]
-
     if not noise_pts.empty:
-        ax.scatter(noise_pts["dx_km"], noise_pts["dy_km"], c="#888888", marker="x", s=25, alpha=0.6, label="Noise Events")
+        ax.scatter(noise_pts["dx_km"], noise_pts["dy_km"], c="#888888", marker="x", s=25, alpha=0.6, label="Noise Candidates")
+    if not post_non_seq_pts.empty:
+        ax.scatter(post_non_seq_pts["dx_km"], post_non_seq_pts["dy_km"], c="#ff7f0e", marker="s", s=28, alpha=0.75, label="Non-Sequence POST")
+    if not pre_pts.empty:
+        ax.scatter(pre_pts["dx_km"], pre_pts["dy_km"], c="#9467bd", marker="^", s=32, alpha=0.8, label="PRE Candidates")
     if not seq_pts.empty:
-        ax.scatter(seq_pts["dx_km"], seq_pts["dy_km"], c="#1f77b4", marker="o", s=35, alpha=0.8, label="Sequence Aftershocks")
+        ax.scatter(seq_pts["dx_km"], seq_pts["dy_km"], c="#1f77b4", marker="o", s=35, alpha=0.8, label="Sequence Members")
     if not ms_pts.empty:
         ax.scatter(ms_pts["dx_km"], ms_pts["dy_km"], c="#d62728", marker="*", s=160, edgecolor="black", label="Mainshock (dx=0, dy=0)")
+
+    plotted_spatial_count = sum(len(col.get_offsets()) for col in ax.collections)
+    require(
+        plotted_spatial_count == len(features_df),
+        f"SPATIAL_PLOT_POINT_COUNT_MISMATCH: Plotted {plotted_spatial_count} points, expected {len(features_df)}",
+    )
 
     ax.axhline(0, color="gray", linestyle="--", linewidth=0.8)
     ax.axvline(0, color="gray", linestyle="--", linewidth=0.8)
@@ -635,11 +770,21 @@ def plot_spatial_and_temporal_views(
     # Plot 2: Timeline (delta_time_hours) vs Depth (candidate_depth_km)
     fig, ax = plt.subplots(figsize=(9, 6), dpi=150)
     if not noise_pts.empty:
-        ax.scatter(noise_pts["delta_time_hours"], noise_pts["candidate_depth_km"], c="#888888", marker="x", s=25, alpha=0.6, label="Noise")
+        ax.scatter(noise_pts["delta_time_hours"], noise_pts["candidate_depth_km"], c="#888888", marker="x", s=25, alpha=0.6, label="Noise Candidates")
+    if not post_non_seq_pts.empty:
+        ax.scatter(post_non_seq_pts["delta_time_hours"], post_non_seq_pts["candidate_depth_km"], c="#ff7f0e", marker="s", s=28, alpha=0.75, label="Non-Sequence POST")
+    if not pre_pts.empty:
+        ax.scatter(pre_pts["delta_time_hours"], pre_pts["candidate_depth_km"], c="#9467bd", marker="^", s=32, alpha=0.8, label="PRE Candidates")
     if not seq_pts.empty:
-        ax.scatter(seq_pts["delta_time_hours"], seq_pts["candidate_depth_km"], c="#2ca02c", marker="o", s=35, alpha=0.8, label="Sequence")
+        ax.scatter(seq_pts["delta_time_hours"], seq_pts["candidate_depth_km"], c="#2ca02c", marker="o", s=35, alpha=0.8, label="Sequence Members")
     if not ms_pts.empty:
         ax.scatter(ms_pts["delta_time_hours"], ms_pts["candidate_depth_km"], c="#d62728", marker="*", s=160, edgecolor="black", label="Mainshock (t=0)")
+
+    plotted_timeline_count = sum(len(col.get_offsets()) for col in ax.collections)
+    require(
+        plotted_timeline_count == len(features_df),
+        f"TIMELINE_PLOT_POINT_COUNT_MISMATCH: Plotted {plotted_timeline_count} points, expected {len(features_df)}",
+    )
 
     ax.axvline(0, color="black", linestyle="--", linewidth=1.0, label="t=0 Mainshock")
     ax.set_xlabel("Elapsed Time Relative to Mainshock (Hours)")

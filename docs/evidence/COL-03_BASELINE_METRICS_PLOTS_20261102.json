@@ -1,10 +1,10 @@
 {
   "task_id": "COL-03",
   "status": "BASELINE_METRICS_AND_PLOTS_IN_PROGRESS",
-  "version": "col03-metrics-v3",
+  "version": "col03-metrics-v4",
   "recipient": "rosy179",
   "intended_handoff_recipient": "ThanhTris",
-  "verified_at_utc": "2026-11-11T02:19:54.000000+00:00",
+  "verified_at_utc": "2026-11-11T03:35:39.000000+00:00",
   "pilot": {
     "pilot_id": "pilot_196b6d4081d347e1c289e331022658fbbe572dd33181ad987900895c1f1b189c",
     "candidate_count": 279,
@@ -14,7 +14,7 @@
   },
   "notebook_inspection": {
     "notebook_path": "notebooks/col_03_baseline_metrics_plots.ipynb",
-    "notebook_sha256": "686bb4511cdddc805fe41ae3e414029db3d756e13072e5c111fe567c375a65b3",
+    "notebook_sha256": "8f9d254cba591c1dbd608e78947a1beb5d5824ca864cf144892c71f5abc0f515",
     "runner_mode": "nbclient",
     "notebook_status": "RESTART_RUN_ALL_PASSED",
     "fresh_kernel_acceptance": true,
@@ -24,9 +24,10 @@
     "total_windows_evaluated": 18,
     "algorithms_included": ["WINDOW", "DBSCAN", "HDBSCAN_GLOBAL"],
     "configurations_included": 9,
+    "plotted_configurations": ["window_control", "dbscan_c1", "hdbscan_c2", "dbscan_c2"],
     "output_csv_sha256": "9465f7a237e72b6ae4ac275feb946b920217fef19e765ef9f7817c09a92424c7",
-    "output_json_sha256": "5f3a4a8ff5bbd73217527f2371194ee92e424f57ae3c0a0353ea4cecb2fe43a0",
-    "handoff_manifest_sha256": "44c2a067157499d33228aa411377562cad73beb3edc7c7d288cf70cf813c2d98"
+    "output_json_sha256": "dfa95fb06154676772bf857226d63ed56cb9f8079acb2502a00fbb89b16272c9",
+    "handoff_manifest_sha256": "e55830114445e7e250648e185acf8614908685dd836959a1902673fa239a59a2"
   },
   "allowed_usage": "DEVELOPMENT_ONLY",
   "research_ready": false,

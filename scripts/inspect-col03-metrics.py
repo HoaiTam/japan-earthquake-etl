@@ -24,6 +24,7 @@ from baseline_visualization import (
     plot_spatial_and_temporal_views,
     plot_algorithm_comparison_summary,
     create_handoff_manifest,
+    select_plot_result_dirs,
 )
 from test_experiment_harness import create_pilot_fixture
 
@@ -86,9 +87,9 @@ def main():
     # 2. Generate plots
     print("\n--- 2. Generating Relative Space and Timeline Plots ---")
     exported_plots = []
-    # Pick representational subdirectories for spatial/timeline views
-    plot_subdirs = sorted([p for p in res_dir.iterdir() if p.is_dir() and (p / "memberships.parquet").is_file()], key=lambda p: p.name)
-    for sdir in plot_subdirs[:4]:  # Plot up to 4 key configurations
+    # Pick representative subdirectories across algorithm_name in manifest
+    plot_subdirs = select_plot_result_dirs(res_dir, bundle=bundle)
+    for sdir in plot_subdirs:
         mem_p = sdir / "memberships.parquet"
         algo = sdir.name.upper()
         sp_path, tl_path = plot_spatial_and_temporal_views(bundle, mem_p, algo, out_dir)

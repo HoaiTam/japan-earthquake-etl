@@ -73,12 +73,22 @@ Toàn bộ quy trình tuân thủ nghiêm ngặt nguyên tắc: **100% số li�
 
 Tất cả biểu đồ được sinh tự động và lưu trữ tại `staging/ml-experiments/col03-metrics-plots/`:
 
-1. **Biểu đồ phân bố không gian tương đối (`spatial_distribution_*.png`):**
-   - Thể hiện vị trí tương đối theo $dx$ (km) và $dy$ (km) xoay quanh tâm chấn chính $(0, 0)$ (đánh dấu bằng ngôi sao đỏ to).
-   - Phân biệt rõ ràng các sự kiện chuỗi sau chấn (chấm tròn xanh), sự kiện tiền chấn và các điểm nhiễu nền (dấu chữ thập xám).
-2. **Biểu đồ diễn tiến thời gian và độ sâu (`timeline_depth_*.png`):**
+1. **Quy tắc chọn cấu hình đại diện theo `algorithm_name` trong manifest (`select_plot_result_dirs`):**
+   - Dùng chung hàm `select_plot_result_dirs` giữa CLI (`scripts/inspect-col03-metrics.py`) và notebook (`notebooks/col_03_baseline_metrics_plots.ipynb`).
+   - Gom nhóm theo `algorithm_name` trong `pilot_result_manifest.json` theo thứ tự chuẩn `WINDOW` → `DBSCAN` → `HDBSCAN_GLOBAL`, ưu tiên cấu hình có cửa sổ `SUCCESS` trong từng họ thuật toán và chọn luân phiên (round-robin), đảm bảo cả ba thuật toán đều có mặt (`WINDOW_CONTROL`, `DBSCAN_C1`, `HDBSCAN_C2`, `DBSCAN_C2`), không bị thứ tự tên thư mục theo bảng chữ cái lấn át.
+2. **Phân nhóm hiển thị đầy đủ 5 nhóm độc lập (MECE) và đối soát số điểm được vẽ:**
+   - Hàm `classify_candidate_plot_groups` phân hoạch toàn bộ candidate grains thành 5 nhóm rời nhau và vét cạn 100%:
+     - `Mainshock` (`event_role_candidate == "MAINSHOCK"`, ngôi sao đỏ `*`).
+     - `Sequence Members` (các candidate `POST` thuộc chuỗi chính `is_sequence_member == True`, không chứa `MAINSHOCK`, chấm tròn xanh `#1f77b4` / `#2ca02c`).
+     - `PRE Candidates` (các sự kiện tiền chấn `PRE` không phải nhiễu tại $t < 0$, hình tam giác tím `^`).
+     - `Non-Sequence POST` (các candidate `POST` nằm ngoài chuỗi chính nhưng không phải nhiễu, ví dụ thuộc cụm phụ hoặc cửa sổ `WINDOW`/`DBSCAN`/`HDBSCAN` ngoài sequence, hình vuông cam `s`).
+     - `Noise Candidates` (các điểm nhiễu `is_noise == True` ngoài mainshock, dấu chữ thập xám `x`).
+   - Kiểm tra fail-closed ngay khi vẽ: tổng số điểm thực tế trên `ax.collections` của cả hai biểu đồ không gian và thời gian bắt buộc khớp 1-1 với tổng số dòng trong feature bundle (`279` điểm).
+3. **Biểu đồ phân bố không gian tương đối (`spatial_distribution_*.png`):**
+   - Thể hiện vị trí tương đối theo $dx$ (km) và $dy$ (km) xoay quanh tâm chấn chính $(0, 0)$.
+4. **Biểu đồ diễn tiến thời gian và độ sâu (`timeline_depth_*.png`):**
    - Thể hiện trục thời gian từ trước khi chấn chính xảy ra ($t < 0$) đến giai đoạn sau chấn ($t > 0$), kết hợp độ sâu chấn tiêu ($km$).
-3. **Biểu đồ cột so sánh tổng thể (`baseline_comparison_summary.png`):**
+5. **Biểu đồ cột so sánh tổng thể (`baseline_comparison_summary.png`):**
    - Đối chiếu trực quan số lượng dư chấn được giữ lại và số lượng điểm nhiễu được loại bỏ giữa tất cả các cấu hình baseline.
 
 ---
@@ -88,17 +98,17 @@ Tất cả biểu đồ được sinh tự động và lưu trữ tại `staging
 File `staging/ml-experiments/col03-metrics-plots/handoff_manifest.json` (sinh từ thực thi fresh kernel `nbclient` của `notebooks/col_03_baseline_metrics_plots.ipynb` đồng bộ với CLI `scripts/inspect-col03-metrics.py`) ghi nhận đầy đủ chữ ký kiểm chứng mã băm SHA-256 cho toàn bộ 11 artifacts cùng `source_provenance` của 9 cấu hình gốc phục vụ task [EXP-04](../task/tasks/EXP-04.md):
 
 * `baseline_metrics_table.csv` — `9465f7a237e72b6ae4ac275feb946b920217fef19e765ef9f7817c09a92424c7`
-* `baseline_metrics_table.json` — `5f3a4a8ff5bbd73217527f2371194ee92e424f57ae3c0a0353ea4cecb2fe43a0`
-* `spatial_distribution_dbscan_c1.png` — `6712054ddb0753c424f3ec88a94ea55984a6dfe28029d266a686b6f5a05efdba`
-* `timeline_depth_dbscan_c1.png` — `254a685fff390e3ad74a18d0b4d2025ec03a6cde33bba9c90d5b01f5762e74a8`
-* `spatial_distribution_dbscan_c2.png` — `58f0ed50d1643710fc5ce586420693df8e3e51eb7fb8aaee1af6615e3d9b53dd`
-* `timeline_depth_dbscan_c2.png` — `ea62ba4cbe1fe91382f3100717d0673f93e75ffcf7db235be341c408e6b8e007`
-* `spatial_distribution_dbscan_c3.png` — `6052d402c49013c53af904e95371a4911fe6955fab783c4c854f5286df8bdb9d`
-* `timeline_depth_dbscan_c3.png` — `bce93d813259749c111dcf36332d731c797bfd98f160795b8983121f48f40d5c`
-* `spatial_distribution_dbscan_c4.png` — `493de997cf0f50308fe4b18b6215ba14e702a861a384f7e0bfaee6d143fb5363`
-* `timeline_depth_dbscan_c4.png` — `f412948dc93180d0fdb492c45cd9cc43297b1ca289937ee1c820d483acb241f4`
+* `baseline_metrics_table.json` — `dfa95fb06154676772bf857226d63ed56cb9f8079acb2502a00fbb89b16272c9`
+* `spatial_distribution_window_control.png` — `cc3656b09059a418726871f9484bb2e2f745e0009b7624d7104c0a24526e909a`
+* `timeline_depth_window_control.png` — `ad135ec4e8e91829238860c53e972de1b17b25fa43658c5730ca0e62ad8bf090`
+* `spatial_distribution_dbscan_c1.png` — `1f55cfc5545ea9549bcb77992e6d803249a56014411c4f0e134c741cfc99957d`
+* `timeline_depth_dbscan_c1.png` — `16f58523ddf0f6e4babe479f8fc354aae6050fce842d62f0c6e8e8fe6144b43d`
+* `spatial_distribution_hdbscan_c2.png` — `56b8e300ba0c864ca7d63a1c2b986407ff589c3c17c5b3c3edb9393547580613`
+* `timeline_depth_hdbscan_c2.png` — `db428ad1cb7b4b5000135264a482593d9cad3dbf8c88b20b8b6a449df7ab9c70`
+* `spatial_distribution_dbscan_c2.png` — `83f9458606895f0d70e05d7ac2d11e3d5a35119297477c8627194dc096b59b5a`
+* `timeline_depth_dbscan_c2.png` — `3272b294af2518b130dc3c42e3fa5be8a1d542ff7506800572aff9eabc7dc059`
 * `baseline_comparison_summary.png` — `e98ac3a11d3bc904fb340824968d3a1570cc2ee7c7a635644260bc0895c6318c`
-* `handoff_manifest.json` — `44c2a067157499d33228aa411377562cad73beb3edc7c7d288cf70cf813c2d98`
+* `handoff_manifest.json` — `e55830114445e7e250648e185acf8614908685dd836959a1902673fa239a59a2`
 
 ---
 
@@ -106,13 +116,13 @@ File `staging/ml-experiments/col03-metrics-plots/handoff_manifest.json` (sinh t�
 
 - **Mã nguồn:**
   - Module trực quan hóa: `notebooks/baseline_visualization.py`
-  - Notebook: `notebooks/col_03_baseline_metrics_plots.ipynb` (SHA-256: `686bb4511cdddc805fe41ae3e414029db3d756e13072e5c111fe567c375a65b3`, `RESTART_RUN_ALL_PASSED` trên fresh kernel `nbclient`)
+  - Notebook: `notebooks/col_03_baseline_metrics_plots.ipynb` (SHA-256: `8f9d254cba591c1dbd608e78947a1beb5d5824ca864cf144892c71f5abc0f515`, `RESTART_RUN_ALL_PASSED` trên fresh kernel `nbclient`)
   - Script Headless Runner: `scripts/inspect-col03-metrics.py`
 - **Dependencies:**
   - Local / Notebook venv: `notebooks/requirements-colab-lock.txt` (`pandas==2.2.3`, `matplotlib==3.10.0` và toàn bộ pins từ `notebooks/requirements-lock.txt`).
   - CI runner: `tests/ci/requirements.txt` (đã đồng bộ pin `pandas==2.2.3` và `matplotlib==3.10.0`).
 - **Bộ kiểm thử tự động:**
-  - `tests/test_baseline_visualization.py` (36/36 tests PASS, bao gồm end-to-end notebook provenance test và dependency alignment test trên cả môi trường venv sạch).
+  - `tests/test_baseline_visualization.py` (39/39 tests PASS, bao gồm đối soát toàn bộ 5 nhóm candidate grains được vẽ trên biểu đồ, chọn cấu hình đại diện theo `algorithm_name` giữa CLI và notebook, end-to-end notebook provenance test và dependency alignment test).
 - **Metadata Bằng chứng:**
   - JSON Metadata: [COL-03_BASELINE_METRICS_PLOTS_20261102.json](./COL-03_BASELINE_METRICS_PLOTS_20261102.json)
 

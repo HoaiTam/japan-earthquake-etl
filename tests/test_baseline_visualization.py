@@ -23,6 +23,7 @@ from experiment_harness import (
 )
 from baseline_models import run_baseline_experiment
 from baseline_visualization import (
+    classify_candidate_plot_groups,
     compute_density_metric,
     compute_dbcv,
     extract_baseline_metrics,
@@ -30,6 +31,7 @@ from baseline_visualization import (
     plot_spatial_and_temporal_views,
     plot_algorithm_comparison_summary,
     create_handoff_manifest,
+    select_plot_result_dirs,
     verify_result_bundle,
 )
 from test_experiment_harness import create_pilot_fixture
@@ -817,6 +819,274 @@ class TestBaselineVisualization(unittest.TestCase):
 
         for shared_pkg in ("pyarrow", "numpy", "scipy", "scikit-learn"):
             self.assertEqual(ci_pins.get(shared_pkg), model_pins.get(shared_pkg))
+
+    def test_window_plot_includes_pre_and_reconciles_all_plotted_grains(self):
+        """Regression test: WINDOW fixture with MAINSHOCK + PRE (is_sequence_member=False, is_noise=None) must plot both grains."""
+        from unittest.mock import patch
+        import matplotlib.pyplot as plt
+
+        win_pre_bundle = dict(self.bundle)
+        feat_df = win_pre_bundle["features_table"].to_pandas().copy()
+        # Convert second candidate to a valid PRE event (t = -3.5h, dx = -8.0km, dy = 4.0km)
+        feat_df.loc[1, "relative_time_role"] = "PRE"
+        feat_df.loc[1, "delta_time_hours"] = -3.5
+        feat_df.loc[1, "time_scaled"] = -3.5 / 720.0
+        feat_df.loc[1, "dx_km"] = -8.0
+        feat_df.loc[1, "dy_km"] = 4.0
+        feat_df.loc[1, "candidate_depth_km"] = 25.0
+        win_pre_bundle["features_table"] = pa.Table.from_pandas(feat_df, schema=self.bundle["features_table"].schema)
+
+        res_dir = self.work_dir / "win_pre_results"
+        cfg_win = {"algorithm_name": "WINDOW", "algorithm_version": "1.0.0", "model_config_version": "win-pre-v1"}
+        run_baseline_experiment(win_pre_bundle, "WINDOW", cfg_win, "win-pre-v1", res_dir / "window", mode=MODE_DEVELOPMENT)
+
+        mem_p = res_dir / "window/memberships.parquet"
+        mem_df = pq.read_table(mem_p).to_pandas()
+        pre_mem = mem_df[mem_df["event_role_candidate"] == "PRE"]
+        self.assertEqual(len(pre_mem), 1)
+        self.assertFalse(bool(pre_mem["is_sequence_member"].iloc[0]))
+        self.assertTrue(pre_mem["is_noise"].isna().iloc[0])
+
+        captured_axes = []
+        orig_close = plt.close
+
+        def _spy_close(fig=None):
+            if fig is not None and fig.axes:
+                ax = fig.axes[0]
+                col_map = {col.get_label(): col.get_offsets().copy() for col in ax.collections}
+                captured_axes.append(col_map)
+            orig_close(fig)
+
+        out_plots = self.work_dir / "win_pre_plots"
+        with patch("matplotlib.pyplot.close", side_effect=_spy_close):
+            sp_p, tl_p = plot_spatial_and_temporal_views(win_pre_bundle, mem_p, "WINDOW", out_plots)
+
+        self.assertTrue(sp_p.is_file())
+        self.assertTrue(tl_p.is_file())
+        self.assertEqual(len(captured_axes), 2)
+
+        spatial_cols, timeline_cols = captured_axes
+        self.assertIn("PRE Candidates", spatial_cols)
+        self.assertIn("Mainshock (dx=0, dy=0)", spatial_cols)
+        self.assertNotIn("Sequence Aftershocks", spatial_cols)
+        np.testing.assert_allclose(spatial_cols["PRE Candidates"], np.array([[-8.0, 4.0]]))
+        np.testing.assert_allclose(spatial_cols["Mainshock (dx=0, dy=0)"], np.array([[0.0, 0.0]]))
+
+        self.assertIn("PRE Candidates", timeline_cols)
+        self.assertIn("Mainshock (t=0)", timeline_cols)
+        np.testing.assert_allclose(timeline_cols["PRE Candidates"], np.array([[-3.5, 25.0]]))
+        np.testing.assert_allclose(timeline_cols["Mainshock (t=0)"], np.array([[0.0, 80.0]]))
+
+    def test_plot_distinguishes_all_five_candidate_groups_and_reconciles_grains(self):
+        """Regression test: Verifies 5-group partition (PRE, non-sequence POST, sequence members, noise, MAINSHOCK) and 1-to-1 coordinate rendering."""
+        from unittest.mock import patch
+        import matplotlib.pyplot as plt
+        import shutil
+
+        bundle_5 = dict(self.bundle)
+        base_df = bundle_5["features_table"].to_pandas()
+        ms_row = base_df.iloc[0].to_dict()
+
+        specs = [
+            # (cid, role, dx, dy, dt, depth, is_seq, is_noise, cluster_id)
+            (ms_row["mainshock_event_id"], "MAINSHOCK", 0.0, 0.0, 0.0, 30.0, True, False, 0),
+            ("evt_pre_cand_01", "PRE", -6.0, 3.0, -4.0, 22.0, False, False, 1),
+            ("evt_seq_post_02", "POST", 7.0, -5.0, 2.5, 35.0, True, False, 0),
+            ("evt_nonseq_post_03", "POST", 18.0, 12.0, 9.0, 42.0, False, False, 1),
+            ("evt_noise_post_04", "POST", -25.0, -19.0, 15.0, 14.0, False, True, -1),
+        ]
+
+        feat_rows = []
+        for cid, role, dx, dy, dt, depth, _, _, _ in specs:
+            r = dict(ms_row)
+            r["candidate_event_id"] = cid
+            r["relative_time_role"] = role
+            r["is_mainshock"] = (role == "MAINSHOCK")
+            r["dx_km"] = dx
+            r["dy_km"] = dy
+            r["delta_time_hours"] = dt
+            r["candidate_depth_km"] = depth
+            r["x_scaled"] = dx / 50.0
+            r["y_scaled"] = dy / 50.0
+            r["time_scaled"] = dt / 720.0
+            feat_rows.append(r)
+
+        feat_5_df = base_df.iloc[0:0]._append(feat_rows, ignore_index=True)
+        bundle_5["features_table"] = pa.Table.from_pandas(feat_5_df, schema=self.bundle["features_table"].schema)
+
+        target_dir = self.work_dir / "dbscan_5groups"
+        shutil.copytree(self.results_dir / "dbscan", target_dir, dirs_exist_ok=True)
+
+        base_mem_df = pq.read_table(target_dir / "memberships.parquet").to_pandas()
+        mem_rows = []
+        for cid, role, _, _, _, _, is_seq, is_noise, cid_cluster in specs:
+            m = dict(base_mem_df.iloc[0])
+            m["candidate_event_id"] = cid
+            m["event_role_candidate"] = role
+            m["is_sequence_member"] = is_seq
+            m["is_mainshock_cluster_member"] = is_seq
+            m["is_noise"] = is_noise
+            m["cluster_id"] = cid_cluster
+            mem_rows.append(m)
+
+        mem_5_df = base_mem_df.iloc[0:0]._append(mem_rows, ignore_index=True)
+        pq.write_table(pa.Table.from_pandas(mem_5_df), target_dir / "memberships.parquet")
+        self._sync_manifest_checksums(target_dir)
+
+        merged = feat_5_df.merge(mem_5_df, on=["mainshock_event_id", "candidate_event_id"], suffixes=("", "_mem"))
+        groups = classify_candidate_plot_groups(merged)
+        self.assertEqual(list(groups["mainshock"]["candidate_event_id"]), [ms_row["mainshock_event_id"]])
+        self.assertEqual(list(groups["pre_candidates"]["candidate_event_id"]), ["evt_pre_cand_01"])
+        self.assertEqual(list(groups["sequence_members"]["candidate_event_id"]), ["evt_seq_post_02"])
+        self.assertEqual(list(groups["post_non_sequence"]["candidate_event_id"]), ["evt_nonseq_post_03"])
+        self.assertEqual(list(groups["noise"]["candidate_event_id"]), ["evt_noise_post_04"])
+
+        captured_axes = []
+        orig_close = plt.close
+
+        def _spy_close(fig=None):
+            if fig is not None and fig.axes:
+                ax = fig.axes[0]
+                col_map = {col.get_label(): col.get_offsets().copy() for col in ax.collections}
+                captured_axes.append(col_map)
+            orig_close(fig)
+
+        out_plots = self.work_dir / "plots_5groups"
+        with patch("matplotlib.pyplot.close", side_effect=_spy_close):
+            plot_spatial_and_temporal_views(bundle_5, target_dir / "memberships.parquet", "DBSCAN", out_plots)
+
+        self.assertEqual(len(captured_axes), 2)
+        spatial_cols, timeline_cols = captured_axes
+
+        expected_spatial = {
+            "Noise Candidates": np.array([[-25.0, -19.0]]),
+            "Non-Sequence POST": np.array([[18.0, 12.0]]),
+            "PRE Candidates": np.array([[-6.0, 3.0]]),
+            "Sequence Members": np.array([[7.0, -5.0]]),
+            "Mainshock (dx=0, dy=0)": np.array([[0.0, 0.0]]),
+        }
+        self.assertEqual(set(spatial_cols.keys()), set(expected_spatial.keys()))
+        self.assertNotIn("Sequence Aftershocks", spatial_cols)
+        for label, coords in expected_spatial.items():
+            np.testing.assert_allclose(spatial_cols[label], coords)
+
+        expected_timeline = {
+            "Noise Candidates": np.array([[15.0, 14.0]]),
+            "Non-Sequence POST": np.array([[9.0, 42.0]]),
+            "PRE Candidates": np.array([[-4.0, 22.0]]),
+            "Sequence Members": np.array([[2.5, 35.0]]),
+            "Mainshock (t=0)": np.array([[0.0, 30.0]]),
+        }
+        self.assertEqual(set(timeline_cols.keys()), set(expected_timeline.keys()))
+        for label, coords in expected_timeline.items():
+            np.testing.assert_allclose(timeline_cols[label], coords)
+
+    def test_select_plot_result_dirs_represents_all_algorithms_despite_alphabetical_dbscan_dirs(self):
+        """Regression test: With 4 DBSCAN configs (dbscan_c1..c4), HDBSCAN, and WINDOW, selection must include all 3 algorithms in both CLI and notebook."""
+        import os
+        import subprocess
+        import sys
+
+        sweep_dir = self.work_dir / "multi_algo_sweep"
+        for i in range(1, 5):
+            cfg_db = {
+                "algorithm_name": "DBSCAN",
+                "algorithm_version": "1.0.0",
+                "model_config_version": f"db-c{i}-v1",
+                "eps": 5.0,
+                "min_samples": 1,
+                "metric": "euclidean",
+            }
+            run_baseline_experiment(self.bundle, "DBSCAN", cfg_db, f"db-c{i}-v1", sweep_dir / f"dbscan_c{i}", mode=MODE_DEVELOPMENT)
+
+        # HDBSCAN c1 fails (min_cluster_size=5 > 2 rows), HDBSCAN c2 succeeds (min_cluster_size=2, min_samples=1)
+        cfg_hdb1 = {
+            "algorithm_name": "HDBSCAN_GLOBAL",
+            "algorithm_version": "1.0.0",
+            "model_config_version": "hdb-c1-v1",
+            "min_cluster_size": 5,
+            "min_samples": 5,
+            "allow_single_cluster": True,
+        }
+        cfg_hdb2 = {
+            "algorithm_name": "HDBSCAN_GLOBAL",
+            "algorithm_version": "1.0.0",
+            "model_config_version": "hdb-c2-v1",
+            "min_cluster_size": 2,
+            "min_samples": 1,
+            "allow_single_cluster": True,
+        }
+        run_baseline_experiment(self.bundle, "HDBSCAN_GLOBAL", cfg_hdb1, "hdb-c1-v1", sweep_dir / "hdbscan_c1", mode=MODE_DEVELOPMENT)
+        run_baseline_experiment(self.bundle, "HDBSCAN_GLOBAL", cfg_hdb2, "hdb-c2-v1", sweep_dir / "hdbscan_c2", mode=MODE_DEVELOPMENT)
+
+        cfg_win = {
+            "algorithm_name": "WINDOW",
+            "algorithm_version": "1.0.0",
+            "model_config_version": "win-v1",
+        }
+        run_baseline_experiment(self.bundle, "WINDOW", cfg_win, "win-v1", sweep_dir / "window_control", mode=MODE_DEVELOPMENT)
+
+        selected = select_plot_result_dirs(sweep_dir, bundle=self.bundle, max_dirs=4)
+        selected_names = [p.name for p in selected]
+        self.assertEqual(selected_names, ["window_control", "dbscan_c1", "hdbscan_c2", "dbscan_c2"])
+
+        # Verify CLI runner produces plots for all 3 algorithms
+        cli_out = self.work_dir / "cli_multi_out"
+        proc = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "scripts/inspect-col03-metrics.py"),
+                "--pilot-bundle",
+                str(self.bundle_dir),
+                "--results-dir",
+                str(sweep_dir),
+                "--output-dir",
+                str(cli_out),
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        cli_manifest = json.loads((cli_out / "handoff_manifest.json").read_text(encoding="utf-8"))
+        expected_plot_files = (
+            "spatial_distribution_window_control.png",
+            "timeline_depth_window_control.png",
+            "spatial_distribution_dbscan_c1.png",
+            "timeline_depth_dbscan_c1.png",
+            "spatial_distribution_hdbscan_c2.png",
+            "timeline_depth_hdbscan_c2.png",
+            "spatial_distribution_dbscan_c2.png",
+            "timeline_depth_dbscan_c2.png",
+        )
+        for expected_file in expected_plot_files:
+            self.assertIn(expected_file, cli_manifest["files"])
+
+        # Also verify notebook execution produces the exact same selected algorithm plots
+        nb_path = ROOT / "notebooks/col_03_baseline_metrics_plots.ipynb"
+        nb_data = json.loads(nb_path.read_text(encoding="utf-8"))
+        code_cells = ["".join(c.get("source", [])) for c in nb_data.get("cells", []) if c.get("cell_type") == "code"]
+        nb_multi_out = self.work_dir / "nb_multi_out"
+        old_env = os.environ.copy()
+        old_cwd = Path.cwd()
+        try:
+            os.environ.update({
+                "PILOT_BUNDLE": str(self.bundle_dir),
+                "RESULTS_DIR": str(sweep_dir),
+                "COL03_OUTPUT_DIR": str(nb_multi_out),
+            })
+            os.chdir(ROOT)
+            exec_globals = {"__name__": "__main__", "__file__": str(nb_path)}
+            for idx, code in enumerate(code_cells):
+                exec(compile(code, f"<col03_multi_cell_{idx}>", "exec"), exec_globals)
+        finally:
+            os.chdir(old_cwd)
+            os.environ.clear()
+            os.environ.update(old_env)
+
+        nb_manifest = json.loads((nb_multi_out / "handoff_manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual(set(nb_manifest["files"].keys()), set(cli_manifest["files"].keys()))
+        for expected_file in expected_plot_files:
+            self.assertIn(expected_file, nb_manifest["files"])
 
 
 if __name__ == "__main__":
