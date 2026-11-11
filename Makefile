@@ -153,7 +153,7 @@ smoke-qa-acceptance: check-config-local ## QA-02/03/04 storage acceptance; khôn
 	@$(COMPOSE) --profile ml run --rm --no-deps --pull never -e PIPELINE_QA_TASK="$(PIPELINE_QA_TASK)" pipeline-qa-acceptance
 
 .PHONY: test-ml-window smoke-ml-window resume-ml-window
-.PHONY: prepare-ml-local stage-ml-windows test-ml-feature ml-features-local ml-pilot-local pilot-env test-pilot inspect-pilot jupyter-pilot
+.PHONY: prepare-ml-local stage-ml-windows test-ml-feature ml-features-local ml-pilot-local pilot-env test-pilot test-col03 inspect-pilot jupyter-pilot
 .PHONY: pack-pilot test-exp01 inspect-exp01 jupyter-exp01
 .PHONY: pack-team-pilot test-team-pilot profile-jma-research profile-jma-replay test-research-profile plan-research-profiles capture-research-profiles profile-research-archives
 RESEARCH_PROFILE_ROOT ?= staging/dat03-research-profile-20261024
@@ -496,6 +496,7 @@ test-pilot: ## Pilot/model regression; cần pyarrow/model deps và loopback Jup
 	@$(PILOT_PYTHON) -m unittest tests/test_adaptive_hdbscan.py
 	@$(MAKE) test-col01 PILOT_PYTHON="$(PILOT_PYTHON)"
 	@$(MAKE) test-col02 PILOT_PYTHON="$(PILOT_PYTHON)"
+	@$(MAKE) test-col03 PILOT_PYTHON="$(PILOT_PYTHON)"
 
 .PHONY: test-col01
 test-col01: ## COL-01 offline EDA/guard/real PNG regression; cần notebooks/requirements-col01-lock.txt, không Docker
@@ -505,6 +506,10 @@ test-col01: ## COL-01 offline EDA/guard/real PNG regression; cần notebooks/req
 test-col02: ## COL-02 parameter sweep regression; không Docker
 	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_parameter_sweep.py'
 	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_col02_colab.py'
+
+.PHONY: test-col03
+test-col03: ## COL-03 baseline metrics and visualization regression; cần notebooks/requirements-colab-lock.txt, không Docker
+	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_baseline_visualization.py'
 
 inspect-pilot: ## Fresh Jupyter kernel Run All; PILOT_BUNDLE=exact local directory, không Docker/API
 	@test -n "$(PILOT_BUNDLE)" || { echo 'Set PILOT_BUNDLE=staging/ml-pilot/pilot_id=<exact-id>'; exit 2; }
