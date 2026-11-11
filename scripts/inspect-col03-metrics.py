@@ -87,7 +87,7 @@ def main():
     print("\n--- 2. Generating Relative Space and Timeline Plots ---")
     exported_plots = []
     # Pick representational subdirectories for spatial/timeline views
-    plot_subdirs = [p for p in res_dir.iterdir() if p.is_dir() and (p / "memberships.parquet").is_file()]
+    plot_subdirs = sorted([p for p in res_dir.iterdir() if p.is_dir() and (p / "memberships.parquet").is_file()], key=lambda p: p.name)
     for sdir in plot_subdirs[:4]:  # Plot up to 4 key configurations
         mem_p = sdir / "memberships.parquet"
         algo = sdir.name.upper()

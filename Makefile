@@ -508,8 +508,8 @@ test-col02: ## COL-02 parameter sweep regression; không Docker
 	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_col02_colab.py'
 
 .PHONY: test-col03
-test-col03: ## COL-03 baseline metrics and visualization regression; không Docker
-	@$(PILOT_PYTHON) -m unittest tests/test_baseline_visualization.py
+test-col03: ## COL-03 baseline metrics and visualization regression; cần notebooks/requirements-colab-lock.txt, không Docker
+	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_baseline_visualization.py'
 
 inspect-pilot: ## Fresh Jupyter kernel Run All; PILOT_BUNDLE=exact local directory, không Docker/API
 	@test -n "$(PILOT_BUNDLE)" || { echo 'Set PILOT_BUNDLE=staging/ml-pilot/pilot_id=<exact-id>'; exit 2; }

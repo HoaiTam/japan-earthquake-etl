@@ -1,6 +1,6 @@
 # COL-03 — Pilot Baseline Metrics and Plots Evidence
 
-- **Ngày kiểm chứng:** 2026-11-02 (Cập nhật phản hồi review: 2026-11-09)
+- **Ngày kiểm chứng:** 2026-11-02 (Cập nhật phản hồi review: 2026-11-11)
 - **Tuần thực hiện:** Tuần 7 (02–08/11/2026), Khối 2
 - **Assignee:** `rosy179`
 - **Reviewer:** `unassigned`
@@ -85,31 +85,34 @@ Tất cả biểu đồ được sinh tự động và lưu trữ tại `staging
 
 ## 5. Gói bàn giao cho ThanhTris (EXP-04 Handoff Package)
 
-File `staging/ml-experiments/col03-metrics-plots/handoff_manifest.json` ghi nhận đầy đủ chữ ký kiểm chứng mã băm SHA-256 cho toàn bộ 11 artifacts phục vụ task [EXP-04](../task/tasks/EXP-04.md):
+File `staging/ml-experiments/col03-metrics-plots/handoff_manifest.json` (sinh từ thực thi fresh kernel `nbclient` của `notebooks/col_03_baseline_metrics_plots.ipynb` đồng bộ với CLI `scripts/inspect-col03-metrics.py`) ghi nhận đầy đủ chữ ký kiểm chứng mã băm SHA-256 cho toàn bộ 11 artifacts cùng `source_provenance` của 9 cấu hình gốc phục vụ task [EXP-04](../task/tasks/EXP-04.md):
 
 * `baseline_metrics_table.csv` — `9465f7a237e72b6ae4ac275feb946b920217fef19e765ef9f7817c09a92424c7`
-* `baseline_metrics_table.json` — `a9de962aac742e3ab8cafd87df4beba5c0326c244b93150bc269e30a9271ded9`
-* `spatial_distribution_dbscan_c1.png` — `fa86d64e0d6a5ba2b6e1ea95864806cda379273a05121f454e06f1b498be2063`
-* `timeline_depth_dbscan_c1.png` — `623e8e2838a56799e7cda23f2dd56f75555d2fa0ccfd751575156f1de63b33cd`
-* `spatial_distribution_dbscan_c2.png` — `a43a9d0bf256270a04dce124322222b24b7b51b82a51ca3383bb1d8cc758bfeb`
-* `timeline_depth_dbscan_c2.png` — `4b2eeb20110024991782b8afa426b10bd16250f4337d46d2f6c69ad4417e82c5`
-* `spatial_distribution_dbscan_c3.png` — `6b78d24506d56530a0f53ecd4bfa34e7951b5aff1123c8147feb5e2061bbb966`
-* `timeline_depth_dbscan_c3.png` — `bd5e3f26a54920ca6013522fa8d620779c3e4d2adc41d57001e3c4273f10d407`
-* `spatial_distribution_dbscan_c4.png` — `215c32a1e9041d0931c8d2286a35645b13c5bb5ddbad37ddcc237b2c9615299c`
-* `timeline_depth_dbscan_c4.png` — `fb09628207f0b67d3615e5af3bee36c731a91344a5a33a269522fb99483c7618`
-* `baseline_comparison_summary.png` — `177634e496391bbbd6374bb9228806cd2ac276fa61cd204a350c472e03c52f68`
-* `handoff_manifest.json` — `1beab143e318f6dfaaf3628f8bc6320d09a8d26e77810513547fe1331a37c4f2`
+* `baseline_metrics_table.json` — `5f3a4a8ff5bbd73217527f2371194ee92e424f57ae3c0a0353ea4cecb2fe43a0`
+* `spatial_distribution_dbscan_c1.png` — `6712054ddb0753c424f3ec88a94ea55984a6dfe28029d266a686b6f5a05efdba`
+* `timeline_depth_dbscan_c1.png` — `254a685fff390e3ad74a18d0b4d2025ec03a6cde33bba9c90d5b01f5762e74a8`
+* `spatial_distribution_dbscan_c2.png` — `58f0ed50d1643710fc5ce586420693df8e3e51eb7fb8aaee1af6615e3d9b53dd`
+* `timeline_depth_dbscan_c2.png` — `ea62ba4cbe1fe91382f3100717d0673f93e75ffcf7db235be341c408e6b8e007`
+* `spatial_distribution_dbscan_c3.png` — `6052d402c49013c53af904e95371a4911fe6955fab783c4c854f5286df8bdb9d`
+* `timeline_depth_dbscan_c3.png` — `bce93d813259749c111dcf36332d731c797bfd98f160795b8983121f48f40d5c`
+* `spatial_distribution_dbscan_c4.png` — `493de997cf0f50308fe4b18b6215ba14e702a861a384f7e0bfaee6d143fb5363`
+* `timeline_depth_dbscan_c4.png` — `f412948dc93180d0fdb492c45cd9cc43297b1ca289937ee1c820d483acb241f4`
+* `baseline_comparison_summary.png` — `e98ac3a11d3bc904fb340824968d3a1570cc2ee7c7a635644260bc0895c6318c`
+* `handoff_manifest.json` — `44c2a067157499d33228aa411377562cad73beb3edc7c7d288cf70cf813c2d98`
 
 ---
 
-## 6. Danh mục tệp mã nguồn và kiểm thử
+## 6. Danh mục tệp mã nguồn, môi trường và kiểm thử
 
 - **Mã nguồn:**
   - Module trực quan hóa: `notebooks/baseline_visualization.py`
-  - Notebook: `notebooks/col_03_baseline_metrics_plots.ipynb`
+  - Notebook: `notebooks/col_03_baseline_metrics_plots.ipynb` (SHA-256: `686bb4511cdddc805fe41ae3e414029db3d756e13072e5c111fe567c375a65b3`, `RESTART_RUN_ALL_PASSED` trên fresh kernel `nbclient`)
   - Script Headless Runner: `scripts/inspect-col03-metrics.py`
+- **Dependencies:**
+  - Local / Notebook venv: `notebooks/requirements-colab-lock.txt` (`pandas==2.2.3`, `matplotlib==3.10.0` và toàn bộ pins từ `notebooks/requirements-lock.txt`).
+  - CI runner: `tests/ci/requirements.txt` (đã đồng bộ pin `pandas==2.2.3` và `matplotlib==3.10.0`).
 - **Bộ kiểm thử tự động:**
-  - `tests/test_baseline_visualization.py` (34/34 tests PASS).
+  - `tests/test_baseline_visualization.py` (36/36 tests PASS, bao gồm end-to-end notebook provenance test và dependency alignment test trên cả môi trường venv sạch).
 - **Metadata Bằng chứng:**
   - JSON Metadata: [COL-03_BASELINE_METRICS_PLOTS_20261102.json](./COL-03_BASELINE_METRICS_PLOTS_20261102.json)
 

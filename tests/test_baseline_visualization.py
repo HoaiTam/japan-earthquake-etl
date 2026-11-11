@@ -679,6 +679,145 @@ class TestBaselineVisualization(unittest.TestCase):
         self.assertIn("source_provenance", data)
         self.assertEqual(data["source_provenance"], mock_prov)
 
+    def test_notebook_workflow_end_to_end_and_source_provenance(self):
+        """Regression test: Executes notebooks/col_03_baseline_metrics_plots.ipynb end-to-end and verifies handoff source_provenance pins."""
+        import importlib.util
+        import os
+
+        nb_path = ROOT / "notebooks/col_03_baseline_metrics_plots.ipynb"
+        self.assertTrue(nb_path.is_file())
+        nb_data = json.loads(nb_path.read_text(encoding="utf-8"))
+
+        # 1. Ensure tracked notebook is clean of outputs and execution counts
+        code_cells = []
+        for cell in nb_data.get("cells", []):
+            if cell.get("cell_type") == "code":
+                self.assertIsNone(cell.get("execution_count"), "Tracked notebook must have null execution_count")
+                self.assertEqual(cell.get("outputs", []), [], "Tracked notebook must have empty outputs")
+                code_cells.append("".join(cell.get("source", [])))
+        self.assertGreaterEqual(len(code_cells), 4)
+
+        def _verify_notebook_output(out_dir: Path):
+            manifest_p = out_dir / "handoff_manifest.json"
+            self.assertTrue(manifest_p.is_file(), f"Missing handoff_manifest.json in {out_dir}")
+            manifest = json.loads(manifest_p.read_text(encoding="utf-8"))
+            self.assertEqual(manifest["pilot_id"], self.bundle["bundle_id"])
+            self.assertEqual(manifest["intended_recipient"], "ThanhTris")
+            self.assertFalse(manifest["research_ready"])
+            self.assertFalse(manifest["official_exported"])
+            self.assertFalse(manifest["scientific_approval"])
+
+            # Verify all exported files exist and match SHA-256
+            self.assertGreaterEqual(manifest["total_files"], 7)
+            for fname, expected_sha in manifest["files"].items():
+                fpath = out_dir / fname
+                self.assertTrue(fpath.is_file(), f"Missing exported file {fname}")
+                self.assertEqual(sha256_bytes(fpath.read_bytes()), expected_sha)
+
+            # Verify source_provenance pins match exact source result bundles
+            self.assertIn("source_provenance", manifest)
+            prov = manifest["source_provenance"]
+            self.assertEqual(set(prov.keys()), {"dbscan", "window"})
+
+            for sub_name, expected_algo, expected_ver in [
+                ("dbscan", "DBSCAN", "db-v1"),
+                ("window", "WINDOW", "win-v1"),
+            ]:
+                sub_dir = self.results_dir / sub_name
+                res_manifest = json.loads((sub_dir / "pilot_result_manifest.json").read_text(encoding="utf-8"))
+                p_entry = prov[sub_name]
+                self.assertEqual(p_entry["pilot_id"], self.bundle["bundle_id"])
+                self.assertEqual(p_entry["algorithm_name"], expected_algo)
+                self.assertEqual(p_entry["model_config_version"], expected_ver)
+                self.assertEqual(p_entry["pilot_run_id"], res_manifest["pilot_run_id"])
+                self.assertEqual(p_entry["code_version"], res_manifest["code_version"])
+                self.assertEqual(
+                    p_entry["manifest_sha256"],
+                    sha256_bytes((sub_dir / "pilot_result_manifest.json").read_bytes()),
+                )
+                self.assertEqual(
+                    p_entry["config_sha256"],
+                    sha256_bytes((sub_dir / "experiment_config.json").read_bytes()),
+                )
+                self.assertEqual(
+                    p_entry["metrics_sha256"],
+                    sha256_bytes((sub_dir / "experiment_metrics.json").read_bytes()),
+                )
+                self.assertEqual(
+                    p_entry["memberships_sha256"],
+                    sha256_bytes((sub_dir / "memberships.parquet").read_bytes()),
+                )
+                self.assertEqual(
+                    p_entry["sequence_summary_sha256"],
+                    sha256_bytes((sub_dir / "sequence_summary.parquet").read_bytes()),
+                )
+
+        # 2. Execute notebook cells via isolated exec namespace
+        nb_exec_out = self.work_dir / "nb_exec_out"
+        env_override = {
+            "PILOT_BUNDLE": str(self.bundle_dir),
+            "RESULTS_DIR": str(self.results_dir),
+            "COL03_OUTPUT_DIR": str(nb_exec_out),
+        }
+        old_env = os.environ.copy()
+        old_cwd = Path.cwd()
+        try:
+            os.environ.update(env_override)
+            os.chdir(ROOT)
+            exec_globals = {"__name__": "__main__", "__file__": str(nb_path)}
+            for idx, code in enumerate(code_cells):
+                exec(compile(code, f"<col03_cell_{idx}>", "exec"), exec_globals)
+        finally:
+            os.chdir(old_cwd)
+            os.environ.clear()
+            os.environ.update(old_env)
+
+        _verify_notebook_output(nb_exec_out)
+
+        # 3. Also execute via inspect-exp01-notebook runner (uses nbclient kernel when installed)
+        runner_spec = importlib.util.spec_from_file_location(
+            "inspect_runner", ROOT / "scripts/inspect-exp01-notebook.py"
+        )
+        runner_mod = importlib.util.module_from_spec(runner_spec)
+        runner_spec.loader.exec_module(runner_mod)
+
+        nb_runner_out = self.work_dir / "nb_runner_out"
+        report = runner_mod.run_notebook_cells(
+            nb_path,
+            {
+                "PILOT_BUNDLE": str(self.bundle_dir),
+                "RESULTS_DIR": str(self.results_dir),
+                "COL03_OUTPUT_DIR": str(nb_runner_out),
+            },
+        )
+        self.assertTrue(report["source_notebook_outputs_cleared"])
+        _verify_notebook_output(nb_runner_out)
+
+    def test_dependency_pins_aligned_between_ci_and_colab_lock(self):
+        """Verifies that pandas and matplotlib are pinned identically in CI and Colab lock files."""
+        def _parse_pins(path: Path):
+            pins = {}
+            for raw in path.read_text(encoding="utf-8").splitlines():
+                line = raw.strip()
+                if not line or line.startswith("#") or line.startswith("-r "):
+                    continue
+                if "==" in line:
+                    pkg, ver = line.split("==", 1)
+                    pins[pkg.strip()] = ver.strip()
+            return pins
+
+        ci_pins = _parse_pins(ROOT / "tests/ci/requirements.txt")
+        colab_pins = _parse_pins(ROOT / "notebooks/requirements-colab-lock.txt")
+        model_pins = _parse_pins(ROOT / "notebooks/requirements-lock.txt")
+
+        self.assertIn("pandas", ci_pins, "pandas must be pinned in tests/ci/requirements.txt for COL-03 CI")
+        self.assertIn("matplotlib", ci_pins, "matplotlib must be pinned in tests/ci/requirements.txt")
+        self.assertEqual(ci_pins["pandas"], colab_pins.get("pandas"))
+        self.assertEqual(ci_pins["matplotlib"], colab_pins.get("matplotlib"))
+
+        for shared_pkg in ("pyarrow", "numpy", "scipy", "scikit-learn"):
+            self.assertEqual(ci_pins.get(shared_pkg), model_pins.get(shared_pkg))
+
 
 if __name__ == "__main__":
     unittest.main()

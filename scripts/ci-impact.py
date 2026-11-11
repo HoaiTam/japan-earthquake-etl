@@ -79,7 +79,7 @@ def classify(changes, root=ROOT):
             return full("unusual-path", len(changes))
         # Contract specifications may influence readers and SQL even without code changes.
         if path.startswith(("docs/specs/", "docs/contracts/")): return full("shared-contract", len(changes))
-        if path in {"README.md", "LICENSE", "LICENSE.md"} or (path.startswith("docs/") and path.endswith((".md", ".json"))):
+        if path in {"README.md", "LICENSE", "LICENSE.md"} or (path.startswith("docs/") and path.endswith(".md")):
             reasons.add("documentation"); continue
         if path in TEAM_PILOT_FILES:
             pilot = "full"; reasons.add("team-pilot-handoff"); continue
@@ -94,7 +94,7 @@ def classify(changes, root=ROOT):
             reasons.add("pilot-python")
             if path in PILOT_SCRIPTS:
                 scopes.add("feature")
-            elif path in EXP_FILES or path in EXP_SCRIPTS or any(k in path for k in ("experiment_harness", "baseline_algorithms", "adaptive_hdbscan", "research_collection_loader")):
+            elif path in EXP_FILES or path in EXP_SCRIPTS or any(k in path for k in ("experiment_harness", "baseline_algorithms", "baseline_visualization", "adaptive_hdbscan", "research_collection_loader")):
                 scopes.add("ml")
             continue
         if path in PILOT_CONFIGS or path in EXP_CONFIGS:
@@ -241,7 +241,7 @@ def emit(result, output=None, summary=None, root=ROOT):
             file.write("\n| Component | Functional/task suite | Test classes/modules |\n|---|---|---|\n")
             for component, groups in matrices.items():
                 for group, tests in groups.items(): file.write(f"| {component} | {group} | {len(tests)} |\n")
-            if result["pilot"] != "none": file.write("| Python | DAT-02/EXP-01/EXP-02/EXP-03/COL-03 pilot, baselines, adaptive & visualization + DAT-03 handoff | test_pilot_*.py, test_team_pilot.py, test_experiment_harness.py, test_baseline_algorithms.py, test_adaptive_hdbscan.py, test_baseline_visualization.py |\n")
+            if result["pilot"] != "none": file.write("| Python | DAT-02/EXP-01/EXP-02/EXP-03 pilot, baselines & adaptive + DAT-03 handoff | test_pilot_*.py, test_team_pilot.py, test_experiment_harness.py, test_baseline_algorithms.py, test_adaptive_hdbscan.py, test_baseline_visualization.py |\n")
 
 
 def commands(result, component):
