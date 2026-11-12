@@ -1,6 +1,6 @@
 ---
 task_id: "DAT-03"
-status: "Needs Update"
+status: "In Progress"
 week: 6
 block: "A - Hợp đồng dữ liệu"
 workstream: "Verified research data and team handoff"
@@ -16,7 +16,14 @@ dependencies: ["ORC-07", "MLD-05", "MLI-02", "EXP-01"]
 
 ## Giao việc hiện hành — 11/11/2026
 
-- **Owner:** HoaiTam; **status:** Needs Update.
+**12/11 — đã tiếp tục:** In Progress trên feat/dat-03-lineage-readiness.
+[Actual metadata audit](../../evidence/DAT-03_LINEAGE_FRONTIER_20261112.md)
+xác nhận75/83first-hop và Trí76dataset manifests/18parent commits.
+[Requests/runbook](../../runbooks/DAT-03_LINEAGE_FRONTIER.md); còn closure/
+payload/identity/publication/snapshots, unified Gold và official exports.
+Không lấy metadata audit làm Done toàn task.
+
+- **Owner:** HoaiTam; **status:** In Progress.
 - **Làm phần gì / dùng để làm gì:** Lineage → catalog tích hợp → official export.
 - **Bắt đầu độc lập:** Đối chiếu bytes/SHA tầng tiếp theo của Trí/Trang; không chạy lại ETL đã accepted.
 - **Đầu ra và điều kiện Done:** Catalog thống nhất có boundary/reconciliation, Gold/Trino pins; REPRODUCTION/EXTENSION EXPORTED, loader/rerun và receipts ba máy.
@@ -248,7 +255,7 @@ release đủ gate. Không tạo dependency ngược từ DAT-03 sang EXP-02.
   [Evidence](../../evidence/DAT-03_DRIVE_RANGES_20261028.md). Giữ In Progress;
   các mốc101/113 bên dưới là lịch sử, chưa officialMLexport/receipts ba máy.
 
-- **Trạng thái:** Needs Update
+- **Trạng thái:** In Progress
 - **Assignee:** HoaiTam
 - **Reviewer:** unassigned
 - **Cập nhật tối27/10:** đã hủy automation, mở lại Docker và benchmark chỉ đọc

@@ -1,7 +1,7 @@
 # Kế hoạch task 8 tuần
 
-> **Hiện hành11/11/2026:** [phân công tuần9 — 16–22/11](./WEEK_9_REPLAN_20261111.md).
-> 63 Done / 6 Needs Update / 12 Backlog;18task,6task/người.
+> **Hiện hành12/11/2026:** [phân công tuần9 — 16–22/11](./WEEK_9_REPLAN_20261111.md).
+> 63 Done / 5 Needs Update / 12 Backlog / 1 In Progress (DAT-03);18task,6task/người.
 > Roster/effort tuần cũ bên dưới là lịch sử. [Đối soát](../evidence/TASK_STATUS_AUDIT_20261111.md).
 
 Backlog được lưu hoàn toàn bằng Markdown. Mỗi task có một file độc lập trong

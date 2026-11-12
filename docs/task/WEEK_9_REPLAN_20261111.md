@@ -7,7 +7,9 @@ phải nguồn trạng thái của lần này; không ghi đè/chuyển các edi
 
 ## 1. Trạng thái đã rà soát
 
-**63/81 Done (77,8% theo số task), 6 Needs Update, 12 Backlog, 0 In Progress.**
+**Cập nhật12/11:63/81 Done (77,8%),5 Needs Update,12 Backlog,1 In Progress (DAT-03).**
+DAT-03 đã tiếp tục [metadata audit](../evidence/DAT-03_LINEAGE_FRONTIER_20261112.md);
+chưa official integration/export. Quyết định11/11 bên dưới giữ làm lịch sử.
 Core:63/73 Done; Stretch:0/8 Done. Còn18task =10Core+8Stretch; không đổi scope
 để khớp deadline. Số task không phải tỷ lệ thời gian hoặc chất lượng khoa học.
 [Đối soát PR và quyết định từng task](../evidence/TASK_STATUS_AUDIT_20261111.md).
@@ -32,7 +34,7 @@ Owner: **HoaiTam**.
 
 | Task | Status | Làm phần gì / dùng để làm gì | Bàn giao / nghiệm thu |
 |---|---|---|---|
-| [DAT-03](./tasks/DAT-03.md) | Needs Update | Lineage → catalog tích hợp → official export. Đối chiếu bytes/SHA tầng tiếp theo của Trí/Trang; không chạy lại ETL đã accepted. | Catalog thống nhất có boundary/reconciliation, Gold/Trino pins; REPRODUCTION/EXTENSION EXPORTED, loader/rerun và receipts ba máy. |
+| [DAT-03](./tasks/DAT-03.md) | In Progress | Lineage → catalog tích hợp → official export. Đối chiếu bytes/SHA tầng tiếp theo của Trí/Trang; không chạy lại ETL đã accepted. | Catalog thống nhất có boundary/reconciliation, Gold/Trino pins; REPRODUCTION/EXTENSION EXPORTED, loader/rerun và receipts ba máy. |
 | [SEC-01](./tasks/SEC-01.md) | Needs Update | Bảo mật Drive/Colab. Tiếp tục PR #119; scan exact notebooks/output đã có, kiểm ACL và xác nhận roster riêng. | Hết finding/pending trong scope; actual session/recipient evidence ba người, không suy quyền nhận từ CI hoặc tên file. |
 | [MLQ-01](./tasks/MLQ-01.md) | Backlog | Nghiệm thu ML E2E. Viết test plan, negative fixtures và reconciliation queries ngay. | Sau hard dependencies: truy vết Gold → dataset → experiment → import/report; reject bundle lỗi và rerun không duplicate. |
 | [OPS-01](./tasks/OPS-01.md) | Backlog | Backup/restore. Inventory metadata và chuẩn bị restore procedure trong namespace thử. | Restore đọc được Gold và ML lineage/registry; backup chia sẻ không chứa secret, không restore đè deployment gốc. |

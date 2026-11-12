@@ -22,7 +22,8 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 
 ## Tổng quan
 
-**Hiện hành11/11:** 63/81 Done,6 Needs Update,12 Backlog,0 In Progress.
+**Hiện hành12/11:** 63/81 Done,5 Needs Update,12 Backlog,1 In Progress (DAT-03).
+[DAT-03 actual metadata audit](../../evidence/DAT-03_LINEAGE_FRONTIER_20261112.md): first-hop và Trí next-hop matched; chưa official integration/export.
 [Kế hoạch tuần9,6task/người](../WEEK_9_REPLAN_20261111.md),
 [đối soát PR/acceptance](../../evidence/TASK_STATUS_AUDIT_20261111.md).
 COL-03 Done sau #117; #124 merge implementation, MLI-04 còn official parity.
@@ -95,7 +96,7 @@ full catalog/export/receipts ba máy.
 
 - Tổng số task: **81**.
 - Foundation: **9 task `Done`**, FND-01 đã nghiệm thu runtime của lifecycle mới ngày 2026-10-15.
-- Task còn ở trạng thái `Needs Update`: **6** — DAT-03, EXP-02/03/04, MLI-04, SEC-01; EXP-01 cloud harness tuần7 đã Done, không thay security/session audit.
+- Task còn ở trạng thái `Needs Update`: **5** — EXP-02/03/04, MLI-04, SEC-01; DAT-03 tiếp tục In Progress12/11; EXP-01 cloud harness tuần7 đã Done, không thay security/session audit.
 - Core: **73 task**.
 - Stretch: **8 task**.
 - Tổng effort task: **416 giờ**; baseline 364h + ORC-06/07 16h + DAT-02 6h + DAT-03 16h + COL-01..04 14h.
@@ -228,7 +229,7 @@ fixture/inventory; assignee `HoaiTam`, reviewer `unassigned`. Xem
 | [CON-03](./CON-03.md) - Thiết kế mô hình dữ liệu Silver, Gold và ML | 2 | Data model contract | Core | P0 | 6h | Done |
 | [DAT-01](./DAT-01.md) - Chuẩn bị bộ dữ liệu mẫu thật từ USGS và JMA | 3 | Shared real samples | Core | P0 | 3h | Done |
 | [DAT-02](./DAT-02.md) - Tạo dataset pilot nhỏ để test trên Jupyter | 5 | Jupyter development pilot | Core | P0 | 6h | Done |
-| [DAT-03](./DAT-03.md) - Chuẩn bị catalog nghiên cứu thật và bàn giao dataset dùng chung | 6 | Verified research data and team handoff | Core | P0 | 16h | Needs Update |
+| [DAT-03](./DAT-03.md) - Chuẩn bị catalog nghiên cứu thật và bàn giao dataset dùng chung | 6 | Verified research data and team handoff | Core | P0 | 16h | In Progress |
 
 DAT-03: [range worker + frozen USGS2023](../../runbooks/DAT-03_RANGE_WORKER.md)
 đã có code/transport; còn một tháng runtime acceptance trên từng máy,
