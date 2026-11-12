@@ -11,8 +11,8 @@ Tuy nhiên, đây là kết quả của các gói riêng lẻ trên từng máy 
 | Catalog nền | 2000-01–2008-05 | 101 | Đã kiểm tra gói | Lưu trữ trên coordinator ban đầu (1.064.869 canonical events) |
 | HoaiTam | 2008-06–2013-07 | 62 | Đã kiểm tra các gói | Lưu trữ Drive theo các batch (24m + 9m + còn lại) |
 | ThanhTris | 2013-08–2018-09 | 62 | Đã kiểm tra gói | **75/75 objects khớp 100% SHA-256** |
-| rosy179 | 2018-10–2023-12 | 63 | Đã kiểm tra gói | **Đã trích xuất & đóng gói 83/83 objects khớp 100% SHA-256** |
-| **Toàn kỳ hợp nhất** | **2000-01–2023-12** | **288** | **Đủ 288/288 tháng** | **Đã đủ 75/75 (Trí) và 83/83 (Trang)** |
+| rosy179 | 2018-10–2023-12 | 63 | Đã kiểm tra gói | **Đã trích xuất & đóng gói 83/83 objects first-hop và 138/138 objects transitive lineage metadata khớp 100% SHA-256** |
+| **Toàn kỳ hợp nhất** | **2000-01–2023-12** | **288** | **Đủ 288/288 tháng** | **Đã đủ 75/75 first-hop + 114 lineage (Trí) và 83/83 first-hop + 138 lineage (Trang)** |
 
 ---
 
@@ -47,9 +47,30 @@ rosy179 đã trích xuất từ MinIO local, đối chiếu và đóng gói thà
 
 ---
 
+## 2.2. Kết quả Đóng gói Lineage Bổ sung (Transitive Lineage) của rosy179
+
+rosy179 đã trích xuất, xác thực đối chiếu và đóng gói thành công gói lineage bổ sung tầng tiếp theo (`rosy179-dat03-lineage-metadata.zip`) gồm **138 objects** metadata tương ứng 23 runs x 6 journals giai đoạn `2018-10..2023-12`:
+
+- **Tỷ lệ khớp:** **138/138 objects (100%)** khớp tuyệt đối với các `artifact_sha256` trong receipts của 63 tháng.
+- **Cấu trúc phân loại 138 objects (23 runs x 6 phase journals):**
+  - **23 readiness journals** (`silver/real-etl/<run_id>/readiness.json`).
+  - **23 bronze journals** (`silver/real-etl/<run_id>/bronze.json`).
+  - **23 silver journals** (`silver/real-etl/<run_id>/silver.json`).
+  - **23 gold commit receipts** (`silver/real-etl/<run_id>/gold.json`).
+  - **23 verify journals** (`silver/real-etl/<run_id>/verify.json`).
+  - **23 publish journals** (`silver/real-etl/<run_id>/publish.json`).
+- **Thông số gói:**
+  - Dung lượng: `401.335 bytes`.
+  - SHA-256: `45c1f02ff80454aca2a6bad5587e6b0bfabc4f8cb7fa08a8043a8c6bb7b6de01`.
+  - Manifest SHA-256: `4444c7f0c0041511ade0b122f2faaaefa427c6b4a1ee690eb05830236d807694`.
+  - Đã xuất file đặc tả đối soát trusted: `staging/dat03-range-handoff-rosy179/rosy179-required-lineage.json`.
+- **Kết luận:** Hoàn thành toàn bộ việc trích xuất và đóng gói 138 objects transitive lineage metadata của rosy179, sẵn sàng cho Hoài Tâm đối soát độc lập Cổng 1.
+
+---
+
 ## 3. Các Điểm nghẽn Còn lại Trước khi Hoàn tất DAT-03
 
-1. **Provenance worker rosy179:** Đã đưa gói `rosy179-dat03-provenance-metadata.zip` lên Google Drive (thư mục `workers/rosy179/`). Hoài Tâm đã tải độc lập và đối chiếu với `rosy179-required-provenance.json` (pin từ checkpoint 02/11), xác nhận 83/83 object first-hop khớp SHA-256 (37 Bronze manifests, 23 Silver bundle manifests, 23 snapshot registry JSONs). Tuy nhiên, **Cổng 1 chưa hoàn tất vì còn chờ đối soát transitive lineage / transitive closure** của cả hai phần (ThanhTris và rosy179) đến các frozen archives.
+1. **Provenance & Lineage worker rosy179:** Đã đưa gói `rosy179-dat03-provenance-metadata.zip` (83 objects first-hop) lên Google Drive, xác nhận khớp 100% SHA-256. Gói bổ sung `rosy179-dat03-lineage-metadata.zip` (138 objects transitive lineage metadata) đã được đóng gói thành công kèm file đối soát `rosy179-required-lineage.json` (SHA-256 `45c1f02ff80454aca2a6bad5587e6b0bfabc4f8cb7fa08a8043a8c6bb7b6de01`). Cổng 1 đang chờ Hoài Tâm hoàn tất đối soát độc lập gói lineage này cùng gói của ThanhTris.
 2. **Release nghiên cứu cuối:** Thư mục `accepted/` trên Drive chưa có release cuối cùng. Hai receipt hiện có trong thư mục `receipts/` là receipt chạy dải tháng cá nhân của Trí, chưa phải xác nhận của 3 thành viên nhận cùng một dataset nghiên cứu chính thức.
 3. **Catalog Gold hợp nhất:** Chưa thực hiện merge 4 gói vào Iceberg catalog chung để kiểm tra liên kết ranh giới và chạy Trino verification queries.
 4. **Official ML Export:** Chưa chạy build job chính thức cho 2 split `REPRODUCTION` và `EXTENSION` từ snapshot Gold chung.

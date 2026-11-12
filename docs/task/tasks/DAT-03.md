@@ -209,6 +209,16 @@ release đủ gate. Không tạo dependency ngược từ DAT-03 sang EXP-02.
 
 ## Theo dõi
 
+- **12/11 — đóng gói lineage bổ sung (transitive lineage) của rosy179:**
+  bổ sung gói `rosy179-dat03-lineage-metadata.zip` (401.335 bytes, SHA-256
+  `45c1f02ff80454aca2a6bad5587e6b0bfabc4f8cb7fa08a8043a8c6bb7b6de01`) gồm đủ 138/138
+  objects metadata tầng tiếp theo (23 runs x 6 phase journals: readiness, bronze, silver,
+  gold commit, verify, publish), khớp 100% cryptographic receipts trong 63 tháng.
+  Đã hoàn thiện công cụ `scripts/pack-worker-lineage.py` và bộ kiểm thử tự động
+  `tests/test_pack_worker_lineage.py` (fail-closed, unique path safety, self-integrity
+  và trusted verification). [Evidence](../../evidence/DAT-03_INTEGRATION_EVIDENCE_288_MONTHS.md).
+  Giữ Needs Update theo phân công 11/11 của HoaiTam chờ nghiệm thu 4 cổng.
+
 - **05/11 — đối soát toàn kỳ 288 tháng và 75/75 provenance của ThanhTris:**
   đối soát offline 02/11 và cập nhật từ Hoài Tâm xác nhận đủ 288/288 tháng qua
   4 gói phân đoạn (101 nền, 62 HoaiTam, 62 ThanhTris, 63 rosy179), 0 gap và

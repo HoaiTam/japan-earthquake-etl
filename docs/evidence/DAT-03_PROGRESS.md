@@ -1,4 +1,11 @@
-# DAT-03 — Tiến độ thực tế (cập nhật 06/11/2026)
+# DAT-03 — Tiến độ thực tế (cập nhật 12/11/2026)
+
+## Cập nhật 12/11/2026 — Đóng gói Lineage Bổ sung (Transitive Lineage 138/138) của rosy179
+
+rosy179 đã hoàn thành việc đóng gói gói lineage bổ sung tầng tiếp theo `rosy179-dat03-lineage-metadata.zip` (401.335 bytes, SHA-256 `45c1f02ff80454aca2a6bad5587e6b0bfabc4f8cb7fa08a8043a8c6bb7b6de01`):
+- **Phạm vi đối soát:** Đủ 138/138 objects (23 runs x 6 phase journals: readiness, bronze, silver, gold commit, verify, publish), khớp 100% SHA-256 đối soát.
+- **Công cụ:** Đã phát triển `scripts/pack-worker-lineage.py` và kiểm thử toàn diện `tests/test_pack_worker_lineage.py` (fail-closed, unique path safety, self-integrity và trusted verification).
+- Chi tiết đối soát tại [báo cáo đối soát 288 tháng](DAT-03_INTEGRATION_EVIDENCE_288_MONTHS.md).
 
 ## Cập nhật 06/11/2026 — Đối soát 288 tháng và Provenance First-hop của ThanhTris (75/75) và rosy179 (83/83)
 
