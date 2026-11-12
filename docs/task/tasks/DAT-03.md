@@ -23,6 +23,13 @@ xác nhận75/83first-hop và Trí76dataset manifests/18parent commits.
 payload/identity/publication/snapshots, unified Gold và official exports.
 Không lấy metadata audit làm Done toàn task.
 
+**12/11 — ThanhTris bàn giao metadata frontier:** Đã trích xuất và đưa lên Drive
+gói `ThanhTris-dat03-frontier-metadata-20261112.zip` (18 identities khớp 100%
+`identity_sha256`, 18 publications `PASSED`/`published=true`, cryptographic
+linkage tới 108 snapshots Iceberg và kiểm kê 119 payload 522.659.149 bytes tại MinIO).
+[Evidence ThanhTris](../../evidence/DAT-03_LINEAGE_ThanhTris_METADATA_20261112.md).
+DAT-03 vẫn giữ In Progress.
+
 - **Owner:** HoaiTam; **status:** In Progress.
 - **Làm phần gì / dùng để làm gì:** Lineage → catalog tích hợp → official export.
 - **Bắt đầu độc lập:** Đối chiếu bytes/SHA tầng tiếp theo của Trí/Trang; không chạy lại ETL đã accepted.
