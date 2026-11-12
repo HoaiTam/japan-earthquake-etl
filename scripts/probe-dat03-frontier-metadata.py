@@ -136,6 +136,8 @@ def main():
                 "verified_at_utc": parsed.get("verified_at_utc"),
                 "identity_sha256": parsed.get("identity_sha256"),
                 "bundle_sha256": parsed.get("bundle_sha256"),
+                "snapshot_bundle": parsed.get("snapshot_bundle"),
+                "checks": parsed.get("checks"),
             })
         except Exception as e:
             pub_results.append({

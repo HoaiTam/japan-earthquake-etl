@@ -338,15 +338,27 @@ class LineageTest(unittest.TestCase):
             "identities": [{
                 "uri": m.PREFIX + "silver/gold-commits/r1/identity.json",
                 "payload_sha256": "a" * 64,
+                "internal_identity_sha256": "a" * 64,
                 "valid_serialization": True,
+                "payload_matches_internal": True,
                 "payload_matches_expected": True,
+                "internal_matches_expected": True,
             }],
             "publications": [{
                 "uri": pub_uri,
+                "publication_id": "pub_" + "c" * 64,
                 "verify_status": "PASSED",
                 "published": True,
                 "identity_sha256": "WRONG_IDENTITY_HASH",
                 "bundle_sha256": "c" * 64,
+                "snapshot_bundle": {
+                    t: {"snapshot_id": 12345, "count": 100} for t in [
+                        "event_current", "event_source_bridge", "dim_date",
+                        "dim_region", "dim_magnitude_band", "dim_depth_band"
+                    ]
+                },
+                "event_count": 100,
+                "checks": {"serving_count": {"actual": 100}},
             }],
         }
         req_data = {
@@ -358,11 +370,11 @@ class LineageTest(unittest.TestCase):
         }
         evidence = gen_mod.build_evidence(probe_data, req_data, None, audit_data=audit_data, strict=False)
         self.assertIn("IDENTITY_MISMATCH", evidence)
-        self.assertIn("0/1 tệp liên kết mật mã học hợp lệ", evidence)
+        self.assertIn("0/1 tệp backreferences khớp bitwise", evidence)
 
         with self.assertRaises(ValueError) as ctx:
             gen_mod.build_evidence(probe_data, req_data, None, audit_data=audit_data, strict=True)
-        self.assertIn("STRICT_CHECK_FAILED: cryptographic linkage matched 0/1", str(ctx.exception))
+        self.assertIn("STRICT_CHECK_FAILED: publications verified 0/1", str(ctx.exception))
 
     def test_generate_evidence_publication_wrong_commit_hash_fails(self):
         gen_spec = importlib.util.spec_from_file_location("gen_evidence", ROOT / "scripts/generate-dat03-thanh-tris-evidence.py")
@@ -374,15 +386,27 @@ class LineageTest(unittest.TestCase):
             "identities": [{
                 "uri": m.PREFIX + "silver/gold-commits/r1/identity.json",
                 "payload_sha256": "a" * 64,
+                "internal_identity_sha256": "a" * 64,
                 "valid_serialization": True,
+                "payload_matches_internal": True,
                 "payload_matches_expected": True,
+                "internal_matches_expected": True,
             }],
             "publications": [{
                 "uri": pub_uri,
+                "publication_id": "pub_" + "c" * 64,
                 "verify_status": "PASSED",
                 "published": True,
                 "identity_sha256": "a" * 64,
                 "bundle_sha256": "WRONG_COMMIT_HASH",
+                "snapshot_bundle": {
+                    t: {"snapshot_id": 12345, "count": 100} for t in [
+                        "event_current", "event_source_bridge", "dim_date",
+                        "dim_region", "dim_magnitude_band", "dim_depth_band"
+                    ]
+                },
+                "event_count": 100,
+                "checks": {"serving_count": {"actual": 100}},
             }],
         }
         req_data = {
@@ -394,11 +418,11 @@ class LineageTest(unittest.TestCase):
         }
         evidence = gen_mod.build_evidence(probe_data, req_data, None, audit_data=audit_data, strict=False)
         self.assertIn("COMMIT_MISMATCH", evidence)
-        self.assertIn("0/1 tệp liên kết mật mã học hợp lệ", evidence)
+        self.assertIn("0/1 tệp backreferences khớp bitwise", evidence)
 
         with self.assertRaises(ValueError) as ctx:
             gen_mod.build_evidence(probe_data, req_data, None, audit_data=audit_data, strict=True)
-        self.assertIn("STRICT_CHECK_FAILED: cryptographic linkage matched 0/1", str(ctx.exception))
+        self.assertIn("STRICT_CHECK_FAILED: publications verified 0/1", str(ctx.exception))
 
     def test_generate_evidence_publication_failed_status_fails(self):
         gen_spec = importlib.util.spec_from_file_location("gen_evidence", ROOT / "scripts/generate-dat03-thanh-tris-evidence.py")
@@ -410,15 +434,27 @@ class LineageTest(unittest.TestCase):
             "identities": [{
                 "uri": m.PREFIX + "silver/gold-commits/r1/identity.json",
                 "payload_sha256": "a" * 64,
+                "internal_identity_sha256": "a" * 64,
                 "valid_serialization": True,
+                "payload_matches_internal": True,
                 "payload_matches_expected": True,
+                "internal_matches_expected": True,
             }],
             "publications": [{
                 "uri": pub_uri,
+                "publication_id": "pub_" + "c" * 64,
                 "verify_status": "FAILED",
                 "published": False,
                 "identity_sha256": "a" * 64,
                 "bundle_sha256": "c" * 64,
+                "snapshot_bundle": {
+                    t: {"snapshot_id": 12345, "count": 100} for t in [
+                        "event_current", "event_source_bridge", "dim_date",
+                        "dim_region", "dim_magnitude_band", "dim_depth_band"
+                    ]
+                },
+                "event_count": 100,
+                "checks": {"serving_count": {"actual": 100}},
             }],
         }
         req_data = {
@@ -436,6 +472,196 @@ class LineageTest(unittest.TestCase):
         with self.assertRaises(ValueError) as ctx:
             gen_mod.build_evidence(probe_data, req_data, None, audit_data=audit_data, strict=True)
         self.assertIn("STRICT_CHECK_FAILED: publications verified 0/1", str(ctx.exception))
+
+    def test_generate_evidence_tampered_publication_id_fails_strict(self):
+        gen_spec = importlib.util.spec_from_file_location("gen_evidence", ROOT / "scripts/generate-dat03-thanh-tris-evidence.py")
+        gen_mod = importlib.util.module_from_spec(gen_spec)
+        gen_spec.loader.exec_module(gen_mod)
+
+        pub_uri = m.PREFIX + "silver/gold-verification/r1/publication.json"
+        probe_data = {
+            "identities": [{
+                "uri": m.PREFIX + "silver/gold-commits/r1/identity.json",
+                "payload_sha256": "a" * 64,
+                "internal_identity_sha256": "a" * 64,
+                "valid_serialization": True,
+                "payload_matches_internal": True,
+                "payload_matches_expected": True,
+                "internal_matches_expected": True,
+            }],
+            "publications": [{
+                "uri": pub_uri,
+                "publication_id": "FORGED_PUBLICATION",
+                "verify_status": "PASSED",
+                "published": True,
+                "identity_sha256": "a" * 64,
+                "bundle_sha256": "c" * 64,
+                "snapshot_bundle": {
+                    t: {"snapshot_id": 12345, "count": 100} for t in [
+                        "event_current", "event_source_bridge", "dim_date",
+                        "dim_region", "dim_magnitude_band", "dim_depth_band"
+                    ]
+                },
+                "event_count": 100,
+                "checks": {"serving_count": {"actual": 100}},
+            }],
+        }
+        req_data = {
+            "objects": [{"uri": m.PREFIX + "silver/gold-commits/r1/identity.json", "sha256": "a" * 64}],
+            "unpinned_publication_uris": [pub_uri],
+        }
+        audit_data = {
+            "objects": [{"kind": "gold_commit", "status": "MATCHED", "uri": m.PREFIX + "silver/gold-commits/r1/commit.json", "sha256": "c" * 64}]
+        }
+        evidence = gen_mod.build_evidence(probe_data, req_data, None, audit_data=audit_data, strict=False)
+        self.assertIn("FORGED_PUBLICATION_ID", evidence)
+        with self.assertRaises(ValueError) as ctx:
+            gen_mod.build_evidence(probe_data, req_data, None, audit_data=audit_data, strict=True)
+        self.assertIn("STRICT_CHECK_FAILED: publications verified 0/1", str(ctx.exception))
+
+    def test_generate_evidence_tampered_event_count_fails_strict(self):
+        gen_spec = importlib.util.spec_from_file_location("gen_evidence", ROOT / "scripts/generate-dat03-thanh-tris-evidence.py")
+        gen_mod = importlib.util.module_from_spec(gen_spec)
+        gen_spec.loader.exec_module(gen_mod)
+
+        pub_uri = m.PREFIX + "silver/gold-verification/r1/publication.json"
+        probe_data = {
+            "identities": [{
+                "uri": m.PREFIX + "silver/gold-commits/r1/identity.json",
+                "payload_sha256": "a" * 64,
+                "internal_identity_sha256": "a" * 64,
+                "valid_serialization": True,
+                "payload_matches_internal": True,
+                "payload_matches_expected": True,
+                "internal_matches_expected": True,
+            }],
+            "publications": [{
+                "uri": pub_uri,
+                "publication_id": "pub_" + "c" * 64,
+                "verify_status": "PASSED",
+                "published": True,
+                "identity_sha256": "a" * 64,
+                "bundle_sha256": "c" * 64,
+                "snapshot_bundle": {
+                    t: {"snapshot_id": 12345, "count": 100} for t in [
+                        "event_current", "event_source_bridge", "dim_date",
+                        "dim_region", "dim_magnitude_band", "dim_depth_band"
+                    ]
+                },
+                "event_count": 987654321,
+                "checks": {"serving_count": {"actual": 100}},
+            }],
+        }
+        req_data = {
+            "objects": [{"uri": m.PREFIX + "silver/gold-commits/r1/identity.json", "sha256": "a" * 64}],
+            "unpinned_publication_uris": [pub_uri],
+        }
+        audit_data = {
+            "objects": [{"kind": "gold_commit", "status": "MATCHED", "uri": m.PREFIX + "silver/gold-commits/r1/commit.json", "sha256": "c" * 64}]
+        }
+        evidence = gen_mod.build_evidence(probe_data, req_data, None, audit_data=audit_data, strict=False)
+        self.assertIn("EVENT_COUNT_MISMATCH", evidence)
+        with self.assertRaises(ValueError) as ctx:
+            gen_mod.build_evidence(probe_data, req_data, None, audit_data=audit_data, strict=True)
+        self.assertIn("STRICT_CHECK_FAILED: publications verified 0/1", str(ctx.exception))
+
+    def test_generate_evidence_empty_snapshot_bundle_fails_strict(self):
+        gen_spec = importlib.util.spec_from_file_location("gen_evidence", ROOT / "scripts/generate-dat03-thanh-tris-evidence.py")
+        gen_mod = importlib.util.module_from_spec(gen_spec)
+        gen_spec.loader.exec_module(gen_mod)
+
+        pub_uri = m.PREFIX + "silver/gold-verification/r1/publication.json"
+        probe_data = {
+            "identities": [{
+                "uri": m.PREFIX + "silver/gold-commits/r1/identity.json",
+                "payload_sha256": "a" * 64,
+                "internal_identity_sha256": "a" * 64,
+                "valid_serialization": True,
+                "payload_matches_internal": True,
+                "payload_matches_expected": True,
+                "internal_matches_expected": True,
+            }],
+            "publications": [{
+                "uri": pub_uri,
+                "publication_id": "pub_" + "c" * 64,
+                "verify_status": "PASSED",
+                "published": True,
+                "identity_sha256": "a" * 64,
+                "bundle_sha256": "c" * 64,
+                "snapshot_bundle": {},
+                "event_count": 100,
+                "checks": {"serving_count": {"actual": 100}},
+            }],
+        }
+        req_data = {
+            "objects": [{"uri": m.PREFIX + "silver/gold-commits/r1/identity.json", "sha256": "a" * 64}],
+            "unpinned_publication_uris": [pub_uri],
+        }
+        audit_data = {
+            "objects": [{"kind": "gold_commit", "status": "MATCHED", "uri": m.PREFIX + "silver/gold-commits/r1/commit.json", "sha256": "c" * 64}]
+        }
+        evidence = gen_mod.build_evidence(probe_data, req_data, None, audit_data=audit_data, strict=False)
+        self.assertIn("SNAPSHOT_BUNDLE_EMPTY", evidence)
+        with self.assertRaises(ValueError) as ctx:
+            gen_mod.build_evidence(probe_data, req_data, None, audit_data=audit_data, strict=True)
+        self.assertIn("STRICT_CHECK_FAILED: publications verified 0/1", str(ctx.exception))
+
+    def test_generate_evidence_identity_declared_sha_mismatch_fails_strict(self):
+        gen_spec = importlib.util.spec_from_file_location("gen_evidence", ROOT / "scripts/generate-dat03-thanh-tris-evidence.py")
+        gen_mod = importlib.util.module_from_spec(gen_spec)
+        gen_spec.loader.exec_module(gen_mod)
+
+        # Recomputed payload SHA matches expected pin, but internal_identity_sha256 is tampered
+        probe_data = {
+            "identities": [{
+                "uri": m.PREFIX + "silver/gold-commits/r1/identity.json",
+                "payload_sha256": "a" * 64,
+                "internal_identity_sha256": "b" * 64,
+                "valid_serialization": True,
+                "payload_matches_internal": False,
+                "payload_matches_expected": True,
+                "internal_matches_expected": False,
+            }],
+            "publications": [],
+        }
+        req_data = {
+            "objects": [{"uri": m.PREFIX + "silver/gold-commits/r1/identity.json", "sha256": "a" * 64}],
+            "unpinned_publication_uris": [],
+        }
+        evidence = gen_mod.build_evidence(probe_data, req_data, None, strict=False)
+        self.assertIn("PAYLOAD_DECLARED_SHA_MISMATCH", evidence)
+        self.assertIn("0/1 MATCHED", evidence)
+
+        with self.assertRaises(ValueError) as ctx:
+            gen_mod.build_evidence(probe_data, req_data, None, strict=True)
+        self.assertIn("STRICT_CHECK_FAILED: identities matched 0/1", str(ctx.exception))
+
+    def test_generate_evidence_identity_missing_validation_flags_fails_strict(self):
+        gen_spec = importlib.util.spec_from_file_location("gen_evidence", ROOT / "scripts/generate-dat03-thanh-tris-evidence.py")
+        gen_mod = importlib.util.module_from_spec(gen_spec)
+        gen_spec.loader.exec_module(gen_mod)
+
+        # Missing payload_matches_internal and internal_matches_expected
+        probe_data = {
+            "identities": [{
+                "uri": m.PREFIX + "silver/gold-commits/r1/identity.json",
+                "payload_sha256": "a" * 64,
+                "internal_identity_sha256": "a" * 64,
+                "valid_serialization": True,
+            }],
+            "publications": [],
+        }
+        req_data = {
+            "objects": [{"uri": m.PREFIX + "silver/gold-commits/r1/identity.json", "sha256": "a" * 64}],
+            "unpinned_publication_uris": [],
+        }
+        evidence = gen_mod.build_evidence(probe_data, req_data, None, strict=False)
+        self.assertIn("NOT_VERIFIED", evidence)
+        self.assertIn("0/1 MATCHED", evidence)
+
+        with self.assertRaises(ValueError) as ctx:
+            gen_mod.build_evidence(probe_data, req_data, None, strict=True)
+        self.assertIn("STRICT_CHECK_FAILED: identities matched 0/1", str(ctx.exception))
 
     def test_generate_evidence_without_audit_report_shows_not_checked(self):
         gen_spec = importlib.util.spec_from_file_location("gen_evidence", ROOT / "scripts/generate-dat03-thanh-tris-evidence.py")

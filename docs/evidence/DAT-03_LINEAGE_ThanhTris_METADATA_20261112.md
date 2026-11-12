@@ -51,37 +51,39 @@ byte[] claimBytes = JSON.writeValueAsBytes(identity);
 ```
 - `identity_payload_sha256` là chữ ký hàm băm chuẩn hóa của đối tượng JSON **trước khi** thuộc tính `"identity_sha256"` được chèn vào payload.
 - Khi lưu trữ xuống MinIO, tệp vật lý bao gồm cả thuộc tính `"identity_sha256": "<hash>"`, làm cho raw byte hash của file bị thay đổi.
-- Verifier hiện tại đã thực hiện tính toán lại chính xác payload hash sau khi bóc tách trường khai báo theo đúng serialization contract của Java; đạt kết quả đối soát: **18/18 tệp MATCHED**.
+- Verifier hiện tại đã thực hiện tính toán lại chính xác payload hash sau khi bóc tách trường khai báo theo đúng serialization contract của Java; đạt kết quả đối soát: **18/18 tệp MATCHED** (yêu cầu đồng thời `recomputed payload SHA == declared SHA == expected pin`).
 
-## 3. Đối soát 18 tệp `publication.json` và Proof Journal (18/18 PASSED)
+## 3. Đối soát 18 tệp `publication.json` và Proof Journal (18/18 PASSED verify_status — BACKREFERENCES_MATCHED / PUBLICATION_NOT_VERIFIED)
 
 Các tệp `publication.json` đã được trích xuất từ `s3://japan-earthquake/silver/gold-verification/<run_id>/publication.json`.
-Bảng dưới đây cung cấp đầy đủ mã băm SHA-256 của tệp gốc để Hoài Tâm và nhóm đưa vào pinned requirements:
+Bảng dưới đây cung cấp chi tiết đối soát backreferences và mã băm SHA-256 của tệp gốc để Hoài Tâm và nhóm đưa vào pinned requirements:
 
-| STT | Gold Run ID | Publication ID | Bản ghi snapshot | File Size | Raw File SHA-256 | Verify Status | Published | Liên kết |
+| STT | Gold Run ID | Publication ID | Bản ghi snapshot | File Size | Raw File SHA-256 | Verify Status | Published | Trạng thái liên kết |
 |---:|---|---|---:|---:|---|:---:|:---:|:---:|
-| 1 | `orc07-082db36f5ca34c6f7be6f210bee1197f10240880` | `pub_1b5e9df724ca761937651f47fa08ec811c3de092f4a59dae3565fb6eb37ff8e4` | 1,098,320 | 112,666 B | `2a37240cc736c57ea75ab4eeaa5ac71d63cd33fc70d8d060618c7df344d1cc45` | PASSED | True | LINKED |
-| 2 | `orc07-0953d5d2d5ea1f9b4150985340367fa47a4abfd4` | `pub_387e10ffa892eec44c1539cccd0cf30c996dd818d78d01e3a9235c948dfdde53` | 514,848 | 111,210 B | `6d4cd3de6d804a62f11915a55e19dec35c264bb0aa2562715b2d163a38a21def` | PASSED | True | LINKED |
-| 3 | `orc07-17326468816eae5c920b0317d3ad748207c00e1e` | `pub_925102c838dd05495876215d2ec4e8c88f09f862a5c845f02100f9473a93df9e` | 13,026 | 73,836 B | `87b3c00583f9d014c6a68e3afe5c5b978edf9913c7e468051199a04a5daefb42` | PASSED | True | LINKED |
-| 4 | `orc07-1ca9bb57617c5647777f3fe8502366c32019362b` | `pub_19ae7aa53ae62692c794efc4297d9bc7d68e28f9346a340601d3e85d3e6aa49e` | 843,782 | 111,324 B | `5047b503dfca65a7e86e72455e3579fda4f8b29f40c3ed612414e770a64e26cc` | PASSED | True | LINKED |
-| 5 | `orc07-2cee619a8c2e42f34431ad4783d0fce30c38f9c6` | `pub_c8845dc69faf75577858a5c645390d6c906c3343df4d7877516a4d187df21e69` | 461,606 | 111,248 B | `cbebe044b266dc78db04b12891f4beeb3bff6e08478fd85d98dc357ed25fb3da` | PASSED | True | LINKED |
-| 6 | `orc07-45708f6ec5641fb8efb50aa28e0edd6699dba1c3` | `pub_1a7835aaa52e1bff1c68da54c587545f4481befa1c17eda5bf6a1a4619605aef` | 1,031,147 | 112,654 B | `7f8bc93bd7113fa39e893e7d45f280628413c9595e0ea28c7fe28818b2dd4ad9` | PASSED | True | LINKED |
-| 7 | `orc07-4c388509c64df68a3ff50a0af3491d808810d557` | `pub_36ef843c8b89ce879ff95c640383f719a483bebdd9a2921dd8d9cab3a07ac3b8` | 350,835 | 117,854 B | `a2ec4a127d5f0e92047b6f955268f1809c2f67fe2e37c81ec3ca4c93e483f2fe` | PASSED | True | LINKED |
-| 8 | `orc07-4e50aaad50668cd69b238e2b68ff467e2ba32da4` | `pub_8bf133fb61cf1fd895d19a325b86821f591ef3c8ae42aa50b63e2f653d18cb1a` | 226,908 | 117,854 B | `6f34396275b1b43beb8a060da64b8a30c14d600d91e7aeb77230cf44c1413d2a` | PASSED | True | LINKED |
-| 9 | `orc07-98eee411ac549e4b18e06bf939d6039e8664d99c` | `pub_2e401385a2d946e6b092bbe80c18b4683d25122ee0f4d024df9e2ababdbde4b6` | 707,553 | 112,643 B | `c95f031f7611867d4d010c6967aa09f35a733733fd29898b3c9112a3eb26fc67` | PASSED | True | LINKED |
-| 10 | `orc07-9cfd261527b05f5851778addeebf2d09d5799fb0` | `pub_42d20ef31fbe1a8c34a33a04927a80b97b3fd7832edcd15a3e4d25ae5283eadc` | 964,285 | 112,624 B | `4796c5208d5d4e2ff326ed31dd49f32a38232f4e50e508622ce495273be8fa66` | PASSED | True | LINKED |
-| 11 | `orc07-ab3c35d5fe38dda32bfedbfd1340d8872cae120b` | `pub_a935ae254bc95a1d21ba40f80981f7e317b7615c89e89b8c98827fa920b7c052` | 571,769 | 111,323 B | `de324dfe8b2d6e4b8a4ad7ab0b138381e075ff4ba6de96bad03a59bf4d6d0616` | PASSED | True | LINKED |
-| 12 | `orc07-c3c985db61b11a4bbd3f72ba2db88ca1d7975595` | `pub_2a19c4a890329eeb20e9c058d88dd2bc814efa8ac2ab79eacc2e960c28c3c3aa` | 280,217 | 115,254 B | `27b9e0b9e8ac5fb9ea5154babf5adb40cc94341ba690ded968887512dbabbe70` | PASSED | True | LINKED |
-| 13 | `orc07-c9fa6b114dfcfa7af3653cd54f35a64c5e84d1a2` | `pub_b74ec97f5090999d3055ecc09ddf5c17b75e747a60baf17bee6527c50f861d10` | 393,644 | 110,057 B | `b89002f8e2998402fe5b82456b6ac81c5e209116482532fe6e129bb9a51ea679` | PASSED | True | LINKED |
-| 14 | `orc07-d954963fdd926abdc5e7807631f2e24f8112ff70` | `pub_d3209fc6d0d895d58b2bd3d5d8f6a805ebc9ec86bcc6bcf672dd5fe9b8b0baa7` | 152,511 | 116,554 B | `17abfc83ccf5e2145f33fdda5771983796db1ea371d35712e91e38487bed5e90` | PASSED | True | LINKED |
-| 15 | `orc07-ddb6a71d10f03598aa6f8138858e522165486410` | `pub_8eee20062279b94d5edf9c557f272a596f992292bff2d2b3d3f7709f7a4c0bf6` | 78,122 | 116,543 B | `f1dfd493c965b157f21d38d2477305c965e12909170781a40c0b1ac861298e96` | PASSED | True | LINKED |
-| 16 | `orc07-e4e879c8df576f57961ae02989a982618213e653` | `pub_b89b5a768f9f5125e0e82099f21defc0d39c2ff0f749b94b4d64ab646b673384` | 782,116 | 112,549 B | `b2508eb8e333c876db6c68afcc420087068d62c96341e6674470bd6db1d285e5` | PASSED | True | LINKED |
-| 17 | `orc07-ec9d8788a27175295ff6a47e9b94f33a1170b6ca` | `pub_6617051a154cced0910b6fab5582e7b975b2f0d1116d91185ab34123d134177f` | 634,669 | 111,357 B | `da777abce9ca343fc4d03b66fa945e4c59510dce105383c724f667031bcbbb29` | PASSED | True | LINKED |
-| 18 | `orc07-fb052729d91a1922e1328e3322594b4926b724d1` | `pub_4492b74bf2f98cbe81abfd57186d46efc326a975284db5121b01a01f16662461` | 907,155 | 112,555 B | `756f060a1d8ba60ddcbacfaac1afb2f93c658f2874318139045bc537b4a6f3ae` | PASSED | True | LINKED |
+| 1 | `orc07-082db36f5ca34c6f7be6f210bee1197f10240880` | `pub_1b5e9df724ca761937651f47fa08ec811c3de092f4a59dae3565fb6eb37ff8e4` | 1,098,320 | 112,666 B | `2a37240cc736c57ea75ab4eeaa5ac71d63cd33fc70d8d060618c7df344d1cc45` | PASSED | True | BACKREFERENCES_MATCHED / PUBLICATION_NOT_VERIFIED |
+| 2 | `orc07-0953d5d2d5ea1f9b4150985340367fa47a4abfd4` | `pub_387e10ffa892eec44c1539cccd0cf30c996dd818d78d01e3a9235c948dfdde53` | 514,848 | 111,210 B | `6d4cd3de6d804a62f11915a55e19dec35c264bb0aa2562715b2d163a38a21def` | PASSED | True | BACKREFERENCES_MATCHED / PUBLICATION_NOT_VERIFIED |
+| 3 | `orc07-17326468816eae5c920b0317d3ad748207c00e1e` | `pub_925102c838dd05495876215d2ec4e8c88f09f862a5c845f02100f9473a93df9e` | 13,026 | 73,836 B | `87b3c00583f9d014c6a68e3afe5c5b978edf9913c7e468051199a04a5daefb42` | PASSED | True | BACKREFERENCES_MATCHED / PUBLICATION_NOT_VERIFIED |
+| 4 | `orc07-1ca9bb57617c5647777f3fe8502366c32019362b` | `pub_19ae7aa53ae62692c794efc4297d9bc7d68e28f9346a340601d3e85d3e6aa49e` | 843,782 | 111,324 B | `5047b503dfca65a7e86e72455e3579fda4f8b29f40c3ed612414e770a64e26cc` | PASSED | True | BACKREFERENCES_MATCHED / PUBLICATION_NOT_VERIFIED |
+| 5 | `orc07-2cee619a8c2e42f34431ad4783d0fce30c38f9c6` | `pub_c8845dc69faf75577858a5c645390d6c906c3343df4d7877516a4d187df21e69` | 461,606 | 111,248 B | `cbebe044b266dc78db04b12891f4beeb3bff6e08478fd85d98dc357ed25fb3da` | PASSED | True | BACKREFERENCES_MATCHED / PUBLICATION_NOT_VERIFIED |
+| 6 | `orc07-45708f6ec5641fb8efb50aa28e0edd6699dba1c3` | `pub_1a7835aaa52e1bff1c68da54c587545f4481befa1c17eda5bf6a1a4619605aef` | 1,031,147 | 112,654 B | `7f8bc93bd7113fa39e893e7d45f280628413c9595e0ea28c7fe28818b2dd4ad9` | PASSED | True | BACKREFERENCES_MATCHED / PUBLICATION_NOT_VERIFIED |
+| 7 | `orc07-4c388509c64df68a3ff50a0af3491d808810d557` | `pub_36ef843c8b89ce879ff95c640383f719a483bebdd9a2921dd8d9cab3a07ac3b8` | 350,835 | 117,854 B | `a2ec4a127d5f0e92047b6f955268f1809c2f67fe2e37c81ec3ca4c93e483f2fe` | PASSED | True | BACKREFERENCES_MATCHED / PUBLICATION_NOT_VERIFIED |
+| 8 | `orc07-4e50aaad50668cd69b238e2b68ff467e2ba32da4` | `pub_8bf133fb61cf1fd895d19a325b86821f591ef3c8ae42aa50b63e2f653d18cb1a` | 226,908 | 117,854 B | `6f34396275b1b43beb8a060da64b8a30c14d600d91e7aeb77230cf44c1413d2a` | PASSED | True | BACKREFERENCES_MATCHED / PUBLICATION_NOT_VERIFIED |
+| 9 | `orc07-98eee411ac549e4b18e06bf939d6039e8664d99c` | `pub_2e401385a2d946e6b092bbe80c18b4683d25122ee0f4d024df9e2ababdbde4b6` | 707,553 | 112,643 B | `c95f031f7611867d4d010c6967aa09f35a733733fd29898b3c9112a3eb26fc67` | PASSED | True | BACKREFERENCES_MATCHED / PUBLICATION_NOT_VERIFIED |
+| 10 | `orc07-9cfd261527b05f5851778addeebf2d09d5799fb0` | `pub_42d20ef31fbe1a8c34a33a04927a80b97b3fd7832edcd15a3e4d25ae5283eadc` | 964,285 | 112,624 B | `4796c5208d5d4e2ff326ed31dd49f32a38232f4e50e508622ce495273be8fa66` | PASSED | True | BACKREFERENCES_MATCHED / PUBLICATION_NOT_VERIFIED |
+| 11 | `orc07-ab3c35d5fe38dda32bfedbfd1340d8872cae120b` | `pub_a935ae254bc95a1d21ba40f80981f7e317b7615c89e89b8c98827fa920b7c052` | 571,769 | 111,323 B | `de324dfe8b2d6e4b8a4ad7ab0b138381e075ff4ba6de96bad03a59bf4d6d0616` | PASSED | True | BACKREFERENCES_MATCHED / PUBLICATION_NOT_VERIFIED |
+| 12 | `orc07-c3c985db61b11a4bbd3f72ba2db88ca1d7975595` | `pub_2a19c4a890329eeb20e9c058d88dd2bc814efa8ac2ab79eacc2e960c28c3c3aa` | 280,217 | 115,254 B | `27b9e0b9e8ac5fb9ea5154babf5adb40cc94341ba690ded968887512dbabbe70` | PASSED | True | BACKREFERENCES_MATCHED / PUBLICATION_NOT_VERIFIED |
+| 13 | `orc07-c9fa6b114dfcfa7af3653cd54f35a64c5e84d1a2` | `pub_b74ec97f5090999d3055ecc09ddf5c17b75e747a60baf17bee6527c50f861d10` | 393,644 | 110,057 B | `b89002f8e2998402fe5b82456b6ac81c5e209116482532fe6e129bb9a51ea679` | PASSED | True | BACKREFERENCES_MATCHED / PUBLICATION_NOT_VERIFIED |
+| 14 | `orc07-d954963fdd926abdc5e7807631f2e24f8112ff70` | `pub_d3209fc6d0d895d58b2bd3d5d8f6a805ebc9ec86bcc6bcf672dd5fe9b8b0baa7` | 152,511 | 116,554 B | `17abfc83ccf5e2145f33fdda5771983796db1ea371d35712e91e38487bed5e90` | PASSED | True | BACKREFERENCES_MATCHED / PUBLICATION_NOT_VERIFIED |
+| 15 | `orc07-ddb6a71d10f03598aa6f8138858e522165486410` | `pub_8eee20062279b94d5edf9c557f272a596f992292bff2d2b3d3f7709f7a4c0bf6` | 78,122 | 116,543 B | `f1dfd493c965b157f21d38d2477305c965e12909170781a40c0b1ac861298e96` | PASSED | True | BACKREFERENCES_MATCHED / PUBLICATION_NOT_VERIFIED |
+| 16 | `orc07-e4e879c8df576f57961ae02989a982618213e653` | `pub_b89b5a768f9f5125e0e82099f21defc0d39c2ff0f749b94b4d64ab646b673384` | 782,116 | 112,549 B | `b2508eb8e333c876db6c68afcc420087068d62c96341e6674470bd6db1d285e5` | PASSED | True | BACKREFERENCES_MATCHED / PUBLICATION_NOT_VERIFIED |
+| 17 | `orc07-ec9d8788a27175295ff6a47e9b94f33a1170b6ca` | `pub_6617051a154cced0910b6fab5582e7b975b2f0d1116d91185ab34123d134177f` | 634,669 | 111,357 B | `da777abce9ca343fc4d03b66fa945e4c59510dce105383c724f667031bcbbb29` | PASSED | True | BACKREFERENCES_MATCHED / PUBLICATION_NOT_VERIFIED |
+| 18 | `orc07-fb052729d91a1922e1328e3322594b4926b724d1` | `pub_4492b74bf2f98cbe81abfd57186d46efc326a975284db5121b01a01f16662461` | 907,155 | 112,555 B | `756f060a1d8ba60ddcbacfaac1afb2f93c658f2874318139045bc537b4a6f3ae` | PASSED | True | BACKREFERENCES_MATCHED / PUBLICATION_NOT_VERIFIED |
 
-### Liên kết mật mã học (Cryptographic Linkage):
-- **`bundle_sha256` & `identity_sha256`**: Đối chiếu commit SHA và pinned identity: 18/18 tệp liên kết mật mã học hợp lệ.
+### Liên kết mật mã học & Xác thực Publication:
+- **`bundle_sha256` & `identity_sha256`**: Đối chiếu commit SHA và pinned identity: 18/18 tệp backreferences khớp bitwise.
+- **`publication_id` & `snapshot_bundle`**: 18/18 tệp có publication_id khớp `pub_{commit_sha}`, snapshot bundle khớp đầy đủ 6 bảng Iceberg và snapshot IDs tương ứng.
 - **`verify_status`**: 18/18 tệp đạt `PASSED` và `published=true`.
+- **Trạng thái:** **BACKREFERENCES_MATCHED / PUBLICATION_NOT_VERIFIED** (18/18 publications khớp backreferences và snapshot pointers; chưa có proof xác thực original publication bytes bằng trusted publish receipt được pin độc lập, do đó **không chứng nhận publication hoặc snapshot bundle đã verified**).
 - **Tổng số bản ghi tích lũy qua các snapshot/run:** **10,012,513 bản ghi** (Lưu ý: đây là tổng số bản ghi tích lũy qua các partition snapshot của từng run, không phải số lượng canonical events duy nhất trên toàn catalog tích hợp).
 
 ## 4. Báo cáo về 108 Snapshot References của Iceberg
@@ -105,7 +107,7 @@ Bảng dưới đây cung cấp đầy đủ mã băm SHA-256 của tệp gốc 
      * `silver_dataset_manifest`: **76** MATCHED.
      * `gold_commit`: **18** MATCHED.
      * `gold_identity`: **18/18** MATCHED (tính lại payload hash và đối soát pin).
-2. **Unit tests:** Bộ unit tests tự động offline bao phủ cả positive test và negative tests (tampered namespace, tampered scope, tampered count, duplicate JSON keys, thiếu proof hash, sai identity/commit pin trong publication linkage).
+2. **Unit tests:** Bộ unit tests tự động offline bao phủ cả positive test và negative tests (tampered namespace, tampered scope, tampered count, duplicate JSON keys, thiếu proof hash, sai declared SHA, sai identity/commit pin, publication ID giả mạo, snapshot bundle rỗng, count giả mạo trong publication linkage).
 
 ## 7. Giới hạn, Rủi ro và Bước tiếp theo
 

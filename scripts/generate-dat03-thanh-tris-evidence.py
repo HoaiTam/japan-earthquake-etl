@@ -12,6 +12,15 @@ DEFAULT_PAYLOAD = ROOT / "config/research/dat03_lineage_ThanhTris_payload.json"
 DEFAULT_AUDIT = ROOT / "staging/dat03-lineage/tri-combined-audit-20261112.json"
 DEFAULT_OUT = ROOT / "docs/evidence/DAT-03_LINEAGE_ThanhTris_METADATA_20261112.md"
 
+SIX_TABLES = [
+    "event_current",
+    "event_source_bridge",
+    "dim_date",
+    "dim_region",
+    "dim_magnitude_band",
+    "dim_depth_band",
+]
+
 
 def extract_run_id(uri):
     if not uri:
@@ -45,10 +54,20 @@ def build_evidence(probe_data, req_data, payload_req_data=None, audit_data=None,
     expected_identities = req_data.get("objects", [])
     expected_pubs = req_data.get("unpinned_publication_uris", [])
     expected_payloads = payload_req_data.get("objects", []) if payload_req_data else []
+    snapshot_references = req_data.get("snapshot_references", [])
 
     total_exp_identities = len(expected_identities)
     total_exp_pubs = len(expected_pubs)
     total_exp_payloads = len(expected_payloads)
+
+    # Build map of expected snapshot IDs by run_id
+    expected_snapshots_by_run = {}
+    for ref in snapshot_references:
+        run_id = extract_run_id(ref.get("commit_uri", ""))
+        table = ref.get("table")
+        snap_id = ref.get("snapshot_id")
+        if run_id != "UNKNOWN" and table and snap_id is not None:
+            expected_snapshots_by_run.setdefault(run_id, {})[table] = snap_id
 
     # Extract commit pins from audit report if available
     commit_pin_by_run = {}
@@ -104,24 +123,40 @@ def build_evidence(probe_data, req_data, payload_req_data=None, audit_data=None,
             })
             continue
 
-        # STRICT: No fallback to internal_identity_sha256. Proof must be explicitly provided.
+        # STRICT: All validation flags MUST be explicitly True.
+        # Recomputed payload SHA MUST equal declared SHA and MUST equal expected pin.
+        valid_ser = item.get("valid_serialization")
+        matches_internal = item.get("payload_matches_internal")
+        matches_expected = item.get("payload_matches_expected")
+        internal_matches_exp = item.get("internal_matches_expected")
+        internal_sha = item.get("internal_identity_sha256")
         payload_sha = item.get("payload_sha256")
         file_sha = item.get("file_sha256", "UNKNOWN")
         byte_size = item.get("byte_size", 0)
         run_id = extract_run_id(item.get("key") or uri)
 
         has_proof = (
-            isinstance(payload_sha, str)
-            and item.get("valid_serialization") is True
+            valid_ser is True
+            and isinstance(payload_sha, str)
+            and isinstance(internal_sha, str)
         )
 
         if not has_proof:
             status = "NOT_VERIFIED"
-        elif payload_sha == exp_sha and item.get("payload_matches_expected") is not False:
+        elif matches_internal is False or internal_sha != payload_sha:
+            status = "PAYLOAD_DECLARED_SHA_MISMATCH"
+        elif payload_sha != exp_sha or matches_expected is False or internal_matches_exp is False or internal_sha != exp_sha:
+            status = "MISMATCH"
+        elif (
+            matches_internal is True
+            and matches_expected is True
+            and internal_matches_exp is True
+            and payload_sha == internal_sha == exp_sha
+        ):
             matched_identities += 1
             status = "MATCHED"
         else:
-            status = "MISMATCH"
+            status = "NOT_VERIFIED"
 
         id_rows.append({
             "idx": idx,
@@ -166,54 +201,104 @@ def build_evidence(probe_data, req_data, payload_req_data=None, audit_data=None,
         file_sha = item.get("file_sha256", "UNKNOWN")
         v_status = item.get("verify_status", "UNKNOWN")
         pub_status = item.get("published", False)
-
-        is_passed = (v_status == "PASSED")
-        is_published = (pub_status is True)
-
-        total_snapshot_records += event_count
-        if is_passed and is_published:
-            matched_pubs += 1
-
         pub_ident = item.get("identity_sha256")
         bundle_sha = item.get("bundle_sha256")
+        snap_bundle = item.get("snapshot_bundle")
+        checks = item.get("checks", {})
 
-        # Pinned identity verification
+        total_snapshot_records += event_count
+
+        # 1. Verify verify_status and published flag
+        valid_v_status = (v_status == "PASSED")
+        valid_published = (pub_status is True)
+
+        # 2. Pinned identity verification
         expected_id_sha = exp_ident_by_run.get(run_id)
         ident_linked = bool(pub_ident and expected_id_sha and pub_ident == expected_id_sha)
 
-        # Trusted commit verification
+        # 3. Trusted commit verification
         expected_c_sha = commit_pin_by_run.get(run_id)
         if commit_pin_by_run and expected_c_sha:
             commit_linked = bool(bundle_sha and bundle_sha == expected_c_sha)
         else:
             commit_linked = False
 
-        linked = bool(is_passed and is_published and ident_linked and commit_linked)
+        # 4. Publication ID integrity
+        expected_pub_id = f"pub_{expected_c_sha}" if expected_c_sha else f"pub_{bundle_sha}"
+        valid_pub_id = bool(pub_id and pub_id == expected_pub_id and not pub_id.startswith("FORGED_"))
 
-        if linked:
-            cryptographic_matches += 1
-            l_status = "LINKED"
+        # 5. Snapshot bundle integrity & 6-table pin check
+        valid_snapshots = True
+        snapshot_reason = None
+        if not isinstance(snap_bundle, dict) or len(snap_bundle) == 0:
+            valid_snapshots = False
+            snapshot_reason = "SNAPSHOT_BUNDLE_EMPTY"
         else:
-            reasons = []
-            if not is_passed:
-                reasons.append(f"VERIFY_STATUS_{v_status}")
-            if not is_published:
-                reasons.append("NOT_PUBLISHED")
-            if not ident_linked:
-                if not expected_id_sha:
-                    reasons.append("IDENTITY_PIN_MISSING")
-                elif not pub_ident:
-                    reasons.append("IDENTITY_SHA_MISSING")
-                else:
-                    reasons.append("IDENTITY_MISMATCH")
-            if not commit_linked:
-                if not commit_pin_by_run or not expected_c_sha:
-                    reasons.append("COMMIT_PIN_NOT_SUPPLIED")
-                elif not bundle_sha:
-                    reasons.append("BUNDLE_SHA_MISSING")
-                else:
-                    reasons.append("COMMIT_MISMATCH")
-            l_status = ",".join(reasons) if reasons else "UNLINKED"
+            for t in SIX_TABLES:
+                if t not in snap_bundle:
+                    valid_snapshots = False
+                    snapshot_reason = f"MISSING_TABLE_{t}"
+                    break
+                t_val = snap_bundle[t]
+                actual_sid = t_val.get("snapshot_id") if isinstance(t_val, dict) else t_val
+                if run_id in expected_snapshots_by_run and t in expected_snapshots_by_run[run_id]:
+                    expected_sid = expected_snapshots_by_run[run_id][t]
+                    if actual_sid != expected_sid:
+                        valid_snapshots = False
+                        snapshot_reason = f"SNAPSHOT_ID_MISMATCH_{t}"
+                        break
+
+        # 6. Event count consistency
+        valid_event_count = True
+        count_reason = None
+        if isinstance(checks, dict) and "serving_count" in checks:
+            serving_cnt = checks["serving_count"].get("actual")
+            if serving_cnt is not None and event_count != serving_cnt:
+                valid_event_count = False
+                count_reason = "EVENT_COUNT_MISMATCH"
+        if valid_event_count and isinstance(snap_bundle, dict) and "event_current" in snap_bundle:
+            ec_info = snap_bundle["event_current"]
+            if isinstance(ec_info, dict) and "count" in ec_info:
+                if ec_info["count"] is not None and event_count > ec_info["count"]:
+                    valid_event_count = False
+                    count_reason = "EVENT_COUNT_EXCEEDS_TABLE"
+
+        # Overall validation assessment
+        reasons = []
+        if not valid_pub_id:
+            reasons.append("FORGED_PUBLICATION_ID")
+        if not valid_v_status:
+            reasons.append(f"VERIFY_STATUS_{v_status}")
+        if not valid_published:
+            reasons.append("NOT_PUBLISHED")
+        if not ident_linked:
+            if not expected_id_sha:
+                reasons.append("IDENTITY_PIN_MISSING")
+            elif not pub_ident:
+                reasons.append("IDENTITY_SHA_MISSING")
+            else:
+                reasons.append("IDENTITY_MISMATCH")
+        if not commit_linked:
+            if not commit_pin_by_run or not expected_c_sha:
+                reasons.append("COMMIT_PIN_NOT_SUPPLIED")
+            elif not bundle_sha:
+                reasons.append("BUNDLE_SHA_MISSING")
+            else:
+                reasons.append("COMMIT_MISMATCH")
+        if not valid_snapshots:
+            reasons.append(snapshot_reason or "SNAPSHOT_BUNDLE_INVALID")
+        if not valid_event_count:
+            reasons.append(count_reason or "EVENT_COUNT_MISMATCH")
+
+        if reasons:
+            linked = False
+            l_status = ",".join(reasons)
+        else:
+            linked = True
+            matched_pubs += 1
+            cryptographic_matches += 1
+            # Backreferences and snapshot bundle matched, but publication bytes themselves remain unpinned
+            l_status = "BACKREFERENCES_MATCHED / PUBLICATION_NOT_VERIFIED"
 
         pub_rows.append({
             "idx": idx,
@@ -239,7 +324,7 @@ def build_evidence(probe_data, req_data, payload_req_data=None, audit_data=None,
             )
         if cryptographic_matches != total_exp_pubs:
             raise ValueError(
-                f"STRICT_CHECK_FAILED: cryptographic linkage matched {cryptographic_matches}/{total_exp_pubs}"
+                f"STRICT_CHECK_FAILED: publications matched {cryptographic_matches}/{total_exp_pubs}"
             )
 
     # Build report text
@@ -277,21 +362,23 @@ def build_evidence(probe_data, req_data, payload_req_data=None, audit_data=None,
     doc.append("```")
     doc.append("- `identity_payload_sha256` là chữ ký hàm băm chuẩn hóa của đối tượng JSON **trước khi** thuộc tính `\"identity_sha256\"` được chèn vào payload.")
     doc.append("- Khi lưu trữ xuống MinIO, tệp vật lý bao gồm cả thuộc tính `\"identity_sha256\": \"<hash>\"`, làm cho raw byte hash của file bị thay đổi.")
-    doc.append(f"- Verifier hiện tại đã thực hiện tính toán lại chính xác payload hash sau khi bóc tách trường khai báo theo đúng serialization contract của Java; đạt kết quả đối soát: **{matched_identities}/{total_exp_identities} tệp MATCHED**.\n")
+    doc.append(f"- Verifier hiện tại đã thực hiện tính toán lại chính xác payload hash sau khi bóc tách trường khai báo theo đúng serialization contract của Java; đạt kết quả đối soát: **{matched_identities}/{total_exp_identities} tệp MATCHED** (yêu cầu đồng thời `recomputed payload SHA == declared SHA == expected pin`).\n")
 
-    doc.append(f"## 3. Đối soát {total_exp_pubs} tệp `publication.json` và Proof Journal ({matched_pubs}/{total_exp_pubs} PASSED)\n")
+    doc.append(f"## 3. Đối soát {total_exp_pubs} tệp `publication.json` và Proof Journal ({matched_pubs}/{total_exp_pubs} PASSED verify_status — BACKREFERENCES_MATCHED / PUBLICATION_NOT_VERIFIED)\n")
     doc.append("Các tệp `publication.json` đã được trích xuất từ `s3://japan-earthquake/silver/gold-verification/<run_id>/publication.json`.")
-    doc.append("Bảng dưới đây cung cấp đầy đủ mã băm SHA-256 của tệp gốc để Hoài Tâm và nhóm đưa vào pinned requirements:\n")
-    doc.append("| STT | Gold Run ID | Publication ID | Bản ghi snapshot | File Size | Raw File SHA-256 | Verify Status | Published | Liên kết |")
+    doc.append("Bảng dưới đây cung cấp chi tiết đối soát backreferences và mã băm SHA-256 của tệp gốc để Hoài Tâm và nhóm đưa vào pinned requirements:\n")
+    doc.append("| STT | Gold Run ID | Publication ID | Bản ghi snapshot | File Size | Raw File SHA-256 | Verify Status | Published | Trạng thái liên kết |")
     doc.append("|---:|---|---|---:|---:|---|:---:|:---:|:---:|")
 
     for r in pub_rows:
         size_str = f"{r['byte_size']:,} B" if r["byte_size"] > 0 else "0 B"
         doc.append(f"| {r['idx']} | `{r['run_id']}` | `{r['pub_id']}` | {r['event_count']:,} | {size_str} | `{r['file_sha']}` | {r['verify_status']} | {r['published']} | {r['link_status']} |")
 
-    doc.append("\n### Liên kết mật mã học (Cryptographic Linkage):")
-    doc.append(f"- **`bundle_sha256` & `identity_sha256`**: Đối chiếu commit SHA và pinned identity: {cryptographic_matches}/{total_exp_pubs} tệp liên kết mật mã học hợp lệ.")
+    doc.append("\n### Liên kết mật mã học & Xác thực Publication:")
+    doc.append(f"- **`bundle_sha256` & `identity_sha256`**: Đối chiếu commit SHA và pinned identity: {cryptographic_matches}/{total_exp_pubs} tệp backreferences khớp bitwise.")
+    doc.append(f"- **`publication_id` & `snapshot_bundle`**: {matched_pubs}/{total_exp_pubs} tệp có publication_id khớp `pub_{{commit_sha}}`, snapshot bundle khớp đầy đủ 6 bảng Iceberg và snapshot IDs tương ứng.")
     doc.append(f"- **`verify_status`**: {matched_pubs}/{total_exp_pubs} tệp đạt `PASSED` và `published=true`.")
+    doc.append(f"- **Trạng thái:** **BACKREFERENCES_MATCHED / PUBLICATION_NOT_VERIFIED** ({cryptographic_matches}/{total_exp_pubs} publications khớp backreferences và snapshot pointers; chưa có proof xác thực original publication bytes bằng trusted publish receipt được pin độc lập, do đó **không chứng nhận publication hoặc snapshot bundle đã verified**).")
     doc.append(f"- **Tổng số bản ghi tích lũy qua các snapshot/run:** **{total_snapshot_records:,} bản ghi** (Lưu ý: đây là tổng số bản ghi tích lũy qua các partition snapshot của từng run, không phải số lượng canonical events duy nhất trên toàn catalog tích hợp).\n")
 
     doc.append("## 4. Báo cáo về 108 Snapshot References của Iceberg\n")
@@ -321,7 +408,7 @@ def build_evidence(probe_data, req_data, payload_req_data=None, audit_data=None,
         doc.append("     * `silver_dataset_manifest`: **NOT_CHECKED**.")
         doc.append("     * `gold_commit`: **NOT_CHECKED**.")
         doc.append(f"     * `gold_identity`: **{matched_identities}/{total_exp_identities}** MATCHED trong probe.")
-    doc.append("2. **Unit tests:** Bộ unit tests tự động offline bao phủ cả positive test và negative tests (tampered namespace, tampered scope, tampered count, duplicate JSON keys, thiếu proof hash, sai identity/commit pin trong publication linkage).\n")
+    doc.append("2. **Unit tests:** Bộ unit tests tự động offline bao phủ cả positive test và negative tests (tampered namespace, tampered scope, tampered count, duplicate JSON keys, thiếu proof hash, sai declared SHA, sai identity/commit pin, publication ID giả mạo, snapshot bundle rỗng, count giả mạo trong publication linkage).\n")
 
     doc.append("## 7. Giới hạn, Rủi ro và Bước tiếp theo\n")
     doc.append("- **Giới hạn:** Gói bàn giao này chỉ bao gồm phần metadata frontier cấp thiết theo yêu cầu của Hoài Tâm. Gói này chưa bao gồm 119 payloads Parquet lớn (chờ differential inventory) và chưa tạo ra unified Gold catalog.")
