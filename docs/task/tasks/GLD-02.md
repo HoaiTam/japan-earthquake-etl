@@ -1,6 +1,6 @@
 ---
 task_id: "GLD-02"
-status: "Backlog"
+status: "Done"
 week: 4
 block: "E - Gold & Serving"
 workstream: "Aggregates"
@@ -45,8 +45,8 @@ Tính count, avg/max magnitude, avg depth, tsunami/intensity/source counts theo 
 
 ## Tiêu chí hoàn thành
 
-- [ ] Aggregate khớp fact với cùng filter.
-- [ ] không double count do source-link hoặc dimension join.
+- [x] Aggregate khớp fact với cùng filter.
+- [x] không double count do source-link hoặc dimension join.
 
 ## Hard dependency
 
@@ -81,19 +81,19 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
+- **Trạng thái:** Done
 - **Assignee:** ThanhTris
-- **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Reviewer:** unassigned
+- **Evidence / PR:** Spark Java unit test suite: ie212.earthquake.spark.gold.GoldAggregateTransformerTest (6/6 tests passed); Python SQLite test suite: tests/test_gld02_aggregates.py (1/1 test passed); SQL serving views in sql/gold/v_event_daily.sql, sql/gold/v_event_monthly.sql, and verification queries in sql/gold/gold_aggregate_verification_queries.sql; Đặc tả kiến trúc docs/specs/GOLD_AGGREGATES.md.
 - **Kỹ năng phù hợp:** Spark SQL, aggregation
 
 ## Checklist bàn giao
 
-- [ ] Deliverable đã có trong repository hoặc môi trường demo.
-- [ ] Acceptance criteria đã được kiểm tra.
-- [ ] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
-- [ ] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
-- [ ] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
+- [x] Deliverable đã có trong repository hoặc môi trường demo.
+- [x] Acceptance criteria đã được kiểm tra.
+- [x] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
+- [x] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
+- [x] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
 - [ ] P0/P1 có reviewer khác assignee xác nhận.
 
 ## Tài liệu liên quan
