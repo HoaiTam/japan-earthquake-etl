@@ -60,14 +60,19 @@ def build_evidence(probe_data, req_data, payload_req_data=None, audit_data=None,
     total_exp_pubs = len(expected_pubs)
     total_exp_payloads = len(expected_payloads)
 
-    # Build map of expected snapshot IDs by run_id
+    # Build map of expected snapshot IDs by run_id with conflict guard
     expected_snapshots_by_run = {}
     for ref in snapshot_references:
         run_id = extract_run_id(ref.get("commit_uri", ""))
         table = ref.get("table")
         snap_id = ref.get("snapshot_id")
         if run_id != "UNKNOWN" and table and snap_id is not None:
-            expected_snapshots_by_run.setdefault(run_id, {})[table] = snap_id
+            existing = expected_snapshots_by_run.setdefault(run_id, {}).get(table)
+            if existing is not None and existing != snap_id:
+                raise ValueError(
+                    f"CONFLICTING_SNAPSHOT_REFERENCE: run {run_id} table {table} has conflicting pins {existing} != {snap_id}"
+                )
+            expected_snapshots_by_run[run_id][table] = snap_id
 
     # Extract commit pins from audit report if available
     commit_pin_by_run = {}
@@ -228,11 +233,20 @@ def build_evidence(probe_data, req_data, payload_req_data=None, audit_data=None,
         valid_pub_id = bool(pub_id and pub_id == expected_pub_id and not pub_id.startswith("FORGED_"))
 
         # 5. Snapshot bundle integrity & 6-table pin check
+        run_expected_snaps = expected_snapshots_by_run.get(run_id, {})
+        missing_pins = [t for t in SIX_TABLES if t not in run_expected_snaps]
         valid_snapshots = True
         snapshot_reason = None
+
         if not isinstance(snap_bundle, dict) or len(snap_bundle) == 0:
             valid_snapshots = False
             snapshot_reason = "SNAPSHOT_BUNDLE_EMPTY"
+        elif missing_pins:
+            valid_snapshots = False
+            if len(missing_pins) == len(SIX_TABLES):
+                snapshot_reason = "SNAPSHOT_PINS_MISSING"
+            else:
+                snapshot_reason = f"SNAPSHOT_PIN_MISSING_{missing_pins[0]}"
         else:
             for t in SIX_TABLES:
                 if t not in snap_bundle:
@@ -241,12 +255,15 @@ def build_evidence(probe_data, req_data, payload_req_data=None, audit_data=None,
                     break
                 t_val = snap_bundle[t]
                 actual_sid = t_val.get("snapshot_id") if isinstance(t_val, dict) else t_val
-                if run_id in expected_snapshots_by_run and t in expected_snapshots_by_run[run_id]:
-                    expected_sid = expected_snapshots_by_run[run_id][t]
-                    if actual_sid != expected_sid:
-                        valid_snapshots = False
-                        snapshot_reason = f"SNAPSHOT_ID_MISMATCH_{t}"
-                        break
+                if actual_sid is None:
+                    valid_snapshots = False
+                    snapshot_reason = f"SNAPSHOT_ID_MISSING_{t}"
+                    break
+                expected_sid = run_expected_snaps[t]
+                if actual_sid != expected_sid:
+                    valid_snapshots = False
+                    snapshot_reason = f"SNAPSHOT_ID_MISMATCH_{t}"
+                    break
 
         # 6. Event count consistency
         valid_event_count = True
