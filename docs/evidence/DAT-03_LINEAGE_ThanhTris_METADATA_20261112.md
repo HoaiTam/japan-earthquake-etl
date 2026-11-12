@@ -1,6 +1,6 @@
 # DAT-03 — Bàn giao Metadata Frontier của ThanhTris, 12/11/2026
 
-Branch `feat/dat-03-lineage-readiness` từ `main 7e1f4b0`. Tác giả: **ThanhTris**.
+Branch `feat/dat-03-lineage-readiness` từ `main c0494a9`. Tác giả: **ThanhTris**.
 Đáp ứng yêu cầu metadata frontier từ Hoài Tâm trong [dat03_lineage_ThanhTris_metadata.json](../../config/research/dat03_lineage_ThanhTris_metadata.json), [runbook](../runbooks/DAT-03_LINEAGE_FRONTIER.md) và [evidence](DAT-03_LINEAGE_FRONTIER_20261112.md).
 Task DAT-03 vẫn giữ **In Progress**, không tự chuyển Done; không khẳng định full transitive closure, unified Gold hay official ML export.
 
@@ -16,9 +16,9 @@ Thư mục đích của worker: `1bcRDZ5feOeos_U8HcsfOQZ2ELPoOGuDg` (Google Driv
 
 > **Readback test:** Đã dùng Google Drive API/CLI tải ngược về môi trường local và kiểm tra băm SHA-256 khớp 100% bitwise.
 
-## 2. Đối soát 18 tệp `identity.json`
+## 2. Đối soát 18 tệp `identity.json` (18/18 MATCHED)
 
-Tất cả 18 tệp `identity.json` được trích xuất trực tiếp từ MinIO local (`s3://japan-earthquake/silver/gold-commits/<run_id>/identity.json`).
+Tất cả các tệp `identity.json` được trích xuất từ MinIO local (`s3://japan-earthquake/silver/gold-commits/<run_id>/identity.json`).
 
 | STT | Gold Run ID | Kích thước | Pinned `identity_sha256` | File Raw SHA-256 | Trạng thái |
 |---:|---|---:|---|---|:---:|
@@ -41,24 +41,24 @@ Tất cả 18 tệp `identity.json` được trích xuất trực tiếp từ Mi
 | 17 | `orc07-ec9d8788a27175295ff6a47e9b94f33a1170b6ca` | 7,615 B | `a0b46907d565f47554c111c9d20109f329eef1832309916a504f18e16845b801` | `e960f012486f93b4217b76b38c4c1cebfc65cec2ddfa3e2857cb38f600569b6a` | MATCHED |
 | 18 | `orc07-fb052729d91a1922e1328e3322594b4926b724d1` | 7,625 B | `40fda41d7988bb58abff7dec36353d8eb738bad0c234d265a1cabd32b907ab5f` | `333cd8b374dcf15d544d563fc1930428694dbdfa3016c3d6e5cdec51374781f9` | MATCHED |
 
-### Giải trình kỹ thuật về mã băm `identity.json`
-Trong quá trình đối soát, phát hiện mã SHA-256 tính trên raw bytes của tệp `identity.json` khác với mã `identity_sha256` được pin trong `commit.json` và yêu cầu checkpoint.
+### Giải trình kỹ thuật về phân biệt `raw_file_sha256` và `identity_payload_sha256`
+Trong quá trình đối soát, mã SHA-256 tính trên raw bytes của tệp `identity.json` khác với mã `identity_sha256` được pin trong `commit.json` và yêu cầu checkpoint.
 Nguyên nhân đến từ thiết kế tại mã nguồn Spark Java `GoldIcebergWriter.java` (dòng 79–81):
 ```java
 String identitySha = SilverBundlePublisher.sha(JSON.writeValueAsBytes(identity));
 identity.put("identity_sha256", identitySha);
 byte[] claimBytes = JSON.writeValueAsBytes(identity);
 ```
-- `identity_sha256` là chữ ký hàm băm chuẩn hóa của đối tượng JSON **trước khi** thuộc tính `"identity_sha256"` được chèn vào payload.
+- `identity_payload_sha256` là chữ ký hàm băm chuẩn hóa của đối tượng JSON **trước khi** thuộc tính `"identity_sha256"` được chèn vào payload.
 - Khi lưu trữ xuống MinIO, tệp vật lý bao gồm cả thuộc tính `"identity_sha256": "<hash>"`, làm cho raw byte hash của file bị thay đổi.
-- Tất cả các thành phần trong kiến trúc (`commit.json`, `publication.json`, snapshot summary Iceberg `gold.identity_sha256`) đều pin theo **`identity_sha256` ngữ nghĩa**, và 100% (18/18) tệp trong gói bàn giao khớp chính xác tuyệt đối với mã băm này.
+- Verifier hiện tại đã thực hiện tính toán lại chính xác payload hash sau khi bóc tách trường khai báo theo đúng serialization contract của Java; đạt kết quả đối soát: **18/18 tệp MATCHED**.
 
-## 3. Đối soát 18 tệp `publication.json` và Proof Journal
+## 3. Đối soát 18 tệp `publication.json` và Proof Journal (18/18 PASSED)
 
-18 tệp `publication.json` đã được trích xuất từ `s3://japan-earthquake/silver/gold-verification/<run_id>/publication.json`.
+Các tệp `publication.json` đã được trích xuất từ `s3://japan-earthquake/silver/gold-verification/<run_id>/publication.json`.
 Trước đây, các tệp này nằm trong danh sách `unpinned_publication_uris` chưa có SHA. Bảng dưới đây cung cấp đầy đủ mã băm SHA-256 của tệp gốc để Hoài Tâm và nhóm đưa vào pinned requirements:
 
-| STT | Gold Run ID | Publication ID | Số events | File Size | Raw File SHA-256 | Verify Status | Published |
+| STT | Gold Run ID | Publication ID | Bản ghi snapshot | File Size | Raw File SHA-256 | Verify Status | Published |
 |---:|---|---|---:|---:|---|:---:|:---:|
 | 1 | `orc07-082db36f5ca34c6f7be6f210bee1197f10240880` | `pub_1b5e9df724ca761937651f47fa08ec811c3de092f4a59dae3565fb6eb37ff8e4` | 1,098,320 | 112,666 B | `2a37240cc736c57ea75ab4eeaa5ac71d63cd33fc70d8d060618c7df344d1cc45` | PASSED | True |
 | 2 | `orc07-0953d5d2d5ea1f9b4150985340367fa47a4abfd4` | `pub_387e10ffa892eec44c1539cccd0cf30c996dd818d78d01e3a9235c948dfdde53` | 514,848 | 111,210 B | `6d4cd3de6d804a62f11915a55e19dec35c264bb0aa2562715b2d163a38a21def` | PASSED | True |
@@ -80,11 +80,9 @@ Trước đây, các tệp này nằm trong danh sách `unpinned_publication_uri
 | 18 | `orc07-fb052729d91a1922e1328e3322594b4926b724d1` | `pub_4492b74bf2f98cbe81abfd57186d46efc326a975284db5121b01a01f16662461` | 907,155 | 112,555 B | `756f060a1d8ba60ddcbacfaac1afb2f93c658f2874318139045bc537b4a6f3ae` | PASSED | True |
 
 ### Liên kết mật mã học (Cryptographic Linkage):
-- **`bundle_sha256`**: Khớp 100% với mã commit SHA trong `commit.json` của từng run tương ứng.
-- **`identity_sha256`**: Khớp 100% với `identity_sha256` trong `identity.json`.
-- **`verify_status`**: 18/18 tệp đều đạt `PASSED`.
-- **`published`**: 18/18 tệp đều xác nhận `true`.
-- **Tổng số sự kiện động đất chuẩn hóa (Canonical Events):** **10.012.513 events** trên toàn bộ 18 runs Gold.
+- **`bundle_sha256`**: Đã xác thực liên kết mật mã học: 18/18 tệp liên kết hợp lệ.
+- **`verify_status`**: 18/18 tệp đạt `PASSED`.
+- **Tổng số bản ghi tích lũy qua các snapshot/run:** **10,012,513 bản ghi** (Lưu ý: đây là tổng số bản ghi tích lũy qua 18 snapshot/partition tháng của từng run, không phải số lượng canonical events duy nhất trên toàn catalog tích hợp).
 
 ## 4. Báo cáo về 108 Snapshot References của Iceberg
 
@@ -100,23 +98,20 @@ Trước đây, các tệp này nằm trong danh sách `unpinned_publication_uri
 
 ## 5. Báo cáo về 119 Parquet Payload References
 
-- Đã thực hiện kiểm kê và đối soát 119 tệp Parquet trong MinIO local theo danh mục `dat03_lineage_ThanhTris_payload.json`.
-- Tổng số tệp: **119 tệp**.
-- Tổng dung lượng: **522.659.149 bytes** (~498,4 MiB).
-- **Trạng thái:** Toàn bộ 119 tệp đều hiện diện đầy đủ, nguyên vẹn trên MinIO cục bộ của ThanhTris.
-- **Kế hoạch chuyển giao:** Theo chỉ đạo tại mục 3 runbook ("đây là inventory, chưa phải yêu cầu upload lại toàn bộ"), các payload này được lưu trữ sẵn sàng tại local MinIO. Khi Hoài Tâm hoàn tất đối soát SHA với các data packages đã chia sẻ trước đây và xác định phần thiếu thực sự (differential delta), ThanhTris sẽ thực hiện đóng gói và tải lên theo các lô có checkpoint.
+- Danh mục yêu cầu: `119` tệp Parquet (522,659,149 bytes ~498,4 MiB).
+- **Trạng thái:** **INVENTORY REGISTERED** (chưa chuyển giao trong gói metadata này; chờ differential inventory đối chiếu với shared packages).
+- **Kế hoạch:** Theo chỉ đạo tại mục 3 runbook ("đây là inventory, chưa phải yêu cầu upload lại toàn bộ"), các payload này được lưu trữ sẵn sàng tại local MinIO. Khi Hoài Tâm hoàn tất đối soát SHA với các data packages đã chia sẻ trước đây và xác định phần thiếu thực sự (differential delta), ThanhTris sẽ thực hiện đóng gói và tải lên theo các lô có checkpoint.
 
 ## 6. Kiểm thử và Kiểm định Hệ thống
 
 1. **Công cụ kiểm định `scripts/audit-dat03-lineage.py`:**
-   - Đã cập nhật dòng 116 để hỗ trợ xác thực mã băm ngữ nghĩa cho `gold_identity`.
-   - Đã cập nhật dòng 148 để phân biệt chính xác schema giữa `commit.json` và `identity.json`.
+   - Cập nhật hàm `verify_gold_identity()`: phân biệt `raw_file_sha256` và `identity_payload_sha256`, kiểm tra chặt chẽ serialization contract của Jackson và tính lại SHA payload.
    - Chạy kiểm định 3 archive kết hợp (`tri-first-hop`, `tri-lineage`, `ThanhTris-dat03-frontier-metadata-20261112.zip`):
      * `roots_matched`: **75/75** (100%).
      * `silver_dataset_manifest`: **76/76** MATCHED (100%).
      * `gold_commit`: **18/18** MATCHED (100%).
-     * `gold_identity`: **18/18** MATCHED (100%).
-2. **Unit tests:** `python -m unittest tests.test_dat03_lineage -v` đạt **17/17 tests PASS**.
+     * `gold_identity`: **18/18** MATCHED (tính lại payload hash và đối soát pin).
+2. **Unit tests:** Bộ unit tests tự động offline bao phủ cả positive test và negative tests (tampered namespace, tampered scope, tampered count, duplicate JSON keys).
 
 ## 7. Giới hạn, Rủi ro và Bước tiếp theo
 

@@ -9,11 +9,13 @@ import sys
 try:
     import boto3
 except ImportError:
-    print("ERROR: boto3 is required", file=sys.stderr)
-    sys.exit(1)
+    boto3 = None
 
 ROOT = Path(__file__).resolve().parents[1]
 REQ_PATH = ROOT / "config/research/dat03_lineage_ThanhTris_metadata.json"
+
+if boto3 is None:
+    raise RuntimeError("boto3 is required to run probe-dat03-frontier-metadata.py")
 
 with open(REQ_PATH, "r", encoding="utf-8") as f:
     req = json.load(f)
@@ -40,14 +42,32 @@ for item in req["objects"]:
         file_sha = hashlib.sha256(data).hexdigest()
         parsed = json.loads(data.decode("utf-8"))
         internal_sha = parsed.get("identity_sha256")
+
+        # Recompute payload SHA following GoldIcebergWriter serialization contract
+        needle = b',"identity_sha256":"' + (internal_sha or "").encode("ascii") + b'"}'
+        valid_serialization = data.endswith(needle)
+        recomputed_payload_sha = None
+        payload_matches_expected = False
+        payload_matches_internal = False
+
+        if valid_serialization and internal_sha:
+            payload_bytes = data[:-len(needle)] + b'}'
+            recomputed_payload_sha = hashlib.sha256(payload_bytes).hexdigest()
+            payload_matches_internal = (recomputed_payload_sha == internal_sha)
+            payload_matches_expected = (recomputed_payload_sha == expected_sha)
+
         identity_results.append({
             "uri": uri,
             "key": rel_key,
             "byte_size": len(data),
             "file_sha256": file_sha,
             "internal_identity_sha256": internal_sha,
+            "payload_sha256": recomputed_payload_sha,
             "expected_sha256": expected_sha,
+            "valid_serialization": valid_serialization,
             "internal_matches_expected": (internal_sha == expected_sha),
+            "payload_matches_internal": payload_matches_internal,
+            "payload_matches_expected": payload_matches_expected,
             "file_matches_expected": (file_sha == expected_sha),
         })
     except Exception as e:
@@ -88,6 +108,7 @@ for uri in req["unpinned_publication_uris"]:
 summary = {
     "identities_found": sum("byte_size" in r for r in identity_results),
     "identities_internal_match": sum(r.get("internal_matches_expected", False) for r in identity_results),
+    "identities_payload_match": sum(r.get("payload_matches_expected", False) for r in identity_results),
     "identities_file_match": sum(r.get("file_matches_expected", False) for r in identity_results),
     "publications_found": sum("byte_size" in r for r in pub_results),
     "publications_verified_passed": sum(r.get("verify_status") == "PASSED" for r in pub_results),

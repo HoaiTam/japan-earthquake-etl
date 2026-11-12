@@ -35,6 +35,30 @@ def decode(data):
                       parse_constant=lambda _: require(False, "NONFINITE_JSON"))
 
 
+def verify_gold_identity(data, expected_sha):
+    require(isinstance(data, bytes), "BYTES_REQUIRED")
+    val = decode(data)
+    require(isinstance(val, dict), "METADATA_NOT_OBJECT")
+    require(val.get("commit_version") == "gld-03-v1", "UNKNOWN_COMMIT_VERSION")
+    require("identity_sha256" in val, "MISSING_IDENTITY_SHA")
+    declared_sha = val["identity_sha256"]
+    require(isinstance(declared_sha, str) and bool(SHA.fullmatch(declared_sha)), "INVALID_IDENTITY_SHA")
+
+    # Canonical serialization from GoldIcebergWriter.java finishes by appending
+    # ,"identity_sha256":"<declared_sha>"} to the serialized identity ObjectNode.
+    needle = b',"identity_sha256":"' + declared_sha.encode("ascii") + b'"}'
+    require(data.endswith(needle), "INVALID_IDENTITY_SERIALIZATION")
+    payload_bytes = data[:-len(needle)] + b'}'
+
+    payload_val = decode(payload_bytes)
+    require({k: v for k, v in val.items() if k != "identity_sha256"} == payload_val, "PAYLOAD_TAMPERED")
+
+    recomputed_sha = digest(payload_bytes)
+    require(recomputed_sha == declared_sha, "PAYLOAD_DECLARED_SHA_MISMATCH")
+    require(recomputed_sha == expected_sha, "OBJECT_SHA_MISMATCH")
+    return recomputed_sha, digest(data)
+
+
 def key(uri):
     require(isinstance(uri, str) and uri.startswith(PREFIX), "FOREIGN_OR_INVALID_URI")
     value = uri[len(PREFIX):]
@@ -114,8 +138,9 @@ def audit(roots_path, roots_sha256, archives):
             continue
         data = objects[name]
         if record["kind"] == "gold_identity":
-            val = decode(data)
-            require(digest(data) == record["sha256"] or val.get("identity_sha256") == record["sha256"], "OBJECT_SHA_MISMATCH")
+            payload_sha, raw_sha = verify_gold_identity(data, record["sha256"])
+            record["raw_file_sha256"] = raw_sha
+            record["identity_payload_sha256"] = payload_sha
         else:
             require(digest(data) == record["sha256"], "OBJECT_SHA_MISMATCH")
         if "byte_size" in record:
