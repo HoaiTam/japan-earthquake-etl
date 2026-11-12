@@ -9,7 +9,17 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_PROBE = ROOT / "staging/dat03_lineage_probe_frontier.json"
 DEFAULT_REQ = ROOT / "config/research/dat03_lineage_ThanhTris_metadata.json"
 DEFAULT_PAYLOAD = ROOT / "config/research/dat03_lineage_ThanhTris_payload.json"
+DEFAULT_AUDIT = ROOT / "staging/dat03-lineage/tri-combined-audit-20261112.json"
 DEFAULT_OUT = ROOT / "docs/evidence/DAT-03_LINEAGE_ThanhTris_METADATA_20261112.md"
+
+
+def extract_run_id(uri):
+    if not uri:
+        return "UNKNOWN"
+    parts = [p for p in uri.split("/") if p]
+    if len(parts) >= 2:
+        return parts[-2]
+    return "UNKNOWN"
 
 
 def parse_args():
@@ -17,12 +27,13 @@ def parse_args():
     parser.add_argument("--probe", type=str, default=str(DEFAULT_PROBE), help="Path to probe JSON")
     parser.add_argument("--request", type=str, default=str(DEFAULT_REQ), help="Path to metadata request JSON")
     parser.add_argument("--payload-request", type=str, default=str(DEFAULT_PAYLOAD), help="Path to payload request JSON")
+    parser.add_argument("--audit-report", type=str, default=str(DEFAULT_AUDIT) if DEFAULT_AUDIT.exists() else None, help="Path to audit report JSON")
     parser.add_argument("--output", type=str, default=str(DEFAULT_OUT), help="Path to output Markdown")
     parser.add_argument("--strict", action="store_true", help="Fail if any target is missing or mismatched")
     return parser.parse_args()
 
 
-def build_evidence(probe_data, req_data, payload_req_data, strict=False):
+def build_evidence(probe_data, req_data, payload_req_data=None, audit_data=None, strict=False):
     if not isinstance(probe_data, dict):
         raise ValueError("PROBE_DATA_MUST_BE_OBJECT")
     if not isinstance(req_data, dict):
@@ -39,7 +50,40 @@ def build_evidence(probe_data, req_data, payload_req_data, strict=False):
     total_exp_pubs = len(expected_pubs)
     total_exp_payloads = len(expected_payloads)
 
-    # 1. Evaluate identities
+    # Extract commit pins from audit report if available
+    commit_pin_by_run = {}
+    audit_roots_matched = "NOT_CHECKED"
+    audit_manifests_matched = "NOT_CHECKED"
+    audit_commits_matched = "NOT_CHECKED"
+
+    if isinstance(audit_data, dict):
+        roots_m = audit_data.get("roots_matched")
+        roots_e = audit_data.get("roots_expected")
+        if roots_m is not None and roots_e is not None:
+            audit_roots_matched = f"{roots_m}/{roots_e}"
+        matched_manifests = sum(
+            1 for o in audit_data.get("objects", [])
+            if o.get("kind") == "silver_dataset_manifest" and o.get("status") == "MATCHED"
+        )
+        if matched_manifests > 0:
+            audit_manifests_matched = f"{matched_manifests}"
+
+        matched_commits = 0
+        for o in audit_data.get("objects", []):
+            if o.get("kind") == "gold_commit" and o.get("status") == "MATCHED":
+                matched_commits += 1
+                run_id = extract_run_id(o.get("uri", ""))
+                commit_pin_by_run[run_id] = o.get("sha256")
+        if matched_commits > 0:
+            audit_commits_matched = f"{matched_commits}"
+
+    # Map expected identity SHA by run_id
+    exp_ident_by_run = {}
+    for exp in expected_identities:
+        run_id = extract_run_id(exp.get("uri", ""))
+        exp_ident_by_run[run_id] = exp.get("sha256")
+
+    # 1. Evaluate identities strictly
     id_by_uri = {item.get("uri"): item for item in identities if isinstance(item, dict)}
     id_rows = []
     matched_identities = 0
@@ -51,27 +95,29 @@ def build_evidence(probe_data, req_data, payload_req_data, strict=False):
         if not item:
             id_rows.append({
                 "idx": idx,
-                "run_id": uri.split("/")[4] if len(uri.split("/")) > 4 else "UNKNOWN",
+                "run_id": extract_run_id(uri),
                 "byte_size": 0,
                 "expected_sha": exp_sha,
                 "payload_sha": "NOT_SUPPLIED",
                 "file_sha": "NOT_SUPPLIED",
-                "status": "NOT_SUPPLIED",
+                "status": "MISSING",
             })
             continue
 
-        payload_sha = item.get("payload_sha256") or item.get("internal_identity_sha256")
+        # STRICT: No fallback to internal_identity_sha256. Proof must be explicitly provided.
+        payload_sha = item.get("payload_sha256")
         file_sha = item.get("file_sha256", "UNKNOWN")
         byte_size = item.get("byte_size", 0)
-        run_id = item.get("key", "").split("/")[2] if "key" in item else uri.split("/")[4]
+        run_id = extract_run_id(item.get("key") or uri)
 
-        # Exact recomputed payload SHA must match expected pinned SHA
-        is_matched = bool(
-            payload_sha == exp_sha
-            and item.get("valid_serialization", True)
-            and item.get("payload_matches_expected", True)
+        has_proof = (
+            isinstance(payload_sha, str)
+            and item.get("valid_serialization") is True
         )
-        if is_matched:
+
+        if not has_proof:
+            status = "NOT_VERIFIED"
+        elif payload_sha == exp_sha and item.get("payload_matches_expected") is not False:
             matched_identities += 1
             status = "MATCHED"
         else:
@@ -87,7 +133,7 @@ def build_evidence(probe_data, req_data, payload_req_data, strict=False):
             "status": status,
         })
 
-    # 2. Evaluate publications
+    # 2. Evaluate publications strictly
     pub_by_uri = {p.get("uri"): p for p in publications if isinstance(p, dict)}
     pub_rows = []
     matched_pubs = 0
@@ -96,10 +142,11 @@ def build_evidence(probe_data, req_data, payload_req_data, strict=False):
 
     for idx, uri in enumerate(expected_pubs, 1):
         item = pub_by_uri.get(uri)
+        run_id = extract_run_id(uri)
         if not item:
             pub_rows.append({
                 "idx": idx,
-                "run_id": uri.split("/")[4] if len(uri.split("/")) > 4 else "UNKNOWN",
+                "run_id": run_id,
                 "pub_id": "NOT_SUPPLIED",
                 "event_count": 0,
                 "byte_size": 0,
@@ -107,10 +154,12 @@ def build_evidence(probe_data, req_data, payload_req_data, strict=False):
                 "verify_status": "MISSING",
                 "published": False,
                 "link_matched": False,
+                "link_status": "MISSING",
             })
             continue
 
-        run_id = item.get("key", "").split("/")[2] if "key" in item else uri.split("/")[4]
+        if "key" in item:
+            run_id = extract_run_id(item["key"])
         pub_id = item.get("publication_id", "UNKNOWN")
         event_count = item.get("event_count", 0)
         byte_size = item.get("byte_size", 0)
@@ -118,15 +167,53 @@ def build_evidence(probe_data, req_data, payload_req_data, strict=False):
         v_status = item.get("verify_status", "UNKNOWN")
         pub_status = item.get("published", False)
 
+        is_passed = (v_status == "PASSED")
+        is_published = (pub_status is True)
+
         total_snapshot_records += event_count
-        if v_status == "PASSED" and pub_status is True:
+        if is_passed and is_published:
             matched_pubs += 1
 
         pub_ident = item.get("identity_sha256")
         bundle_sha = item.get("bundle_sha256")
-        linked = (v_status == "PASSED" and pub_status is True and bool(pub_ident) and bool(bundle_sha))
+
+        # Pinned identity verification
+        expected_id_sha = exp_ident_by_run.get(run_id)
+        ident_linked = bool(pub_ident and expected_id_sha and pub_ident == expected_id_sha)
+
+        # Trusted commit verification
+        expected_c_sha = commit_pin_by_run.get(run_id)
+        if commit_pin_by_run and expected_c_sha:
+            commit_linked = bool(bundle_sha and bundle_sha == expected_c_sha)
+        else:
+            commit_linked = False
+
+        linked = bool(is_passed and is_published and ident_linked and commit_linked)
+
         if linked:
             cryptographic_matches += 1
+            l_status = "LINKED"
+        else:
+            reasons = []
+            if not is_passed:
+                reasons.append(f"VERIFY_STATUS_{v_status}")
+            if not is_published:
+                reasons.append("NOT_PUBLISHED")
+            if not ident_linked:
+                if not expected_id_sha:
+                    reasons.append("IDENTITY_PIN_MISSING")
+                elif not pub_ident:
+                    reasons.append("IDENTITY_SHA_MISSING")
+                else:
+                    reasons.append("IDENTITY_MISMATCH")
+            if not commit_linked:
+                if not commit_pin_by_run or not expected_c_sha:
+                    reasons.append("COMMIT_PIN_NOT_SUPPLIED")
+                elif not bundle_sha:
+                    reasons.append("BUNDLE_SHA_MISSING")
+                else:
+                    reasons.append("COMMIT_MISMATCH")
+            l_status = ",".join(reasons) if reasons else "UNLINKED"
 
         pub_rows.append({
             "idx": idx,
@@ -138,6 +225,7 @@ def build_evidence(probe_data, req_data, payload_req_data, strict=False):
             "verify_status": v_status,
             "published": pub_status,
             "link_matched": linked,
+            "link_status": l_status,
         })
 
     if strict:
@@ -148,6 +236,10 @@ def build_evidence(probe_data, req_data, payload_req_data, strict=False):
         if matched_pubs != total_exp_pubs:
             raise ValueError(
                 f"STRICT_CHECK_FAILED: publications verified {matched_pubs}/{total_exp_pubs}"
+            )
+        if cryptographic_matches != total_exp_pubs:
+            raise ValueError(
+                f"STRICT_CHECK_FAILED: cryptographic linkage matched {cryptographic_matches}/{total_exp_pubs}"
             )
 
     # Build report text
@@ -189,46 +281,47 @@ def build_evidence(probe_data, req_data, payload_req_data, strict=False):
 
     doc.append(f"## 3. Đối soát {total_exp_pubs} tệp `publication.json` và Proof Journal ({matched_pubs}/{total_exp_pubs} PASSED)\n")
     doc.append("Các tệp `publication.json` đã được trích xuất từ `s3://japan-earthquake/silver/gold-verification/<run_id>/publication.json`.")
-    doc.append("Trước đây, các tệp này nằm trong danh sách `unpinned_publication_uris` chưa có SHA. Bảng dưới đây cung cấp đầy đủ mã băm SHA-256 của tệp gốc để Hoài Tâm và nhóm đưa vào pinned requirements:\n")
-    doc.append("| STT | Gold Run ID | Publication ID | Bản ghi snapshot | File Size | Raw File SHA-256 | Verify Status | Published |")
-    doc.append("|---:|---|---|---:|---:|---|:---:|:---:|")
+    doc.append("Bảng dưới đây cung cấp đầy đủ mã băm SHA-256 của tệp gốc để Hoài Tâm và nhóm đưa vào pinned requirements:\n")
+    doc.append("| STT | Gold Run ID | Publication ID | Bản ghi snapshot | File Size | Raw File SHA-256 | Verify Status | Published | Liên kết |")
+    doc.append("|---:|---|---|---:|---:|---|:---:|:---:|:---:|")
 
     for r in pub_rows:
         size_str = f"{r['byte_size']:,} B" if r["byte_size"] > 0 else "0 B"
-        doc.append(f"| {r['idx']} | `{r['run_id']}` | `{r['pub_id']}` | {r['event_count']:,} | {size_str} | `{r['file_sha']}` | {r['verify_status']} | {r['published']} |")
+        doc.append(f"| {r['idx']} | `{r['run_id']}` | `{r['pub_id']}` | {r['event_count']:,} | {size_str} | `{r['file_sha']}` | {r['verify_status']} | {r['published']} | {r['link_status']} |")
 
     doc.append("\n### Liên kết mật mã học (Cryptographic Linkage):")
-    doc.append(f"- **`bundle_sha256`**: Đã xác thực liên kết mật mã học: {cryptographic_matches}/{total_exp_pubs} tệp liên kết hợp lệ.")
-    doc.append(f"- **`verify_status`**: {matched_pubs}/{total_exp_pubs} tệp đạt `PASSED`.")
-    doc.append(f"- **Tổng số bản ghi tích lũy qua các snapshot/run:** **{total_snapshot_records:,} bản ghi** (Lưu ý: đây là tổng số bản ghi tích lũy qua 18 snapshot/partition tháng của từng run, không phải số lượng canonical events duy nhất trên toàn catalog tích hợp).\n")
+    doc.append(f"- **`bundle_sha256` & `identity_sha256`**: Đối chiếu commit SHA và pinned identity: {cryptographic_matches}/{total_exp_pubs} tệp liên kết mật mã học hợp lệ.")
+    doc.append(f"- **`verify_status`**: {matched_pubs}/{total_exp_pubs} tệp đạt `PASSED` và `published=true`.")
+    doc.append(f"- **Tổng số bản ghi tích lũy qua các snapshot/run:** **{total_snapshot_records:,} bản ghi** (Lưu ý: đây là tổng số bản ghi tích lũy qua các partition snapshot của từng run, không phải số lượng canonical events duy nhất trên toàn catalog tích hợp).\n")
 
     doc.append("## 4. Báo cáo về 108 Snapshot References của Iceberg\n")
-    doc.append("- Trong 18 tệp `publication.json`, mỗi tệp chứa `snapshot_bundle` trỏ đến 6 bảng Iceberg cốt lõi:")
-    doc.append("  1. `catalog_gold.event_current`")
-    doc.append("  2. `catalog_gold.event_source_bridge`")
-    doc.append("  3. `catalog_gold.dim_date`")
-    doc.append("  4. `catalog_gold.dim_region`")
-    doc.append("  5. `catalog_gold.dim_magnitude_band`")
-    doc.append("  6. `catalog_gold.dim_depth_band`")
-    doc.append("- Tổng cộng: **18 runs × 6 tables = 108 snapshots**.")
+    doc.append("- Danh mục: **108 snapshot references** (được trích xuất từ 18 snapshot_bundle trong `publication.json`, 6 bảng mỗi run).")
+    doc.append("- **Trạng thái:** **METADATA REFERENCES NỘI BỘ** (chưa đối soát transitive closure trên actual Iceberg catalog tables; không tự khẳng định snapshot references tồn tại độc lập trên MinIO nếu không có catalog metadata tích hợp).")
     doc.append("- **Lưu ý nguyên tắc:** Theo đúng [runbook](../runbooks/DAT-03_LINEAGE_FRONTIER.md), snapshot IDs là metadata pointers cục bộ của catalog, không phải portable files độc lập. Các snapshots này chỉ có thể được vận chuyển hoặc import khi có kèm theo toàn bộ Iceberg metadata, manifest-list, manifest files và data Parquet files tương ứng trong pipeline tích hợp.\n")
 
     payload_count = total_exp_payloads or 119
     payload_size = sum(item.get("byte_size", 0) for item in expected_payloads) if expected_payloads else 522659149
     doc.append(f"## 5. Báo cáo về {payload_count} Parquet Payload References\n")
     doc.append(f"- Danh mục yêu cầu: `{payload_count}` tệp Parquet ({payload_size:,} bytes ~498,4 MiB).")
-    doc.append("- **Trạng thái:** **INVENTORY REGISTERED** (chưa chuyển giao trong gói metadata này; chờ differential inventory đối chiếu với shared packages).")
-    doc.append("- **Kế hoạch:** Theo chỉ đạo tại mục 3 runbook (\"đây là inventory, chưa phải yêu cầu upload lại toàn bộ\"), các payload này được lưu trữ sẵn sàng tại local MinIO. Khi Hoài Tâm hoàn tất đối soát SHA với các data packages đã chia sẻ trước đây và xác định phần thiếu thực sự (differential delta), ThanhTris sẽ thực hiện đóng gói và tải lên theo các lô có checkpoint.\n")
+    doc.append("- **Trạng thái:** **INVENTORY REGISTERED — NOT CHECKED IN THIS AUDIT** (chưa kiểm định độc lập / chưa chuyển giao trong gói metadata này; không tự khẳng định payload hiện diện hoặc nguyên vẹn trên MinIO nếu chưa có proof inventory riêng).")
+    doc.append("- **Kế hoạch:** Theo chỉ đạo tại mục 3 runbook (\"đây là inventory, chưa phải yêu cầu upload lại toàn bộ\"), các payload này nằm trong danh mục inventory. Khi Hoài Tâm hoàn tất đối soát SHA với các data packages đã chia sẻ trước đây và xác định phần thiếu thực sự (differential delta), ThanhTris sẽ thực hiện đóng gói và tải lên theo các lô có checkpoint và kèm proof inventory.\n")
 
     doc.append("## 6. Kiểm thử và Kiểm định Hệ thống\n")
     doc.append("1. **Công cụ kiểm định `scripts/audit-dat03-lineage.py`:**")
     doc.append("   - Cập nhật hàm `verify_gold_identity()`: phân biệt `raw_file_sha256` và `identity_payload_sha256`, kiểm tra chặt chẽ serialization contract của Jackson và tính lại SHA payload.")
-    doc.append("   - Chạy kiểm định 3 archive kết hợp (`tri-first-hop`, `tri-lineage`, `ThanhTris-dat03-frontier-metadata-20261112.zip`):")
-    doc.append(f"     * `roots_matched`: **75/75** (100%).")
-    doc.append(f"     * `silver_dataset_manifest`: **76/76** MATCHED (100%).")
-    doc.append(f"     * `gold_commit`: **18/18** MATCHED (100%).")
-    doc.append(f"     * `gold_identity`: **{matched_identities}/{total_exp_identities}** MATCHED (tính lại payload hash và đối soát pin).")
-    doc.append("2. **Unit tests:** Bộ unit tests tự động offline bao phủ cả positive test và negative tests (tampered namespace, tampered scope, tampered count, duplicate JSON keys).\n")
+    if audit_data:
+        doc.append("   - Kết quả kiểm định thực tế trích xuất từ audit report:")
+        doc.append(f"     * `roots_matched`: **{audit_roots_matched}**.")
+        doc.append(f"     * `silver_dataset_manifest`: **{audit_manifests_matched}** MATCHED.")
+        doc.append(f"     * `gold_commit`: **{audit_commits_matched}** MATCHED.")
+        doc.append(f"     * `gold_identity`: **{matched_identities}/{total_exp_identities}** MATCHED (tính lại payload hash và đối soát pin).")
+    else:
+        doc.append("   - Kết quả kiểm định từ audit report (không cung cấp audit report riêng):")
+        doc.append("     * `roots_matched`: **NOT_CHECKED**.")
+        doc.append("     * `silver_dataset_manifest`: **NOT_CHECKED**.")
+        doc.append("     * `gold_commit`: **NOT_CHECKED**.")
+        doc.append(f"     * `gold_identity`: **{matched_identities}/{total_exp_identities}** MATCHED trong probe.")
+    doc.append("2. **Unit tests:** Bộ unit tests tự động offline bao phủ cả positive test và negative tests (tampered namespace, tampered scope, tampered count, duplicate JSON keys, thiếu proof hash, sai identity/commit pin trong publication linkage).\n")
 
     doc.append("## 7. Giới hạn, Rủi ro và Bước tiếp theo\n")
     doc.append("- **Giới hạn:** Gói bàn giao này chỉ bao gồm phần metadata frontier cấp thiết theo yêu cầu của Hoài Tâm. Gói này chưa bao gồm 119 payloads Parquet lớn (chờ differential inventory) và chưa tạo ra unified Gold catalog.")
@@ -246,6 +339,7 @@ def main():
     probe_path = Path(args.probe)
     req_path = Path(args.request)
     payload_path = Path(args.payload_request)
+    audit_path = Path(args.audit_report) if args.audit_report else None
     out_path = Path(args.output)
 
     if not probe_path.exists():
@@ -256,8 +350,9 @@ def main():
     probe_data = json.loads(probe_path.read_text(encoding="utf-8"))
     req_data = json.loads(req_path.read_text(encoding="utf-8"))
     payload_req_data = json.loads(payload_path.read_text(encoding="utf-8")) if payload_path.exists() else None
+    audit_data = json.loads(audit_path.read_text(encoding="utf-8")) if audit_path and audit_path.exists() else None
 
-    report = build_evidence(probe_data, req_data, payload_req_data, strict=args.strict)
+    report = build_evidence(probe_data, req_data, payload_req_data, audit_data=audit_data, strict=args.strict)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(report, encoding="utf-8")
     print(f"Evidence report successfully written to {out_path}")

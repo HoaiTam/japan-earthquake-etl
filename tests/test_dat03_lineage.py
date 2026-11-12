@@ -301,6 +301,180 @@ class LineageTest(unittest.TestCase):
         finally:
             sys.argv = old_argv
 
+    def test_generate_evidence_identity_missing_proof_fails_strict(self):
+        gen_spec = importlib.util.spec_from_file_location("gen_evidence", ROOT / "scripts/generate-dat03-thanh-tris-evidence.py")
+        gen_mod = importlib.util.module_from_spec(gen_spec)
+        gen_spec.loader.exec_module(gen_mod)
+
+        # Probe has matching internal_identity_sha256 but NO payload_sha256 proof
+        probe_data = {
+            "identities": [{
+                "uri": m.PREFIX + "silver/gold-commits/r1/identity.json",
+                "internal_identity_sha256": "a" * 64,
+                "valid_serialization": False,
+            }],
+            "publications": [],
+        }
+        req_data = {
+            "objects": [{"uri": m.PREFIX + "silver/gold-commits/r1/identity.json", "sha256": "a" * 64}],
+            "unpinned_publication_uris": [],
+        }
+        evidence = gen_mod.build_evidence(probe_data, req_data, None, strict=False)
+        self.assertIn("NOT_VERIFIED", evidence)
+        self.assertIn("0/1 MATCHED", evidence)
+
+        # In strict mode, missing proof MUST fail
+        with self.assertRaises(ValueError) as ctx:
+            gen_mod.build_evidence(probe_data, req_data, None, strict=True)
+        self.assertIn("STRICT_CHECK_FAILED: identities matched 0/1", str(ctx.exception))
+
+    def test_generate_evidence_publication_wrong_identity_pin_fails(self):
+        gen_spec = importlib.util.spec_from_file_location("gen_evidence", ROOT / "scripts/generate-dat03-thanh-tris-evidence.py")
+        gen_mod = importlib.util.module_from_spec(gen_spec)
+        gen_spec.loader.exec_module(gen_mod)
+
+        pub_uri = m.PREFIX + "silver/gold-verification/r1/publication.json"
+        probe_data = {
+            "identities": [{
+                "uri": m.PREFIX + "silver/gold-commits/r1/identity.json",
+                "payload_sha256": "a" * 64,
+                "valid_serialization": True,
+                "payload_matches_expected": True,
+            }],
+            "publications": [{
+                "uri": pub_uri,
+                "verify_status": "PASSED",
+                "published": True,
+                "identity_sha256": "WRONG_IDENTITY_HASH",
+                "bundle_sha256": "c" * 64,
+            }],
+        }
+        req_data = {
+            "objects": [{"uri": m.PREFIX + "silver/gold-commits/r1/identity.json", "sha256": "a" * 64}],
+            "unpinned_publication_uris": [pub_uri],
+        }
+        audit_data = {
+            "objects": [{"kind": "gold_commit", "status": "MATCHED", "uri": m.PREFIX + "silver/gold-commits/r1/commit.json", "sha256": "c" * 64}]
+        }
+        evidence = gen_mod.build_evidence(probe_data, req_data, None, audit_data=audit_data, strict=False)
+        self.assertIn("IDENTITY_MISMATCH", evidence)
+        self.assertIn("0/1 tệp liên kết mật mã học hợp lệ", evidence)
+
+        with self.assertRaises(ValueError) as ctx:
+            gen_mod.build_evidence(probe_data, req_data, None, audit_data=audit_data, strict=True)
+        self.assertIn("STRICT_CHECK_FAILED: cryptographic linkage matched 0/1", str(ctx.exception))
+
+    def test_generate_evidence_publication_wrong_commit_hash_fails(self):
+        gen_spec = importlib.util.spec_from_file_location("gen_evidence", ROOT / "scripts/generate-dat03-thanh-tris-evidence.py")
+        gen_mod = importlib.util.module_from_spec(gen_spec)
+        gen_spec.loader.exec_module(gen_mod)
+
+        pub_uri = m.PREFIX + "silver/gold-verification/r1/publication.json"
+        probe_data = {
+            "identities": [{
+                "uri": m.PREFIX + "silver/gold-commits/r1/identity.json",
+                "payload_sha256": "a" * 64,
+                "valid_serialization": True,
+                "payload_matches_expected": True,
+            }],
+            "publications": [{
+                "uri": pub_uri,
+                "verify_status": "PASSED",
+                "published": True,
+                "identity_sha256": "a" * 64,
+                "bundle_sha256": "WRONG_COMMIT_HASH",
+            }],
+        }
+        req_data = {
+            "objects": [{"uri": m.PREFIX + "silver/gold-commits/r1/identity.json", "sha256": "a" * 64}],
+            "unpinned_publication_uris": [pub_uri],
+        }
+        audit_data = {
+            "objects": [{"kind": "gold_commit", "status": "MATCHED", "uri": m.PREFIX + "silver/gold-commits/r1/commit.json", "sha256": "c" * 64}]
+        }
+        evidence = gen_mod.build_evidence(probe_data, req_data, None, audit_data=audit_data, strict=False)
+        self.assertIn("COMMIT_MISMATCH", evidence)
+        self.assertIn("0/1 tệp liên kết mật mã học hợp lệ", evidence)
+
+        with self.assertRaises(ValueError) as ctx:
+            gen_mod.build_evidence(probe_data, req_data, None, audit_data=audit_data, strict=True)
+        self.assertIn("STRICT_CHECK_FAILED: cryptographic linkage matched 0/1", str(ctx.exception))
+
+    def test_generate_evidence_publication_failed_status_fails(self):
+        gen_spec = importlib.util.spec_from_file_location("gen_evidence", ROOT / "scripts/generate-dat03-thanh-tris-evidence.py")
+        gen_mod = importlib.util.module_from_spec(gen_spec)
+        gen_spec.loader.exec_module(gen_mod)
+
+        pub_uri = m.PREFIX + "silver/gold-verification/r1/publication.json"
+        probe_data = {
+            "identities": [{
+                "uri": m.PREFIX + "silver/gold-commits/r1/identity.json",
+                "payload_sha256": "a" * 64,
+                "valid_serialization": True,
+                "payload_matches_expected": True,
+            }],
+            "publications": [{
+                "uri": pub_uri,
+                "verify_status": "FAILED",
+                "published": False,
+                "identity_sha256": "a" * 64,
+                "bundle_sha256": "c" * 64,
+            }],
+        }
+        req_data = {
+            "objects": [{"uri": m.PREFIX + "silver/gold-commits/r1/identity.json", "sha256": "a" * 64}],
+            "unpinned_publication_uris": [pub_uri],
+        }
+        audit_data = {
+            "objects": [{"kind": "gold_commit", "status": "MATCHED", "uri": m.PREFIX + "silver/gold-commits/r1/commit.json", "sha256": "c" * 64}]
+        }
+        evidence = gen_mod.build_evidence(probe_data, req_data, None, audit_data=audit_data, strict=False)
+        self.assertIn("VERIFY_STATUS_FAILED", evidence)
+        self.assertIn("NOT_PUBLISHED", evidence)
+        self.assertIn("0/1 tệp đạt `PASSED` và `published=true`", evidence)
+
+        with self.assertRaises(ValueError) as ctx:
+            gen_mod.build_evidence(probe_data, req_data, None, audit_data=audit_data, strict=True)
+        self.assertIn("STRICT_CHECK_FAILED: publications verified 0/1", str(ctx.exception))
+
+    def test_generate_evidence_without_audit_report_shows_not_checked(self):
+        gen_spec = importlib.util.spec_from_file_location("gen_evidence", ROOT / "scripts/generate-dat03-thanh-tris-evidence.py")
+        gen_mod = importlib.util.module_from_spec(gen_spec)
+        gen_spec.loader.exec_module(gen_mod)
+
+        probe_data = {"identities": [], "publications": []}
+        req_data = {"objects": [], "unpinned_publication_uris": []}
+        evidence = gen_mod.build_evidence(probe_data, req_data, None, audit_data=None, strict=False)
+        self.assertIn("`roots_matched`: **NOT_CHECKED**", evidence)
+        self.assertIn("`silver_dataset_manifest`: **NOT_CHECKED**", evidence)
+        self.assertIn("`gold_commit`: **NOT_CHECKED**", evidence)
+        self.assertIn("INVENTORY REGISTERED — NOT CHECKED IN THIS AUDIT", evidence)
+        self.assertNotIn("75/75", evidence)
+        self.assertNotIn("76/76", evidence)
+
+    def test_pack_frontier_metadata_readme_with_failed_pubs(self):
+        pack_spec = importlib.util.spec_from_file_location("pack_meta", ROOT / "scripts/pack-dat03-frontier-metadata.py")
+        pack_mod = importlib.util.module_from_spec(pack_spec)
+        pack_spec.loader.exec_module(pack_mod)
+
+        # Mock entries with 18 FAILED publications
+        manifest_entries = [
+            {
+                "uri": f"s3://japan-earthquake/silver/gold-verification/r{i}/publication.json",
+                "kind": "gold_publication",
+                "verify_status": "FAILED",
+                "published": False,
+                "status": "FETCHED_ORIGINAL",
+                "linkage_status": "NOT_VERIFIED",
+            }
+            for i in range(18)
+        ]
+        manifest, readme = pack_mod.build_manifest_and_readme(manifest_entries, self.root / "fake_req.json")
+        self.assertNotIn("100% PASSED", readme)
+        self.assertNotIn("100% verify_status=PASSED", readme)
+        self.assertIn("0/18 verify_status=PASSED, published=true", readme)
+        self.assertIn("cryptographic linkage NOT_VERIFIED by packer", readme)
+
 
 if __name__ == "__main__":
     unittest.main()
