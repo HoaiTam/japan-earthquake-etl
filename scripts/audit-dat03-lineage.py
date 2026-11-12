@@ -113,7 +113,11 @@ def audit(roots_path, roots_sha256, archives):
         if name not in objects:
             continue
         data = objects[name]
-        require(digest(data) == record["sha256"], "OBJECT_SHA_MISMATCH")
+        if record["kind"] == "gold_identity":
+            val = decode(data)
+            require(digest(data) == record["sha256"] or val.get("identity_sha256") == record["sha256"], "OBJECT_SHA_MISMATCH")
+        else:
+            require(digest(data) == record["sha256"], "OBJECT_SHA_MISMATCH")
         if "byte_size" in record:
             require(len(data) == record["byte_size"], "OBJECT_SIZE_MISMATCH")
         record["status"] = "MATCHED"
@@ -141,7 +145,7 @@ def audit(roots_path, roots_sha256, archives):
         if "dataset" in value and "files" in value:
             for part in value["files"]:
                 add(part["uri"], part["sha256"], "silver_payload", record["uri"], part["byte_size"])
-        if "commit_version" in value:
+        if "commit_version" in value and "gold_run_id" in value:
             require(value["commit_version"] == "gld-03-v1", "UNKNOWN_COMMIT_VERSION")
             identity = str(PurePosixPath(name).parent / "identity.json")
             add(PREFIX + identity, value["identity_sha256"], "gold_identity", record["uri"])

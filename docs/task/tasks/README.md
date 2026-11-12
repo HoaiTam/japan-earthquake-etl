@@ -23,7 +23,7 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 ## Tổng quan
 
 **Hiện hành12/11:** 63/81 Done,5 Needs Update,12 Backlog,1 In Progress (DAT-03).
-[DAT-03 actual metadata audit](../../evidence/DAT-03_LINEAGE_FRONTIER_20261112.md): first-hop và Trí next-hop matched; chưa official integration/export.
+[DAT-03 actual metadata audit](../../evidence/DAT-03_LINEAGE_FRONTIER_20261112.md): first-hop và Trí next-hop matched; [ThanhTris frontier metadata](../../evidence/DAT-03_LINEAGE_ThanhTris_METADATA_20261112.md) đã bàn giao; chưa official integration/export.
 [Kế hoạch tuần9,6task/người](../WEEK_9_REPLAN_20261111.md),
 [đối soát PR/acceptance](../../evidence/TASK_STATUS_AUDIT_20261111.md).
 COL-03 Done sau #117; #124 merge implementation, MLI-04 còn official parity.
