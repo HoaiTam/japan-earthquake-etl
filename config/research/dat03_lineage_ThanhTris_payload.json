@@ -1,0 +1,734 @@
+{
+  "version": "dat03-lineage-frontier-request-v1",
+  "owner": "ThanhTris",
+  "scope": "METADATA_FRONTIER_NOT_OFFICIAL_ACCEPTANCE",
+  "basis_roots_sha256": "33f9773fee0c1d87972cc8020459cf1b230cfa8687b04b513e40183e92f10aa6",
+  "basis_archives": [
+    {
+      "sha256": "3ed1afa64b688e943f6988862b494d727a2ac9d8f0594f9bd8cc361b4f802638",
+      "entries": 78
+    },
+    {
+      "sha256": "6324a540175502c6f549e6b8b444ccd4b4028486ea3095a75d829f9bc490874b",
+      "entries": 114
+    }
+  ],
+  "object_count": 119,
+  "objects": [
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-082db36f5ca34c6f7be6f210bee1197f10240880/canonical_membership/part-00000.parquet",
+      "sha256": "88f9533bbb1a2f77476b2833c49bd662b856fccb21d992b5d3ed1770f3e3e1c7",
+      "kind": "silver_payload",
+      "byte_size": 7530202
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-082db36f5ca34c6f7be6f210bee1197f10240880/reject_record/part-00000.parquet",
+      "sha256": "d07bbf8dbdcf824135f51d69e79418a4f5f35f37ed87f9ad7eac5396cab668c7",
+      "kind": "silver_payload",
+      "byte_size": 595
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-082db36f5ca34c6f7be6f210bee1197f10240880/source_link/part-00000.parquet",
+      "sha256": "28a623fb748f5e5338764104332bf6456ccc7f94e5990cb96644455e4c746b37",
+      "kind": "silver_payload",
+      "byte_size": 534
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-082db36f5ca34c6f7be6f210bee1197f10240880/source_observation/event_year_utc=2018/event_month_utc=06/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "99c6b782fd0b7ba5d8a4c1ef8a345205c268113ce3188b11c10894c692dd74a7",
+      "kind": "silver_payload",
+      "byte_size": 8325564
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-082db36f5ca34c6f7be6f210bee1197f10240880/source_observation/event_year_utc=2018/event_month_utc=07/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "d85b7935837bd9ba2aab8825bc43b71b9f3a18df783e96d8eb2201907518375f",
+      "kind": "silver_payload",
+      "byte_size": 8350904
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-082db36f5ca34c6f7be6f210bee1197f10240880/source_observation/event_year_utc=2018/event_month_utc=08/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "26a8484446906b8961973123e38427c570bcebbe014ff940475ea3c9bafc423c",
+      "kind": "silver_payload",
+      "byte_size": 7132216
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-0953d5d2d5ea1f9b4150985340367fa47a4abfd4/canonical_membership/part-00000.parquet",
+      "sha256": "950a8661c1965ad6855c802257c300bb94f1c9dfae74cb26093d93a1fd60a7d1",
+      "kind": "silver_payload",
+      "byte_size": 5967953
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-0953d5d2d5ea1f9b4150985340367fa47a4abfd4/reject_record/part-00000.parquet",
+      "sha256": "d07bbf8dbdcf824135f51d69e79418a4f5f35f37ed87f9ad7eac5396cab668c7",
+      "kind": "silver_payload",
+      "byte_size": 595
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-0953d5d2d5ea1f9b4150985340367fa47a4abfd4/source_link/part-00000.parquet",
+      "sha256": "28a623fb748f5e5338764104332bf6456ccc7f94e5990cb96644455e4c746b37",
+      "kind": "silver_payload",
+      "byte_size": 534
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-0953d5d2d5ea1f9b4150985340367fa47a4abfd4/source_observation/event_year_utc=2016/event_month_utc=07/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "1342cc432fc0c591b2cb91b52d6144ea1c34e6109798a810b5120dcdacd38d06",
+      "kind": "silver_payload",
+      "byte_size": 9678444
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-0953d5d2d5ea1f9b4150985340367fa47a4abfd4/source_observation/event_year_utc=2016/event_month_utc=08/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "78cf4a8775611a06d44f0c4571adc96b5c3a6bb6b86c229132384e5a3a398a70",
+      "kind": "silver_payload",
+      "byte_size": 9122306
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-17326468816eae5c920b0317d3ad748207c00e1e/canonical_membership/part-00000.parquet",
+      "sha256": "2d5dd2d69081816cda277b6040a59474acf11655a1e7cdbb285a18e9751bbf24",
+      "kind": "silver_payload",
+      "byte_size": 1465309
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-17326468816eae5c920b0317d3ad748207c00e1e/reject_record/part-00000.parquet",
+      "sha256": "d07bbf8dbdcf824135f51d69e79418a4f5f35f37ed87f9ad7eac5396cab668c7",
+      "kind": "silver_payload",
+      "byte_size": 595
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-17326468816eae5c920b0317d3ad748207c00e1e/source_link/part-00000.parquet",
+      "sha256": "28a623fb748f5e5338764104332bf6456ccc7f94e5990cb96644455e4c746b37",
+      "kind": "silver_payload",
+      "byte_size": 534
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-17326468816eae5c920b0317d3ad748207c00e1e/source_observation/event_year_utc=2013/event_month_utc=08/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "1c31d4f91db6c2e55e798988d52b7a4e533359b3da504b188e154b55d233c69f",
+      "kind": "silver_payload",
+      "byte_size": 4640830
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-1ca9bb57617c5647777f3fe8502366c32019362b/canonical_membership/part-00000.parquet",
+      "sha256": "401818502462871f9486663ac9d426a9636805c3f1a56950a4a78c90309b9510",
+      "kind": "silver_payload",
+      "byte_size": 6911623
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-1ca9bb57617c5647777f3fe8502366c32019362b/reject_record/part-00000.parquet",
+      "sha256": "d07bbf8dbdcf824135f51d69e79418a4f5f35f37ed87f9ad7eac5396cab668c7",
+      "kind": "silver_payload",
+      "byte_size": 595
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-1ca9bb57617c5647777f3fe8502366c32019362b/source_link/part-00000.parquet",
+      "sha256": "28a623fb748f5e5338764104332bf6456ccc7f94e5990cb96644455e4c746b37",
+      "kind": "silver_payload",
+      "byte_size": 534
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-1ca9bb57617c5647777f3fe8502366c32019362b/source_observation/event_year_utc=2017/event_month_utc=07/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "ac41d829a75bade36cba445d0f32c3f90e184f1e2cefde21e1f3639109f72466",
+      "kind": "silver_payload",
+      "byte_size": 11293792
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-1ca9bb57617c5647777f3fe8502366c32019362b/source_observation/event_year_utc=2017/event_month_utc=08/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "5d60cc96018f53b8752d342b181f3f65273c6aea88192045be4e6bd28ba01161",
+      "kind": "silver_payload",
+      "byte_size": 10392563
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-2cee619a8c2e42f34431ad4783d0fce30c38f9c6/canonical_membership/part-00000.parquet",
+      "sha256": "6d33cc2f683ab8ff8fafde9de49dd686c3998b4a4eed9e5dc79cd652382de9e3",
+      "kind": "silver_payload",
+      "byte_size": 7617176
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-2cee619a8c2e42f34431ad4783d0fce30c38f9c6/reject_record/part-00000.parquet",
+      "sha256": "d07bbf8dbdcf824135f51d69e79418a4f5f35f37ed87f9ad7eac5396cab668c7",
+      "kind": "silver_payload",
+      "byte_size": 595
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-2cee619a8c2e42f34431ad4783d0fce30c38f9c6/source_link/part-00000.parquet",
+      "sha256": "28a623fb748f5e5338764104332bf6456ccc7f94e5990cb96644455e4c746b37",
+      "kind": "silver_payload",
+      "byte_size": 534
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-2cee619a8c2e42f34431ad4783d0fce30c38f9c6/source_observation/event_year_utc=2016/event_month_utc=05/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "79161b25062f4343ae8bdc32ae9f5c06351bbd85ace78e2fa4b04080edb4b3a0",
+      "kind": "silver_payload",
+      "byte_size": 13682326
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-2cee619a8c2e42f34431ad4783d0fce30c38f9c6/source_observation/event_year_utc=2016/event_month_utc=06/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "06da81861af559e9cbf7bc4f044e686fd764ce5306c08ff091d0076426db73f7",
+      "kind": "silver_payload",
+      "byte_size": 10083869
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-45708f6ec5641fb8efb50aa28e0edd6699dba1c3/canonical_membership/part-00000.parquet",
+      "sha256": "314e1637d3bff1770a844891f5d76aa9ef527220d26fccc403fa588f3090f807",
+      "kind": "silver_payload",
+      "byte_size": 7493465
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-45708f6ec5641fb8efb50aa28e0edd6699dba1c3/reject_record/part-00000.parquet",
+      "sha256": "d07bbf8dbdcf824135f51d69e79418a4f5f35f37ed87f9ad7eac5396cab668c7",
+      "kind": "silver_payload",
+      "byte_size": 595
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-45708f6ec5641fb8efb50aa28e0edd6699dba1c3/source_link/part-00000.parquet",
+      "sha256": "28a623fb748f5e5338764104332bf6456ccc7f94e5990cb96644455e4c746b37",
+      "kind": "silver_payload",
+      "byte_size": 534
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-45708f6ec5641fb8efb50aa28e0edd6699dba1c3/source_observation/event_year_utc=2018/event_month_utc=03/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "4df91c890e8f4452841eaba18f44399f795df42093c0fd776d38ebb3b9afe3e5",
+      "kind": "silver_payload",
+      "byte_size": 7989488
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-45708f6ec5641fb8efb50aa28e0edd6699dba1c3/source_observation/event_year_utc=2018/event_month_utc=04/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "d3d284b7ace90960a3f6dc523fd84dab5ec6c561e5e7a90827dd255008542b22",
+      "kind": "silver_payload",
+      "byte_size": 7802321
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-45708f6ec5641fb8efb50aa28e0edd6699dba1c3/source_observation/event_year_utc=2018/event_month_utc=05/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "05eff09cfb61f4534ad6460d6ac2d35d7debd762fffa3ddcbec041602332c348",
+      "kind": "silver_payload",
+      "byte_size": 7818284
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-4c388509c64df68a3ff50a0af3491d808810d557/canonical_membership/part-00000.parquet",
+      "sha256": "c032754b55237576f47d6da663f698bde7943bad9d53b4551dd33fd6c47c38f3",
+      "kind": "silver_payload",
+      "byte_size": 7938738
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-4c388509c64df68a3ff50a0af3491d808810d557/reject_record/part-00000.parquet",
+      "sha256": "d07bbf8dbdcf824135f51d69e79418a4f5f35f37ed87f9ad7eac5396cab668c7",
+      "kind": "silver_payload",
+      "byte_size": 595
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-4c388509c64df68a3ff50a0af3491d808810d557/source_link/part-00000.parquet",
+      "sha256": "28a623fb748f5e5338764104332bf6456ccc7f94e5990cb96644455e4c746b37",
+      "kind": "silver_payload",
+      "byte_size": 534
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-4c388509c64df68a3ff50a0af3491d808810d557/source_observation/event_year_utc=2015/event_month_utc=09/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "3aaa20059d43e48a1468877542be1c42bd90a93f5e3939890721f8a2b266145c",
+      "kind": "silver_payload",
+      "byte_size": 3474281
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-4c388509c64df68a3ff50a0af3491d808810d557/source_observation/event_year_utc=2015/event_month_utc=10/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "8e0850da41a89956592cb6e14c317c07c284dcde493903d735d864e10b261f43",
+      "kind": "silver_payload",
+      "byte_size": 3728882
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-4c388509c64df68a3ff50a0af3491d808810d557/source_observation/event_year_utc=2015/event_month_utc=11/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "0e876f1624e3e0465815ea7515c557560e3fab642c2575521eb821253650505d",
+      "kind": "silver_payload",
+      "byte_size": 3712548
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-4c388509c64df68a3ff50a0af3491d808810d557/source_observation/event_year_utc=2015/event_month_utc=12/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "eb11107109f49ede6183cfc21e8ab10045f7da4ee1f241dc0cd13f247a71fba2",
+      "kind": "silver_payload",
+      "byte_size": 3620937
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-4c388509c64df68a3ff50a0af3491d808810d557/source_observation/event_year_utc=2016/event_month_utc=01/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "61738337f61cb1f0ba4d9d081d6f1b6cc7558609be447dcd21ab6357d59c6266",
+      "kind": "silver_payload",
+      "byte_size": 3773431
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-4c388509c64df68a3ff50a0af3491d808810d557/source_observation/event_year_utc=2016/event_month_utc=02/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "ebfbdfa758bb4bec8edd57a67baff1298cbb658672c51f64e8402198cc00a58a",
+      "kind": "silver_payload",
+      "byte_size": 3372100
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-4c388509c64df68a3ff50a0af3491d808810d557/source_observation/event_year_utc=2016/event_month_utc=03/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "935b1b167206ff9e39c94cf136ef4caea749e19817e3533cfaea52e649a04749",
+      "kind": "silver_payload",
+      "byte_size": 3565109
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-4e50aaad50668cd69b238e2b68ff467e2ba32da4/canonical_membership/part-00000.parquet",
+      "sha256": "757617b7ce1010c91ee1fa064462b1f576e2804411aaa0047b16bddfde6d1946",
+      "kind": "silver_payload",
+      "byte_size": 8363665
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-4e50aaad50668cd69b238e2b68ff467e2ba32da4/reject_record/part-00000.parquet",
+      "sha256": "d07bbf8dbdcf824135f51d69e79418a4f5f35f37ed87f9ad7eac5396cab668c7",
+      "kind": "silver_payload",
+      "byte_size": 595
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-4e50aaad50668cd69b238e2b68ff467e2ba32da4/source_link/part-00000.parquet",
+      "sha256": "28a623fb748f5e5338764104332bf6456ccc7f94e5990cb96644455e4c746b37",
+      "kind": "silver_payload",
+      "byte_size": 534
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-4e50aaad50668cd69b238e2b68ff467e2ba32da4/source_observation/event_year_utc=2014/event_month_utc=09/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "0e294c411b1474eb9032e450a4d7a0a50327a99ea9e8ef95b5b597c557031dac",
+      "kind": "silver_payload",
+      "byte_size": 4535282
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-4e50aaad50668cd69b238e2b68ff467e2ba32da4/source_observation/event_year_utc=2014/event_month_utc=10/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "c0fb1a4e5f34b9b4e039b68e3e4b80389ff6de8e33d4f3a342849ac604931ab9",
+      "kind": "silver_payload",
+      "byte_size": 3544521
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-4e50aaad50668cd69b238e2b68ff467e2ba32da4/source_observation/event_year_utc=2014/event_month_utc=11/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "37b51ea23524ad7d0be667963ac9ce7ed649ba9eaa570c3eb3f06f6d42334c03",
+      "kind": "silver_payload",
+      "byte_size": 4109604
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-4e50aaad50668cd69b238e2b68ff467e2ba32da4/source_observation/event_year_utc=2014/event_month_utc=12/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "7b0bef71fe008a903e113d9c7a6532a206be6b4e2b237ab472bf0d0267e9865e",
+      "kind": "silver_payload",
+      "byte_size": 3724853
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-4e50aaad50668cd69b238e2b68ff467e2ba32da4/source_observation/event_year_utc=2015/event_month_utc=01/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "fb39a819b9fc479fd9ac3831e9b0d3e13bd85eac6976d7de7b25bb51192984db",
+      "kind": "silver_payload",
+      "byte_size": 3742307
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-4e50aaad50668cd69b238e2b68ff467e2ba32da4/source_observation/event_year_utc=2015/event_month_utc=02/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "0340e3e8d294de1953f6d6fe01a544be27db1155d7e789ee5828bf9266a3548a",
+      "kind": "silver_payload",
+      "byte_size": 3252864
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-4e50aaad50668cd69b238e2b68ff467e2ba32da4/source_observation/event_year_utc=2015/event_month_utc=03/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "ab60e294d80a4abf8b1310ea01d009ecf383e39e7937f64a13de25ef560077d2",
+      "kind": "silver_payload",
+      "byte_size": 3685084
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-5679c9c378edacb4e5f804613c8475351ce326b4/canonical_membership/part-00000.parquet",
+      "sha256": "91f130d34cbdac4f5ac74e9d151f049c6630c43e6e139e79a14b9e1e31ba5b8e",
+      "kind": "silver_payload",
+      "byte_size": 2594238
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-5679c9c378edacb4e5f804613c8475351ce326b4/reject_record/part-00000.parquet",
+      "sha256": "d07bbf8dbdcf824135f51d69e79418a4f5f35f37ed87f9ad7eac5396cab668c7",
+      "kind": "silver_payload",
+      "byte_size": 595
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-5679c9c378edacb4e5f804613c8475351ce326b4/source_link/part-00000.parquet",
+      "sha256": "28a623fb748f5e5338764104332bf6456ccc7f94e5990cb96644455e4c746b37",
+      "kind": "silver_payload",
+      "byte_size": 534
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-5679c9c378edacb4e5f804613c8475351ce326b4/source_observation/event_year_utc=2018/event_month_utc=09/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "2b8a67bd75dd1b84ea511dc12ea792782312ed055e8a812efd288cc44f1e8f01",
+      "kind": "silver_payload",
+      "byte_size": 8180849
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-98eee411ac549e4b18e06bf939d6039e8664d99c/canonical_membership/part-00000.parquet",
+      "sha256": "b2e5bd9d8548727d803541c4d45ca2d4fcbd51d6b729d2d719f5c347a9d0ce19",
+      "kind": "silver_payload",
+      "byte_size": 8169232
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-98eee411ac549e4b18e06bf939d6039e8664d99c/reject_record/part-00000.parquet",
+      "sha256": "d07bbf8dbdcf824135f51d69e79418a4f5f35f37ed87f9ad7eac5396cab668c7",
+      "kind": "silver_payload",
+      "byte_size": 595
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-98eee411ac549e4b18e06bf939d6039e8664d99c/source_link/part-00000.parquet",
+      "sha256": "28a623fb748f5e5338764104332bf6456ccc7f94e5990cb96644455e4c746b37",
+      "kind": "silver_payload",
+      "byte_size": 534
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-98eee411ac549e4b18e06bf939d6039e8664d99c/source_observation/event_year_utc=2017/event_month_utc=01/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "7b4b7aa24edfdc8c7bdfba6ca49fd2aabc3da1ae30cf5dfc0bb0e902fdbfc304",
+      "kind": "silver_payload",
+      "byte_size": 9845452
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-98eee411ac549e4b18e06bf939d6039e8664d99c/source_observation/event_year_utc=2017/event_month_utc=02/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "ea2534b26fb53e2ce5f40e5d19377227bd79fccc1ef6834355c10c076eaad495",
+      "kind": "silver_payload",
+      "byte_size": 7307413
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-98eee411ac549e4b18e06bf939d6039e8664d99c/source_observation/event_year_utc=2017/event_month_utc=03/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "a921504ed3dbb8046034a4fada076d7465882e77604e1a4a3579a39f8c248227",
+      "kind": "silver_payload",
+      "byte_size": 8484915
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-9cfd261527b05f5851778addeebf2d09d5799fb0/canonical_membership/part-00000.parquet",
+      "sha256": "68ab14b2c60f62da497e574cedf7ad4b710c5caf4f90276ad5615167501b8f8d",
+      "kind": "silver_payload",
+      "byte_size": 6403582
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-9cfd261527b05f5851778addeebf2d09d5799fb0/reject_record/part-00000.parquet",
+      "sha256": "d07bbf8dbdcf824135f51d69e79418a4f5f35f37ed87f9ad7eac5396cab668c7",
+      "kind": "silver_payload",
+      "byte_size": 595
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-9cfd261527b05f5851778addeebf2d09d5799fb0/source_link/part-00000.parquet",
+      "sha256": "28a623fb748f5e5338764104332bf6456ccc7f94e5990cb96644455e4c746b37",
+      "kind": "silver_payload",
+      "byte_size": 534
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-9cfd261527b05f5851778addeebf2d09d5799fb0/source_observation/event_year_utc=2017/event_month_utc=12/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "f446613d0bc45bf697cedc081180829e4ecff091c36aa4b0cb3d51fc4d3a7394",
+      "kind": "silver_payload",
+      "byte_size": 7064880
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-9cfd261527b05f5851778addeebf2d09d5799fb0/source_observation/event_year_utc=2018/event_month_utc=01/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "678e2fd182db78aff336d68b0620f7f64b76142f760ecadffea9e24f93338c63",
+      "kind": "silver_payload",
+      "byte_size": 6696002
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-9cfd261527b05f5851778addeebf2d09d5799fb0/source_observation/event_year_utc=2018/event_month_utc=02/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "74065cd955eb47cacf5c31cb9ba443fdf2ddc4bab1f708ae4e47cd90d26ac45c",
+      "kind": "silver_payload",
+      "byte_size": 6488198
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-ab3c35d5fe38dda32bfedbfd1340d8872cae120b/canonical_membership/part-00000.parquet",
+      "sha256": "7747774739f4fa9f6d9da0611ac1154012982e8841695db60455d39ca2a82a6a",
+      "kind": "silver_payload",
+      "byte_size": 6380063
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-ab3c35d5fe38dda32bfedbfd1340d8872cae120b/reject_record/part-00000.parquet",
+      "sha256": "d07bbf8dbdcf824135f51d69e79418a4f5f35f37ed87f9ad7eac5396cab668c7",
+      "kind": "silver_payload",
+      "byte_size": 595
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-ab3c35d5fe38dda32bfedbfd1340d8872cae120b/source_link/part-00000.parquet",
+      "sha256": "28a623fb748f5e5338764104332bf6456ccc7f94e5990cb96644455e4c746b37",
+      "kind": "silver_payload",
+      "byte_size": 534
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-ab3c35d5fe38dda32bfedbfd1340d8872cae120b/source_observation/event_year_utc=2016/event_month_utc=09/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "db23f7460ab879c397c6f693fb2d8174ea75f1c5b3d0ed3a1d3244e544e2b4e2",
+      "kind": "silver_payload",
+      "byte_size": 8486059
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-ab3c35d5fe38dda32bfedbfd1340d8872cae120b/source_observation/event_year_utc=2016/event_month_utc=10/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "1d5b531ac97111890dd68e614630c9745140bb673e8343f60ecf1095431dffa6",
+      "kind": "silver_payload",
+      "byte_size": 11514159
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-c3c985db61b11a4bbd3f72ba2db88ca1d7975595/canonical_membership/part-00000.parquet",
+      "sha256": "fe91cacadd789b41f6d9f653fe5fb802af63dda660f52230b2c760bd565d2963",
+      "kind": "silver_payload",
+      "byte_size": 6000545
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-c3c985db61b11a4bbd3f72ba2db88ca1d7975595/reject_record/part-00000.parquet",
+      "sha256": "d07bbf8dbdcf824135f51d69e79418a4f5f35f37ed87f9ad7eac5396cab668c7",
+      "kind": "silver_payload",
+      "byte_size": 595
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-c3c985db61b11a4bbd3f72ba2db88ca1d7975595/source_link/part-00000.parquet",
+      "sha256": "28a623fb748f5e5338764104332bf6456ccc7f94e5990cb96644455e4c746b37",
+      "kind": "silver_payload",
+      "byte_size": 534
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-c3c985db61b11a4bbd3f72ba2db88ca1d7975595/source_observation/event_year_utc=2015/event_month_utc=04/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "49a6a7a88088ad9f9acac158f2d6eac1cf119f95a1cac646add7be00a3e25489",
+      "kind": "silver_payload",
+      "byte_size": 3354359
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-c3c985db61b11a4bbd3f72ba2db88ca1d7975595/source_observation/event_year_utc=2015/event_month_utc=05/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "2771e4eb202257d1dcf1c78332bff9cad0407c5e74fe09b81c30ce29723dc132",
+      "kind": "silver_payload",
+      "byte_size": 4576487
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-c3c985db61b11a4bbd3f72ba2db88ca1d7975595/source_observation/event_year_utc=2015/event_month_utc=06/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "ae137de743e98e70f30141e1d65a8ab259a0230f0776e04db773e2cb74b043d7",
+      "kind": "silver_payload",
+      "byte_size": 3744409
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-c3c985db61b11a4bbd3f72ba2db88ca1d7975595/source_observation/event_year_utc=2015/event_month_utc=07/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "206cf585a4e2969c4a416774f2905bafa67152cec3cdfa361b7b1ae15374d21f",
+      "kind": "silver_payload",
+      "byte_size": 3470488
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-c3c985db61b11a4bbd3f72ba2db88ca1d7975595/source_observation/event_year_utc=2015/event_month_utc=08/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "51ce1b9f9cbc9477d3f6d80b43c57fb93029c117ff0cbc90d910ae31c43d6c49",
+      "kind": "silver_payload",
+      "byte_size": 3915548
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-c9fa6b114dfcfa7af3653cd54f35a64c5e84d1a2/canonical_membership/part-00000.parquet",
+      "sha256": "8803fbfe0ff70b23cf849e726d906ef271fae3bc189ae5fe328b5ca1119e675f",
+      "kind": "silver_payload",
+      "byte_size": 4799110
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-c9fa6b114dfcfa7af3653cd54f35a64c5e84d1a2/reject_record/part-00000.parquet",
+      "sha256": "d07bbf8dbdcf824135f51d69e79418a4f5f35f37ed87f9ad7eac5396cab668c7",
+      "kind": "silver_payload",
+      "byte_size": 595
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-c9fa6b114dfcfa7af3653cd54f35a64c5e84d1a2/source_link/part-00000.parquet",
+      "sha256": "28a623fb748f5e5338764104332bf6456ccc7f94e5990cb96644455e4c746b37",
+      "kind": "silver_payload",
+      "byte_size": 534
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-c9fa6b114dfcfa7af3653cd54f35a64c5e84d1a2/source_observation/event_year_utc=2016/event_month_utc=04/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "b37253a38a8a25163f962d683152d73964621f4b3141874158db95a0b216af7a",
+      "kind": "silver_payload",
+      "byte_size": 14837680
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-d954963fdd926abdc5e7807631f2e24f8112ff70/canonical_membership/part-00000.parquet",
+      "sha256": "abc92f52aad8537b7cabbd3175a58531da8c50aac03bbb0646b312f42da7daa8",
+      "kind": "silver_payload",
+      "byte_size": 8373409
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-d954963fdd926abdc5e7807631f2e24f8112ff70/reject_record/part-00000.parquet",
+      "sha256": "d07bbf8dbdcf824135f51d69e79418a4f5f35f37ed87f9ad7eac5396cab668c7",
+      "kind": "silver_payload",
+      "byte_size": 595
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-d954963fdd926abdc5e7807631f2e24f8112ff70/source_link/part-00000.parquet",
+      "sha256": "28a623fb748f5e5338764104332bf6456ccc7f94e5990cb96644455e4c746b37",
+      "kind": "silver_payload",
+      "byte_size": 534
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-d954963fdd926abdc5e7807631f2e24f8112ff70/source_observation/event_year_utc=2014/event_month_utc=03/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "6b1dce8aeca726dcefedce0870ae635b8931a65aa294adbc2656e4539e9661de",
+      "kind": "silver_payload",
+      "byte_size": 3653017
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-d954963fdd926abdc5e7807631f2e24f8112ff70/source_observation/event_year_utc=2014/event_month_utc=04/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "60723b6f1b7d8316ec3073bab2d00e7eea564eaca0a73443de49b69386c71720",
+      "kind": "silver_payload",
+      "byte_size": 3971097
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-d954963fdd926abdc5e7807631f2e24f8112ff70/source_observation/event_year_utc=2014/event_month_utc=05/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "dca46a12d0c1763b2154cd15075341c1039acf32b9374fcf121c34b885ee7fa2",
+      "kind": "silver_payload",
+      "byte_size": 4785967
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-d954963fdd926abdc5e7807631f2e24f8112ff70/source_observation/event_year_utc=2014/event_month_utc=06/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "f4df2f04079af5fdbfc9b835fc116034efe0df6f4561feea3e6c4cf3150abeae",
+      "kind": "silver_payload",
+      "byte_size": 4268131
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-d954963fdd926abdc5e7807631f2e24f8112ff70/source_observation/event_year_utc=2014/event_month_utc=07/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "f614f9ccba50c53f5716e533cb025c8077fb152d7b8854ee601460a976f4b67a",
+      "kind": "silver_payload",
+      "byte_size": 5138565
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-d954963fdd926abdc5e7807631f2e24f8112ff70/source_observation/event_year_utc=2014/event_month_utc=08/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "2bd03b928103912fbffee11646b8f545735e75b54d8208e50542ceb442231dc9",
+      "kind": "silver_payload",
+      "byte_size": 4743585
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-ddb6a71d10f03598aa6f8138858e522165486410/canonical_membership/part-00000.parquet",
+      "sha256": "aa98190587045ce8788ad5b4b30deeefa1f9b49f633edd39383e12c27d64bf8c",
+      "kind": "silver_payload",
+      "byte_size": 7315722
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-ddb6a71d10f03598aa6f8138858e522165486410/reject_record/part-00000.parquet",
+      "sha256": "d07bbf8dbdcf824135f51d69e79418a4f5f35f37ed87f9ad7eac5396cab668c7",
+      "kind": "silver_payload",
+      "byte_size": 595
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-ddb6a71d10f03598aa6f8138858e522165486410/source_link/part-00000.parquet",
+      "sha256": "28a623fb748f5e5338764104332bf6456ccc7f94e5990cb96644455e4c746b37",
+      "kind": "silver_payload",
+      "byte_size": 534
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-ddb6a71d10f03598aa6f8138858e522165486410/source_observation/event_year_utc=2013/event_month_utc=09/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "4c2d31dad58a083e7ab4c8817071a50871cbbb4524b0de8d9816c9b80890682b",
+      "kind": "silver_payload",
+      "byte_size": 4009761
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-ddb6a71d10f03598aa6f8138858e522165486410/source_observation/event_year_utc=2013/event_month_utc=10/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "c0d03961497c485dfbde881ceca7a76605fd71d2e430b7b8e65028d8e8660b91",
+      "kind": "silver_payload",
+      "byte_size": 3798292
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-ddb6a71d10f03598aa6f8138858e522165486410/source_observation/event_year_utc=2013/event_month_utc=11/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "ab6c2dac8f17843f69db571e3ebd127d02b87fc6fec221e05a1ce9c4fe4221f5",
+      "kind": "silver_payload",
+      "byte_size": 3961521
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-ddb6a71d10f03598aa6f8138858e522165486410/source_observation/event_year_utc=2013/event_month_utc=12/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "718e36cf018f8a859baa28af7c082fc9f4f6f9bf007ef6f2704765c85516d90f",
+      "kind": "silver_payload",
+      "byte_size": 3983876
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-ddb6a71d10f03598aa6f8138858e522165486410/source_observation/event_year_utc=2014/event_month_utc=01/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "df0e67ec8678f057500b9c3837691777836e8ffa2eb3d16767fa74a64ae6900e",
+      "kind": "silver_payload",
+      "byte_size": 4045301
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-ddb6a71d10f03598aa6f8138858e522165486410/source_observation/event_year_utc=2014/event_month_utc=02/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "0931637964c266977d7626123433c902e3a001127ddc7d44e220b72587a8f2b7",
+      "kind": "silver_payload",
+      "byte_size": 3466143
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-e4e879c8df576f57961ae02989a982618213e653/canonical_membership/part-00000.parquet",
+      "sha256": "9a653e409aa6d17b8ddc26bb7a4c0019bb31019aa14a44e20db14196af77a726",
+      "kind": "silver_payload",
+      "byte_size": 8356498
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-e4e879c8df576f57961ae02989a982618213e653/reject_record/part-00000.parquet",
+      "sha256": "d07bbf8dbdcf824135f51d69e79418a4f5f35f37ed87f9ad7eac5396cab668c7",
+      "kind": "silver_payload",
+      "byte_size": 595
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-e4e879c8df576f57961ae02989a982618213e653/source_link/part-00000.parquet",
+      "sha256": "28a623fb748f5e5338764104332bf6456ccc7f94e5990cb96644455e4c746b37",
+      "kind": "silver_payload",
+      "byte_size": 534
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-e4e879c8df576f57961ae02989a982618213e653/source_observation/event_year_utc=2017/event_month_utc=04/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "92a792ac3fa63002f3c6209a6335b5b853040a7d5b0045e751b39987fcb90c99",
+      "kind": "silver_payload",
+      "byte_size": 7695286
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-e4e879c8df576f57961ae02989a982618213e653/source_observation/event_year_utc=2017/event_month_utc=05/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "e71c9c2952a1b1ed22ecc3c3041777f2062bbda5cff0dfd62ed9bf689faf5497",
+      "kind": "silver_payload",
+      "byte_size": 9067444
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-e4e879c8df576f57961ae02989a982618213e653/source_observation/event_year_utc=2017/event_month_utc=06/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "2a755554ee2a121f79e84c8dc681f290abf86a01f7b0e3de85f0b3e5fe6cf834",
+      "kind": "silver_payload",
+      "byte_size": 9581891
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-ec9d8788a27175295ff6a47e9b94f33a1170b6ca/canonical_membership/part-00000.parquet",
+      "sha256": "98530f4faa0cc7fbf1cd0ccc1689f469376489e8c384c8843a6c31dc5520689c",
+      "kind": "silver_payload",
+      "byte_size": 7050841
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-ec9d8788a27175295ff6a47e9b94f33a1170b6ca/reject_record/part-00000.parquet",
+      "sha256": "d07bbf8dbdcf824135f51d69e79418a4f5f35f37ed87f9ad7eac5396cab668c7",
+      "kind": "silver_payload",
+      "byte_size": 595
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-ec9d8788a27175295ff6a47e9b94f33a1170b6ca/source_link/part-00000.parquet",
+      "sha256": "28a623fb748f5e5338764104332bf6456ccc7f94e5990cb96644455e4c746b37",
+      "kind": "silver_payload",
+      "byte_size": 534
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-ec9d8788a27175295ff6a47e9b94f33a1170b6ca/source_observation/event_year_utc=2016/event_month_utc=11/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "24505bbc359f8cdad817aadaf6631a908267cb8863d6754b6b28651f5ed1ef82",
+      "kind": "silver_payload",
+      "byte_size": 11235513
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-ec9d8788a27175295ff6a47e9b94f33a1170b6ca/source_observation/event_year_utc=2016/event_month_utc=12/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "72b826a638a82a2d2e5cbac7ed5baf23f94bef0782b87c675da894cf777b60ad",
+      "kind": "silver_payload",
+      "byte_size": 10812369
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-fb052729d91a1922e1328e3322594b4926b724d1/canonical_membership/part-00000.parquet",
+      "sha256": "5955bf6e8c096f061cd5176bc4a4a601759c76e36fb3840620d5cc9f0207defb",
+      "kind": "silver_payload",
+      "byte_size": 7103930
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-fb052729d91a1922e1328e3322594b4926b724d1/reject_record/part-00000.parquet",
+      "sha256": "d07bbf8dbdcf824135f51d69e79418a4f5f35f37ed87f9ad7eac5396cab668c7",
+      "kind": "silver_payload",
+      "byte_size": 595
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-fb052729d91a1922e1328e3322594b4926b724d1/source_link/part-00000.parquet",
+      "sha256": "28a623fb748f5e5338764104332bf6456ccc7f94e5990cb96644455e4c746b37",
+      "kind": "silver_payload",
+      "byte_size": 534
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-fb052729d91a1922e1328e3322594b4926b724d1/source_observation/event_year_utc=2017/event_month_utc=09/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "c87f84dd4ecae6209937be22992dc884c587f01c0b021375d68ab877faac9b3f",
+      "kind": "silver_payload",
+      "byte_size": 7977378
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-fb052729d91a1922e1328e3322594b4926b724d1/source_observation/event_year_utc=2017/event_month_utc=10/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "ba897c0d8f4ef09298615599f4c46d2580b766941609294ccae58bb131c11439",
+      "kind": "silver_payload",
+      "byte_size": 7402378
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-fb052729d91a1922e1328e3322594b4926b724d1/source_observation/event_year_utc=2017/event_month_utc=11/source_system=JMA_BULLETIN/part-00000.parquet",
+      "sha256": "5e9ab4afdc4def65e0e91e6c83d8e1af57e3a83f8aaa6641a8d1ce1ccd75a8e5",
+      "kind": "silver_payload",
+      "byte_size": 7083274
+    }
+  ],
+  "instruction": "GET exact original bytes; verify external SHA; do not regenerate or replay ETL. Missing in provided ZIPs does not mean missing on MinIO. Reuse matching existing shared bytes before any transfer."
+}
