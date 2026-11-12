@@ -1,10 +1,19 @@
 # DAT-03 — Tiến độ thực tế (cập nhật 12/11/2026)
 
-## Cập nhật 12/11/2026 — Đóng gói Lineage Bổ sung (Transitive Lineage 138/138) của rosy179
+## Cập nhật 12/11/2026 — Đóng gói Lineage Bổ sung (138 Phase Journals) & Lập Đặc tả 114 Objects Frontier của rosy179
 
-rosy179 đã hoàn thành việc đóng gói gói lineage bổ sung tầng tiếp theo `rosy179-dat03-lineage-metadata.zip` (401.335 bytes, SHA-256 `45c1f02ff80454aca2a6bad5587e6b0bfabc4f8cb7fa08a8043a8c6bb7b6de01`):
-- **Phạm vi đối soát:** Đủ 138/138 objects (23 runs x 6 phase journals: readiness, bronze, silver, gold commit, verify, publish), khớp 100% SHA-256 đối soát.
-- **Công cụ:** Đã phát triển `scripts/pack-worker-lineage.py` và kiểm thử toàn diện `tests/test_pack_worker_lineage.py` (fail-closed, unique path safety, self-integrity và trusted verification).
+rosy179 đã hoàn thành việc đóng gói gói bằng chứng giai đoạn thực thi bổ sung (Tier 2 Supplemental Phase Evidence) và lập đặc tả chi tiết cho Cổng 1 Transitive Closure Frontier (Tier 3):
+- **Phân định rõ 3 tầng bằng chứng:**
+  - **Tier 1 (First-hop Provenance):** 83/83 objects (37 Bronze, 23 Silver bundle, 23 Gold registry) trong `rosy179-dat03-provenance-metadata.zip`, đã được Hoài Tâm xác minh đạt 100% SHA-256.
+  - **Tier 2 (Supplemental Phase Evidence):** 138/138 phase journals (23 runs x 6 phases: `readiness`, `bronze`, `silver`, `gold`, `verify`, `publish`) đóng gói trong `rosy179-dat03-lineage-metadata.zip` (401.335 bytes, SHA-256 `45c1f02ff80454aca2a6bad5587e6b0bfabc4f8cb7fa08a8043a8c6bb7b6de01`). Đây là nhật ký giai đoạn bổ sung, không thay thế 114 frontier objects.
+  - **Tier 3 (Transitive Closure Frontier):** 114 objects frontier thực tế (92 Silver dataset manifests + 22 parent Gold commit JSONs) đã được lập đặc tả đầy đủ trong `staging/dat03-range-handoff-rosy179/rosy179-frontier-114-spec.json` (81.654 bytes, SHA-256 `69ba9cb8e259ee5375c01ac3f5e1833aa1e0e5dc75bd40adf252197e1356c7b4`).
+- **Trạng thái Cổng 1:** **MỞ / CHỜ BYTES GỐC (`CONG_1_TRANSITIVE_CLOSURE_OPEN`)**. rosy179 không tuyên bố Cổng 1 đã đóng; việc đóng transitive closure chờ hai máy cung cấp bytes gốc của 114 objects được tham chiếu từ MinIO/object storage local (không cần chạy lại ETL).
+- **Nâng cấp công cụ `scripts/pack-worker-lineage.py` & bộ kiểm thử `tests/test_pack_worker_lineage.py` (14/14 tests PASS):**
+  - Chốt chặn symlink nghiêm ngặt: từ chối symlink file, parent directory, và ZIP entries có mode `0o120000`.
+  - Chống thoát thư mục gốc (`resolve().is_relative_to()`).
+  - Kiểm tra nghiêm ngặt layout `silver/real-etl/<operation_id>/<phase>.json`, regex kiểm tra operation_id, đuôi `.json`, pha hợp lệ.
+  - Đối chiếu nhất quán giữa metadata khai báo trong manifest và đường dẫn thực tế, từ chối bản ghi trùng lặp logic `(operation_id, phase)`.
+  - Bổ sung lệnh `frontier-spec` để tự động trích xuất đặc tả 114 frontier objects từ provenance zip.
 - Chi tiết đối soát tại [báo cáo đối soát 288 tháng](DAT-03_INTEGRATION_EVIDENCE_288_MONTHS.md).
 
 ## Cập nhật 06/11/2026 — Đối soát 288 tháng và Provenance First-hop của ThanhTris (75/75) và rosy179 (83/83)

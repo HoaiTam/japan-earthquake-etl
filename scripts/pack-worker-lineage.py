@@ -1,16 +1,30 @@
 #!/usr/bin/env python3
 """DAT-03 worker supplemental lineage packaging and verification tool.
 
-Packages and verifies second-hop / transitive lineage metadata objects
-(real-etl phase journals: readiness, bronze, silver, gold, verify, publish)
-for worker nodes (ThanhTris: 19 runs * 6 phases = 114 objects,
-rosy179: 23 runs * 6 phases = 138 objects).
+Packages and verifies supplemental lineage metadata objects (Tier 2 phase journals:
+readiness, bronze, silver, gold commit, verify, publish) for worker nodes
+(ThanhTris: 19 runs * 6 phases = 114 objects, rosy179: 23 runs * 6 phases = 138 objects).
+
+Also extracts Tier 3 transitive closure frontier specification (114 objects for rosy179:
+92 Silver dataset manifests + 22 parent Gold commit JSONs).
+
+Evidence Tiers:
+- Tier 1 (First-hop Provenance): 83 objects for rosy179 (37 Bronze manifests, 23 Silver
+  bundle manifests, 23 Gold snapshot registries) -> PASS 100% SHA-256.
+- Tier 2 (Supplemental Phase Evidence): 138 objects for rosy179 (23 runs x 6 phase journals)
+  packaged in rosy179-dat03-lineage-metadata.zip.
+- Tier 3 (Transitive Closure Frontier): 114 objects for rosy179 (92 Silver dataset manifests
+  + 22 parent Gold commits) defined in rosy179-frontier-114-spec.json, PENDING original
+  storage bytes from MinIO/object storage.
 
 Fail-Closed Policy:
 - Missing required phase journals fails verification immediately.
 - Tampered, empty, or duplicate files in ZIP are strictly rejected.
 - ZIP members with duplicate names fail before reading.
-- Paths with directory traversal (..), absolute paths (/ or C:), or symlinks are strictly rejected.
+- Symlinks (file, parent directory, or ZIP entry mode 0o120000) are strictly rejected.
+- Path traversal (..), absolute paths, and source root escaping are strictly rejected.
+- Exact namespace layout 'silver/real-etl/<operation_id>/<phase>.json' is strictly enforced.
+- Logical duplicate (operation_id, phase) combinations are strictly rejected.
 - Self-integrity mode validates ZIP consistency against internal manifest.
 - Trusted lineage mode validates against external pinned requirement mapping;
   missing keys, count mismatches, or checksum mismatches fail immediately.
@@ -65,6 +79,21 @@ def compute_file_sha256(file_path: Path) -> str:
         while chunk := f.read(65536):
             h.update(chunk)
     return h.hexdigest()
+
+
+def check_no_symlinks(path: Path) -> None:
+    """Fail-closed check: raise ValueError if path or any parent component is a symlink."""
+    for p in (path, *path.parents):
+        if p.is_symlink() or os.path.islink(p):
+            raise ValueError(f"SYMLINK_REJECTED: component {p} is a symlink")
+
+
+def check_within_root(path: Path, root: Path) -> None:
+    """Fail-closed check: verify path.resolve() is relative to root.resolve()."""
+    resolved_path = path.resolve()
+    resolved_root = root.resolve()
+    if not resolved_path.is_relative_to(resolved_root):
+        raise ValueError(f"PATH_ESCAPES_SOURCE_ROOT: {path} resolves outside {root}")
 
 
 def check_raw_path_safety(raw_path: str) -> Tuple[bool, str]:
@@ -132,6 +161,7 @@ def parse_trusted_checksums(data: Any, default_bucket: str = "japan-earthquake")
     """Parse trusted checksum mapping from JSON file or object."""
     if isinstance(data, (str, Path)):
         p = Path(data).resolve()
+        check_no_symlinks(p)
         if not p.is_file():
             raise FileNotFoundError(f"TRUSTED_CHECKSUMS_FILE_NOT_FOUND: {p}")
         with open(p, "r", encoding="utf-8") as f:
@@ -154,6 +184,8 @@ def parse_trusted_checksums(data: Any, default_bucket: str = "japan-earthquake")
             data = data["objects"]
         elif "required_objects" in data and isinstance(data["required_objects"], list):
             data = data["required_objects"]
+        elif "frontier_objects" in data and isinstance(data["frontier_objects"], list):
+            data = data["frontier_objects"]
         else:
             for k, v in data.items():
                 if isinstance(v, str) and re.fullmatch(r"[0-9a-fA-F]{64}", v.strip()):
@@ -171,7 +203,7 @@ def parse_trusted_checksums(data: Any, default_bucket: str = "japan-earthquake")
             if not isinstance(item, dict):
                 continue
             raw_p = item.get("uri") or item.get("s3_uri") or item.get("path") or item.get("archive_path")
-            sha = item.get("sha256") or item.get("sha") or item.get("checksum")
+            sha = item.get("sha256") or item.get("sha") or item.get("checksum") or item.get("expected_sha256")
             phase = item.get("phase")
             if raw_p and sha:
                 s3_uri, rel_key = parse_uri_or_key(str(raw_p), default_bucket=default_bucket)
@@ -199,6 +231,7 @@ def extract_lineage_from_data_zip(
         raise ValueError(f"UNRECOGNIZED_OWNER: {owner}")
 
     data_zip_path = Path(data_zip_path).resolve()
+    check_no_symlinks(data_zip_path)
     if not data_zip_path.is_file():
         raise FileNotFoundError(f"DATA_ZIP_NOT_FOUND: {data_zip_path}")
 
@@ -206,6 +239,14 @@ def extract_lineage_from_data_zip(
     trusted_checksums: Dict[str, str] = {}
 
     with zipfile.ZipFile(data_zip_path, "r") as z:
+        for info in z.infolist():
+            mode = info.external_attr >> 16
+            if mode and (mode & 0o170000 == 0o120000):
+                raise ValueError(f"SYMLINK_MEMBER_FORBIDDEN: {info.filename}")
+            safe, reason = check_raw_path_safety(info.filename)
+            if not safe:
+                raise ValueError(f"UNSAFE_ZIP_ENTRY_PATH: {info.filename} ({reason})")
+
         namelist_set = set(z.namelist())
         record_names = sorted([x for x in namelist_set if x.endswith("record.json")])
 
@@ -261,27 +302,41 @@ def pack_lineage_archive(
     expected_runs = spec["run_count"]
 
     output_zip = Path(output_zip).resolve()
+    check_no_symlinks(output_zip)
     if output_zip.exists() and not overwrite:
         raise FileExistsError(f"OUTPUT_ZIP_ALREADY_EXISTS: {output_zip}")
 
     source_input = Path(source_input).resolve()
+    check_no_symlinks(source_input)
+
     if source_input.is_file() and source_input.suffix == ".zip":
         runs, checksums_map = extract_lineage_from_data_zip(source_input, owner=owner)
     elif source_input.is_dir():
-        # Read from extracted directories
+        # Read from extracted directories with strict symlink and root escaping guards
         runs = {}
         checksums_map = {}
         for root, _, files in os.walk(source_input):
-            for f in files:
+            root_p = Path(root)
+            check_no_symlinks(root_p)
+            for f in sorted(files):
+                fpath = root_p / f
+                check_no_symlinks(fpath)
+                check_within_root(fpath, source_input)
+
                 if f.endswith(".json"):
-                    fpath = Path(root) / f
                     rel = fpath.relative_to(source_input).as_posix()
-                    # Expect silver/real-etl/<run_id>/<phase>.json
+                    # Expect exact layout silver/real-etl/<run_id>/<phase>.json
                     parts = rel.split("/")
-                    if len(parts) >= 4 and parts[0] == "silver" and parts[1] == "real-etl":
+                    if len(parts) == 4 and parts[0] == "silver" and parts[1] == "real-etl":
                         op = parts[2]
-                        phase = parts[3].replace(".json", "")
+                        if not re.fullmatch(r"^[a-zA-Z0-9_\-]+$", op):
+                            raise ValueError(f"INVALID_OPERATION_ID_LAYOUT: {op} in {rel}")
+                        if not parts[3].endswith(".json"):
+                            continue
+                        phase = parts[3][:-5]
                         if phase in REQUIRED_PHASES:
+                            if op in runs and phase in runs[op]:
+                                raise ValueError(f"DUPLICATE_LOGICAL_RUN_PHASE: {op}/{phase} found multiple times")
                             content = fpath.read_bytes()
                             runs.setdefault(op, {})[phase] = content
                             checksums_map[rel] = compute_sha256(content)
@@ -333,6 +388,7 @@ def pack_lineage_archive(
         manifest_data = {
             "version": "dat03-lineage-manifest-v1",
             "owner": owner,
+            "evidence_tier": "Tier-2-Supplemental-Phase-Evidence",
             "created_at_utc": datetime.now(timezone.utc).isoformat(),
             "target_range": f"{spec['range'][0]}..{spec['range'][1]}",
             "month_count": spec["month_count"],
@@ -360,9 +416,11 @@ def pack_lineage_archive(
 
     if output_spec_file:
         spec_path = Path(output_spec_file).resolve()
+        check_no_symlinks(spec_path.parent)
         spec_path.parent.mkdir(parents=True, exist_ok=True)
         spec_export = {
             "owner": owner,
+            "evidence_tier": "Tier-2-Supplemental-Phase-Evidence",
             "total_objects": total_objects,
             "run_count": len(runs),
             "zip_sha256": zip_sha,
@@ -390,6 +448,11 @@ def verify_lineage_archive(
     required_count = spec["total_required_objects"]
 
     zip_path = Path(zip_path).resolve()
+    try:
+        check_no_symlinks(zip_path)
+    except ValueError as ve:
+        return {"status": "FAIL", "reason": str(ve)}
+
     if not zip_path.is_file():
         return {"status": "FAIL", "reason": f"ZIP_FILE_NOT_FOUND: {zip_path}"}
 
@@ -411,7 +474,21 @@ def verify_lineage_archive(
             if len(raw_names) != len(set(raw_names)):
                 return {"status": "FAIL", "reason": "DUPLICATE_ZIP_MEMBER_NAMES"}
 
-            # Check path safety
+            # Reject symlinks and directory members in ZIP
+            for info in infolist:
+                mode = info.external_attr >> 16
+                if mode and (mode & 0o170000 == 0o120000):
+                    return {
+                        "status": "FAIL",
+                        "reason": f"SYMLINK_ZIP_ENTRY_REJECTED: {info.filename}",
+                    }
+                if info.is_dir():
+                    return {
+                        "status": "FAIL",
+                        "reason": f"DIRECTORY_MEMBER_FORBIDDEN: {info.filename}",
+                    }
+
+            # Check raw path safety
             for name in raw_names:
                 safe, reason = check_raw_path_safety(name)
                 if not safe:
@@ -470,12 +547,58 @@ def verify_lineage_archive(
                         "reason": f"MANIFEST_CHECKSUM_MISMATCH: {name} expected {exp_sha}, got {actual_sha}",
                     }
 
+                # Strict namespace layout: silver/real-etl/<operation_id>/<phase>.json
                 parts = name.split("/")
-                if len(parts) >= 4:
-                    op = parts[2]
-                    phase = parts[3].replace(".json", "")
-                    verified_runs.add(op)
-                    phases_by_run.setdefault(op, set()).add(phase)
+                if len(parts) != 4 or parts[0] != "silver" or parts[1] != "real-etl":
+                    return {
+                        "status": "FAIL",
+                        "reason": f"INVALID_NAMESPACE_LAYOUT: {name} (expected silver/real-etl/<operation_id>/<phase>.json)",
+                    }
+
+                op = parts[2]
+                if not re.fullmatch(r"^[a-zA-Z0-9_\-]+$", op):
+                    return {
+                        "status": "FAIL",
+                        "reason": f"INVALID_OPERATION_ID_FORMAT: {op} in {name}",
+                    }
+
+                if not parts[3].endswith(".json"):
+                    return {
+                        "status": "FAIL",
+                        "reason": f"INVALID_FILE_EXTENSION: {parts[3]} in {name}",
+                    }
+
+                phase = parts[3][:-5]
+                if phase not in REQUIRED_PHASES:
+                    return {
+                        "status": "FAIL",
+                        "reason": f"UNRECOGNIZED_PHASE: {phase} in {name}",
+                    }
+
+                # Consistency check against internal manifest fields
+                manifest_obj = manifest_dict[name]
+                manifest_op = manifest_obj.get("operation_id")
+                manifest_phase = manifest_obj.get("phase")
+                if manifest_op and manifest_op != op:
+                    return {
+                        "status": "FAIL",
+                        "reason": f"MANIFEST_OPERATION_ID_MISMATCH: {name} path has {op}, manifest has {manifest_op}",
+                    }
+                if manifest_phase and manifest_phase != phase:
+                    return {
+                        "status": "FAIL",
+                        "reason": f"MANIFEST_PHASE_MISMATCH: {name} path has {phase}, manifest has {manifest_phase}",
+                    }
+
+                # Reject duplicate logical (operation_id, phase)
+                if op in phases_by_run and phase in phases_by_run[op]:
+                    return {
+                        "status": "FAIL",
+                        "reason": f"DUPLICATE_LOGICAL_RUN_PHASE: {op}/{phase}",
+                    }
+
+                verified_runs.add(op)
+                phases_by_run.setdefault(op, set()).add(phase)
 
             if len(verified_runs) != spec["run_count"]:
                 return {
@@ -529,6 +652,145 @@ def verify_lineage_archive(
         return {"status": "FAIL", "reason": f"EXCEPTION_DURING_VERIFICATION: {ex}"}
 
 
+def extract_frontier_spec(
+    owner: str,
+    provenance_zip: Path,
+    output_spec_file: Optional[Path] = None,
+) -> Dict[str, Any]:
+    """Extract Tier 3 transitive closure frontier specification (114 objects for rosy179).
+
+    Frontier consists of:
+    - 92 Silver dataset manifests (23 runs * 4 datasets: source_observation, reject_record,
+      source_link, canonical_membership under silver/bundles/<run_id>/<dataset>/manifest.json)
+    - 22 parent Gold commit JSONs at physical prefix silver/gold-commits/<run_id>/commit.json
+    Total = 114 objects.
+    """
+    if owner not in WORKER_LINEAGE_SPECS:
+        raise ValueError(f"UNRECOGNIZED_OWNER: {owner}")
+
+    prov_zip = Path(provenance_zip).resolve()
+    check_no_symlinks(prov_zip)
+    if not prov_zip.is_file():
+        raise FileNotFoundError(f"PROVENANCE_ZIP_NOT_FOUND: {prov_zip}")
+
+    dataset_manifests: List[Dict[str, Any]] = []
+    parent_commits: List[Dict[str, Any]] = []
+    checksums_map: Dict[str, str] = {}
+
+    with zipfile.ZipFile(prov_zip, "r") as zf:
+        infolist = zf.infolist()
+        for info in infolist:
+            mode = info.external_attr >> 16
+            if mode and (mode & 0o170000 == 0o120000):
+                raise ValueError(f"SYMLINK_MEMBER_FORBIDDEN: {info.filename}")
+
+        # 1. Extract Silver dataset manifests from silver/bundles/<run_id>/manifest.json
+        bundle_names = sorted([n for n in zf.namelist() if n.startswith("silver/bundles/") and n.endswith("manifest.json")])
+        for bname in bundle_names:
+            bm_bytes = zf.read(bname)
+            bm = json.loads(bm_bytes.decode("utf-8"))
+            run_id = bm.get("run_id")
+            datasets = bm.get("datasets", {})
+            for ds_name in sorted(datasets.keys()):
+                ds_info = datasets[ds_name]
+                uri = ds_info.get("manifest_uri")
+                sha = ds_info.get("sha256")
+                rec_count = ds_info.get("record_count", 0)
+                rel_path = uri.replace("s3://japan-earthquake/", "") if uri.startswith("s3://japan-earthquake/") else uri
+                item = {
+                    "category": "silver_dataset_manifest",
+                    "run_id": run_id,
+                    "dataset": ds_name,
+                    "s3_uri": uri,
+                    "path": rel_path,
+                    "sha256": sha,
+                    "record_count": rec_count,
+                }
+                dataset_manifests.append(item)
+                checksums_map[rel_path] = sha
+
+        # 2. Extract parent Gold commits from silver/full-month/<run_id>/registry.json
+        reg_names = sorted([n for n in zf.namelist() if n.startswith("silver/full-month/") and n.endswith("registry.json")])
+        for rname in reg_names:
+            reg_bytes = zf.read(rname)
+            reg = json.loads(reg_bytes.decode("utf-8"))
+            run_id = reg.get("run_id")
+            parent = reg.get("parent")
+            if parent and isinstance(parent, dict):
+                commit_key = parent.get("commit_key")
+                commit_sha = parent.get("commit_sha256")
+                parent_run = parent.get("run_id")
+                if commit_key and commit_sha:
+                    norm_key = commit_key if commit_key.startswith("silver/") else f"silver/{commit_key}"
+                    s3_uri = f"s3://japan-earthquake/{norm_key}"
+                    item = {
+                        "category": "gold_parent_commit",
+                        "child_run_id": run_id,
+                        "parent_run_id": parent_run,
+                        "commit_key": commit_key,
+                        "s3_uri": s3_uri,
+                        "path": norm_key,
+                        "sha256": commit_sha,
+                    }
+                    parent_commits.append(item)
+                    checksums_map[norm_key] = commit_sha
+
+    total_frontier = len(dataset_manifests) + len(parent_commits)
+    all_objects = dataset_manifests + parent_commits
+
+    spec_data = {
+        "version": "dat03-frontier-114-spec-v1",
+        "owner": owner,
+        "created_at_utc": datetime.now(timezone.utc).isoformat(),
+        "source_provenance_zip": prov_zip.name,
+        "source_provenance_sha256": compute_file_sha256(prov_zip),
+        "tier_classification": {
+            "tier_1_first_hop_provenance": {
+                "object_count": len(bundle_names) + len(reg_names) + 37,
+                "status": "PASS",
+                "verified_package": prov_zip.name,
+            },
+            "tier_2_supplemental_phase_evidence": {
+                "object_count": 138 if owner == "rosy179" else 114,
+                "status": "PACKAGED",
+                "package": f"{owner}-dat03-lineage-metadata.zip",
+                "note": "Bằng chứng giai đoạn thực thi bổ sung (phase journals), không thay thế 114 frontier objects",
+            },
+            "tier_3_transitive_closure_frontier": {
+                "total_frontier_objects": total_frontier,
+                "silver_dataset_manifests": len(dataset_manifests),
+                "gold_parent_commits": len(parent_commits),
+                "status": "PENDING_ORIGINAL_STORAGE_BYTES",
+                "gate_status": "CONG_1_TRANSITIVE_CLOSURE_OPEN",
+                "note": "Cần cung cấp bytes gốc từ MinIO/object storage theo danh sách 114 URIs/SHAs để đối soát transitive closure",
+            },
+        },
+        "summary": {
+            "total_frontier_objects": total_frontier,
+            "silver_dataset_manifest_count": len(dataset_manifests),
+            "gold_parent_commit_count": len(parent_commits),
+        },
+        "frontier_objects": all_objects,
+        "checksums": checksums_map,
+    }
+
+    if output_spec_file:
+        out_p = Path(output_spec_file).resolve()
+        check_no_symlinks(out_p.parent)
+        out_p.parent.mkdir(parents=True, exist_ok=True)
+        with open(out_p, "w", encoding="utf-8") as f:
+            json.dump(spec_data, f, indent=2, sort_keys=True)
+
+    return {
+        "status": "PASS",
+        "owner": owner,
+        "total_frontier_objects": total_frontier,
+        "silver_dataset_manifests": len(dataset_manifests),
+        "gold_parent_commits": len(parent_commits),
+        "output_spec_file": str(output_spec_file) if output_spec_file else None,
+    }
+
+
 def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = argparse.ArgumentParser(
         description="DAT-03 worker supplemental lineage packaging and verification tool."
@@ -549,6 +811,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     p_verify.add_argument("--zip-file", required=True, help="Path to lineage ZIP file.")
     p_verify.add_argument("--checksums-file", help="Optional JSON file with expected SHA-256 for each object.")
     p_verify.add_argument("--require-trusted", action="store_true", default=False, help="Fail if trusted checksums file is not provided.")
+
+    # Subcommand: frontier-spec
+    p_frontier = subparsers.add_parser("frontier-spec", help="Extract 114 frontier objects specification from provenance ZIP.")
+    p_frontier.add_argument("--owner", required=True, choices=["ThanhTris", "rosy179"])
+    p_frontier.add_argument("--provenance-zip", required=True, help="Path to provenance ZIP file.")
+    p_frontier.add_argument("--output-spec", required=True, help="Path to output JSON spec file.")
 
     args = parser.parse_args(argv)
 
@@ -585,6 +853,19 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         )
         print(json.dumps(res, indent=2))
         return 0 if res.get("status") == "PASS" else 1
+
+    if args.command == "frontier-spec":
+        try:
+            res = extract_frontier_spec(
+                owner=args.owner,
+                provenance_zip=Path(args.provenance_zip),
+                output_spec_file=Path(args.output_spec),
+            )
+            print(json.dumps(res, indent=2))
+            return 0 if res.get("status") == "PASS" else 1
+        except Exception as ex:
+            print(json.dumps({"status": "FAIL", "reason": str(ex)}, indent=2))
+            return 1
 
     return 2
 

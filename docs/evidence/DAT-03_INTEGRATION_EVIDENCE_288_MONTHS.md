@@ -11,8 +11,8 @@ Tuy nhiên, đây là kết quả của các gói riêng lẻ trên từng máy 
 | Catalog nền | 2000-01–2008-05 | 101 | Đã kiểm tra gói | Lưu trữ trên coordinator ban đầu (1.064.869 canonical events) |
 | HoaiTam | 2008-06–2013-07 | 62 | Đã kiểm tra các gói | Lưu trữ Drive theo các batch (24m + 9m + còn lại) |
 | ThanhTris | 2013-08–2018-09 | 62 | Đã kiểm tra gói | **75/75 objects khớp 100% SHA-256** |
-| rosy179 | 2018-10–2023-12 | 63 | Đã kiểm tra gói | **Đã trích xuất & đóng gói 83/83 objects first-hop và 138/138 objects transitive lineage metadata khớp 100% SHA-256** |
-| **Toàn kỳ hợp nhất** | **2000-01–2023-12** | **288** | **Đủ 288/288 tháng** | **Đã đủ 75/75 first-hop + 114 lineage (Trí) và 83/83 first-hop + 138 lineage (Trang)** |
+| rosy179 | 2018-10–2023-12 | 63 | Đã kiểm tra gói | **Đã hoàn thành 83/83 first-hop (PASS), 138 phase journals bổ sung (PACKAGED), và lập đặc tả 114 objects transitive frontier (PENDING bytes)** |
+| **Toàn kỳ hợp nhất** | **2000-01–2023-12** | **288** | **Đủ 288/288 tháng** | **75 first-hop + 114 journals (Trí); 83 first-hop + 138 journals (Trang); Cổng 1 chờ bytes 114 frontier objects** |
 
 ---
 
@@ -47,9 +47,12 @@ rosy179 đã trích xuất từ MinIO local, đối chiếu và đóng gói thà
 
 ---
 
-## 2.2. Kết quả Đóng gói Lineage Bổ sung (Transitive Lineage) của rosy179
+## 2.2. Kết quả Đóng gói Phase Journals Bổ sung (Tier 2: Supplemental Phase Evidence) của rosy179
 
-rosy179 đã trích xuất, xác thực đối chiếu và đóng gói thành công gói lineage bổ sung tầng tiếp theo (`rosy179-dat03-lineage-metadata.zip`) gồm **138 objects** metadata tương ứng 23 runs x 6 journals giai đoạn `2018-10..2023-12`:
+rosy179 đã trích xuất, xác thực đối chiếu và đóng gói thành công gói phase journals bổ sung (`rosy179-dat03-lineage-metadata.zip`) gồm **138 objects** metadata tương ứng 23 runs x 6 journals giai đoạn `2018-10..2023-12`:
+
+> [!NOTE]
+> Gói 138 phase journals này là **bằng chứng giai đoạn thực thi bổ sung (Tier 2: Supplemental Phase Evidence)** ghi lại nhật ký tiến trình (`readiness`, `bronze`, `silver`, `gold`, `verify`, `publish`), KHÔNG PHẢI là 114 objects frontier để đóng transitive closure (xem mục 2.3).
 
 - **Tỷ lệ khớp:** **138/138 objects (100%)** khớp tuyệt đối với các `artifact_sha256` trong receipts của 63 tháng.
 - **Cấu trúc phân loại 138 objects (23 runs x 6 phase journals):**
@@ -63,14 +66,35 @@ rosy179 đã trích xuất, xác thực đối chiếu và đóng gói thành c�
   - Dung lượng: `401.335 bytes`.
   - SHA-256: `45c1f02ff80454aca2a6bad5587e6b0bfabc4f8cb7fa08a8043a8c6bb7b6de01`.
   - Manifest SHA-256: `4444c7f0c0041511ade0b122f2faaaefa427c6b4a1ee690eb05830236d807694`.
-  - Đã xuất file đặc tả đối soát trusted: `staging/dat03-range-handoff-rosy179/rosy179-required-lineage.json`.
-- **Kết luận:** Hoàn thành toàn bộ việc trích xuất và đóng gói 138 objects transitive lineage metadata của rosy179, sẵn sàng cho Hoài Tâm đối soát độc lập Cổng 1.
+  - File đặc tả đối soát trusted: `staging/dat03-range-handoff-rosy179/rosy179-required-lineage.json`.
+- **Bảo mật & layout:** Công cụ `scripts/pack-worker-lineage.py` đã được cập nhật chốt chặn symlink (từ chối symlink file, parent folder, và symlink ZIP entries mode `0o120000`), chống thoát thư mục gốc (`resolve().is_relative_to()`), và áp dụng kiểm tra nghiêm ngặt layout `silver/real-etl/<operation_id>/<phase>.json` kèm kiểm tra nhất quán trường manifest và chống trùng lặp logic.
+
+---
+
+## 2.3. Đặc tả Kỹ thuật Transitive Closure Frontier (Tier 3: 114 Objects Frontier) của rosy179
+
+Theo phân tích chu trình đóng transitive closure của coordinator Hoài Tâm, frontier thực tế cần thu thập để đóng hoàn toàn Cổng 1 của phân đoạn `rosy179` gồm đúng **114 objects**:
+
+- **92 Silver dataset manifests:** 23 runs x 4 datasets:
+  - `source_observation` (`silver/bundles/<run_id>/source_observation/manifest.json`)
+  - `reject_record` (`silver/bundles/<run_id>/reject_record/manifest.json`)
+  - `source_link` (`silver/bundles/<run_id>/source_link/manifest.json`)
+  - `canonical_membership` (`silver/bundles/<run_id>/canonical_membership/manifest.json`)
+- **22 parent Gold commit JSONs:** 22 commit JSON của run cha tại prefix vật lý `silver/gold-commits/<run_id>/commit.json` (trong số 23 runs thì run đầu tiên `orc07-5f6634681f7964e2edbf1b4a47888f02587bc6d8` là root run không có parent commit).
+- **Tổng số objects frontier:** **92 + 22 = 114 objects**.
+
+### Chi tiết file đặc tả `rosy179-frontier-114-spec.json`:
+- **Đường dẫn:** `staging/dat03-range-handoff-rosy179/rosy179-frontier-114-spec.json`
+- **Dung lượng:** `81.654 bytes`
+- **SHA-256:** `69ba9cb8e259ee5375c01ac3f5e1833aa1e0e5dc75bd40adf252197e1356c7b4`
+- **Trạng thái Cổng 1:** **MỞ / CHỜ BYTES GỐC (`CONG_1_TRANSITIVE_CLOSURE_OPEN`)**.
+- **Nguyên tắc kỹ thuật:** rosy179 KHÔNG tuyên bố Cổng 1 transitive closure đã đóng khi chưa cung cấp bytes gốc của 114 objects này. File spec này cung cấp ánh xạ chính xác giữa URI S3 và SHA-256 kỳ vọng để trích xuất bytes gốc trực tiếp từ MinIO/object storage mà không cần chạy lại pipeline ETL.
 
 ---
 
 ## 3. Các Điểm nghẽn Còn lại Trước khi Hoàn tất DAT-03
 
-1. **Provenance & Lineage worker rosy179:** Đã đưa gói `rosy179-dat03-provenance-metadata.zip` (83 objects first-hop) lên Google Drive, xác nhận khớp 100% SHA-256. Gói bổ sung `rosy179-dat03-lineage-metadata.zip` (138 objects transitive lineage metadata) đã được đóng gói thành công kèm file đối soát `rosy179-required-lineage.json` (SHA-256 `45c1f02ff80454aca2a6bad5587e6b0bfabc4f8cb7fa08a8043a8c6bb7b6de01`). Cổng 1 đang chờ Hoài Tâm hoàn tất đối soát độc lập gói lineage này cùng gói của ThanhTris.
+1. **Cổng 1 — Transitive closure frontier:** Tier 1 (83 objects first-hop) đã PASS 100% SHA. Tier 2 (138 objects supplemental phase journals) đã đóng gói. Tier 3 (114 objects transitive frontier) đã có file đặc tả kỹ thuật `rosy179-frontier-114-spec.json`; Cổng 1 đang chờ cung cấp bytes gốc của 114 objects frontier này từ object storage local của hai worker để đối soát đóng chu trình transitive closure (không cần chạy lại ETL).
 2. **Release nghiên cứu cuối:** Thư mục `accepted/` trên Drive chưa có release cuối cùng. Hai receipt hiện có trong thư mục `receipts/` là receipt chạy dải tháng cá nhân của Trí, chưa phải xác nhận của 3 thành viên nhận cùng một dataset nghiên cứu chính thức.
 3. **Catalog Gold hợp nhất:** Chưa thực hiện merge 4 gói vào Iceberg catalog chung để kiểm tra liên kết ranh giới và chạy Trino verification queries.
 4. **Official ML Export:** Chưa chạy build job chính thức cho 2 split `REPRODUCTION` và `EXTENSION` từ snapshot Gold chung.
@@ -79,10 +103,10 @@ rosy179 đã trích xuất, xác thực đối chiếu và đóng gói thành c�
 
 ## 4. Bốn Cổng Kỹ thuật để DAT-03 Đạt Trạng thái Done
 
-Để đưa task [DAT-03](../task/tasks/DAT-03.md) từ `In Progress` sang `Done`, quy trình 4 cổng phải được nghiệm thu tuần tự:
+Để đưa task [DAT-03](../task/tasks/DAT-03.md) từ `In Progress` / `Needs Update` sang `Done`, quy trình 4 cổng phải được nghiệm thu tuần tự:
 
 ```text
-[Cổng 1] Nhận 83 provenance của Trang -> Đối soát transitive lineage toàn kỳ 288 tháng
+[Cổng 1] Nhận provenance & đối soát transitive frontier 114 objects -> Đóng transitive closure
    │
    ▼
 [Cổng 2] Tích hợp 4 gói vào catalog Iceberg Gold -> Khử trùng lặp ranh giới -> Verify Trino
@@ -97,7 +121,7 @@ rosy179 đã trích xuất, xác thực đối chiếu và đóng gói thành c�
 DAT-03 CHÍNH THỨC HOÀN TẤT (DONE)
 ```
 
-1. **Cổng 1 — Hoàn tất đối soát Provenance:** First-hop provenance cho cả hai worker (ThanhTris: 75/75 objects, rosy179: 83/83 objects) đã được đưa lên Google Drive và đối chiếu độc lập khớp 100% SHA-256. Cổng 1 hiện đang chờ kiểm tra transitive closure và lineage sâu hơn của cả hai phần đến các frozen archives trước khi hoàn tất Cổng 1.
+1. **Cổng 1 — Đối soát Provenance & Transitive Closure:** First-hop provenance cho cả hai worker (ThanhTris: 75/75 objects, rosy179: 83/83 objects) đã được đưa lên Google Drive và đối chiếu độc lập khớp 100% SHA-256. Đã có supplemental phase journals (ThanhTris: 114, rosy179: 138). Cổng 1 hiện đang MỞ để chờ bytes gốc của các transitive frontier objects (rosy179: 114 objects gồm 92 Silver dataset manifests + 22 parent Gold commits; ThanhTris: danh sách tham chiếu tương ứng) được trích xuất và đối soát khớp SHA-256 trước khi đóng Cổng 1.
 2. **Cổng 2 — Tích hợp Catalog & Khử trùng Ranh giới:** Tích hợp 4 gói Parquet vào catalog Gold, kiểm tra tại 3 điểm ranh giới (`2008-05/06`, `2013-07/08`, `2018-09/10`) đảm bảo không trùng lặp `canonical_event_id`, chạy Trino query audit count.
 3. **Cổng 3 — Xuất bản Official ML Feature Export:** Kích hoạt `ResearchDatasetBuildJob` cho hai tập:
    - `REPRODUCTION`: [2000-01-01, 2018-10-01) UTC (225 tháng, Mc cutoff theo contract).
