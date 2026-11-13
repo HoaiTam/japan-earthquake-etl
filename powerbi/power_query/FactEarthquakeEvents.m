@@ -1,19 +1,22 @@
 // ============================================================================
 // Power Query M Script: FactEarthquakeEvents
 // Task: BI-01 (Power BI / Trino Connectivity)
-// Source: iceberg.gold.event_current (filtered to natural earthquakes in Japan study area)
+// Source: iceberg.gold.earthquake_event_current (Verified published natural earthquakes in Japan study area)
 // Invariants:
 // 1. Zero double counting: groups canonical events only, never joins against bridge.
-// 2. No direct Parquet reads: executed strictly via Trino ODBC gateway.
+// 2. Verified published scope: queries the published earthquake_event_current view.
 // 3. Strict explicit typing for VertiPaq engine optimization.
 // ============================================================================
 
 let
-    // 1. Connect via Trino ODBC using environment parameter
-    DsnName = try pTrinoDsn otherwise "TrinoJapanEarthquake",
+    Config = try Parameters otherwise [Dsn = "TrinoJapanEarthquake", Catalog = "iceberg", Schema = "gold"],
+    DsnName = Config[Dsn],
+    CatalogName = Config[Catalog],
+    SchemaName = Config[Schema],
+    TargetTable = CatalogName & "." & SchemaName & ".earthquake_event_current",
+
     Source = Odbc.Query("dsn=" & DsnName, "
         SELECT
-            event_id,
             canonical_event_id,
             event_date_key_jst,
             event_date_jst,
@@ -28,18 +31,14 @@ let
             magnitude_band_code,
             depth_band_code,
             source_coverage_code,
-            is_strong_earthquake,
+            CASE WHEN magnitude >= 5.0 THEN true ELSE false END AS is_strong_earthquake,
             tsunami_flag,
             alert_level,
-            jma_max_intensity
-        FROM iceberg.gold.event_current
-        WHERE is_earthquake = true
-          AND is_in_study_area = true
+            max_intensity_code
+        FROM " & TargetTable & "
     "),
 
-    // 2. Apply strict type transformations
     TypedTable = Table.TransformColumnTypes(Source, {
-        {"event_id", type text},
         {"canonical_event_id", type text},
         {"event_date_key_jst", Int64.Type},
         {"event_date_jst", type date},
@@ -57,7 +56,7 @@ let
         {"is_strong_earthquake", type logical},
         {"tsunami_flag", type logical},
         {"alert_level", type text},
-        {"jma_max_intensity", type text}
+        {"max_intensity_code", type text}
     })
 in
     TypedTable

@@ -1,34 +1,44 @@
 // ============================================================================
 // Power Query M Script: MetadataFreshness
 // Task: BI-01 (Power BI / Trino Connectivity)
-// Source: Aggregated metadata over iceberg.gold.event_current
+// Source: iceberg.gold.publication_status (Verified published snapshot gate)
 // Invariants:
-// 1. Freshness reporting: Latest event time in UTC and JST.
-// 2. Exact row count parity verification.
+// 1. Publication gate: Reads verified snapshot metadata with verify_status = 'PASSED'.
+// 2. Data freshness: published_at_utc and max_event_time_utc strictly decoupled from refresh execution time.
 // ============================================================================
 
 let
-    DsnName = try pTrinoDsn otherwise "TrinoJapanEarthquake",
+    Config = try Parameters otherwise [Dsn = "TrinoJapanEarthquake", Catalog = "iceberg", Schema = "gold"],
+    DsnName = Config[Dsn],
+    CatalogName = Config[Catalog],
+    SchemaName = Config[Schema],
+    StatusTable = CatalogName & "." & SchemaName & ".publication_status",
+
     Source = Odbc.Query("dsn=" & DsnName, "
         SELECT
-            MAX(event_time_utc) AS latest_event_time_utc,
-            COUNT(*) AS total_canonical_events,
-            COUNT(magnitude) AS total_measured_magnitudes,
-            MIN(event_date_key_jst) AS min_date_key_jst,
-            MAX(event_date_key_jst) AS max_date_key_jst,
-            CURRENT_TIMESTAMP AS refreshed_at_utc
-        FROM iceberg.gold.event_current
-        WHERE is_earthquake = true
-          AND is_in_study_area = true
+            publication_id,
+            gold_run_id,
+            snapshot_id,
+            verify_status,
+            published_at_utc,
+            max_event_time_utc AS data_freshness_max_event_utc,
+            event_count AS verified_event_count,
+            CURRENT_TIMESTAMP AS report_refreshed_at_utc
+        FROM " & StatusTable & "
+        WHERE verify_status = 'PASSED'
+        ORDER BY published_at_utc DESC
+        LIMIT 1
     "),
 
     TypedTable = Table.TransformColumnTypes(Source, {
-        {"latest_event_time_utc", type datetimezone},
-        {"total_canonical_events", Int64.Type},
-        {"total_measured_magnitudes", Int64.Type},
-        {"min_date_key_jst", Int64.Type},
-        {"max_date_key_jst", Int64.Type},
-        {"refreshed_at_utc", type datetimezone}
+        {"publication_id", type text},
+        {"gold_run_id", type text},
+        {"snapshot_id", Int64.Type},
+        {"verify_status", type text},
+        {"published_at_utc", type datetimezone},
+        {"data_freshness_max_event_utc", type datetimezone},
+        {"verified_event_count", Int64.Type},
+        {"report_refreshed_at_utc", type datetimezone}
     })
 in
     TypedTable

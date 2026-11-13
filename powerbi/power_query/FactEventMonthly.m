@@ -9,7 +9,12 @@
 // ============================================================================
 
 let
-    DsnName = try pTrinoDsn otherwise "TrinoJapanEarthquake",
+    Config = try Parameters otherwise [Dsn = "TrinoJapanEarthquake", Catalog = "iceberg", Schema = "gold"],
+    DsnName = Config[Dsn],
+    CatalogName = Config[Catalog],
+    SchemaName = Config[Schema],
+    TargetView = CatalogName & "." & SchemaName & ".v_event_monthly",
+
     Source = Odbc.Query("dsn=" & DsnName, "
         SELECT
             year_month_jst,
@@ -32,7 +37,7 @@ let
             alerted_event_count,
             intensity_reported_count,
             offshore_or_unknown_count
-        FROM iceberg.gold.v_event_monthly
+        FROM " & TargetView & "
     "),
 
     TypedTable = Table.TransformColumnTypes(Source, {

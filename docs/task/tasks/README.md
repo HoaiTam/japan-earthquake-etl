@@ -22,7 +22,7 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 
 ## Tổng quan
 
-**Hiện hành12/11:** 64/81 Done,5 Needs Update,11 Backlog,1 In Progress (DAT-03).
+**Hiện hành12/11:** 63/81 Done,5 Needs Update,11 Backlog,2 In Progress (DAT-03, BI-01).
 [DAT-03 actual metadata audit](../../evidence/DAT-03_LINEAGE_FRONTIER_20261112.md): first-hop và Trí next-hop matched; [ThanhTris frontier metadata](../../evidence/DAT-03_LINEAGE_ThanhTris_METADATA_20261112.md) đã bàn giao; chưa official integration/export.
 [Kế hoạch tuần9,6task/người](../WEEK_9_REPLAN_20261111.md),
 [đối soát PR/acceptance](../../evidence/TASK_STATUS_AUDIT_20261111.md).
@@ -329,7 +329,7 @@ portable merge, full catalog và official export/receipts. Không suy unit PASS 
 
 | Task | Tuần | Workstream | Scope | Priority | Effort | Trạng thái |
 |---|---:|---|---|---|---:|---|
-| [BI-01](./BI-01.md) - Tạo kết nối Trino và Power Query | 7 | Connectivity | Stretch | P2 | 4h | Done |
+| [BI-01](./BI-01.md) - Tạo kết nối Trino và Power Query | 7 | Connectivity | Stretch | P2 | 4h | In Progress |
 | [BI-02](./BI-02.md) - Tạo semantic model và KPI measures | 8 | Semantic model | Stretch | P2 | 5h | Backlog |
 | [BI-03](./BI-03.md) - Xây trang Tổng quan | 8 | Overview dashboard | Stretch | P2 | 5h | Backlog |
 | [BI-04](./BI-04.md) - Xây trang Không gian và Độ sâu - Độ lớn | 8 | Detail dashboards | Stretch | P2 | 5h | Backlog |
