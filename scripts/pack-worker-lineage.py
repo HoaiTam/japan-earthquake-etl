@@ -53,6 +53,12 @@ WORKER_LINEAGE_SPECS: Dict[str, Dict[str, Any]] = {
         "phases_per_run": 6,
         "total_required_objects": 114,
         "expected_phases": ["readiness", "bronze", "silver", "gold", "verify", "publish"],
+        "expected_bundle_count": 19,
+        "expected_registry_count": 19,
+        "expected_dataset_manifest_count": 76,
+        "expected_parent_commit_count": 18,
+        "expected_frontier_count": 94,
+        "pinned_provenance_sha256": None,
     },
     "rosy179": {
         "range": ("2018-10", "2023-12"),
@@ -61,6 +67,12 @@ WORKER_LINEAGE_SPECS: Dict[str, Dict[str, Any]] = {
         "phases_per_run": 6,
         "total_required_objects": 138,
         "expected_phases": ["readiness", "bronze", "silver", "gold", "verify", "publish"],
+        "expected_bundle_count": 23,
+        "expected_registry_count": 23,
+        "expected_dataset_manifest_count": 92,
+        "expected_parent_commit_count": 22,
+        "expected_frontier_count": 114,
+        "pinned_provenance_sha256": "f818ba4697d3915376420ad66cd040c542853333a31bc2b4e4a5d0b4115d859e",
     },
 }
 
@@ -81,11 +93,47 @@ def compute_file_sha256(file_path: Path) -> str:
     return h.hexdigest()
 
 
+def check_unresolved_symlinks(raw_path: Path) -> None:
+    """Fail-closed check: verify raw path and every ancestor component is not a symlink before resolve()."""
+    curr: Optional[Path] = raw_path
+    while curr is not None:
+        if curr.is_symlink() or os.path.islink(curr):
+            raise ValueError(f"SYMLINK_REJECTED: component {curr} is a symlink")
+        parent = curr.parent
+        if parent == curr:
+            break
+        curr = parent
+
+
 def check_no_symlinks(path: Path) -> None:
     """Fail-closed check: raise ValueError if path or any parent component is a symlink."""
     for p in (path, *path.parents):
         if p.is_symlink() or os.path.islink(p):
             raise ValueError(f"SYMLINK_REJECTED: component {p} is a symlink")
+
+
+def safe_write_json_file(target_path: Path, data: Any, overwrite: bool = False) -> Path:
+    """Write JSON data to target_path with fail-closed symlink and overwrite guards."""
+    raw = Path(target_path)
+    # 1. Check symlink on the un-resolved path and all parents
+    check_unresolved_symlinks(raw)
+
+    # 2. Check if file or symlink already exists on raw path
+    if (raw.exists() or raw.is_symlink() or os.path.islink(raw)) and not overwrite:
+        raise FileExistsError(f"OUTPUT_FILE_ALREADY_EXISTS: {raw} (pass overwrite=True to replace)")
+
+    resolved = raw.resolve()
+    # 3. Check resolved path and parents for symlinks
+    check_no_symlinks(resolved)
+
+    # 4. Check if resolved file exists
+    if resolved.exists() and not overwrite:
+        raise FileExistsError(f"OUTPUT_FILE_ALREADY_EXISTS: {resolved} (pass overwrite=True to replace)")
+
+    resolved.parent.mkdir(parents=True, exist_ok=True)
+    with open(resolved, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, sort_keys=True)
+    return resolved
 
 
 def check_within_root(path: Path, root: Path) -> None:
@@ -301,12 +349,19 @@ def pack_lineage_archive(
     required_count = spec["total_required_objects"]
     expected_runs = spec["run_count"]
 
-    output_zip = Path(output_zip).resolve()
+    output_zip_raw = Path(output_zip)
+    check_unresolved_symlinks(output_zip_raw)
+    if (output_zip_raw.exists() or output_zip_raw.is_symlink() or os.path.islink(output_zip_raw)) and not overwrite:
+        raise FileExistsError(f"OUTPUT_ZIP_ALREADY_EXISTS: {output_zip_raw} (pass overwrite=True to replace)")
+
+    output_zip = output_zip_raw.resolve()
     check_no_symlinks(output_zip)
     if output_zip.exists() and not overwrite:
-        raise FileExistsError(f"OUTPUT_ZIP_ALREADY_EXISTS: {output_zip}")
+        raise FileExistsError(f"OUTPUT_ZIP_ALREADY_EXISTS: {output_zip} (pass overwrite=True to replace)")
 
-    source_input = Path(source_input).resolve()
+    source_input_raw = Path(source_input)
+    check_unresolved_symlinks(source_input_raw)
+    source_input = source_input_raw.resolve()
     check_no_symlinks(source_input)
 
     if source_input.is_file() and source_input.suffix == ".zip":
@@ -415,9 +470,6 @@ def pack_lineage_archive(
     }
 
     if output_spec_file:
-        spec_path = Path(output_spec_file).resolve()
-        check_no_symlinks(spec_path.parent)
-        spec_path.parent.mkdir(parents=True, exist_ok=True)
         spec_export = {
             "owner": owner,
             "evidence_tier": "Tier-2-Supplemental-Phase-Evidence",
@@ -427,8 +479,7 @@ def pack_lineage_archive(
             "manifest_sha256": compute_sha256(manifest_bytes),
             "checksums": {item["path"]: item["sha256"] for item in manifest_objects},
         }
-        with open(spec_path, "w", encoding="utf-8") as f:
-            json.dump(spec_export, f, indent=2, sort_keys=True)
+        spec_path = safe_write_json_file(Path(output_spec_file), spec_export, overwrite=overwrite)
         result["spec_file"] = str(spec_path)
 
     return result
@@ -447,8 +498,10 @@ def verify_lineage_archive(
     spec = WORKER_LINEAGE_SPECS[owner]
     required_count = spec["total_required_objects"]
 
-    zip_path = Path(zip_path).resolve()
+    zip_path_raw = Path(zip_path)
     try:
+        check_unresolved_symlinks(zip_path_raw)
+        zip_path = zip_path_raw.resolve()
         check_no_symlinks(zip_path)
     except ValueError as ve:
         return {"status": "FAIL", "reason": str(ve)}
@@ -656,6 +709,10 @@ def extract_frontier_spec(
     owner: str,
     provenance_zip: Path,
     output_spec_file: Optional[Path] = None,
+    overwrite: bool = False,
+    expected_provenance_sha: Optional[str] = None,
+    provenance_checkpoint: Optional[Path] = None,
+    allow_unverified_provenance: bool = False,
 ) -> Dict[str, Any]:
     """Extract Tier 3 transitive closure frontier specification (114 objects for rosy179).
 
@@ -664,109 +721,271 @@ def extract_frontier_spec(
       source_link, canonical_membership under silver/bundles/<run_id>/<dataset>/manifest.json)
     - 22 parent Gold commit JSONs at physical prefix silver/gold-commits/<run_id>/commit.json
     Total = 114 objects.
+
+    Security & Integrity Policy:
+    - Verifies input provenance ZIP against pinned SHA-256 or external checkpoint.
+    - Rejects empty, missing, or malformed bundle manifests and registries.
+    - Rejects duplicate ZIP member names and duplicate frontier object paths.
+    - Rejects conflicting SHA-256 for identical logical paths.
+    - Validates S3 URIs, buckets, namespaces, and hex SHA-256 digests.
+    - Output file must not overwrite existing file or checkpoint unless overwrite=True.
+    - Symlinks on output path or parent directories are strictly rejected before resolution.
+    - Evidence tiers accurately report verification status (Tier 1 INPUT_PIN_VERIFIED,
+      Tier 2 NOT_CHECKED, Tier 3 SPECIFIED_PENDING_BYTES).
     """
     if owner not in WORKER_LINEAGE_SPECS:
         raise ValueError(f"UNRECOGNIZED_OWNER: {owner}")
 
-    prov_zip = Path(provenance_zip).resolve()
+    spec = WORKER_LINEAGE_SPECS[owner]
+
+    prov_raw = Path(provenance_zip)
+    check_unresolved_symlinks(prov_raw)
+    prov_zip = prov_raw.resolve()
     check_no_symlinks(prov_zip)
     if not prov_zip.is_file():
         raise FileNotFoundError(f"PROVENANCE_ZIP_NOT_FOUND: {prov_zip}")
 
+    # 1. Resolve and verify expected provenance SHA / checkpoint
+    pin_sha: Optional[str] = None
+    if expected_provenance_sha:
+        pin_sha = expected_provenance_sha.strip().lower()
+    elif provenance_checkpoint:
+        cp_raw = Path(provenance_checkpoint)
+        check_unresolved_symlinks(cp_raw)
+        cp_path = cp_raw.resolve()
+        check_no_symlinks(cp_path)
+        if not cp_path.is_file():
+            raise FileNotFoundError(f"PROVENANCE_CHECKPOINT_NOT_FOUND: {cp_path}")
+        if cp_path.suffix == ".json":
+            with open(cp_path, "r", encoding="utf-8") as f:
+                cp_data = json.load(f)
+            if isinstance(cp_data, dict):
+                if "packages" in cp_data and prov_zip.name in cp_data["packages"]:
+                    pin_sha = cp_data["packages"][prov_zip.name].get("sha256")
+                elif "checksums" in cp_data and prov_zip.name in cp_data["checksums"]:
+                    pin_sha = cp_data["checksums"][prov_zip.name]
+                elif prov_zip.name in cp_data:
+                    pin_sha = cp_data[prov_zip.name]
+        else:
+            with open(cp_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    parts = line.strip().split()
+                    if len(parts) >= 2 and (parts[1].endswith(prov_zip.name) or parts[1] == prov_zip.name):
+                        pin_sha = parts[0].strip().lower()
+                        break
+    elif not allow_unverified_provenance and spec.get("pinned_provenance_sha256"):
+        pin_sha = spec["pinned_provenance_sha256"].strip().lower()
+
+    actual_prov_sha = compute_file_sha256(prov_zip)
+    is_pin_verified = False
+
+    if pin_sha:
+        if not re.fullmatch(r"^[0-9a-fA-F]{64}$", pin_sha):
+            raise ValueError(f"MALFORMED_EXPECTED_PROVENANCE_SHA: {pin_sha}")
+        if actual_prov_sha.lower() != pin_sha.lower():
+            raise ValueError(f"PROVENANCE_SHA_MISMATCH: expected {pin_sha}, got {actual_prov_sha}")
+        is_pin_verified = True
+    else:
+        if not allow_unverified_provenance:
+            raise ValueError(
+                f"PROVENANCE_INPUT_PIN_REQUIRED: owner {owner} has no pinned provenance SHA. "
+                "Provide --expected-provenance-sha or --provenance-checkpoint, or pass --allow-unverified-provenance."
+            )
+
     dataset_manifests: List[Dict[str, Any]] = []
     parent_commits: List[Dict[str, Any]] = []
     checksums_map: Dict[str, str] = {}
+    seen_frontier_paths: Set[str] = set()
 
     with zipfile.ZipFile(prov_zip, "r") as zf:
         infolist = zf.infolist()
+        raw_names = [info.filename for info in infolist]
+
+        # 2. Check duplicate ZIP member names
+        if len(raw_names) != len(set(raw_names)):
+            dups = sorted(set([x for x in raw_names if raw_names.count(x) > 1]))
+            raise ValueError(f"DUPLICATE_ZIP_MEMBER_NAMES: {dups}")
+
+        # 3. Check member modes for symlinks or directories
         for info in infolist:
             mode = info.external_attr >> 16
             if mode and (mode & 0o170000 == 0o120000):
                 raise ValueError(f"SYMLINK_MEMBER_FORBIDDEN: {info.filename}")
+            safe, reason = check_raw_path_safety(info.filename)
+            if not safe:
+                raise ValueError(f"UNSAFE_ZIP_ENTRY_PATH: {info.filename} ({reason})")
 
-        # 1. Extract Silver dataset manifests from silver/bundles/<run_id>/manifest.json
-        bundle_names = sorted([n for n in zf.namelist() if n.startswith("silver/bundles/") and n.endswith("manifest.json")])
+        # 4. Extract and validate Silver bundle manifests
+        bundle_names = sorted([n for n in raw_names if n.startswith("silver/bundles/") and n.endswith("manifest.json")])
+        expected_bundles = spec.get("expected_bundle_count", spec["run_count"])
+        if len(bundle_names) != expected_bundles:
+            raise ValueError(f"BUNDLE_MANIFEST_COUNT_MISMATCH: expected {expected_bundles}, got {len(bundle_names)}")
+
+        REQUIRED_DATASETS = ("source_observation", "reject_record", "source_link", "canonical_membership")
+
         for bname in bundle_names:
+            parts = bname.split("/")
+            if len(parts) != 4 or parts[0] != "silver" or parts[1] != "bundles" or parts[3] != "manifest.json":
+                raise ValueError(f"INVALID_BUNDLE_MANIFEST_PATH_LAYOUT: {bname}")
+            run_id = parts[2]
+            if not re.fullmatch(r"^[a-zA-Z0-9_\-]+$", run_id):
+                raise ValueError(f"INVALID_RUN_ID_IN_PATH: {run_id} in {bname}")
+
             bm_bytes = zf.read(bname)
             bm = json.loads(bm_bytes.decode("utf-8"))
-            run_id = bm.get("run_id")
+            if bm.get("run_id") != run_id:
+                raise ValueError(f"RUN_ID_MISMATCH in {bname}: path has {run_id}, manifest declares {bm.get('run_id')}")
+
             datasets = bm.get("datasets", {})
-            for ds_name in sorted(datasets.keys()):
+            if not isinstance(datasets, dict):
+                raise ValueError(f"INVALID_DATASETS_CONTAINER in {bname}")
+
+            missing_ds = set(REQUIRED_DATASETS) - set(datasets.keys())
+            if missing_ds:
+                raise ValueError(f"MISSING_DATASETS in {bname}: {sorted(missing_ds)}")
+            extra_ds = set(datasets.keys()) - set(REQUIRED_DATASETS)
+            if extra_ds:
+                raise ValueError(f"UNRECOGNIZED_DATASETS in {bname}: {sorted(extra_ds)}")
+
+            for ds_name in sorted(REQUIRED_DATASETS):
                 ds_info = datasets[ds_name]
                 uri = ds_info.get("manifest_uri")
                 sha = ds_info.get("sha256")
                 rec_count = ds_info.get("record_count", 0)
-                rel_path = uri.replace("s3://japan-earthquake/", "") if uri.startswith("s3://japan-earthquake/") else uri
-                item = {
+
+                exp_uri = f"s3://japan-earthquake/silver/bundles/{run_id}/{ds_name}/manifest.json"
+                if uri != exp_uri:
+                    raise ValueError(f"INVALID_DATASET_MANIFEST_URI: expected {exp_uri}, got {uri}")
+
+                rel_path = f"silver/bundles/{run_id}/{ds_name}/manifest.json"
+                if not sha or not isinstance(sha, str) or not re.fullmatch(r"^[0-9a-fA-F]{64}$", sha):
+                    raise ValueError(f"INVALID_DATASET_SHA256 in {bname}/{ds_name}: {sha}")
+                clean_sha = sha.lower()
+
+                if rel_path in seen_frontier_paths:
+                    if checksums_map.get(rel_path) != clean_sha:
+                        raise ValueError(f"CONFLICTING_SHA: {rel_path} has conflicting sha {clean_sha} vs {checksums_map.get(rel_path)}")
+                    raise ValueError(f"DUPLICATE_FRONTIER_OBJECT: {rel_path} encountered multiple times")
+
+                seen_frontier_paths.add(rel_path)
+                checksums_map[rel_path] = clean_sha
+                dataset_manifests.append({
                     "category": "silver_dataset_manifest",
                     "run_id": run_id,
                     "dataset": ds_name,
                     "s3_uri": uri,
                     "path": rel_path,
-                    "sha256": sha,
+                    "sha256": clean_sha,
                     "record_count": rec_count,
-                }
-                dataset_manifests.append(item)
-                checksums_map[rel_path] = sha
+                })
 
-        # 2. Extract parent Gold commits from silver/full-month/<run_id>/registry.json
-        reg_names = sorted([n for n in zf.namelist() if n.startswith("silver/full-month/") and n.endswith("registry.json")])
+        # 5. Extract and validate parent Gold commits from registries
+        reg_names = sorted([n for n in raw_names if n.startswith("silver/full-month/") and n.endswith("registry.json")])
+        expected_regs = spec.get("expected_registry_count", spec["run_count"])
+        if len(reg_names) != expected_regs:
+            raise ValueError(f"REGISTRY_COUNT_MISMATCH: expected {expected_regs}, got {len(reg_names)}")
+
         for rname in reg_names:
+            parts = rname.split("/")
+            if len(parts) != 4 or parts[0] != "silver" or parts[1] != "full-month" or parts[3] != "registry.json":
+                raise ValueError(f"INVALID_REGISTRY_PATH_LAYOUT: {rname}")
+            run_id = parts[2]
+            if not re.fullmatch(r"^[a-zA-Z0-9_\-]+$", run_id):
+                raise ValueError(f"INVALID_RUN_ID_IN_PATH: {run_id} in {rname}")
+
             reg_bytes = zf.read(rname)
             reg = json.loads(reg_bytes.decode("utf-8"))
-            run_id = reg.get("run_id")
+            if reg.get("run_id") != run_id:
+                raise ValueError(f"RUN_ID_MISMATCH in {rname}: path has {run_id}, registry declares {reg.get('run_id')}")
+
             parent = reg.get("parent")
-            if parent and isinstance(parent, dict):
+            if parent and isinstance(parent, dict) and parent.get("commit_key"):
                 commit_key = parent.get("commit_key")
-                commit_sha = parent.get("commit_sha256")
                 parent_run = parent.get("run_id")
-                if commit_key and commit_sha:
-                    norm_key = commit_key if commit_key.startswith("silver/") else f"silver/{commit_key}"
-                    s3_uri = f"s3://japan-earthquake/{norm_key}"
-                    item = {
-                        "category": "gold_parent_commit",
-                        "child_run_id": run_id,
-                        "parent_run_id": parent_run,
-                        "commit_key": commit_key,
-                        "s3_uri": s3_uri,
-                        "path": norm_key,
-                        "sha256": commit_sha,
-                    }
-                    parent_commits.append(item)
-                    checksums_map[norm_key] = commit_sha
+                if not parent_run or not re.fullmatch(r"^[a-zA-Z0-9_\-]+$", parent_run):
+                    raise ValueError(f"INVALID_PARENT_RUN_ID in {rname}: {parent_run}")
 
-    total_frontier = len(dataset_manifests) + len(parent_commits)
+                exp_commit_key = f"gold-commits/{parent_run}/commit.json"
+                norm_key = f"silver/gold-commits/{parent_run}/commit.json"
+                if commit_key != exp_commit_key and commit_key != norm_key:
+                    raise ValueError(f"INVALID_COMMIT_KEY in {rname}: expected {exp_commit_key}, got {commit_key}")
+
+                commit_sha = parent.get("commit_sha256")
+                if not commit_sha or not isinstance(commit_sha, str) or not re.fullmatch(r"^[0-9a-fA-F]{64}$", commit_sha):
+                    raise ValueError(f"INVALID_COMMIT_SHA256 in {rname}: {commit_sha}")
+                clean_commit_sha = commit_sha.lower()
+
+                if norm_key in seen_frontier_paths:
+                    if checksums_map.get(norm_key) != clean_commit_sha:
+                        raise ValueError(f"CONFLICTING_SHA: {norm_key} has conflicting sha {clean_commit_sha} vs {checksums_map.get(norm_key)}")
+                    raise ValueError(f"DUPLICATE_FRONTIER_OBJECT: {norm_key} encountered multiple times")
+
+                seen_frontier_paths.add(norm_key)
+                checksums_map[norm_key] = clean_commit_sha
+                parent_commits.append({
+                    "category": "gold_parent_commit",
+                    "child_run_id": run_id,
+                    "parent_run_id": parent_run,
+                    "commit_key": commit_key,
+                    "s3_uri": f"s3://japan-earthquake/{norm_key}",
+                    "path": norm_key,
+                    "sha256": clean_commit_sha,
+                })
+
+        # Count Bronze manifests actually in provenance zip
+        bronze_names = sorted([n for n in raw_names if n.startswith("bronze/") and n.endswith("manifest.json")])
+
+    # 6. Validate expected counts and reconcile checksums mapping
+    expected_ds_count = spec.get("expected_dataset_manifest_count", expected_bundles * 4)
+    if len(dataset_manifests) != expected_ds_count:
+        raise ValueError(f"DATASET_MANIFEST_COUNT_MISMATCH: expected {expected_ds_count}, got {len(dataset_manifests)}")
+
+    expected_parent_count = spec.get("expected_parent_commit_count", len(parent_commits))
+    if len(parent_commits) != expected_parent_count:
+        raise ValueError(f"PARENT_COMMIT_COUNT_MISMATCH: expected {expected_parent_count}, got {len(parent_commits)}")
+
     all_objects = dataset_manifests + parent_commits
+    expected_frontier = spec.get("expected_frontier_count", expected_ds_count + expected_parent_count)
+    if len(all_objects) != expected_frontier:
+        raise ValueError(f"TOTAL_FRONTIER_COUNT_MISMATCH: expected {expected_frontier}, got {len(all_objects)}")
 
+    if len(checksums_map) != len(all_objects):
+        raise ValueError(f"FRONTIER_RECONCILIATION_FAILED: checksums count {len(checksums_map)} != objects count {len(all_objects)}")
+
+    # 7. Construct output specification
     spec_data = {
         "version": "dat03-frontier-114-spec-v1",
         "owner": owner,
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
         "source_provenance_zip": prov_zip.name,
-        "source_provenance_sha256": compute_file_sha256(prov_zip),
+        "source_provenance_sha256": actual_prov_sha,
         "tier_classification": {
             "tier_1_first_hop_provenance": {
-                "object_count": len(bundle_names) + len(reg_names) + 37,
-                "status": "PASS",
+                "status": "INPUT_PIN_VERIFIED" if is_pin_verified else "NOT_CHECKED",
                 "verified_package": prov_zip.name,
+                "verified_sha256": actual_prov_sha,
+                "total_first_hop_objects": len(bundle_names) + len(reg_names) + len(bronze_names),
+                "bronze_manifest_count": len(bronze_names),
+                "bundle_manifest_count": len(bundle_names),
+                "registry_count": len(reg_names),
             },
             "tier_2_supplemental_phase_evidence": {
-                "object_count": 138 if owner == "rosy179" else 114,
-                "status": "PACKAGED",
+                "status": "NOT_CHECKED",
+                "expected_object_count": spec["total_required_objects"],
                 "package": f"{owner}-dat03-lineage-metadata.zip",
-                "note": "Bằng chứng giai đoạn thực thi bổ sung (phase journals), không thay thế 114 frontier objects",
+                "note": "Phase journals package (Tier 2) is supplemental evidence not verified by this frontier extraction",
             },
             "tier_3_transitive_closure_frontier": {
-                "total_frontier_objects": total_frontier,
+                "status": "SPECIFIED_PENDING_BYTES",
+                "gate_status": "CONG_1_TRANSITIVE_CLOSURE_OPEN",
+                "total_frontier_objects": len(all_objects),
                 "silver_dataset_manifests": len(dataset_manifests),
                 "gold_parent_commits": len(parent_commits),
-                "status": "PENDING_ORIGINAL_STORAGE_BYTES",
-                "gate_status": "CONG_1_TRANSITIVE_CLOSURE_OPEN",
                 "note": "Cần cung cấp bytes gốc từ MinIO/object storage theo danh sách 114 URIs/SHAs để đối soát transitive closure",
             },
         },
         "summary": {
-            "total_frontier_objects": total_frontier,
+            "total_frontier_objects": len(all_objects),
             "silver_dataset_manifest_count": len(dataset_manifests),
             "gold_parent_commit_count": len(parent_commits),
         },
@@ -774,21 +993,21 @@ def extract_frontier_spec(
         "checksums": checksums_map,
     }
 
-    if output_spec_file:
-        out_p = Path(output_spec_file).resolve()
-        check_no_symlinks(out_p.parent)
-        out_p.parent.mkdir(parents=True, exist_ok=True)
-        with open(out_p, "w", encoding="utf-8") as f:
-            json.dump(spec_data, f, indent=2, sort_keys=True)
-
-    return {
+    result = {
         "status": "PASS",
         "owner": owner,
-        "total_frontier_objects": total_frontier,
+        "total_frontier_objects": len(all_objects),
         "silver_dataset_manifests": len(dataset_manifests),
         "gold_parent_commits": len(parent_commits),
-        "output_spec_file": str(output_spec_file) if output_spec_file else None,
+        "provenance_pin_verified": is_pin_verified,
+        "output_spec_file": None,
     }
+
+    if output_spec_file:
+        out_p = safe_write_json_file(Path(output_spec_file), spec_data, overwrite=overwrite)
+        result["output_spec_file"] = str(out_p)
+
+    return result
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
@@ -817,6 +1036,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     p_frontier.add_argument("--owner", required=True, choices=["ThanhTris", "rosy179"])
     p_frontier.add_argument("--provenance-zip", required=True, help="Path to provenance ZIP file.")
     p_frontier.add_argument("--output-spec", required=True, help="Path to output JSON spec file.")
+    p_frontier.add_argument("--overwrite", action="store_true", default=False, help="Overwrite output spec file if exists.")
+    p_frontier.add_argument("--expected-provenance-sha", help="Optional expected SHA-256 for provenance ZIP (defaults to pinned spec).")
+    p_frontier.add_argument("--provenance-checkpoint", help="Optional checkpoint file (JSON or checksums.sha256) containing provenance ZIP hash.")
+    p_frontier.add_argument("--allow-unverified-provenance", action="store_true", default=False, help="Allow unverified provenance input if no pin or checkpoint is provided.")
 
     args = parser.parse_args(argv)
 
@@ -860,6 +1083,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 owner=args.owner,
                 provenance_zip=Path(args.provenance_zip),
                 output_spec_file=Path(args.output_spec),
+                overwrite=args.overwrite,
+                expected_provenance_sha=args.expected_provenance_sha,
+                provenance_checkpoint=Path(args.provenance_checkpoint) if args.provenance_checkpoint else None,
+                allow_unverified_provenance=args.allow_unverified_provenance,
             )
             print(json.dumps(res, indent=2))
             return 0 if res.get("status") == "PASS" else 1
