@@ -6,18 +6,21 @@ Verifies:
      canonical_event_id, is_natural_earthquake, max_intensity_code, alert_level.
    - Zero non-existent columns (is_strong_earthquake, event_id, is_earthquake, jma_max_intensity).
 2. Direct Execution of Delivered Verification Queries:
-   - Reads sql/gold/gold_aggregate_verification_queries.sql directly, adapts dialect, and executes Q1-Q6.
-   - Fact-to-aggregate total count parity (Q1: delta = 0).
+   - Reads sql/gold/gold_aggregate_verification_queries.sql directly, adapts dialect, and executes Q1-Q7.
+   - Fact-to-aggregate total count parity with empty dataset support (Q1: delta = 0).
    - Zero double-counting from multi-source bridge joins (Q2: 0 rows).
-   - Additive consistency across daily and monthly rollups with FULL OUTER JOIN (Q3: 0 rows).
-   - Deep Fact-to-Daily metric parity across all 13 metrics (Q4: 0 rows).
-   - Honest NULL policy (Q5: 0 rows).
-   - Granularity uniqueness (Q6: 0 rows).
+   - Additive consistency, missing/extra group detection, and multi-day weighted average parity between Daily and Monthly (Q3: 0 rows).
+   - Deep Fact-to-Daily metric parity across all 13 metrics with strict NULL/non-NULL separation (Q4: 0 rows).
+   - Bidirectional Honest NULL policy for magnitude and depth (Q5: 0 rows).
+   - Daily and Monthly Granularity uniqueness (Q6: 0 rows, Q7: 0 rows).
 3. Alert Level and Intensity Reporting Predicate Parity:
    - Verifies that 'none', 'NONE', empty string '', and whitespace '   ' are EXCLUDED from alerted and intensity counts.
-4. Deep Negative Testing:
-   - Mutates magnitude_sum, magnitude_avg, depth_sum, strong_earthquake_count, or drops a group.
-   - Proves that Q3 and Q4 catch the discrepancies immediately.
+4. Deep Negative Testing (Directly Executing Delivered Verification SQL):
+   - Monthly negative tests: mutations on region_key ('WRONG_REGION'), magnitude_avg/max, depth_avg, strong_count, alert_count, and duplicate monthly grain.
+   - Fact-to-Daily negative tests: mutations on magnitude_sum, strong_earthquake_count, and group omission.
+   - Honest NULL & valid 0.0 vs NULL negative tests: tests the exact edge cases where depth_km = 0.0 or magnitude is mutated to NULL while count > 0, and non-null count = 0 mutated to 0.0.
+5. Empty Dataset Test:
+   - Verifies Q1 returns fact_event_count = 0, daily_agg_event_count = 0, delta = 0 when tables are empty.
 """
 from __future__ import annotations
 
@@ -38,11 +41,8 @@ def adapt_trino_view_for_sqlite(sql_content: str) -> str:
     query = match.group(1).strip()
     if query.endswith(";"):
         query = query[:-1].strip()
-    # Replace iceberg.gold. with empty prefix so it references SQLite tables/views
     query = query.replace("iceberg.gold.", "")
-    # In SQLite, double precision CAST is REAL
     query = query.replace("AS DOUBLE", "AS REAL")
-    # In SQLite, boolean literal true/false is 1/0
     query = re.sub(r"\btrue\b", "1", query, flags=re.IGNORECASE)
     query = re.sub(r"\bfalse\b", "0", query, flags=re.IGNORECASE)
     return query
@@ -50,7 +50,6 @@ def adapt_trino_view_for_sqlite(sql_content: str) -> str:
 
 def parse_verification_queries(sql_content: str) -> dict[str, str]:
     """Parses individual queries (Q1, Q2, etc.) from gold_aggregate_verification_queries.sql."""
-    # Split by comment headers like -- Q1., -- Q2., etc.
     pattern = r"--\s*(Q[1-9][0-9]?)\.\s*([^\n]+)"
     matches = list(re.finditer(pattern, sql_content))
     queries: dict[str, str] = {}
@@ -59,7 +58,6 @@ def parse_verification_queries(sql_content: str) -> dict[str, str]:
         start_idx = match.end()
         end_idx = matches[i + 1].start() if i + 1 < len(matches) else len(sql_content)
         raw_block = sql_content[start_idx:end_idx].strip()
-        # Remove comment lines from the beginning of the block to get SQL query
         lines = []
         for line in raw_block.splitlines():
             stripped = line.strip()
@@ -153,7 +151,7 @@ class TestGoldAggregates(unittest.TestCase):
 
     def _populate_real_mock_data(self) -> None:
         cur = self.conn.cursor()
-        # Event 1: Valid earthquake, Kanto, M4.2, Shallow, USGS_ONLY, alert=NULL, intensity=NULL
+        # Event 1: Valid earthquake, Kanto, Day 20230105, M4.2, depth 12.0, Shallow, USGS_ONLY
         cur.execute("""
             INSERT INTO event_current VALUES (
                 '1.0', 'can-001', 'obs-001', 'USGS',
@@ -162,6 +160,31 @@ class TestGoldAggregates(unittest.TestCase):
                 1, 'Tokyo area', 1, 'PREFECTURE:13', 'Tokyo', 'PREFECTURE',
                 'M4_TO_LT5', 'SHALLOW', 0, NULL, 250, NULL, NULL, NULL,
                 1, 1, 0, 'USGS_ONLY', 'SINGLE_SOURCE', 'VALID', 'v1', 'run-1', '2023-01-06T00:00:00Z'
+            )
+        """)
+
+        # Event 1b: Valid earthquake, same grain, Day 20230106, M4.8, depth 0.0 (valid 0.0 km!), Shallow, USGS_ONLY
+        # Used with can-001c to verify multi-day weighted average across different days of the month!
+        cur.execute("""
+            INSERT INTO event_current VALUES (
+                '1.0', 'can-001b', 'obs-001b', 'USGS',
+                '2023-01-06T02:00:00Z', '2023-01-06 11:00:00', '2023-01-06', '2023-01-06',
+                20230106, 20230106, 35.69, 139.75, 0.0, 4.8, 'mww', 'EARTHQUAKE',
+                1, 'Tokyo surface', 1, 'PREFECTURE:13', 'Tokyo', 'PREFECTURE',
+                'M4_TO_LT5', 'SHALLOW', 0, NULL, 280, NULL, NULL, NULL,
+                1, 1, 0, 'USGS_ONLY', 'SINGLE_SOURCE', 'VALID', 'v1', 'run-1', '2023-01-07T00:00:00Z'
+            )
+        """)
+
+        # Event 1c: Valid earthquake, same grain, Day 20230106, M4.8, depth 0.0 (valid 0.0 km!), Shallow, USGS_ONLY
+        cur.execute("""
+            INSERT INTO event_current VALUES (
+                '1.0', 'can-001c', 'obs-001c', 'USGS',
+                '2023-01-06T03:00:00Z', '2023-01-06 12:00:00', '2023-01-06', '2023-01-06',
+                20230106, 20230106, 35.69, 139.75, 0.0, 4.8, 'mww', 'EARTHQUAKE',
+                1, 'Tokyo surface 2', 1, 'PREFECTURE:13', 'Tokyo', 'PREFECTURE',
+                'M4_TO_LT5', 'SHALLOW', 0, NULL, 280, NULL, NULL, NULL,
+                1, 1, 0, 'USGS_ONLY', 'SINGLE_SOURCE', 'VALID', 'v1', 'run-1', '2023-01-07T00:00:00Z'
             )
         """)
 
@@ -227,6 +250,8 @@ class TestGoldAggregates(unittest.TestCase):
 
         # Populate bridge: Event can-002 and can-003 each have TWO observations in bridge
         cur.execute("INSERT INTO event_source_bridge VALUES ('can-001', 'obs-001', 'USGS', 'usgs1', 1, NULL, 's3://', 'm1', NULL, NULL)")
+        cur.execute("INSERT INTO event_source_bridge VALUES ('can-001b', 'obs-001b', 'USGS', 'usgs1b', 1, NULL, 's3://', 'm1', NULL, NULL)")
+        cur.execute("INSERT INTO event_source_bridge VALUES ('can-001c', 'obs-001c', 'USGS', 'usgs1c', 1, NULL, 's3://', 'm1', NULL, NULL)")
         cur.execute("INSERT INTO event_source_bridge VALUES ('can-002', 'obs-002', 'USGS', 'usgs2', 1, 'l1', 's3://', 'm1', NULL, NULL)")
         cur.execute("INSERT INTO event_source_bridge VALUES ('can-002', 'jma-002', 'JMA_BULLETIN', 'jma2', 0, 'l1', 's3://', 'm2', '2023', NULL)")
         cur.execute("INSERT INTO event_source_bridge VALUES ('can-003', 'obs-003', 'USGS', 'usgs3', 1, 'l2', 's3://', 'm1', NULL, NULL)")
@@ -250,20 +275,20 @@ class TestGoldAggregates(unittest.TestCase):
         self.conn.commit()
 
     def test_direct_execution_of_verification_queries(self) -> None:
-        """Executes all delivered queries (Q1-Q6) directly from gold_aggregate_verification_queries.sql."""
+        """Executes all delivered queries (Q1-Q7) directly from gold_aggregate_verification_queries.sql."""
         queries_file = SQL_GOLD_DIR / "gold_aggregate_verification_queries.sql"
         self.assertTrue(queries_file.exists(), "gold_aggregate_verification_queries.sql missing")
         queries = parse_verification_queries(queries_file.read_text(encoding="utf-8"))
-        self.assertGreaterEqual(len(queries), 6, "Expected at least 6 verification queries")
+        self.assertGreaterEqual(len(queries), 7, "Expected at least 7 verification queries")
 
         cur = self.conn.cursor()
 
-        # Q1: Fact-to-Aggregate Count Reconciliation
+        # Q1: Fact-to-Aggregate Count Reconciliation (6 valid events in mock data)
         cur.execute(queries["Q1"])
         q1_row = cur.fetchone()
         self.assertIsNotNone(q1_row)
-        self.assertEqual(q1_row["fact_event_count"], 4)
-        self.assertEqual(q1_row["daily_agg_event_count"], 4)
+        self.assertEqual(q1_row["fact_event_count"], 6)
+        self.assertEqual(q1_row["daily_agg_event_count"], 6)
         self.assertEqual(q1_row["delta"], 0)
 
         # Q2: Zero Double-Counting Audit
@@ -271,7 +296,7 @@ class TestGoldAggregates(unittest.TestCase):
         q2_mismatches = cur.fetchall()
         self.assertEqual(len(q2_mismatches), 0, "Q2 found double-counting discrepancies")
 
-        # Q3: Additive Consistency between Daily and Monthly
+        # Q3: Additive Consistency and Metric Rollup Parity between Daily and Monthly
         cur.execute(queries["Q3"])
         q3_mismatches = cur.fetchall()
         self.assertEqual(len(q3_mismatches), 0, "Q3 found daily/monthly rollup discrepancies")
@@ -286,20 +311,46 @@ class TestGoldAggregates(unittest.TestCase):
         q5_violations = cur.fetchall()
         self.assertEqual(len(q5_violations), 0, "Q5 found honest NULL invariant violations")
 
-        # Q6: Granularity Uniqueness Audit
+        # Q6: Daily Granularity Uniqueness Audit
         cur.execute(queries["Q6"])
         q6_duplicates = cur.fetchall()
-        self.assertEqual(len(q6_duplicates), 0, "Q6 found duplicate grain rows")
+        self.assertEqual(len(q6_duplicates), 0, "Q6 found duplicate daily grain rows")
+
+        # Q7: Monthly Granularity Uniqueness Audit
+        cur.execute(queries["Q7"])
+        q7_duplicates = cur.fetchall()
+        self.assertEqual(len(q7_duplicates), 0, "Q7 found duplicate monthly grain rows")
+
+    def test_multi_day_weighted_average_in_monthly_rollup(self) -> None:
+        """Verifies that monthly aggregate correctly calculates weighted average across multiple days."""
+        cur = self.conn.cursor()
+        # For group (202301, PREFECTURE:13, M4_TO_LT5, SHALLOW, USGS_ONLY):
+        # Day 2023-01-05: 1 event, M=4.2
+        # Day 2023-01-06: 2 events, each M=4.8
+        # Weighted avg = (4.2*1 + 4.8*2) / 3 = 13.8 / 3 = 4.6
+        # Unweighted avg would be (4.2 + 4.8) / 2 = 4.5
+        cur.execute("""
+            SELECT event_count, magnitude_non_null_count, magnitude_sum, magnitude_avg, magnitude_max
+            FROM v_event_monthly
+            WHERE year_month_jst = 202301
+              AND region_key = 'PREFECTURE:13'
+              AND source_coverage_code = 'USGS_ONLY'
+        """)
+        row = cur.fetchone()
+        self.assertIsNotNone(row)
+        self.assertEqual(row["event_count"], 3)
+        self.assertEqual(row["magnitude_non_null_count"], 3)
+        self.assertAlmostEqual(row["magnitude_sum"], 13.8, places=4)
+        self.assertAlmostEqual(row["magnitude_avg"], 4.6, places=4)
+        self.assertAlmostEqual(row["magnitude_max"], 4.8, places=4)
 
     def test_alert_and_intensity_predicate_parity(self) -> None:
         """Verifies that 'none', empty string, whitespace, and NULL are excluded from alert and intensity counts."""
         cur = self.conn.cursor()
-        # In our mock data:
-        # can-001: alert=NULL, intensity=NULL
+        # can-001, 1b, 1c: alert=NULL, intensity=NULL
         # can-002: alert='none', intensity='none' -> MUST NOT COUNT
         # can-003: alert='YELLOW', intensity='5+' -> MUST COUNT (1 alerted, 1 intensity)
         # can-004: alert='   ', intensity='' -> MUST NOT COUNT
-        # Expected: exactly 1 alerted_event_count and 1 intensity_reported_count across the entire dataset
         cur.execute("SELECT SUM(alerted_event_count) AS alerts, SUM(intensity_reported_count) AS intensities FROM v_event_daily")
         res = cur.fetchone()
         self.assertEqual(res["alerts"], 1, "alert_level='none', '   ' or NULL must not be counted as alerted")
@@ -309,44 +360,140 @@ class TestGoldAggregates(unittest.TestCase):
         cur.execute("SELECT SUM(strong_earthquake_count) AS strong_cnt FROM v_event_daily")
         self.assertEqual(cur.fetchone()["strong_cnt"], 1, "strong earthquake must be M >= 5.0")
 
-    def test_negative_verification_detects_metric_tampering(self) -> None:
-        """Proves that Q4 catches metric tampering (e.g. corrupted magnitude_sum, magnitude_avg, or depth)."""
+    def test_empty_dataset_handling_in_q1_and_parity_queries(self) -> None:
+        """Verifies Q1 handles valid empty datasets deterministically (returning 0, 0, delta = 0)."""
+        queries_file = SQL_GOLD_DIR / "gold_aggregate_verification_queries.sql"
+        queries = parse_verification_queries(queries_file.read_text(encoding="utf-8"))
+
+        cur = self.conn.cursor()
+        cur.execute("DELETE FROM event_current")
+        self.conn.commit()
+
+        # Q1 with empty dataset:
+        cur.execute(queries["Q1"])
+        q1_row = cur.fetchone()
+        self.assertIsNotNone(q1_row)
+        self.assertEqual(q1_row["fact_event_count"], 0)
+        self.assertEqual(q1_row["daily_agg_event_count"], 0)
+        self.assertEqual(q1_row["delta"], 0)
+
+        # Other queries must return 0 rows
+        for q_name in ["Q2", "Q3", "Q4", "Q5", "Q6", "Q7"]:
+            cur.execute(queries[q_name])
+            rows = cur.fetchall()
+            self.assertEqual(len(rows), 0, f"{q_name} failed on empty dataset")
+
+    def test_negative_verification_monthly_rollup_tampering(self) -> None:
+        """Proves that Q3 and Q7 detect monthly tampering (wrong region, corrupted metrics, duplicate grain)."""
+        queries_file = SQL_GOLD_DIR / "gold_aggregate_verification_queries.sql"
+        queries = parse_verification_queries(queries_file.read_text(encoding="utf-8"))
+        q3_sql = queries["Q3"]
+        q7_sql = queries["Q7"]
+
+        cur = self.conn.cursor()
+        cur.execute("DROP VIEW v_event_monthly")
+        monthly_query = adapt_trino_view_for_sqlite((SQL_GOLD_DIR / "v_event_monthly.sql").read_text(encoding="utf-8"))
+        cur.execute(f"CREATE TABLE v_event_monthly AS {monthly_query}")
+
+        # Mutation M1: Alter region_key to 'WRONG_REGION' (missing/extra group in monthly rollup)
+        cur.execute("UPDATE v_event_monthly SET region_key = 'WRONG_REGION' WHERE year_month_jst = 202301 AND region_key = 'OFFSHORE'")
+        cur.execute(q3_sql)
+        corrupted_region = cur.fetchall()
+        self.assertGreater(len(corrupted_region), 0, "Q3 MUST detect mismatched region_key in monthly aggregate")
+
+        # Revert
+        cur.execute("DROP TABLE v_event_monthly")
+        cur.execute(f"CREATE TABLE v_event_monthly AS {monthly_query}")
+
+        # Mutation M2: Alter magnitude_avg to 999.0
+        cur.execute("UPDATE v_event_monthly SET magnitude_avg = 999.0 WHERE year_month_jst = 202301 AND region_key = 'OFFSHORE'")
+        cur.execute(q3_sql)
+        corrupted_mag_avg = cur.fetchall()
+        self.assertGreater(len(corrupted_mag_avg), 0, "Q3 MUST detect corrupted magnitude_avg in monthly aggregate")
+
+        # Revert
+        cur.execute("DROP TABLE v_event_monthly")
+        cur.execute(f"CREATE TABLE v_event_monthly AS {monthly_query}")
+
+        # Mutation M3: Alter strong_earthquake_count to 99
+        cur.execute("UPDATE v_event_monthly SET strong_earthquake_count = 99 WHERE year_month_jst = 202301 AND region_key = 'OFFSHORE'")
+        cur.execute(q3_sql)
+        corrupted_strong = cur.fetchall()
+        self.assertGreater(len(corrupted_strong), 0, "Q3 MUST detect corrupted strong_earthquake_count in monthly aggregate")
+
+        # Revert
+        cur.execute("DROP TABLE v_event_monthly")
+        cur.execute(f"CREATE TABLE v_event_monthly AS {monthly_query}")
+
+        # Mutation M4: Duplicate grain in monthly aggregate
+        cur.execute("""
+            INSERT INTO v_event_monthly
+            SELECT * FROM v_event_monthly WHERE year_month_jst = 202301 AND region_key = 'OFFSHORE'
+        """)
+        cur.execute(q7_sql)
+        corrupted_dup = cur.fetchall()
+        self.assertGreater(len(corrupted_dup), 0, "Q7 MUST detect duplicate monthly grain")
+
+    def test_negative_verification_honest_null_and_zero_vs_null(self) -> None:
+        """Proves that Q4 and Q5 detect valid 0.0 being replaced with NULL or Honest NULL violations."""
         queries_file = SQL_GOLD_DIR / "gold_aggregate_verification_queries.sql"
         queries = parse_verification_queries(queries_file.read_text(encoding="utf-8"))
         q4_sql = queries["Q4"]
+        q5_sql = queries["Q5"]
 
         cur = self.conn.cursor()
-
-        # Create a materialized copy of v_event_daily as a table to mutate it
         cur.execute("DROP VIEW v_event_daily")
         daily_query = adapt_trino_view_for_sqlite((SQL_GOLD_DIR / "v_event_daily.sql").read_text(encoding="utf-8"))
         cur.execute(f"CREATE TABLE v_event_daily AS {daily_query}")
 
-        # Mutation 1: Corrupt magnitude_sum to 999.0
-        cur.execute("UPDATE v_event_daily SET magnitude_sum = 999.0 WHERE event_date_key_jst = 20230105")
+        # Mutation N1 (HoaiTam reproduction):
+        # On 20230106, depth_km = 0.0, depth_non_null_count = 2, depth_sum = 0.0.
+        # Set depth_sum = NULL and depth_avg = NULL while keeping depth_non_null_count = 2:
+        cur.execute("""
+            UPDATE v_event_daily
+            SET depth_sum = NULL, depth_avg = NULL
+            WHERE event_date_key_jst = 20230106
+        """)
+        # Q4 must catch this because fact has depth_sum = 0.0 (non-null) and aggregate has NULL
         cur.execute(q4_sql)
-        corrupted_rows = cur.fetchall()
-        self.assertGreater(len(corrupted_rows), 0, "Q4 MUST detect corrupted magnitude_sum")
+        q4_detected = cur.fetchall()
+        self.assertGreater(len(q4_detected), 0, "Q4 MUST detect valid 0.0 depth being corrupted to NULL")
 
-        # Revert mutation
+        # Q5 must also catch this because depth_non_null_count > 0 but depth_sum is NULL
+        cur.execute(q5_sql)
+        q5_detected = cur.fetchall()
+        self.assertGreater(len(q5_detected), 0, "Q5 MUST detect count > 0 with NULL sum/avg violation")
+
+        # Revert
         cur.execute("DROP TABLE v_event_daily")
         cur.execute(f"CREATE TABLE v_event_daily AS {daily_query}")
 
-        # Mutation 2: Corrupt strong_earthquake_count
-        cur.execute("UPDATE v_event_daily SET strong_earthquake_count = 99 WHERE event_date_key_jst = 20230110")
+        # Mutation N2:
+        # Mutate magnitude_sum and magnitude_avg to NULL while magnitude_non_null_count = 1 on 20230110:
+        cur.execute("""
+            UPDATE v_event_daily
+            SET magnitude_sum = NULL, magnitude_avg = NULL
+            WHERE event_date_key_jst = 20230110
+        """)
         cur.execute(q4_sql)
-        corrupted_strong = cur.fetchall()
-        self.assertGreater(len(corrupted_strong), 0, "Q4 MUST detect corrupted strong_earthquake_count")
+        self.assertGreater(len(cur.fetchall()), 0, "Q4 MUST detect magnitude_sum corrupted to NULL")
+        cur.execute(q5_sql)
+        self.assertGreater(len(cur.fetchall()), 0, "Q5 MUST detect magnitude count > 0 with NULL sum/avg")
 
-        # Revert mutation
+        # Revert
         cur.execute("DROP TABLE v_event_daily")
         cur.execute(f"CREATE TABLE v_event_daily AS {daily_query}")
 
-        # Mutation 3: Delete a grain row (group omission)
-        cur.execute("DELETE FROM v_event_daily WHERE event_date_key_jst = 20230110")
-        cur.execute(q4_sql)
-        missing_group = cur.fetchall()
-        self.assertGreater(len(missing_group), 0, "Q4 MUST detect missing group rows")
+        # Mutation N3:
+        # On 20230201, can-004 has magnitude = NULL (magnitude_non_null_count = 0).
+        # Corrupt magnitude_sum = 0.0 and magnitude_avg = 0.0 (violating Honest NULL when count = 0):
+        cur.execute("""
+            UPDATE v_event_daily
+            SET magnitude_sum = 0.0, magnitude_avg = 0.0
+            WHERE event_date_key_jst = 20230201
+        """)
+        cur.execute(q5_sql)
+        self.assertGreater(len(cur.fetchall()), 0, "Q5 MUST detect count = 0 with non-null magnitude violation")
 
 
 if __name__ == "__main__":

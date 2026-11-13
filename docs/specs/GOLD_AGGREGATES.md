@@ -55,13 +55,14 @@ Tài liệu đặc tả kiến trúc biến đổi aggregate và serving views p
 
 - `sql/gold/v_event_daily.sql`: Trino DDL view tổng hợp theo ngày từ `iceberg.gold.event_current`.
 - `sql/gold/v_event_monthly.sql`: Trino DDL view cộng dồn theo tháng từ `iceberg.gold.v_event_daily`.
-- `sql/gold/gold_aggregate_verification_queries.sql`: Bộ 6 câu truy vấn đối soát độc lập:
-  - **Q1:** Đối soát số lượng giữa Fact và Daily Aggregate (`fact_event_count - daily_agg_event_count = 0`).
+- `sql/gold/gold_aggregate_verification_queries.sql`: Bộ 7 câu truy vấn đối soát độc lập:
+  - **Q1:** Đối soát số lượng giữa Fact và Daily Aggregate (`fact_event_count - daily_agg_event_count = 0`), hỗ trợ chuẩn xác cả trường hợp dataset rỗng hợp lệ (0/0, delta = 0).
   - **Q2:** Kiểm toán chống nhân đôi dòng do liên kết đa nguồn trong `event_source_bridge` (so sánh distinct `canonical_event_id` với `event_count`).
-  - **Q3:** Kiểm toán tính cộng dồn đồng nhất giữa Daily và Monthly aggregate qua FULL OUTER JOIN cho tất cả các chỉ số cộng dồn.
-  - **Q4:** Kiểm toán đối soát sâu từng hạt (grain-level metric parity) giữa Fact và Daily Aggregate across toàn bộ 13 chỉ số thống kê và phân bố.
-  - **Q5:** Kiểm toán Honest NULL và điều kiện chia cho 0.
-  - **Q6:** Kiểm toán tính duy nhất của tổ hợp khóa nhóm (0 duplicate grains).
+  - **Q3:** Kiểm toán tính cộng dồn đồng nhất và bảo toàn bình quân trọng số giữa Daily và Monthly aggregate theo đầy đủ grain (`year_month_jst, region_key, magnitude_band_code, depth_band_code, source_coverage_code`) qua FULL OUTER JOIN cho tất cả 13 chỉ số thống kê và KPI, phát hiện missing/extra group.
+  - **Q4:** Kiểm toán đối soát sâu từng hạt (grain-level metric parity) giữa Fact và Daily Aggregate across toàn bộ 13 chỉ số thống kê và phân bố, phân tách nghiêm ngặt kiểm tra NULL/non-NULL trước khi so sánh dung sai số học để không bỏ lọt giá trị 0.0 hợp lệ.
+  - **Q5:** Kiểm toán tính toàn vẹn hai chiều của chính sách Honest NULL: khi non-null count = 0 thì sum/avg/max bắt buộc NULL; khi non-null count > 0 thì sum/avg/max tuyệt đối không được NULL (kể cả khi giá trị là 0.0); áp dụng cho cả daily và monthly.
+  - **Q6:** Kiểm toán tính duy nhất của tổ hợp khóa nhóm Daily (0 duplicate grains).
+  - **Q7:** Kiểm toán tính duy nhất của tổ hợp khóa nhóm Monthly (0 duplicate grains).
 
 ## 5. Kiểm thử và xác thực
 

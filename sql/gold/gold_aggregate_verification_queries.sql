@@ -2,17 +2,18 @@
 -- Gold Aggregate Verification Queries (GLD-02)
 -- Catalog: iceberg.gold.*
 -- Target: Trino query smoke test, daily/monthly aggregate reconciliation,
---         deep metric parity, and zero double-counting verification.
+--         deep metric parity, bidirectional Honest NULL, and zero double-counting verification.
 -- ============================================================================
 
 -- Q1. Fact-to-Aggregate Count Reconciliation
 -- Verifies that sum(event_count) across all daily aggregate rows strictly equals
 -- the number of natural earthquakes in the study area in gold.event_current.
+-- Supports valid empty datasets (coalesces to 0, returning delta = 0).
 -- Expected output: exactly 1 row with delta = 0.
 SELECT
-    f.fact_event_count,
-    a.daily_agg_event_count,
-    (f.fact_event_count - a.daily_agg_event_count) AS delta
+    COALESCE(f.fact_event_count, 0) AS fact_event_count,
+    COALESCE(a.daily_agg_event_count, 0) AS daily_agg_event_count,
+    (COALESCE(f.fact_event_count, 0) - COALESCE(a.daily_agg_event_count, 0)) AS delta
 FROM (
     SELECT COUNT(*) AS fact_event_count
     FROM iceberg.gold.event_current
@@ -20,7 +21,7 @@ FROM (
       AND is_in_study_area = true
 ) f
 CROSS JOIN (
-    SELECT SUM(event_count) AS daily_agg_event_count
+    SELECT COALESCE(SUM(event_count), 0) AS daily_agg_event_count
     FROM iceberg.gold.v_event_daily
 ) a;
 
@@ -48,45 +49,107 @@ JOIN (
   ON e.event_date_key_jst = d.event_date_key_jst
 WHERE e.distinct_event_count <> d.daily_agg_event_count;
 
--- Q3. Additive Consistency between Daily and Monthly Aggregates
--- Verifies that sum(event_count) and additive metric sums in monthly rollup
--- strictly match daily totals per year_month.
+-- Q3. Additive Consistency and Full Metric Rollup Parity between Daily and Monthly
+-- Verifies that monthly aggregates strictly equal the rollup of daily aggregates
+-- at the full grain (year_month_jst, region_key, magnitude_band_code, depth_band_code, source_coverage_code)
+-- across all 13 statistical and KPI metrics, including weighted averages, maxima, and missing/extra groups.
 -- Expected output: 0 rows with mismatch.
 SELECT
     COALESCE(d.year_month_jst, m.year_month_jst) AS year_month_jst,
-    d.daily_total_events,
-    m.monthly_total_events,
-    (d.daily_total_events - m.monthly_total_events) AS delta_count,
-    ABS(d.daily_magnitude_sum - m.monthly_magnitude_sum) AS delta_mag_sum,
-    ABS(d.daily_depth_sum - m.monthly_depth_sum) AS delta_depth_sum
+    COALESCE(d.region_key, m.region_key) AS region_key,
+    COALESCE(d.magnitude_band_code, m.magnitude_band_code) AS magnitude_band_code,
+    COALESCE(d.depth_band_code, m.depth_band_code) AS depth_band_code,
+    COALESCE(d.source_coverage_code, m.source_coverage_code) AS source_coverage_code,
+    d.event_count AS daily_rollup_events,
+    m.event_count AS monthly_events,
+    d.magnitude_sum AS daily_rollup_mag_sum,
+    m.magnitude_sum AS monthly_mag_sum,
+    d.magnitude_avg AS daily_rollup_mag_avg,
+    m.magnitude_avg AS monthly_mag_avg,
+    d.magnitude_max AS daily_rollup_mag_max,
+    m.magnitude_max AS monthly_mag_max,
+    d.depth_sum AS daily_rollup_depth_sum,
+    m.depth_sum AS monthly_depth_sum,
+    d.depth_avg AS daily_rollup_depth_avg,
+    m.depth_avg AS monthly_depth_avg
 FROM (
     SELECT
-        year_month_jst,
-        SUM(event_count) AS daily_total_events,
-        COALESCE(SUM(magnitude_sum), 0.0) AS daily_magnitude_sum,
-        COALESCE(SUM(depth_sum), 0.0) AS daily_depth_sum
-    FROM iceberg.gold.v_event_daily
-    GROUP BY year_month_jst
+        d_in.year_month_jst,
+        d_in.region_key,
+        d_in.region_name,
+        d_in.region_category,
+        d_in.magnitude_band_code,
+        d_in.depth_band_code,
+        d_in.source_coverage_code,
+        SUM(d_in.event_count) AS event_count,
+        SUM(d_in.magnitude_non_null_count) AS magnitude_non_null_count,
+        SUM(d_in.magnitude_sum) AS magnitude_sum,
+        CASE
+            WHEN SUM(d_in.magnitude_non_null_count) > 0
+            THEN SUM(d_in.magnitude_sum) / CAST(SUM(d_in.magnitude_non_null_count) AS DOUBLE)
+            ELSE NULL
+        END AS magnitude_avg,
+        MAX(d_in.magnitude_max) AS magnitude_max,
+        SUM(d_in.depth_non_null_count) AS depth_non_null_count,
+        SUM(d_in.depth_sum) AS depth_sum,
+        CASE
+            WHEN SUM(d_in.depth_non_null_count) > 0
+            THEN SUM(d_in.depth_sum) / CAST(SUM(d_in.depth_non_null_count) AS DOUBLE)
+            ELSE NULL
+        END AS depth_avg,
+        SUM(d_in.strong_earthquake_count) AS strong_earthquake_count,
+        SUM(d_in.tsunami_flagged_count) AS tsunami_flagged_count,
+        SUM(d_in.alerted_event_count) AS alerted_event_count,
+        SUM(d_in.intensity_reported_count) AS intensity_reported_count,
+        SUM(d_in.offshore_or_unknown_count) AS offshore_or_unknown_count
+    FROM iceberg.gold.v_event_daily d_in
+    GROUP BY
+        d_in.year_month_jst,
+        d_in.region_key,
+        d_in.region_name,
+        d_in.region_category,
+        d_in.magnitude_band_code,
+        d_in.depth_band_code,
+        d_in.source_coverage_code
 ) d
-FULL OUTER JOIN (
-    SELECT
-        year_month_jst,
-        SUM(event_count) AS monthly_total_events,
-        COALESCE(SUM(magnitude_sum), 0.0) AS monthly_magnitude_sum,
-        COALESCE(SUM(depth_sum), 0.0) AS monthly_depth_sum
-    FROM iceberg.gold.v_event_monthly
-    GROUP BY year_month_jst
-) m
+FULL OUTER JOIN iceberg.gold.v_event_monthly m
   ON d.year_month_jst = m.year_month_jst
-WHERE d.daily_total_events <> m.monthly_total_events
-   OR d.daily_total_events IS NULL
-   OR m.monthly_total_events IS NULL
-   OR ABS(d.daily_magnitude_sum - m.monthly_magnitude_sum) > 0.0001
-   OR ABS(d.daily_depth_sum - m.monthly_depth_sum) > 0.0001;
+ AND d.region_key = m.region_key
+ AND d.magnitude_band_code = m.magnitude_band_code
+ AND d.depth_band_code = m.depth_band_code
+ AND d.source_coverage_code = m.source_coverage_code
+WHERE d.year_month_jst IS NULL
+   OR m.year_month_jst IS NULL
+   OR d.region_name <> m.region_name
+   OR d.region_category <> m.region_category
+   OR d.event_count <> m.event_count
+   OR d.magnitude_non_null_count <> m.magnitude_non_null_count
+   OR d.depth_non_null_count <> m.depth_non_null_count
+   OR d.strong_earthquake_count <> m.strong_earthquake_count
+   OR d.tsunami_flagged_count <> m.tsunami_flagged_count
+   OR d.alerted_event_count <> m.alerted_event_count
+   OR d.intensity_reported_count <> m.intensity_reported_count
+   OR d.offshore_or_unknown_count <> m.offshore_or_unknown_count
+   OR (d.magnitude_sum IS NULL AND m.magnitude_sum IS NOT NULL)
+   OR (d.magnitude_sum IS NOT NULL AND m.magnitude_sum IS NULL)
+   OR ABS(d.magnitude_sum - m.magnitude_sum) > 0.0001
+   OR (d.magnitude_avg IS NULL AND m.magnitude_avg IS NOT NULL)
+   OR (d.magnitude_avg IS NOT NULL AND m.magnitude_avg IS NULL)
+   OR ABS(d.magnitude_avg - m.magnitude_avg) > 0.0001
+   OR (d.magnitude_max IS NULL AND m.magnitude_max IS NOT NULL)
+   OR (d.magnitude_max IS NOT NULL AND m.magnitude_max IS NULL)
+   OR ABS(d.magnitude_max - m.magnitude_max) > 0.0001
+   OR (d.depth_sum IS NULL AND m.depth_sum IS NOT NULL)
+   OR (d.depth_sum IS NOT NULL AND m.depth_sum IS NULL)
+   OR ABS(d.depth_sum - m.depth_sum) > 0.0001
+   OR (d.depth_avg IS NULL AND m.depth_avg IS NOT NULL)
+   OR (d.depth_avg IS NOT NULL AND m.depth_avg IS NULL)
+   OR ABS(d.depth_avg - m.depth_avg) > 0.0001;
 
 -- Q4. Deep Grain-Level Fact-to-Daily Metric Parity
 -- Computes metrics directly from gold.event_current at the daily grain and compares
 -- with v_event_daily across all statistical and KPI indicators.
+-- Strictly checks NULL/non-NULL separation before numeric tolerance comparison.
 -- Expected output: 0 rows with mismatch.
 SELECT
     f.event_date_key_jst,
@@ -144,33 +207,59 @@ WHERE f.fact_count <> d.event_count
    OR f.fact_alert_count <> d.alerted_event_count
    OR f.fact_intensity_count <> d.intensity_reported_count
    OR f.fact_offshore_count <> d.offshore_or_unknown_count
-   OR ABS(COALESCE(f.fact_mag_sum, 0.0) - COALESCE(d.magnitude_sum, 0.0)) > 0.0001
-   OR ABS(COALESCE(f.fact_mag_avg, 0.0) - COALESCE(d.magnitude_avg, 0.0)) > 0.0001
-   OR ABS(COALESCE(f.fact_mag_max, 0.0) - COALESCE(d.magnitude_max, 0.0)) > 0.0001
-   OR ABS(COALESCE(f.fact_depth_sum, 0.0) - COALESCE(d.depth_sum, 0.0)) > 0.0001
-   OR ABS(COALESCE(f.fact_depth_avg, 0.0) - COALESCE(d.depth_avg, 0.0)) > 0.0001
+   OR (f.fact_mag_sum IS NULL AND d.magnitude_sum IS NOT NULL)
+   OR (f.fact_mag_sum IS NOT NULL AND d.magnitude_sum IS NULL)
+   OR ABS(f.fact_mag_sum - d.magnitude_sum) > 0.0001
+   OR (f.fact_mag_avg IS NULL AND d.magnitude_avg IS NOT NULL)
+   OR (f.fact_mag_avg IS NOT NULL AND d.magnitude_avg IS NULL)
+   OR ABS(f.fact_mag_avg - d.magnitude_avg) > 0.0001
+   OR (f.fact_mag_max IS NULL AND d.magnitude_max IS NOT NULL)
+   OR (f.fact_mag_max IS NOT NULL AND d.magnitude_max IS NULL)
+   OR ABS(f.fact_mag_max - d.magnitude_max) > 0.0001
+   OR (f.fact_depth_sum IS NULL AND d.depth_sum IS NOT NULL)
+   OR (f.fact_depth_sum IS NOT NULL AND d.depth_sum IS NULL)
+   OR ABS(f.fact_depth_sum - d.depth_sum) > 0.0001
+   OR (f.fact_depth_avg IS NULL AND d.depth_avg IS NOT NULL)
+   OR (f.fact_depth_avg IS NOT NULL AND d.depth_avg IS NULL)
+   OR ABS(f.fact_depth_avg - d.depth_avg) > 0.0001
    OR f.event_date_key_jst IS NULL
    OR d.event_date_key_jst IS NULL;
 
 -- Q5. Honest NULL & Mathematical Invariant Audit
--- Verifies that:
--- 1. magnitude_avg IS NULL whenever magnitude_non_null_count = 0
--- 2. depth_avg IS NULL whenever depth_non_null_count = 0
--- 3. magnitude_max IS NULL whenever magnitude_non_null_count = 0
--- 4. magnitude_sum IS NULL or 0 whenever magnitude_non_null_count = 0
+-- Verifies bidirectional consistency for Honest NULL in both daily and monthly aggregates:
+-- 1. When non_null_count = 0, sum/avg/max MUST be NULL.
+-- 2. When non_null_count > 0, sum/avg/max MUST NOT be NULL (even when value is 0.0).
+-- 3. event_count must be strictly positive (> 0).
 -- Expected output: 0 rows.
 SELECT
+    'v_event_daily' AS source_view,
     year_month_jst,
     event_date_key_jst,
     region_key,
     magnitude_band_code,
     depth_band_code
 FROM iceberg.gold.v_event_daily
-WHERE (magnitude_non_null_count = 0 AND (magnitude_avg IS NOT NULL OR magnitude_max IS NOT NULL))
-   OR (depth_non_null_count = 0 AND depth_avg IS NOT NULL)
+WHERE (magnitude_non_null_count = 0 AND (magnitude_avg IS NOT NULL OR magnitude_max IS NOT NULL OR magnitude_sum IS NOT NULL))
+   OR (magnitude_non_null_count > 0 AND (magnitude_avg IS NULL OR magnitude_max IS NULL OR magnitude_sum IS NULL))
+   OR (depth_non_null_count = 0 AND (depth_avg IS NOT NULL OR depth_sum IS NOT NULL))
+   OR (depth_non_null_count > 0 AND (depth_avg IS NULL OR depth_sum IS NULL))
+   OR (event_count <= 0)
+UNION ALL
+SELECT
+    'v_event_monthly' AS source_view,
+    year_month_jst,
+    NULL AS event_date_key_jst,
+    region_key,
+    magnitude_band_code,
+    depth_band_code
+FROM iceberg.gold.v_event_monthly
+WHERE (magnitude_non_null_count = 0 AND (magnitude_avg IS NOT NULL OR magnitude_max IS NOT NULL OR magnitude_sum IS NOT NULL))
+   OR (magnitude_non_null_count > 0 AND (magnitude_avg IS NULL OR magnitude_max IS NULL OR magnitude_sum IS NULL))
+   OR (depth_non_null_count = 0 AND (depth_avg IS NOT NULL OR depth_sum IS NOT NULL))
+   OR (depth_non_null_count > 0 AND (depth_avg IS NULL OR depth_sum IS NULL))
    OR (event_count <= 0);
 
--- Q6. Granularity Uniqueness Audit
+-- Q6. Daily Granularity Uniqueness Audit
 -- Verifies that each daily grouping grain (event_date_key_jst, region_key, magnitude_band_code, depth_band_code, source_coverage_code)
 -- is strictly unique (no duplicate rows).
 -- Expected output: 0 rows.
@@ -184,6 +273,26 @@ SELECT
 FROM iceberg.gold.v_event_daily
 GROUP BY
     event_date_key_jst,
+    region_key,
+    magnitude_band_code,
+    depth_band_code,
+    source_coverage_code
+HAVING COUNT(*) > 1;
+
+-- Q7. Monthly Granularity Uniqueness Audit
+-- Verifies that each monthly grouping grain (year_month_jst, region_key, magnitude_band_code, depth_band_code, source_coverage_code)
+-- is strictly unique (no duplicate rows).
+-- Expected output: 0 rows.
+SELECT
+    year_month_jst,
+    region_key,
+    magnitude_band_code,
+    depth_band_code,
+    source_coverage_code,
+    COUNT(*) AS row_occurrences
+FROM iceberg.gold.v_event_monthly
+GROUP BY
+    year_month_jst,
     region_key,
     magnitude_band_code,
     depth_band_code,
