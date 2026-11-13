@@ -16,6 +16,19 @@ dependencies: ["ORC-07", "MLD-05", "MLI-02", "EXP-01"]
 
 ## Giao việc hiện hành — 11/11/2026
 
+**13/11 — tiếp tục trên `feat/dat-03-payload-reuse-inventory` từ main `df2fb01`:**
+HoaiTam kiểm lại metadata đã merge #128 và inventory payload theo bytes/SHA
+trong các gói đã chia sẻ; chỉ thu phần thiếu thực sự, không replay ETL hoặc
+nhận metadata references là portable Gold. Giữ **In Progress**, reviewer
+`unassigned`; còn chờ original bytes frontier của rosy179 và các gate tích hợp/
+official export/receipts ba máy.
+
+**Actual13/11:** [Inventory/evidence](../../evidence/DAT-03_PAYLOAD_REUSE_20261113.md)
+xác nhận100/119payload references Trí có bytes khớp trong data ZIP đã pin;
+19refs còn lại cùng1content595bytes. [Delta request](../../../config/research/dat03_lineage_ThanhTris_payload_delta.json)
+không yêu cầu upload lại498MiB. Publication giữ NOT_VERIFIED; Trang còn đúng
+114metadata objects, không thay bằng138journals. Chưa full closure/import/export.
+
 **12/11 — đã tiếp tục:** In Progress trên feat/dat-03-lineage-readiness.
 [Actual metadata audit](../../evidence/DAT-03_LINEAGE_FRONTIER_20261112.md)
 xác nhận75/83first-hop và Trí76dataset manifests/18parent commits.
@@ -222,6 +235,11 @@ release đủ gate. Không tạo dependency ngược từ DAT-03 sang EXP-02.
   MLI-04/MLQ-01 sở hữu report/ML E2E.
 
 ## Theo dõi
+
+- **13/11 — actual metadata/payload inventory:** branch `feat/dat-03-payload-reuse-inventory`
+  từ main #128,75roots/76manifests/18commits/18identities matched;100/119payload
+  refs byte-identical, delta1content595bytes. [Evidence](../../evidence/DAT-03_PAYLOAD_REUSE_20261113.md).
+  Không ETL/runtime/Drive mutations; giữ In Progress và reviewer unassigned.
 
 - **05/11 — đối soát toàn kỳ 288 tháng và 75/75 provenance của ThanhTris:**
   đối soát offline 02/11 và cập nhật từ Hoài Tâm xác nhận đủ 288/288 tháng qua

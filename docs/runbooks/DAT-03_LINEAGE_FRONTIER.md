@@ -76,6 +76,12 @@ luôn false trong component này, kể cả frontier được cung cấp đủ.
 
 ## Checkpoint và phần còn lại
 
+**Tiếp tục13/11 sau #128:** [payload reuse inventory](DAT-03_PAYLOAD_REUSE.md)
+đã đối chiếu actual data/proof ZIP Trí:100/119references byte-identical,
+19references còn lại cùng1content595bytes. Không yêu cầu upload lại498MiB;
+[delta request](../../config/research/dat03_lineage_ThanhTris_payload_delta.json)
+giữ exact URI/SHA. Không thay full closure hoặc Gold acceptance.
+
 `NOT_SUPPLIED_IN_PACKAGES` nghĩa là chưa có trong ZIP của lần kiểm này,
 **không chứng minh mất trên MinIO hoặc không có trong các data ZIP khác**.
 37raw source references của mỗi worker có thể tái dùng shared sources theo
