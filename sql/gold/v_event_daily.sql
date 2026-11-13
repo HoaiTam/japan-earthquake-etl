@@ -5,6 +5,8 @@
 -- 1. Zero double-counting from source bridge (groups canonical events only).
 -- 2. Honest NULL policy: magnitude and depth averages remain NULL when count is 0.
 -- 3. Invariant: sum(event_count) strictly equals canonical event count for identical filter scope.
+-- 4. KPI predicates: alert_level and max_intensity_code exclude NULL, empty, and 'none'.
+-- 5. Strong earthquakes: derived from magnitude >= 5.0 according to CON-03.
 
 CREATE OR REPLACE VIEW iceberg.gold.v_event_daily AS
 SELECT
@@ -25,13 +27,13 @@ SELECT
     COUNT(e.depth_km) AS depth_non_null_count,
     SUM(e.depth_km) AS depth_sum,
     AVG(e.depth_km) AS depth_avg,
-    SUM(CASE WHEN e.is_strong_earthquake = true THEN 1 ELSE 0 END) AS strong_earthquake_count,
+    SUM(CASE WHEN e.magnitude >= 5.0 THEN 1 ELSE 0 END) AS strong_earthquake_count,
     SUM(CASE WHEN e.tsunami_flag = true THEN 1 ELSE 0 END) AS tsunami_flagged_count,
-    SUM(CASE WHEN e.alert_level IS NOT NULL THEN 1 ELSE 0 END) AS alerted_event_count,
-    SUM(CASE WHEN e.jma_max_intensity IS NOT NULL THEN 1 ELSE 0 END) AS intensity_reported_count,
+    SUM(CASE WHEN e.alert_level IS NOT NULL AND LOWER(TRIM(e.alert_level)) NOT IN ('', 'none') THEN 1 ELSE 0 END) AS alerted_event_count,
+    SUM(CASE WHEN e.max_intensity_code IS NOT NULL AND LOWER(TRIM(e.max_intensity_code)) NOT IN ('', 'none') THEN 1 ELSE 0 END) AS intensity_reported_count,
     SUM(CASE WHEN e.region_category IN ('OFFSHORE', 'UNKNOWN') THEN 1 ELSE 0 END) AS offshore_or_unknown_count
 FROM iceberg.gold.event_current e
-WHERE e.is_earthquake = true
+WHERE e.is_natural_earthquake = true
   AND e.is_in_study_area = true
 GROUP BY
     e.event_date_key_jst,

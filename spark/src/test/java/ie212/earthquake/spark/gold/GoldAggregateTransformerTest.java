@@ -289,6 +289,58 @@ class GoldAggregateTransformerTest {
     }
 
     @Test
+    void alertAndIntensityPredicatesIgnoreNoneAndEmptyStrings() {
+        // obs1: alert="none" -> should not count
+        String obs1 = observation("o1", "USGS", "2023-01-01T01:00:00Z",
+                ",\"magnitude\":4.0,\"depth_km\":10.0,\"alert_level\":\"none\"");
+        // obs2: alert="NONE" -> should not count
+        String obs2 = observation("o2", "USGS", "2023-01-01T02:00:00Z",
+                ",\"magnitude\":4.0,\"depth_km\":10.0,\"alert_level\":\"NONE\"");
+        // obs3: alert="", intensity="" -> should not count
+        String obs3 = observation("o3", "USGS", "2023-01-01T03:00:00Z",
+                ",\"magnitude\":4.0,\"depth_km\":10.0,\"alert_level\":\"\"");
+        // obs4: valid alert "red" and valid JMA intensity "3" -> counts 1 for alert, 1 for intensity
+        String obs4 = observation("o4", "USGS", "2023-01-01T04:00:00Z",
+                ",\"magnitude\":5.2,\"depth_km\":20.0,\"alert_level\":\"red\"");
+        String jma4 = observation("j4", "JMA_BULLETIN", "2023-01-01T04:00:00Z",
+                ",\"magnitude\":5.2,\"depth_km\":20.0,\"max_intensity_code\":\"3\",\"determining_agency_code\":\"J\",\"catalog_era\":\"UNIFIED\"");
+
+        Dataset<Row> input = observations(obs1, obs2, obs3, obs4, jma4);
+        Dataset<Row> mem = memberships(
+                member("c1", "o1", "PRIMARY", null),
+                member("c2", "o2", "PRIMARY", null),
+                member("c3", "o3", "PRIMARY", null),
+                member("c4", "o4", "PRIMARY", "link4"),
+                member("c4", "j4", "SUPPORTING", "link4")
+        );
+        Dataset<Row> regions = spark.createDataFrame(List.of(
+                RowFactory.create("o1", "PREFECTURE:13", "Tokyo", "PREFECTURE"),
+                RowFactory.create("o2", "PREFECTURE:13", "Tokyo", "PREFECTURE"),
+                RowFactory.create("o3", "PREFECTURE:13", "Tokyo", "PREFECTURE"),
+                RowFactory.create("o4", "PREFECTURE:13", "Tokyo", "PREFECTURE")
+        ), GoldEventTransformer.REGION_SCHEMA);
+
+        GoldTransformationResult gold = transformGold(input, mem, regions);
+        GoldAggregateTransformer transformer = new GoldAggregateTransformer();
+        Dataset<Row> daily = transformer.transformDaily(gold.earthquakeEventCurrent(), CONTEXT, TIME);
+
+        // Exactly 4 canonical events
+        assertEquals(4L, (Long) daily.agg(sum("event_count")).head().getLong(0));
+
+        // Alert count must be exactly 1 (only obs4 has valid alert "red")
+        long alertCount = daily.agg(sum("alerted_event_count")).head().getLong(0);
+        assertEquals(1, alertCount);
+
+        // Intensity count must be exactly 1 (only jma4 has valid intensity "3")
+        long intensityCount = daily.agg(sum("intensity_reported_count")).head().getLong(0);
+        assertEquals(1, intensityCount);
+
+        // Strong earthquake count (magnitude >= 5.0): only c4 (M5.2) -> 1
+        long strongCount = daily.agg(sum("strong_earthquake_count")).head().getLong(0);
+        assertEquals(1, strongCount);
+    }
+
+    @Test
     void emptyInputProducesEmptyDatasetWithCorrectSchema() {
         Dataset<Row> emptyInput = observations();
         Dataset<Row> emptyMem = memberships();

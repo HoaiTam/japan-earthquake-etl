@@ -16,15 +16,15 @@ Tài liệu đặc tả kiến trúc biến đổi aggregate và serving views p
 
 - **Hạt chính (Grain):** `(event_date_key_jst, region_key, magnitude_band_code, depth_band_code, source_coverage_code)`.
 - **Timezone:** Chuẩn JST (`Asia/Tokyo`, UTC+9). Các sự kiện từ 15:00 UTC của ngày hôm trước được phân định chính xác sang ngày JST kế tiếp.
-- **Phạm vi lọc:** Chỉ tổng hợp các sự kiện động đất tự nhiên trong khu vực nghiên cứu (`is_earthquake = true AND is_in_study_area = true`), lấy từ `gold.earthquake_event_current`.
+- **Phạm vi lọc:** Chỉ tổng hợp các sự kiện động đất tự nhiên trong khu vực nghiên cứu (`is_natural_earthquake = true AND is_in_study_area = true`), lấy từ `gold.earthquake_event_current` hoặc `gold.event_current`.
 - **Các trường đo lường (Metrics):**
   - `event_count`: Số lượng động đất hợp lệ (canonical events).
   - `magnitude_non_null_count`, `magnitude_sum`, `magnitude_avg`, `magnitude_max`: Thống kê độ lớn với chính sách Honest NULL (không ép NULL thành 0.0).
   - `depth_non_null_count`, `depth_sum`, `depth_avg`: Thống kê độ sâu (km).
-  - `strong_earthquake_count`: Số trận động đất mạnh ($M \ge 6.0$).
+  - `strong_earthquake_count`: Số trận động đất mạnh ($M \ge 5.0$ theo CON-03).
   - `tsunami_flagged_count`: Số trận có cảnh báo sóng thần (`tsunami_flag = true`).
-  - `alerted_event_count`: Số trận có cảnh báo khẩn cấp từ USGS/JMA.
-  - `intensity_reported_count`: Số trận có báo cáo cấp chấn độ Shindo từ JMA.
+  - `alerted_event_count`: Số trận có cảnh báo khẩn cấp từ USGS/JMA (loại trừ `NULL`, chuỗi rỗng `''` và `'none'`).
+  - `intensity_reported_count`: Số trận có báo cáo cấp chấn độ Shindo từ JMA qua `max_intensity_code` (loại trừ `NULL`, chuỗi rỗng `''` và `'none'`).
   - `offshore_or_unknown_count`: Số trận ngoài khơi (`OFFSHORE`) hoặc chưa định danh vùng đất liền (`UNKNOWN`).
 
 ### 2.2. Hạt tháng (`gold.event_monthly` & `v_event_monthly`)
@@ -55,14 +55,15 @@ Tài liệu đặc tả kiến trúc biến đổi aggregate và serving views p
 
 - `sql/gold/v_event_daily.sql`: Trino DDL view tổng hợp theo ngày từ `iceberg.gold.event_current`.
 - `sql/gold/v_event_monthly.sql`: Trino DDL view cộng dồn theo tháng từ `iceberg.gold.v_event_daily`.
-- `sql/gold/gold_aggregate_verification_queries.sql`: Bộ 5 câu truy vấn đối soát độc lập:
+- `sql/gold/gold_aggregate_verification_queries.sql`: Bộ 6 câu truy vấn đối soát độc lập:
   - **Q1:** Đối soát số lượng giữa Fact và Daily Aggregate (`fact_event_count - daily_agg_event_count = 0`).
-  - **Q2:** Kiểm toán chống nhân đôi dòng do liên kết đa nguồn trong `event_source_bridge`.
-  - **Q3:** Kiểm toán tính cộng dồn đồng nhất giữa Daily và Monthly aggregate.
-  - **Q4:** Kiểm toán Honest NULL và điều kiện chia cho 0.
-  - **Q5:** Kiểm toán tính duy nhất của tổ hợp khóa nhóm (0 duplicate grains).
+  - **Q2:** Kiểm toán chống nhân đôi dòng do liên kết đa nguồn trong `event_source_bridge` (so sánh distinct `canonical_event_id` với `event_count`).
+  - **Q3:** Kiểm toán tính cộng dồn đồng nhất giữa Daily và Monthly aggregate qua FULL OUTER JOIN cho tất cả các chỉ số cộng dồn.
+  - **Q4:** Kiểm toán đối soát sâu từng hạt (grain-level metric parity) giữa Fact và Daily Aggregate across toàn bộ 13 chỉ số thống kê và phân bố.
+  - **Q5:** Kiểm toán Honest NULL và điều kiện chia cho 0.
+  - **Q6:** Kiểm toán tính duy nhất của tổ hợp khóa nhóm (0 duplicate grains).
 
 ## 5. Kiểm thử và xác thực
 
-- **Spark Java Unit Test:** `spark/src/test/java/ie212/earthquake/spark/gold/GoldAggregateTransformerTest.java` (6 bài test kiểm tra biên JST, đối soát không double count, bảo toàn NULL, lọc sự kiện phi tự nhiên, cộng dồn tháng).
-- **Offline SQLite Test:** `tests/test_gld02_aggregates.py` (kiểm tra cú pháp view Trino thích ứng, mock data đa nguồn, thực thi trọn vẹn 5 query kiểm toán).
+- **Spark Java Unit Test:** `spark/src/test/java/ie212/earthquake/spark/gold/GoldAggregateTransformerTest.java` (bài test kiểm tra biên JST, đối soát không double count, bảo toàn NULL, lọc sự kiện phi tự nhiên, cộng dồn tháng).
+- **Offline SQLite Test:** `tests/test_gld02_aggregates.py` (thực thi trực tiếp các file SQL view và verification queries bàn giao trên SQLite giả lập schema Gold chuẩn, bao gồm positive test, negative tests làm sai lệch metric, và parity test cho alert/intensity).

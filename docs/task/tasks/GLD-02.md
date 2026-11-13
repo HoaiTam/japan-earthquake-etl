@@ -84,7 +84,7 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 - **Trạng thái:** Done
 - **Assignee:** ThanhTris
 - **Reviewer:** unassigned
-- **Evidence / PR:** Spark Java unit test suite: ie212.earthquake.spark.gold.GoldAggregateTransformerTest (6/6 tests passed); Python SQLite test suite: tests/test_gld02_aggregates.py (1/1 test passed); SQL serving views in sql/gold/v_event_daily.sql, sql/gold/v_event_monthly.sql, and verification queries in sql/gold/gold_aggregate_verification_queries.sql; Đặc tả kiến trúc docs/specs/GOLD_AGGREGATES.md.
+- **Evidence / PR:** Spark Java unit test suite: ie212.earthquake.spark.gold.GoldAggregateTransformerTest (7/7 tests passed: JST boundary, zero double count, Honest NULL, non-natural filtering, monthly rollup, alert/intensity predicate parity with none/empty exclusion); Python SQLite test suite: tests/test_gld02_aggregates.py (3/3 tests passed: direct execution of delivered verification queries Q1-Q6 on real Gold schema, alert/intensity parity, negative verification catching metric tampering and group omission); Serving views in sql/gold/v_event_daily.sql, sql/gold/v_event_monthly.sql, and verification queries in sql/gold/gold_aggregate_verification_queries.sql; Đặc tả kiến trúc docs/specs/GOLD_AGGREGATES.md; PR #129.
 - **Kỹ năng phù hợp:** Spark SQL, aggregation
 
 ## Checklist bàn giao

@@ -115,7 +115,7 @@ public final class GoldAggregateTransformer {
                 sum(when(col("magnitude").geq(5.0), 1L).otherwise(0L)).cast(DataTypes.LongType).alias("strong_earthquake_count"),
                 sum(when(col("tsunami_flag").equalTo(true), 1L).otherwise(0L)).cast(DataTypes.LongType).alias("tsunami_flagged_count"),
                 sum(when(col("alert_level").isNotNull().and(not(lower(trim(col("alert_level"))).isin("none", ""))), 1L).otherwise(0L)).cast(DataTypes.LongType).alias("alerted_event_count"),
-                sum(when(col("max_intensity_code").isNotNull().and(length(trim(col("max_intensity_code"))).gt(0)), 1L).otherwise(0L)).cast(DataTypes.LongType).alias("intensity_reported_count"),
+                sum(when(col("max_intensity_code").isNotNull().and(not(lower(trim(col("max_intensity_code"))).isin("none", ""))), 1L).otherwise(0L)).cast(DataTypes.LongType).alias("intensity_reported_count"),
                 sum(when(col("region_category").isin("OFFSHORE", "UNKNOWN"), 1L).otherwise(0L)).cast(DataTypes.LongType).alias("offshore_or_unknown_count")
         ).select(
                 col("event_date_key_jst"),
