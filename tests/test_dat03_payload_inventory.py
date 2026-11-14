@@ -200,6 +200,104 @@ class PayloadInventoryTest(unittest.TestCase):
         self.assertEqual(sum(size for _, size in contents), delta["unique_content_bytes"])
         self.assertEqual(delta["unique_content_bytes"], 595)
 
+    def test_committed_rosy_payload_request_has_pinned_manifest_scope(self):
+        path = ROOT / "config/research/dat03_lineage_rosy179_payload.json"
+        request = json.loads(path.read_bytes())
+        self.assertEqual(request["owner"], "rosy179")
+        self.assertEqual(request["object_count"], 144)
+        self.assertEqual(len(request["objects"]), 144)
+        _, objects, by_key = m.load_request(path, sha(path.read_bytes()))
+        self.assertEqual(len(by_key), 144)
+        self.assertEqual(sum(o["byte_size"] for o in objects), 635408427)
+        self.assertEqual(len({(o["sha256"], o["byte_size"]) for o in objects}), 104)
+        summary = json.loads((ROOT / "docs/evidence/DAT-03_BYTE_AVAILABILITY_20261114.json").read_bytes())
+        self.assertEqual(request["basis_audit_sha256"], summary["rosy_combined_audit_sha256"])
+        self.assertEqual(request["basis_roots_sha256"], summary["rosy_root_sha256"])
+
+    def test_followup_requests_include_current_heads_without_reasking_parents(self):
+        heads = {
+            "rosy179": ("orc07-22b5e7647a3df9ed83370139e11c48048845ee8f", 24, 23, 138),
+            "ThanhTris": ("orc07-5679c9c378edacb4e5f804613c8475351ce326b4", 2, 1, 114),
+        }
+        for owner, (head, count, publications, snapshots) in heads.items():
+            with self.subTest(owner=owner):
+                req = json.loads((ROOT / f"config/research/dat03_lineage_{owner}_followup_20261114.json").read_bytes())
+                self.assertEqual(req["owner"], owner)
+                self.assertEqual(req["object_count"], count)
+                self.assertEqual(len(req["objects"]), count)
+                self.assertEqual(len({o["uri"] for o in req["objects"]}), count)
+                self.assertEqual(len(req["unpinned_publication_uris"]), publications)
+                self.assertEqual(len(set(req["unpinned_publication_uris"])), publications)
+                self.assertEqual(len(req["snapshot_references"]), snapshots)
+                self.assertEqual(req["head_run_id"], head)
+                prefix = m.PREFIX + "silver/gold-commits/" + head + "/"
+                keyed = {o["uri"]: o for o in req["objects"]}
+                self.assertEqual(keyed[prefix + "commit.json"]["kind"], "gold_commit")
+                self.assertEqual(keyed[prefix + "identity.json"]["kind"], "gold_identity")
+                self.assertTrue(all(m.SHA.fullmatch(o["sha256"]) for o in req["objects"]))
+                head_tables = {o["table"] for o in req["snapshot_references"]
+                               if o["commit_uri"] == prefix + "commit.json"}
+                self.assertEqual(head_tables, {"event_current", "event_source_bridge", "dim_date",
+                                               "dim_region", "dim_magnitude_band", "dim_depth_band"})
+                old = json.loads((ROOT / f"config/research/dat03_lineage_{owner}_metadata.json").read_bytes())
+                if owner == "rosy179":
+                    parents = {o["uri"].removesuffix("commit.json") + "identity.json"
+                               for o in old["objects"] if o["kind"] == "gold_commit"}
+                    self.assertEqual(len(parents), 22)
+                    self.assertTrue(parents.issubset(keyed))
+                else:
+                    self.assertTrue(set(keyed).isdisjoint({o["uri"] for o in old["objects"]}))
+
+    def test_byte_availability_evidence_binds_requests_and_keeps_acceptance_closed(self):
+        summary = json.loads((ROOT / "docs/evidence/DAT-03_BYTE_AVAILABILITY_20261114.json").read_bytes())
+        self.assertEqual(summary["task_status"], "In Progress")
+        self.assertEqual(summary["assignee"], "HoaiTam")
+        self.assertEqual(summary["reviewer"], "unassigned")
+        self.assertEqual(summary["new_live_trino_queries"], 0)
+        for flag in ("s3_keys_verified", "parquet_semantics_verified", "full_transitive_closure_verified",
+                     "portable_import_ready", "official_export_ready", "research_ready",
+                     "three_machine_receipts_verified", "etl_replayed", "docker_changed", "drive_written"):
+            self.assertIs(summary[flag], False, flag)
+        for worker in summary["workers"]:
+            for field in ("payload_request", "followup_request"):
+                pin = worker[field]
+                self.assertEqual(sha((ROOT / pin["path"]).read_bytes()), pin["sha256"])
+            self.assertEqual(worker["payload_expected_references"], worker["matched_references_after_reuse"])
+            self.assertEqual(worker["missing_references_after_reuse"], 0)
+            self.assertEqual(worker["shared_raw_source_matched_references"], 37)
+        reuse = summary["byte_reuse"]
+        self.assertEqual(reuse["references_resolved"], 42)
+        for flag in ("bytes_regenerated", "original_s3_keys_restored", "shared_to_other_machines"):
+            self.assertIs(reuse[flag], False)
+
+    def test_reused_content_digest_resolves_both_worker_deltas_not_source_keys(self):
+        summary = json.loads((ROOT / "docs/evidence/DAT-03_BYTE_AVAILABILITY_20261114.json").read_bytes())
+        reuse = summary["byte_reuse"]
+        requests = (("config/research/dat03_lineage_ThanhTris_payload_delta.json", 19),
+                    ("config/research/dat03_lineage_rosy179_payload.json", 23))
+        for path, expected in requests:
+            data = json.loads((ROOT / path).read_bytes())
+            matches = [o for o in data["objects"] if o["sha256"] == reuse["sha256"]
+                       and o["byte_size"] == reuse["byte_size"]]
+            self.assertEqual(len(matches), expected)
+            self.assertTrue(all("/reject_record/" in o["uri"] for o in matches))
+
+    def test_snapshot_reference_pins_keep_exact_int64_values(self):
+        expected = {
+            "rosy179": "d84d17f903c5796f758f9c42929c67a3cc1579da41a9b374bf65f7719e4595d3",
+            "ThanhTris": "010792a3a2fb227dcb219ea5971435e067efecc658599873563ccf6752e65b8a",
+        }
+        for owner, digest in expected.items():
+            req = json.loads((ROOT / f"config/research/dat03_lineage_{owner}_followup_20261114.json").read_bytes())
+            refs = req["snapshot_references"]
+            encoded = json.dumps(refs, sort_keys=True, separators=(",", ":")).encode()
+            self.assertEqual(req["snapshot_reference_encoding"], "json-sort-keys-compact-utf8-v1")
+            self.assertEqual(sha(encoded), digest)
+            self.assertEqual(req["snapshot_reference_sha256"], digest)
+            self.assertTrue(any(o["snapshot_id"] > 2**53 for o in refs))
+            self.assertTrue(all(type(o["snapshot_id"]) is int
+                                and 0 < o["snapshot_id"] <= 2**63 - 1 for o in refs))
+
 
 if __name__ == "__main__":
     unittest.main()

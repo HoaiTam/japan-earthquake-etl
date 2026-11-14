@@ -23,6 +23,11 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 ## Tổng quan
 
 **Hiện hành12/11:** 63/81 Done,5 Needs Update,12 Backlog,1 In Progress (DAT-03).
+**14/11, DAT-03 / PR #131:** [Byte audit mới](../../evidence/DAT-03_BYTE_AVAILABILITY_20261114.md)
+đạt119/119payload refs Trí,144/144Trang,37/37source refs mỗi worker bằng
+bytes tái dùng có cùng SHA/size trên coordinator. Trang114metadata đã matched;
+còn identities/current-head metadata, complete Iceberg graph và actual
+integration/export/receipts. **In Progress**, không chứng nhận original S3keys.
 **13/11:** HoaiTam tiếp tục DAT-03 inventory tái dùng payload từ main #128;
 giữ In Progress, chưa nghiệm thu catalog hợp nhất hoặc official export.
 [Actual payload inventory13/11](../../evidence/DAT-03_PAYLOAD_REUSE_20261113.md):

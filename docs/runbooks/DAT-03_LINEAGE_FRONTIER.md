@@ -1,5 +1,12 @@
 # DAT-03 — Kiểm lineage hiện có trước portable integration
 
+> Cập nhật14/11: [byte/metadata audit mới](../evidence/DAT-03_BYTE_AVAILABILITY_20261114.md)
+> đã nhận đủ114metadata của Trang,119/119payload refs Trí/144/144Trang và37/37
+> raw-source contents mỗi worker trên coordinator. Các requests12/11 bên dưới
+> giữ làm lịch sử; dùng [follow-up Trang](../../config/research/dat03_lineage_rosy179_followup_20261114.json)
+> và [follow-up Trí](../../config/research/dat03_lineage_ThanhTris_followup_20261114.json)
+> cho identities/current-head và publication còn thiếu. Không chuyển Done.
+
 ## Mục tiêu và phạm vi
 
 Đọc ZIP metadata offline, xác minh original bytes theo **trusted checkpoint
@@ -40,7 +47,7 @@ Report có thể được tạo lại vào tên output mới, không ghi đè ev
 files; cả portable_import_ready/official_export_ready/full_transitive_closure_verified
 luôn false trong component này, kể cả frontier được cung cấp đủ.
 
-## Giao Trí — metadata trước, payload sau
+## Giao Trí12/11 — yêu cầu lịch sử
 
 1. Đọc [metadata request](../../config/research/dat03_lineage_ThanhTris_metadata.json).
    **18 identity.json** có expected SHA từ18commit đã verify. Không cần gửi lại
@@ -61,7 +68,7 @@ luôn false trong component này, kể cả frontier được cung cấp đủ.
    Công cụ extract-minio-provenance hiện khóa count first-hop75/83, **không**
    truyền request18objects vào đó rồi nới guard để làm xanh.
 
-## Giao Trang — lấy metadata để mở frontier sâu hơn
+## Giao Trang12/11 — metadata114 đã matched14/11
 
 1. Đọc [metadata request](../../config/research/dat03_lineage_rosy179_metadata.json):
    **92 dataset manifests +22 parent commit JSON**,114 exact objects có pin.

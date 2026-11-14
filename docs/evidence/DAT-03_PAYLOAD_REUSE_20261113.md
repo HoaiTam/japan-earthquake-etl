@@ -1,5 +1,9 @@
 # DAT-03 — Actual payload reuse inventory, 13/11/2026
 
+> Mốc lịch sử13/11. [Audit14/11](DAT-03_BYTE_AVAILABILITY_20261114.md) đã tìm
+> được content595bytes, kiểm kê119/119Trí/144/144Trang và xác nhận114metadata
+> Trang. Không sửa kết quả/report13/11 thành một lần nghiệm thu khác.
+
 Owner HoaiTam; branch `feat/dat-03-payload-reuse-inventory` từ main
 `df2fb01418f81e0bfaf54c8306e7cce11d759a8d` (#128). Task **In Progress**.
 [Runbook](../runbooks/DAT-03_PAYLOAD_REUSE.md),

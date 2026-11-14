@@ -16,6 +16,20 @@ dependencies: ["ORC-07", "MLD-05", "MLI-02", "EXP-01"]
 
 ## Giao việc hiện hành — 11/11/2026
 
+**14/11 — tiếp tục trên PR #131:** [Audit/evidence mới](../../evidence/DAT-03_BYTE_AVAILABILITY_20261114.md)
+xác nhận119/119payload references Trí,144/144Trang và37/37raw-source bytes
+mỗi worker có thể tái dùng theo SHA/size trên máy coordinator. Content595bytes
+đã tìm được bản nguyên bytes; không regenerate, không restore original S3keys.
+Trang đã bàn giao114frontier metadata khớp pin. Không còn yêu cầu gửi lại
+ZIP data lớn hoặc coi114objects này còn thiếu như mốc13/11 bên dưới.
+
+Còn original identities của Trang và current head cuối mỗi worker:
+[request Trang24pinned objects/23publication URIs](../../../config/research/dat03_lineage_rosy179_followup_20261114.json),
+[request Trí2pinned objects/1publication URI](../../../config/research/dat03_lineage_ThanhTris_followup_20261114.json).
+Full Iceberg graph, portable integration/Trino và official exports/receipts
+chưa đạt; giữ **In Progress**, reviewer `unassigned`. Các mốc12–13/11 bên
+dưới là lịch sử, không ghi đè evidence cũ hoặc chuyển Done vì đủ content bytes.
+
 **13/11 — tiếp tục trên `feat/dat-03-payload-reuse-inventory` từ main `df2fb01`:**
 HoaiTam kiểm lại metadata đã merge #128 và inventory payload theo bytes/SHA
 trong các gói đã chia sẻ; chỉ thu phần thiếu thực sự, không replay ETL hoặc
@@ -235,6 +249,13 @@ release đủ gate. Không tạo dependency ngược từ DAT-03 sang EXP-02.
   MLI-04/MLQ-01 sở hữu report/ML E2E.
 
 ## Theo dõi
+
+- **Actual14/11 / PR #131:** [Byte availability evidence](../../evidence/DAT-03_BYTE_AVAILABILITY_20261114.md)
+  và [summary/pins](../../evidence/DAT-03_BYTE_AVAILABILITY_20261114.json): đủ119/119
+  payload refs Trí,144/144Trang,37/37raw-source contents mỗi worker trên owner.
+  Trang114metadata matched; còn identities/current-head/publication/graph theo
+  follow-up requests hiện hành. Giữ In Progress; original S3keys, portable
+  Gold/live Trino/official exports và receipts3máy chưa nghiệm thu mới.
 
 - **13/11 — actual metadata/payload inventory:** branch `feat/dat-03-payload-reuse-inventory`
   từ main #128,75roots/76manifests/18commits/18identities matched;100/119payload
