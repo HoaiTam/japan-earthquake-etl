@@ -1393,11 +1393,14 @@ class TestPackWorkerLineage(unittest.TestCase):
                     return None
                 return default
 
+            mock_boto3 = MagicMock()
+            mock_sess = MagicMock()
+            mock_sess.get_credentials.return_value = None
+            mock_boto3.DEFAULT_SESSION = None
+            mock_boto3.Session.return_value = mock_sess
+
             with patch.object(os.environ, "get", mock_env_get):
-                with patch("boto3.Session") as mock_session_cls:
-                    mock_sess = MagicMock()
-                    mock_sess.get_credentials.return_value = None
-                    mock_session_cls.return_value = mock_sess
+                with patch.object(lineage, "boto3", mock_boto3):
                     with self.assertRaises(RuntimeError) as ctx:
                         lineage.pack_frontier_metadata(
                             owner="rosy179",
@@ -1416,22 +1419,160 @@ class TestPackWorkerLineage(unittest.TestCase):
             zip_out = tmp_path / "frontier.zip"
             req_file = ROOT / "config/research/dat03_lineage_rosy179_metadata.json"
 
-            def mock_env_get(key, default=None):
+            mock_boto3 = MagicMock()
+
+            # Case 1: MINIO_ACCESS_KEY without MINIO_SECRET_KEY
+            def mock_env_minio_incomplete(key, default=None):
                 if key == "MINIO_ACCESS_KEY":
                     return "some-access-key"
                 if key in ("MINIO_SECRET_KEY", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"):
                     return None
                 return default
 
-            with patch.object(os.environ, "get", mock_env_get):
-                with self.assertRaises(RuntimeError) as ctx:
-                    lineage.pack_frontier_metadata(
+            with patch.object(os.environ, "get", mock_env_minio_incomplete):
+                with patch.object(lineage, "boto3", mock_boto3):
+                    with self.assertRaises(RuntimeError) as ctx:
+                        lineage.pack_frontier_metadata(
+                            owner="rosy179",
+                            output_zip=zip_out,
+                            request_file=req_file,
+                            source_dir=None,
+                        )
+                    self.assertIn("INCOMPLETE_S3_CREDENTIALS", str(ctx.exception))
+                    self.assertIn("MINIO_ACCESS_KEY", str(ctx.exception))
+
+            # Case 2: AWS_ACCESS_KEY_ID without AWS_SECRET_ACCESS_KEY
+            def mock_env_aws_incomplete(key, default=None):
+                if key == "AWS_ACCESS_KEY_ID":
+                    return "some-aws-key"
+                if key in ("MINIO_ACCESS_KEY", "MINIO_SECRET_KEY", "AWS_SECRET_ACCESS_KEY"):
+                    return None
+                return default
+
+            with patch.object(os.environ, "get", mock_env_aws_incomplete):
+                with patch.object(lineage, "boto3", mock_boto3):
+                    with self.assertRaises(RuntimeError) as ctx:
+                        lineage.pack_frontier_metadata(
+                            owner="rosy179",
+                            output_zip=zip_out,
+                            request_file=req_file,
+                            source_dir=None,
+                        )
+                    self.assertIn("INCOMPLETE_S3_CREDENTIALS", str(ctx.exception))
+                    self.assertIn("AWS_ACCESS_KEY_ID", str(ctx.exception))
+
+    def test_pack_frontier_metadata_aws_credentials_with_session_token(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir).resolve()
+            zip_out = tmp_path / "frontier.zip"
+            req_file = tmp_path / "req.json"
+
+            mock_storage = {}
+            objects = []
+            for r in range(1, 24):
+                run_id = f"orc07-run-{r:02d}"
+                for ds in ("source_observation", "reject_record", "source_link", "canonical_membership"):
+                    rel = f"silver/bundles/{run_id}/{ds}/manifest.json"
+                    content = json.dumps({"dataset": ds, "run": run_id}).encode("utf-8")
+                    mock_storage[rel] = content
+                    sha = lineage.compute_sha256(content)
+                    objects.append({
+                        "uri": f"s3://japan-earthquake/{rel}",
+                        "sha256": sha,
+                        "kind": "silver_dataset_manifest",
+                    })
+
+            for r in range(1, 23):
+                parent_run = f"orc07-run-{r:02d}"
+                rel = f"silver/gold-commits/{parent_run}/commit.json"
+                content = json.dumps({"commit": f"commit-{parent_run}"}).encode("utf-8")
+                mock_storage[rel] = content
+                sha = lineage.compute_sha256(content)
+                objects.append({
+                    "uri": f"s3://japan-earthquake/{rel}",
+                    "sha256": sha,
+                    "kind": "gold_commit",
+                })
+
+            req_file.write_text(json.dumps({"owner": "rosy179", "object_count": 114, "objects": objects}), encoding="utf-8")
+
+            class MockBody:
+                def __init__(self, data: bytes):
+                    self._data = data
+                def read(self) -> bytes:
+                    return self._data
+
+            class MockS3Client:
+                def get_object(self, Bucket: str, Key: str):
+                    if Key not in mock_storage:
+                        raise KeyError(f"NoSuchKey: {Key}")
+                    return {"Body": MockBody(mock_storage[Key])}
+
+            captured_kwargs = {}
+            mock_boto3 = MagicMock()
+            def fake_client(service, **kwargs):
+                captured_kwargs.update(kwargs)
+                return MockS3Client()
+            mock_boto3.client.side_effect = fake_client
+
+            # Subtest 1: AWS credentials with AWS_SESSION_TOKEN
+            env_aws = {
+                "AWS_ACCESS_KEY_ID": "test-ak",
+                "AWS_SECRET_ACCESS_KEY": "test-sk",
+                "AWS_SESSION_TOKEN": "test-token",
+                "MINIO_ACCESS_KEY": "",
+                "MINIO_SECRET_KEY": "",
+            }
+            def mock_env_aws(key, default=None):
+                if key in env_aws:
+                    val = env_aws[key]
+                    return val if val else None
+                return default
+
+            with patch.object(os.environ, "get", mock_env_aws):
+                with patch.object(lineage, "boto3", mock_boto3):
+                    res = lineage.pack_frontier_metadata(
                         owner="rosy179",
                         output_zip=zip_out,
                         request_file=req_file,
                         source_dir=None,
+                        overwrite=True,
                     )
-                self.assertIn("INCOMPLETE_S3_CREDENTIALS", str(ctx.exception))
+                    self.assertEqual(res["status"], "PASS")
+                    self.assertEqual(res["total_objects"], 114)
+                    self.assertEqual(captured_kwargs.get("aws_access_key_id"), "test-ak")
+                    self.assertEqual(captured_kwargs.get("aws_secret_access_key"), "test-sk")
+                    self.assertEqual(captured_kwargs.get("aws_session_token"), "test-token")
+
+            # Subtest 2: MinIO credentials ignores AWS_SESSION_TOKEN
+            captured_kwargs.clear()
+            env_minio = {
+                "MINIO_ACCESS_KEY": "minio-ak",
+                "MINIO_SECRET_KEY": "minio-sk",
+                "AWS_SESSION_TOKEN": "stray-aws-token",
+                "AWS_ACCESS_KEY_ID": "",
+                "AWS_SECRET_ACCESS_KEY": "",
+            }
+            def mock_env_minio(key, default=None):
+                if key in env_minio:
+                    val = env_minio[key]
+                    return val if val else None
+                return default
+
+            with patch.object(os.environ, "get", mock_env_minio):
+                with patch.object(lineage, "boto3", mock_boto3):
+                    res2 = lineage.pack_frontier_metadata(
+                        owner="rosy179",
+                        output_zip=zip_out,
+                        request_file=req_file,
+                        source_dir=None,
+                        overwrite=True,
+                    )
+                    self.assertEqual(res2["status"], "PASS")
+                    self.assertEqual(res2["total_objects"], 114)
+                    self.assertEqual(captured_kwargs.get("aws_access_key_id"), "minio-ak")
+                    self.assertEqual(captured_kwargs.get("aws_secret_access_key"), "minio-sk")
+                    self.assertNotIn("aws_session_token", captured_kwargs)
 
     def test_pack_frontier_cli_rejects_secret_flags(self):
         stderr_buf = io.StringIO()

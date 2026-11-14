@@ -1221,21 +1221,34 @@ def pack_frontier_metadata(
                 )
             s3_ep = endpoint_url or os.environ.get("MINIO_ENDPOINT", "http://localhost:9000")
             reg = os.environ.get("S3_REGION") or os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
-            ak = os.environ.get("MINIO_ACCESS_KEY") or os.environ.get("AWS_ACCESS_KEY_ID")
-            sk = os.environ.get("MINIO_SECRET_KEY") or os.environ.get("AWS_SECRET_ACCESS_KEY")
 
             client_kwargs: Dict[str, Any] = {
                 "endpoint_url": s3_ep,
                 "region_name": reg,
             }
 
-            if ak and sk:
-                client_kwargs["aws_access_key_id"] = ak
-                client_kwargs["aws_secret_access_key"] = sk
-            elif ak or sk:
-                raise RuntimeError(
-                    "INCOMPLETE_S3_CREDENTIALS: Both access key and secret key must be set in environment."
-                )
+            minio_ak = os.environ.get("MINIO_ACCESS_KEY")
+            minio_sk = os.environ.get("MINIO_SECRET_KEY")
+            aws_ak = os.environ.get("AWS_ACCESS_KEY_ID")
+            aws_sk = os.environ.get("AWS_SECRET_ACCESS_KEY")
+            aws_token = os.environ.get("AWS_SESSION_TOKEN") or os.environ.get("AWS_SECURITY_TOKEN")
+
+            if minio_ak or minio_sk:
+                if not minio_ak or not minio_sk:
+                    raise RuntimeError(
+                        "INCOMPLETE_S3_CREDENTIALS: Both MINIO_ACCESS_KEY and MINIO_SECRET_KEY must be set in environment."
+                    )
+                client_kwargs["aws_access_key_id"] = minio_ak
+                client_kwargs["aws_secret_access_key"] = minio_sk
+            elif aws_ak or aws_sk:
+                if not aws_ak or not aws_sk:
+                    raise RuntimeError(
+                        "INCOMPLETE_S3_CREDENTIALS: Both AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY must be set in environment."
+                    )
+                client_kwargs["aws_access_key_id"] = aws_ak
+                client_kwargs["aws_secret_access_key"] = aws_sk
+                if aws_token:
+                    client_kwargs["aws_session_token"] = aws_token
             else:
                 has_creds = False
                 try:

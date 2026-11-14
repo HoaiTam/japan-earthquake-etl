@@ -11,8 +11,8 @@ Tuy nhiên, đây là kết quả của các gói riêng lẻ trên từng máy 
 | Catalog nền | 2000-01–2008-05 | 101 | Đã kiểm tra gói | Lưu trữ trên coordinator ban đầu (1.064.869 canonical events) |
 | HoaiTam | 2008-06–2013-07 | 62 | Đã kiểm tra các gói | Lưu trữ Drive theo các batch (24m + 9m + còn lại) |
 | ThanhTris | 2013-08–2018-09 | 62 | Đã kiểm tra gói | **75/75 objects khớp 100% SHA-256** |
-| rosy179 | 2018-10–2023-12 | 63 | Đã kiểm tra gói | **Đã hoàn thành 83/83 first-hop (PASS), 138 phase journals bổ sung (PACKAGED), và 114/114 objects frontier gốc (VERIFIED 100% SHA-256 trên Drive ngày 14/11)** |
-| **Toàn kỳ hợp nhất** | **2000-01–2023-12** | **288** | **Đủ 288/288 tháng** | **75 first-hop + 114 journals (Trí); 83 first-hop + 138 journals + 114 frontier bytes (Trang); Cổng 1 đạt nghiệm thu bytes frontier rosy179** |
+| rosy179 | 2018-10–2023-12 | 63 | Đã kiểm tra gói | **Đã hoàn thành 83/83 first-hop (PASS), 138 phase journals bổ sung (PACKAGED), và 114/114 objects frontier gốc (VERIFIED 100% SHA-256 trên Drive ngày 14/11; Cổng 1 tiếp tục mở chờ follow-up PR #131)** |
+| **Toàn kỳ hợp nhất** | **2000-01–2023-12** | **288** | **Đủ 288/288 tháng** | **75 first-hop + 114 journals (Trí); 83 first-hop + 138 journals + 114 frontier bytes (Trang); Cổng 1 tiếp tục MỞ chờ follow-up metadata (PR #131) và đối soát Trí** |
 
 ---
 
@@ -108,13 +108,17 @@ Ngày 14/11/2026, coordinator Hoài Tâm đã tải và đối soát độc lậ
     - **92 Silver dataset manifests:** 23 runs x 4 datasets (`source_observation`, `reject_record`, `source_link`, `canonical_membership` dưới `silver/bundles/<run_id>/<dataset>/manifest.json`).
     - **22 parent Gold commit JSONs:** `silver/gold-commits/<run_id>/commit.json` của 22 run cha.
   - **Tính toàn vẹn ZIP:** Hoài Tâm xác nhận không có missing hoặc extra metadata, không có duplicate ZIP members, không có unsafe paths hay symlink.
-- **Trạng thái Cổng 1 đối với rosy179:** Hoàn thành toàn bộ việc cung cấp và nghiệm thu bytes gốc của 114 objects frontier được yêu cầu; Cổng 1 đã có đầy đủ bằng chứng vật lý cho phân đoạn 63 tháng của rosy179.
+- **Phân định phạm vi nghiệm thu 114 objects frontier của rosy179:**
+  - Hoài Tâm đã xác nhận nghiệm thu 114/114 objects bytes gốc (92 Silver dataset manifests + 22 parent Gold commit JSONs) đạt 100% SHA-256.
+  - **Giới hạn phạm vi nghiêm ngặt:** Việc nghiệm thu 114 objects bytes gốc này **KHÔNG đồng nghĩa với việc đóng toàn bộ lineage hay đóng Cổng 1**.
+  - **Cổng 1 tiếp tục MỞ (`CONG_1_TRANSITIVE_CLOSURE_OPEN`)**: Tiếp tục xử lý danh sách yêu cầu metadata bổ sung theo file `config/research/dat03_lineage_rosy179_followup_20261114.json` (PR #131) gồm 24 pinned metadata objects (22 parent gold identity objects + head commit & head identity cho run `orc07-0f87aad8b4ca1841cde6fe131eb17844ff848b7a`) cùng 23 publication URIs gốc.
+  - **Nguyên tắc kỹ thuật:** Phân biệt rõ ràng canonical payload digest với raw-file SHA-256; không tự ý tổng hợp commit/identity từ phase JSONs (`gold.json` / `publish.json`); snapshot references trên Iceberg cần được kiểm tra inventory thực tế trước khi coi là đồ thị hoàn tất.
 
 ---
 
 ## 3. Các Điểm nghẽn Còn lại Trước khi Hoàn tất DAT-03
 
-1. **Cổng 1 — Transitive closure frontier:** Tier 1 (83 objects first-hop) và Tier 3 (114 objects frontier bytes gốc của rosy179) đã được tải lên Google Drive và Hoài Tâm đối soát độc lập đạt 100% SHA-256. Tier 2 (138 objects supplemental phase journals) đã đóng gói. Cổng 1 hoàn tất nghiệm thu bytes frontier cho rosy179; tiếp tục phần đối soát tương ứng của ThanhTris để chuẩn bị chuyển sang Cổng 2.
+1. **Cổng 1 — Transitive closure frontier & follow-up lineage:** Tier 1 (83 objects first-hop) và 114 objects frontier bytes gốc của rosy179 đã được tải lên Google Drive và Hoài Tâm đối soát độc lập đạt 100% SHA-256; Tier 2 (138 objects supplemental phase journals) đã đóng gói. Cổng 1 vẫn đang MỞ (OPEN), chưa đóng transitive closure: tiếp tục xử lý danh sách đối soát bổ sung `config/research/dat03_lineage_rosy179_followup_20261114.json` (PR #131) gồm 24 pinned metadata objects và 23 publication URIs gốc, cùng phần đối soát tương ứng của ThanhTris trước khi có thể đóng Cổng 1.
 2. **Release nghiên cứu cuối:** Thư mục `accepted/` trên Drive chưa có release cuối cùng. Hai receipt hiện có trong thư mục `receipts/` là receipt chạy dải tháng cá nhân của Trí, chưa phải xác nhận của 3 thành viên nhận cùng một dataset nghiên cứu chính thức.
 3. **Catalog Gold hợp nhất:** Chưa thực hiện merge 4 gói vào Iceberg catalog chung để kiểm tra liên kết ranh giới và chạy Trino verification queries.
 4. **Official ML Export:** Chưa chạy build job chính thức cho 2 split `REPRODUCTION` và `EXTENSION` từ snapshot Gold chung.
@@ -126,7 +130,7 @@ Ngày 14/11/2026, coordinator Hoài Tâm đã tải và đối soát độc lậ
 Để đưa task [DAT-03](../task/tasks/DAT-03.md) từ `In Progress` / `Needs Update` sang `Done`, quy trình 4 cổng phải được nghiệm thu tuần tự:
 
 ```text
-[Cổng 1] Nhận provenance & đối soát transitive frontier 114 objects -> Đóng transitive closure
+[Cổng 1] Nhận provenance, đối soát frontier 114 objects & follow-up metadata -> Đóng transitive closure
    │
    ▼
 [Cổng 2] Tích hợp 4 gói vào catalog Iceberg Gold -> Khử trùng lặp ranh giới -> Verify Trino
@@ -141,7 +145,7 @@ Ngày 14/11/2026, coordinator Hoài Tâm đã tải và đối soát độc lậ
 DAT-03 CHÍNH THỨC HOÀN TẤT (DONE)
 ```
 
-1. **Cổng 1 — Đối soát Provenance & Transitive Closure:** First-hop provenance cho cả hai worker (ThanhTris: 75/75 objects, rosy179: 83/83 objects) đã được đưa lên Google Drive và đối chiếu độc lập khớp 100% SHA-256. Đã có supplemental phase journals (ThanhTris: 114, rosy179: 138). Cổng 1 hiện đang MỞ để chờ bytes gốc của các transitive frontier objects (rosy179: 114 objects gồm 92 Silver dataset manifests + 22 parent Gold commits; ThanhTris: danh sách tham chiếu tương ứng) được trích xuất và đối soát khớp SHA-256 trước khi đóng Cổng 1.
+1. **Cổng 1 — Đối soát Provenance & Transitive Closure:** First-hop provenance cho cả hai worker (ThanhTris: 75/75 objects, rosy179: 83/83 objects) đã được đưa lên Google Drive và đối chiếu độc lập khớp 100% SHA-256. Đã có supplemental phase journals (ThanhTris: 114, rosy179: 138). Phân đoạn rosy179 đã nghiệm thu 114 objects frontier bytes gốc (92 Silver manifests + 22 parent Gold commits). Cổng 1 hiện đang MỞ để chờ tiếp tục đối soát follow-up metadata theo `config/research/dat03_lineage_rosy179_followup_20261114.json` (PR #131: 24 metadata objects + 23 publication URIs) và hoàn tất phần đối soát tương ứng của ThanhTris trước khi đóng Cổng 1.
 2. **Cổng 2 — Tích hợp Catalog & Khử trùng Ranh giới:** Tích hợp 4 gói Parquet vào catalog Gold, kiểm tra tại 3 điểm ranh giới (`2008-05/06`, `2013-07/08`, `2018-09/10`) đảm bảo không trùng lặp `canonical_event_id`, chạy Trino query audit count.
 3. **Cổng 3 — Xuất bản Official ML Feature Export:** Kích hoạt `ResearchDatasetBuildJob` cho hai tập:
    - `REPRODUCTION`: [2000-01-01, 2018-10-01) UTC (225 tháng, Mc cutoff theo contract).
