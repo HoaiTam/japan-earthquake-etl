@@ -162,17 +162,46 @@ INSERT INTO publication_status VALUES (
     'pub-202302-001', 'gold-run-001', 12345678901234,
     'iceberg.gold.earthquake_event_current', 'iceberg.gold.event_current',
     '2023-02-07T01:00:00Z', '2023-02-07T01:05:00Z', '2023-02-07T01:10:00Z',
-    '2023-02-05T22:15:00Z', 9, '1.0', 'PASSED', 'sha256-bundle-test',
-    '{}', '{}', 'iceberg.gold.earthquake_event_current'
+    '2023-02-05T22:15:00Z', 9, '1.0', 'PASSED', 'bndl20230201sha256test01',
+    '{}', '{}', 'iceberg.gold.v_bndl20230201sha256test01_earthquake_event_current'
 );
 
--- 7. Serving View: earthquake_event_current (Published Natural Earthquakes in ROI)
-DROP VIEW IF EXISTS earthquake_event_current;
-CREATE VIEW earthquake_event_current AS
+-- 7. Immutable Versioned Views for Published Bundle (suffix: bndl20230201sha256test01)
+-- Matches the immutable views created by GoldPublisher.java (pinned to snapshot/run-1)
+DROP VIEW IF EXISTS v_bndl20230201sha256test01_earthquake_event_current;
+CREATE VIEW v_bndl20230201sha256test01_earthquake_event_current AS
 SELECT *
 FROM event_current
 WHERE is_natural_earthquake = 1
-  AND is_in_study_area = 1;
+  AND is_in_study_area = 1
+  AND gold_run_id = 'run-1';
+
+DROP VIEW IF EXISTS v_bndl20230201sha256test01_dim_date;
+CREATE VIEW v_bndl20230201sha256test01_dim_date AS
+SELECT *
+FROM dim_date;
+
+DROP VIEW IF EXISTS v_bndl20230201sha256test01_dim_region;
+CREATE VIEW v_bndl20230201sha256test01_dim_region AS
+SELECT *
+FROM dim_region
+WHERE region_key IN ('PREFECTURE:04', 'PREFECTURE:13', 'PREFECTURE:27', 'OFFSHORE', 'UNKNOWN');
+
+DROP VIEW IF EXISTS v_bndl20230201sha256test01_dim_magnitude_band;
+CREATE VIEW v_bndl20230201sha256test01_dim_magnitude_band AS
+SELECT *
+FROM dim_magnitude_band;
+
+DROP VIEW IF EXISTS v_bndl20230201sha256test01_dim_depth_band;
+CREATE VIEW v_bndl20230201sha256test01_dim_depth_band AS
+SELECT *
+FROM dim_depth_band;
+
+-- 8. Serving View Alias: earthquake_event_current (points to verified versioned view)
+DROP VIEW IF EXISTS earthquake_event_current;
+CREATE VIEW earthquake_event_current AS
+SELECT *
+FROM v_bndl20230201sha256test01_earthquake_event_current;
 
 -- 8. Daily Aggregate View: v_event_daily
 DROP VIEW IF EXISTS v_event_daily;

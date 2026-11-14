@@ -1,32 +1,23 @@
 // ============================================================================
-// Power Query M Script: DimDate
+// Power Query M: DimDate
 // Task: BI-01 (Power BI / Trino Connectivity)
-// Source: iceberg.gold.dim_date (Matches GoldEventTransformer output schema)
+// Target: Date dimension pinned to the active publication bundle.
+// Source: Immutable versioned view v_<bundle_suffix>_dim_date.
 // ============================================================================
 
 let
-    Config = try Parameters otherwise [Dsn = "TrinoJapanEarthquake", Catalog = "iceberg", Schema = "gold"],
-    DsnName = Config[Dsn],
-    CatalogName = Config[Catalog],
-    SchemaName = Config[Schema],
-    TargetTable = CatalogName & "." & SchemaName & ".dim_date",
+    DsnName = Parameters[Dsn],
+    CatalogName = Parameters[Catalog],
+    SchemaName = Parameters[Schema],
+    BundleSuffix = ActiveBundle[bundle_suffix],
+    TargetView = "v_" & BundleSuffix & "_dim_date",
 
-    Source = Odbc.Query("dsn=" & DsnName, "
-        SELECT
-            date_key,
-            calendar_date,
-            year,
-            quarter,
-            month,
-            month_name,
-            day_of_month,
-            day_of_week,
-            is_weekend
-        FROM " & TargetTable & "
-        ORDER BY date_key
-    "),
+    QuerySql = "SELECT date_key, calendar_date, year, quarter, month, month_name, " &
+               "day_of_month, day_of_week, is_weekend " &
+               "FROM " & CatalogName & "." & SchemaName & "." & TargetView,
 
-    TypedTable = Table.TransformColumnTypes(Source, {
+    Source = Odbc.Query("dsn=" & DsnName, QuerySql),
+    #"Typed Table" = Table.TransformColumnTypes(Source, {
         {"date_key", Int64.Type},
         {"calendar_date", type date},
         {"year", Int64.Type},
@@ -38,4 +29,4 @@ let
         {"is_weekend", type logical}
     })
 in
-    TypedTable
+    #"Typed Table"

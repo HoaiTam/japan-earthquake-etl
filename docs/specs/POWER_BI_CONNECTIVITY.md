@@ -17,19 +17,20 @@ Tài liệu hướng dẫn kết nối Power BI Desktop với Trino Lakehouse ph
 |           Trino ODBC Driver (Starburst / Trino)       |
 |  - DSN Name: TrinoJapanEarthquake                    |
 |  - Host: 127.0.0.1 (Loopback)                         |
-|  - Port: 8080 (hoặc TRINO_HOST_PORT từ Compose)       |
+|  - Port: 8081 (TRINO_HOST_PORT từ .env.example)       |
 |  - Authentication: No Authentication (Local Dev)      |
 +-------------------------------------------------------+
                            |
                       (HTTP / REST)
                            v
 +-------------------------------------------------------+
-|             Trino Coordinator :8080                   |
+|             Trino Coordinator (Container :8080)       |
 |  - Catalog: iceberg                                   |
 |  - Schemas: gold, ml                                  |
-|  - Serving Views: earthquake_event_current,           |
-|                   v_event_daily, v_event_monthly,     |
-|                   dim_*, publication_status           |
+|  - Serving: Immutable Versioned Views                 |
+|            (v_<bundle_suffix>_earthquake_event_current|
+|             v_<bundle_suffix>_dim_*,                  |
+|             publication_status)                       |
 +-------------------------------------------------------+
                            |
           (Apache Iceberg REST Catalog + MinIO)
@@ -51,6 +52,13 @@ Tài liệu hướng dẫn kết nối Power BI Desktop với Trino Lakehouse ph
 4. **Định kiểu dữ liệu nghiêm ngặt (Strict Explicit Typing):**
    - Mọi cột trong bảng Fact và Dimension đều được định kiểu tường minh (`Int64.Type`, `type number`, `type date`, `type datetimezone`, `type logical`, `type text`), bám sát 100% schema Gold hiện hành của `GoldEventTransformer.java`.
 
+5. **Cô lập Snapshot bất biến qua ActiveBundle (Pinned Immutable Snapshot Invariant):**
+   - Mọi bảng Fact, Dimension và Aggregate đều được ghim (pinned) vào cùng một snapshot bundle đã được xác minh thành công (`verify_status = 'PASSED'`) thông qua truy vấn `ActiveBundle.m`.
+   - Tránh hiện tượng *split-brain*:
+     - **Commit-before-publish**: Tuyệt đối không đọc trực tiếp các bảng vật lý đang diễn ra ghi chép thô chưa qua verification.
+     - **Publication-before-alias-switch**: Khi một publication mới hoàn tất verify nhưng alias chưa chuyển kịp, hoặc trong suốt quá trình Power BI refresh tuần tự kéo dài nhiều giây/phút, toàn bộ bảng Fact, Dimension, Aggregate và Freshness đều truy vấn view bất biến `v_<bundle_suffix>_*` cùng một `publication_id`, bảo đảm tính toàn vẹn 100% không bị lệch snapshot giữa các bảng.
+     - Cho phép ghim cứng phiên bản lịch sử bằng tham số `Parameters[PinnedPublicationId]` hoặc tự động lấy publication mới nhất đã verify khi để trống.
+
 ## 3. Hướng dẫn thiết lập ODBC DSN trên Windows (64-bit)
 
 ### Bước 1: Cài đặt Driver
@@ -63,7 +71,7 @@ Tài liệu hướng dẫn kết nối Power BI Desktop với Trino Lakehouse ph
 3. Điền các tham số cấu hình:
    - **Data Source Name (DSN):** `TrinoJapanEarthquake`
    - **Host:** `127.0.0.1` (hoặc `localhost`)
-   - **Port:** `8080` (hoặc port đã map trong `.env`: `TRINO_HOST_PORT`)
+   - **Port:** `8081` (Port mặc định mapping từ `TRINO_HOST_PORT` trong `.env.example`/Compose ra máy Host; container lắng nghe nội bộ tại `8080`)
    - **Catalog:** `iceberg`
    - **Schema:** `gold`
    - **Authentication:** `No Authentication` (cho môi trường local Docker)
@@ -74,15 +82,16 @@ Tài liệu hướng dẫn kết nối Power BI Desktop với Trino Lakehouse ph
 
 | Script M | Bảng / View Trino nguồn | Mục đích | Hạt dữ liệu |
 |---|---|---|---|
-| [Parameters.m](../../powerbi/power_query/Parameters.m) | Record cấu hình tập trung | Quản lý DSN, Catalog, Schema tập trung (`Parameters[Dsn]`, etc.) | Record cấu hình |
-| [FactEarthquakeEvents.m](../../powerbi/power_query/FactEarthquakeEvents.m) | `iceberg.gold.earthquake_event_current` | Dữ liệu từng trận động đất chi tiết (bản đồ, độ sâu) | 1 dòng / canonical event |
-| [FactEventDaily.m](../../powerbi/power_query/FactEventDaily.m) | `iceberg.gold.v_event_daily` | Tổng hợp nhanh theo ngày, vùng, band magnitude/depth | 1 dòng / ngày JST + dimension |
-| [FactEventMonthly.m](../../powerbi/power_query/FactEventMonthly.m) | `iceberg.gold.v_event_monthly` | Tổng hợp xu hướng dài hạn theo tháng | 1 dòng / tháng JST + dimension |
-| [DimDate.m](../../powerbi/power_query/DimDate.m) | `iceberg.gold.dim_date` | Chiều thời gian (`calendar_date`, `day_of_month`, `year`, `month`, ...) | 1 dòng / ngày |
-| [DimRegion.m](../../powerbi/power_query/DimRegion.m) | `iceberg.gold.dim_region` | Chiều địa lý vùng Nhật Bản (`region_key`, `region_name`, `region_category`) | 1 dòng / vùng |
-| [DimMagnitudeBand.m](../../powerbi/power_query/DimMagnitudeBand.m) | `iceberg.gold.dim_magnitude_band` | Chiều phân nhóm độ lớn (`band_code`, `band_label`, `sort_order`) | 1 dòng / band độ lớn |
-| [DimDepthBand.m](../../powerbi/power_query/DimDepthBand.m) | `iceberg.gold.dim_depth_band` | Chiều phân nhóm độ sâu (`band_code`, `band_label`, `sort_order`) | 1 dòng / band độ sâu |
-| [MetadataFreshness.m](../../powerbi/power_query/MetadataFreshness.m) | `iceberg.gold.publication_status` | Thẻ đo lường độ tươi dữ liệu (`published_at_utc`, `max_event_time_utc`) và thời điểm refresh | 1 dòng tổng hợp |
+| [Parameters.m](../../powerbi/power_query/Parameters.m) | Record cấu hình tập trung | Quản lý DSN, Catalog, Schema, PinnedPublicationId tập trung | Record cấu hình |
+| [ActiveBundle.m](../../powerbi/power_query/ActiveBundle.m) | `iceberg.gold.publication_status` | Xác định `publication_id` và `bundle_suffix` (24 ký tự) đã PASS để ghim snapshot cho toàn bộ phiên refresh | 1 dòng metadata |
+| [FactEarthquakeEvents.m](../../powerbi/power_query/FactEarthquakeEvents.m) | `iceberg.gold.v_<bundle_suffix>_earthquake_event_current` | Dữ liệu từng trận động đất chi tiết (bản đồ, độ sâu) | 1 dòng / canonical event |
+| [FactEventDaily.m](../../powerbi/power_query/FactEventDaily.m) | `iceberg.gold.v_<bundle_suffix>_earthquake_event_current` | Tổng hợp nhanh theo ngày, vùng, band magnitude/depth từ cùng pinned snapshot | 1 dòng / ngày JST + dimension |
+| [FactEventMonthly.m](../../powerbi/power_query/FactEventMonthly.m) | `iceberg.gold.v_<bundle_suffix>_earthquake_event_current` | Tổng hợp xu hướng dài hạn theo tháng từ cùng pinned snapshot | 1 dòng / tháng JST + dimension |
+| [DimDate.m](../../powerbi/power_query/DimDate.m) | `iceberg.gold.v_<bundle_suffix>_dim_date` | Chiều thời gian (`calendar_date`, `day_of_month`, `year`, `month`, ...) | 1 dòng / ngày |
+| [DimRegion.m](../../powerbi/power_query/DimRegion.m) | `iceberg.gold.v_<bundle_suffix>_dim_region` | Chiều địa lý vùng Nhật Bản (`region_key`, `region_name`, `region_category`) | 1 dòng / vùng |
+| [DimMagnitudeBand.m](../../powerbi/power_query/DimMagnitudeBand.m) | `iceberg.gold.v_<bundle_suffix>_dim_magnitude_band` | Chiều phân nhóm độ lớn (`band_code`, `band_label`, `sort_order`) | 1 dòng / band độ lớn |
+| [DimDepthBand.m](../../powerbi/power_query/DimDepthBand.m) | `iceberg.gold.v_<bundle_suffix>_dim_depth_band` | Chiều phân nhóm độ sâu (`band_code`, `band_label`, `sort_order`) | 1 dòng / band độ sâu |
+| [MetadataFreshness.m](../../powerbi/power_query/MetadataFreshness.m) | `iceberg.gold.publication_status` | Đo lường độ tươi dữ liệu (`published_at_utc`, `max_event_time_utc`) tương ứng chính xác với `ActiveBundle[publication_id]` | 1 dòng tổng hợp |
 
 ## 5. Bàn giao Mock Schema cho nhiệm vụ BI-02
 

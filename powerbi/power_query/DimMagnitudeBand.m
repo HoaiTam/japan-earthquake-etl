@@ -1,29 +1,25 @@
 // ============================================================================
-// Power Query M Script: DimMagnitudeBand
+// Power Query M: DimMagnitudeBand
 // Task: BI-01 (Power BI / Trino Connectivity)
-// Source: iceberg.gold.dim_magnitude_band (Matches GoldEventTransformer output schema)
+// Target: Magnitude band dimension pinned to the active publication bundle.
+// Source: Immutable versioned view v_<bundle_suffix>_dim_magnitude_band.
 // ============================================================================
 
 let
-    Config = try Parameters otherwise [Dsn = "TrinoJapanEarthquake", Catalog = "iceberg", Schema = "gold"],
-    DsnName = Config[Dsn],
-    CatalogName = Config[Catalog],
-    SchemaName = Config[Schema],
-    TargetTable = CatalogName & "." & SchemaName & ".dim_magnitude_band",
+    DsnName = Parameters[Dsn],
+    CatalogName = Parameters[Catalog],
+    SchemaName = Parameters[Schema],
+    BundleSuffix = ActiveBundle[bundle_suffix],
+    TargetView = "v_" & BundleSuffix & "_dim_magnitude_band",
 
-    Source = Odbc.Query("dsn=" & DsnName, "
-        SELECT
-            band_code,
-            band_label,
-            sort_order
-        FROM " & TargetTable & "
-        ORDER BY sort_order
-    "),
+    QuerySql = "SELECT band_code, band_label, sort_order " &
+               "FROM " & CatalogName & "." & SchemaName & "." & TargetView,
 
-    TypedTable = Table.TransformColumnTypes(Source, {
+    Source = Odbc.Query("dsn=" & DsnName, QuerySql),
+    #"Typed Table" = Table.TransformColumnTypes(Source, {
         {"band_code", type text},
         {"band_label", type text},
         {"sort_order", Int64.Type}
     })
 in
-    TypedTable
+    #"Typed Table"
