@@ -1011,6 +1011,363 @@ class TestPackWorkerLineage(unittest.TestCase):
                 )
             self.assertIn("FRONTIER_FILE_NOT_FOUND", str(ctx.exception))
 
+    def test_pack_frontier_metadata_s3_mocked_client(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir).resolve()
+            zip_out = tmp_path / "frontier_s3.zip"
+            req_file = tmp_path / "req_s3.json"
+
+            objects = []
+            mock_storage: Dict[str, bytes] = {}
+
+            # 92 silver manifests
+            for r in range(1, 24):
+                run_id = f"orc07-run-{r:02d}"
+                for ds in ("source_observation", "reject_record", "source_link", "canonical_membership"):
+                    rel = f"silver/bundles/{run_id}/{ds}/manifest.json"
+                    content = json.dumps({"dataset": ds, "run": run_id}).encode("utf-8")
+                    mock_storage[rel] = content
+                    sha = lineage.compute_sha256(content)
+                    objects.append({
+                        "uri": f"s3://japan-earthquake/{rel}",
+                        "sha256": sha,
+                        "kind": "silver_dataset_manifest",
+                    })
+
+            # 22 gold commits
+            for r in range(1, 23):
+                parent_run = f"orc07-run-{r:02d}"
+                rel = f"silver/gold-commits/{parent_run}/commit.json"
+                content = json.dumps({"commit": f"commit-{parent_run}"}).encode("utf-8")
+                mock_storage[rel] = content
+                sha = lineage.compute_sha256(content)
+                objects.append({
+                    "uri": f"s3://japan-earthquake/{rel}",
+                    "sha256": sha,
+                    "kind": "gold_commit",
+                })
+
+            req_file.write_text(json.dumps({"owner": "rosy179", "object_count": 114, "objects": objects}), encoding="utf-8")
+
+            class MockBody:
+                def __init__(self, data: bytes):
+                    self._data = data
+                def read(self) -> bytes:
+                    return self._data
+
+            class MockS3Client:
+                def get_object(self, Bucket: str, Key: str):
+                    if Key not in mock_storage:
+                        raise KeyError(f"NoSuchKey: {Key}")
+                    return {"Body": MockBody(mock_storage[Key])}
+
+            captured_kwargs = {}
+            class MockBoto3Module:
+                def client(self, service_name: str, **kwargs):
+                    if service_name != "s3":
+                        raise ValueError(f"Unknown service: {service_name}")
+                    captured_kwargs.update(kwargs)
+                    return MockS3Client()
+
+            with patch.object(lineage, "boto3", MockBoto3Module()):
+                res = lineage.pack_frontier_metadata(
+                    owner="rosy179",
+                    output_zip=zip_out,
+                    request_file=req_file,
+                    source_dir=None,
+                    endpoint_url="http://custom-endpoint:9000",
+                    access_key="custom-ak",
+                    secret_key="custom-sk",
+                    overwrite=True,
+                )
+                self.assertEqual(res["status"], "PASS")
+                self.assertEqual(res["total_objects"], 114)
+                self.assertTrue(zip_out.is_file())
+                self.assertTrue(Path(res["sha256_file"]).is_file())
+                self.assertEqual(captured_kwargs.get("aws_access_key_id"), "custom-ak")
+                self.assertEqual(captured_kwargs.get("aws_secret_access_key"), "custom-sk")
+                self.assertEqual(captured_kwargs.get("endpoint_url"), "http://custom-endpoint:9000")
+
+    def test_pack_frontier_metadata_sha_file_exists_fails_without_overwrite(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir).resolve()
+            src_dir = tmp_path / "mock_minio"
+            zip_out = tmp_path / "frontier.zip"
+            sha_file = tmp_path / "frontier.zip.sha256"
+            sha_file.write_text("OLD_CHECKSUM", encoding="utf-8")
+            req_file = tmp_path / "req.json"
+
+            objects = []
+            for r in range(1, 24):
+                run_id = f"orc07-run-{r:02d}"
+                for ds in ("source_observation", "reject_record", "source_link", "canonical_membership"):
+                    rel = f"silver/bundles/{run_id}/{ds}/manifest.json"
+                    f = src_dir / rel
+                    f.parent.mkdir(parents=True, exist_ok=True)
+                    f.write_bytes(b"data")
+                    objects.append({
+                        "uri": f"s3://japan-earthquake/{rel}",
+                        "sha256": lineage.compute_sha256(b"data"),
+                        "kind": "silver_dataset_manifest",
+                    })
+
+            for r in range(1, 23):
+                parent_run = f"orc07-run-{r:02d}"
+                rel = f"silver/gold-commits/{parent_run}/commit.json"
+                f = src_dir / rel
+                f.parent.mkdir(parents=True, exist_ok=True)
+                f.write_bytes(b"commit")
+                objects.append({
+                    "uri": f"s3://japan-earthquake/{rel}",
+                    "sha256": lineage.compute_sha256(b"commit"),
+                    "kind": "gold_commit",
+                })
+
+            req_file.write_text(json.dumps({"owner": "rosy179", "object_count": 114, "objects": objects}), encoding="utf-8")
+
+            # Must fail with FileExistsError and leave sha_file untouched
+            with self.assertRaises(FileExistsError) as ctx:
+                lineage.pack_frontier_metadata(
+                    owner="rosy179",
+                    output_zip=zip_out,
+                    request_file=req_file,
+                    source_dir=src_dir,
+                    overwrite=False,
+                )
+            self.assertIn("SHA256_FILE_ALREADY_EXISTS", str(ctx.exception))
+            self.assertEqual(sha_file.read_text(encoding="utf-8"), "OLD_CHECKSUM")
+
+    def test_pack_frontier_metadata_symlink_output_rejected_and_target_untouched(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir).resolve()
+            src_dir = tmp_path / "mock_minio"
+            target_checkpoint = tmp_path / "target_checkpoint.json"
+            target_checkpoint.write_text("IMPORTANT_CHECKPOINT_DATA", encoding="utf-8")
+            symlink_zip = tmp_path / "symlink.zip"
+            req_file = tmp_path / "req.json"
+
+            objects = []
+            for r in range(1, 24):
+                run_id = f"orc07-run-{r:02d}"
+                for ds in ("source_observation", "reject_record", "source_link", "canonical_membership"):
+                    rel = f"silver/bundles/{run_id}/{ds}/manifest.json"
+                    f = src_dir / rel
+                    f.parent.mkdir(parents=True, exist_ok=True)
+                    f.write_bytes(b"data")
+                    objects.append({
+                        "uri": f"s3://japan-earthquake/{rel}",
+                        "sha256": lineage.compute_sha256(b"data"),
+                        "kind": "silver_dataset_manifest",
+                    })
+
+            for r in range(1, 23):
+                parent_run = f"orc07-run-{r:02d}"
+                rel = f"silver/gold-commits/{parent_run}/commit.json"
+                f = src_dir / rel
+                f.parent.mkdir(parents=True, exist_ok=True)
+                f.write_bytes(b"commit")
+                objects.append({
+                    "uri": f"s3://japan-earthquake/{rel}",
+                    "sha256": lineage.compute_sha256(b"commit"),
+                    "kind": "gold_commit",
+                })
+
+            req_file.write_text(json.dumps({"owner": "rosy179", "object_count": 114, "objects": objects}), encoding="utf-8")
+
+            orig_is_symlink = Path.is_symlink
+            orig_os_islink = os.path.islink
+
+            def mock_is_symlink(p):
+                if Path(p) == Path(symlink_zip):
+                    return True
+                return orig_is_symlink(p)
+
+            def mock_os_islink(p):
+                if Path(p) == Path(symlink_zip):
+                    return True
+                return orig_os_islink(p)
+
+            with patch.object(Path, "is_symlink", mock_is_symlink), patch("os.path.islink", mock_os_islink):
+                with self.assertRaises(ValueError) as ctx:
+                    lineage.pack_frontier_metadata(
+                        owner="rosy179",
+                        output_zip=symlink_zip,
+                        request_file=req_file,
+                        source_dir=src_dir,
+                        overwrite=True,
+                    )
+                self.assertIn("SYMLINK_REJECTED", str(ctx.exception))
+
+            self.assertEqual(target_checkpoint.read_text(encoding="utf-8"), "IMPORTANT_CHECKPOINT_DATA")
+
+    def test_pack_frontier_metadata_duplicate_objects_in_request_rejected(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir).resolve()
+            src_dir = tmp_path / "mock_minio"
+            zip_out = tmp_path / "frontier.zip"
+            req_file = tmp_path / "req_dup.json"
+
+            # 1 object repeated 114 times
+            single_obj = {
+                "uri": "s3://japan-earthquake/silver/bundles/orc07-run-01/source_observation/manifest.json",
+                "sha256": "a" * 64,
+                "kind": "silver_dataset_manifest",
+            }
+            objects = [dict(single_obj) for _ in range(114)]
+            req_file.write_text(json.dumps({"owner": "rosy179", "object_count": 114, "objects": objects}), encoding="utf-8")
+
+            with self.assertRaises(ValueError) as ctx:
+                lineage.pack_frontier_metadata(
+                    owner="rosy179",
+                    output_zip=zip_out,
+                    request_file=req_file,
+                    source_dir=src_dir,
+                )
+            self.assertIn("DUPLICATE_FRONTIER_REQUEST_OBJECT", str(ctx.exception))
+
+    def test_pack_frontier_metadata_composition_mismatch_rejected(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir).resolve()
+            src_dir = tmp_path / "mock_minio"
+            zip_out = tmp_path / "frontier.zip"
+            req_file = tmp_path / "req_comp.json"
+
+            objects = []
+            # 93 silver manifests instead of 92
+            for r in range(1, 24):
+                run_id = f"orc07-run-{r:02d}"
+                for ds in ("source_observation", "reject_record", "source_link", "canonical_membership"):
+                    rel = f"silver/bundles/{run_id}/{ds}/manifest.json"
+                    objects.append({
+                        "uri": f"s3://japan-earthquake/{rel}",
+                        "sha256": lineage.compute_sha256(rel.encode("utf-8")),
+                        "kind": "silver_dataset_manifest",
+                    })
+
+            # Add 1 extra manifest from run 24
+            objects.append({
+                "uri": "s3://japan-earthquake/silver/bundles/orc07-run-24/source_observation/manifest.json",
+                "sha256": "c" * 64,
+                "kind": "silver_dataset_manifest",
+            })
+
+            # 21 gold commits instead of 22
+            for r in range(1, 22):
+                parent_run = f"orc07-run-{r:02d}"
+                rel = f"silver/gold-commits/{parent_run}/commit.json"
+                objects.append({
+                    "uri": f"s3://japan-earthquake/{rel}",
+                    "sha256": lineage.compute_sha256(rel.encode("utf-8")),
+                    "kind": "gold_commit",
+                })
+
+            # Total is 114 (93 manifests + 21 commits)
+            self.assertEqual(len(objects), 114)
+            req_file.write_text(json.dumps({"owner": "rosy179", "object_count": 114, "objects": objects}), encoding="utf-8")
+
+            with self.assertRaises(ValueError) as ctx:
+                lineage.pack_frontier_metadata(
+                    owner="rosy179",
+                    output_zip=zip_out,
+                    request_file=req_file,
+                    source_dir=src_dir,
+                )
+            self.assertIn("SILVER_MANIFEST_COUNT_MISMATCH", str(ctx.exception))
+
+    def test_pack_frontier_metadata_invalid_sha_rejected(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir).resolve()
+            src_dir = tmp_path / "mock_minio"
+            zip_out = tmp_path / "frontier.zip"
+            req_file = tmp_path / "req_bad_sha.json"
+
+            objects = []
+            for r in range(1, 24):
+                run_id = f"orc07-run-{r:02d}"
+                for ds in ("source_observation", "reject_record", "source_link", "canonical_membership"):
+                    rel = f"silver/bundles/{run_id}/{ds}/manifest.json"
+                    sha = "invalid-not-64-hex" if (r == 1 and ds == "source_observation") else ("a" * 64)
+                    objects.append({
+                        "uri": f"s3://japan-earthquake/{rel}",
+                        "sha256": sha,
+                        "kind": "silver_dataset_manifest",
+                    })
+
+            for r in range(1, 23):
+                parent_run = f"orc07-run-{r:02d}"
+                rel = f"silver/gold-commits/{parent_run}/commit.json"
+                objects.append({
+                    "uri": f"s3://japan-earthquake/{rel}",
+                    "sha256": "b" * 64,
+                    "kind": "gold_commit",
+                })
+
+            req_file.write_text(json.dumps({"owner": "rosy179", "object_count": 114, "objects": objects}), encoding="utf-8")
+
+            with self.assertRaises(ValueError) as ctx:
+                lineage.pack_frontier_metadata(
+                    owner="rosy179",
+                    output_zip=zip_out,
+                    request_file=req_file,
+                    source_dir=src_dir,
+                )
+            self.assertIn("INVALID_FRONTIER_SHA256", str(ctx.exception))
+
+    def test_pack_frontier_metadata_kind_mismatch_rejected(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir).resolve()
+            src_dir = tmp_path / "mock_minio"
+            zip_out = tmp_path / "frontier.zip"
+            req_file = tmp_path / "req_bad_kind.json"
+
+            objects = []
+            for r in range(1, 24):
+                run_id = f"orc07-run-{r:02d}"
+                for ds in ("source_observation", "reject_record", "source_link", "canonical_membership"):
+                    rel = f"silver/bundles/{run_id}/{ds}/manifest.json"
+                    kind = "gold_commit" if (r == 1 and ds == "source_observation") else "silver_dataset_manifest"
+                    objects.append({
+                        "uri": f"s3://japan-earthquake/{rel}",
+                        "sha256": "a" * 64,
+                        "kind": kind,
+                    })
+
+            for r in range(1, 23):
+                parent_run = f"orc07-run-{r:02d}"
+                rel = f"silver/gold-commits/{parent_run}/commit.json"
+                objects.append({
+                    "uri": f"s3://japan-earthquake/{rel}",
+                    "sha256": "b" * 64,
+                    "kind": "gold_commit",
+                })
+
+            req_file.write_text(json.dumps({"owner": "rosy179", "object_count": 114, "objects": objects}), encoding="utf-8")
+
+            with self.assertRaises(ValueError) as ctx:
+                lineage.pack_frontier_metadata(
+                    owner="rosy179",
+                    output_zip=zip_out,
+                    request_file=req_file,
+                    source_dir=src_dir,
+                )
+            self.assertIn("KIND_MISMATCH", str(ctx.exception))
+
+    def test_pack_frontier_metadata_boto3_missing_error(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir).resolve()
+            zip_out = tmp_path / "frontier.zip"
+            req_file = ROOT / "config/research/dat03_lineage_rosy179_metadata.json"
+
+            with patch.object(lineage, "boto3", None):
+                with self.assertRaises(RuntimeError) as ctx:
+                    lineage.pack_frontier_metadata(
+                        owner="rosy179",
+                        output_zip=zip_out,
+                        request_file=req_file,
+                        source_dir=None,
+                    )
+                self.assertIn("boto3 is required to interact with MinIO/S3", str(ctx.exception))
+
 
 if __name__ == "__main__":
     unittest.main()
