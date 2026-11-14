@@ -1,5 +1,17 @@
 # DAT-03 — Kiểm lineage hiện có trước portable integration
 
+> Hiện hành sau readback14/11: cả hai worker đã gửi đủ original follow-up
+> theo requests, và Java đã kiểm125tháng. Xem [evidence mới](../evidence/DAT-03_PORTABLE_READBACK_20261114.md).
+> Những yêu cầu còn thiếu identities/publications ở mốc byte audit dưới đây là
+> lịch sử; không yêu cầu gửi lại. Unified Gold/capacity/official export vẫn chưa đạt.
+
+> Cập nhật14/11: [byte/metadata audit mới](../evidence/DAT-03_BYTE_AVAILABILITY_20261114.md)
+> đã nhận đủ114metadata của Trang,119/119payload refs Trí/144/144Trang và37/37
+> raw-source contents mỗi worker trên coordinator. Các requests12/11 bên dưới
+> giữ làm lịch sử; dùng [follow-up Trang](../../config/research/dat03_lineage_rosy179_followup_20261114.json)
+> và [follow-up Trí](../../config/research/dat03_lineage_ThanhTris_followup_20261114.json)
+> cho identities/current-head và publication còn thiếu. Không chuyển Done.
+
 ## Mục tiêu và phạm vi
 
 Đọc ZIP metadata offline, xác minh original bytes theo **trusted checkpoint
@@ -40,7 +52,7 @@ Report có thể được tạo lại vào tên output mới, không ghi đè ev
 files; cả portable_import_ready/official_export_ready/full_transitive_closure_verified
 luôn false trong component này, kể cả frontier được cung cấp đủ.
 
-## Giao Trí — metadata trước, payload sau
+## Giao Trí12/11 — yêu cầu lịch sử
 
 1. Đọc [metadata request](../../config/research/dat03_lineage_ThanhTris_metadata.json).
    **18 identity.json** có expected SHA từ18commit đã verify. Không cần gửi lại
@@ -61,7 +73,7 @@ luôn false trong component này, kể cả frontier được cung cấp đủ.
    Công cụ extract-minio-provenance hiện khóa count first-hop75/83, **không**
    truyền request18objects vào đó rồi nới guard để làm xanh.
 
-## Giao Trang — lấy metadata để mở frontier sâu hơn
+## Giao Trang12/11 — metadata114 đã matched14/11
 
 1. Đọc [metadata request](../../config/research/dat03_lineage_rosy179_metadata.json):
    **92 dataset manifests +22 parent commit JSON**,114 exact objects có pin.
@@ -75,6 +87,12 @@ luôn false trong component này, kể cả frontier được cung cấp đủ.
    cách lấy counts của Trí áp sang Trang.
 
 ## Checkpoint và phần còn lại
+
+**Tiếp tục13/11 sau #128:** [payload reuse inventory](DAT-03_PAYLOAD_REUSE.md)
+đã đối chiếu actual data/proof ZIP Trí:100/119references byte-identical,
+19references còn lại cùng1content595bytes. Không yêu cầu upload lại498MiB;
+[delta request](../../config/research/dat03_lineage_ThanhTris_payload_delta.json)
+giữ exact URI/SHA. Không thay full closure hoặc Gold acceptance.
 
 `NOT_SUPPLIED_IN_PACKAGES` nghĩa là chưa có trong ZIP của lần kiểm này,
 **không chứng minh mất trên MinIO hoặc không có trong các data ZIP khác**.

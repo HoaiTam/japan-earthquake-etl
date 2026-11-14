@@ -1,0 +1,50 @@
+{
+  "date": "2026-11-13",
+  "task_id": "DAT-03",
+  "baseline_commit": "df2fb01418f81e0bfaf54c8306e7cce11d759a8d",
+  "branch": "feat/dat-03-payload-reuse-inventory",
+  "status": "IN_PROGRESS",
+  "inventory_tool_sha256": "a363faa15c8e5102e6e6d3d314f40c69749fde1100f160fff1fe7c43ccbce7c3",
+  "inventory_report_sha256": "d76c87d993adf2a8ffb0bf977e06d7e0ec8ae0df84a7635dcf9887cc9d54adcd",
+  "checkpoint_verification_sha256": "5b97313953ae1ccaa8a10809dbeb8b98337953a9d3fb63e3979e6f5a06f1b55d",
+  "version": "dat03-payload-byte-inventory-v1",
+  "owner": "ThanhTris",
+  "request_sha256": "0643f60280fa381f610b69c1f1e0c17fcc899521818363d32392b4883bdd1e25",
+  "archives": [
+    {
+      "sha256": "c072e14f4aa2964af3f9a641e0973bdff6b4dbdc6084d820df79a18707d3b231",
+      "compressed_bytes": 229190896,
+      "entries": 400,
+      "parquet_members": 100,
+      "candidate_members_hashed": 100,
+      "candidate_bytes_hashed": 522647844
+    },
+    {
+      "sha256": "b88c65f5a14a7f2ebe4c1c5483d5c6575bae28c73e4ac6cdc7b7bf83fe614b68",
+      "compressed_bytes": 1009356,
+      "entries": 222,
+      "parquet_members": 0,
+      "candidate_members_hashed": 0,
+      "candidate_bytes_hashed": 0
+    }
+  ],
+  "expected_references": 119,
+  "expected_reference_bytes": 522659149,
+  "expected_unique_contents": 83,
+  "matched_references": 100,
+  "missing_references": 19,
+  "missing_reference_bytes": 11305,
+  "missing_unique_contents": 1,
+  "missing_unique_bytes": 595,
+  "counts": {
+    "BYTE_IDENTICAL_AVAILABLE": 100,
+    "NOT_BYTE_IDENTICAL_IN_SCANNED_ARCHIVES": 19
+  },
+  "payload_bytes_available": false,
+  "s3_keys_verified": false,
+  "parquet_semantics_verified": false,
+  "full_transitive_closure_verified": false,
+  "portable_import_ready": false,
+  "official_export_ready": false,
+  "note": "Missing means no byte-identical member in the scanned archives, not data lost. Repartitioned/equivalent rows do not replace original pinned bytes. Sources map reusable content only; no extraction, S3 write, ETL or Gold acceptance."
+}

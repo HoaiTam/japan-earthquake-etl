@@ -1,5 +1,19 @@
 # DAT-03 — Tiến độ thực tế (cập nhật 14/11/2026)
 
+## Hiện hành14/11 — portable Silver readback, chưa unified Gold
+
+[Evidence mới](DAT-03_PORTABLE_READBACK_20261114.md) và
+[runbook](../runbooks/DAT-03_PORTABLE_READBACK.md): original follow-up Trang/Trí
+đã nhận đủ; Java đọc125tháng worker/13batch/42run groups,4.973.482rows giải mã
+(observation+membership+link+reject), không phải số canonical events. Không ghi
+Gold hoặc cấp official export. Owner duyệt namespace mới sau gates, không cho
+phép sửa namespace cũ hoặc fake receipts. Giữ DAT-03 In Progress.
+Capacity v2 đã terminal timeout trong startup Spark/BlockManager, chưa có kết quả
+fingerprint; chưa tạo Gold mới. Giữ evidence, không retry hoặc mở write job khi
+capacity/provenance gates còn thiếu. Next: chẩn đoán startup + versioned physical
+lineage mapping/import adapter, rồi mới nghiệm thu Gold/Trino và official export.
+Những mục chờ24+23/2+1metadata bên dưới giữ làm lịch sử trước readback này.
+
 ## Cập nhật 14/11/2026 — Nghiệm thu Bytes Gốc 114 Objects Frontier của rosy179 trên Google Drive
 
 Hoài Tâm (coordinator) đã tải và đối soát độc lập gói dữ liệu bytes gốc 114 objects frontier do máy `rosy179` đóng gói và đưa lên Google Drive:
@@ -37,6 +51,27 @@ rosy179 đã hoàn thành việc đóng gói gói bằng chứng giai đoạn th
   - Đối chiếu nhất quán giữa metadata khai báo trong manifest và đường dẫn thực tế, từ chối bản ghi trùng lặp logic `(operation_id, phase)`.
   - Bổ sung lệnh `frontier-spec` để tự động trích xuất đặc tả 114 frontier objects từ provenance zip.
 - Chi tiết đối soát tại [báo cáo đối soát 288 tháng](DAT-03_INTEGRATION_EVIDENCE_288_MONTHS.md).
+
+## Lịch sử 14/11/2026 — Byte audit trước follow-up và readback
+
+[Evidence/pins và giới hạn](DAT-03_BYTE_AVAILABILITY_20261114.md) trên PR #131:
+
+- Trang:83/83first-hop và114/114next metadata objects matched với trusted pins.
+- Content payload: Trí119/119refs, Trang144/144refs; cả hai37/37frozen raw-source
+  references có bytes trùng SHA/size trong retained inputs của HoaiTam.
+- Content595bytes chung đã được tìm trong retained QA output, giữ nguyên bytes.
+  Đây là content reuse theo pin, không thay research rows bằng fixture hoặc
+  chứng nhận original S3keys; chưa upload/handoff595bytes tới hai máy worker.
+- Các phase publication receipts của19groups Trí và23groups Trang có148recorded
+  checks/group, actual/expected khớp khi đọc offline. Không chạy SQL mới.
+- Frontier cũ chỉ theo parent commits:18/22 không bao gồm head cuối của19/23groups.
+  [Request Trí](../../config/research/dat03_lineage_ThanhTris_followup_20261114.json)
+  cần2pinned objects+1publication;
+  [request Trang](../../config/research/dat03_lineage_rosy179_followup_20261114.json)
+  cần24pinned objects+23publications. Không yêu cầu gửi lại data ZIP lớn.
+- DAT-03 **In Progress**: còn identity/publication/complete Iceberg graph,
+  actual portable Java/Spark integration, unified Gold/Trino, official exports
+  và receipts3máy. Các số liệu06/11 và trước đó bên dưới là lịch sử.
 
 ## Cập nhật 06/11/2026 — Đối soát 288 tháng và Provenance First-hop của ThanhTris (75/75) và rosy179 (83/83)
 
