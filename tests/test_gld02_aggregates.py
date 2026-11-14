@@ -8,10 +8,10 @@ Verifies:
 2. Direct Execution of Delivered Verification Queries:
    - Reads sql/gold/gold_aggregate_verification_queries.sql directly, adapts dialect, and executes Q1-Q7.
    - Fact-to-aggregate total count parity with empty dataset support (Q1: delta = 0).
-   - Zero double-counting from multi-source bridge joins (Q2: 0 rows).
-   - Additive consistency, missing/extra group detection, and multi-day weighted average parity between Daily and Monthly (Q3: 0 rows).
-   - Deep Fact-to-Daily metric parity across all 13 metrics with strict NULL/non-NULL separation (Q4: 0 rows).
-   - Bidirectional Honest NULL policy for magnitude and depth (Q5: 0 rows).
+   - Zero double-counting from multi-source bridge joins with NULL-safe comparison (Q2: 0 rows).
+   - Additive consistency, missing/extra group detection, and multi-day weighted average parity between Daily and Monthly with IS DISTINCT FROM (Q3: 0 rows).
+   - Deep Fact-to-Daily metric parity across all 13 metrics with IS DISTINCT FROM and strict NULL/non-NULL separation (Q4: 0 rows).
+   - Bidirectional Honest NULL policy and mandatory count NOT NULL audit for magnitude and depth (Q5: 0 rows).
    - Daily and Monthly Granularity uniqueness (Q6: 0 rows, Q7: 0 rows).
 3. Alert Level and Intensity Reporting Predicate Parity:
    - Verifies that 'none', 'NONE', empty string '', and whitespace '   ' are EXCLUDED from alerted and intensity counts.
@@ -19,6 +19,7 @@ Verifies:
    - Monthly negative tests: mutations on region_key ('WRONG_REGION'), magnitude_avg/max, depth_avg, strong_count, alert_count, and duplicate monthly grain.
    - Fact-to-Daily negative tests: mutations on magnitude_sum, strong_earthquake_count, and group omission.
    - Honest NULL & valid 0.0 vs NULL negative tests: tests the exact edge cases where depth_km = 0.0 or magnitude is mutated to NULL while count > 0, and non-null count = 0 mutated to 0.0.
+   - Mandatory Count NULL-safe rejection: systematically mutates each mandatory count/KPI (event_count, magnitude_non_null_count, strong_earthquake_count, alerted_event_count, depth_non_null_count, tsunami_flagged_count, intensity_reported_count, offshore_or_unknown_count) to NULL and verifies detection by Q3/Q4 and Q5.
 5. Empty Dataset Test:
    - Verifies Q1 returns fact_event_count = 0, daily_agg_event_count = 0, delta = 0 when tables are empty.
 """
@@ -164,7 +165,6 @@ class TestGoldAggregates(unittest.TestCase):
         """)
 
         # Event 1b: Valid earthquake, same grain, Day 20230106, M4.8, depth 0.0 (valid 0.0 km!), Shallow, USGS_ONLY
-        # Used with can-001c to verify multi-day weighted average across different days of the month!
         cur.execute("""
             INSERT INTO event_current VALUES (
                 '1.0', 'can-001b', 'obs-001b', 'USGS',
@@ -494,6 +494,84 @@ class TestGoldAggregates(unittest.TestCase):
         """)
         cur.execute(q5_sql)
         self.assertGreater(len(cur.fetchall()), 0, "Q5 MUST detect count = 0 with non-null magnitude violation")
+
+    def test_negative_verification_mandatory_counts_null_rejection(self) -> None:
+        """Proves that Q3, Q4, and Q5 detect NULL in mandatory count/KPI columns (reproducing HoaiTam's test)."""
+        queries_file = SQL_GOLD_DIR / "gold_aggregate_verification_queries.sql"
+        queries = parse_verification_queries(queries_file.read_text(encoding="utf-8"))
+        q3_sql = queries["Q3"]
+        q4_sql = queries["Q4"]
+        q5_sql = queries["Q5"]
+
+        cur = self.conn.cursor()
+
+        # 1. Test mutating mandatory count columns in v_event_monthly to NULL
+        cur.execute("DROP VIEW v_event_monthly")
+        monthly_query = adapt_trino_view_for_sqlite((SQL_GOLD_DIR / "v_event_monthly.sql").read_text(encoding="utf-8"))
+        cur.execute(f"CREATE TABLE v_event_monthly AS {monthly_query}")
+
+        mandatory_monthly_counts = [
+            "event_count",
+            "magnitude_non_null_count",
+            "strong_earthquake_count",
+            "alerted_event_count",
+            "depth_non_null_count",
+            "tsunami_flagged_count",
+            "intensity_reported_count",
+            "offshore_or_unknown_count",
+        ]
+
+        for col_name in mandatory_monthly_counts:
+            # Recreate table clean
+            cur.execute("DROP TABLE v_event_monthly")
+            cur.execute(f"CREATE TABLE v_event_monthly AS {monthly_query}")
+
+            # Mutate col_name to NULL on OFFSHORE group (as tested by HoaiTam)
+            cur.execute(f"UPDATE v_event_monthly SET {col_name} = NULL WHERE year_month_jst = 202301 AND region_key = 'OFFSHORE'")
+
+            # Q3 MUST detect mismatch via IS DISTINCT FROM
+            cur.execute(q3_sql)
+            q3_mismatches = cur.fetchall()
+            self.assertGreater(len(q3_mismatches), 0, f"Q3 MUST detect {col_name} = NULL in monthly aggregate")
+
+            # Q5 MUST detect violation via IS NULL check
+            cur.execute(q5_sql)
+            q5_violations = cur.fetchall()
+            self.assertGreater(len(q5_violations), 0, f"Q5 MUST detect {col_name} = NULL in monthly aggregate")
+
+        # 2. Test mutating mandatory count columns in v_event_daily to NULL
+        cur.execute("DROP VIEW v_event_daily")
+        daily_query = adapt_trino_view_for_sqlite((SQL_GOLD_DIR / "v_event_daily.sql").read_text(encoding="utf-8"))
+        cur.execute(f"CREATE TABLE v_event_daily AS {daily_query}")
+
+        mandatory_daily_counts = [
+            "event_count",
+            "magnitude_non_null_count",
+            "strong_earthquake_count",
+            "alerted_event_count",
+            "depth_non_null_count",
+            "tsunami_flagged_count",
+            "intensity_reported_count",
+            "offshore_or_unknown_count",
+        ]
+
+        for col_name in mandatory_daily_counts:
+            # Recreate table clean
+            cur.execute("DROP TABLE v_event_daily")
+            cur.execute(f"CREATE TABLE v_event_daily AS {daily_query}")
+
+            # Mutate col_name to NULL on 20230110 (Offshore event)
+            cur.execute(f"UPDATE v_event_daily SET {col_name} = NULL WHERE event_date_key_jst = 20230110")
+
+            # Q4 MUST detect mismatch via IS DISTINCT FROM
+            cur.execute(q4_sql)
+            q4_mismatches = cur.fetchall()
+            self.assertGreater(len(q4_mismatches), 0, f"Q4 MUST detect {col_name} = NULL in daily aggregate")
+
+            # Q5 MUST detect violation via IS NULL check
+            cur.execute(q5_sql)
+            q5_violations = cur.fetchall()
+            self.assertGreater(len(q5_violations), 0, f"Q5 MUST detect {col_name} = NULL in daily aggregate")
 
 
 if __name__ == "__main__":

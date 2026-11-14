@@ -57,14 +57,14 @@ Tài liệu đặc tả kiến trúc biến đổi aggregate và serving views p
 - `sql/gold/v_event_monthly.sql`: Trino DDL view cộng dồn theo tháng từ `iceberg.gold.v_event_daily`.
 - `sql/gold/gold_aggregate_verification_queries.sql`: Bộ 7 câu truy vấn đối soát độc lập:
   - **Q1:** Đối soát số lượng giữa Fact và Daily Aggregate (`fact_event_count - daily_agg_event_count = 0`), hỗ trợ chuẩn xác cả trường hợp dataset rỗng hợp lệ (0/0, delta = 0).
-  - **Q2:** Kiểm toán chống nhân đôi dòng do liên kết đa nguồn trong `event_source_bridge` (so sánh distinct `canonical_event_id` với `event_count`).
-  - **Q3:** Kiểm toán tính cộng dồn đồng nhất và bảo toàn bình quân trọng số giữa Daily và Monthly aggregate theo đầy đủ grain (`year_month_jst, region_key, magnitude_band_code, depth_band_code, source_coverage_code`) qua FULL OUTER JOIN cho tất cả 13 chỉ số thống kê và KPI, phát hiện missing/extra group.
-  - **Q4:** Kiểm toán đối soát sâu từng hạt (grain-level metric parity) giữa Fact và Daily Aggregate across toàn bộ 13 chỉ số thống kê và phân bố, phân tách nghiêm ngặt kiểm tra NULL/non-NULL trước khi so sánh dung sai số học để không bỏ lọt giá trị 0.0 hợp lệ.
-  - **Q5:** Kiểm toán tính toàn vẹn hai chiều của chính sách Honest NULL: khi non-null count = 0 thì sum/avg/max bắt buộc NULL; khi non-null count > 0 thì sum/avg/max tuyệt đối không được NULL (kể cả khi giá trị là 0.0); áp dụng cho cả daily và monthly.
+  - **Q2:** Kiểm toán chống nhân đôi dòng do liên kết đa nguồn trong `event_source_bridge` qua FULL OUTER JOIN và toán tử NULL-safe (`IS DISTINCT FROM`).
+  - **Q3:** Kiểm toán tính cộng dồn đồng nhất và bảo toàn bình quân trọng số giữa Daily và Monthly aggregate theo đầy đủ grain (`year_month_jst, region_key, magnitude_band_code, depth_band_code, source_coverage_code`) qua FULL OUTER JOIN và `IS DISTINCT FROM` cho tất cả 13 chỉ số thống kê và KPI, phát hiện missing/extra group và từ chối NULL ở các cột count.
+  - **Q4:** Kiểm toán đối soát sâu từng hạt (grain-level metric parity) giữa Fact và Daily Aggregate across toàn bộ 13 chỉ số thống kê và phân bố dùng `IS DISTINCT FROM`, phân tách nghiêm ngặt kiểm tra NULL/non-NULL trước khi so sánh dung sai số học để không bỏ lọt giá trị 0.0 hợp lệ.
+  - **Q5:** Kiểm toán tính toàn vẹn hai chiều của chính sách Honest NULL và bắt buộc non-null cho toàn bộ 8 cột count/KPI (`event_count > 0`, các sub-counts `>= 0` và không được `NULL`); khi non-null count = 0 thì sum/avg/max bắt buộc NULL; khi non-null count > 0 thì sum/avg/max tuyệt đối không được NULL (kể cả khi giá trị là 0.0); áp dụng cho cả daily và monthly.
   - **Q6:** Kiểm toán tính duy nhất của tổ hợp khóa nhóm Daily (0 duplicate grains).
   - **Q7:** Kiểm toán tính duy nhất của tổ hợp khóa nhóm Monthly (0 duplicate grains).
 
 ## 5. Kiểm thử và xác thực
 
 - **Spark Java Unit Test:** `spark/src/test/java/ie212/earthquake/spark/gold/GoldAggregateTransformerTest.java` (bài test kiểm tra biên JST, đối soát không double count, bảo toàn NULL, lọc sự kiện phi tự nhiên, cộng dồn tháng).
-- **Offline SQLite Test:** `tests/test_gld02_aggregates.py` (thực thi trực tiếp các file SQL view và verification queries bàn giao trên SQLite giả lập schema Gold chuẩn, bao gồm positive test, negative tests làm sai lệch metric, và parity test cho alert/intensity).
+- **Offline SQLite Test:** `tests/test_gld02_aggregates.py` (thực thi trực tiếp các file SQL view và verification queries bàn giao trên SQLite giả lập schema Gold chuẩn, bao gồm positive test, negative tests làm sai lệch metric, parity test cho alert/intensity, và negative test kiểm tra từ chối NULL ở từng cột count/KPI).

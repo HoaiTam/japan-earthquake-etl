@@ -2,7 +2,8 @@
 -- Gold Aggregate Verification Queries (GLD-02)
 -- Catalog: iceberg.gold.*
 -- Target: Trino query smoke test, daily/monthly aggregate reconciliation,
---         deep metric parity, bidirectional Honest NULL, and zero double-counting verification.
+--         deep metric parity, bidirectional Honest NULL, mandatory count integrity,
+--         and zero double-counting verification.
 -- ============================================================================
 
 -- Q1. Fact-to-Aggregate Count Reconciliation
@@ -30,10 +31,10 @@ CROSS JOIN (
 -- in iceberg.gold.event_source_bridge.
 -- Expected output: 0 rows with mismatch between canonical events and aggregate counts.
 SELECT
-    e.event_date_key_jst,
+    COALESCE(e.event_date_key_jst, d.event_date_key_jst) AS event_date_key_jst,
     e.distinct_event_count,
     d.daily_agg_event_count,
-    (e.distinct_event_count - d.daily_agg_event_count) AS delta
+    (COALESCE(e.distinct_event_count, 0) - COALESCE(d.daily_agg_event_count, 0)) AS delta
 FROM (
     SELECT event_date_key_jst, COUNT(DISTINCT canonical_event_id) AS distinct_event_count
     FROM iceberg.gold.event_current
@@ -41,18 +42,19 @@ FROM (
       AND is_in_study_area = true
     GROUP BY event_date_key_jst
 ) e
-JOIN (
+FULL OUTER JOIN (
     SELECT event_date_key_jst, SUM(event_count) AS daily_agg_event_count
     FROM iceberg.gold.v_event_daily
     GROUP BY event_date_key_jst
 ) d
   ON e.event_date_key_jst = d.event_date_key_jst
-WHERE e.distinct_event_count <> d.daily_agg_event_count;
+WHERE e.distinct_event_count IS DISTINCT FROM d.daily_agg_event_count;
 
 -- Q3. Additive Consistency and Full Metric Rollup Parity between Daily and Monthly
 -- Verifies that monthly aggregates strictly equal the rollup of daily aggregates
 -- at the full grain (year_month_jst, region_key, magnitude_band_code, depth_band_code, source_coverage_code)
 -- across all 13 statistical and KPI metrics, including weighted averages, maxima, and missing/extra groups.
+-- Uses NULL-safe comparison (IS DISTINCT FROM) for mandatory counts and KPI metrics.
 -- Expected output: 0 rows with mismatch.
 SELECT
     COALESCE(d.year_month_jst, m.year_month_jst) AS year_month_jst,
@@ -120,16 +122,16 @@ FULL OUTER JOIN iceberg.gold.v_event_monthly m
  AND d.source_coverage_code = m.source_coverage_code
 WHERE d.year_month_jst IS NULL
    OR m.year_month_jst IS NULL
-   OR d.region_name <> m.region_name
-   OR d.region_category <> m.region_category
-   OR d.event_count <> m.event_count
-   OR d.magnitude_non_null_count <> m.magnitude_non_null_count
-   OR d.depth_non_null_count <> m.depth_non_null_count
-   OR d.strong_earthquake_count <> m.strong_earthquake_count
-   OR d.tsunami_flagged_count <> m.tsunami_flagged_count
-   OR d.alerted_event_count <> m.alerted_event_count
-   OR d.intensity_reported_count <> m.intensity_reported_count
-   OR d.offshore_or_unknown_count <> m.offshore_or_unknown_count
+   OR d.region_name IS DISTINCT FROM m.region_name
+   OR d.region_category IS DISTINCT FROM m.region_category
+   OR d.event_count IS DISTINCT FROM m.event_count
+   OR d.magnitude_non_null_count IS DISTINCT FROM m.magnitude_non_null_count
+   OR d.depth_non_null_count IS DISTINCT FROM m.depth_non_null_count
+   OR d.strong_earthquake_count IS DISTINCT FROM m.strong_earthquake_count
+   OR d.tsunami_flagged_count IS DISTINCT FROM m.tsunami_flagged_count
+   OR d.alerted_event_count IS DISTINCT FROM m.alerted_event_count
+   OR d.intensity_reported_count IS DISTINCT FROM m.intensity_reported_count
+   OR d.offshore_or_unknown_count IS DISTINCT FROM m.offshore_or_unknown_count
    OR (d.magnitude_sum IS NULL AND m.magnitude_sum IS NOT NULL)
    OR (d.magnitude_sum IS NOT NULL AND m.magnitude_sum IS NULL)
    OR ABS(d.magnitude_sum - m.magnitude_sum) > 0.0001
@@ -149,7 +151,8 @@ WHERE d.year_month_jst IS NULL
 -- Q4. Deep Grain-Level Fact-to-Daily Metric Parity
 -- Computes metrics directly from gold.event_current at the daily grain and compares
 -- with v_event_daily across all statistical and KPI indicators.
--- Strictly checks NULL/non-NULL separation before numeric tolerance comparison.
+-- Uses NULL-safe comparison (IS DISTINCT FROM) for mandatory counts and KPI metrics,
+-- and strictly checks NULL/non-NULL separation before numeric tolerance comparison.
 -- Expected output: 0 rows with mismatch.
 SELECT
     f.event_date_key_jst,
@@ -199,14 +202,14 @@ FULL OUTER JOIN iceberg.gold.v_event_daily d
  AND f.magnitude_band_code = d.magnitude_band_code
  AND f.depth_band_code = d.depth_band_code
  AND f.source_coverage_code = d.source_coverage_code
-WHERE f.fact_count <> d.event_count
-   OR f.fact_mag_count <> d.magnitude_non_null_count
-   OR f.fact_depth_count <> d.depth_non_null_count
-   OR f.fact_strong_count <> d.strong_earthquake_count
-   OR f.fact_tsunami_count <> d.tsunami_flagged_count
-   OR f.fact_alert_count <> d.alerted_event_count
-   OR f.fact_intensity_count <> d.intensity_reported_count
-   OR f.fact_offshore_count <> d.offshore_or_unknown_count
+WHERE f.fact_count IS DISTINCT FROM d.event_count
+   OR f.fact_mag_count IS DISTINCT FROM d.magnitude_non_null_count
+   OR f.fact_depth_count IS DISTINCT FROM d.depth_non_null_count
+   OR f.fact_strong_count IS DISTINCT FROM d.strong_earthquake_count
+   OR f.fact_tsunami_count IS DISTINCT FROM d.tsunami_flagged_count
+   OR f.fact_alert_count IS DISTINCT FROM d.alerted_event_count
+   OR f.fact_intensity_count IS DISTINCT FROM d.intensity_reported_count
+   OR f.fact_offshore_count IS DISTINCT FROM d.offshore_or_unknown_count
    OR (f.fact_mag_sum IS NULL AND d.magnitude_sum IS NOT NULL)
    OR (f.fact_mag_sum IS NOT NULL AND d.magnitude_sum IS NULL)
    OR ABS(f.fact_mag_sum - d.magnitude_sum) > 0.0001
@@ -226,10 +229,13 @@ WHERE f.fact_count <> d.event_count
    OR d.event_date_key_jst IS NULL;
 
 -- Q5. Honest NULL & Mathematical Invariant Audit
--- Verifies bidirectional consistency for Honest NULL in both daily and monthly aggregates:
--- 1. When non_null_count = 0, sum/avg/max MUST be NULL.
--- 2. When non_null_count > 0, sum/avg/max MUST NOT be NULL (even when value is 0.0).
--- 3. event_count must be strictly positive (> 0).
+-- Verifies:
+-- 1. Mandatory count/KPI non-null integrity: event_count and all 7 sub-counts/KPIs must NEVER be NULL.
+-- 2. Non-negativity: event_count > 0, sub-counts >= 0.
+-- 3. Honest NULL bidirectional integrity:
+--    - When non_null_count = 0, sum/avg/max MUST be NULL.
+--    - When non_null_count > 0, sum/avg/max MUST NOT be NULL (even when value is 0.0).
+-- Checks both daily and monthly aggregates.
 -- Expected output: 0 rows.
 SELECT
     'v_event_daily' AS source_view,
@@ -239,11 +245,18 @@ SELECT
     magnitude_band_code,
     depth_band_code
 FROM iceberg.gold.v_event_daily
-WHERE (magnitude_non_null_count = 0 AND (magnitude_avg IS NOT NULL OR magnitude_max IS NOT NULL OR magnitude_sum IS NOT NULL))
+WHERE (event_count IS NULL OR event_count <= 0)
+   OR (magnitude_non_null_count IS NULL OR magnitude_non_null_count < 0)
+   OR (depth_non_null_count IS NULL OR depth_non_null_count < 0)
+   OR (strong_earthquake_count IS NULL OR strong_earthquake_count < 0)
+   OR (tsunami_flagged_count IS NULL OR tsunami_flagged_count < 0)
+   OR (alerted_event_count IS NULL OR alerted_event_count < 0)
+   OR (intensity_reported_count IS NULL OR intensity_reported_count < 0)
+   OR (offshore_or_unknown_count IS NULL OR offshore_or_unknown_count < 0)
+   OR (magnitude_non_null_count = 0 AND (magnitude_avg IS NOT NULL OR magnitude_max IS NOT NULL OR magnitude_sum IS NOT NULL))
    OR (magnitude_non_null_count > 0 AND (magnitude_avg IS NULL OR magnitude_max IS NULL OR magnitude_sum IS NULL))
    OR (depth_non_null_count = 0 AND (depth_avg IS NOT NULL OR depth_sum IS NOT NULL))
    OR (depth_non_null_count > 0 AND (depth_avg IS NULL OR depth_sum IS NULL))
-   OR (event_count <= 0)
 UNION ALL
 SELECT
     'v_event_monthly' AS source_view,
@@ -253,11 +266,18 @@ SELECT
     magnitude_band_code,
     depth_band_code
 FROM iceberg.gold.v_event_monthly
-WHERE (magnitude_non_null_count = 0 AND (magnitude_avg IS NOT NULL OR magnitude_max IS NOT NULL OR magnitude_sum IS NOT NULL))
+WHERE (event_count IS NULL OR event_count <= 0)
+   OR (magnitude_non_null_count IS NULL OR magnitude_non_null_count < 0)
+   OR (depth_non_null_count IS NULL OR depth_non_null_count < 0)
+   OR (strong_earthquake_count IS NULL OR strong_earthquake_count < 0)
+   OR (tsunami_flagged_count IS NULL OR tsunami_flagged_count < 0)
+   OR (alerted_event_count IS NULL OR alerted_event_count < 0)
+   OR (intensity_reported_count IS NULL OR intensity_reported_count < 0)
+   OR (offshore_or_unknown_count IS NULL OR offshore_or_unknown_count < 0)
+   OR (magnitude_non_null_count = 0 AND (magnitude_avg IS NOT NULL OR magnitude_max IS NOT NULL OR magnitude_sum IS NOT NULL))
    OR (magnitude_non_null_count > 0 AND (magnitude_avg IS NULL OR magnitude_max IS NULL OR magnitude_sum IS NULL))
    OR (depth_non_null_count = 0 AND (depth_avg IS NOT NULL OR depth_sum IS NOT NULL))
-   OR (depth_non_null_count > 0 AND (depth_avg IS NULL OR depth_sum IS NULL))
-   OR (event_count <= 0);
+   OR (depth_non_null_count > 0 AND (depth_avg IS NULL OR depth_sum IS NULL));
 
 -- Q6. Daily Granularity Uniqueness Audit
 -- Verifies that each daily grouping grain (event_date_key_jst, region_key, magnitude_band_code, depth_band_code, source_coverage_code)
