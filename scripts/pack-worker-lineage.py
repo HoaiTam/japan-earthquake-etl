@@ -1010,6 +1010,215 @@ def extract_frontier_spec(
     return result
 
 
+def pack_frontier_metadata(
+    owner: str,
+    output_zip: Path,
+    request_file: Optional[Path] = None,
+    source_dir: Optional[Path] = None,
+    endpoint_url: Optional[str] = None,
+    bucket: str = "japan-earthquake",
+    overwrite: bool = False,
+) -> Dict[str, Any]:
+    """Package original bytes of the required frontier objects into a verifiable ZIP archive.
+
+    Accepts bytes from a local directory (e.g. MinIO volume export) or via boto3 S3 client.
+    Verifies every object's SHA-256 against the trusted request mapping.
+    """
+    if owner not in WORKER_LINEAGE_SPECS:
+        raise ValueError(f"UNRECOGNIZED_OWNER: {owner}")
+
+    spec = WORKER_LINEAGE_SPECS[owner]
+    expected_count = spec.get("expected_frontier_count", 114 if owner == "rosy179" else 94)
+
+    output_zip_raw = Path(output_zip)
+    check_unresolved_symlinks(output_zip_raw)
+    if (output_zip_raw.exists() or output_zip_raw.is_symlink() or os.path.islink(output_zip_raw)) and not overwrite:
+        raise FileExistsError(f"OUTPUT_ZIP_ALREADY_EXISTS: {output_zip_raw} (pass overwrite=True to replace)")
+
+    output_zip = output_zip_raw.resolve()
+    check_no_symlinks(output_zip)
+    if output_zip.exists() and not overwrite:
+        raise FileExistsError(f"OUTPUT_ZIP_ALREADY_EXISTS: {output_zip} (pass overwrite=True to replace)")
+
+    # Resolve request file
+    req_path: Optional[Path] = None
+    if request_file:
+        req_raw = Path(request_file)
+        check_unresolved_symlinks(req_raw)
+        req_path = req_raw.resolve()
+        check_no_symlinks(req_path)
+    else:
+        candidates = [
+            ROOT / f"config/research/dat03_lineage_{owner}_metadata.json",
+            ROOT / f"staging/dat03-range-handoff-{owner}/{owner}-frontier-114-spec.json",
+        ]
+        for c in candidates:
+            if c.is_file():
+                req_path = c
+                break
+
+    if not req_path or not req_path.is_file():
+        raise FileNotFoundError(f"FRONTIER_REQUEST_FILE_NOT_FOUND: {req_path}")
+
+    with open(req_path, "r", encoding="utf-8") as f:
+        req_data = json.load(f)
+
+    raw_objects = req_data.get("objects") or req_data.get("frontier_objects") or []
+    if not isinstance(raw_objects, list):
+        raise ValueError(f"INVALID_OBJECTS_FORMAT_IN_REQUEST: {req_path}")
+
+    if len(raw_objects) != expected_count:
+        raise ValueError(
+            f"FRONTIER_OBJECT_COUNT_MISMATCH: expected {expected_count}, got {len(raw_objects)} in {req_path}"
+        )
+
+    # Fetch objects
+    archive_entries: List[Tuple[str, bytes]] = []
+    manifest_entries: List[Dict[str, Any]] = []
+
+    if source_dir:
+        src_raw = Path(source_dir)
+        check_unresolved_symlinks(src_raw)
+        src_root = src_raw.resolve()
+        check_no_symlinks(src_root)
+        if not src_root.is_dir():
+            raise FileNotFoundError(f"SOURCE_DIR_NOT_FOUND: {src_root}")
+
+        for item in raw_objects:
+            uri = item.get("uri") or item.get("s3_uri")
+            expected_sha = (item.get("sha256") or "").strip().lower()
+            kind = item.get("kind") or item.get("category")
+            if not uri or not expected_sha:
+                raise ValueError(f"MALFORMED_FRONTIER_ITEM: {item}")
+
+            _, rel_key = parse_uri_or_key(uri, default_bucket=bucket)
+            file_path = src_root / rel_key
+            check_no_symlinks(file_path)
+            check_within_root(file_path, src_root)
+
+            if not file_path.is_file():
+                raise FileNotFoundError(f"FRONTIER_FILE_NOT_FOUND: {file_path} for URI {uri}")
+
+            data = file_path.read_bytes()
+            actual_sha = compute_sha256(data)
+            if actual_sha != expected_sha:
+                raise ValueError(
+                    f"SHA_MISMATCH for {uri}: expected {expected_sha}, got {actual_sha}"
+                )
+
+            archive_entries.append((rel_key, data))
+            manifest_entries.append({
+                "uri": uri,
+                "archive_path": rel_key,
+                "kind": kind,
+                "byte_size": len(data),
+                "sha256": actual_sha,
+                "status": "VERIFIED_MATCH",
+            })
+    else:
+        # Fetch from MinIO / S3
+        if boto3 is None:
+            raise RuntimeError(
+                "boto3 is required to interact with MinIO/S3. Install boto3 or pass --source-dir."
+            )
+        s3_ep = endpoint_url or os.environ.get("MINIO_ENDPOINT", "http://localhost:9000")
+        s3 = boto3.client(
+            "s3",
+            endpoint_url=s3_ep,
+            aws_access_key_id=os.environ.get("MINIO_ACCESS_KEY"),
+            aws_secret_access_key=os.environ.get("MINIO_SECRET_KEY"),
+            region_name=os.environ.get("S3_REGION", "us-east-1"),
+        )
+        for item in raw_objects:
+            uri = item.get("uri") or item.get("s3_uri")
+            expected_sha = (item.get("sha256") or "").strip().lower()
+            kind = item.get("kind") or item.get("category")
+            if not uri or not expected_sha:
+                raise ValueError(f"MALFORMED_FRONTIER_ITEM: {item}")
+
+            _, rel_key = parse_uri_or_key(uri, default_bucket=bucket)
+            resp = s3.get_object(Bucket=bucket, Key=rel_key)
+            data = resp["Body"].read()
+            actual_sha = compute_sha256(data)
+            if actual_sha != expected_sha:
+                raise ValueError(
+                    f"SHA_MISMATCH for {uri}: expected {expected_sha}, got {actual_sha}"
+                )
+
+            archive_entries.append((rel_key, data))
+            manifest_entries.append({
+                "uri": uri,
+                "archive_path": rel_key,
+                "kind": kind,
+                "byte_size": len(data),
+                "sha256": actual_sha,
+                "status": "VERIFIED_MATCH",
+            })
+
+    # Internal manifest and README
+    now_utc = datetime.now(timezone.utc).isoformat()
+    package_manifest = {
+        "version": "dat03-frontier-metadata-package-v1",
+        "owner": owner,
+        "created_at_utc": now_utc,
+        "basis_request": str(req_path),
+        "object_count": len(manifest_entries),
+        "objects": manifest_entries,
+    }
+    manifest_bytes = json.dumps(package_manifest, indent=2, sort_keys=True).encode("utf-8")
+    archive_entries.append(("manifest.json", manifest_bytes))
+
+    readme_content = f"""# DAT-03 Frontier Metadata Package — {owner}
+
+- **Owner:** {owner}
+- **Created at UTC:** {now_utc}
+- **Total Objects:** {len(manifest_entries)}
+- **Basis Request:** {req_path.name}
+- **Source Bucket:** s3://{bucket}/
+
+## Summary
+- All {len(manifest_entries)} original bytes verified against expected SHA-256.
+- Preserves exact relative keys (e.g. `silver/bundles/<run_id>/<dataset>/manifest.json`, `silver/gold-commits/<run_id>/commit.json`).
+"""
+    archive_entries.append(("README.md", readme_content.encode("utf-8")))
+
+    # Atomic write to temporary file first
+    output_zip.parent.mkdir(parents=True, exist_ok=True)
+    pid = os.getpid()
+    tmp_zip = output_zip.parent / f"{output_zip.name}.tmp.{pid}"
+    try:
+        with zipfile.ZipFile(tmp_zip, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+            for zname, zdata in archive_entries:
+                zf.writestr(zname, zdata)
+
+        with zipfile.ZipFile(tmp_zip, "r") as zf:
+            assert zf.testzip() is None, "CORRUPT_ZIP_ARCHIVE"
+
+        zip_sha256 = compute_file_sha256(tmp_zip)
+        zip_size = tmp_zip.stat().st_size
+
+        # Write checksum file
+        sha_path = output_zip.parent / f"{output_zip.name}.sha256"
+        tmp_sha = output_zip.parent / f"{sha_path.name}.tmp.{pid}"
+        tmp_sha.write_text(f"{zip_sha256}  {output_zip.name}\n", encoding="utf-8")
+
+        os.replace(tmp_zip, output_zip)
+        os.replace(tmp_sha, sha_path)
+
+        return {
+            "status": "PASS",
+            "owner": owner,
+            "total_objects": len(manifest_entries),
+            "output_zip": str(output_zip),
+            "zip_size_bytes": zip_size,
+            "zip_sha256": zip_sha256,
+            "sha256_file": str(sha_path),
+        }
+    finally:
+        if tmp_zip.exists():
+            tmp_zip.unlink(missing_ok=True)
+
+
 def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = argparse.ArgumentParser(
         description="DAT-03 worker supplemental lineage packaging and verification tool."
@@ -1040,6 +1249,16 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     p_frontier.add_argument("--expected-provenance-sha", help="Optional expected SHA-256 for provenance ZIP (defaults to pinned spec).")
     p_frontier.add_argument("--provenance-checkpoint", help="Optional checkpoint file (JSON or checksums.sha256) containing provenance ZIP hash.")
     p_frontier.add_argument("--allow-unverified-provenance", action="store_true", default=False, help="Allow unverified provenance input if no pin or checkpoint is provided.")
+
+    # Subcommand: pack-frontier
+    p_pack_frontier = subparsers.add_parser("pack-frontier", help="Package 114 original frontier objects into verifiable ZIP.")
+    p_pack_frontier.add_argument("--owner", required=True, choices=["ThanhTris", "rosy179"])
+    p_pack_frontier.add_argument("--output-zip", required=True, help="Path for output frontier ZIP file.")
+    p_pack_frontier.add_argument("--request-file", help="Path to frontier request JSON (defaults to config/research/dat03_lineage_<owner>_metadata.json).")
+    p_pack_frontier.add_argument("--source-dir", help="Path to directory containing original files (if not using MinIO).")
+    p_pack_frontier.add_argument("--endpoint-url", help="MinIO S3 endpoint URL (defaults to MINIO_ENDPOINT env or http://localhost:9000).")
+    p_pack_frontier.add_argument("--bucket", default="japan-earthquake", help="S3 bucket name.")
+    p_pack_frontier.add_argument("--overwrite", action="store_true", default=False, help="Overwrite output ZIP if exists.")
 
     args = parser.parse_args(argv)
 
@@ -1087,6 +1306,23 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 expected_provenance_sha=args.expected_provenance_sha,
                 provenance_checkpoint=Path(args.provenance_checkpoint) if args.provenance_checkpoint else None,
                 allow_unverified_provenance=args.allow_unverified_provenance,
+            )
+            print(json.dumps(res, indent=2))
+            return 0 if res.get("status") == "PASS" else 1
+        except Exception as ex:
+            print(json.dumps({"status": "FAIL", "reason": str(ex)}, indent=2))
+            return 1
+
+    if args.command == "pack-frontier":
+        try:
+            res = pack_frontier_metadata(
+                owner=args.owner,
+                output_zip=Path(args.output_zip),
+                request_file=Path(args.request_file) if args.request_file else None,
+                source_dir=Path(args.source_dir) if args.source_dir else None,
+                endpoint_url=args.endpoint_url,
+                bucket=args.bucket,
+                overwrite=args.overwrite,
             )
             print(json.dumps(res, indent=2))
             return 0 if res.get("status") == "PASS" else 1

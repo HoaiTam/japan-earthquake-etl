@@ -53,7 +53,7 @@ class TestPackWorkerLineage(unittest.TestCase):
 
     def test_pack_and_verify_roundtrip_synthetic(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            tmp_path = Path(tmpdir)
+            tmp_path = Path(tmpdir).resolve()
             src_dir = tmp_path / "staging"
             zip_out = tmp_path / "lineage.zip"
             spec_out = tmp_path / "lineage_spec.json"
@@ -96,7 +96,7 @@ class TestPackWorkerLineage(unittest.TestCase):
 
     def test_missing_phase_fails(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            tmp_path = Path(tmpdir)
+            tmp_path = Path(tmpdir).resolve()
             src_dir = tmp_path / "staging"
             zip_out = tmp_path / "lineage.zip"
 
@@ -121,7 +121,7 @@ class TestPackWorkerLineage(unittest.TestCase):
 
     def test_run_count_mismatch_fails(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            tmp_path = Path(tmpdir)
+            tmp_path = Path(tmpdir).resolve()
             src_dir = tmp_path / "staging"
             zip_out = tmp_path / "lineage.zip"
 
@@ -166,7 +166,7 @@ class TestPackWorkerLineage(unittest.TestCase):
 
     def test_symlink_file_rejected_in_pack(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            tmp_path = Path(tmpdir)
+            tmp_path = Path(tmpdir).resolve()
             src_dir = tmp_path / "staging"
             zip_out = tmp_path / "lineage.zip"
 
@@ -180,33 +180,41 @@ class TestPackWorkerLineage(unittest.TestCase):
                 link_file.symlink_to(target_file)
                 has_real_symlink = True
             except OSError:
-                pass
+                link_file.write_bytes(b"{}")
 
             if has_real_symlink:
                 with self.assertRaises(ValueError) as ctx:
                     lineage.pack_lineage_archive(owner="rosy179", source_input=src_dir, output_zip=zip_out)
                 self.assertIn("SYMLINK_REJECTED", str(ctx.exception))
             else:
-                with patch("pathlib.Path.is_symlink", return_value=True):
+                orig_is_symlink = Path.is_symlink
+                def mock_is_symlink(self):
+                    return Path(self) == Path(link_file) or orig_is_symlink(self)
+                with patch.object(Path, "is_symlink", mock_is_symlink):
                     with self.assertRaises(ValueError) as ctx:
                         lineage.pack_lineage_archive(owner="rosy179", source_input=src_dir, output_zip=zip_out)
                     self.assertIn("SYMLINK_REJECTED", str(ctx.exception))
 
     def test_symlink_parent_rejected_in_pack(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            tmp_path = Path(tmpdir)
+            tmp_path = Path(tmpdir).resolve()
             src_dir = tmp_path / "staging"
             zip_out = tmp_path / "lineage.zip"
             src_dir.mkdir(parents=True, exist_ok=True)
 
-            with patch("pathlib.Path.is_symlink", return_value=True):
+            parent_dir = src_dir / "silver" / "real-etl"
+            parent_dir.mkdir(parents=True, exist_ok=True)
+            orig_is_symlink = Path.is_symlink
+            def mock_parent_symlink(self):
+                return Path(self) == Path(parent_dir) or orig_is_symlink(self)
+            with patch.object(Path, "is_symlink", mock_parent_symlink):
                 with self.assertRaises(ValueError) as ctx:
                     lineage.pack_lineage_archive(owner="rosy179", source_input=src_dir, output_zip=zip_out)
                 self.assertIn("SYMLINK_REJECTED", str(ctx.exception))
 
     def test_path_escapes_source_root_rejected(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            tmp_path = Path(tmpdir)
+            tmp_path = Path(tmpdir).resolve()
             src_dir = tmp_path / "staging"
             zip_out = tmp_path / "lineage.zip"
 
@@ -221,7 +229,7 @@ class TestPackWorkerLineage(unittest.TestCase):
 
     def test_symlink_zip_entry_rejected_in_verify(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            tmp_path = Path(tmpdir)
+            tmp_path = Path(tmpdir).resolve()
             bad_zip = tmp_path / "symlink_entry.zip"
 
             with zipfile.ZipFile(bad_zip, "w") as zf:
@@ -235,7 +243,7 @@ class TestPackWorkerLineage(unittest.TestCase):
 
     def test_invalid_namespace_layout_rejected_in_verify(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            tmp_path = Path(tmpdir)
+            tmp_path = Path(tmpdir).resolve()
             bad_zip = tmp_path / "bad_layout.zip"
 
             objects = []
@@ -266,7 +274,7 @@ class TestPackWorkerLineage(unittest.TestCase):
 
     def test_invalid_operation_id_format_rejected(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            tmp_path = Path(tmpdir)
+            tmp_path = Path(tmpdir).resolve()
             bad_zip = tmp_path / "bad_op.zip"
 
             objects = []
@@ -294,7 +302,7 @@ class TestPackWorkerLineage(unittest.TestCase):
 
     def test_manifest_field_mismatch_rejected(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            tmp_path = Path(tmpdir)
+            tmp_path = Path(tmpdir).resolve()
             objects = []
             bad_zip = tmp_path / "mismatch.zip"
             with zipfile.ZipFile(bad_zip, "w") as zf:
@@ -323,7 +331,7 @@ class TestPackWorkerLineage(unittest.TestCase):
         prov_zip = ROOT / "staging/dat03-range-handoff-rosy179/rosy179-dat03-provenance-metadata.zip"
         if prov_zip.is_file():
             with tempfile.TemporaryDirectory() as tmpdir:
-                spec_out = Path(tmpdir) / "frontier114.json"
+                spec_out = Path(tmpdir).resolve() / "frontier114.json"
                 res = lineage.extract_frontier_spec(
                     owner="rosy179",
                     provenance_zip=prov_zip,
@@ -423,7 +431,7 @@ class TestPackWorkerLineage(unittest.TestCase):
 
     def test_frontier_spec_synthetic_roundtrip(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            tmp_path = Path(tmpdir)
+            tmp_path = Path(tmpdir).resolve()
             prov_zip = tmp_path / "prov.zip"
             spec_out = tmp_path / "frontier.json"
             prov_sha = self._create_synthetic_provenance_zip(prov_zip)
@@ -451,7 +459,7 @@ class TestPackWorkerLineage(unittest.TestCase):
 
     def test_frontier_spec_wrong_sha_pin_rejected(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            tmp_path = Path(tmpdir)
+            tmp_path = Path(tmpdir).resolve()
             prov_zip = tmp_path / "prov.zip"
             self._create_synthetic_provenance_zip(prov_zip)
 
@@ -465,7 +473,7 @@ class TestPackWorkerLineage(unittest.TestCase):
 
     def test_frontier_spec_checkpoint_pin_verification(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            tmp_path = Path(tmpdir)
+            tmp_path = Path(tmpdir).resolve()
             prov_zip = tmp_path / "prov.zip"
             prov_sha = self._create_synthetic_provenance_zip(prov_zip)
 
@@ -493,7 +501,7 @@ class TestPackWorkerLineage(unittest.TestCase):
 
     def test_frontier_spec_missing_pin_fails_without_allow_unverified(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            tmp_path = Path(tmpdir)
+            tmp_path = Path(tmpdir).resolve()
             prov_zip = tmp_path / "prov.zip"
             self._create_synthetic_provenance_zip(prov_zip)
 
@@ -506,7 +514,7 @@ class TestPackWorkerLineage(unittest.TestCase):
 
     def test_frontier_spec_empty_zip_fails(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            tmp_path = Path(tmpdir)
+            tmp_path = Path(tmpdir).resolve()
             empty_zip = tmp_path / "empty.zip"
             with zipfile.ZipFile(empty_zip, "w") as zf:
                 pass
@@ -521,7 +529,7 @@ class TestPackWorkerLineage(unittest.TestCase):
 
     def test_frontier_spec_missing_bundle_count_fails(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            tmp_path = Path(tmpdir)
+            tmp_path = Path(tmpdir).resolve()
             prov_zip = tmp_path / "prov.zip"
             self._create_synthetic_provenance_zip(prov_zip, num_runs=20)
 
@@ -535,7 +543,7 @@ class TestPackWorkerLineage(unittest.TestCase):
 
     def test_frontier_spec_missing_registries_fails(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            tmp_path = Path(tmpdir)
+            tmp_path = Path(tmpdir).resolve()
             prov_zip = tmp_path / "prov.zip"
             self._create_synthetic_provenance_zip(prov_zip, num_runs=23, num_registries=20)
 
@@ -549,7 +557,7 @@ class TestPackWorkerLineage(unittest.TestCase):
 
     def test_frontier_spec_missing_datasets_fails(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            tmp_path = Path(tmpdir)
+            tmp_path = Path(tmpdir).resolve()
             prov_zip = tmp_path / "prov.zip"
             self._create_synthetic_provenance_zip(prov_zip, missing_dataset=True)
 
@@ -563,7 +571,7 @@ class TestPackWorkerLineage(unittest.TestCase):
 
     def test_frontier_spec_duplicate_zip_members_rejected(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            tmp_path = Path(tmpdir)
+            tmp_path = Path(tmpdir).resolve()
             prov_zip = tmp_path / "prov.zip"
             self._create_synthetic_provenance_zip(prov_zip, duplicate_member=True)
 
@@ -577,7 +585,7 @@ class TestPackWorkerLineage(unittest.TestCase):
 
     def test_frontier_spec_conflicting_sha_rejected(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            tmp_path = Path(tmpdir)
+            tmp_path = Path(tmpdir).resolve()
             prov_zip = tmp_path / "prov.zip"
             self._create_synthetic_provenance_zip(prov_zip, conflicting_sha=True)
 
@@ -591,7 +599,7 @@ class TestPackWorkerLineage(unittest.TestCase):
 
     def test_frontier_spec_duplicate_frontier_object_rejected(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            tmp_path = Path(tmpdir)
+            tmp_path = Path(tmpdir).resolve()
             prov_zip = tmp_path / "prov.zip"
             self._create_synthetic_provenance_zip(prov_zip, duplicate_frontier_obj=True)
 
@@ -605,7 +613,7 @@ class TestPackWorkerLineage(unittest.TestCase):
 
     def test_frontier_spec_invalid_dataset_uri_rejected(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            tmp_path = Path(tmpdir)
+            tmp_path = Path(tmpdir).resolve()
             prov_zip = tmp_path / "prov.zip"
             self._create_synthetic_provenance_zip(prov_zip, invalid_uri=True)
 
@@ -619,7 +627,7 @@ class TestPackWorkerLineage(unittest.TestCase):
 
     def test_frontier_spec_invalid_dataset_sha_rejected(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            tmp_path = Path(tmpdir)
+            tmp_path = Path(tmpdir).resolve()
             prov_zip = tmp_path / "prov.zip"
             self._create_synthetic_provenance_zip(prov_zip, invalid_sha=True)
 
@@ -633,7 +641,7 @@ class TestPackWorkerLineage(unittest.TestCase):
 
     def test_frontier_spec_invalid_commit_key_rejected(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            tmp_path = Path(tmpdir)
+            tmp_path = Path(tmpdir).resolve()
             prov_zip = tmp_path / "prov.zip"
             self._create_synthetic_provenance_zip(prov_zip, invalid_commit_key=True)
 
@@ -647,7 +655,7 @@ class TestPackWorkerLineage(unittest.TestCase):
 
     def test_frontier_spec_invalid_commit_sha_rejected(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            tmp_path = Path(tmpdir)
+            tmp_path = Path(tmpdir).resolve()
             prov_zip = tmp_path / "prov.zip"
             self._create_synthetic_provenance_zip(prov_zip, invalid_commit_sha=True)
 
@@ -661,7 +669,7 @@ class TestPackWorkerLineage(unittest.TestCase):
 
     def test_frontier_spec_existing_file_fails_without_overwrite(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            tmp_path = Path(tmpdir)
+            tmp_path = Path(tmpdir).resolve()
             out_file = tmp_path / "existing_spec.json"
             out_file.write_text("DO_NOT_OVERWRITE", encoding="utf-8")
 
@@ -693,7 +701,7 @@ class TestPackWorkerLineage(unittest.TestCase):
 
     def test_frontier_spec_symlink_output_rejected_and_target_untouched(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            tmp_path = Path(tmpdir)
+            tmp_path = Path(tmpdir).resolve()
             target_file = tmp_path / "important_checkpoint.json"
             target_file.write_text("ORIGINAL_CHECKPOINT_DATA", encoding="utf-8")
             link_file = tmp_path / "symlink_spec.json"
@@ -705,12 +713,12 @@ class TestPackWorkerLineage(unittest.TestCase):
             orig_os_islink = os.path.islink
 
             def mock_is_symlink(p):
-                if str(p) == str(link_file):
+                if Path(p) == Path(link_file):
                     return True
                 return orig_is_symlink(p)
 
             def mock_os_islink(p):
-                if str(p) == str(link_file):
+                if Path(p) == Path(link_file):
                     return True
                 return orig_os_islink(p)
 
@@ -730,7 +738,7 @@ class TestPackWorkerLineage(unittest.TestCase):
 
     def test_frontier_spec_symlink_parent_directory_rejected(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            tmp_path = Path(tmpdir)
+            tmp_path = Path(tmpdir).resolve()
             symlink_dir = tmp_path / "sym_dir"
             out_file = symlink_dir / "spec.json"
 
@@ -741,12 +749,12 @@ class TestPackWorkerLineage(unittest.TestCase):
             orig_os_islink = os.path.islink
 
             def mock_is_symlink(p):
-                if str(p) == str(symlink_dir):
+                if Path(p) == Path(symlink_dir):
                     return True
                 return orig_is_symlink(p)
 
             def mock_os_islink(p):
-                if str(p) == str(symlink_dir):
+                if Path(p) == Path(symlink_dir):
                     return True
                 return orig_os_islink(p)
 
@@ -763,7 +771,7 @@ class TestPackWorkerLineage(unittest.TestCase):
 
     def test_pack_lineage_existing_files_fail_without_overwrite(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            tmp_path = Path(tmpdir)
+            tmp_path = Path(tmpdir).resolve()
             src_dir = tmp_path / "staging"
             zip_out = tmp_path / "lineage.zip"
             spec_out = tmp_path / "lineage_spec.json"
@@ -804,7 +812,7 @@ class TestPackWorkerLineage(unittest.TestCase):
 
     def test_pack_lineage_symlink_output_spec_rejected_and_target_untouched(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            tmp_path = Path(tmpdir)
+            tmp_path = Path(tmpdir).resolve()
             src_dir = tmp_path / "staging"
             zip_out = tmp_path / "lineage.zip"
             target_checkpoint = tmp_path / "target_checkpoint.json"
@@ -822,12 +830,12 @@ class TestPackWorkerLineage(unittest.TestCase):
             orig_os_islink = os.path.islink
 
             def mock_is_symlink(p):
-                if str(p) == str(symlink_spec):
+                if Path(p) == Path(symlink_spec):
                     return True
                 return orig_is_symlink(p)
 
             def mock_os_islink(p):
-                if str(p) == str(symlink_spec):
+                if Path(p) == Path(symlink_spec):
                     return True
                 return orig_os_islink(p)
 
@@ -843,6 +851,165 @@ class TestPackWorkerLineage(unittest.TestCase):
                 self.assertIn("SYMLINK_REJECTED", str(ctx.exception))
 
             self.assertEqual(target_checkpoint.read_text(encoding="utf-8"), "CHECKPOINT_DO_NOT_TOUCH")
+
+    def test_pack_frontier_metadata_roundtrip_synthetic(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir).resolve()
+            src_dir = tmp_path / "mock_minio"
+            zip_out = tmp_path / "frontier.zip"
+            req_file = tmp_path / "req.json"
+
+            objects = []
+            # 92 silver manifests
+            for r in range(1, 24):
+                run_id = f"orc07-run-{r:02d}"
+                for ds in ("source_observation", "reject_record", "source_link", "canonical_membership"):
+                    rel = f"silver/bundles/{run_id}/{ds}/manifest.json"
+                    f = src_dir / rel
+                    f.parent.mkdir(parents=True, exist_ok=True)
+                    content = json.dumps({"dataset": ds, "run": run_id}).encode("utf-8")
+                    f.write_bytes(content)
+                    sha = lineage.compute_sha256(content)
+                    objects.append({
+                        "uri": f"s3://japan-earthquake/{rel}",
+                        "sha256": sha,
+                        "kind": "silver_dataset_manifest",
+                    })
+
+            # 22 gold commits
+            for r in range(1, 23):
+                parent_run = f"orc07-run-{r:02d}"
+                rel = f"silver/gold-commits/{parent_run}/commit.json"
+                f = src_dir / rel
+                f.parent.mkdir(parents=True, exist_ok=True)
+                content = json.dumps({"commit": f"commit-{parent_run}"}).encode("utf-8")
+                f.write_bytes(content)
+                sha = lineage.compute_sha256(content)
+                objects.append({
+                    "uri": f"s3://japan-earthquake/{rel}",
+                    "sha256": sha,
+                    "kind": "gold_commit",
+                })
+
+            req_file.write_text(json.dumps({"owner": "rosy179", "object_count": 114, "objects": objects}), encoding="utf-8")
+
+            res = lineage.pack_frontier_metadata(
+                owner="rosy179",
+                output_zip=zip_out,
+                request_file=req_file,
+                source_dir=src_dir,
+                overwrite=True,
+            )
+            self.assertEqual(res["status"], "PASS")
+            self.assertEqual(res["total_objects"], 114)
+            self.assertTrue(zip_out.is_file())
+            self.assertTrue(Path(res["sha256_file"]).is_file())
+
+            # Verify contents
+            with zipfile.ZipFile(zip_out, "r") as zf:
+                znames = zf.namelist()
+                self.assertIn("manifest.json", znames)
+                self.assertIn("README.md", znames)
+                self.assertEqual(len(znames), 116)
+
+    def test_pack_frontier_metadata_sha_mismatch_fails(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir).resolve()
+            src_dir = tmp_path / "mock_minio"
+            zip_out = tmp_path / "frontier.zip"
+            req_file = tmp_path / "req.json"
+
+            objects = []
+            for r in range(1, 24):
+                run_id = f"orc07-run-{r:02d}"
+                for ds in ("source_observation", "reject_record", "source_link", "canonical_membership"):
+                    rel = f"silver/bundles/{run_id}/{ds}/manifest.json"
+                    f = src_dir / rel
+                    f.parent.mkdir(parents=True, exist_ok=True)
+                    content = b"original"
+                    f.write_bytes(content)
+                    sha = lineage.compute_sha256(content)
+                    objects.append({
+                        "uri": f"s3://japan-earthquake/{rel}",
+                        "sha256": sha,
+                        "kind": "silver_dataset_manifest",
+                    })
+
+            for r in range(1, 23):
+                parent_run = f"orc07-run-{r:02d}"
+                rel = f"silver/gold-commits/{parent_run}/commit.json"
+                f = src_dir / rel
+                f.parent.mkdir(parents=True, exist_ok=True)
+                content = b"original-commit"
+                f.write_bytes(content)
+                sha = lineage.compute_sha256(content)
+                objects.append({
+                    "uri": f"s3://japan-earthquake/{rel}",
+                    "sha256": sha,
+                    "kind": "gold_commit",
+                })
+
+            # Tamper 1 file
+            tampered_file = src_dir / "silver/bundles/orc07-run-01/source_observation/manifest.json"
+            tampered_file.write_bytes(b"tampered")
+
+            req_file.write_text(json.dumps({"owner": "rosy179", "object_count": 114, "objects": objects}), encoding="utf-8")
+
+            with self.assertRaises(ValueError) as ctx:
+                lineage.pack_frontier_metadata(
+                    owner="rosy179",
+                    output_zip=zip_out,
+                    request_file=req_file,
+                    source_dir=src_dir,
+                )
+            self.assertIn("SHA_MISMATCH", str(ctx.exception))
+
+    def test_pack_frontier_metadata_missing_file_fails(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir).resolve()
+            src_dir = tmp_path / "mock_minio"
+            zip_out = tmp_path / "frontier.zip"
+            req_file = tmp_path / "req.json"
+
+            objects = []
+            for r in range(1, 24):
+                run_id = f"orc07-run-{r:02d}"
+                for ds in ("source_observation", "reject_record", "source_link", "canonical_membership"):
+                    rel = f"silver/bundles/{run_id}/{ds}/manifest.json"
+                    f = src_dir / rel
+                    f.parent.mkdir(parents=True, exist_ok=True)
+                    f.write_bytes(b"data")
+                    objects.append({
+                        "uri": f"s3://japan-earthquake/{rel}",
+                        "sha256": lineage.compute_sha256(b"data"),
+                        "kind": "silver_dataset_manifest",
+                    })
+
+            for r in range(1, 23):
+                parent_run = f"orc07-run-{r:02d}"
+                rel = f"silver/gold-commits/{parent_run}/commit.json"
+                f = src_dir / rel
+                f.parent.mkdir(parents=True, exist_ok=True)
+                f.write_bytes(b"commit")
+                objects.append({
+                    "uri": f"s3://japan-earthquake/{rel}",
+                    "sha256": lineage.compute_sha256(b"commit"),
+                    "kind": "gold_commit",
+                })
+
+            # Remove 1 file
+            (src_dir / "silver/bundles/orc07-run-01/source_observation/manifest.json").unlink()
+
+            req_file.write_text(json.dumps({"owner": "rosy179", "object_count": 114, "objects": objects}), encoding="utf-8")
+
+            with self.assertRaises(FileNotFoundError) as ctx:
+                lineage.pack_frontier_metadata(
+                    owner="rosy179",
+                    output_zip=zip_out,
+                    request_file=req_file,
+                    source_dir=src_dir,
+                )
+            self.assertIn("FRONTIER_FILE_NOT_FOUND", str(ctx.exception))
 
 
 if __name__ == "__main__":
