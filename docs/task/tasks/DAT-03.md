@@ -30,6 +30,8 @@ linkage tới 108 snapshots Iceberg và kiểm kê 119 payload 522.659.149 bytes
 [Evidence ThanhTris](../../evidence/DAT-03_LINEAGE_ThanhTris_METADATA_20261112.md).
 DAT-03 vẫn giữ In Progress.
 
+**14/11 — ThanhTris bổ sung 3 metadata nguyên bản head run:** Đã trích xuất nguyên bản từ MinIO storage và tải lên Google Drive gói `ThanhTris-dat03-lineage-followup.zip` (ID: `1kKsPu9cMf_dFP-G73s1oeF6Fta-vTkSp`) và checksum `.sha256` (ID: `1sbUyXXTQxUuvcLSJL-MfMNn2SmPwREgV`) gồm `commit.json` (SHA `cfbc547badf4...`), `identity.json` (payload digest `140c5ba2919d...`) và `publication.json` (SHA `00789cbdafff...`, `verify_status=PASSED`, `published=true`) cho run `orc07-5679c9c378edacb4e5f804613c8475351ce326b4`. Chi tiết tại [Evidence](../../evidence/DAT-03_LINEAGE_ThanhTris_FOLLOWUP_20261114.md). DAT-03 tiếp tục giữ In Progress.
+
 - **Owner:** HoaiTam; **status:** In Progress.
 - **Làm phần gì / dùng để làm gì:** Lineage → catalog tích hợp → official export.
 - **Bắt đầu độc lập:** Đối chiếu bytes/SHA tầng tiếp theo của Trí/Trang; không chạy lại ETL đã accepted.
