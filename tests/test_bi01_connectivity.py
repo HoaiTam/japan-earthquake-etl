@@ -551,24 +551,236 @@ class TestPowerBiConnectivity(unittest.TestCase):
         self.assertEqual(extract_query_from_body(plain_sql), b"SELECT 1")
         self.assertEqual(extract_query_from_body(b""), b"")
 
-    def test_trino_proxy_uri_rewriting(self) -> None:
-        """Verifies that Trino proxy rewrites nextUri and cancelUri in JSON responses back to proxy port."""
+    def test_trino_proxy_default_port_does_not_collide_with_project_ports(self) -> None:
+        """Regression test verifying proxy default port does not clash with any project host ports."""
+        import sys
+        sys.path.insert(0, str(PROJECT_ROOT))
+        from scripts.trino_proxy import DEFAULT_LISTEN_PORT
+
+        env_file = PROJECT_ROOT / ".env.example"
+        self.assertTrue(env_file.exists(), ".env.example must exist")
+        env_content = env_file.read_text(encoding="utf-8")
+
+        # Extract all *_HOST_PORT values
+        host_ports = set()
+        for line in env_content.splitlines():
+            line = line.strip()
+            if "_HOST_PORT=" in line and not line.startswith("#"):
+                parts = line.split("=", 1)
+                if len(parts) == 2 and parts[1].strip().isdigit():
+                    host_ports.add(int(parts[1].strip()))
+
+        # Expected project ports in .env.example: 8080 (Airflow), 8081 (Trino), 8082 (Spark UI), 9001 (MinIO)
+        self.assertIn(8080, host_ports)
+        self.assertIn(8081, host_ports)
+        self.assertIn(8082, host_ports)
+        self.assertIn(9001, host_ports)
+
+        # Proxy default port must NOT collide with any of these
+        self.assertNotIn(DEFAULT_LISTEN_PORT, host_ports)
+        self.assertEqual(DEFAULT_LISTEN_PORT, 8084)
+
+    def test_trino_proxy_uri_rewriting_preserves_data_and_exact_snapshot_ids(self) -> None:
+        """Verifies that URI rewriting only targets control URIs, leaves result set data and large ints untouched."""
         import sys
         sys.path.insert(0, str(PROJECT_ROOT))
         from scripts.trino_proxy import rewrite_uris_in_json_response
+        import json
 
-        upstream_resp = (
-            b'{"id":"20261114_1","nextUri":"http://127.0.0.1:8081/v1/statement/queued/20261114_1/1",'
-            b'"infoUri":"http://127.0.0.1:8081/ui/query.html?20261114_1"}'
+        upstream_base = "http://127.0.0.1:8081"
+        proxy_base = "http://127.0.0.1:8084"
+
+        # Construct payload with:
+        # 1. nextUri and infoUri with exact upstream origin
+        # 2. data containing identical upstream URL string and a different port (80810) URL string
+        # 3. Snapshot ID larger than 2^53 (e.g. 9007199254740993 = 2^53 + 1)
+        # 4. int64 max snapshot ID (9223372036854775807)
+        large_snap_id = 9007199254740993
+        max_int64_snap_id = 9223372036854775807
+        raw_payload = json.dumps({
+            "id": "20261114_0001",
+            "infoUri": f"{upstream_base}/ui/query.html?20261114_0001",
+            "partialCancelUri": f"{upstream_base}/v1/stage/20261114_0001.1",
+            "nextUri": f"{upstream_base}/v1/statement/queued/20261114_0001/1",
+            "columns": [{"name": "url_val", "type": "varchar"}, {"name": "snap_id", "type": "bigint"}],
+            "data": [
+                [f"{upstream_base}/original-value", large_snap_id],
+                ["http://127.0.0.1:80810/different-port-value", max_int64_snap_id]
+            ],
+            "stats": {"state": "QUEUED"}
+        }).encode("utf-8")
+
+        rewritten_bytes = rewrite_uris_in_json_response(raw_payload, upstream_base, proxy_base)
+        parsed = json.loads(rewritten_bytes.decode("utf-8"))
+
+        # 1. Control URIs must be rewritten to proxy_base
+        self.assertEqual(parsed["infoUri"], f"{proxy_base}/ui/query.html?20261114_0001")
+        self.assertEqual(parsed["partialCancelUri"], f"{proxy_base}/v1/stage/20261114_0001.1")
+        self.assertEqual(parsed["nextUri"], f"{proxy_base}/v1/statement/queued/20261114_0001/1")
+
+        # 2. Data rows MUST NOT be altered
+        self.assertEqual(parsed["data"][0][0], f"{upstream_base}/original-value")
+        self.assertEqual(parsed["data"][1][0], "http://127.0.0.1:80810/different-port-value")
+
+        # 3. Snapshot IDs > 2^53 MUST retain exact int precision without float cast
+        self.assertEqual(parsed["data"][0][1], large_snap_id)
+        self.assertIsInstance(parsed["data"][0][1], int)
+        self.assertEqual(parsed["data"][1][1], max_int64_snap_id)
+        self.assertIsInstance(parsed["data"][1][1], int)
+
+    def test_trino_proxy_uri_rewriting_different_origin_preserved(self) -> None:
+        """Verifies that non-matching origins/ports in control URIs are preserved untouched."""
+        import sys
+        sys.path.insert(0, str(PROJECT_ROOT))
+        from scripts.trino_proxy import rewrite_uris_in_json_response
+        import json
+
+        upstream_base = "http://127.0.0.1:8081"
+        proxy_base = "http://127.0.0.1:8084"
+
+        # nextUri has port 80810 (different port from upstream 8081)
+        raw_payload = json.dumps({
+            "id": "query_diff_port",
+            "nextUri": "http://127.0.0.1:80810/v1/statement/queued/1",
+            "infoUri": "https://remote-trino.example.com/ui/query.html"
+        }).encode("utf-8")
+
+        rewritten_bytes = rewrite_uris_in_json_response(raw_payload, upstream_base, proxy_base)
+        parsed = json.loads(rewritten_bytes.decode("utf-8"))
+
+        # Both remain untouched because their origins do not match upstream_base
+        self.assertEqual(parsed["nextUri"], "http://127.0.0.1:80810/v1/statement/queued/1")
+        self.assertEqual(parsed["infoUri"], "https://remote-trino.example.com/ui/query.html")
+
+    def test_trino_proxy_mock_upstream_lifecycle(self) -> None:
+        """End-to-end integration test with ephemeral mock upstream verifying POST, GET pagination, and DELETE cancellation."""
+        import http.server
+        import json
+        import sys
+        import threading
+        import urllib.request
+        sys.path.insert(0, str(PROJECT_ROOT))
+        from scripts.trino_proxy import make_proxy_handler
+
+        recorded_requests: list[dict] = []
+
+        class MockTrinoCoordinatorHandler(http.server.BaseHTTPRequestHandler):
+            def log_message(self, format: str, *args: object) -> None:
+                pass
+
+            def do_POST(self) -> None:
+                length = int(self.headers.get("Content-Length", 0))
+                body = self.rfile.read(length) if length > 0 else b""
+                recorded_requests.append({"method": "POST", "path": self.path, "body": body})
+
+                # Return statement response with nextUri and large snapshot ID
+                upstream_port = self.server.server_port
+                resp = json.dumps({
+                    "id": "mock_query_001",
+                    "nextUri": f"http://127.0.0.1:{upstream_port}/v1/statement/queued/mock_query_001/1",
+                    "data": [[f"http://127.0.0.1:{upstream_port}/untouched_data", 9007199254740993]]
+                }).encode("utf-8")
+
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(resp)))
+                self.end_headers()
+                self.wfile.write(resp)
+
+            def do_GET(self) -> None:
+                recorded_requests.append({"method": "GET", "path": self.path})
+                resp = json.dumps({
+                    "id": "mock_query_001",
+                    "columns": [{"name": "res", "type": "bigint"}],
+                    "data": [[1]]
+                }).encode("utf-8")
+
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(resp)))
+                self.end_headers()
+                self.wfile.write(resp)
+
+            def do_DELETE(self) -> None:
+                recorded_requests.append({"method": "DELETE", "path": self.path})
+                self.send_response(204)
+                self.end_headers()
+
+        # 1. Start mock upstream server on ephemeral port
+        upstream_server = http.server.HTTPServer(("127.0.0.1", 0), MockTrinoCoordinatorHandler)
+        upstream_port = upstream_server.server_port
+        upstream_thread = threading.Thread(target=upstream_server.serve_forever, daemon=True)
+        upstream_thread.start()
+
+        # 2. Start proxy server pointing to mock upstream on another ephemeral port
+        proxy_cls = make_proxy_handler(
+            upstream_url=f"http://127.0.0.1:{upstream_port}",
+            listen_host="127.0.0.1",
+            listen_port=0  # Bound at server start
         )
-        rewritten = rewrite_uris_in_json_response(
-            upstream_resp,
-            upstream_base="http://127.0.0.1:8081",
-            proxy_base="http://127.0.0.1:8082"
-        )
-        self.assertIn(b"http://127.0.0.1:8082/v1/statement/queued/20261114_1/1", rewritten)
-        self.assertIn(b"http://127.0.0.1:8082/ui/query.html?20261114_1", rewritten)
-        self.assertNotIn(b"http://127.0.0.1:8081", rewritten)
+        proxy_server = http.server.HTTPServer(("127.0.0.1", 0), proxy_cls)
+        proxy_port = proxy_server.server_port
+        proxy_cls.listen_port = proxy_port
+        proxy_thread = threading.Thread(target=proxy_server.serve_forever, daemon=True)
+        proxy_thread.start()
+
+        try:
+            # Step A: POST query with Starburst JSON wrapper to proxy
+            post_url = f"http://127.0.0.1:{proxy_port}/v1/statement"
+            starburst_payload = json.dumps({
+                "query": "SELECT count(*) FROM iceberg.gold.publication_status",
+                "preparedStatements": {}
+            }).encode("utf-8")
+
+            req = urllib.request.Request(
+                post_url,
+                data=starburst_payload,
+                headers={"Content-Type": "application/json"},
+                method="POST"
+            )
+            with urllib.request.urlopen(req) as resp:
+                self.assertEqual(resp.status, 200)
+                body = resp.read()
+                data = json.loads(body.decode("utf-8"))
+
+            # Upstream received raw plain text SQL (JSON wrapper unwrapped)
+            self.assertEqual(len(recorded_requests), 1)
+            self.assertEqual(recorded_requests[0]["method"], "POST")
+            self.assertEqual(recorded_requests[0]["body"], b"SELECT count(*) FROM iceberg.gold.publication_status")
+
+            # nextUri must be rewritten to point to PROXY port, NOT upstream port
+            expected_next_uri = f"http://127.0.0.1:{proxy_port}/v1/statement/queued/mock_query_001/1"
+            self.assertEqual(data["nextUri"], expected_next_uri)
+
+            # Untouched URL in data and large snapshot ID intact
+            self.assertEqual(data["data"][0][0], f"http://127.0.0.1:{upstream_port}/untouched_data")
+            self.assertEqual(data["data"][0][1], 9007199254740993)
+
+            # Step B: Follow nextUri via GET (client calls the rewritten proxy URL)
+            get_req = urllib.request.Request(expected_next_uri, method="GET")
+            with urllib.request.urlopen(get_req) as get_resp:
+                self.assertEqual(get_resp.status, 200)
+                get_data = json.loads(get_resp.read().decode("utf-8"))
+                self.assertEqual(get_data["data"], [[1]])
+
+            self.assertEqual(len(recorded_requests), 2)
+            self.assertEqual(recorded_requests[1]["method"], "GET")
+            self.assertEqual(recorded_requests[1]["path"], "/v1/statement/queued/mock_query_001/1")
+
+            # Step C: Cancel query via DELETE to proxy
+            delete_req = urllib.request.Request(expected_next_uri, method="DELETE")
+            with urllib.request.urlopen(delete_req) as del_resp:
+                self.assertEqual(del_resp.status, 204)
+
+            self.assertEqual(len(recorded_requests), 3)
+            self.assertEqual(recorded_requests[2]["method"], "DELETE")
+            self.assertEqual(recorded_requests[2]["path"], "/v1/statement/queued/mock_query_001/1")
+
+        finally:
+            proxy_server.shutdown()
+            proxy_server.server_close()
+            upstream_server.shutdown()
+            upstream_server.server_close()
 
 
 if __name__ == "__main__":
