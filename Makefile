@@ -109,6 +109,7 @@ test-dat03-team-setup: ## DAT-03 offline assignment/pin/readiness regression; kh
 test-dat03-provenance: ## DAT-03 worker provenance packaging/verification regression
 	@python3 -B -m unittest discover -s tests -p 'test_pack_worker_provenance.py'
 	@python3 -B -m unittest discover -s tests -p 'test_extract_minio_provenance.py'
+	@python3 -B -m unittest discover -s tests -p 'test_pack_worker_lineage.py'
 .PHONY: test-mli-import smoke-mli-import smoke-mli-import-acceptance smoke-mli-import-dag up-ml
 .PHONY: test-qa-04 smoke-qa-04
 .PHONY: test-mli-build check-mli-build-runtime

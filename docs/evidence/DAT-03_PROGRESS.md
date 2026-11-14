@@ -1,4 +1,42 @@
-# DAT-03 — Tiến độ thực tế (cập nhật 06/11/2026)
+# DAT-03 — Tiến độ thực tế (cập nhật 14/11/2026)
+
+## Cập nhật 14/11/2026 — Nghiệm thu Bytes Gốc 114 Objects Frontier của rosy179 trên Google Drive
+
+Hoài Tâm (coordinator) đã tải và đối soát độc lập gói dữ liệu bytes gốc 114 objects frontier do máy `rosy179` đóng gói và đưa lên Google Drive:
+- **Thông tin gói dữ liệu đối soát:**
+  - **Tên file:** `rosy179-dat03-lineage-frontier.zip`
+  - **Google Drive ID:** `1QsZHjXXsGmWvBDFHiicMdejmAN2Lehb-`
+  - **Dung lượng:** `101.446 bytes`
+  - **Mã băm SHA-256:** `0dd1c504f27489709c46748b313e9f764ecfc25a58ef50a2699cbcf0626e8453`
+  - **Kết quả đối soát:** **114/114 objects gốc khớp 100%** danh sách URI và SHA-256 đã pin trong `config/research/dat03_lineage_rosy179_metadata.json`:
+    - **92 Silver dataset manifests** (`silver/bundles/<run_id>/<dataset>/manifest.json` cho 23 runs x 4 datasets: `source_observation`, `reject_record`, `source_link`, `canonical_membership`).
+    - **22 parent Gold commit JSONs** (`silver/gold-commits/<run_id>/commit.json`).
+  - **Toàn vẹn tệp nén:** Không có metadata thiếu hoặc dư thừa, không có duplicate ZIP members, không chứa đường dẫn symlink/unsafe paths; file checksum sidecar (`rosy179-dat03-lineage-frontier.zip.sha256`) khớp tuyệt đối.
+- **Hoàn thiện công cụ đóng gói `scripts/pack-worker-lineage.py` & bộ kiểm thử `tests/test_pack_worker_lineage.py` (51 tests PASS, toàn bộ 73/73 worker tests PASS):**
+  - **Bảo mật credentials & tách biệt môi trường AWS/MinIO [P1/P2]:** Loại bỏ hoàn toàn flags `--access-key` và `--secret-key` trên command line theo AGENTS.md Rule 5; loại bỏ fallback hardcoded placeholder; bắt buộc lấy credentials qua biến môi trường hoặc provider chain. Tách biệt hoàn toàn credentials của MinIO (`MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY`) và AWS (`AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_SESSION_TOKEN` / `AWS_SECURITY_TOKEN`): khi dùng MinIO không tự ý gắn token AWS; khi dùng AWS hỗ trợ đầy đủ temporary credentials qua session token.
+  - **Cô lập test harness độc lập môi trường [P1]:** Mock trực tiếp binding `lineage.boto3` trong `tests/test_pack_worker_lineage.py` (thay vì patch global module `"boto3.Session"`), kiểm soát hoàn toàn `DEFAULT_SESSION`, `Session` và `client`, không phụ thuộc vào việc runner CI có cài đặt `boto3` SDK hay không, không phụ thuộc network hay credential máy host, đảm bảo CI docs-contracts luôn xanh mà không cần skip test.
+  - **Tương thích danh mục liên thông [P2]:** Chuẩn hóa category/kind để `pack-frontier` chấp nhận trực tiếp output của `frontier-spec` (`gold_parent_commit` / `parent_commit` / `gold_commit` và `silver_dataset_manifest` / `silver_manifest` / `dataset_manifest`) mà không bị lỗi `KIND_MISMATCH` và không cần chỉnh sửa tay spec.
+  - **Bổ sung regression tests & e2e:** Thêm tests kiểm tra thiếu credentials, thiếu 1 trong 2 credentials, kiểm tra truyền đúng `aws_session_token` khi có AWS credentials và không truyền khi dùng MinIO, CLI từ chối flags secret, chuẩn hóa category, và test liên thông e2e từ `frontier-spec` sang `pack-frontier`.
+- **Phân định rõ ràng: "Nghiệm thu 114 objects frontier" != "Đóng toàn bộ lineage":**
+  - Nghiệm thu này là nghiệm thu đạt chuẩn 100% SHA-256 cho 114 objects bytes gốc frontier của phân đoạn `rosy179` (Google Drive ID `1QsZHjXXsGmWvBDFHiicMdejmAN2Lehb-`, SHA-256 `0dd1c504f27489709c46748b313e9f764ecfc25a58ef50a2699cbcf0626e8453`).
+  - **Cổng 1 tiếp tục MỞ (`CONG_1_TRANSITIVE_CLOSURE_OPEN`):** Việc nghiệm thu 114 objects không đóng toàn bộ lineage hay đóng Cổng 1. Tiếp tục đối soát theo yêu cầu follow-up `config/research/dat03_lineage_rosy179_followup_20261114.json` (PR #131) gồm 24 pinned metadata objects (22 parent identities + commit và identity của đúng current head `orc07-22b5e7647a3df9ed83370139e11c48048845ee8f`) cùng 23 publication URIs gốc.
+  - **Nguyên tắc kỹ thuật:** Phân biệt rõ canonical payload digest với raw-file SHA-256; không tự ý tổng hợp commit/identity từ phase JSON (`gold.json`/`publish.json`); snapshot references trên Iceberg cần được kiểm tra inventory thực tế trước khi coi là đồ thị hoàn tất. DAT-03 tiếp tục giữ trạng thái `In Progress` / `Needs Update`.
+
+## Cập nhật 12/11/2026 — Đóng gói Lineage Bổ sung (138 Phase Journals) & Lập Đặc tả 114 Objects Frontier của rosy179
+
+rosy179 đã hoàn thành việc đóng gói gói bằng chứng giai đoạn thực thi bổ sung (Tier 2 Supplemental Phase Evidence) và lập đặc tả chi tiết cho Cổng 1 Transitive Closure Frontier (Tier 3):
+- **Phân định rõ 3 tầng bằng chứng:**
+  - **Tier 1 (First-hop Provenance):** 83/83 objects (37 Bronze, 23 Silver bundle, 23 Gold registry) trong `rosy179-dat03-provenance-metadata.zip`, đã được Hoài Tâm xác minh đạt 100% SHA-256.
+  - **Tier 2 (Supplemental Phase Evidence):** 138/138 phase journals (23 runs x 6 phases: `readiness`, `bronze`, `silver`, `gold`, `verify`, `publish`) đóng gói trong `rosy179-dat03-lineage-metadata.zip` (401.335 bytes, SHA-256 `45c1f02ff80454aca2a6bad5587e6b0bfabc4f8cb7fa08a8043a8c6bb7b6de01`). Đây là nhật ký giai đoạn bổ sung, không thay thế 114 frontier objects.
+  - **Tier 3 (Transitive Closure Frontier):** 114 objects frontier thực tế (92 Silver dataset manifests + 22 parent Gold commit JSONs) đã được lập đặc tả đầy đủ trong `staging/dat03-range-handoff-rosy179/rosy179-frontier-114-spec.json` (81.654 bytes, SHA-256 `69ba9cb8e259ee5375c01ac3f5e1833aa1e0e5dc75bd40adf252197e1356c7b4`).
+- **Trạng thái Cổng 1:** **MỞ / CHỜ BYTES GỐC (`CONG_1_TRANSITIVE_CLOSURE_OPEN`)**. rosy179 không tuyên bố Cổng 1 đã đóng; việc đóng transitive closure chờ hai máy cung cấp bytes gốc của 114 objects được tham chiếu từ MinIO/object storage local (không cần chạy lại ETL).
+- **Nâng cấp công cụ `scripts/pack-worker-lineage.py` & bộ kiểm thử `tests/test_pack_worker_lineage.py` (14/14 tests PASS):**
+  - Chốt chặn symlink nghiêm ngặt: từ chối symlink file, parent directory, và ZIP entries có mode `0o120000`.
+  - Chống thoát thư mục gốc (`resolve().is_relative_to()`).
+  - Kiểm tra nghiêm ngặt layout `silver/real-etl/<operation_id>/<phase>.json`, regex kiểm tra operation_id, đuôi `.json`, pha hợp lệ.
+  - Đối chiếu nhất quán giữa metadata khai báo trong manifest và đường dẫn thực tế, từ chối bản ghi trùng lặp logic `(operation_id, phase)`.
+  - Bổ sung lệnh `frontier-spec` để tự động trích xuất đặc tả 114 frontier objects từ provenance zip.
+- Chi tiết đối soát tại [báo cáo đối soát 288 tháng](DAT-03_INTEGRATION_EVIDENCE_288_MONTHS.md).
 
 ## Cập nhật 06/11/2026 — Đối soát 288 tháng và Provenance First-hop của ThanhTris (75/75) và rosy179 (83/83)
 

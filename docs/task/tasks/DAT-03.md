@@ -223,6 +223,33 @@ release đủ gate. Không tạo dependency ngược từ DAT-03 sang EXP-02.
 
 ## Theo dõi
 
+- **14/11 — nghiệm thu bytes gốc 114 objects frontier của rosy179 trên Google Drive:**
+  Hoài Tâm đã tải và đối soát độc lập gói `rosy179-dat03-lineage-frontier.zip` (101.446 bytes, SHA-256
+  `0dd1c504f27489709c46748b313e9f764ecfc25a58ef50a2699cbcf0626e8453`, Drive ID `1QsZHjXXsGmWvBDFHiicMdejmAN2Lehb-`):
+  đủ 114/114 objects gốc khớp 100% danh sách URI/SHA đã pin (92 Silver dataset manifests + 22 parent Gold commits),
+  không thiếu/thừa metadata, không duplicate ZIP members, không unsafe paths và checksum sidecar khớp hoàn toàn.
+  Phân định rõ nghiệm thu 114 objects frontier này không đóng toàn bộ lineage: Cổng 1 tiếp tục MỞ (`CONG_1_TRANSITIVE_CLOSURE_OPEN`),
+  chờ đối soát follow-up metadata theo `config/research/dat03_lineage_rosy179_followup_20261114.json` (PR #131: 22 parent identities
+  + commit/identity của current head `orc07-22b5e7647a3df9ed83370139e11c48048845ee8f` = 24 pinned objects + 23 original publication URIs)
+  và phần việc của ThanhTris. Hoàn thiện `scripts/pack-worker-lineage.py` và `tests/test_pack_worker_lineage.py`:
+  loại bỏ flags secret trên CLI, tách biệt MinIO và AWS credentials, hỗ trợ `AWS_SESSION_TOKEN`, cô lập mocking an toàn không phụ thuộc
+  boto3 SDK runner (51 tests PASS, toàn bộ 73/73 worker tests PASS).
+  [Evidence](../../evidence/DAT-03_PROGRESS.md), [Báo cáo 288 tháng](../../evidence/DAT-03_INTEGRATION_EVIDENCE_288_MONTHS.md).
+  Giữ Needs Update / In Progress chờ nghiệm thu 4 cổng.
+
+- **12/11 — đóng gói lineage bổ sung (138 phase journals) & lập đặc tả 114 objects frontier của rosy179:**
+  đóng gói gói bằng chứng giai đoạn thực thi bổ sung `rosy179-dat03-lineage-metadata.zip` (401.335 bytes, SHA-256
+  `45c1f02ff80454aca2a6bad5587e6b0bfabc4f8cb7fa08a8043a8c6bb7b6de01`) gồm đủ 138/138 phase journals (23 runs x 6
+  phases: readiness, bronze, silver, gold commit, verify, publish), khớp 100% cryptographic receipts trong 63 tháng.
+  Đồng thời phân định rõ 3 tầng bằng chứng và lập đặc tả kỹ thuật chi tiết cho 114 objects transitive closure frontier
+  (92 Silver dataset manifests + 22 parent Gold commits) tại `staging/dat03-range-handoff-rosy179/rosy179-frontier-114-spec.json`.
+  Cổng 1 transitive closure vẫn giữ trạng thái MỞ / PENDING, chờ bytes gốc của 114 objects từ object storage.
+  Đã hoàn thiện công cụ `scripts/pack-worker-lineage.py` (chốt chặn symlink file/parent/ZIP entry mode 0o120000, chống thoát root,
+  ràng buộc nghiêm ngặt layout `silver/real-etl/<operation_id>/<phase>.json`, kiểm tra nhất quán manifest, chống trùng lặp logic,
+  và bổ sung lệnh `frontier-spec`) cùng bộ kiểm thử tự động `tests/test_pack_worker_lineage.py` (14/14 tests PASS).
+  [Evidence](../../evidence/DAT-03_INTEGRATION_EVIDENCE_288_MONTHS.md).
+  Giữ Needs Update theo phân công 11/11 của HoaiTam chờ nghiệm thu 4 cổng.
+
 - **05/11 — đối soát toàn kỳ 288 tháng và 75/75 provenance của ThanhTris:**
   đối soát offline 02/11 và cập nhật từ Hoài Tâm xác nhận đủ 288/288 tháng qua
   4 gói phân đoạn (101 nền, 62 HoaiTam, 62 ThanhTris, 63 rosy179), 0 gap và
