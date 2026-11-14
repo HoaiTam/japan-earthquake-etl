@@ -32,6 +32,33 @@ Capacity v2 timeout trong startup Spark/BlockManager, chưa có capacity report;
 không tự retry hoặc ghi Gold. Còn versioned mapping original worker Bronze URIs
 sang physical source đã xác minh, không giả markers hoặc source keys.
 
+**Lịch sử 14/11 — trước khi nhận follow-up, PR #131:** [Audit/evidence mới](../../evidence/DAT-03_BYTE_AVAILABILITY_20261114.md)
+xác nhận119/119payload references Trí,144/144Trang và37/37raw-source bytes
+mỗi worker có thể tái dùng theo SHA/size trên máy coordinator. Content595bytes
+đã tìm được bản nguyên bytes; không regenerate, không restore original S3keys.
+Trang đã bàn giao114frontier metadata khớp pin. Không còn yêu cầu gửi lại
+ZIP data lớn hoặc coi114objects này còn thiếu như mốc13/11 bên dưới.
+
+Còn original identities của Trang và current head cuối mỗi worker:
+[request Trang24pinned objects/23publication URIs](../../../config/research/dat03_lineage_rosy179_followup_20261114.json),
+[request Trí2pinned objects/1publication URI](../../../config/research/dat03_lineage_ThanhTris_followup_20261114.json).
+Full Iceberg graph, portable integration/Trino và official exports/receipts
+chưa đạt; giữ **In Progress**, reviewer `unassigned`. Các mốc12–13/11 bên
+dưới là lịch sử, không ghi đè evidence cũ hoặc chuyển Done vì đủ content bytes.
+
+**13/11 — tiếp tục trên `feat/dat-03-payload-reuse-inventory` từ main `df2fb01`:**
+HoaiTam kiểm lại metadata đã merge #128 và inventory payload theo bytes/SHA
+trong các gói đã chia sẻ; chỉ thu phần thiếu thực sự, không replay ETL hoặc
+nhận metadata references là portable Gold. Giữ **In Progress**, reviewer
+`unassigned`; còn chờ original bytes frontier của rosy179 và các gate tích hợp/
+official export/receipts ba máy.
+
+**Actual13/11:** [Inventory/evidence](../../evidence/DAT-03_PAYLOAD_REUSE_20261113.md)
+xác nhận100/119payload references Trí có bytes khớp trong data ZIP đã pin;
+19refs còn lại cùng1content595bytes. [Delta request](../../../config/research/dat03_lineage_ThanhTris_payload_delta.json)
+không yêu cầu upload lại498MiB. Publication giữ NOT_VERIFIED; Trang còn đúng
+114metadata objects, không thay bằng138journals. Chưa full closure/import/export.
+
 **12/11 — đã tiếp tục:** In Progress trên feat/dat-03-lineage-readiness.
 [Actual metadata audit](../../evidence/DAT-03_LINEAGE_FRONTIER_20261112.md)
 xác nhận75/83first-hop và Trí76dataset manifests/18parent commits.
@@ -271,6 +298,18 @@ release đủ gate. Không tạo dependency ngược từ DAT-03 sang EXP-02.
   và bổ sung lệnh `frontier-spec`) cùng bộ kiểm thử tự động `tests/test_pack_worker_lineage.py` (14/14 tests PASS).
   [Evidence](../../evidence/DAT-03_INTEGRATION_EVIDENCE_288_MONTHS.md).
   Giữ Needs Update theo phân công 11/11 của HoaiTam chờ nghiệm thu 4 cổng.
+
+- **Lịch sử14/11 — byte audit trước follow-up / PR #131:** [Byte availability evidence](../../evidence/DAT-03_BYTE_AVAILABILITY_20261114.md)
+  và [summary/pins](../../evidence/DAT-03_BYTE_AVAILABILITY_20261114.json): đủ119/119
+  payload refs Trí,144/144Trang,37/37raw-source contents mỗi worker trên owner.
+  Trang114metadata matched; còn identities/current-head/publication/graph theo
+  follow-up requests hiện hành. Giữ In Progress; original S3keys, portable
+  Gold/live Trino/official exports và receipts3máy chưa nghiệm thu mới.
+
+- **13/11 — actual metadata/payload inventory:** branch `feat/dat-03-payload-reuse-inventory`
+  từ main #128,75roots/76manifests/18commits/18identities matched;100/119payload
+  refs byte-identical, delta1content595bytes. [Evidence](../../evidence/DAT-03_PAYLOAD_REUSE_20261113.md).
+  Không ETL/runtime/Drive mutations; giữ In Progress và reviewer unassigned.
 
 - **05/11 — đối soát toàn kỳ 288 tháng và 75/75 provenance của ThanhTris:**
   đối soát offline 02/11 và cập nhật từ Hoài Tâm xác nhận đủ 288/288 tháng qua

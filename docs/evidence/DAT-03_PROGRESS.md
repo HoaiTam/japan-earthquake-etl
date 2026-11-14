@@ -52,6 +52,27 @@ rosy179 đã hoàn thành việc đóng gói gói bằng chứng giai đoạn th
   - Bổ sung lệnh `frontier-spec` để tự động trích xuất đặc tả 114 frontier objects từ provenance zip.
 - Chi tiết đối soát tại [báo cáo đối soát 288 tháng](DAT-03_INTEGRATION_EVIDENCE_288_MONTHS.md).
 
+## Lịch sử 14/11/2026 — Byte audit trước follow-up và readback
+
+[Evidence/pins và giới hạn](DAT-03_BYTE_AVAILABILITY_20261114.md) trên PR #131:
+
+- Trang:83/83first-hop và114/114next metadata objects matched với trusted pins.
+- Content payload: Trí119/119refs, Trang144/144refs; cả hai37/37frozen raw-source
+  references có bytes trùng SHA/size trong retained inputs của HoaiTam.
+- Content595bytes chung đã được tìm trong retained QA output, giữ nguyên bytes.
+  Đây là content reuse theo pin, không thay research rows bằng fixture hoặc
+  chứng nhận original S3keys; chưa upload/handoff595bytes tới hai máy worker.
+- Các phase publication receipts của19groups Trí và23groups Trang có148recorded
+  checks/group, actual/expected khớp khi đọc offline. Không chạy SQL mới.
+- Frontier cũ chỉ theo parent commits:18/22 không bao gồm head cuối của19/23groups.
+  [Request Trí](../../config/research/dat03_lineage_ThanhTris_followup_20261114.json)
+  cần2pinned objects+1publication;
+  [request Trang](../../config/research/dat03_lineage_rosy179_followup_20261114.json)
+  cần24pinned objects+23publications. Không yêu cầu gửi lại data ZIP lớn.
+- DAT-03 **In Progress**: còn identity/publication/complete Iceberg graph,
+  actual portable Java/Spark integration, unified Gold/Trino, official exports
+  và receipts3máy. Các số liệu06/11 và trước đó bên dưới là lịch sử.
+
 ## Cập nhật 06/11/2026 — Đối soát 288 tháng và Provenance First-hop của ThanhTris (75/75) và rosy179 (83/83)
 
 Theo kiểm tra offline ngày 02/11/2026 và cập nhật đối soát từ Hoài Tâm:
