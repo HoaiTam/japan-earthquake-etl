@@ -111,7 +111,7 @@ Ngày 14/11/2026, coordinator Hoài Tâm đã tải và đối soát độc lậ
 - **Phân định phạm vi nghiệm thu 114 objects frontier của rosy179:**
   - Hoài Tâm đã xác nhận nghiệm thu 114/114 objects bytes gốc (92 Silver dataset manifests + 22 parent Gold commit JSONs) đạt 100% SHA-256.
   - **Giới hạn phạm vi nghiêm ngặt:** Việc nghiệm thu 114 objects bytes gốc này **KHÔNG đồng nghĩa với việc đóng toàn bộ lineage hay đóng Cổng 1**.
-  - **Cổng 1 tiếp tục MỞ (`CONG_1_TRANSITIVE_CLOSURE_OPEN`)**: Tiếp tục xử lý danh sách yêu cầu metadata bổ sung theo file `config/research/dat03_lineage_rosy179_followup_20261114.json` (PR #131) gồm 24 pinned metadata objects (22 parent gold identity objects + head commit & head identity cho run `orc07-0f87aad8b4ca1841cde6fe131eb17844ff848b7a`) cùng 23 publication URIs gốc.
+  - **Cổng 1 tiếp tục MỞ (`CONG_1_TRANSITIVE_CLOSURE_OPEN`)**: Tiếp tục xử lý danh sách yêu cầu metadata bổ sung theo file `config/research/dat03_lineage_rosy179_followup_20261114.json` (PR #131) gồm 24 pinned metadata objects (22 parent gold identity objects + commit và identity của đúng current head `orc07-22b5e7647a3df9ed83370139e11c48048845ee8f`) cùng 23 publication URIs gốc.
   - **Nguyên tắc kỹ thuật:** Phân biệt rõ ràng canonical payload digest với raw-file SHA-256; không tự ý tổng hợp commit/identity từ phase JSONs (`gold.json` / `publish.json`); snapshot references trên Iceberg cần được kiểm tra inventory thực tế trước khi coi là đồ thị hoàn tất.
 
 ---

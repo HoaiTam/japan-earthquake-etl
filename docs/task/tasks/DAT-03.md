@@ -215,8 +215,9 @@ release đủ gate. Không tạo dependency ngược từ DAT-03 sang EXP-02.
   đủ 114/114 objects gốc khớp 100% danh sách URI/SHA đã pin (92 Silver dataset manifests + 22 parent Gold commits),
   không thiếu/thừa metadata, không duplicate ZIP members, không unsafe paths và checksum sidecar khớp hoàn toàn.
   Phân định rõ nghiệm thu 114 objects frontier này không đóng toàn bộ lineage: Cổng 1 tiếp tục MỞ (`CONG_1_TRANSITIVE_CLOSURE_OPEN`),
-  chờ đối soát follow-up metadata theo `config/research/dat03_lineage_rosy179_followup_20261114.json` (PR #131: 24 pinned metadata objects
-  + 23 original publication URIs) và phần việc của ThanhTris. Hoàn thiện `scripts/pack-worker-lineage.py` và `tests/test_pack_worker_lineage.py`:
+  chờ đối soát follow-up metadata theo `config/research/dat03_lineage_rosy179_followup_20261114.json` (PR #131: 22 parent identities
+  + commit/identity của current head `orc07-22b5e7647a3df9ed83370139e11c48048845ee8f` = 24 pinned objects + 23 original publication URIs)
+  và phần việc của ThanhTris. Hoàn thiện `scripts/pack-worker-lineage.py` và `tests/test_pack_worker_lineage.py`:
   loại bỏ flags secret trên CLI, tách biệt MinIO và AWS credentials, hỗ trợ `AWS_SESSION_TOKEN`, cô lập mocking an toàn không phụ thuộc
   boto3 SDK runner (51 tests PASS, toàn bộ 73/73 worker tests PASS).
   [Evidence](../../evidence/DAT-03_PROGRESS.md), [Báo cáo 288 tháng](../../evidence/DAT-03_INTEGRATION_EVIDENCE_288_MONTHS.md).
