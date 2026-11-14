@@ -7,8 +7,9 @@ Thư mục chứa các tài nguyên kết nối Power BI Desktop với Trino Lak
 ```
 powerbi/
 ├── power_query/               # Bộ mã nguồn Power Query M
-│   ├── Parameters.m           # Tham số cấu hình kết nối ODBC/Trino tập trung (HostPort = 8081, zero credential)
-│   ├── ActiveBundle.m         # Truy vấn resolve và pin publication bundle (snapshot consistency gate)
+│   ├── Parameters.m           # Tham số cấu hình kết nối ODBC/Trino tập trung (HostPort = 8081, PinnedPublicationId bắt buộc)
+│   ├── DiscoveryLatestPublication.m # Tra cứu publication mới nhất có verify_status = 'PASSED' trước khi refresh
+│   ├── ActiveBundle.m         # Truy vấn resolve và pin publication bundle (fail-closed snapshot consistency gate)
 │   ├── FactEarthquakeEvents.m # Bảng Fact sự kiện động đất chi tiết (v_<suffix>_earthquake_event_current)
 │   ├── FactEventDaily.m       # Bảng Fact tổng hợp theo ngày tính từ fact đã pin
 │   ├── FactEventMonthly.m     # Bảng Fact tổng hợp theo tháng tính từ fact đã pin
@@ -26,10 +27,9 @@ powerbi/
 
 1. Cài đặt **Starburst / Trino ODBC Driver** (64-bit).
 2. Tạo **System DSN** tên `TrinoJapanEarthquake` trỏ về Host `127.0.0.1` và Port `8081` (cổng host mặc định ánh xạ từ container port 8080 qua biến `TRINO_HOST_PORT=8081` trong compose), catalog `iceberg`, schema `gold`.
-3. Trong Power BI Desktop:
-   - Chọn **Get Data** -> **Blank Query**.
-   - Tạo query `Parameters` từ `Parameters.m`, query `ActiveBundle` từ `ActiveBundle.m`.
-   - Tạo tiếp các query Fact và Dim từ các file `.m` tương ứng trong thư mục `power_query/`.
+3. Quy trình 2 bước để nạp / refresh dữ liệu (Fail-closed Snapshot Pinning):
+   - **Bước 1 (Discovery):** Chạy query `DiscoveryLatestPublication` để xem danh sách / lấy `publication_id` mới nhất đã kiểm định đạt (`verify_status = 'PASSED'`).
+   - **Bước 2 (Pin & Import):** Điền `publication_id` vào tham số `Parameters[PinnedPublicationId]`. `ActiveBundle` bắt buộc tham số này không được rỗng để bảo đảm toàn bộ query Fact, Dimensions, Aggregates và Freshness cùng đọc chính xác một snapshot bất biến.
    - Chọn chế độ **Import** khi tải dữ liệu vào mô hình.
 
 Chi tiết xem tại tài liệu đặc tả [POWER_BI_CONNECTIVITY.md](../docs/specs/POWER_BI_CONNECTIVITY.md).

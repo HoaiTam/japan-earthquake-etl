@@ -18,9 +18,11 @@ let
         Catalog = "iceberg",
         // Target schema for Gold serving views and publication tables
         Schema = "gold",
-        // Optional pinned publication ID (e.g. "pub_..." to pin a specific verified bundle).
-        // Leave empty string "" to auto-resolve the active verified PASSED publication bundle.
-        PinnedPublicationId = ""
+        // Mandatory pinned publication ID (e.g. "pub-202302-001" for initial sample bundle).
+        // Bắt buộc phải có giá trị publication_id hợp lệ (đã verify 'PASSED') để bảo đảm
+        // snapshot consistency tuyệt đối giữa mọi query trong phiên refresh.
+        // Để tìm publication mới nhất, sử dụng query DiscoveryLatestPublication.m.
+        PinnedPublicationId = "pub-202302-001"
     ]
 in
     TrinoConfig

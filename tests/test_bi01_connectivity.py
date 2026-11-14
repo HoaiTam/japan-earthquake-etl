@@ -109,6 +109,7 @@ class TestPowerBiConnectivity(unittest.TestCase):
         """Verifies that all M scripts exist, use ODBC, and contain no credentials or parquet paths."""
         expected_scripts = [
             "Parameters.m",
+            "DiscoveryLatestPublication.m",
             "ActiveBundle.m",
             "FactEarthquakeEvents.m",
             "FactEventDaily.m",
@@ -152,19 +153,27 @@ class TestPowerBiConnectivity(unittest.TestCase):
                 self.assertIn("Table.TransformColumnTypes", content, f"{script_name} must enforce explicit column types")
 
     def test_parameters_configuration_structure(self) -> None:
-        """Verifies that Parameters.m properly configures a TrinoConfig record."""
+        """Verifies that Parameters.m properly configures a TrinoConfig record with mandatory PinnedPublicationId."""
         params_file = POWER_QUERY_DIR / "Parameters.m"
         content = params_file.read_text(encoding="utf-8")
         self.assertIn('Dsn = "TrinoJapanEarthquake"', content)
         self.assertIn('Catalog = "iceberg"', content)
         self.assertIn('Schema = "gold"', content)
-        self.assertIn('PinnedPublicationId = ""', content)
+        self.assertIn('PinnedPublicationId = "pub-202302-001"', content)
 
     def test_actual_m_sql_queries_execute_on_real_schema(self) -> None:
         """Extracts the actual SQL from each M file and executes it on the real Gold schema fixture."""
         cur = self.conn.cursor()
 
-        # 1. ActiveBundle.m
+        # 1. DiscoveryLatestPublication.m
+        discovery_sql = extract_sql_from_m_script((POWER_QUERY_DIR / "DiscoveryLatestPublication.m").read_text(encoding="utf-8"))
+        cur.execute(discovery_sql)
+        discovery_row = cur.fetchone()
+        self.assertIsNotNone(discovery_row)
+        self.assertEqual(discovery_row["publication_id"], "pub-202302-001")
+        self.assertEqual(discovery_row["bundle_suffix"], "bndl20230201sha256test01"[:24])
+
+        # 2. ActiveBundle.m (pinned to pub-202302-001)
         bundle_sql = extract_sql_from_m_script((POWER_QUERY_DIR / "ActiveBundle.m").read_text(encoding="utf-8"))
         cur.execute(bundle_sql)
         bundle_row = cur.fetchone()
@@ -173,7 +182,7 @@ class TestPowerBiConnectivity(unittest.TestCase):
         self.assertEqual(bundle_row["bundle_sha256"], "bndl20230201sha256test01")
         self.assertEqual(bundle_row["bundle_suffix"], "bndl20230201sha256test01"[:24])
 
-        # 2. FactEarthquakeEvents.m
+        # 3. FactEarthquakeEvents.m
         fact_sql = extract_sql_from_m_script((POWER_QUERY_DIR / "FactEarthquakeEvents.m").read_text(encoding="utf-8"))
         cur.execute(fact_sql)
         fact_rows = cur.fetchall()
@@ -186,7 +195,7 @@ class TestPowerBiConnectivity(unittest.TestCase):
         self.assertNotIn("event_id", first.keys())
         self.assertNotIn("is_earthquake", first.keys())
 
-        # 3. FactEventDaily.m
+        # 4. FactEventDaily.m
         daily_sql = extract_sql_from_m_script((POWER_QUERY_DIR / "FactEventDaily.m").read_text(encoding="utf-8"))
         cur.execute(daily_sql)
         daily_rows = cur.fetchall()
@@ -194,7 +203,7 @@ class TestPowerBiConnectivity(unittest.TestCase):
         total_daily_events = sum(r["event_count"] for r in daily_rows)
         self.assertEqual(total_daily_events, 9, "Daily event count must match fact count")
 
-        # 4. FactEventMonthly.m
+        # 5. FactEventMonthly.m
         monthly_sql = extract_sql_from_m_script((POWER_QUERY_DIR / "FactEventMonthly.m").read_text(encoding="utf-8"))
         cur.execute(monthly_sql)
         monthly_rows = cur.fetchall()
@@ -202,7 +211,7 @@ class TestPowerBiConnectivity(unittest.TestCase):
         total_monthly_events = sum(r["event_count"] for r in monthly_rows)
         self.assertEqual(total_monthly_events, 9, "Monthly rollup count must match daily total")
 
-        # 5. DimDate.m
+        # 6. DimDate.m
         dim_date_sql = extract_sql_from_m_script((POWER_QUERY_DIR / "DimDate.m").read_text(encoding="utf-8"))
         cur.execute(dim_date_sql)
         date_rows = cur.fetchall()
@@ -211,7 +220,7 @@ class TestPowerBiConnectivity(unittest.TestCase):
         self.assertIn("day_of_month", date_rows[0].keys())
         self.assertNotIn("full_date", date_rows[0].keys())
 
-        # 6. DimRegion.m
+        # 7. DimRegion.m
         dim_region_sql = extract_sql_from_m_script((POWER_QUERY_DIR / "DimRegion.m").read_text(encoding="utf-8"))
         cur.execute(dim_region_sql)
         region_rows = cur.fetchall()
@@ -219,7 +228,7 @@ class TestPowerBiConnectivity(unittest.TestCase):
         self.assertIn("region_category", region_rows[0].keys())
         self.assertNotIn("latitude_min", region_rows[0].keys())
 
-        # 7. DimMagnitudeBand.m
+        # 8. DimMagnitudeBand.m
         dim_mag_sql = extract_sql_from_m_script((POWER_QUERY_DIR / "DimMagnitudeBand.m").read_text(encoding="utf-8"))
         cur.execute(dim_mag_sql)
         mag_rows = cur.fetchall()
@@ -227,7 +236,7 @@ class TestPowerBiConnectivity(unittest.TestCase):
         self.assertIn("sort_order", mag_rows[0].keys())
         self.assertNotIn("min_magnitude", mag_rows[0].keys())
 
-        # 8. DimDepthBand.m
+        # 9. DimDepthBand.m
         dim_depth_sql = extract_sql_from_m_script((POWER_QUERY_DIR / "DimDepthBand.m").read_text(encoding="utf-8"))
         cur.execute(dim_depth_sql)
         depth_rows = cur.fetchall()
@@ -235,7 +244,7 @@ class TestPowerBiConnectivity(unittest.TestCase):
         self.assertIn("sort_order", depth_rows[0].keys())
         self.assertNotIn("min_depth_km", depth_rows[0].keys())
 
-        # 9. MetadataFreshness.m
+        # 10. MetadataFreshness.m
         freshness_sql = extract_sql_from_m_script((POWER_QUERY_DIR / "MetadataFreshness.m").read_text(encoding="utf-8"))
         cur.execute(freshness_sql)
         fresh_row = cur.fetchone()
@@ -244,6 +253,34 @@ class TestPowerBiConnectivity(unittest.TestCase):
         self.assertEqual(fresh_row["published_event_count"], 9)
         self.assertIsNotNone(fresh_row["published_at_utc"])
         self.assertIsNotNone(fresh_row["data_freshness_max_event_utc"])
+
+    def test_active_bundle_fail_closed_validation(self) -> None:
+        """Verifies that ActiveBundle enforces fail-closed validation when PinnedPublicationId is empty or unverified."""
+        active_bundle_m = (POWER_QUERY_DIR / "ActiveBundle.m").read_text(encoding="utf-8")
+        # 1. M script must enforce non-empty PinnedPublicationId check and raise error
+        self.assertIn('RawPinnedId = null or Text.Trim(RawPinnedId) = ""', active_bundle_m)
+        self.assertIn('error "PinnedPublicationId parameter is mandatory', active_bundle_m)
+        # 2. Must NOT contain auto-resolve LIMIT 1 fallback
+        self.assertNotIn('ORDER BY published_at_utc DESC LIMIT 1', active_bundle_m)
+
+        # 3. SQL query for non-existent publication ID must yield zero rows
+        cur = self.conn.cursor()
+        invalid_sql = extract_sql_from_m_script(active_bundle_m, publication_id="pub-nonexistent")
+        cur.execute(invalid_sql)
+        self.assertIsNone(cur.fetchone(), "Non-existent publication ID must yield zero rows")
+
+        # 4. Unverified publication (verify_status != 'PASSED') must also yield zero rows
+        cur.execute("""
+            INSERT INTO publication_status VALUES (
+                'pub-failed-001', 'run-failed', 111, 'tbl', 'p_tbl',
+                '2023-01-01', '2023-01-01', '2023-01-01', '2023-01-01',
+                0, '1.0', 'FAILED', 'bndl_failed_sha256', '{}', '{}', 'v_failed'
+            )
+        """)
+        self.conn.commit()
+        failed_sql = extract_sql_from_m_script(active_bundle_m, publication_id="pub-failed-001")
+        cur.execute(failed_sql)
+        self.assertIsNone(cur.fetchone(), "Unverified publication must yield zero rows")
 
     def test_regression_commit_before_publish(self) -> None:
         """Regression test: Unverified commits in physical tables must never be exposed to pinned queries."""
@@ -356,9 +393,20 @@ class TestPowerBiConnectivity(unittest.TestCase):
         cur.execute("SELECT COUNT(*) FROM earthquake_event_current")
         self.assertEqual(cur.fetchone()[0], 9)
 
-        # 4. Now simulate Power BI executing:
-        # ActiveBundle resolves the latest PASSED publication: pub-202302-002
-        bundle_sql = extract_sql_from_m_script((POWER_QUERY_DIR / "ActiveBundle.m").read_text(encoding="utf-8"))
+        # 4. Now simulate 2-step Power BI workflow:
+        # Step 1: Discovery query identifies the latest verified publication: pub-202302-002
+        discovery_sql = extract_sql_from_m_script((POWER_QUERY_DIR / "DiscoveryLatestPublication.m").read_text(encoding="utf-8"))
+        cur.execute(discovery_sql)
+        discovered = cur.fetchone()
+        self.assertEqual(discovered["publication_id"], "pub-202302-002")
+        self.assertEqual(discovered["bundle_suffix"], new_suffix[:24])
+
+        # Step 2: Analyst pins PinnedPublicationId = "pub-202302-002" in Parameters.m
+        bundle_sql = extract_sql_from_m_script(
+            (POWER_QUERY_DIR / "ActiveBundle.m").read_text(encoding="utf-8"),
+            bundle_suffix=new_suffix[:24],
+            publication_id="pub-202302-002"
+        )
         cur.execute(bundle_sql)
         resolved_bundle = cur.fetchone()
         self.assertEqual(resolved_bundle["publication_id"], "pub-202302-002")
@@ -393,49 +441,71 @@ class TestPowerBiConnectivity(unittest.TestCase):
         # All queries remain 100% consistent on pub-202302-002 despite alias switch not yet happening!
 
     def test_regression_refresh_across_alias_switch(self) -> None:
-        """Regression test: Mid-refresh alias switch does not corrupt active refresh session."""
+        """Regression test: Mid-refresh arrival of a new PASSED publication does not split-brain pinned consumers."""
         cur = self.conn.cursor()
-        # Refresh session starts: ActiveBundle resolved to pub-202302-001
-        session_bundle_suffix = "bndl20230201sha256test01"
-        session_pub_id = "pub-202302-001"
+        # Refresh session starts: Parameters[PinnedPublicationId] is pinned to pub-202302-001
+        pinned_pub_id = "pub-202302-001"
+        pinned_bundle_suffix = "bndl20230201sha256test01"
 
-        # Fact table is read during refresh
+        # 1. Fact table evaluates ActiveBundle with pinned_pub_id
         fact_sql = extract_sql_from_m_script(
             (POWER_QUERY_DIR / "FactEarthquakeEvents.m").read_text(encoding="utf-8"),
-            bundle_suffix=session_bundle_suffix,
-            publication_id=session_pub_id
+            bundle_suffix=pinned_bundle_suffix,
+            publication_id=pinned_pub_id
         )
         cur.execute(fact_sql)
         self.assertEqual(len(cur.fetchall()), 9)
 
-        # Mid-refresh: alias is switched to point to something else!
+        # 2. Mid-refresh: A new publication pub-202302-002 is committed with later timestamp!
+        # Also alias is switched to point to the raw table or new bundle.
+        new_suffix = "bndl20230208sha256test02"
+        cur.execute(f"""
+            INSERT INTO publication_status VALUES (
+                'pub-202302-002', 'gold-run-002', 9999999999,
+                'iceberg.gold.earthquake_event_current', 'iceberg.gold.event_current',
+                '2023-02-08T01:00:00Z', '2023-02-08T01:05:00Z', '2023-02-08T01:10:00Z',
+                '2023-02-08T00:00:00Z', 10, '1.0', 'PASSED', '{new_suffix}',
+                '{{}}', '{{}}', 'iceberg.gold.v_{new_suffix}_earthquake_event_current'
+            )
+        """)
         cur.execute("DROP VIEW earthquake_event_current")
         cur.execute("CREATE VIEW earthquake_event_current AS SELECT * FROM event_current")  # Points to raw
+        self.conn.commit()
 
-        # Subsequent dimension, aggregate, and freshness queries still use session_bundle_suffix:
+        # Notice that DiscoveryLatestPublication will now see pub-202302-002 (latest)
+        discovery_sql = extract_sql_from_m_script((POWER_QUERY_DIR / "DiscoveryLatestPublication.m").read_text(encoding="utf-8"))
+        cur.execute(discovery_sql)
+        self.assertEqual(cur.fetchone()["publication_id"], "pub-202302-002")
+
+        # 3. But in the active refresh session, all consumer queries continue evaluating with pinned_pub_id!
+        # Because ActiveBundle enforces PinnedPublicationId and has NO auto-resolve fallback,
+        # every query strictly evaluates only pub-202302-001:
         dim_region_sql = extract_sql_from_m_script(
             (POWER_QUERY_DIR / "DimRegion.m").read_text(encoding="utf-8"),
-            bundle_suffix=session_bundle_suffix,
-            publication_id=session_pub_id
+            bundle_suffix=pinned_bundle_suffix,
+            publication_id=pinned_pub_id
         )
         cur.execute(dim_region_sql)
         self.assertEqual(len(cur.fetchall()), 5)
 
         daily_sql = extract_sql_from_m_script(
             (POWER_QUERY_DIR / "FactEventDaily.m").read_text(encoding="utf-8"),
-            bundle_suffix=session_bundle_suffix,
-            publication_id=session_pub_id
+            bundle_suffix=pinned_bundle_suffix,
+            publication_id=pinned_pub_id
         )
         cur.execute(daily_sql)
         self.assertEqual(sum(r["event_count"] for r in cur.fetchall()), 9)
 
         freshness_sql = extract_sql_from_m_script(
             (POWER_QUERY_DIR / "MetadataFreshness.m").read_text(encoding="utf-8"),
-            bundle_suffix=session_bundle_suffix,
-            publication_id=session_pub_id
+            bundle_suffix=pinned_bundle_suffix,
+            publication_id=pinned_pub_id
         )
         cur.execute(freshness_sql)
-        self.assertEqual(cur.fetchone()["publication_id"], session_pub_id)
+        fresh_row = cur.fetchone()
+        self.assertEqual(fresh_row["publication_id"], pinned_pub_id)
+        self.assertEqual(fresh_row["published_event_count"], 9)
+        # 100% immune to split-brain across independent evaluations!
 
     def test_utc_to_jst_date_boundary_crossing(self) -> None:
         """Verifies that events with UTC >= 15:00 correctly map to the next JST day."""

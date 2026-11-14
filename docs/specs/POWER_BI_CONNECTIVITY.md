@@ -52,12 +52,12 @@ Tài liệu hướng dẫn kết nối Power BI Desktop với Trino Lakehouse ph
 4. **Định kiểu dữ liệu nghiêm ngặt (Strict Explicit Typing):**
    - Mọi cột trong bảng Fact và Dimension đều được định kiểu tường minh (`Int64.Type`, `type number`, `type date`, `type datetimezone`, `type logical`, `type text`), bám sát 100% schema Gold hiện hành của `GoldEventTransformer.java`.
 
-5. **Cô lập Snapshot bất biến qua ActiveBundle (Pinned Immutable Snapshot Invariant):**
-   - Mọi bảng Fact, Dimension và Aggregate đều được ghim (pinned) vào cùng một snapshot bundle đã được xác minh thành công (`verify_status = 'PASSED'`) thông qua truy vấn `ActiveBundle.m`.
-   - Tránh hiện tượng *split-brain*:
-     - **Commit-before-publish**: Tuyệt đối không đọc trực tiếp các bảng vật lý đang diễn ra ghi chép thô chưa qua verification.
-     - **Publication-before-alias-switch**: Khi một publication mới hoàn tất verify nhưng alias chưa chuyển kịp, hoặc trong suốt quá trình Power BI refresh tuần tự kéo dài nhiều giây/phút, toàn bộ bảng Fact, Dimension, Aggregate và Freshness đều truy vấn view bất biến `v_<bundle_suffix>_*` cùng một `publication_id`, bảo đảm tính toàn vẹn 100% không bị lệch snapshot giữa các bảng.
-     - Cho phép ghim cứng phiên bản lịch sử bằng tham số `Parameters[PinnedPublicationId]` hoặc tự động lấy publication mới nhất đã verify khi để trống.
+5. **Cô lập Snapshot bất biến qua Pinned Publication (Fail-closed Snapshot Pin Invariant):**
+   - Mọi bảng Fact, Dimension và Aggregate đều bắt buộc phải được ghim (pinned) vào một publication ID cụ thể đã được xác minh thành công (`verify_status = 'PASSED'`) thông qua tham số `Parameters[PinnedPublicationId]`.
+   - **Cơ chế Fail-Closed:** `ActiveBundle.m` bắt buộc `PinnedPublicationId` không được rỗng. Nếu để rỗng hoặc whitespace, query sẽ báo lỗi ngay lập tức, tuyệt đối không tự động fallback sang `LIMIT 1` (latest). Điều này ngăn chặn triệt để race condition khi Power Query VertiPaq engine đánh giá các bảng độc lập trên nhiều thread/container, loại bỏ hoàn toàn nguy cơ split-brain (Fact đọc snapshot cũ, Dimension/Freshness đọc snapshot mới).
+   - **Quy trình 2 bước cho phiên Refresh:**
+     - **Bước 1 (Discovery):** Chạy query `DiscoveryLatestPublication.m` (hoặc truy vấn Trino) để tra cứu `publication_id` mới nhất có `verify_status = 'PASSED'`.
+     - **Bước 2 (Pin & Refresh):** Điền `publication_id` vào `Parameters[PinnedPublicationId]`, sau đó nhấn Refresh toàn bộ model.
 
 ## 3. Hướng dẫn thiết lập ODBC DSN trên Windows (64-bit)
 
@@ -83,7 +83,8 @@ Tài liệu hướng dẫn kết nối Power BI Desktop với Trino Lakehouse ph
 | Script M | Bảng / View Trino nguồn | Mục đích | Hạt dữ liệu |
 |---|---|---|---|
 | [Parameters.m](../../powerbi/power_query/Parameters.m) | Record cấu hình tập trung | Quản lý DSN, Catalog, Schema, PinnedPublicationId tập trung | Record cấu hình |
-| [ActiveBundle.m](../../powerbi/power_query/ActiveBundle.m) | `iceberg.gold.publication_status` | Xác định `publication_id` và `bundle_suffix` (24 ký tự) đã PASS để ghim snapshot cho toàn bộ phiên refresh | 1 dòng metadata |
+| [DiscoveryLatestPublication.m](../../powerbi/power_query/DiscoveryLatestPublication.m) | `iceberg.gold.publication_status` | Tra cứu `publication_id` mới nhất có verify_status = 'PASSED' phục vụ ghim ID trước refresh | 1 dòng metadata |
+| [ActiveBundle.m](../../powerbi/power_query/ActiveBundle.m) | `iceberg.gold.publication_status` | Xác định `bundle_suffix` (24 ký tự) tương ứng với PinnedPublicationId; fail ngay nếu để rỗng | 1 dòng metadata |
 | [FactEarthquakeEvents.m](../../powerbi/power_query/FactEarthquakeEvents.m) | `iceberg.gold.v_<bundle_suffix>_earthquake_event_current` | Dữ liệu từng trận động đất chi tiết (bản đồ, độ sâu) | 1 dòng / canonical event |
 | [FactEventDaily.m](../../powerbi/power_query/FactEventDaily.m) | `iceberg.gold.v_<bundle_suffix>_earthquake_event_current` | Tổng hợp nhanh theo ngày, vùng, band magnitude/depth từ cùng pinned snapshot | 1 dòng / ngày JST + dimension |
 | [FactEventMonthly.m](../../powerbi/power_query/FactEventMonthly.m) | `iceberg.gold.v_<bundle_suffix>_earthquake_event_current` | Tổng hợp xu hướng dài hạn theo tháng từ cùng pinned snapshot | 1 dòng / tháng JST + dimension |
