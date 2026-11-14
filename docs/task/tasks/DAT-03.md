@@ -16,6 +16,22 @@ dependencies: ["ORC-07", "MLD-05", "MLI-02", "EXP-01"]
 
 ## Giao việc hiện hành — 11/11/2026
 
+**14/11 — portable integration từ main #127:** tiếp tục trên
+`feat/dat-03-portable-integration`, assignee HoaiTam, reviewer unassigned.
+[Evidence mới](../../evidence/DAT-03_PORTABLE_READBACK_20261114.md) ghi nhận đã
+nhận/kiểm original follow-up của cả Trang/Trí; không yêu cầu gửi lại24+23/2+1files.
+Java đọc125tháng worker qua13batch/42groups, kiểm pages/schema/counts/memberships/
+source links, không giải nén dataset hoặc ghi S3. Inventory tái dùng từ PR #131/
+c56f153; ngày15/11 owner yêu cầu commit/push phần đã làm trực tiếp vào PR #131.
+Không merge PR vào main. Chưa phải Gold hợp nhất288tháng.
+Giữ **In Progress**, còn capacity/import adapter, boundary/Trino, official exports
+và receipts ba máy. Owner duyệt namespace mới `iceberg.dat03_unified_20261114`
+**sau khi các gate đạt**, không build/pull/recreate, bật thêm container hoặc sửa
+namespace cũ.
+Capacity v2 timeout trong startup Spark/BlockManager, chưa có capacity report;
+không tự retry hoặc ghi Gold. Còn versioned mapping original worker Bronze URIs
+sang physical source đã xác minh, không giả markers hoặc source keys.
+
 **12/11 — đã tiếp tục:** In Progress trên feat/dat-03-lineage-readiness.
 [Actual metadata audit](../../evidence/DAT-03_LINEAGE_FRONTIER_20261112.md)
 xác nhận75/83first-hop và Trí76dataset manifests/18parent commits.
@@ -222,6 +238,12 @@ release đủ gate. Không tạo dependency ngược từ DAT-03 sang EXP-02.
   MLI-04/MLQ-01 sở hữu report/ML E2E.
 
 ## Theo dõi
+
+- **Actual14/11 — portable Silver readback:** [evidence/pins](../../evidence/DAT-03_PORTABLE_READBACK_20261114.md),
+  [runbook](../../runbooks/DAT-03_PORTABLE_READBACK.md). Trang63/63tháng,
+  Trí62/62tháng;4.973.482rows giải mã là tổng bốn Silver datasets, không phải
+  4.973.482canonical earthquakes. Chưa tạo Gold mới hoặc official export. Các
+  ghi chú chờ metadata follow-up bên dưới là lịch sử, không yêu cầu gửi lại.
 
 - **14/11 — nghiệm thu bytes gốc 114 objects frontier của rosy179 trên Google Drive:**
   Hoài Tâm đã tải và đối soát độc lập gói `rosy179-dat03-lineage-frontier.zip` (101.446 bytes, SHA-256

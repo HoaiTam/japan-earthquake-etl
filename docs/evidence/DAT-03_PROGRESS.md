@@ -1,5 +1,19 @@
 # DAT-03 — Tiến độ thực tế (cập nhật 14/11/2026)
 
+## Hiện hành14/11 — portable Silver readback, chưa unified Gold
+
+[Evidence mới](DAT-03_PORTABLE_READBACK_20261114.md) và
+[runbook](../runbooks/DAT-03_PORTABLE_READBACK.md): original follow-up Trang/Trí
+đã nhận đủ; Java đọc125tháng worker/13batch/42run groups,4.973.482rows giải mã
+(observation+membership+link+reject), không phải số canonical events. Không ghi
+Gold hoặc cấp official export. Owner duyệt namespace mới sau gates, không cho
+phép sửa namespace cũ hoặc fake receipts. Giữ DAT-03 In Progress.
+Capacity v2 đã terminal timeout trong startup Spark/BlockManager, chưa có kết quả
+fingerprint; chưa tạo Gold mới. Giữ evidence, không retry hoặc mở write job khi
+capacity/provenance gates còn thiếu. Next: chẩn đoán startup + versioned physical
+lineage mapping/import adapter, rồi mới nghiệm thu Gold/Trino và official export.
+Những mục chờ24+23/2+1metadata bên dưới giữ làm lịch sử trước readback này.
+
 ## Cập nhật 14/11/2026 — Nghiệm thu Bytes Gốc 114 Objects Frontier của rosy179 trên Google Drive
 
 Hoài Tâm (coordinator) đã tải và đối soát độc lập gói dữ liệu bytes gốc 114 objects frontier do máy `rosy179` đóng gói và đưa lên Google Drive:

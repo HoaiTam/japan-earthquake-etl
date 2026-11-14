@@ -22,6 +22,13 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 
 ## Tổng quan
 
+**14/11 — DAT-03 portable readback:** nhận đủ original follow-up Trang/Trí,
+Java kiểm125/125tháng worker qua13batch/42groups, không bung dataset hoặc ghi Gold.
+[Evidence](../../evidence/DAT-03_PORTABLE_READBACK_20261114.md),
+[runbook](../../runbooks/DAT-03_PORTABLE_READBACK.md). **In Progress**; còn actual
+unified Gold288tháng/Trino, official exports và receipts ba máy. Các ghi chú chờ
+24+23/2+1metadata trước đây giữ làm lịch sử, không yêu cầu gửi lại.
+
 **Hiện hành12/11:** 64/81 Done,5 Needs Update,11 Backlog,1 In Progress (DAT-03).
 [DAT-03 actual metadata audit](../../evidence/DAT-03_LINEAGE_FRONTIER_20261112.md): first-hop và Trí next-hop matched; [ThanhTris frontier metadata](../../evidence/DAT-03_LINEAGE_ThanhTris_METADATA_20261112.md) đã bàn giao; chưa official integration/export.
 [Kế hoạch tuần9,6task/người](../WEEK_9_REPLAN_20261111.md),

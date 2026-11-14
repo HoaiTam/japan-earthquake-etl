@@ -500,9 +500,16 @@ test-pilot: ## Pilot/model regression; cần pyarrow/model deps và loopback Jup
 	@$(MAKE) test-col03 PILOT_PYTHON="$(PILOT_PYTHON)"
 	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_mli04_views_and_report.py'
 
-.PHONY: test-dat03-lineage
+.PHONY: test-dat03-lineage test-dat03-payload-inventory test-dat03-portable
 test-dat03-lineage: ## DAT-03 bounded offline metadata frontier audit regression; không Docker/network
 	@python3 -B -m unittest discover -s tests -p 'test_dat03_lineage.py'
+
+test-dat03-payload-inventory: ## DAT-03 byte inventory regression; không giải nén hoặc ghi S3
+	@python3 -B -m unittest tests.test_dat03_payload_inventory
+
+test-dat03-portable: ## DAT-03 metadata/planner/checkpoint + Java Parquet readback tests; không Docker/ETL
+	@python3 -B -m unittest tests.test_dat03_followup_verifier tests.test_dat03_portable_plan tests.test_dat03_readback_batches
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am -Dtest=PortableSilverReadbackTest,PortableGoldCapacityJobTest -Dsurefire.failIfNoSpecifiedTests=false test
 
 .PHONY: test-mli04
 test-mli04: ## MLI-04 Trino views, verification SQL và static report regression; offline
@@ -712,6 +719,8 @@ ci-docs: ## Docs/contracts/secret hygiene/Compose tĩnh; không đọc .env riê
 
 ci-docs-base: ## Always-on CI guards; pilot tests được chọn riêng theo impact, không Docker daemon
 	@$(MAKE) test-dat03-lineage
+	@$(MAKE) test-dat03-payload-inventory
+	@python3 -B -m unittest tests.test_dat03_followup_verifier tests.test_dat03_portable_plan tests.test_dat03_readback_batches
 	@$(MAKE) test-dat03-team-setup
 	@$(MAKE) test-dat03-range-worker
 	@$(MAKE) test-dat03-provenance

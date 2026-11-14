@@ -1,0 +1,189 @@
+{
+  "version": "dat03-local-byte-availability-evidence-v1",
+  "date": "2026-11-14",
+  "task_id": "DAT-03",
+  "task_status": "In Progress",
+  "assignee": "HoaiTam",
+  "reviewer": "unassigned",
+  "branch": "feat/dat-03-payload-reuse-inventory",
+  "base_pr_head": "53c5ecfba043a1ebfafa5530fb2cf65b0efe7f32",
+  "scope": "OFFLINE_HASH_AND_METADATA_AUDIT_NOT_RUNTIME_OR_OFFICIAL_ACCEPTANCE",
+  "inventory_tool_sha256": "a363faa15c8e5102e6e6d3d314f40c69749fde1100f160fff1fe7c43ccbce7c3",
+  "lineage_tool_sha256": "bee0108af779eeef809ce1dcb69f44053fa8ab93c2553e26107a3e3e00268d1b",
+  "rosy_root_sha256": "f4fdc2115fc97da409231823b54a6eb7cecffe0557cb9f893e905b9cbdb39a4c",
+  "rosy_first_hop_expected": 83,
+  "rosy_first_hop_matched": 83,
+  "rosy_audit_counts": {
+    "bronze_raw:NOT_SUPPLIED_IN_PACKAGES": 37,
+    "bronze_manifest:MATCHED": 37,
+    "silver_dataset_manifest:MATCHED": 92,
+    "silver_payload:NOT_SUPPLIED_IN_PACKAGES": 144,
+    "silver_bundle_manifest:MATCHED": 23,
+    "silver_registry:MATCHED": 23,
+    "gold_commit:MATCHED": 22,
+    "gold_identity:NOT_SUPPLIED_IN_PACKAGES": 22
+  },
+  "rosy_combined_audit_sha256": "bec5556c997600741755d7ca92157225797d10045ea62578e473111f30fad93a",
+  "rosy_data_checkpoint_sha256": "d47069c7eaddfb3be024e1bc6e54b5300da62f0ef036768f7f6c859fda1e0750",
+  "rosy_frontier_archive": {
+    "drive_id": "1QsZHjXXsGmWvBDFHiicMdejmAN2Lehb-",
+    "bytes": 101446,
+    "sha256": "0dd1c504f27489709c46748b313e9f764ecfc25a58ef50a2699cbcf0626e8453"
+  },
+  "workers": [
+    {
+      "owner": "rosy179",
+      "payload_request": {
+        "path": "config/research/dat03_lineage_rosy179_payload.json",
+        "sha256": "c2421b6e4ea6df2f30299fecf134d010661835e0af8a80cfb42951e5a375728f"
+      },
+      "payload_expected_references": 144,
+      "payload_expected_reference_bytes": 635408427,
+      "payload_expected_unique_contents": 104,
+      "matched_references_before_reuse": 121,
+      "matched_references_after_reuse": 144,
+      "missing_references_after_reuse": 0,
+      "shared_raw_source_matched_references": 37,
+      "payload_before_report_sha256": "521a9681ed06a9a50653eaf7081a506226d0508cf429a5e2a545f9640fe3c667",
+      "payload_after_report_sha256": "e81048b1613c80c41aa48917e93e1eab3e11235bfa9bbab5466dab66d143c5db",
+      "archives": [
+        {
+          "sha256": "18bc436a25969a2d019b5db04bb1a2d20aa11a0c3039e2fd159da7f876b4a788",
+          "compressed_bytes": 292024778,
+          "entries": 448,
+          "parquet_members": 121,
+          "candidate_members_hashed": 121,
+          "candidate_bytes_hashed": 635394742
+        },
+        {
+          "sha256": "7050d8201ce79bf8b3760830d187edbb13fd369364cafc7c4e43f94ca15df35a",
+          "compressed_bytes": 58236,
+          "entries": 38,
+          "parquet_members": 0,
+          "candidate_members_hashed": 0,
+          "candidate_bytes_hashed": 0
+        },
+        {
+          "sha256": "31017fe5c98ea24f4d1c70ddd0d9b9dc7cae12aea784d7c43d11b2c9f44c9c9f",
+          "compressed_bytes": 1273,
+          "entries": 2,
+          "parquet_members": 1,
+          "candidate_members_hashed": 1,
+          "candidate_bytes_hashed": 595
+        }
+      ],
+      "followup_request": {
+        "path": "config/research/dat03_lineage_rosy179_followup_20261114.json",
+        "sha256": "de22c1dc3f8d32442ddb8ae40a9f204b2c0bd67c29569c877090e99ca2faa2af",
+        "pinned_objects": 24,
+        "unpinned_publication_uris": 23,
+        "snapshot_references": 138,
+        "head_run_id": "orc07-22b5e7647a3df9ed83370139e11c48048845ee8f",
+        "snapshot_reference_sha256": "d84d17f903c5796f758f9c42929c67a3cc1579da41a9b374bf65f7719e4595d3"
+      }
+    },
+    {
+      "owner": "ThanhTris",
+      "payload_request": {
+        "path": "config/research/dat03_lineage_ThanhTris_payload.json",
+        "sha256": "0643f60280fa381f610b69c1f1e0c17fcc899521818363d32392b4883bdd1e25"
+      },
+      "payload_expected_references": 119,
+      "payload_expected_reference_bytes": 522659149,
+      "payload_expected_unique_contents": 83,
+      "matched_references_before_reuse": 100,
+      "matched_references_after_reuse": 119,
+      "missing_references_after_reuse": 0,
+      "shared_raw_source_matched_references": 37,
+      "payload_before_report_sha256": "d76c87d993adf2a8ffb0bf977e06d7e0ec8ae0df84a7635dcf9887cc9d54adcd",
+      "payload_after_report_sha256": "3a466bcae9822b33246361ec3fcb2c78fa9c4f528d0924b2f312ba8c748e9cd5",
+      "archives": [
+        {
+          "sha256": "c072e14f4aa2964af3f9a641e0973bdff6b4dbdc6084d820df79a18707d3b231",
+          "compressed_bytes": 229190896,
+          "entries": 400,
+          "parquet_members": 100,
+          "candidate_members_hashed": 100,
+          "candidate_bytes_hashed": 522647844
+        },
+        {
+          "sha256": "b88c65f5a14a7f2ebe4c1c5483d5c6575bae28c73e4ac6cdc7b7bf83fe614b68",
+          "compressed_bytes": 1009356,
+          "entries": 222,
+          "parquet_members": 0,
+          "candidate_members_hashed": 0,
+          "candidate_bytes_hashed": 0
+        },
+        {
+          "sha256": "31017fe5c98ea24f4d1c70ddd0d9b9dc7cae12aea784d7c43d11b2c9f44c9c9f",
+          "compressed_bytes": 1273,
+          "entries": 2,
+          "parquet_members": 1,
+          "candidate_members_hashed": 1,
+          "candidate_bytes_hashed": 595
+        }
+      ],
+      "followup_request": {
+        "path": "config/research/dat03_lineage_ThanhTris_followup_20261114.json",
+        "sha256": "70ce0ef3a54cd1cfd05db89e1f381f0b2aca1f73eb31a0c42731c78a94938e4b",
+        "pinned_objects": 2,
+        "unpinned_publication_uris": 1,
+        "snapshot_references": 114,
+        "head_run_id": "orc07-5679c9c378edacb4e5f804613c8475351ce326b4",
+        "snapshot_reference_sha256": "010792a3a2fb227dcb219ea5971435e067efecc658599873563ccf6752e65b8a"
+      }
+    }
+  ],
+  "byte_reuse": {
+    "sha256": "d07bbf8dbdcf824135f51d69e79418a4f5f35f37ed87f9ad7eac5396cab668c7",
+    "byte_size": 595,
+    "references_resolved": 42,
+    "retained_local_identical_files_found": 3,
+    "origin_role": "RETAINED_QA_OUTPUT_BYTE_IDENTITY_ONLY_NOT_RESEARCH_ROW_SUBSTITUTION",
+    "bytes_regenerated": false,
+    "original_s3_keys_restored": false,
+    "shared_to_other_machines": false,
+    "reuse_archive_sha256": "31017fe5c98ea24f4d1c70ddd0d9b9dc7cae12aea784d7c43d11b2c9f44c9c9f"
+  },
+  "frozen_source_request_sha256": "ad306633ac438b33276cfa3cf5e797482cc78e139410db3385863bbd3c9501fb",
+  "frozen_source_files_hashed": 37,
+  "frozen_source_report_sha256": "cb336dea42c15321195517d9afa871f042f9056eceb8a42a9fbc1f3113cfed4c",
+  "publication_phase_report_sha256": "533490c529bb00cb892227c7a3f0d032ab7d8622e252350cec5efd0b25e3d981",
+  "publication_phase_summaries": [
+    {
+      "owner": "rosy179",
+      "phase_groups": 23,
+      "min_checks": 148,
+      "max_checks": 148,
+      "all_checks_pass": true,
+      "original_publications_supplied": 0,
+      "original_publication_equals_trusted_phase": 0
+    },
+    {
+      "owner": "ThanhTris",
+      "phase_groups": 19,
+      "min_checks": 148,
+      "max_checks": 148,
+      "all_checks_pass": true,
+      "original_publications_supplied": 18,
+      "original_publication_equals_trusted_phase": 18
+    }
+  ],
+  "new_live_trino_queries": 0,
+  "etl_replayed": false,
+  "docker_changed": false,
+  "drive_written": false,
+  "s3_keys_verified": false,
+  "parquet_semantics_verified": false,
+  "full_transitive_closure_verified": false,
+  "portable_import_ready": false,
+  "official_export_ready": false,
+  "research_ready": false,
+  "three_machine_receipts_verified": false,
+  "notes": [
+    "Content matches prove SHA/size availability only on the coordinator, not source S3 existence or team handoff.",
+    "Recorded 148-query results per publication receipt are old retained evidence checked offline, not new SQL execution.",
+    "Prior parent frontier omitted the final current head: 22 parents versus 23 Gold phase groups for rosy179; 18 parents versus 19 groups for ThanhTris.",
+    "Snapshot IDs are references, not portable Iceberg metadata/manifests/data files."
+  ]
+}
