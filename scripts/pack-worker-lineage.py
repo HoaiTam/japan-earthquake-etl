@@ -1022,8 +1022,7 @@ def pack_frontier_metadata(
     request_file: Optional[Path] = None,
     source_dir: Optional[Path] = None,
     endpoint_url: Optional[str] = None,
-    access_key: Optional[str] = None,
-    secret_key: Optional[str] = None,
+    s3_client: Optional[Any] = None,
     bucket: str = "japan-earthquake",
     overwrite: bool = False,
 ) -> Dict[str, Any]:
@@ -1132,7 +1131,7 @@ def pack_frontier_metadata(
                 raise ValueError(f"INVALID_RUN_ID_IN_URI at index {idx}: {run_id} in {uri}")
             if ds_name not in ("source_observation", "reject_record", "source_link", "canonical_membership"):
                 raise ValueError(f"INVALID_DATASET_NAME_IN_URI at index {idx}: {ds_name} in {uri}")
-            if kind and kind not in ("silver_dataset_manifest", "silver_manifest"):
+            if kind and kind not in ("silver_dataset_manifest", "silver_manifest", "dataset_manifest"):
                 raise ValueError(f"KIND_MISMATCH at index {idx}: expected silver_dataset_manifest, got {kind} for {uri}")
             silver_manifests_seen.append(item)
             clean_kind = "silver_dataset_manifest"
@@ -1140,7 +1139,7 @@ def pack_frontier_metadata(
             run_id = parts[2]
             if not re.fullmatch(r"^[a-zA-Z0-9_\-]+$", run_id):
                 raise ValueError(f"INVALID_RUN_ID_IN_URI at index {idx}: {run_id} in {uri}")
-            if kind and kind not in ("gold_commit", "parent_commit"):
+            if kind and kind not in ("gold_commit", "parent_commit", "gold_parent_commit", "parent_gold_commit"):
                 raise ValueError(f"KIND_MISMATCH at index {idx}: expected gold_commit, got {kind} for {uri}")
             gold_commits_seen.append(item)
             clean_kind = "gold_commit"
@@ -1213,31 +1212,45 @@ def pack_frontier_metadata(
             })
     else:
         # Fetch from MinIO / S3
-        if boto3 is None:
-            raise RuntimeError(
-                "boto3 is required to interact with MinIO/S3. Install boto3 or pass --source-dir."
-            )
-        s3_ep = endpoint_url or os.environ.get("MINIO_ENDPOINT", "http://localhost:9000")
-        ak = (
-            access_key
-            or os.environ.get("MINIO_ACCESS_KEY")
-            or os.environ.get("AWS_ACCESS_KEY_ID")
-            or "pipeline-access-key"
-        )
-        sk = (
-            secret_key
-            or os.environ.get("MINIO_SECRET_KEY")
-            or os.environ.get("AWS_SECRET_ACCESS_KEY")
-            or "pipeline-secret-key"
-        )
-        reg = os.environ.get("S3_REGION") or os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
-        s3 = boto3.client(
-            "s3",
-            endpoint_url=s3_ep,
-            aws_access_key_id=ak,
-            aws_secret_access_key=sk,
-            region_name=reg,
-        )
+        if s3_client is not None:
+            s3 = s3_client
+        else:
+            if boto3 is None:
+                raise RuntimeError(
+                    "boto3 is required to interact with MinIO/S3. Install boto3 or pass --source-dir."
+                )
+            s3_ep = endpoint_url or os.environ.get("MINIO_ENDPOINT", "http://localhost:9000")
+            reg = os.environ.get("S3_REGION") or os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
+            ak = os.environ.get("MINIO_ACCESS_KEY") or os.environ.get("AWS_ACCESS_KEY_ID")
+            sk = os.environ.get("MINIO_SECRET_KEY") or os.environ.get("AWS_SECRET_ACCESS_KEY")
+
+            client_kwargs: Dict[str, Any] = {
+                "endpoint_url": s3_ep,
+                "region_name": reg,
+            }
+
+            if ak and sk:
+                client_kwargs["aws_access_key_id"] = ak
+                client_kwargs["aws_secret_access_key"] = sk
+            elif ak or sk:
+                raise RuntimeError(
+                    "INCOMPLETE_S3_CREDENTIALS: Both access key and secret key must be set in environment."
+                )
+            else:
+                has_creds = False
+                try:
+                    session = getattr(boto3, "DEFAULT_SESSION", None) or boto3.Session()
+                    if session.get_credentials() is not None:
+                        has_creds = True
+                except Exception:
+                    has_creds = False
+                if not has_creds:
+                    raise RuntimeError(
+                        "MISSING_S3_CREDENTIALS: No S3 credentials configured in environment or provider chain. "
+                        "Set MINIO_ACCESS_KEY and MINIO_SECRET_KEY (or AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY)."
+                    )
+
+            s3 = boto3.client("s3", **client_kwargs)
         for item in normalized_items:
             uri = item["uri"]
             expected_sha = item["expected_sha"]
@@ -1385,8 +1398,6 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     p_pack_frontier.add_argument("--request-file", help="Path to frontier request JSON (defaults to config/research/dat03_lineage_<owner>_metadata.json).")
     p_pack_frontier.add_argument("--source-dir", help="Path to directory containing original files (if not using MinIO).")
     p_pack_frontier.add_argument("--endpoint-url", help="MinIO S3 endpoint URL (defaults to MINIO_ENDPOINT env or http://localhost:9000).")
-    p_pack_frontier.add_argument("--access-key", help="MinIO/S3 access key (defaults to MINIO_ACCESS_KEY or pipeline-access-key).")
-    p_pack_frontier.add_argument("--secret-key", help="MinIO/S3 secret key (defaults to MINIO_SECRET_KEY or pipeline-secret-key).")
     p_pack_frontier.add_argument("--bucket", default="japan-earthquake", help="S3 bucket name.")
     p_pack_frontier.add_argument("--overwrite", action="store_true", default=False, help="Overwrite output ZIP if exists.")
 
@@ -1451,8 +1462,6 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 request_file=Path(args.request_file) if args.request_file else None,
                 source_dir=Path(args.source_dir) if args.source_dir else None,
                 endpoint_url=args.endpoint_url,
-                access_key=args.access_key,
-                secret_key=args.secret_key,
                 bucket=args.bucket,
                 overwrite=args.overwrite,
             )

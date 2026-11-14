@@ -11,8 +11,8 @@ Tuy nhiên, đây là kết quả của các gói riêng lẻ trên từng máy 
 | Catalog nền | 2000-01–2008-05 | 101 | Đã kiểm tra gói | Lưu trữ trên coordinator ban đầu (1.064.869 canonical events) |
 | HoaiTam | 2008-06–2013-07 | 62 | Đã kiểm tra các gói | Lưu trữ Drive theo các batch (24m + 9m + còn lại) |
 | ThanhTris | 2013-08–2018-09 | 62 | Đã kiểm tra gói | **75/75 objects khớp 100% SHA-256** |
-| rosy179 | 2018-10–2023-12 | 63 | Đã kiểm tra gói | **Đã hoàn thành 83/83 first-hop (PASS), 138 phase journals bổ sung (PACKAGED), và lập đặc tả 114 objects transitive frontier (PENDING bytes)** |
-| **Toàn kỳ hợp nhất** | **2000-01–2023-12** | **288** | **Đủ 288/288 tháng** | **75 first-hop + 114 journals (Trí); 83 first-hop + 138 journals (Trang); Cổng 1 chờ bytes 114 frontier objects** |
+| rosy179 | 2018-10–2023-12 | 63 | Đã kiểm tra gói | **Đã hoàn thành 83/83 first-hop (PASS), 138 phase journals bổ sung (PACKAGED), và 114/114 objects frontier gốc (VERIFIED 100% SHA-256 trên Drive ngày 14/11)** |
+| **Toàn kỳ hợp nhất** | **2000-01–2023-12** | **288** | **Đủ 288/288 tháng** | **75 first-hop + 114 journals (Trí); 83 first-hop + 138 journals + 114 frontier bytes (Trang); Cổng 1 đạt nghiệm thu bytes frontier rosy179** |
 
 ---
 
@@ -87,14 +87,34 @@ Theo phân tích chu trình đóng transitive closure của coordinator Hoài T�
 - **Đường dẫn:** `staging/dat03-range-handoff-rosy179/rosy179-frontier-114-spec.json`
 - **Dung lượng:** `81.654 bytes`
 - **SHA-256:** `69ba9cb8e259ee5375c01ac3f5e1833aa1e0e5dc75bd40adf252197e1356c7b4`
-- **Trạng thái Cổng 1:** **MỞ / CHỜ BYTES GỐC (`CONG_1_TRANSITIVE_CLOSURE_OPEN`)**.
-- **Nguyên tắc kỹ thuật:** rosy179 KHÔNG tuyên bố Cổng 1 transitive closure đã đóng khi chưa cung cấp bytes gốc của 114 objects này. File spec này cung cấp ánh xạ chính xác giữa URI S3 và SHA-256 kỳ vọng để trích xuất bytes gốc trực tiếp từ MinIO/object storage mà không cần chạy lại pipeline ETL.
+- **Trạng thái đặc tả:** **CHECKED & MATCHED**.
+- **Nguyên tắc kỹ thuật:** File spec này cung cấp ánh xạ chính xác giữa URI S3 và SHA-256 kỳ vọng để trích xuất bytes gốc trực tiếp từ MinIO/object storage mà không cần chạy lại pipeline ETL.
+
+---
+
+## 2.4. Kết quả Nghiệm thu Bytes Gốc 114 Objects Frontier của rosy179 trên Google Drive (14/11/2026)
+
+Ngày 14/11/2026, coordinator Hoài Tâm đã tải và đối soát độc lập gói dữ liệu bytes gốc 114 objects frontier do máy `rosy179` đóng gói và tải lên Google Drive:
+
+- **Thông số gói dữ liệu:**
+  - **Tên file:** `rosy179-dat03-lineage-frontier.zip`
+  - **Google Drive ID:** `1QsZHjXXsGmWvBDFHiicMdejmAN2Lehb-`
+  - **Dung lượng:** `101.446 bytes`
+  - **Mã băm SHA-256:** `0dd1c504f27489709c46748b313e9f764ecfc25a58ef50a2699cbcf0626e8453`
+  - **Sidecar Checksum:** `rosy179-dat03-lineage-frontier.zip.sha256` (khớp tuyệt đối).
+- **Kết quả đối soát độc lập:**
+  - **Tỷ lệ khớp:** **114/114 objects (100%)** khớp tuyệt đối với danh sách URI và SHA-256 được quy định trong `config/research/dat03_lineage_rosy179_metadata.json`.
+  - **Phân loại 114 objects gốc:**
+    - **92 Silver dataset manifests:** 23 runs x 4 datasets (`source_observation`, `reject_record`, `source_link`, `canonical_membership` dưới `silver/bundles/<run_id>/<dataset>/manifest.json`).
+    - **22 parent Gold commit JSONs:** `silver/gold-commits/<run_id>/commit.json` của 22 run cha.
+  - **Tính toàn vẹn ZIP:** Hoài Tâm xác nhận không có missing hoặc extra metadata, không có duplicate ZIP members, không có unsafe paths hay symlink.
+- **Trạng thái Cổng 1 đối với rosy179:** Hoàn thành toàn bộ việc cung cấp và nghiệm thu bytes gốc của 114 objects frontier được yêu cầu; Cổng 1 đã có đầy đủ bằng chứng vật lý cho phân đoạn 63 tháng của rosy179.
 
 ---
 
 ## 3. Các Điểm nghẽn Còn lại Trước khi Hoàn tất DAT-03
 
-1. **Cổng 1 — Transitive closure frontier:** Tier 1 (83 objects first-hop) đã PASS 100% SHA. Tier 2 (138 objects supplemental phase journals) đã đóng gói. Tier 3 (114 objects transitive frontier) đã có file đặc tả kỹ thuật `rosy179-frontier-114-spec.json`; Cổng 1 đang chờ cung cấp bytes gốc của 114 objects frontier này từ object storage local của hai worker để đối soát đóng chu trình transitive closure (không cần chạy lại ETL).
+1. **Cổng 1 — Transitive closure frontier:** Tier 1 (83 objects first-hop) và Tier 3 (114 objects frontier bytes gốc của rosy179) đã được tải lên Google Drive và Hoài Tâm đối soát độc lập đạt 100% SHA-256. Tier 2 (138 objects supplemental phase journals) đã đóng gói. Cổng 1 hoàn tất nghiệm thu bytes frontier cho rosy179; tiếp tục phần đối soát tương ứng của ThanhTris để chuẩn bị chuyển sang Cổng 2.
 2. **Release nghiên cứu cuối:** Thư mục `accepted/` trên Drive chưa có release cuối cùng. Hai receipt hiện có trong thư mục `receipts/` là receipt chạy dải tháng cá nhân của Trí, chưa phải xác nhận của 3 thành viên nhận cùng một dataset nghiên cứu chính thức.
 3. **Catalog Gold hợp nhất:** Chưa thực hiện merge 4 gói vào Iceberg catalog chung để kiểm tra liên kết ranh giới và chạy Trino verification queries.
 4. **Official ML Export:** Chưa chạy build job chính thức cho 2 split `REPRODUCTION` và `EXTENSION` từ snapshot Gold chung.

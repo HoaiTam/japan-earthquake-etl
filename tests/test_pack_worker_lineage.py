@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import importlib.util
+import io
 import json
 import os
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -1070,23 +1071,35 @@ class TestPackWorkerLineage(unittest.TestCase):
                     return MockS3Client()
 
             with patch.object(lineage, "boto3", MockBoto3Module()):
-                res = lineage.pack_frontier_metadata(
-                    owner="rosy179",
-                    output_zip=zip_out,
-                    request_file=req_file,
-                    source_dir=None,
-                    endpoint_url="http://custom-endpoint:9000",
-                    access_key="custom-ak",
-                    secret_key="custom-sk",
-                    overwrite=True,
-                )
-                self.assertEqual(res["status"], "PASS")
-                self.assertEqual(res["total_objects"], 114)
-                self.assertTrue(zip_out.is_file())
-                self.assertTrue(Path(res["sha256_file"]).is_file())
-                self.assertEqual(captured_kwargs.get("aws_access_key_id"), "custom-ak")
-                self.assertEqual(captured_kwargs.get("aws_secret_access_key"), "custom-sk")
-                self.assertEqual(captured_kwargs.get("endpoint_url"), "http://custom-endpoint:9000")
+                with patch.dict(os.environ, {"MINIO_ACCESS_KEY": "test-ak", "MINIO_SECRET_KEY": "test-sk"}):
+                    res = lineage.pack_frontier_metadata(
+                        owner="rosy179",
+                        output_zip=zip_out,
+                        request_file=req_file,
+                        source_dir=None,
+                        endpoint_url="http://custom-endpoint:9000",
+                        overwrite=True,
+                    )
+                    self.assertEqual(res["status"], "PASS")
+                    self.assertEqual(res["total_objects"], 114)
+                    self.assertTrue(zip_out.is_file())
+                    self.assertTrue(Path(res["sha256_file"]).is_file())
+                    self.assertEqual(captured_kwargs.get("aws_access_key_id"), "test-ak")
+                    self.assertEqual(captured_kwargs.get("aws_secret_access_key"), "test-sk")
+                    self.assertEqual(captured_kwargs.get("endpoint_url"), "http://custom-endpoint:9000")
+
+            # Also verify direct s3_client parameter injection without env credentials
+            zip_out_direct = tmp_path / "frontier_direct.zip"
+            res_direct = lineage.pack_frontier_metadata(
+                owner="rosy179",
+                output_zip=zip_out_direct,
+                request_file=req_file,
+                source_dir=None,
+                s3_client=MockS3Client(),
+                overwrite=True,
+            )
+            self.assertEqual(res_direct["status"], "PASS")
+            self.assertTrue(zip_out_direct.is_file())
 
     def test_pack_frontier_metadata_sha_file_exists_fails_without_overwrite(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -1367,6 +1380,170 @@ class TestPackWorkerLineage(unittest.TestCase):
                         source_dir=None,
                     )
                 self.assertIn("boto3 is required to interact with MinIO/S3", str(ctx.exception))
+
+
+    def test_pack_frontier_metadata_missing_credentials_fails(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir).resolve()
+            zip_out = tmp_path / "frontier.zip"
+            req_file = ROOT / "config/research/dat03_lineage_rosy179_metadata.json"
+
+            def mock_env_get(key, default=None):
+                if key in ("MINIO_ACCESS_KEY", "MINIO_SECRET_KEY", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"):
+                    return None
+                return default
+
+            with patch.object(os.environ, "get", mock_env_get):
+                with patch("boto3.Session") as mock_session_cls:
+                    mock_sess = MagicMock()
+                    mock_sess.get_credentials.return_value = None
+                    mock_session_cls.return_value = mock_sess
+                    with self.assertRaises(RuntimeError) as ctx:
+                        lineage.pack_frontier_metadata(
+                            owner="rosy179",
+                            output_zip=zip_out,
+                            request_file=req_file,
+                            source_dir=None,
+                        )
+                    self.assertIn("MISSING_S3_CREDENTIALS", str(ctx.exception))
+                    self.assertNotIn("change-me", str(ctx.exception))
+                    self.assertNotIn("pipeline-access-key", str(ctx.exception))
+                    self.assertNotIn("pipeline-secret-key", str(ctx.exception))
+
+    def test_pack_frontier_metadata_incomplete_credentials_fails(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir).resolve()
+            zip_out = tmp_path / "frontier.zip"
+            req_file = ROOT / "config/research/dat03_lineage_rosy179_metadata.json"
+
+            def mock_env_get(key, default=None):
+                if key == "MINIO_ACCESS_KEY":
+                    return "some-access-key"
+                if key in ("MINIO_SECRET_KEY", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"):
+                    return None
+                return default
+
+            with patch.object(os.environ, "get", mock_env_get):
+                with self.assertRaises(RuntimeError) as ctx:
+                    lineage.pack_frontier_metadata(
+                        owner="rosy179",
+                        output_zip=zip_out,
+                        request_file=req_file,
+                        source_dir=None,
+                    )
+                self.assertIn("INCOMPLETE_S3_CREDENTIALS", str(ctx.exception))
+
+    def test_pack_frontier_cli_rejects_secret_flags(self):
+        stderr_buf = io.StringIO()
+        with patch("sys.stderr", stderr_buf):
+            with self.assertRaises(SystemExit):
+                lineage.main([
+                    "pack-frontier",
+                    "--owner", "rosy179",
+                    "--output-zip", "dummy.zip",
+                    "--access-key", "attempted-key",
+                ])
+        self.assertIn("unrecognized arguments", stderr_buf.getvalue())
+
+    def test_pack_frontier_metadata_category_normalization_with_spec_categories(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir).resolve()
+            src_dir = tmp_path / "mock_storage"
+            zip_out = tmp_path / "frontier.zip"
+            req_file = tmp_path / "req_spec_categories.json"
+
+            objects = []
+            for r in range(1, 24):
+                run_id = f"orc07-run-{r:02d}"
+                for ds in ("source_observation", "reject_record", "source_link", "canonical_membership"):
+                    rel = f"silver/bundles/{run_id}/{ds}/manifest.json"
+                    f = src_dir / rel
+                    f.parent.mkdir(parents=True, exist_ok=True)
+                    f.write_bytes(b"content")
+                    objects.append({
+                        "s3_uri": f"s3://japan-earthquake/{rel}",
+                        "sha256": lineage.compute_sha256(b"content"),
+                        "category": "silver_dataset_manifest",
+                    })
+
+            for r in range(1, 23):
+                parent_run = f"orc07-run-{r:02d}"
+                rel = f"silver/gold-commits/{parent_run}/commit.json"
+                f = src_dir / rel
+                f.parent.mkdir(parents=True, exist_ok=True)
+                f.write_bytes(b"commit-content")
+                objects.append({
+                    "s3_uri": f"s3://japan-earthquake/{rel}",
+                    "sha256": lineage.compute_sha256(b"commit-content"),
+                    "category": "gold_parent_commit",
+                })
+
+            req_file.write_text(json.dumps({
+                "owner": "rosy179",
+                "frontier_objects": objects,
+            }), encoding="utf-8")
+
+            res = lineage.pack_frontier_metadata(
+                owner="rosy179",
+                output_zip=zip_out,
+                request_file=req_file,
+                source_dir=src_dir,
+                overwrite=True,
+            )
+            self.assertEqual(res["status"], "PASS")
+            self.assertEqual(res["total_objects"], 114)
+            self.assertTrue(zip_out.is_file())
+
+    def test_frontier_spec_to_pack_frontier_e2e(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir).resolve()
+            prov_zip = tmp_path / "mock_provenance.zip"
+            src_dir = tmp_path / "mock_storage"
+            spec_file = tmp_path / "extracted_spec.json"
+            frontier_zip = tmp_path / "packaged_frontier.zip"
+
+            prov_sha = self._create_synthetic_provenance_zip(prov_zip)
+
+            # Populate mock_storage matching the files created by _create_synthetic_provenance_zip
+            for r in range(1, 24):
+                run_id = f"orc07-mock-run-{r:02d}"
+                for ds in ("source_observation", "reject_record", "source_link", "canonical_membership"):
+                    ds_key = f"silver/bundles/{run_id}/{ds}/manifest.json"
+                    ds_file = src_dir / ds_key
+                    ds_file.parent.mkdir(parents=True, exist_ok=True)
+                    ds_file.write_bytes(f"{run_id}-{ds}".encode("utf-8"))
+
+                if r > 1:
+                    parent_run = f"orc07-mock-run-{r-1:02d}"
+                    p_key = f"silver/gold-commits/{parent_run}/commit.json"
+                    p_file = src_dir / p_key
+                    p_file.parent.mkdir(parents=True, exist_ok=True)
+                    p_file.write_bytes(f"parent-{parent_run}".encode("utf-8"))
+
+            # Step 1: extract_frontier_spec
+            spec_res = lineage.extract_frontier_spec(
+                owner="rosy179",
+                provenance_zip=prov_zip,
+                output_spec_file=spec_file,
+                expected_provenance_sha=prov_sha,
+                overwrite=True,
+            )
+            self.assertEqual(spec_res["status"], "PASS")
+            self.assertEqual(spec_res["total_frontier_objects"], 114)
+            self.assertTrue(spec_file.is_file())
+
+            # Step 2: feed spec_file directly into pack_frontier_metadata
+            pack_res = lineage.pack_frontier_metadata(
+                owner="rosy179",
+                output_zip=frontier_zip,
+                request_file=spec_file,
+                source_dir=src_dir,
+                overwrite=True,
+            )
+            self.assertEqual(pack_res["status"], "PASS")
+            self.assertEqual(pack_res["total_objects"], 114)
+            self.assertTrue(frontier_zip.is_file())
+            self.assertTrue(Path(pack_res["sha256_file"]).is_file())
 
 
 if __name__ == "__main__":

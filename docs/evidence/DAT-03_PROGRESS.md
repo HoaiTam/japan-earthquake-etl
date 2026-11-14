@@ -1,4 +1,22 @@
-# DAT-03 — Tiến độ thực tế (cập nhật 12/11/2026)
+# DAT-03 — Tiến độ thực tế (cập nhật 14/11/2026)
+
+## Cập nhật 14/11/2026 — Nghiệm thu Bytes Gốc 114 Objects Frontier của rosy179 trên Google Drive
+
+Hoài Tâm (coordinator) đã tải và đối soát độc lập gói dữ liệu bytes gốc 114 objects frontier do máy `rosy179` đóng gói và đưa lên Google Drive:
+- **Thông tin gói dữ liệu đối soát:**
+  - **Tên file:** `rosy179-dat03-lineage-frontier.zip`
+  - **Google Drive ID:** `1QsZHjXXsGmWvBDFHiicMdejmAN2Lehb-`
+  - **Dung lượng:** `101.446 bytes`
+  - **Mã băm SHA-256:** `0dd1c504f27489709c46748b313e9f764ecfc25a58ef50a2699cbcf0626e8453`
+  - **Kết quả đối soát:** **114/114 objects gốc khớp 100%** danh sách URI và SHA-256 đã pin trong `config/research/dat03_lineage_rosy179_metadata.json`:
+    - **92 Silver dataset manifests** (`silver/bundles/<run_id>/<dataset>/manifest.json` cho 23 runs x 4 datasets: `source_observation`, `reject_record`, `source_link`, `canonical_membership`).
+    - **22 parent Gold commit JSONs** (`silver/gold-commits/<run_id>/commit.json`).
+  - **Toàn vẹn tệp nén:** Không có metadata thiếu hoặc dư thừa, không có duplicate ZIP members, không chứa đường dẫn symlink/unsafe paths; file checksum sidecar (`rosy179-dat03-lineage-frontier.zip.sha256`) khớp tuyệt đối.
+- **Hoàn thiện công cụ đóng gói `scripts/pack-worker-lineage.py` & bộ kiểm thử `tests/test_pack_worker_lineage.py` (50 tests PASS, toàn bộ 72/72 worker tests PASS):**
+  - **Bảo mật credentials [P1]:** Loại bỏ hoàn toàn flags `--access-key` và `--secret-key` trên command line để ngăn lộ secret qua shell history và process arguments theo AGENTS.md Rule 5; loại bỏ fallback hardcoded placeholder; bắt buộc lấy credentials qua biến môi trường (`MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY` hoặc `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`) hoặc provider chain tiêu chuẩn của `boto3`, fail-closed an toàn và không in giá trị secret khi thiếu cấu hình.
+  - **Tương thích danh mục liên thông [P2]:** Chuẩn hóa category/kind để `pack-frontier` chấp nhận trực tiếp output của `frontier-spec` (`gold_parent_commit` / `parent_commit` / `gold_commit` và `silver_dataset_manifest` / `silver_manifest` / `dataset_manifest`) mà không bị lỗi `KIND_MISMATCH` và không cần chỉnh sửa tay spec.
+  - **Bổ sung regression tests & e2e:** Thêm tests kiểm tra thiếu credentials, thiếu 1 trong 2 credentials, CLI từ chối flags secret, chuẩn hóa category, và test liên thông e2e từ `frontier-spec` sang `pack-frontier`.
+- **Trạng thái phân định:** Nghiệm thu này là nghiệm thu đầy đủ bytes gốc của 114 objects frontier được yêu cầu cho phân đoạn của `rosy179` (Tier 3 Original Bytes); chưa thay thế nghiệm thu toàn bộ transitive closure hợp nhất, payload/snapshot graph, Gold catalog chung hoặc official ML export. DAT-03 tiếp tục giữ trạng thái `In Progress` / `Needs Update`.
 
 ## Cập nhật 12/11/2026 — Đóng gói Lineage Bổ sung (138 Phase Journals) & Lập Đặc tả 114 Objects Frontier của rosy179
 

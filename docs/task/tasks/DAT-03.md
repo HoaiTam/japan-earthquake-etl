@@ -209,6 +209,18 @@ release đủ gate. Không tạo dependency ngược từ DAT-03 sang EXP-02.
 
 ## Theo dõi
 
+- **14/11 — nghiệm thu bytes gốc 114 objects frontier của rosy179 trên Google Drive:**
+  Hoài Tâm đã tải và đối soát độc lập gói `rosy179-dat03-lineage-frontier.zip` (101.446 bytes, SHA-256
+  `0dd1c504f27489709c46748b313e9f764ecfc25a58ef50a2699cbcf0626e8453`, Drive ID `1QsZHjXXsGmWvBDFHiicMdejmAN2Lehb-`):
+  đủ 114/114 objects gốc khớp 100% danh sách URI/SHA đã pin (92 Silver dataset manifests + 22 parent Gold commits),
+  không thiếu/thừa metadata, không duplicate ZIP members, không unsafe paths và checksum sidecar khớp hoàn toàn.
+  Hoàn thiện công cụ `scripts/pack-worker-lineage.py` và bộ kiểm thử `tests/test_pack_worker_lineage.py`: loại bỏ hoàn toàn
+  secret flags trên CLI và credential hardcoded fallback, siết chặt fail-closed an toàn cho cấu hình S3, chuẩn hóa
+  tương thích category giữa `frontier-spec` và `pack-frontier` (`gold_parent_commit` / `gold_commit`), bổ sung
+  test liên thông e2e (50 tests PASS, toàn bộ 72/72 worker tests PASS). Cổng 1 hoàn tất nghiệm thu bytes frontier của rosy179.
+  [Evidence](../../evidence/DAT-03_PROGRESS.md), [Báo cáo 288 tháng](../../evidence/DAT-03_INTEGRATION_EVIDENCE_288_MONTHS.md).
+  Giữ Needs Update / In Progress chờ nghiệm thu toàn bộ transitive closure, payload/snapshot graph, unified Gold và official ML export.
+
 - **12/11 — đóng gói lineage bổ sung (138 phase journals) & lập đặc tả 114 objects frontier của rosy179:**
   đóng gói gói bằng chứng giai đoạn thực thi bổ sung `rosy179-dat03-lineage-metadata.zip` (401.335 bytes, SHA-256
   `45c1f02ff80454aca2a6bad5587e6b0bfabc4f8cb7fa08a8043a8c6bb7b6de01`) gồm đủ 138/138 phase journals (23 runs x 6
