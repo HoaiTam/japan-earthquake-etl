@@ -71,12 +71,21 @@ Tài liệu hướng dẫn kết nối Power BI Desktop với Trino Lakehouse ph
 3. Điền các tham số cấu hình:
    - **Data Source Name (DSN):** `TrinoJapanEarthquake`
    - **Host:** `127.0.0.1` (hoặc `localhost`)
-   - **Port:** `8081` (Port mặc định mapping từ `TRINO_HOST_PORT` trong `.env.example`/Compose ra máy Host; container lắng nghe nội bộ tại `8080`)
+   - **Port:** `8081` (hoặc `8082` nếu dùng cầu nối proxy chuyển đổi JSON bên dưới)
    - **Catalog:** `iceberg`
    - **Schema:** `gold`
    - **Authentication:** `No Authentication` (cho môi trường local Docker)
    - **User:** `trino` (hoặc tên người dùng của bạn)
 4. Nhấn **Test** để xác nhận kết nối thành công, sau đó nhấn **OK**.
+
+### Bước 3: Cầu nối tương thích Starburst ODBC Proxy (Tùy chọn cho local dev)
+Khi sử dụng Starburst ODBC Driver (V2/V3) với Trino coordinator mã nguồn mở (`trinodb/trino:483`), driver gửi truy vấn bọc trong payload JSON (`{"query": "..."}`) dẫn tới lỗi cú pháp `line 1:1: mismatched input '{'`.
+Dự án cung cấp script proxy tự động bóc tách JSON và định tuyến lại `nextUri`:
+```bash
+# Khởi chạy proxy chuyển tiếp từ cổng 8082 sang Trino 8081
+python scripts/trino_proxy.py --listen-port 8082 --upstream http://127.0.0.1:8081
+```
+Khi chạy proxy, cấu hình DSN cổng `8082` thay cho `8081`. Quá trình phân trang và hủy truy vấn (DELETE) được proxy xử lý chuyển tiếp trong suốt.
 
 ## 4. Danh mục Query Power Query M (`powerbi/power_query/`)
 

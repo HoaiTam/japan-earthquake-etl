@@ -26,7 +26,8 @@ powerbi/
 ## Cách sử dụng trong Power BI Desktop
 
 1. Cài đặt **Starburst / Trino ODBC Driver** (64-bit).
-2. Tạo **System DSN** tên `TrinoJapanEarthquake` trỏ về Host `127.0.0.1` và Port `8081` (cổng host mặc định ánh xạ từ container port 8080 qua biến `TRINO_HOST_PORT=8081` trong compose), catalog `iceberg`, schema `gold`.
+2. Tạo **System DSN** tên `TrinoJapanEarthquake` trỏ về Host `127.0.0.1` và Port `8081` (hoặc `8082` nếu dùng proxy), catalog `iceberg`, schema `gold`.
+   - *Lưu ý:* Nếu dùng Starburst ODBC Driver với Trino mã nguồn mở bị lỗi gói tin JSON, khởi chạy proxy: `python scripts/trino_proxy.py --listen-port 8082 --upstream http://127.0.0.1:8081` và cấu hình DSN trỏ tới cổng `8082`.
 3. Quy trình 2 bước để nạp / refresh dữ liệu (Fail-closed Snapshot Pinning):
    - **Bước 1 (Discovery):** Chạy query `DiscoveryLatestPublication` để xem danh sách / lấy `publication_id` mới nhất đã kiểm định đạt (`verify_status = 'PASSED'`).
    - **Bước 2 (Pin & Import):** Điền `publication_id` vào tham số `Parameters[PinnedPublicationId]`. `ActiveBundle` bắt buộc tham số này không được rỗng để bảo đảm toàn bộ query Fact, Dimensions, Aggregates và Freshness cùng đọc chính xác một snapshot bất biến.

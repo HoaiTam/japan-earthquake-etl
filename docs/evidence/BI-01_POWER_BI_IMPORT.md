@@ -8,7 +8,8 @@ Tài liệu bằng chứng nghiệm thu thực tế (live verification evidence)
 
 * **Hệ điều hành:** Windows 11 (64-bit)
 * **Client BI:** Microsoft Power BI Desktop 64-bit (chế độ **Import** / VertiPaq Engine)
-* **Driver ODBC:** Starburst ODBC Driver for Trino 64-bit (V2 Architecture, version `2.2.3.1009`)
+* **Driver ODBC:** Starburst ODBC Driver for Trino 64-bit (version `3.2.5.284 (64-bit)`, hiển thị thực tế trên hộp thoại ODBC Data Source Administrator và popup Starburst Login)
+* **Phân loại dữ liệu kiểm thử:** Dữ liệu fixture / sample snapshot QA (`sample_schema.sql` / `gold_qa_f2ab478461f140418051b645d902047fc5b2c6dfec61c77f0a6d10c144f80875`, publication ID `pub-202302-001`), dùng để nghiệm thu kết nối và kiểm định schema, không đánh đồng với Gold production official của pipeline.
 * **Hạ tầng phục vụ:**
   * Docker Engine: MinIO (S3 Lakehouse), Apache Iceberg REST Catalog (`iceberg-rest`), Trino Coordinator 483 (`trino`).
   * Endpoint Host: `127.0.0.1:8081` (Port chuẩn mapping từ Docker Compose).
@@ -56,7 +57,7 @@ Truy vấn đối soát trực tiếp từ Python/Trino độc lập đối chi�
 
 ```sql
 -- 1. Fact Event Count
-SELECT COUNT(*) AS event_count 
+SELECT COUNT(*) AS event_count
 FROM iceberg.gold.v_bndl20230201sha256test01_earthquake_event_current;
 -- Kết quả: 16 dòng
 
@@ -105,6 +106,6 @@ Bộ kiểm thử tự động `tests/test_bi01_connectivity.py` (9/9 passed) đ
 
 ## 6. Kết luận Nghiệm thu BI-01
 
-* Toàn bộ 5/5 yêu cầu của reviewer Hoài Tâm (@HoaiTam) đã được kiểm chứng thực tế trên môi trường live Power BI Desktop và ODBC Trino 64-bit.
-* Kết nối an toàn không lộ secret, tuân thủ nguyên tắc Zero Credential Leak và No Direct Parquet Reads.
-* Sẵn sàng chuyển trạng thái nhiệm vụ [BI-01](../task/tasks/BI-01.md) sang **Done** và bàn giao dữ liệu sạch cho bạn **rosy179 (Trang)** thực hiện nhiệm vụ [BI-02](../task/tasks/BI-02.md).
+* Kết nối ODBC giữa Windows Power BI Desktop và Trino coordinator đã được kiểm chứng hoạt động thành công ở chế độ Import VertiPaq.
+* Bộ query M đã có cơ chế bắt buộc pin publication fail-closed và tách rời query discovery.
+* Tạm giữ nhiệm vụ [BI-01](../task/tasks/BI-01.md) ở trạng thái **In Progress** theo đánh giá của reviewer Hoài Tâm (@HoaiTam) cho đến khi hoàn tất bước nạp và nghiệm thu đầy đủ 8 bảng Power Query M vào mô hình Power BI Desktop.

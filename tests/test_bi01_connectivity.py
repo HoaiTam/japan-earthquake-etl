@@ -535,6 +535,41 @@ class TestPowerBiConnectivity(unittest.TestCase):
         self.assertTrue(categories.issubset({"PREFECTURE", "OFFSHORE", "UNKNOWN"}))
         self.assertNotIn("INLAND", categories)
 
+    def test_trino_proxy_json_query_extraction(self) -> None:
+        """Verifies that Trino proxy extracts raw SQL from Starburst JSON payload and leaves plain SQL intact."""
+        import sys
+        sys.path.insert(0, str(PROJECT_ROOT))
+        from scripts.trino_proxy import extract_query_from_body
+
+        # Starburst JSON wrapper
+        starburst_json = b'{"query":"SELECT count(*) FROM iceberg.gold.publication_status","preparedStatements":{}}'
+        extracted = extract_query_from_body(starburst_json)
+        self.assertEqual(extracted, b"SELECT count(*) FROM iceberg.gold.publication_status")
+
+        # Plain SQL passthrough
+        plain_sql = b"SELECT 1"
+        self.assertEqual(extract_query_from_body(plain_sql), b"SELECT 1")
+        self.assertEqual(extract_query_from_body(b""), b"")
+
+    def test_trino_proxy_uri_rewriting(self) -> None:
+        """Verifies that Trino proxy rewrites nextUri and cancelUri in JSON responses back to proxy port."""
+        import sys
+        sys.path.insert(0, str(PROJECT_ROOT))
+        from scripts.trino_proxy import rewrite_uris_in_json_response
+
+        upstream_resp = (
+            b'{"id":"20261114_1","nextUri":"http://127.0.0.1:8081/v1/statement/queued/20261114_1/1",'
+            b'"infoUri":"http://127.0.0.1:8081/ui/query.html?20261114_1"}'
+        )
+        rewritten = rewrite_uris_in_json_response(
+            upstream_resp,
+            upstream_base="http://127.0.0.1:8081",
+            proxy_base="http://127.0.0.1:8082"
+        )
+        self.assertIn(b"http://127.0.0.1:8082/v1/statement/queued/20261114_1/1", rewritten)
+        self.assertIn(b"http://127.0.0.1:8082/ui/query.html?20261114_1", rewritten)
+        self.assertNotIn(b"http://127.0.0.1:8081", rewritten)
+
 
 if __name__ == "__main__":
     unittest.main()
