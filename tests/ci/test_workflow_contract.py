@@ -118,6 +118,10 @@ class WorkflowContractTest(unittest.TestCase):
 
     def test_checked_in_workflow(self): validate_workflow(self.workflow)
 
+    def test_pinned_collection_requirements_cover_windows_python_zoneinfo(self):
+        lines=(ROOT/'config/ml/research_team_requirements.txt').read_text().splitlines()
+        self.assertEqual(['pyarrow==21.0.0','tzdata==2025.2; sys_platform == "win32"'],lines)
+
     def test_pull_request_has_no_base_or_path_filter(self):
         self.assertIn(self.workflow["on"]["pull_request"], ("", None, {}))
         self.assertEqual(self.workflow["on"]["push"], {"branches": ["main"]})
