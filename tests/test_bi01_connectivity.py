@@ -84,6 +84,7 @@ def extract_sql_from_m_script(
     sql = re.sub(r'\bfalse\b', '0', sql, flags=re.IGNORECASE)
     sql = sql.replace("AS DOUBLE", "AS REAL")
     sql = sql.replace("AS VARCHAR", "AS TEXT")
+    sql = sql.replace("AT TIME ZONE 'UTC'", "")
     sql = re.sub(r'[ \t]+', ' ', sql)
     return sql.strip()
 
@@ -781,6 +782,26 @@ class TestPowerBiConnectivity(unittest.TestCase):
             proxy_server.server_close()
             upstream_server.shutdown()
             upstream_server.server_close()
+
+    def test_utc_datetimezone_normalization_handles_starburst_odbc_suffix(self) -> None:
+        """Verifies M scripts normalize Trino '... UTC' timestamps before datetimezone typing."""
+        expected_cols = {
+            "DiscoveryLatestPublication.m": ("published_at_utc", "max_event_time_utc"),
+            "FactEarthquakeEvents.m": ("event_time_utc", "record_updated_at_utc"),
+            "MetadataFreshness.m": (
+                "published_at_utc",
+                "data_freshness_max_event_utc",
+                "report_refreshed_at_utc",
+            ),
+        }
+        for script_name, cols in expected_cols.items():
+            content = (POWER_QUERY_DIR / script_name).read_text(encoding="utf-8")
+            self.assertIn('Text.EndsWith(raw, " UTC")', content, script_name)
+            self.assertIn("DateTime.AddZone", content, script_name)
+            for col in cols:
+                self.assertIn(f'{{"{col}", NormalizeUtc, type datetimezone}}', content, script_name)
+        freshness_m = (POWER_QUERY_DIR / "MetadataFreshness.m").read_text(encoding="utf-8")
+        self.assertIn("CURRENT_TIMESTAMP AT TIME ZONE 'UTC' AS report_refreshed_at_utc", freshness_m)
 
 
 if __name__ == "__main__":

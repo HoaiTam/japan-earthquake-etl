@@ -12,7 +12,7 @@ Tài liệu bằng chứng nghiệm thu thực tế (live verification evidence)
 * **Phân loại dữ liệu kiểm thử:** Dữ liệu fixture / sample snapshot QA (`sample_schema.sql` / `gold_qa_f2ab478461f140418051b645d902047fc5b2c6dfec61c77f0a6d10c144f80875`, publication ID `pub-202302-001`), dùng để nghiệm thu kết nối và kiểm định schema, không đánh đồng với Gold production official của pipeline.
 * **Hạ tầng phục vụ:**
   * Docker Engine: MinIO (S3 Lakehouse), Apache Iceberg REST Catalog (`iceberg-rest`), Trino Coordinator 483 (`trino`).
-  * Endpoint Host: `127.0.0.1:8081` (Port chuẩn mapping từ Docker Compose).
+  * Endpoint Trino / Proxy: Windows System DSN `TrinoJapanEarthquake` trỏ về `127.0.0.1:8081` qua `scripts/trino_proxy.py` (chuyển tiếp tới Trino container host port `127.0.0.1:8083`, tách payload JSON của Starburst ODBC thành SQL thuần và viết lại `nextUri`/`infoUri`/`partialCancelUri`; cổng mặc định của script proxy trong repo vẫn giữ `8084` để không va chạm host ports trong `compose.yml`).
   * Catalog: `iceberg`, Schema: `gold`.
 
 ---
@@ -34,32 +34,34 @@ Kết quả kiểm tra kết nối: **Connection succeeded.**
 
 ---
 
-## 3. Bằng chứng 2: Power BI Desktop Import Thành Công Danh Mục Bảng
+## 3. Bằng chứng 2: Power BI Desktop Import Thành Công Đủ 8 Bảng Power Query M
 
-Power BI Desktop kết nối qua `dsn=TrinoJapanEarthquake` ở chế độ **Import** (VertiPaq Engine), nạp đầy đủ danh mục bảng và view phục vụ phân tích mà không phát sinh bất kỳ lỗi truy vấn (query error) hay lỗi chuyển đổi kiểu dữ liệu (type conversion error):
+Power BI Desktop kết nối qua `dsn=TrinoJapanEarthquake` ở chế độ **Import** (VertiPaq Engine), nạp đầy đủ **8 bảng dữ liệu** qua bộ script M trong [`powerbi/power_query/`](../../powerbi/power_query/) (cùng 3 query dùng chung đã tắt `Bật tải`: `Parameters`, `ActiveBundle` fail-closed ghim `PinnedPublicationId = "pub-202302-001"`, và `DiscoveryLatestPublication`) mà không phát sinh lỗi truy vấn hay lỗi kiểu dữ liệu:
 
-* `v_bndl20230201sha256test01_earthquake_event_current` (Fact chi tiết sự kiện động đất)
-* `v_bndl20230201sha256test01_dim_date` (Dimension ngày tháng)
-* `v_bndl20230201sha256test01_dim_region` (Dimension vùng địa lý Nhật Bản)
-* `v_bndl20230201sha256test01_dim_magnitude_band` (Dimension phân nhóm độ lớn)
-* `v_bndl20230201sha256test01_dim_depth_band` (Dimension phân nhóm độ sâu)
-* `publication_status` (Metadata kiểm soát độ tươi và ghim snapshot bất biến)
+* `FactEarthquakeEvents` (`FactEarthquakeEvents.m` → `v_bndl20230201sha256test01_earthquake_event_current`)
+* `FactEventDaily` (`FactEventDaily.m` → tổng hợp ngày JST từ view đã ghim)
+* `FactEventMonthly` (`FactEventMonthly.m` → tổng hợp tháng JST từ view đã ghim)
+* `DimDate` (`DimDate.m` → `v_bndl20230201sha256test01_dim_date`)
+* `DimRegion` (`DimRegion.m` → `v_bndl20230201sha256test01_dim_region`)
+* `DimMagnitudeBand` (`DimMagnitudeBand.m` → `v_bndl20230201sha256test01_dim_magnitude_band`)
+* `DimDepthBand` (`DimDepthBand.m` → `v_bndl20230201sha256test01_dim_depth_band`)
+* `MetadataFreshness` (`MetadataFreshness.m` → `iceberg.gold.publication_status` lọc theo `ActiveBundle[publication_id]`)
 
-![Power BI Desktop Tables Loaded Successfully](./images/bi01_powerbi_tables_loaded.png)
+![Power BI Desktop 8 Tables Loaded Successfully](./images/bi01_powerbi_8tables_loaded.jpg)
 
-* File mô hình Power BI Desktop hoàn chỉnh đã được lưu tại: [`powerbi/japan_earthquake_model.pbix`](../../powerbi/japan_earthquake_model.pbix) (dung lượng 215 KB, chứa cấu hình kết nối ODBC Import và các bảng dữ liệu).
+* File mô hình Power BI Desktop hoàn chỉnh đã được lưu tại: [`powerbi/japan_earthquake_model.pbix`](../../powerbi/japan_earthquake_model.pbix) (dung lượng 297.584 bytes / ~291 KB, chứa cấu hình kết nối ODBC Import và đủ 8 bảng dữ liệu chuẩn hóa kiểu).
 
 ---
 
 ## 4. Đối soát Count và KPI giữa Power BI và Trino SQL Độc Lập
 
-Truy vấn đối soát trực tiếp từ Python/Trino độc lập đối chiếu 1:1 với kết quả nạp của Power BI VertiPaq engine:
+Truy vấn đối soát trực tiếp trên Trino (`docker exec japan-earthquake-etl-trino-1 trino`) đối chiếu 1:1 với số dòng hiển thị trên Power Query Preview & VertiPaq engine của Power BI Desktop:
 
 ```sql
--- 1. Fact Event Count
+-- 1. Fact & Aggregates Count (tính từ pinned serving view)
 SELECT COUNT(*) AS event_count
 FROM iceberg.gold.v_bndl20230201sha256test01_earthquake_event_current;
--- Kết quả: 16 dòng
+-- Kết quả: 16 dòng (FactEventDaily GROUP BY -> 9 dòng; FactEventMonthly GROUP BY -> 5 dòng)
 
 -- 2. Dimension Counts
 SELECT COUNT(*) FROM iceberg.gold.v_bndl20230201sha256test01_dim_date;           -- Kết quả: 3 dòng
@@ -68,7 +70,8 @@ SELECT COUNT(*) FROM iceberg.gold.v_bndl20230201sha256test01_dim_magnitude_band;
 SELECT COUNT(*) FROM iceberg.gold.v_bndl20230201sha256test01_dim_depth_band;     -- Kết quả: 5 dòng
 
 -- 3. Publication Metadata & Freshness
-SELECT publication_id, verify_status, event_count, published_at_utc, max_event_time_utc
+SELECT publication_id, verify_status, event_count, published_at_utc, max_event_time_utc,
+       CURRENT_TIMESTAMP AT TIME ZONE 'UTC' AS report_refreshed_at_utc
 FROM iceberg.gold.publication_status
 WHERE publication_id = 'pub-202302-001';
 -- Kết quả: 1 dòng, verify_status = 'PASSED', event_count = 16, published_at_utc = '2026-10-10 16:13:28.691 UTC'
@@ -76,14 +79,16 @@ WHERE publication_id = 'pub-202302-001';
 
 ### Bảng đối soát số lượng dòng (Row Count Reconciliation):
 
-| Tên Bảng / View | Power BI VertiPaq Rows | Trino SQL Count | Độ Lệch (Delta) | Trạng Thái |
-|---|---|---|---|---|
+| Tên Bảng / Query M | Power BI VertiPaq Rows | Trino SQL Count | Độ Lệch (Delta) | Trạng Thái |
+|---|---:|---:|---:|---|
 | `FactEarthquakeEvents` | 16 | 16 | 0 | **Khớp 100%** |
+| `FactEventDaily` | 9 | 9 | 0 | **Khớp 100%** |
+| `FactEventMonthly` | 5 | 5 | 0 | **Khớp 100%** |
 | `DimDate` | 3 | 3 | 0 | **Khớp 100%** |
 | `DimRegion` | 1 | 1 | 0 | **Khớp 100%** |
 | `DimMagnitudeBand` | 7 | 7 | 0 | **Khớp 100%** |
 | `DimDepthBand` | 5 | 5 | 0 | **Khớp 100%** |
-| `PublicationStatus / Freshness` | 1 | 1 | 0 | **Khớp 100%** |
+| `MetadataFreshness` | 1 | 1 | 0 | **Khớp 100%** |
 
 ---
 
@@ -94,18 +99,22 @@ WHERE publication_id = 'pub-202302-001';
 * Kết quả: Cả 2 lần refresh đều hoàn tất thành công trong < 1.2s, VertiPaq engine cập nhật trơn tru mà không có lock contention hay lỗi timeout trên Trino coordinator.
 * Nguyên lý bảo đảm: Mọi bảng đều ghim vào view bất biến `v_<bundle_suffix>_*` thay vì bảng thay đổi liên tục `earthquake_event_current`.
 
-### 5.2. Negative Test: Cơ chế Fail-Closed khi PinnedPublicationId không hợp lệ
-Bộ kiểm thử tự động `tests/test_bi01_connectivity.py` (9/9 passed) đã chứng minh:
+### 5.2. Xử lý chuẩn hóa `TIMESTAMP WITH TIME ZONE` qua Starburst ODBC
+Khi chạy trực tiếp trên Power BI Desktop với Starburst ODBC Driver, các cột `TIMESTAMP WITH TIME ZONE` từ Trino được trả về dạng chuỗi kèm tên múi giờ (`"2026-10-10 16:13:28.691000 UTC"` hoặc `"2026-11-16 00:19:40.328 Asia/Bangkok"` đối với `CURRENT_TIMESTAMP` theo session timezone Windows), khiến `Table.TransformColumnTypes(..., type datetimezone)` ban đầu báo `Error`.
+* **Khắc phục đã xác minh live:** Chuẩn hóa `CURRENT_TIMESTAMP AT TIME ZONE 'UTC'` trong `MetadataFreshness.m` (đã đối chiếu qua `.NET System.Data.Odbc` trả về `"2026-11-15 17:20:03.399 UTC"`) và bổ sung hàm `NormalizeUtc` trong `DiscoveryLatestPublication.m`, `FactEarthquakeEvents.m`, `MetadataFreshness.m` để chuyển đổi sạch về `datetimezone` `+00:00` trên Power BI Desktop.
+
+### 5.3. Negative Test: Cơ chế Fail-Closed khi PinnedPublicationId không hợp lệ
+Bộ kiểm thử tự động `tests/test_bi01_connectivity.py` (**15/15 passed**) đã chứng minh:
 1. **Trường hợp PinnedPublicationId để trống hoặc chuỗi trắng (`""` hoặc `"   "`):**
-   * Script `ActiveBundle.m` chặn đứng và ném lỗi ngay lập tức: `[Error.Record] ActiveBundle: PinnedPublicationId cannot be empty`.
+   * Script `ActiveBundle.m` chặn đứng và ném lỗi ngay lập tức (`PinnedPublicationId parameter is mandatory for snapshot consistency...`).
    * Tuyệt đối không tự động fallback sang `LIMIT 1` (loại bỏ triệt để nguy cơ split-brain khi refresh đồng thời nhiều bảng).
 2. **Trường hợp PinnedPublicationId không tồn tại hoặc có `verify_status != 'PASSED'`:**
-   * Script `ActiveBundle.m` ném lỗi: `ActiveBundle: publication_id 'invalid-id' not found or verify_status is not PASSED`.
+   * Script `ActiveBundle.m` không tìm thấy dòng hợp lệ và ném lỗi tường minh (`Publication '...' not found with verify_status = 'PASSED' in publication_status`).
 
 ---
 
 ## 6. Kết luận Nghiệm thu BI-01
 
-* Kết nối ODBC giữa Windows Power BI Desktop và Trino coordinator đã được kiểm chứng hoạt động thành công ở chế độ Import VertiPaq.
-* Bộ query M đã có cơ chế bắt buộc pin publication fail-closed và tách rời query discovery.
-* Tạm giữ nhiệm vụ [BI-01](../task/tasks/BI-01.md) ở trạng thái **In Progress** theo đánh giá của reviewer Hoài Tâm (@HoaiTam) cho đến khi hoàn tất bước nạp và nghiệm thu đầy đủ 8 bảng Power Query M vào mô hình Power BI Desktop.
+* Kết nối ODBC giữa Windows Power BI Desktop và Trino coordinator đã hoạt động ổn định ở chế độ **Import (VertiPaq)** cho toàn bộ **8 bảng Power Query M** (`FactEarthquakeEvents`, `FactEventDaily`, `FactEventMonthly`, `DimDate`, `DimRegion`, `DimMagnitudeBand`, `DimDepthBand`, `MetadataFreshness`).
+* Bộ query M đã bảo đảm fail-closed snapshot pinning, không chứa secret/credential, không đọc Parquet trực tiếp và chuẩn hóa sạch cột UTC `datetimezone` qua Starburst ODBC.
+* Đủ điều kiện chuyển nhiệm vụ [BI-01](../task/tasks/BI-01.md) sang trạng thái **`Done`**.

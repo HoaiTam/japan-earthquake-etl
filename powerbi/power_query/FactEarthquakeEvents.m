@@ -25,7 +25,26 @@ let
                "FROM " & CatalogName & "." & SchemaName & "." & TargetView,
 
     Source = Odbc.Query("dsn=" & DsnName, QuerySql),
-    #"Added Strong Flag" = Table.AddColumn(Source, "is_strong_earthquake", each [magnitude] <> null and [magnitude] >= 5.0, type logical),
+    // Starburst ODBC formats Trino TIMESTAMP WITH TIME ZONE as "... UTC", which Table.TransformColumnTypes rejects as datetimezone.
+    NormalizeUtc = (v as any) as nullable datetimezone =>
+        if v = null then
+            null
+        else if Value.Is(v, type datetimezone) then
+            v
+        else if Value.Is(v, type datetime) then
+            DateTime.AddZone(v, 0)
+        else
+            let
+                raw = Text.Trim(Text.From(v)),
+                baseText = if Text.EndsWith(raw, " UTC") then Text.Start(raw, Text.Length(raw) - 4) else raw,
+                withOffset = if Text.EndsWith(raw, " UTC") then baseText & "+00:00" else raw
+            in
+                try DateTimeZone.FromText(withOffset, "en-US") otherwise DateTime.AddZone(DateTime.FromText(baseText, "en-US"), 0),
+    #"Normalized UTC" = Table.TransformColumns(Source, {
+        {"event_time_utc", NormalizeUtc, type datetimezone},
+        {"record_updated_at_utc", NormalizeUtc, type datetimezone}
+    }),
+    #"Added Strong Flag" = Table.AddColumn(#"Normalized UTC", "is_strong_earthquake", each [magnitude] <> null and [magnitude] >= 5.0, type logical),
     #"Typed Table" = Table.TransformColumnTypes(#"Added Strong Flag", {
         {"canonical_event_id", type text},
         {"primary_observation_id", type text},
