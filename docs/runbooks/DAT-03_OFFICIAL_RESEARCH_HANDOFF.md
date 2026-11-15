@@ -22,15 +22,23 @@ records trong manifests. Profile 90k chỉ thay giới hạn tài nguyên đã �
 
 ## Release và external pins
 
-- ZIP: `jma-research-team-20261115-v3.zip`, **37.524.111 bytes**, 27 files.
-- ZIP SHA256: `2759f735590451975d286ef147b03e8c883e2b23fae073a94adfada72e926cc5`.
-- `handoff.json` SHA256: `f6b5b0e9694526c55fb0a82fc0283503c55584ea2ee2fa2f3fa4eed7210e1875`.
-- Bản local owner: `staging/dat03-windows-fix-20261115/jma-research-team-20261115-v3.zip`.
-- V3 đã đóng gói/rerun và fresh-process verifier PASS trên macOS; upload/Windows CI đang nghiệm thu.
+- ZIP: `jma-research-team-20261115-v4.zip`, **37.524.315 bytes**, 27 files.
+- ZIP SHA256: `687170587e9db1d5d767722bf2fd4e1e2eecc1c3141ebfcdb10269a8b83b4c21`.
+- `handoff.json` SHA256: `6cf0af7c2a3d8e8ec4c993f84ed6d86cdc417324102133dd3068eb2ebc40d297`.
+- Bản local owner: `staging/dat03-windows-fix-20261115/jma-research-team-20261115-v4.zip`.
+- [Tải ZIP v4 trên Drive nhóm](https://drive.google.com/file/d/1lSzNuYXt-mcTdci9nHNyoo3jdDVvRogj/view),
+  [folder release bất biến](https://drive.google.com/drive/folders/1LJJBpc7FjNQga_Ur-Kx3Z8AOPmJg-Req).
+- V4 đã đóng gói/rerun và fresh-process verifier PASS trên macOS. [Native Windows/Linux fixture CI](https://github.com/HoaiTam/japan-earthquake-etl/actions/runs/43741683342) PASS trên commit `ed655bd`.
+- Upload immutable + exact4files/size/remote SHA + fresh Drive download/restore/verifier
+  PASS trên máy HoaiTam. Không đổi ACL hoặc overwrite release v2.
 - Không dùng ZIPv2 để nghiệm thu Windows: ThanhTris đã báo lỗi POSIX directory index và PyArrow timezone database. Giữ ZIPv2 làm lịch sử, không sửa kit cũ bằng tay.
 
-Giữ hai SHA ở ngoài ZIP, nhận từ HoaiTam/revision repo được tin cậy. V3 sửa metadata directory names bằng PurePosixPath và UTC epoch integer cast,
-không cần tải timezone database cho frozen UTC writer. Byte-compare20/20 file
+Giữ hai SHA ở ngoài ZIP, nhận từ HoaiTam/revision repo được tin cậy. V4 sửa metadata directory names bằng PurePosixPath và UTC epoch integer cast,
+không cần tải C++ timezone database vào Downloads/tzdata cho frozen UTC writer.
+Khi cài requirements, Windows tự cài **Python tzdata==2025.2** cho zoneinfo khi
+Arrow chuyển timestamp sang Python datetime. Phải cài lại requirements của v4;
+không tái dùng venv thiếu dependency từ kit cũ. Candidate v3 chưa phát hành vì
+native CI đã phát hiện thiếu Python zoneinfo data. Byte-compare20/20 file
 collection với v2 giữ nguyên dataset IDs/manifest/checksum/feature bytes.
 [Evidence Windows fix](../evidence/DAT-03_WINDOWS_HANDOFF_20261116.md). Kit không có source ZIP, warehouse,
 private logs, `.env`, OAuth JSON/token hoặc venv.
@@ -48,31 +56,31 @@ Yêu cầu Python 3.11–3.13, khoảng 1 GiB dung lượng trống cho ZIP/gi�
 ### macOS/Linux
 
 ```bash
-shasum -a 256 jma-research-team-20261115-v3.zip
+shasum -a 256 jma-research-team-20261115-v4.zip
 ```
 
 Chỉ tiếp tục khi khớp ZIP SHA ở trên:
 
 ```bash
-unzip jma-research-team-20261115-v3.zip -d research-kit
+unzip jma-research-team-20261115-v4.zip -d research-kit
 python3 -m venv .venv-research
 .venv-research/bin/python -m pip install -r research-kit/requirements.txt
-.venv-research/bin/python -B research-kit/verify_dataset.py --expected-handoff-sha256 f6b5b0e9694526c55fb0a82fc0283503c55584ea2ee2fa2f3fa4eed7210e1875 --recipient ThanhTris --receipt ThanhTris-research-receipt.json
+.venv-research/bin/python -B research-kit/verify_dataset.py --expected-handoff-sha256 6cf0af7c2a3d8e8ec4c993f84ed6d86cdc417324102133dd3068eb2ebc40d297 --recipient ThanhTris --receipt ThanhTris-research-receipt.json
 ```
 
 ### Windows PowerShell
 
 ```powershell
-Get-FileHash .\jma-research-team-20261115-v3.zip -Algorithm SHA256
+Get-FileHash .\jma-research-team-20261115-v4.zip -Algorithm SHA256
 ```
 
 Chỉ tiếp tục khi khớp ZIP SHA ở trên:
 
 ```powershell
-Expand-Archive .\jma-research-team-20261115-v3.zip -DestinationPath .\research-kit
+Expand-Archive .\jma-research-team-20261115-v4.zip -DestinationPath .\research-kit
 py -3.11 -m venv .venv-research
 .\.venv-research\Scripts\python.exe -m pip install -r research-kit\requirements.txt
-.\.venv-research\Scripts\python.exe -B research-kit\verify_dataset.py --expected-handoff-sha256 f6b5b0e9694526c55fb0a82fc0283503c55584ea2ee2fa2f3fa4eed7210e1875 --recipient rosy179 --receipt rosy179-research-receipt.json
+.\.venv-research\Scripts\python.exe -B research-kit\verify_dataset.py --expected-handoff-sha256 6cf0af7c2a3d8e8ec4c993f84ed6d86cdc417324102133dd3068eb2ebc40d297 --recipient rosy179 --receipt rosy179-research-receipt.json
 ```
 
 Đổi recipient và tên receipt cho đúng **người thực sự chạy trên máy riêng**.

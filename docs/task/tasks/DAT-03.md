@@ -22,7 +22,9 @@ index dùng backslash và UTC reader gọi IANA timezone lookup. Giữ data/expo
 acceptance15/11, không gọi thiếu receipt chỉ là thủ tục. Bản vá dùng metadata
 PurePosixPath + epoch integer UTC cast, không sửa20collection files hoặc science.
 Giữ cùng branch/PR, In Progress/HoaiTam/reviewer unassigned. [Evidence](../../evidence/DAT-03_WINDOWS_HANDOFF_20261116.md)
-ghi regression/all-shard/macOS fresh restore/CI và releasev3. Windows CI fixture
+ghi regression/all-shard/macOS fresh restore/CI và releasev4. Native Windows/Linux
+CI trên commit `ed655bd` đã đạt; requirements cài Python tzdata chỉ trên Windows
+để materialize datetime, không cần C++ timezone database. Windows CI fixture
 không thay actual verifier receipts của hai thành viên; không đổi hard gates
 hoặc tự chuyển Done. Không ETL/export lại, Docker operations hoặc đổi ACL.
 
@@ -359,10 +361,12 @@ release đủ gate. Không tạo dependency ngược từ DAT-03 sang EXP-02.
 
 ## Theo dõi
 
-- **16/11 — Windows verifier patch:** 36 loader/kit tests và42CI policy tests
+- **16/11 — Windows verifier patch:** 36 loader/kit tests và43CI policy tests
   đạt local; all6shards/390.374rows xác minh với timezone lookup bị cấm.
-  20/20collection files giữ bytes/pins so v2, kitv3 immutable rerun/fresh restore
-  đạt trên HoaiTam. Windows/Linux CI bổ sung, chờ run GitHub/actual receipts;
+  20/20collection files giữ bytes/pins so v2, kitv4 immutable rerun/fresh restore
+  đạt trên HoaiTam. Native Windows/Linux CI PASS tại `ed655bd`; actual receipts
+  ThanhTris/rosy179 vẫn chưa có, không gọi CI fixture là nghiệm thu hai máy;
+  upload kitv4 bất biến, remote SHA4/4files và fresh Drive restore/verifier đạt.
   [handoff hiện hành](../../runbooks/DAT-03_OFFICIAL_RESEARCH_HANDOFF.md).
 
 - **15/11 — tiếp tục profile 90k theo owner duyệt:** đang thiết kế/kiểm chứng
