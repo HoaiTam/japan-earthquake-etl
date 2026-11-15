@@ -42,7 +42,12 @@ public final class FeatureExportBundle {
             && scaling.scalingConfigVersion().equals(manifest.path("scaling_config_version").asText()), "DS_EXPORT_SCALING_CONFLICT");
         require(selected.filter(not(col("dataset_id").eqNullSafe(id))).count() == 0
             && main.filter(not(col("dataset_id").eqNullSafe(id))).count() == 0, "DS_EXPORT_DATASET_LINEAGE_MISMATCH");
-        for (String name : COLUMNS) require(selected.filter(col(name).isNull()).limit(1).count() == 0, "DS_EXPORT_NULL_FIELD:" + name);
+        if ("scaling-global-research-40k-v1".equals(scaling.scalingConfigVersion())) {
+            // Same 29 null rules and first failure order; one scan, not 29 separate Spark actions.
+            var checks = COLUMNS.stream().map(name -> max(when(col(name).isNull(), lit(1)).otherwise(lit(0))).alias(name)).toArray(Column[]::new);
+            var nulls = selected.agg(checks[0], Arrays.copyOfRange(checks, 1, checks.length)).first();
+            for (int i = 0; i < COLUMNS.size(); i++) require(nulls.getInt(i) == 0, "DS_EXPORT_NULL_FIELD:" + COLUMNS.get(i));
+        } else for (String name : COLUMNS) require(selected.filter(col(name).isNull()).limit(1).count() == 0, "DS_EXPORT_NULL_FIELD:" + name);
         require(selected.filter(not(col("schema_version").equalTo("1.0"))).limit(1).count() == 0, "DS_EXPORT_SCHEMA_VERSION");
         // Recompute through the shared engine: supplied scale/vector/version fields are not caller assertions.
         var checked = new SpacetimeFeatureEngine().execute(main, selected, scaling); checked.assertValid();

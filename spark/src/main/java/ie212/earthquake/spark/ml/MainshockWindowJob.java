@@ -122,6 +122,19 @@ public final class MainshockWindowJob {
             default -> throw new IllegalArgumentException("ML_WINDOW_SPLIT_UNSUPPORTED");
         };
         var filter = JSON.readTree(manifest.path("filter_config_json").asText());
+        if (filter.has("resource_profile_version")) {
+            var scale = FeatureScalingConfig.fromJson(filter.path("feature_scaling_config"));
+            if (!PreparedDatasetBuildJob.VERSION.equals(manifest.path("dataset_config_version").asText())
+                    || !PreparedDatasetBuildJob.PROFILE.equals(filter.path("resource_profile_version").asText())
+                    || !ie212.earthquake.spark.gold.PublishedPreparedCoverage.VERSION.equals(filter.path("source_coverage_contract").asText())
+                    || scale.maxCandidatesPerWindow() != 40000 || !"scaling-global-research-40k-v1".equals(scale.scalingConfigVersion())
+                    || !"GLOBAL".equals(scale.mode()) || scale.spaceScaleKm() != 50 || scale.depthScaleKm() != 30 || scale.timeScaleHours() != 720
+                    || scale.coordinateToleranceKm() != 1e-8 || scale.timeToleranceHours() != 1e-12)
+                throw new IllegalArgumentException("ML_WINDOW_RESOURCE_PROFILE_NOT_PINNED");
+            selection = new MainshockSelectionConfig(selection.selectionRuleVersion(), selection.minDepthKm(), selection.maxDepthKm(),
+                    selection.minMagnitudeExclusive(), selection.datasetSplit(), selection.periodStartUtc(), selection.periodEndUtcExclusive(),
+                    40000, selection.failOnResourceExceeded());
+        }
         // JSON round-trip narrows small LongNode to IntNode; compare canonical JSON values,
         // not Jackson's JVM number-node classes. Unknown/changed parameters still fail.
         if (!DatasetIdentityPlan.canonical(selection.toJsonNode()).toString().equals(

@@ -523,6 +523,11 @@ test-dat03-gold: ## DAT-03 PREPARED proof/publisher/controller regression; no Do
 test-dat03-gold-spark: ## DAT-03 actual local Iceberg writer fixtures; requires Java17, no MinIO
 	@./mvnw --batch-mode --no-transfer-progress -pl spark -am -Dtest=PreparedGoldWriterTest -Dsurefire.failIfNoSpecifiedTests=false test
 
+.PHONY: test-dat03-prepared-ml
+test-dat03-prepared-ml: ## DAT-03 Published PREPARED coverage/official ML guards; offline, không Docker
+	@python3 -B -m unittest tests.test_dat03_prepared_ml
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am -Dtest=PublishedPreparedCoverageTest,PreparedDatasetBuildJobTest,PreparedGoldProofTest,FeatureExportCoverageTest,ResearchCollectionPlanTest,ResearchDatasetBuildJobTest,DatasetManifestTest -Dsurefire.failIfNoSpecifiedTests=false test
+
 .PHONY: test-mli04
 test-mli04: ## MLI-04 Trino views, verification SQL và static report regression; offline
 	@python3 -m unittest discover -s tests -p 'test_mli04_views_and_report.py'
@@ -732,7 +737,7 @@ ci-docs: ## Docs/contracts/secret hygiene/Compose tĩnh; không đọc .env riê
 ci-docs-base: ## Always-on CI guards; pilot tests được chọn riêng theo impact, không Docker daemon
 	@$(MAKE) test-dat03-lineage
 	@$(MAKE) test-dat03-payload-inventory
-	@python3 -B -m unittest tests.test_dat03_followup_verifier tests.test_dat03_portable_plan tests.test_dat03_readback_batches tests.test_dat03_bronze_relocation tests.test_dat03_portable_capacity tests.test_dat03_portable_import tests.test_dat03_portable_gold
+	@python3 -B -m unittest tests.test_dat03_followup_verifier tests.test_dat03_portable_plan tests.test_dat03_readback_batches tests.test_dat03_bronze_relocation tests.test_dat03_portable_capacity tests.test_dat03_portable_import tests.test_dat03_portable_gold tests.test_dat03_prepared_ml
 	@$(MAKE) test-dat03-team-setup
 	@$(MAKE) test-dat03-range-worker
 	@$(MAKE) test-dat03-provenance

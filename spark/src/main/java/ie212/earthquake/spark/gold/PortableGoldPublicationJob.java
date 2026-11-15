@@ -49,7 +49,9 @@ public final class PortableGoldPublicationJob {
                 throw new IllegalStateException("PREPARED_GOLD_OWN_LEASE_NOT_HELD");
         } catch (Exception failure) { throw new IllegalStateException("PREPARED_GOLD_OWN_LEASE_NOT_HELD"); } };
     }
-    private static JsonNode input(JsonNode r) throws Exception {
+    /** Read-only full-file/checkpoint and fresh physical Bronze proof; shared by the explicit ML adapter. */
+    public static JsonNode verifyInput(JsonNode r) throws Exception {
+        validate(r);
         Path root = Path.of(r.path("prepared_root").asText());
         JsonNode catalog = PortablePreparedCatalog.verify(root, r.path("prepared_catalog_sha256").asText());
         JsonNode original = PortablePreparedCatalog.read(PortablePreparedCatalog.relative(root, catalog.path("request").path("relative_path").asText()), 1024 * 1024);
@@ -132,12 +134,12 @@ public final class PortableGoldPublicationJob {
         if (recovery) result.put("continuation_sha256", args[5]).put("actual_runner_sha256", sha(runner));
         if (phase.equals("preflight")) {
             require(!Files.exists(Path.of(Objects.requireNonNull(System.getenv("SOURCE_GUARD_ROOT")), "owner.json")), "PREPARED_PREFLIGHT_SOURCE_NOT_IDLE");
-            input(r); int[] n = {0}; var sql = client(r, "preflight", 2, n);
+            verifyInput(r); int[] n = {0}; var sql = client(r, "preflight", 2, n);
             require(scalar(sql, "SELECT 1") == 1, "PREPARED_TRINO_NOT_READY");
             require(scalar(sql, "SELECT count(*) FROM iceberg.information_schema.tables WHERE table_schema='dat03_unified_20261114'") == 0, "APPROVED_NEW_NAMESPACE_NOT_EMPTY");
             result.put("status", "READ_ONLY_PREFLIGHT_PASSED").put("gold_published", false).put("sql_queries", n[0]);
         } else {
-            Runnable held = lease(r); held.run(); input(r);
+            Runnable held = lease(r); held.run(); verifyInput(r);
             try (var physicalStore = MinioSilverObjectStore.fromEnvironment()) {
                 SilverObjectStore store = rerun ? readOnly(physicalStore) : physicalStore;
                 if (recovery) {

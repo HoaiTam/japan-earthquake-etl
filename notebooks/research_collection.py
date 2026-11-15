@@ -19,6 +19,25 @@ from pilot_bundle import FEATURE_TYPES, MAIN_TYPES, typed_schema
 
 VERSION = "dat03-collection-export-v1"
 MAX_FILE = 64 * 1024**2
+PREPARED_COVERAGE = "dat03-published-prepared-coverage-v1"
+
+
+def _prepared_coverage(manifest, coverage):
+    """Validate the explicit portable proof variant, not a fabricated legacy registry digest."""
+    raw = manifest.get("filter_config_json", "{}")
+    require(isinstance(raw, str) and len(raw.encode("utf-8")) <= 65536, "COLLECTION_COVERAGE_CONFIG_INVALID")
+    filters = read_json_safe(raw.encode("utf-8"))
+    requested = filters.get("source_coverage_contract")
+    if requested is None and coverage.get("coverage_version") in (None, "mld05-receipt-bound-months-v1"):
+        return  # Existing receipt-bound legacy exports keep their established contract.
+    require(requested == coverage.get("coverage_version") == PREPARED_COVERAGE, "COLLECTION_PREPARED_COVERAGE_PROTOCOL_REQUIRED")
+    require("registry_sha256" not in coverage and coverage.get("source_system") == "JMA_BULLETIN", "COLLECTION_PREPARED_NOT_LEGACY_REGISTRY")
+    for key in ("prepared_catalog_sha256", "prepared_coverage_sha256", "provenance_sha256", "published_commit_sha256", "publication_sha256", "gold_request_sha256"):
+        require(isinstance(coverage.get(key), str) and re.fullmatch(r"[a-f0-9]{64}", coverage[key]), "COLLECTION_PREPARED_COVERAGE_PIN_REQUIRED")
+    for value in (coverage.get("source_cutoff_utc"), manifest.get("observation_cutoff_utc")):
+        require(isinstance(value, str) and value.endswith("Z"), "COLLECTION_PREPARED_UTC_CUTOFF_REQUIRED")
+    require(datetime.fromisoformat(coverage["source_cutoff_utc"].replace("Z", "+00:00")) <=
+            datetime.fromisoformat(manifest["observation_cutoff_utc"].replace("Z", "+00:00")), "COLLECTION_PREPARED_CUTOFF_CONFLICT")
 
 
 def _safe(path):
@@ -101,6 +120,7 @@ class ResearchCollection:
         require(m.get("dataset_split") in ("REPRODUCTION","EXTENSION")
                 and p["coverage"].get("status") == "COMPLETE" and p["coverage"].get("required_month_count") ==
                 {"REPRODUCTION": 225, "EXTENSION": 63}.get(m.get("dataset_split")), "COLLECTION_COMPLETE_SPLIT_REQUIRED")
+        _prepared_coverage(m, p["coverage"])
         expected = {"dataset_manifest.json", "collection-preparation.json", "export-checksums.sha256"}
         for name in self.shards:
             expected.update({name + "/features.parquet", name + "/mainshocks.parquet"})

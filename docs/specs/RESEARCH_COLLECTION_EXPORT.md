@@ -7,6 +7,11 @@ full research acceptance.** DAT-03 vẫn In Progress cho đến khi đủ mọi 
 
 ## Identity và nguồn
 
+[Published-PREPARED adapter](PREPARED_ML_EXPORT.md) bổ sung source coverage
+variant có version riêng cho catalog hợp nhất phần 1–2. Planner/loader giữ
+prepared/source/publication SHA thay `registry_sha256` legacy; không đổi grain,
+scientific config, resource caps hoặc promote preparation chỉ bằng metadata.
+
 `filter_config.collection_export` chứa đúng `version` và `layout_limits`.
 Limits: <=128 mainshock, <=100.000 dòng mỗi shard, <=64 shard; tổng metadata
 <=4096 mainshock. Cấu hình và strict-split policy tham gia dataset identity.

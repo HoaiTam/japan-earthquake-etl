@@ -18,7 +18,7 @@ public final class PortableGoldCapacityJob {
         var method = GoldIcebergWriter.class.getDeclaredMethod("fingerprint", Dataset.class);
         method.setAccessible(true); return (String) method.invoke(null, rows);
     }
-    static Map<String, String> readCompatibilityOptions() {
+    public static Map<String, String> readCompatibilityOptions() {
         // Trino-written publication_status may use DELTA_LENGTH_BYTE_ARRAY.
         // Change only this isolated reader session, never table/catalog properties.
         return Map.of("spark.sql.iceberg.vectorization.enabled", "false");

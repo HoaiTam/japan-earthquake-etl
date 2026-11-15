@@ -16,6 +16,29 @@ dependencies: ["ORC-07", "MLD-05", "MLI-02", "EXP-01"]
 
 ## Giao việc hiện hành — 11/11/2026
 
+**15/11 — bắt đầu phần 3 official collections:** branch
+`feat/dat-03-official-collections` từ main `f09ac66`, fast-forward phần 1–2
+`404e7c7` của PR #131. HoaiTam, reviewer unassigned; giữ In Progress.
+Triển khai coverage adapter có version cho PREPARED Published, giữ audit/Mc
+toàn split, strict windows và lifecycle/registry thật. Preflight capacity/read-only
+trước ML writes; không giả legacy receipts hoặc nới cap để pass. Hai collection
+REPRODUCTION/EXTENSION chạy tuần tự, checkpoint/own lease, loader/rerun/immutable
+release theo acceptance. Không fit/model/scientific approval hoặc tạo hộ receipts.
+Owner yêu cầu commit/push/comment cùng PR #131 sau kiểm tra, không merge.
+
+**15/11 — preflight phần 3 có blocker resource:**
+[evidence](../../evidence/DAT-03_PREPARED_ML_20261115.md).
+Actual REPRODUCTION: Mc0,5, 194 mainshocks/156.710 candidate memberships,
+max38.854/window; EXTENSION: Mc0,4, 45/233.664, max83.504/window.
+V1 cả hai `BLOCKED_RESOURCE`, exit0, Gold six pins unchanged, own lease release,
+không ML writes. Owner duyệt thiết kế/kiểm chứng v2 cap40.000/window, giữ science
+và các guard khác; **chưa duyệt cap lớn hơn40.000**. EXTENSION còn hai windows
+83.504/76.260, không drop để pass. Benchmark40k đã PASS sau98,107giây,
+peak1,05GiB/Java17.0.19/Spark3.5.9; readback/rerun/nullfaultinjections đạt.
+V2 metadata prepared, **chưa fresh real v2 preflight/build**. Postflight8/8SQL
+giữ Gold six pins,0bảng ML tại hai namespace; lease empty/runtime idle.
+Chưa EXPORTED/paired release/ba máy receipts, giữ In Progress.
+
 **15/11 — phần 2 Gold/publication hoàn tất kỹ thuật:**
 [Contract](../../specs/PREPARED_GOLD_PUBLICATION.md),
 [runbook](../../runbooks/DAT-03_PORTABLE_GOLD.md),

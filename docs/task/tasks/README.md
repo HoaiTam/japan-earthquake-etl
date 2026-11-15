@@ -22,6 +22,14 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 
 ## Tổng quan
 
+**15/11 — DAT-03 phần 3 In Progress:** official PREPARED coverage adapter,
+read-only capacity gate rồi hai collection export/lifecycle/registry thật,
+loader/rerun/release; không đổi flags hoặc giả legacy receipts để mở gate.
+Hai preflight thật v1 BLOCKED_RESOURCE, không ML writes; owner duyệt kiểm chứng
+profile40.000 đã PASS98,107giây, nhưng EXTENSION còn max83.504/window, chưa được
+tự nâng cap. V2 metadata prepared, chưa fresh real v2 preflight/build;0bảng ML.
+[Evidence phần 3](../../evidence/DAT-03_PREPARED_ML_20261115.md); giữ In Progress.
+
 **15/11 — DAT-03 phần 2 đạt:**
 [evidence](../../evidence/DAT-03_PORTABLE_GOLD_20261115.md).
 Six-table Gold Published tại namespace mới đã duyệt; Trino 139 + 41 calls,
