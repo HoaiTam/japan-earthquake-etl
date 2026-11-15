@@ -1,0 +1,124 @@
+{
+  "version": "dat03-capacity-provenance-evidence-v1",
+  "date": "2026-11-15",
+  "task_id": "DAT-03",
+  "task_status": "In Progress",
+  "capacity": {
+    "event_current": {
+      "launch": {
+        "path": "staging/dat03-integration-20261114/capacity-v3-event-20261115/launch.json",
+        "sha256": "5516c8c6868b39a6a57ec5507de05793efcef1c037fd17bbf135f2a6884e9956"
+      },
+      "execution": {
+        "path": "staging/dat03-integration-20261114/capacity-v3-event-20261115/runtime/execution.json",
+        "sha256": "b833d16a9b6e243d0d4153a14d31feff610a28fec5d88326ef9be63bfcb80796"
+      },
+      "result": {
+        "path": "staging/dat03-integration-20261114/capacity-v3-event-20261115/runtime/result.json",
+        "sha256": "d864cbb12873ea1f002ae0f7f14350fdc29e2dac43ab491b0fb064bf0df77b09"
+      },
+      "postflight": {
+        "path": "staging/dat03-integration-20261114/capacity-v3-event-20261115/postflight.json",
+        "sha256": "5225dcd928676babbb27fc40427e15c6bdf8d0abae494ece863e7f896f1e5cd8"
+      },
+      "runner_sha256": "16b0e509600f161391593a195f87148304365b69fcbc6bd18ff3daf9f0b885b4",
+      "controller_sha256": "c40215fa9f71fe7f7db9df00cbc542e1527bd1ae689a6af5e54c82eecc2f3d7b",
+      "dependencies": {
+        "iceberg-aws-bundle-1.10.1.jar": "86bf20892ea5b4c17688f19b075399885f6aa5303f6b2dc9f491e76ceef9633b",
+        "iceberg-spark-runtime-3.5_2.12-1.10.1.jar": "39ea09e6c03550a300b9d9ab498949836d2d434e441da4c12a943a086e396940"
+      },
+      "stress_rows": 6012210,
+      "required_rows": 4488650,
+      "wall_seconds": 267.868,
+      "fingerprint_sha256": "b197e51ebae1e59fa4c8613946a6f15bab231e78090dbe197ed73ec67f3ad474",
+      "synthetic_stress_only": true,
+      "accepted": "FINGERPRINT_COMPONENT_ONLY"
+    },
+    "event_source_bridge": {
+      "launch": {
+        "path": "staging/dat03-integration-20261114/capacity-v3-bridge-20261115/launch.json",
+        "sha256": "cc9a48d15d12f96b705b17301a5876c4ee81772d80df62a38e97cdfb85d894c7"
+      },
+      "execution": {
+        "path": "staging/dat03-integration-20261114/capacity-v3-bridge-20261115/runtime/execution.json",
+        "sha256": "956650f16bb469603a7bfa13d84c8081e0010a5d71fa0fcea87ad046392ddd45"
+      },
+      "result": {
+        "path": "staging/dat03-integration-20261114/capacity-v3-bridge-20261115/runtime/result.json",
+        "sha256": "81eaafadf5a3a9a0eaf48540645c4830af582ba3e0db9f744b0d3c4d13272fed"
+      },
+      "postflight": {
+        "path": "staging/dat03-integration-20261114/capacity-v3-bridge-20261115/postflight.json",
+        "sha256": "5225dcd928676babbb27fc40427e15c6bdf8d0abae494ece863e7f896f1e5cd8"
+      },
+      "runner_sha256": "16b0e509600f161391593a195f87148304365b69fcbc6bd18ff3daf9f0b885b4",
+      "controller_sha256": "c40215fa9f71fe7f7db9df00cbc542e1527bd1ae689a6af5e54c82eecc2f3d7b",
+      "dependencies": {
+        "iceberg-aws-bundle-1.10.1.jar": "86bf20892ea5b4c17688f19b075399885f6aa5303f6b2dc9f491e76ceef9633b",
+        "iceberg-spark-runtime-3.5_2.12-1.10.1.jar": "39ea09e6c03550a300b9d9ab498949836d2d434e441da4c12a943a086e396940"
+      },
+      "stress_rows": 6012210,
+      "required_rows": 4489823,
+      "wall_seconds": 166.617,
+      "fingerprint_sha256": "95e97fb077df4a72e26cdeaa55e3d88607f03090d69debfdadcc334319ac2a51",
+      "synthetic_stress_only": true,
+      "accepted": "FINGERPRINT_COMPONENT_ONLY"
+    }
+  },
+  "provenance": {
+    "preparation_config": {
+      "path": "staging/dat03-integration-20261114/bronze-relocation-config-20261115.json",
+      "sha256": "84687c3c68454c1b90916eae06aea13b40c2b3b5c30918439460441d2c470236"
+    },
+    "plan": {
+      "path": "staging/dat03-integration-20261114/bronze-relocation-plan-20261115.json",
+      "sha256": "a680b27fdbf2115701e983821e2e6c0e8b63d82591d17559db814f0c8d105ebf"
+    },
+    "launch": {
+      "path": "staging/dat03-integration-20261114/bronze-physical-readback-v3-20261115/launch.json",
+      "sha256": "852565a4ad3b012c85bcb6a9be2a9151772e5f284cab6d18bf79b4821e2168e2"
+    },
+    "execution": {
+      "path": "staging/dat03-integration-20261114/bronze-physical-readback-v3-20261115/runtime/execution.json",
+      "sha256": "2f9611215edd4fe699bf1064063ceb4672519689a1a6c01572757efb7c825218"
+    },
+    "result": {
+      "path": "staging/dat03-integration-20261114/bronze-physical-readback-v3-20261115/runtime/result.json",
+      "sha256": "8414bb42f5bb596dc5d7e4bf408bf99b5e34ba806ede2205b0a3296dd14c5b5d"
+    },
+    "postflight": {
+      "path": "staging/dat03-integration-20261114/bronze-physical-readback-v3-20261115/postflight.json",
+      "sha256": "5225dcd928676babbb27fc40427e15c6bdf8d0abae494ece863e7f896f1e5cd8"
+    },
+    "physical_sources": 37,
+    "original_sources": 74,
+    "workers": 2,
+    "physical_unique_raw_bytes": 130062575,
+    "original_keys_restored": false,
+    "identity_policy": "source-kind-window-request-release-format-content-v1"
+  },
+  "restored_frontier": {
+    "drive_file_id": "1QsZHjXXsGmWvBDFHiicMdejmAN2Lehb-",
+    "artifact": {
+      "path": "staging/dat03-integration-20261114/rosy-frontier-restored-20261115.zip",
+      "sha256": "0dd1c504f27489709c46748b313e9f764ecfc25a58ef50a2699cbcf0626e8453"
+    },
+    "bytes": 101446
+  },
+  "lake_writes": false,
+  "new_gold_namespace_created": false,
+  "portable_import_ready": false,
+  "full_capacity_accepted": false,
+  "gold_published": false,
+  "official_export_ready": false,
+  "research_ready": false,
+  "ml_upstream_eligible": false,
+  "full_transitive_closure_verified": false,
+  "three_machine_receipts_accepted": false,
+  "pending": [
+    "VERSIONED_IMPORT_AND_COVERAGE_ADAPTER",
+    "ACTUAL_GOLD_TRINO_BOUNDARY_RECONCILIATION",
+    "TWO_OFFICIAL_EXPORTED_COLLECTIONS",
+    "IMMUTABLE_RELEASE_AND_THREE_MACHINE_RECEIPTS"
+  ]
+}

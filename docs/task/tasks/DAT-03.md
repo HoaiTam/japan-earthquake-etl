@@ -16,6 +16,17 @@ dependencies: ["ORC-07", "MLD-05", "MLI-02", "EXP-01"]
 
 ## Giao việc hiện hành — 11/11/2026
 
+**15/11 — capacity/provenance tiếp tục đạt, chưa unified Gold:**
+[Evidence](../../evidence/DAT-03_CAPACITY_PROVENANCE_20261115.md), nhánh
+`feat/dat-03-unified-catalog`, HoaiTam/reviewer unassigned. Hai bảng đều đạt
+6.012.210 stress rows với exact repeat fingerprint; mapping74 original manifests
+→37 physical sources đã fresh readback SHA/size/structure/identity. Không sửa
+namespace cũ hoặc chạy lại batch nguồn. Chưa chuyển Done: còn versioned import/
+coverage adapter, Gold/Trino/official exports và receipts ba máy. Chưa ghi Gold
+trong phiên này; legacy ML export gate chưa chấp nhận portable integration.
+Owner yêu cầu bàn giao code qua PR #131 trên `feat/dat-03-payload-reuse-inventory`,
+không mở PR chồng hoặc merge main.
+
 **14/11 — portable integration từ main #127:** tiếp tục trên
 `feat/dat-03-portable-integration`, assignee HoaiTam, reviewer unassigned.
 [Evidence mới](../../evidence/DAT-03_PORTABLE_READBACK_20261114.md) ghi nhận đã
@@ -265,6 +276,11 @@ release đủ gate. Không tạo dependency ngược từ DAT-03 sang EXP-02.
   MLI-04/MLQ-01 sở hữu report/ML E2E.
 
 ## Theo dõi
+
+- **15/11 — In Progress:** [capacity/provenance](../../evidence/DAT-03_CAPACITY_PROVENANCE_20261115.md)
+  đạt riêng component, no lake writes. Blocker startup14/11 đã có profile local
+  dependencies được nghiệm thu; không coi fingerprint stress hoặc74mapping là
+  Gold288tháng, official export hoặc receipts ba máy.
 
 - **Actual14/11 — portable Silver readback:** [evidence/pins](../../evidence/DAT-03_PORTABLE_READBACK_20261114.md),
   [runbook](../../runbooks/DAT-03_PORTABLE_READBACK.md). Trang63/63tháng,

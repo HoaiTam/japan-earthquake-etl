@@ -508,8 +508,8 @@ test-dat03-payload-inventory: ## DAT-03 byte inventory regression; không giải
 	@python3 -B -m unittest tests.test_dat03_payload_inventory
 
 test-dat03-portable: ## DAT-03 metadata/planner/checkpoint + Java Parquet readback tests; không Docker/ETL
-	@python3 -B -m unittest tests.test_dat03_followup_verifier tests.test_dat03_portable_plan tests.test_dat03_readback_batches
-	@./mvnw --batch-mode --no-transfer-progress -pl spark -am -Dtest=PortableSilverReadbackTest,PortableGoldCapacityJobTest -Dsurefire.failIfNoSpecifiedTests=false test
+	@python3 -B -m unittest tests.test_dat03_followup_verifier tests.test_dat03_portable_plan tests.test_dat03_readback_batches tests.test_dat03_bronze_relocation tests.test_dat03_portable_capacity
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am -Dtest=PortableSilverReadbackTest,PortableGoldCapacityJobTest,PortableBronzeProvenanceTest -Dsurefire.failIfNoSpecifiedTests=false test
 
 .PHONY: test-mli04
 test-mli04: ## MLI-04 Trino views, verification SQL và static report regression; offline
@@ -720,7 +720,7 @@ ci-docs: ## Docs/contracts/secret hygiene/Compose tĩnh; không đọc .env riê
 ci-docs-base: ## Always-on CI guards; pilot tests được chọn riêng theo impact, không Docker daemon
 	@$(MAKE) test-dat03-lineage
 	@$(MAKE) test-dat03-payload-inventory
-	@python3 -B -m unittest tests.test_dat03_followup_verifier tests.test_dat03_portable_plan tests.test_dat03_readback_batches
+	@python3 -B -m unittest tests.test_dat03_followup_verifier tests.test_dat03_portable_plan tests.test_dat03_readback_batches tests.test_dat03_bronze_relocation tests.test_dat03_portable_capacity
 	@$(MAKE) test-dat03-team-setup
 	@$(MAKE) test-dat03-range-worker
 	@$(MAKE) test-dat03-provenance

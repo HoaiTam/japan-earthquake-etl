@@ -1,4 +1,18 @@
-# DAT-03 — Tiến độ thực tế (cập nhật 14/11/2026)
+# DAT-03 — Tiến độ thực tế (cập nhật 15/11/2026)
+
+## Hiện hành15/11 — capacity fingerprint và physical provenance đạt
+
+[Evidence/pins](DAT-03_CAPACITY_PROVENANCE_20261115.md): event và bridge đều kiểm
+6.012.210 stress rows, hai lần exact writer fingerprint khớp; wall267,868s và
+166,617s. Local dependency URIs tránh fetch JAR qua driver, không tăng budget.
+Đã Java readback37 raw nguồn/130.062.575 bytes và map74 original manifests của
+Trang/Trí theo SHA/size +logical identity, giữ cả original/physical IDs/URIs.
+Gói frontier114 tải lại từ Drive khớp SHA cũ; không yêu cầu gửi lại.
+
+Giữ **In Progress**, không Gold/ML writes. Còn versioned importer + coverage
+adapter; six-table Gold/Trino và official exports/ba máy receipts. Gate export
+hiện vẫn cần legacy single-catalog288 checkpoints/SilverReady, không được fake
+markers/registry để vượt. Các blocker capacity startup14/11 dưới đây là lịch sử.
 
 ## Hiện hành14/11 — portable Silver readback, chưa unified Gold
 

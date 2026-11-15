@@ -1,5 +1,8 @@
 # DAT-03 — Original follow-up và actual portable Silver readback14/11/2026
 
+> Cập nhật15/11: [capacity fingerprint và physical source mapping đã đạt](DAT-03_CAPACITY_PROVENANCE_20261115.md).
+> V2 timeout bên dưới giữ làm evidence lịch sử. Chưa có unified Gold/official export.
+
 ## Kết luận hiện tại
 
 **In Progress**. Nhận đủ original follow-up của cả hai worker và đã chạy Java

@@ -1,5 +1,9 @@
 # DAT-03 — Portable readback tiết kiệm dung lượng
 
+> Cập nhật15/11: [capacity/provenance evidence](../evidence/DAT-03_CAPACITY_PROVENANCE_20261115.md).
+> Hai fingerprint probes và74→37 physical source mapping đã đạt. Blocker startup
+> dưới đây là lịch sử v2; vẫn chưa có Gold import/official export mới.
+
 ## Phạm vi và các công cụ
 
 1. `verify-dat03-followup.py`: kiểm original commit/identity/publication bằng request và independent data ZIP đã pin; tách identity payload digest khỏi raw-file SHA.
@@ -65,6 +69,31 @@ RAM. Deadline controller là giới hạn an toàn, không phải acceptance tim
 Worker Bronze keys khác owner keys. Trước importer cần mapping provenance có
 version, xác minh physical bytes và source identity/window/release, giữ original
 URIs; không tạo success markers giả cho các source bundles chưa restore.
+
+## Controller và mapping đã nghiệm thu15/11
+
+`scripts/dat03-portable-capacity.py` điều phối một read-only attempt, pin request/
+runner/controller/dependencies, kiểm idle/lease/services/disk và postflight.
+Mặc định job capacity dùng Spark local[1] và `local:/` dependencies có cùng bytes;
+`--job bronze-provenance` chỉ cho phép đúng Java PortableBronzeProvenance, không
+nhận class/SQL tùy ý. Không start/build/retry hoặc auto resume khi lỗi.
+
+`scripts/prepare-dat03-bronze-relocation.py` chỉ đọc pinned CAS metadata và worker
+roots/follow-up; tạo plan metadata, không ETL. Java mapper gọi BronzeReuseVerifier
+trên37 physical pins, rồi ghép originals theo semantic identity, không hash alone.
+Receipt không cấp portable_import_ready/gold_published/official_export_ready.
+
+Các lệnh thực tế trên owner (chạy tuần tự, mỗi output mới):
+
+```bash
+python3 -B scripts/prepare-dat03-bronze-relocation.py --config staging/dat03-integration-20261114/bronze-relocation-config-20261115.json --config-sha256 84687c3c68454c1b90916eae06aea13b40c2b3b5c30918439460441d2c470236 --output staging/dat03-integration-20261114/bronze-relocation-repeat-plan.json
+python3 -B scripts/dat03-portable-capacity.py run --job bronze-provenance --request staging/dat03-integration-20261114/bronze-relocation-plan-20261115.json --request-sha256 a680b27fdbf2115701e983821e2e6c0e8b63d82591d17559db814f0c8d105ebf --runner spark/target/japan-earthquake-etl-runner.jar --output staging/dat03-integration-20261114/bronze-repeat-readback
+```
+
+Lệnh thứ hai cố ý dùng **plan đã nghiệm thu** và SHA ở evidence; không tự đổi
+sang repeat-plan chưa pin. Một file path mới không thay trusted checksum.
+Source contract USGS không bắt buộc provenance object; JMA citation_text có
+retrieval time không là logical identity. Metadata gốc luôn giữ nguyên bytes.
 
 ## Phần còn thiếu thuộc DAT-03
 

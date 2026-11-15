@@ -22,6 +22,11 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 
 ## Tổng quan
 
+**15/11 — DAT-03 In Progress:** [capacity/provenance](../../evidence/DAT-03_CAPACITY_PROVENANCE_20261115.md)
+đạt event/bridge6.012.210 stress rows mỗi bảng và74→37 source mapping có physical
+readback. Chưa có versioned Gold importer/coverage adapter, unified publication
+hoặc official exports/receipts. Các blocker startup capacity14/11 là lịch sử.
+
 **14/11 — DAT-03 portable readback:** nhận đủ original follow-up Trang/Trí,
 Java kiểm125/125tháng worker qua13batch/42groups, không bung dataset hoặc ghi Gold.
 [Evidence](../../evidence/DAT-03_PORTABLE_READBACK_20261114.md),
