@@ -16,6 +16,22 @@ dependencies: ["ORC-07", "MLD-05", "MLI-02", "EXP-01"]
 
 ## Giao việc hiện hành — 11/11/2026
 
+**15/11 — phần 2 Gold/publication hoàn tất kỹ thuật:**
+[Contract](../../specs/PREPARED_GOLD_PUBLICATION.md),
+[runbook](../../runbooks/DAT-03_PORTABLE_GOLD.md),
+[evidence](../../evidence/DAT-03_PORTABLE_GOLD_20261115.md).
+Branch `feat/dat-03-gold-publication` từ main `f09ac66`, nhận phần 1 `165763e`/PR #131.
+Actual sáu bảng `iceberg.dat03_unified_20261114` đã Published: 4.488.650 canonical,
+4.489.823 bridge; Trino 139 Verify + 41 Publish/readbacks. Rerun độc lập đạt
+139 + 15 calls, SHA commit/publication và sáu pins giữ nguyên, history 1/table.
+Known dimension-order failure được recovery có pin riêng; giữ hai fact snapshots
+và original failed evidence, không retry mù/đổi input hoặc mark lỗi thành success.
+Own lease release, services unchanged/idle. Không sửa namespace/source cũ hoặc
+gọi official export. DAT-03 vẫn In Progress, assignee HoaiTam/reviewer unassigned:
+còn phần 3 official collections/EXPORTED, loader/release và receipts ba máy.
+Owner yêu cầu commit/push/comment cùng PR #131, không merge. Các mốc “chưa Gold”
+bên dưới là lịch sử trước lần nghiệm thu này, không phải trạng thái phần 2 hiện tại.
+
 **15/11 — portable importer phần 1 đạt PREPARED:**
 [Contract](../../specs/DAT03_PREPARED_CATALOG.md),
 [runbook](../../runbooks/DAT-03_PORTABLE_IMPORT.md),
@@ -289,6 +305,12 @@ release đủ gate. Không tạo dependency ngược từ DAT-03 sang EXP-02.
   MLI-04/MLQ-01 sở hữu report/ML E2E.
 
 ## Theo dõi
+
+- **15/11 — phần 2 đạt, toàn task In Progress:**
+  [evidence Gold](../../evidence/DAT-03_PORTABLE_GOLD_20261115.md).
+  Six-table commit/Trino Published + immutable rerun đã nghiệm thu thật; SHA/pins
+  không đổi và own lease release. Còn official REPRODUCTION/EXTENSION EXPORTED,
+  loader/rerun/release và receipts ba máy; không fake registry/approval.
 
 - **15/11 — portable importer phần 1:** [evidence](../../evidence/DAT-03_PORTABLE_IMPORT_20261115.md).
   Full PREPARED receipt đã đạt288/288tháng, global reconciliation cân bằng;

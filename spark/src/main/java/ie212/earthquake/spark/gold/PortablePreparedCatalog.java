@@ -140,11 +140,15 @@ public final class PortablePreparedCatalog {
         return spark.read().parquet(files.toArray(String[]::new));
     }
     public static GoldTransformationResult asGoldInput(SparkSession spark, Path root, String sha) throws Exception {
+        return asGoldInput(spark, root, sha, false);
+    }
+    public static GoldTransformationResult asGoldInput(SparkSession spark, Path root, String sha, boolean keepPhysicalMonth) throws Exception {
         JsonNode value = verify(root, sha); JsonNode t = value.path("tables");
         Dataset<Row> events = dataset(spark, root, t.path("event_current"));
         long canonical = t.path("event_current").path("row_count").asLong(), bridge = t.path("event_source_bridge").path("row_count").asLong();
+        var bridgeRows = dataset(spark, root, t.path("event_source_bridge"));
         return new GoldTransformationResult(events, events.filter(col("is_natural_earthquake").and(col("is_in_study_area"))),
-                dataset(spark, root, t.path("event_source_bridge")).drop("event_month_utc"), dataset(spark, root, t.path("dim_date")),
+                keepPhysicalMonth ? bridgeRows : bridgeRows.drop("event_month_utc"), dataset(spark, root, t.path("dim_date")),
                 dataset(spark, root, t.path("dim_region")), dataset(spark, root, t.path("dim_magnitude_band")), dataset(spark, root, t.path("dim_depth_band")),
                 bridge, canonical, bridge);
     }

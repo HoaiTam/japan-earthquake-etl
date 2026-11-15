@@ -22,6 +22,14 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 
 ## Tổng quan
 
+**15/11 — DAT-03 phần 2 đạt:**
+[evidence](../../evidence/DAT-03_PORTABLE_GOLD_20261115.md).
+Six-table Gold Published tại namespace mới đã duyệt; Trino 139 + 41 calls,
+rerun 139 + 15 calls giữ SHA/six pins/history 1/table. Own lease release, runtime
+idle/services unchanged; giữ original failure và scoped recovery provenance.
+Giữ In Progress cho official collections/EXPORTED, loader/release và receipts ba máy.
+Các note “chưa Gold” bên dưới là lịch sử trước phần 2; không fake legacy readiness.
+
 **15/11 — DAT-03 portable importer phần 1:**
 [contract](../../specs/DAT03_PREPARED_CATALOG.md),
 [evidence](../../evidence/DAT-03_PORTABLE_IMPORT_20261115.md).

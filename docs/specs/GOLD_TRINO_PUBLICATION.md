@@ -1,5 +1,9 @@
 # GLD-04 — Trino verification và publication
 
+> DAT-03 có [prepared publisher opt-in riêng](PREPARED_GOLD_PUBLICATION.md), giữ
+> exhaustive blockers/readbacks/rerun; legacy publisher từ chối prepared scope.
+> Không dùng profile primary1,3triệu rows để chứng nhận catalog4,49triệu rows.
+
 [Gold current-month operational](../runbooks/CURRENT_MONTH_GOLD_PUBLICATION.md)
 dùng explicit publisher mode, reserved namespace/journals/status/views và thêm
 snapshot policy/cutoff/coverage SQL blockers. Published vẫn PROVISIONAL,
