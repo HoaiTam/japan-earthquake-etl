@@ -43,7 +43,11 @@ def _timestamp_view(parquet, manifest):
                 "COLLECTION_INT96_PHYSICAL_TYPE_REQUIRED")
         integers = values.cast(pa.int64()).to_pylist()
         require(all(v is not None and v % 1000 == 0 for v in integers), "COLLECTION_INT96_SUBMICROSECOND_REJECTED")
-        normalized = pc.cast(pc.assume_timezone(values, "UTC"), target, safe=True)
+        # The exact frozen writer proves UTC; retain epoch values rather than
+        # interpreting wall-clock values through an optional IANA database.
+        # Integer division is lossless only AFTER the alignment guard above.
+        micros = pa.array([v // 1000 for v in integers], type=pa.int64())
+        normalized = pc.cast(micros, target, safe=True)
         require([v * 1000 for v in normalized.cast(pa.int64()).to_pylist()] == integers, "COLLECTION_INT96_TIME_VALUE_CHANGED")
         table = table.set_column(table.schema.get_field_index(name), name, normalized); changed = True
     if changed:
@@ -179,9 +183,9 @@ class ResearchCollection:
         for file, count in (("features.parquet", s["feature_row_count"]), ("mainshocks.parquet", s["mainshock_count"])):
             path = _safe(self.root / shard_id / file)
             require(_hash(path) == self.index[shard_id + "/" + file], "COLLECTION_CHECKSUM_MISMATCH")
-            parquet = pq.ParquetFile(path)
-            require(parquet.metadata.num_rows == count, "COLLECTION_SHARD_COUNT_CHANGED")
-            files[file], normalized = _timestamp_view(parquet, self.manifest)
+            with pq.ParquetFile(path) as parquet:
+                require(parquet.metadata.num_rows == count, "COLLECTION_SHARD_COUNT_CHANGED")
+                files[file], normalized = _timestamp_view(parquet, self.manifest)
             self.timestamp_interop_used |= normalized
         features, main = files["features.parquet"], files["mainshocks.parquet"]
         types = {k: v for k, v in FEATURE_TYPES.items() if k != "pilot_id"}

@@ -21,9 +21,13 @@ và mọi quality/lineage check cũ. Unknown writer/type, mất nanosecond hoặ
 đều fail closed. Report ghi reader profile/normalization; bundle/SHA/IDs/lifecycle/
 Mc/window/features không đổi. Legacy MICROSECOND UTC vẫn được kiểm strict như cũ.
 
-API sử dụng theo Arrow21 [assume_timezone](https://arrow.apache.org/docs/21.0/python/generated/pyarrow.compute.assume_timezone.html)
-với UTC đã được writer proof, [safe cast](https://arrow.apache.org/docs/21.0/python/generated/pyarrow.compute.cast.html)
-và kiểm epoch integer độc lập; không tự đoán timezone cho dữ liệu ngoài profile.
+Reader hiện dùng epoch ns integer → exact integer microseconds → Arrow
+timestamp(us,UTC) bằng [safe cast](https://arrow.apache.org/docs/21.0/python/generated/pyarrow.compute.cast.html).
+Chỉ chia sau alignment guard, kiểm roundtrip ns nguyên vẹn cả trước1970 và UTC
+anchor; không dùng số thực hoặc `assume_timezone`/timezone database. Phiên kitv2
+dùng `assume_timezone` đã lộ lỗi trên Windows khi thiếu IANA database; giữ
+evidence/ZIPv2, không rewrite bytes data. Bản vá kitv3 loại dependency này cho
+đúng frozen UTC writer, không mở rộng ngoại lệ cho naive timestamp nguồn khác.
 Đây là reader adapter, không cấp scientific approval hoặc tạo feature bằng Python.
 
 ## Identity và nguồn

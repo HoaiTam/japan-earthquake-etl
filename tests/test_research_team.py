@@ -2,7 +2,7 @@
 import importlib.util
 import json
 import os
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 import sys
 import subprocess
 import tempfile
@@ -61,6 +61,15 @@ class ResearchTeamTest(unittest.TestCase):
         self.assertEqual(set(v.SPLITS),set(verified["collections"]));self.assertTrue(receipt.is_file())
         self.assertFalse(verified["scientific_approval"]);self.assertFalse((self.root/"rosy179-receipt.json").exists())
         self.assertEqual(8,sum(r["feature_row_count"] for r in verified["collections"].values()))
+
+    def test_archive_directory_names_are_posix_even_for_windows_paths(self):
+        names={'bundles/EXTENSION/shard_00000/features.parquet','bundles/REPRODUCTION/shard_00001/mainshocks.parquet','handoff.json'}
+        directories=v.expected_directories(names)
+        self.assertEqual({'bundles','bundles/EXTENSION','bundles/EXTENSION/shard_00000',
+                          'bundles/REPRODUCTION','bundles/REPRODUCTION/shard_00001'},directories)
+        for path in ('bundles/EXTENSION','bundles/EXTENSION/shard_00000'):
+            self.assertIn(PureWindowsPath(path).as_posix(),directories)
+        self.assertFalse(any('\\' in value for value in directories))
 
     def test_wrong_external_input_pin_never_creates_zip(self):
         self.inputs["REPRODUCTION"]["manifest_sha256"]="f"*64

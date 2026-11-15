@@ -1,4 +1,4 @@
-# DAT-03 — Nhận hai collection nghiên cứu chính thức, 15/11/2026
+# DAT-03 — Nhận hai collection nghiên cứu chính thức, 16/11/2026
 
 Đây là **official feature export**, không phải pilot 279 dòng hoặc ZIP catalog
 partial. Cả hai split đã EXPORTED, rerun bất biến và all-shard loader đạt;
@@ -22,20 +22,17 @@ records trong manifests. Profile 90k chỉ thay giới hạn tài nguyên đã �
 
 ## Release và external pins
 
-- ZIP: `jma-research-team-20261115-v2.zip`, **37.523.195 bytes**, 27 files.
-- ZIP SHA256: `0d287f035c80e975d83efdbb36e65ad818d620791361d954ac4d6ef8e7afe099`.
-- `handoff.json` SHA256: `725a00305e44b904579f4f43f6d25321342fd42f2138d2b0d99ece1cf046fa13`.
-- Bản local owner: `staging/dat03-release/d02942d588154ca0abb74c63919358ee/jma-research-team-20261115-v2.zip`.
-- [Tải ZIP trên Drive nhóm](https://drive.google.com/file/d/1cT4uNq7-Zgh8fPeMXglzaGJH350mcuDK/view).
-- [Folder release + README/checksum/metadata](https://drive.google.com/drive/folders/1wPMvwuUcmTvxXvTSnwd4ov9ait-D_Vh1).
-- Upload immutable 4 files, remote SHA/size và fresh download/all-shard verifier
-  đều PASS. Không tạo public link hoặc thay ACL; 4 files hiện có 5 user permissions,
-  không anyone/domain. Map các tài khoản với roster còn thuộc SEC-01.
+- ZIP: `jma-research-team-20261115-v3.zip`, **37.524.111 bytes**, 27 files.
+- ZIP SHA256: `2759f735590451975d286ef147b03e8c883e2b23fae073a94adfada72e926cc5`.
+- `handoff.json` SHA256: `f6b5b0e9694526c55fb0a82fc0283503c55584ea2ee2fa2f3fa4eed7210e1875`.
+- Bản local owner: `staging/dat03-windows-fix-20261115/jma-research-team-20261115-v3.zip`.
+- V3 đã đóng gói/rerun và fresh-process verifier PASS trên macOS; upload/Windows CI đang nghiệm thu.
+- Không dùng ZIPv2 để nghiệm thu Windows: ThanhTris đã báo lỗi POSIX directory index và PyArrow timezone database. Giữ ZIPv2 làm lịch sử, không sửa kit cũ bằng tay.
 
-Giữ hai SHA ở ngoài ZIP, nhận từ HoaiTam/revision repo được tin cậy. V2 chỉ sửa
-README về nơi chạy lệnh/receipt canonical; không đổi bất kỳ collection bytes,
-dataset ID, manifest hoặc checksum pin nào. Candidate ZIP trước chưa bàn giao
-lên Drive, giữ nguyên thay vì overwrite. Kit không có source ZIP, warehouse,
+Giữ hai SHA ở ngoài ZIP, nhận từ HoaiTam/revision repo được tin cậy. V3 sửa metadata directory names bằng PurePosixPath và UTC epoch integer cast,
+không cần tải timezone database cho frozen UTC writer. Byte-compare20/20 file
+collection với v2 giữ nguyên dataset IDs/manifest/checksum/feature bytes.
+[Evidence Windows fix](../evidence/DAT-03_WINDOWS_HANDOFF_20261116.md). Kit không có source ZIP, warehouse,
 private logs, `.env`, OAuth JSON/token hoặc venv.
 
 ## Máy ThanhTris và rosy179: không cần Docker hoặc Java
@@ -51,31 +48,31 @@ Yêu cầu Python 3.11–3.13, khoảng 1 GiB dung lượng trống cho ZIP/gi�
 ### macOS/Linux
 
 ```bash
-shasum -a 256 jma-research-team-20261115-v2.zip
+shasum -a 256 jma-research-team-20261115-v3.zip
 ```
 
 Chỉ tiếp tục khi khớp ZIP SHA ở trên:
 
 ```bash
-unzip jma-research-team-20261115-v2.zip -d research-kit
+unzip jma-research-team-20261115-v3.zip -d research-kit
 python3 -m venv .venv-research
 .venv-research/bin/python -m pip install -r research-kit/requirements.txt
-.venv-research/bin/python -B research-kit/verify_dataset.py --expected-handoff-sha256 725a00305e44b904579f4f43f6d25321342fd42f2138d2b0d99ece1cf046fa13 --recipient ThanhTris --receipt ThanhTris-research-receipt.json
+.venv-research/bin/python -B research-kit/verify_dataset.py --expected-handoff-sha256 f6b5b0e9694526c55fb0a82fc0283503c55584ea2ee2fa2f3fa4eed7210e1875 --recipient ThanhTris --receipt ThanhTris-research-receipt.json
 ```
 
 ### Windows PowerShell
 
 ```powershell
-Get-FileHash .\jma-research-team-20261115-v2.zip -Algorithm SHA256
+Get-FileHash .\jma-research-team-20261115-v3.zip -Algorithm SHA256
 ```
 
 Chỉ tiếp tục khi khớp ZIP SHA ở trên:
 
 ```powershell
-Expand-Archive .\jma-research-team-20261115-v2.zip -DestinationPath .\research-kit
+Expand-Archive .\jma-research-team-20261115-v3.zip -DestinationPath .\research-kit
 py -3.11 -m venv .venv-research
 .\.venv-research\Scripts\python.exe -m pip install -r research-kit\requirements.txt
-.\.venv-research\Scripts\python.exe -B research-kit\verify_dataset.py --expected-handoff-sha256 725a00305e44b904579f4f43f6d25321342fd42f2138d2b0d99ece1cf046fa13 --recipient rosy179 --receipt rosy179-research-receipt.json
+.\.venv-research\Scripts\python.exe -B research-kit\verify_dataset.py --expected-handoff-sha256 f6b5b0e9694526c55fb0a82fc0283503c55584ea2ee2fa2f3fa4eed7210e1875 --recipient rosy179 --receipt rosy179-research-receipt.json
 ```
 
 Đổi recipient và tên receipt cho đúng **người thực sự chạy trên máy riêng**.

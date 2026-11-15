@@ -22,6 +22,14 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 
 ## Tổng quan
 
+**16/11 — DAT-03 portability:** ThanhTris đã tải đúng ZIPv2 nhưng phát hiện hai
+lỗi verifier Windows. Bản vá cùng PR #131 dùng PurePosixPath/UTC epoch integer,
+không ETL/export lại hoặc đổi20collection files. 36loader/kit +42CI tests và
+all-shard fresh restore trên HoaiTam đạt; Windows/Linux CI thêm, actual Windows
+receipts chưa tự coi PASS. [Evidence](../../evidence/DAT-03_WINDOWS_HANDOFF_20261116.md),
+[release/hướng dẫn hiện hành](../../runbooks/DAT-03_OFFICIAL_RESEARCH_HANDOFF.md).
+DAT-03 giữ In Progress, không giảm acceptance hoặc tự fake receipts để Done.
+
 **15/11 — DAT-03 continuation:** owner đã duyệt thiết kế/đo profile90.000/window,
 giữ science và các guard khác; sau measured capacity/regression/fresh preflight
 mới chạy official collections. Cùng PR #131, giữ In Progress; note "chưa duyệt

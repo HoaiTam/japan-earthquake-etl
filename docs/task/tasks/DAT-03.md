@@ -16,6 +16,16 @@ dependencies: ["ORC-07", "MLD-05", "MLI-02", "EXP-01"]
 
 ## Giao việc hiện hành — 11/11/2026
 
+**16/11 — sửa portability Windows theo comment ThanhTris trên PR #131:**
+ZIPv2 đúng SHA nhưng verifier chưa chạy được trên Windows native: directory
+index dùng backslash và UTC reader gọi IANA timezone lookup. Giữ data/export
+acceptance15/11, không gọi thiếu receipt chỉ là thủ tục. Bản vá dùng metadata
+PurePosixPath + epoch integer UTC cast, không sửa20collection files hoặc science.
+Giữ cùng branch/PR, In Progress/HoaiTam/reviewer unassigned. [Evidence](../../evidence/DAT-03_WINDOWS_HANDOFF_20261116.md)
+ghi regression/all-shard/macOS fresh restore/CI và releasev3. Windows CI fixture
+không thay actual verifier receipts của hai thành viên; không đổi hard gates
+hoặc tự chuyển Done. Không ETL/export lại, Docker operations hoặc đổi ACL.
+
 **15/11 — owner duyệt profile 90.000/window và tiếp tục phần 3:** tiếp tục cùng
 PR #131/branch `feat/dat-03-official-collections`, không tạo PR hoặc branch mới
 cho continuation của cùng task. Thiết kế/đo `dat03-whole-window-90k-v1`, giữ
@@ -348,6 +358,12 @@ release đủ gate. Không tạo dependency ngược từ DAT-03 sang EXP-02.
   MLI-04/MLQ-01 sở hữu report/ML E2E.
 
 ## Theo dõi
+
+- **16/11 — Windows verifier patch:** 36 loader/kit tests và42CI policy tests
+  đạt local; all6shards/390.374rows xác minh với timezone lookup bị cấm.
+  20/20collection files giữ bytes/pins so v2, kitv3 immutable rerun/fresh restore
+  đạt trên HoaiTam. Windows/Linux CI bổ sung, chờ run GitHub/actual receipts;
+  [handoff hiện hành](../../runbooks/DAT-03_OFFICIAL_RESEARCH_HANDOFF.md).
 
 - **15/11 — tiếp tục profile 90k theo owner duyệt:** đang thiết kế/kiểm chứng
   rồi chạy hai official collections trên Gold pins phần 2. Các gate 100.000

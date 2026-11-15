@@ -4,7 +4,7 @@ import argparse
 from datetime import datetime, timezone
 import hashlib
 import json
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import platform
 import re
 import sys
@@ -44,6 +44,11 @@ def read_json(path):
 
 def valid_name(name):
     return name in SUPPORT or re.fullmatch(r"bundles/(?:REPRODUCTION|EXTENSION)/(?:dataset_manifest\.json|collection-preparation\.json|(?:export-)?checksums\.sha256|shard_[0-9]{5}/(?:features|mainshocks)\.parquet)",name) is not None
+
+
+def expected_directories(names):
+    # Archive/index names are POSIX on every host, including native Windows.
+    return {parent.as_posix() for name in names for parent in PurePosixPath(name).parents if parent.as_posix() != "."}
 
 
 def gold_pin(manifest):
@@ -95,7 +100,7 @@ def verify(root,expected_handoff_sha256,recipient,receipt=None):
             and set(handoff.get("collections",{}))==set(SPLITS),"RESEARCH_TEAM_PAIRED_RELEASE_REQUIRED")
     files=handoff.get("files",{});require(isinstance(files,dict) and SUPPORT<=set(files) and len(files)<=270
                                          and all(valid_name(n) for n in files),"RESEARCH_TEAM_EXACT_FILE_SET_REQUIRED")
-    expected=set(files)|{"handoff.json"};directories={str(parent) for name in expected for parent in Path(name).parents if str(parent)!="."}
+    expected=set(files)|{"handoff.json"};directories=expected_directories(expected)
     found=set();total=0
     for path in root.rglob("*"):
         path=safe(path);name=path.relative_to(root).as_posix()

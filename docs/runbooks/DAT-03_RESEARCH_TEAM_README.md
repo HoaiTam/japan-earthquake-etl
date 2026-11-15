@@ -4,6 +4,12 @@ Kit gồm hai official collection exports: REPRODUCTION225tháng và EXTENSION63
 cùng Published Gold pin. Đây không phải DAT-02 development pilot. Không có
 pipeline credential, source archives, Iceberg physical warehouse, logs hoặc venv.
 
+Kit v3 sửa đường dẫn Windows và reader UTC, không đổi bytes hai collections.
+Với frozen UTC writer trong kit, không cần tải IANA tzdata hoặc cấu hình thư mục
+Downloads/tzdata. Verifier dùng epoch integer, vẫn reject precision loss, UTC
+anchor sai hoặc writer không nhận diện. Không tự sửa script/manifest trong kitv2;
+tải bản mới cùng external ZIP/handoff SHA do HoaiTam cung cấp.
+
 ## Trước khi chạy code
 
 Nhận ZIP, SHA256 ZIP và SHA256 handoff.json từ HoaiTam qua kênh nhóm tin cậy;

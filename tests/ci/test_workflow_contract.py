@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[2]
 WORKFLOW = ROOT / ".github/workflows/ci.yml"
 PLAN = 'python3 scripts/ci-impact.py plan --github-output "$GITHUB_OUTPUT" --summary "$GITHUB_STEP_SUMMARY"'
 GATE = "python3 scripts/ci-impact.py gate"
+PORTABLE = "python -B -m unittest tests.test_research_collection_loader tests.test_research_team tests.test_research_timestamp_interop"
 
 
 class UniqueKeyLoader(yaml.BaseLoader):
@@ -40,19 +41,20 @@ def validate_workflow(workflow):
                        "CI_HEAD_SHA": "${{ github.sha }}"}.items():
         require(workflow["env"][key] == value, "trusted comparison context")
     jobs = workflow["jobs"]
-    require(set(jobs) == {"impact", "docs-contracts", "java-tests", "airflow-tests", "pilot", "java-spark", "airflow"}, "reviewed graph")
+    require(set(jobs) == {"impact", "docs-contracts", "java-tests", "airflow-tests", "pilot", "portable-loader", "java-spark", "airflow"}, "reviewed graph")
     names = {"impact": "impact-plan", "java-tests": "Java / ${{ matrix.suite }}",
-             "airflow-tests": "Control / ${{ matrix.suite }}", "pilot": "DAT-02 / pilot-handoff"}
-    dependencies = {"docs-contracts": ["impact", "pilot"], "java-spark": ["impact", "java-tests"],
-                    "airflow": ["impact", "airflow-tests"], "java-tests": "impact", "airflow-tests": "impact", "pilot": "impact"}
+             "airflow-tests": "Control / ${{ matrix.suite }}", "pilot": "DAT-02 / pilot-handoff",
+             "portable-loader": "DAT-03 / portable-loader (${{ matrix.os }})"}
+    dependencies = {"docs-contracts": ["impact", "pilot", "portable-loader"], "java-spark": ["impact", "java-tests"],
+                    "airflow": ["impact", "airflow-tests"], "java-tests": "impact", "airflow-tests": "impact", "pilot": "impact", "portable-loader": "impact"}
     conditions = {name: "${{ always() }}" for name in ("docs-contracts", "java-spark", "airflow")}
     conditions.update({name: "${{ needs.impact.outputs." + component + " != 'none' }}"
-                       for name, component in (("java-tests", "java"), ("airflow-tests", "airflow"), ("pilot", "pilot"))})
+                       for name, component in (("java-tests", "java"), ("airflow-tests", "airflow"), ("pilot", "pilot"), ("portable-loader", "pilot"))})
     targets = {"impact": PLAN, "docs-contracts": "make ci-docs-base", "java-tests": "make ci-suite",
-               "airflow-tests": "make ci-suite", "pilot": "make ci-pilot-impact", "java-spark": GATE, "airflow": GATE}
+               "airflow-tests": "make ci-suite", "pilot": "make ci-pilot-impact", "portable-loader": PORTABLE, "java-spark": GATE, "airflow": GATE}
     for name, job in jobs.items():
         require(job["name"] == names.get(name, name), "stable/descriptive check names")
-        require(job["runs-on"] == "ubuntu-24.04", "isolated runner")
+        require(job["runs-on"] == ("${{ matrix.os }}" if name == "portable-loader" else "ubuntu-24.04"), "isolated runner")
         require(0 < int(job["timeout-minutes"]) <= 30, "bounded timeout")
         require(not {"continue-on-error", "permissions", "environment"} & set(job), "no bypass")
         require(job.get("needs") == dependencies.get(name), "reviewed dependencies")
@@ -78,12 +80,21 @@ def validate_workflow(workflow):
     require(jobs["impact"]["outputs"] == {key: "${{ steps.impact.outputs." + key + " }}"
             for key in ("java", "airflow", "pilot", "java_matrix", "airflow_matrix")}, "trusted planner outputs")
     require(next(s for s in jobs["impact"]["steps"] if s.get("run") == PLAN).get("id") == "impact", "planner output step")
-    for name, component, worker in (("docs-contracts", "pilot", "pilot"), ("java-spark", "java", "java-tests"),
+    for name, component, worker in (("docs-contracts", "pilot", "pilot"), ("docs-contracts", "pilot", "portable-loader"), ("java-spark", "java", "java-tests"),
                                     ("airflow", "airflow", "airflow-tests")):
         gates = [step for step in jobs[name]["steps"] if step.get("run") == GATE]
-        require(len(gates) == 1 and gates[0].get("env") == {
+        if name == "docs-contracts":
+            require(len(gates) == 2, "both pilot and portable loader gates required")
+        else: require(len(gates) == 1, "exact required gate")
+        require(any(gate.get("env") == {
             "CI_PLANNER_RESULT": "${{ needs.impact.result }}", "CI_MODE": "${{ needs.impact.outputs." + component + " }}",
-            "CI_SUITE_RESULT": "${{ needs." + worker + ".result }}"}, "gate checks planner plus worker result")
+            "CI_SUITE_RESULT": "${{ needs." + worker + ".result }}"} for gate in gates), "gate checks planner plus worker result")
+    portable = jobs["portable-loader"]
+    require(portable["strategy"] == {"fail-fast": "false", "max-parallel": "2",
+            "matrix": {"os": ["ubuntu-24.04", "windows-latest"]}}, "Windows and Linux loader coverage required")
+    python = next(s for s in portable["steps"] if s.get("uses", "").startswith("actions/setup-python@"))
+    require(python["with"]["python-version"] == "3.12", "supported portable Python")
+    require(any(s.get("run") == "python -m pip install -r config/ml/research_team_requirements.txt" for s in portable["steps"]), "pinned portable dependencies")
     for name, component, parallel in (("java-tests", "java", "3"), ("airflow-tests", "airflow", "4")):
         require(jobs[name]["strategy"] == {"fail-fast": "false", "max-parallel": parallel,
                 "matrix": "${{ fromJSON(needs.impact.outputs." + component + "_matrix) }}"}, "selected bounded matrix; no cancellation masking")
@@ -140,6 +151,12 @@ class WorkflowContractTest(unittest.TestCase):
             lambda w: w["jobs"]["java-tests"]["strategy"].update(matrix={"suite": ["mld-04-features"]}),
             lambda w: w["jobs"]["pilot"].update(needs="java-tests"),
             lambda w: w["jobs"]["impact"]["outputs"].update(java="none"),
+            lambda w: w["jobs"]["portable-loader"]["strategy"]["matrix"].update(os=["ubuntu-24.04"]),
+            lambda w: w["jobs"]["portable-loader"]["strategy"].update(**{"fail-fast": "true"}),
+            lambda w: w["jobs"]["portable-loader"].update(**{"runs-on": "ubuntu-24.04"}),
+            lambda w: w["jobs"]["portable-loader"].update(**{"if": "false"}),
+            lambda w: w["jobs"]["docs-contracts"].update(steps=[s for s in w["jobs"]["docs-contracts"]["steps"]
+                if s.get("env", {}).get("CI_SUITE_RESULT") != "${{ needs.portable-loader.result }}"]),
         ]
         for job in ("docs-contracts", "java-spark", "airflow"):
             mutations.extend([

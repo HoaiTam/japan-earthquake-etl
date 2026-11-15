@@ -64,6 +64,12 @@ hash/symlink trước chạy code. Ba modules được rehash rồi compile đú
 state được khôi phục sau verify/failure. Đọc lần lượt all shards của cả hai
 splits, không concat toàn catalog. Không cần repo/Docker/Java/MinIO.
 
+Directory index luôn parse bằng PurePosixPath/as_posix trên mọi OS; không tạo
+expected metadata names bằng str(Path) vì Windows trả backslash. CI chạy cùng
+fixtures và shipped fresh-process verifier trên Windows native +Linux, có
+required docs-contracts gate fail khi matrix cần chạy không đạt. Unit mô phỏng
+Windows không thay receipt thật của người nhận trên Windows.
+
 Receipt ở ngoài kit có recipient, verified_at, machine fingerprint hash,
 Python version, two dataset/collection IDs/pins/counts và all_shards_verified.
 Recipient tự khai, hash hostname không là chứng thực danh tính/máy. Owner cần

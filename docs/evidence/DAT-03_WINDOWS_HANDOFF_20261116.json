@@ -1,0 +1,89 @@
+{
+  "version": "dat03-windows-handoff-fix-v1",
+  "task_id": "DAT-03",
+  "task_status": "In Progress",
+  "assignee": "HoaiTam",
+  "reviewer": "unassigned",
+  "base_commit": "55ff906e464978e6bb63a8172edf2cfa62a26e92",
+  "source_comment": "https://github.com/HoaiTam/japan-earthquake-etl/pull/131#issuecomment-6897510175",
+  "regression": {
+    "status": "REAL_EXPORTS_VERIFIED_WITHOUT_TIMEZONE_LOOKUP",
+    "collections": {
+      "REPRODUCTION": {
+        "status": "COLLECTION_VERIFIED",
+        "dataset_id": "ds_907fe748fafdfc0f072ce4db4e1cf0aa619ed18877129e17c8440b43062c3d87",
+        "collection_id": "col_bd10c69365da841b2cf6a62172e2350a797001eac04ce4bc6f2277a4d150ad98",
+        "manifest_sha256": "d3ee1334bfc50005a527f7b32a8988fcb1bdd7659a7dd4e84de326a7735139ae",
+        "checksums_sha256": "4768e500754c569bc951f23e2ac14fa9b9703ae69fbd5f78de06eacbb72f7ae9",
+        "shard_count": 2,
+        "feature_row_count": 156710,
+        "mainshock_count": 194,
+        "loader_version": "dat03-collection-export-v1",
+        "all_shards_verified": true,
+        "timestamp_reader_profile": "prepared-spark-utc-int96-v1",
+        "timestamps_losslessly_normalized": true
+      },
+      "EXTENSION": {
+        "status": "COLLECTION_VERIFIED",
+        "dataset_id": "ds_5259d2fe13e027245559e1ec4a1e696b5d94d0b67f44d5ec80738c9e984978be",
+        "collection_id": "col_0dc6dc2fd0a60c2890f68863b8561813ecd1d5e1941a8995be1d58e192fe0906",
+        "manifest_sha256": "fd1908f77ffcc70e77250ef834883d0ab8bbaf38e40962958a5c296f90d4aad1",
+        "checksums_sha256": "753506e4039130e12f88746c5f95122a66a3bac36342634d082f89acf5ad89d8",
+        "shard_count": 4,
+        "feature_row_count": 233664,
+        "mainshock_count": 45,
+        "loader_version": "dat03-collection-export-v1",
+        "all_shards_verified": true,
+        "timestamp_reader_profile": "prepared-spark-utc-int96-v1",
+        "timestamps_losslessly_normalized": true
+      }
+    },
+    "all_shards_verified": true,
+    "timezone_lookup_calls": 0,
+    "collection_bytes_or_dataset_ids_changed": false,
+    "reader_sha256": "7a0f598b460d45233d8cf122c2f9e009b5d6185412a603c8d0d328555fa68b1a",
+    "verifier_sha256": "a8a134ac7e5ea445df8f4be8adf7033e094f1a5af1f9ac0fce4cb20cd2d9aa7d",
+    "native_windows_acceptance": false,
+    "scientific_approval": false
+  },
+  "actual_report_sha256": "0041714bd88efdab25afdd6c3c53baf21830ef270acb4bcc5589a63b6c91247b",
+  "local_tests": {
+    "loader_team_interop": 36,
+    "ci_policy": 42,
+    "passed": true
+  },
+  "release": {
+    "zip_file": "staging/dat03-windows-fix-20261115/jma-research-team-20261115-v3.zip",
+    "bytes": 37524111,
+    "files": 27,
+    "zip_sha256": "2759f735590451975d286ef147b03e8c883e2b23fae073a94adfada72e926cc5",
+    "handoff_sha256": "f6b5b0e9694526c55fb0a82fc0283503c55584ea2ee2fa2f3fa4eed7210e1875",
+    "immutable_pack_rerun_same_bytes": true,
+    "fresh_process_receipt": {
+      "status": "TEAM_RESEARCH_VERIFIED",
+      "recipient": "HoaiTam",
+      "all_shards_verified": true,
+      "python_version": "3.13.3",
+      "verified_at_utc": "2026-11-15T17:12:35.134419+00:00"
+    },
+    "receipt_sha256": "fe516e7fd753ce34b7322f76aa7887c9bd6a09e06b1baa3a420dbadb30242256",
+    "bundle_files_byte_identical_to_v2": 20,
+    "old_v2_zip_retained": true
+  },
+  "native_ci": {
+    "configured_runners": [
+      "ubuntu-24.04",
+      "windows-latest"
+    ],
+    "python": "3.12",
+    "pyarrow": "21.0.0",
+    "state_at_commit": "NOT_YET_RUN",
+    "required_docs_gate": true
+  },
+  "drive_release": null,
+  "actual_windows_recipient_receipts": [],
+  "scientific_approval": false,
+  "warehouse_source_or_lake_writes": false,
+  "docker_operations": false,
+  "acl_changed": false
+}
