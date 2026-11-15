@@ -1,5 +1,8 @@
 # DAT-03 — Portable readback tiết kiệm dung lượng
 
+> Bước sau readback: [portable importer phần 1](DAT-03_PORTABLE_IMPORT.md),
+> dùng contract PREPARED riêng; không tự mở Gold/ML publication gate.
+
 > Cập nhật15/11: [capacity/provenance evidence](../evidence/DAT-03_CAPACITY_PROVENANCE_20261115.md).
 > Hai fingerprint probes và74→37 physical source mapping đã đạt. Blocker startup
 > dưới đây là lịch sử v2; vẫn chưa có Gold import/official export mới.

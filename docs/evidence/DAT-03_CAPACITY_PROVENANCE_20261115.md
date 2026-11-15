@@ -1,5 +1,9 @@
 # DAT-03 — Capacity fingerprint và physical source mapping, 15/11/2026
 
+> Mốc tiếp theo cùng ngày: [portable importer phần 1](DAT-03_PORTABLE_IMPORT_20261115.md).
+> Các mục chưa có importer dưới đây là tình trạng tại lúc chốt capacity/provenance;
+> không thay evidence cũ bằng kết quả actual chưa nghiệm thu.
+
 ## Kết luận và phạm vi đã đạt
 
 **DAT-03 vẫn In Progress**, assignee HoaiTam, reviewer unassigned. Nhánh

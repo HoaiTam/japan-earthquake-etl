@@ -16,6 +16,19 @@ dependencies: ["ORC-07", "MLD-05", "MLI-02", "EXP-01"]
 
 ## Giao việc hiện hành — 11/11/2026
 
+**15/11 — portable importer phần 1 đạt PREPARED:**
+[Contract](../../specs/DAT03_PREPARED_CATALOG.md),
+[runbook](../../runbooks/DAT-03_PORTABLE_IMPORT.md),
+[evidence](../../evidence/DAT-03_PORTABLE_IMPORT_20261115.md).
+Adapter PREPARED có version cho baseline163 + worker125 tháng đã qua27/27 batch,
+global dedup/revision/source-link/reconciliation:4.488.650canonical,
+4.489.823bridge,1.173accepted links,0exact duplicates; coverage đủ288 tháng.
+Independent reuse exit0 sau14,026 giây, giữ nguyên catalog SHA; own preparation
+lock release, services unchanged/idle. Phần1 hoàn tất kỹ thuật.
+Không giả FullMonthReady/SilverReady, không ghi Gold hoặc official export.
+Giữ In Progress; owner yêu cầu commit/push/comment trực tiếp PR #131 sau kiểm tra.
+Các mục chưa có implementation ở evidence capacity trước là mốc lịch sử.
+
 **15/11 — capacity/provenance tiếp tục đạt, chưa unified Gold:**
 [Evidence](../../evidence/DAT-03_CAPACITY_PROVENANCE_20261115.md), nhánh
 `feat/dat-03-unified-catalog`, HoaiTam/reviewer unassigned. Hai bảng đều đạt
@@ -276,6 +289,11 @@ release đủ gate. Không tạo dependency ngược từ DAT-03 sang EXP-02.
   MLI-04/MLQ-01 sở hữu report/ML E2E.
 
 ## Theo dõi
+
+- **15/11 — portable importer phần 1:** [evidence](../../evidence/DAT-03_PORTABLE_IMPORT_20261115.md).
+  Full PREPARED receipt đã đạt288/288tháng, global reconciliation cân bằng;
+  không dùng thư mục/batch đang ghi làm acceptance. Chưa Gold/Trino/official exports
+  hoặc receipts ba máy; DAT-03 giữ In Progress, reviewer unassigned.
 
 - **15/11 — In Progress:** [capacity/provenance](../../evidence/DAT-03_CAPACITY_PROVENANCE_20261115.md)
   đạt riêng component, no lake writes. Blocker startup14/11 đã có profile local

@@ -14,6 +14,10 @@ import static org.apache.spark.sql.functions.*;
 public final class PortableGoldCapacityJob {
     private static final ObjectMapper JSON = new ObjectMapper();
     private PortableGoldCapacityJob() { }
+    static String writerFingerprint(Dataset<Row> rows) throws Exception {
+        var method = GoldIcebergWriter.class.getDeclaredMethod("fingerprint", Dataset.class);
+        method.setAccessible(true); return (String) method.invoke(null, rows);
+    }
     static Map<String, String> readCompatibilityOptions() {
         // Trino-written publication_status may use DELTA_LENGTH_BYTE_ARRAY.
         // Change only this isolated reader session, never table/catalog properties.
@@ -70,8 +74,7 @@ public final class PortableGoldCapacityJob {
             long expected = Math.multiplyExact(request.path("source_count").asLong(), request.path("copies").asLong());
             String key = table.equals("event_current") ? "canonical_event_id" : "source_observation_id";
             if (rows.count() != expected || rows.select(key).distinct().count() != expected) throw new IOException("STRESS_COUNT_UNBALANCED");
-            var method = GoldIcebergWriter.class.getDeclaredMethod("fingerprint", Dataset.class); method.setAccessible(true);
-            String first = (String) method.invoke(null, rows), second = (String) method.invoke(null, rows);
+            String first = writerFingerprint(rows), second = writerFingerprint(rows);
             if (!first.equals(second)) throw new IOException("FINGERPRINT_RERUN_MISMATCH");
             ObjectNode report = JSON.createObjectNode().put("version", "dat03-portable-gold-capacity-v1")
                     .put("status", "READ_ONLY_FINGERPRINT_CAPACITY_PASSED").put("request_sha256", args[1])

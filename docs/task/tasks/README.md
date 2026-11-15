@@ -22,6 +22,15 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 
 ## Tổng quan
 
+**15/11 — DAT-03 portable importer phần 1:**
+[contract](../../specs/DAT03_PREPARED_CATALOG.md),
+[evidence](../../evidence/DAT-03_PORTABLE_IMPORT_20261115.md).
+Adapter PREPARED baseline163 + worker125 tháng đã có full receipt27/27batch,
+288tháng;4.488.650canonical/4.489.823bridge,global reconciliation cân bằng.
+Independent reuse PASS, catalog SHA không đổi; phần1 hoàn tất kỹ thuật.
+Không ghi Gold/official export;
+giữ In Progress, không coi component này là Done toàn DAT-03.
+
 **15/11 — DAT-03 In Progress:** [capacity/provenance](../../evidence/DAT-03_CAPACITY_PROVENANCE_20261115.md)
 đạt event/bridge6.012.210 stress rows mỗi bảng và74→37 source mapping có physical
 readback. Chưa có versioned Gold importer/coverage adapter, unified publication
