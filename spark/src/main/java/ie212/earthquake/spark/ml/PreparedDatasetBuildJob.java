@@ -19,7 +19,15 @@ public final class PreparedDatasetBuildJob {
     public static final String VERSION = "dat03-prepared-ml-v2";
     public static final String LEGACY_VERSION = "dat03-prepared-ml-v1";
     public static final String PROFILE = "dat03-whole-window-40k-v1";
+    public static final String PROFILE_90K = "dat03-whole-window-90k-v1";
     private PreparedDatasetBuildJob() { }
+    public static long profileCap(JsonNode r) throws Exception {
+        return switch (r.path("resource_profile_version").asText()) {
+            case PROFILE -> 40000L;
+            case PROFILE_90K -> 90000L;
+            default -> throw new java.io.IOException("PREPARED_ML_PROFILE_REQUIRED");
+        };
+    }
     public static void validate(JsonNode r, Path root) throws Exception {
         var keys = new HashSet<String>(); r.fieldNames().forEachRemaining(keys::add);
         var expected = new HashSet<>(Set.of("version", "runner_sha256", "gold_run_id", "gold_commit_sha256", "gold_publication_sha256", "scaling_sha256", "observation_cutoff_utc"));
@@ -28,7 +36,7 @@ public final class PreparedDatasetBuildJob {
                 && r.path("gold_run_id").asText().matches("dat03-gold-[a-f0-9]{32}"), "PREPARED_ML_EXACT_REQUEST_REQUIRED");
         for (String key : List.of("runner_sha256", "gold_commit_sha256", "gold_publication_sha256", "scaling_sha256"))
             require(r.path(key).asText().matches("[a-f0-9]{64}"), "PREPARED_ML_SHA_REQUIRED");
-        if (VERSION.equals(r.path("version").asText())) require(PROFILE.equals(r.path("resource_profile_version").asText())
+        if (VERSION.equals(r.path("version").asText())) require(profileCap(r) <= 90000
                 && r.path("profile_receipt_sha256").asText().matches("[a-f0-9]{64}"), "PREPARED_ML_PROFILE_REQUIRED");
         require(!Instant.parse(r.path("observation_cutoff_utc").asText()).isAfter(Instant.now()), "PREPARED_ML_FUTURE_CUTOFF");
     }
@@ -38,12 +46,13 @@ public final class PreparedDatasetBuildJob {
         ((ObjectNode)c.path("filter_config")).put("source_coverage_contract", PublishedPreparedCoverage.VERSION);
         if (VERSION.equals(r.path("version").asText())) {
             var s = FeatureScalingConfig.fromJson(scaling);
-            require(PROFILE.equals(r.path("resource_profile_version").asText()) && s.maxCandidatesPerWindow() == 40000
-                    && "scaling-global-research-40k-v1".equals(s.scalingConfigVersion()) && "GLOBAL".equals(s.mode())
+            long cap = profileCap(r);
+            require(s.maxCandidatesPerWindow() == cap
+                    && ("scaling-global-research-" + cap / 1000 + "k-v1").equals(s.scalingConfigVersion()) && "GLOBAL".equals(s.mode())
                     && s.spaceScaleKm() == 50 && s.depthScaleKm() == 30 && s.timeScaleHours() == 720
-                    && s.coordinateToleranceKm() == 1e-8 && s.timeToleranceHours() == 1e-12, "PREPARED_ML_40K_PROFILE_CHANGED_SCIENCE");
-            ((ObjectNode)c.path("filter_config")).put("resource_profile_version", PROFILE);
-            ((ObjectNode)c.path("filter_config").path("mainshock_selection_config")).put("max_candidates_per_window", 40000);
+                    && s.coordinateToleranceKm() == 1e-8 && s.timeToleranceHours() == 1e-12, "PREPARED_ML_PROFILE_CHANGED_SCIENCE");
+            ((ObjectNode)c.path("filter_config")).put("resource_profile_version", r.path("resource_profile_version").asText());
+            ((ObjectNode)c.path("filter_config").path("mainshock_selection_config")).put("max_candidates_per_window", cap);
         } else require(scaling.path("max_candidates_per_window").asLong() == 10000, "PREPARED_ML_LEGACY_CAP_CHANGED");
         return c;
     }
@@ -57,10 +66,11 @@ public final class PreparedDatasetBuildJob {
         if (VERSION.equals(r.path("version").asText())) {
             Path profile = root.resolve("resource-profile.json"); require(WindowArtifactInput.sha(profile).equals(r.path("profile_receipt_sha256").asText()), "PREPARED_ML_PROFILE_RECEIPT_CHANGED");
             var measured = JSON.readTree(Files.readAllBytes(profile));
-            require(PROFILE.equals(measured.path("profile_version").asText()) && "PROFILE_BENCHMARK_PASSED".equals(measured.path("status").asText())
-                    && measured.path("runner_sha256").equals(r.path("runner_sha256")) && measured.path("scaling_sha256").equals(r.path("scaling_sha256")) && measured.path("feature_rows").asLong() == 40000
+            require(r.path("resource_profile_version").equals(measured.path("profile_version")) && "PROFILE_BENCHMARK_PASSED".equals(measured.path("status").asText())
+                    && measured.path("runner_sha256").equals(r.path("runner_sha256")) && measured.path("scaling_sha256").equals(r.path("scaling_sha256")) && measured.path("feature_rows").asLong() == profileCap(r)
                     && measured.path("candidate_semantics_unchanged").asBoolean(false) && measured.path("synthetic_component_qa").asBoolean(false)
-                    && measured.path("s3_writes").isBoolean() && !measured.path("s3_writes").asBoolean(), "PREPARED_ML_MEASURED_40K_PROFILE_REQUIRED");
+                    && measured.path("null_guard_fault_injections_passed").asInt() == 2
+                    && measured.path("s3_writes").isBoolean() && !measured.path("s3_writes").asBoolean(), "PREPARED_ML_MEASURED_PROFILE_REQUIRED");
         }
         int seconds = Integer.parseInt(args[5]); require(seconds >= 600 && seconds <= 6000, "PREPARED_ML_BUDGET_REQUIRED");
         long deadline = System.nanoTime() + seconds * 1_000_000_000L;

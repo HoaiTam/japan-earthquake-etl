@@ -5,6 +5,27 @@ Version `dat03-collection-export-v1`, execution protocol `mli-02-collection-v1`.
 lifecycle hoặc result-bundle schema. **Code/component tests không thay actual
 full research acceptance.** DAT-03 vẫn In Progress cho đến khi đủ mọi gate.
 
+## Reader interoperability của frozen writer90k
+
+Writer artifact `648d7779835ce8673a72d7d47852f68fa9b402da07a9a724f7d62be9a117e2b0`
+đặt Spark SQL timezone UTC nhưng collection Parquet dùng physical INT96. Arrow21
+đọc thành `timestamp[ns]` không timezone; không thỏa strict Arrow view
+`timestamp[us,UTC]` của loader. Không rewrite/re-export các bytes đã pin để che lỗi.
+
+Reader protocol `prepared-spark-utc-int96-v1` chỉ áp dụng khi **đúng code_version
+artifact trên**, dataset_config_version v2, prepared coverage và resource profile90k.
+Yêu cầu physical INT96 + Arrow naive ns, mọi epoch ns chia hết1000, roundtrip
+epoch giữ nguyên và toàn cột created_at khớp UTC anchor trong manifest. Chỉ khi
+đủ proof mới tạo **view trong RAM** microsecond UTC rồi chạy strict typed_schema
+và mọi quality/lineage check cũ. Unknown writer/type, mất nanosecond hoặc lệch UTC
+đều fail closed. Report ghi reader profile/normalization; bundle/SHA/IDs/lifecycle/
+Mc/window/features không đổi. Legacy MICROSECOND UTC vẫn được kiểm strict như cũ.
+
+API sử dụng theo Arrow21 [assume_timezone](https://arrow.apache.org/docs/21.0/python/generated/pyarrow.compute.assume_timezone.html)
+với UTC đã được writer proof, [safe cast](https://arrow.apache.org/docs/21.0/python/generated/pyarrow.compute.cast.html)
+và kiểm epoch integer độc lập; không tự đoán timezone cho dữ liệu ngoài profile.
+Đây là reader adapter, không cấp scientific approval hoặc tạo feature bằng Python.
+
 ## Identity và nguồn
 
 [Published-PREPARED adapter](PREPARED_ML_EXPORT.md) bổ sung source coverage

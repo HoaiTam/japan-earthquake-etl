@@ -53,17 +53,19 @@ baseline mainshock selection, shared window engine và strict split. Không dùn
 pilot, fixed Mc, sampling hoặc regenerate source. Window vượt split bị loại
 nguyên cửa sổ với ID/required interval/reason như policy đã chốt.
 
-V1 giữ guard 10.000 candidates/window. Owner đã duyệt thiết kế và kiểm chứng
-**profile v2 tối đa 40.000/window**, không đổi dữ liệu hoặc science. V2 chỉ
-prepare khi có external SHA của receipt `dat03-whole-window-40k-v1` đã đo trên
-Java 17/Spark: full 40.000-row window, candidate fingerprint giữ nguyên so với
+V1 giữ guard 10.000 candidates/window. Owner duyệt profile40.000, sau đó duyệt
+**90.000/window ngày15/11** để giữ hai EXTENSION windows 83.504/76.260 nguyên vẹn.
+V2 hỗ trợ đúng hai profile có version `dat03-whole-window-40k-v1` và
+`dat03-whole-window-90k-v1`, không nhận cap tùy ý. Không đổi dữ liệu hoặc science.
+V2 chỉ prepare khi có external SHA của receipt đúng profile đã đo trên
+Java 17/Spark: full 40.000 hoặc 90.000-row window, candidate fingerprint giữ nguyên so với
 guard cũ, actual feature materialization/readback và immutable rerun. Benchmark
 synthetic không là coverage/Mc/EXPORTED acceptance cho dữ liệu nghiên cứu.
-Profile 40k gộp 29 null-field rules thành một Spark aggregation, vẫn kiểm từng
+Hai profile opt-in gộp 29 null-field rules thành một Spark aggregation, vẫn kiểm từng
 field theo cùng thứ tự/mã lỗi; không bỏ quality rule. Benchmark fault injection
 kiểm null ở field đầu và cuối. Legacy profile giữ đường kiểm cũ. Số đo chỉ chứng
 minh feature materialization/readback/rerun, không chứng nhận RAM/thời gian fit
-DBSCAN/HDBSCAN trên 40.000 points.
+DBSCAN/HDBSCAN trên 40.000/90.000 points.
 Receipt phải pin đúng production runner SHA; prepare mới pin receipt/scaling
 vào request/identity. Không sửa operation v1 đã đóng băng hoặc dùng receipt của
 JAR cũ sau khi rebuild. V1 và legacy/default config không tự nâng cap.
@@ -72,7 +74,7 @@ Các guard còn lại giữ nguyên: 128 mainshocks và 100.000 feature rows/sha
 tối đa 64 shard/4.096 mainshock metadata. Window
 FLAGGED/REJECTED khiến preflight `BLOCKED_RESOURCE`, không truncate/drop window
 hoặc tự tăng limit. Counts/reasons/audit lưu lại; không ghi dataset ML để gọi
-EXPORTED. Trên 40.000 vẫn bị chặn; cần quyết định và profile mới riêng, không
+EXPORTED. Trên cap của profile đã chọn vẫn bị chặn; trên 90.000 chưa được duyệt, không
 coi giới hạn shard 100.000 là quyền tăng giới hạn window.
 
 Preflight chỉ SELECT, dùng own whole-run source lease để không tranh ETL.
@@ -119,6 +121,12 @@ không được regenerate để che lỗi. Không thay default historical alias
 handoff của đúng ML namespace/operation, không copy marker vào registry default
 để giả acceptance. Import/evaluation các task MLI-03/MLQ-01/EXP-02..05 vẫn cần
 đúng scoped config và scientific gates riêng.
+
+Team verifier hỗ trợ exact `iceberg.dat03_unified_20261114.event_current` chỉ khi
+manifest opt-in prepared coverage và commit SHA khớp publication bundle; không
+mở arbitrary namespace hoặc giả alias `dat03_catalog_*`. Legacy shape vẫn giữ.
+Checkpoint giữ lease chỉ được resume bằng mode build của cùng split, không dùng
+preflight split khác để release lease khi một split chưa hoàn tất.
 
 DAT-03 chưa Done chỉ vì code/preflight hoặc hai export chạy được. Còn actual
 all-shard verification/rerun, immutable release và receipt thật ba máy; không

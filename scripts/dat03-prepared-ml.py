@@ -23,6 +23,20 @@ require, sha, load, save, safe = g.require, g.sha, g.load, g.save, g.safe
 VERSION = 'dat03-prepared-ml-v2'
 CLASS = 'ie212.earthquake.spark.ml.PreparedDatasetBuildJob'
 SPLITS = ('REPRODUCTION', 'EXTENSION')
+PROFILES = {'dat03-whole-window-40k-v1': (40000, 'feature_scaling_global_research_40k_v1.json'),
+            'dat03-whole-window-90k-v1': (90000, 'feature_scaling_global_research_90k_v1.json')}
+
+
+def verify_profile(benchmark, runner_sha, scaling_sha):
+    require(benchmark.get('profile_version') in PROFILES, 'APPROVED_PROFILE_REQUIRED')
+    cap, _ = PROFILES[benchmark['profile_version']]
+    require(benchmark.get('status') == 'PROFILE_BENCHMARK_PASSED' and type(benchmark.get('feature_rows')) is int
+            and benchmark['feature_rows'] == cap and benchmark.get('candidate_semantics_unchanged') is True
+            and benchmark.get('synthetic_component_qa') is True and benchmark.get('s3_writes') is False
+            and benchmark.get('scientific_approval') is False and benchmark.get('official_exported') is False
+            and benchmark.get('null_guard_fault_injections_passed') == 2 and benchmark.get('services_unchanged') is True
+            and benchmark.get('runner_sha256') == runner_sha and benchmark.get('scaling_sha256') == scaling_sha,
+            'VERIFIED_PROFILE_NOT_READY')
 
 
 def operation(root):
@@ -31,6 +45,10 @@ def operation(root):
 
 
 def owner(root): return {'dag_id': 'mli_02_build_dataset', 'run_id': 'dat03-ml-' + root.name}
+
+
+def require_resume_context(intent, split, mode):
+    require(intent.get('split') == split and intent.get('mode') == mode == 'build', 'ML_RETAINED_CHECKPOINT_SAME_SPLIT_BUILD_REQUIRED')
 
 
 def prepare(root, evidence, expected, profile=None, profile_sha=None):
@@ -44,18 +62,16 @@ def prepare(root, evidence, expected, profile=None, profile_sha=None):
         require(sha(p / 'acceptance.json') == receipt['acceptance_sha256'] and a['candidate_sha256'] == sha(p / 'runtime/candidate.json')
                 and a['status'] == 'PUBLISHED' and a['source_lease_empty'] is True, 'GOLD_RUNTIME_ACCEPTANCE_CHANGED')
     g.verify_rerun(load(gold / 'first-published.json', 4 * 1024**2), load(gold / 'host-sessions' / e['rerun']['session'] / 'runtime/candidate.json', 4 * 1024**2))
-    require(profile is not None and sha(profile) == profile_sha, 'MEASURED_EXTERNAL_40K_PROFILE_REQUIRED')
+    require(profile is not None and sha(profile) == profile_sha, 'MEASURED_EXTERNAL_PROFILE_REQUIRED')
     benchmark = load(profile)
-    require(benchmark['status'] == 'PROFILE_BENCHMARK_PASSED' and benchmark['profile_version'] == 'dat03-whole-window-40k-v1'
-            and benchmark['feature_rows'] == 40000 and benchmark['candidate_semantics_unchanged'] is True
-            and benchmark['synthetic_component_qa'] is True and benchmark['s3_writes'] is False
-            and benchmark['runner_sha256'] == sha(HERE.parent / 'spark/target/japan-earthquake-etl-runner.jar')
-            and benchmark['scaling_sha256'] == sha(HERE.parent / 'config/ml/feature_scaling_global_research_40k_v1.json'), 'VERIFIED_40K_PROFILE_NOT_READY')
+    require(benchmark.get('profile_version') in PROFILES, 'APPROVED_PROFILE_REQUIRED')
+    scaling = HERE.parent / 'config/ml' / PROFILES[benchmark['profile_version']][1]
+    verify_profile(benchmark, sha(HERE.parent / 'spark/target/japan-earthquake-etl-runner.jar'), sha(scaling))
     require(shutil.disk_usage(root.parent).free >= 12 * 1024**3, 'PREPARED_ML_START_RESERVE_12GIB_REQUIRED')
     root.mkdir(mode=0o700)
     for source, name in ((HERE.parent / 'spark/target/japan-earthquake-etl-runner.jar', 'runner.jar'), (Path(__file__), 'controller.py'),
                          (HERE / 'dat03-portable-gold.py', 'dat03-portable-gold.py'), (HERE / 'dat03-portable-capacity.py', 'dat03-portable-capacity.py'),
-                         (HERE.parent / 'config/ml/feature_scaling_global_research_40k_v1.json', 'feature-scaling.json'), (safe(profile), 'resource-profile.json')):
+                         (scaling, 'feature-scaling.json'), (safe(profile), 'resource-profile.json')):
         shutil.copyfile(source, root / name); os.chmod(root / name, 0o600)
     save(root / 'request.json', {'version': VERSION, 'runner_sha256': sha(root / 'runner.jar'), 'gold_run_id': 'dat03-gold-' + e['operation'],
          'gold_commit_sha256': e['first_publication']['commit_sha256'], 'gold_publication_sha256': e['first_publication']['publication_sha256'],
@@ -125,6 +141,7 @@ def run(root, split, mode, seconds):
             and a['execution_sha256'] == sha(p / 'runtime/execution.json') and a['request_sha256'] == inputs['request_sha256'], 'ML_PREVIOUS_ACCEPTANCE_CHANGED')
     if previous:
         latest = load(root / 'latest.json'); retained = load(root / 'host-sessions' / latest['session'] / 'acceptance.json')['lease_retained']
+        if retained: require_resume_context(load(root / 'host-sessions' / latest['session'] / 'intent.json'), split, mode)
     g.idle(owner(root) if retained else None); r.trino_queries_idle()
     if not (root / 'staged.json').exists():
         require(not previous, 'ML_STAGING_MISSING_NO_REGENERATION')
@@ -185,7 +202,7 @@ def run(root, split, mode, seconds):
         v = subprocess.run(['docker', 'exec', g.CONTAINER, 'python3', '-c', script, json.dumps(owner(root))], capture_output=True, text=True, check=True, timeout=20)
         require(json.loads(v.stdout) == {'status': 'RELEASED', **owner(root)}, 'ML_OWN_RELEASE_UNCONFIRMED')
     g.idle(None if release else owner(root)); r.trino_queries_idle(); require(before == r.services(), 'ML_POSTFLIGHT_SERVICES_CHANGED')
-    save(host / 'acceptance.json', {'status': status, 'request_sha256': inputs['request_sha256'], 'report_sha256': sha(host / 'runtime/report.json'),
+    save(host / 'acceptance.json', {'status': status, 'split': split, 'mode': mode, 'request_sha256': inputs['request_sha256'], 'report_sha256': sha(host / 'runtime/report.json'),
          'execution_sha256': sha(host / 'runtime/execution.json'), 'candidate_sha256': sha(host / 'runtime/candidate.json'), 'lease_retained': not release, 'services_unchanged': True})
     pin = {'session': session, 'acceptance_sha256': sha(host / 'acceptance.json')}
     if mode == 'preflight': save(root / ('preflight-' + split + '.json'), pin)

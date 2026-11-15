@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""EXPLICIT Java17/Spark whole-window 40k synthetic resource benchmark; no S3/ML writes."""
+"""EXPLICIT Java17/Spark whole-window 40k or approved 90k synthetic benchmark; no S3/ML writes."""
 import argparse
 import hashlib
 import importlib.util
@@ -36,20 +36,23 @@ print(json.dumps(result));sys.exit(code or (1 if timed else 0))
 '''
 
 
-def run(root):
-    root = g.safe(root); g.require(root.name and len(root.name) == 32 and all(c in 'abcdef0123456789' for c in root.name) and not root.exists(), 'NEW_EXACT_40K_PROFILE_ROOT_REQUIRED')
+def run(root, cap=40000):
+    g.require(type(cap) is int and cap in (40000, 90000), 'EXPLICIT_APPROVED_PROFILE_REQUIRED')
+    label = str(cap // 1000) + 'k'
+    worker = WORKER.replace('dat03-40k-profile', 'dat03-' + label + '-profile').replace('PreparedMl40kProfileJob', 'PreparedMl' + label + 'ProfileJob')
+    root = g.safe(root); g.require(root.name and len(root.name) == 32 and all(c in 'abcdef0123456789' for c in root.name) and not root.exists(), 'NEW_EXACT_PROFILE_ROOT_REQUIRED')
     g.require(shutil.disk_usage(root.parent).free >= 10 * 1024**3, 'PROFILE_PHYSICAL_RESERVE_REQUIRED')
     r = g.module('research-rollout'); before = r.services(); g.idle(None); r.trino_queries_idle()
     root.mkdir(mode=0o700)
     repo = HERE.parent
     shutil.copyfile(repo / 'spark/target/japan-earthquake-etl-runner.jar', root / 'runner.jar')
-    shutil.copyfile(repo / 'config/ml/feature_scaling_global_research_40k_v1.json', root / 'feature-scaling.json')
+    shutil.copyfile(repo / ('config/ml/feature_scaling_global_research_' + label + '_v1.json'), root / 'feature-scaling.json')
     assets = {name: g.sha(root / name) for name in ('runner.jar', 'feature-scaling.json')}
-    g.save(root / 'intent.json', {'assets': assets, 'worker_source_sha256': hashlib.sha256(WORKER.encode()).hexdigest(), 'services_before': before, 's3_writes': False})
-    inside = '/opt/pipeline/staging/dat03-40k-profile/' + root.name
+    g.save(root / 'intent.json', {'assets': assets, 'worker_source_sha256': hashlib.sha256(worker.encode()).hexdigest(), 'services_before': before, 's3_writes': False})
+    inside = '/opt/pipeline/staging/dat03-' + label + '-profile/' + root.name
     subprocess.run(['docker', 'exec', g.CONTAINER, 'mkdir', '-p', '-m', '700', inside], check=True)
     for name in assets: subprocess.run(['docker', 'cp', str(root / name), g.CONTAINER + ':' + inside + '/' + name], check=True)
-    run = subprocess.run(['docker', 'exec', g.CONTAINER, 'python3', '-B', '-c', WORKER, inside, json.dumps(assets)], capture_output=True, text=True, timeout=660)
+    run = subprocess.run(['docker', 'exec', g.CONTAINER, 'python3', '-B', '-c', worker, inside, json.dumps(assets)], capture_output=True, text=True, timeout=660)
     subprocess.run(['docker', 'cp', g.CONTAINER + ':' + inside, str(root / 'runtime')], check=True, timeout=120)
     g.idle(None); r.trino_queries_idle(); g.require(r.services() == before, 'PROFILE_SERVICES_CHANGED')
     execution = g.load(root / 'runtime/execution.json')
@@ -59,9 +62,11 @@ def run(root):
     result = g.load(root / 'runtime/scratch/result.json')
     g.require(execution['exit_code'] == 0 and execution['timed_out'] is False and result['status'] == 'PROFILE_BENCHMARK_PASSED'
             and result['runner_sha256'] == assets['runner.jar'] and result['candidate_semantics_unchanged'] is True
-            and result['feature_rows'] == 40000 and result['feature_parquet_bytes'] <= 64*1024**2, 'MEASURED_PROFILE_NOT_ACCEPTED')
+            and result['profile_version'] == 'dat03-whole-window-' + label + '-v1'
+            and result['feature_rows'] == cap and result['feature_parquet_bytes'] <= 64*1024**2
+            and result['scaling_sha256'] == assets['feature-scaling.json'] and result['null_guard_fault_injections_passed'] == 2, 'MEASURED_PROFILE_NOT_ACCEPTED')
     result.update(execution_sha256=g.sha(root / 'runtime/execution.json'), result_sha256=g.sha(root / 'runtime/scratch/result.json'),
-                  worker_source_sha256=hashlib.sha256(WORKER.encode()).hexdigest(),
+                  worker_source_sha256=hashlib.sha256(worker.encode()).hexdigest(),
                   wall_seconds=execution['wall_seconds'], child_peak_rss_kib=execution['child_peak_rss_kib'], services_unchanged=True)
     g.save(root / 'profile-receipt.json', result)
     print(json.dumps({'status': 'PROFILE_BENCHMARK_PASSED', 'receipt': str(root / 'profile-receipt.json'), 'sha256': g.sha(root / 'profile-receipt.json'),
@@ -69,4 +74,5 @@ def run(root):
 
 
 if __name__ == '__main__':
-    p = argparse.ArgumentParser(description=__doc__); p.add_argument('--folder', type=Path, required=True); a=p.parse_args();run(a.folder)
+    p = argparse.ArgumentParser(description=__doc__); p.add_argument('--folder', type=Path, required=True)
+    p.add_argument('--max-candidates', type=int, choices=(40000, 90000), default=40000); a=p.parse_args();run(a.folder,a.max_candidates)

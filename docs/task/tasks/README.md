@@ -22,6 +22,16 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 
 ## Tổng quan
 
+**15/11 — DAT-03 continuation:** owner đã duyệt thiết kế/đo profile90.000/window,
+giữ science và các guard khác; sau measured capacity/regression/fresh preflight
+mới chạy official collections. Cùng PR #131, giữ In Progress; note "chưa duyệt
+trên40k" bên dưới là lịch sử trước quyết định này.
+[Actual90k](../../evidence/DAT-03_OFFICIAL_COLLECTIONS_20261115.md): benchmark và
+fresh preflight2/2, hai EXPORTED/rerun/all-shard loaders,311+13SQL, paired release/
+fresh restore/Drive roundtrip PASS. [Hướng dẫn nhận](../../runbooks/DAT-03_OFFICIAL_RESEARCH_HANDOFF.md),
+390.374features/239mainshocks/6shards. Có receipt HoaiTam; giữ In Progress chờ
+receipt thật ThanhTris/rosy179, không tự scientific approval hoặc tạo hộ receipt.
+
 **15/11 — DAT-03 phần 3 In Progress:** official PREPARED coverage adapter,
 read-only capacity gate rồi hai collection export/lifecycle/registry thật,
 loader/rerun/release; không đổi flags hoặc giả legacy receipts để mở gate.

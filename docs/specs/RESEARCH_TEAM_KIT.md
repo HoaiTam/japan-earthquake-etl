@@ -4,6 +4,12 @@ Version `dat03-team-research-v1`, artifact_kind=PAIRED_COLLECTION_EXPORT.
 Mục tiêu: ba người nhận **một ZIP byte-identical**, gồm hai collection exports
 REPRODUCTION225tháng và EXTENSION63tháng từ cùng exact Published Gold pin.
 Không đổi dataset/collection IDs, schema, scaling, global Mc hoặc shard layout.
+Ngoài legacy `dat03_catalog_<uuid>`, receiver chấp nhận exact Published PREPARED
+table `iceberg.dat03_unified_20261114.event_current` khi có explicit coverage
+protocol và prepared commit SHA khớp Gold bundle; không mở arbitrary namespace.
+Kit dùng [reader interoperability](RESEARCH_COLLECTION_EXPORT.md#reader-interoperability-của-frozen-writer90k)
+có version cho đúng frozen UTC/INT96 writer90k; giữ nguyên bytes/pins và strict
+quality guards. Không auto-assume timezone hoặc silently truncate cho writer khác.
 
 ## Gate của operator trước đóng gói thật
 

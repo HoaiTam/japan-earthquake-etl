@@ -13,6 +13,8 @@ from pathlib import Path
 import platform
 import re
 
+import pyarrow as pa
+import pyarrow.compute as pc
 import pyarrow.parquet as pq
 from experiment_harness import read_json_safe, require, sha256_bytes, MODE_OFFICIAL
 from pilot_bundle import FEATURE_TYPES, MAIN_TYPES, typed_schema
@@ -20,6 +22,37 @@ from pilot_bundle import FEATURE_TYPES, MAIN_TYPES, typed_schema
 VERSION = "dat03-collection-export-v1"
 MAX_FILE = 64 * 1024**2
 PREPARED_COVERAGE = "dat03-published-prepared-coverage-v1"
+INT96_READER = "prepared-spark-utc-int96-v1"
+# This measured writer explicitly sets Spark SQL timezone UTC. Unknown writers stay strict.
+INT96_WRITER = "artifact_648d7779835ce8673a72d7d47852f68fa9b402da07a9a724f7d62be9a117e2b0"
+
+
+def _timestamp_view(parquet, manifest):
+    """Lossless in-memory reader view only. Never rewrite bytes or infer an unknown timezone."""
+    table = parquet.read(); target = pa.timestamp("us", tz="UTC"); changed = False
+    names = [n for n in ("candidate_time_utc", "event_time_utc", "created_at_utc") if n in table.column_names]
+    for name in names:
+        values = table[name]
+        if values.type == target:
+            continue
+        filters = read_json_safe(manifest.get("filter_config_json", "{}").encode("utf-8"))
+        require(manifest.get("code_version") == INT96_WRITER and manifest.get("dataset_config_version") == "dat03-prepared-ml-v2"
+                and filters.get("source_coverage_contract") == PREPARED_COVERAGE
+                and filters.get("resource_profile_version") == "dat03-whole-window-90k-v1", "COLLECTION_INT96_UTC_WRITER_PROOF_REQUIRED")
+        require(values.type == pa.timestamp("ns") and parquet.schema.column(parquet.schema.names.index(name)).physical_type == "INT96",
+                "COLLECTION_INT96_PHYSICAL_TYPE_REQUIRED")
+        integers = values.cast(pa.int64()).to_pylist()
+        require(all(v is not None and v % 1000 == 0 for v in integers), "COLLECTION_INT96_SUBMICROSECOND_REJECTED")
+        normalized = pc.cast(pc.assume_timezone(values, "UTC"), target, safe=True)
+        require([v * 1000 for v in normalized.cast(pa.int64()).to_pylist()] == integers, "COLLECTION_INT96_TIME_VALUE_CHANGED")
+        table = table.set_column(table.schema.get_field_index(name), name, normalized); changed = True
+    if changed:
+        created = manifest.get("created_at_utc")
+        require(isinstance(created, str) and created.endswith("Z") and "created_at_utc" in table.column_names, "COLLECTION_INT96_UTC_ANCHOR_REQUIRED")
+        anchor = datetime.fromisoformat(created.replace("Z", "+00:00"))
+        require(pc.all(pc.equal(table["created_at_utc"], pa.scalar(anchor, type=target))).as_py() is True,
+                "COLLECTION_INT96_UTC_ANCHOR_CHANGED")
+    return table, changed
 
 
 def _prepared_coverage(manifest, coverage):
@@ -70,6 +103,7 @@ def _index(root, name):
 
 class ResearchCollection:
     def __init__(self, directory, *, manifest_sha256, checksums_sha256):
+        self.timestamp_interop_used = False
         self.root = _safe(directory)
         require(self.root.is_dir(), "COLLECTION_DIRECTORY_REQUIRED")
         require(all(isinstance(pin, str) and re.fullmatch(r"[a-f0-9]{64}", pin) for pin in (manifest_sha256, checksums_sha256)),
@@ -147,7 +181,8 @@ class ResearchCollection:
             require(_hash(path) == self.index[shard_id + "/" + file], "COLLECTION_CHECKSUM_MISMATCH")
             parquet = pq.ParquetFile(path)
             require(parquet.metadata.num_rows == count, "COLLECTION_SHARD_COUNT_CHANGED")
-            files[file] = parquet.read()
+            files[file], normalized = _timestamp_view(parquet, self.manifest)
+            self.timestamp_interop_used |= normalized
         features, main = files["features.parquet"], files["mainshocks.parquet"]
         types = {k: v for k, v in FEATURE_TYPES.items() if k != "pilot_id"}
         typed_schema(features, self.manifest["feature_schema"], types)
@@ -195,7 +230,9 @@ class ResearchCollection:
         return {"status": "COLLECTION_VERIFIED", "dataset_id": self.manifest["dataset_id"], "collection_id": self.plan["collection_id"],
                 "manifest_sha256": self.manifest_sha256, "checksums_sha256": self.checksums_sha256,
                 "shard_count": len(self.shards), "feature_row_count": count, "mainshock_count": self.plan["mainshock_count"],
-                "loader_version": VERSION, "all_shards_verified": True}
+                "loader_version": VERSION, "all_shards_verified": True,
+                "timestamp_reader_profile": INT96_READER if self.timestamp_interop_used else "arrow-utc-micros-v1",
+                "timestamps_losslessly_normalized": self.timestamp_interop_used}
 
 
 def main():

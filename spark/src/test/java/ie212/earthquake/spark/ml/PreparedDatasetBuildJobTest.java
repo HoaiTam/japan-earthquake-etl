@@ -58,4 +58,20 @@ class PreparedDatasetBuildJobTest {
         r.put("resource_profile_version", "arbitrary-100k").put("profile_receipt_sha256", "a".repeat(64));
         assertThrows(Exception.class, () -> PreparedDatasetBuildJob.validate(r, root()));
     }
+    @Test void approved90kProfilePreservesScienceAndAllOtherCaps() throws Exception {
+        var r = request().put("version", PreparedDatasetBuildJob.VERSION).put("resource_profile_version", PreparedDatasetBuildJob.PROFILE_90K).put("profile_receipt_sha256", "b".repeat(64));
+        PreparedDatasetBuildJob.validate(r, root());
+        var scale = FeatureExportBundle.JSON.readTree(Files.readAllBytes(Path.of("../config/ml/feature_scaling_global_research_90k_v1.json")));
+        var baseline = FeatureExportBundle.JSON.readTree(Files.readAllBytes(Path.of("../config/ml/feature_scaling_global_dev_v1.json")));
+        for (String split : java.util.List.of("REPRODUCTION", "EXTENSION")) {
+            var c = PreparedDatasetBuildJob.config(r, split, scale); var old = PreparedDatasetBuildJob.config(request(), split, baseline);
+            for (String key : java.util.List.of("window_config", "completeness_config", "collection_export", "window_coverage_policy"))
+                assertEquals(old.path("filter_config").path(key), c.path("filter_config").path(key));
+            var manifest = new DatasetIdentityPlan(DatasetManifestTest.publication(), c, "profile90-test", java.time.Instant.EPOCH).manifest();
+            assertEquals(90000, MainshockWindowJob.selectionConfig(manifest).maxCandidatesPerWindow());
+        }
+        for (String key : java.util.List.of("space_scale_km", "depth_scale_km", "time_scale_hours", "mode", "coordinate_tolerance_km", "time_tolerance_hours")) assertEquals(baseline.path(key), scale.path(key));
+        ((ObjectNode)scale).put("max_candidates_per_window", 100000);
+        assertThrows(Exception.class, () -> PreparedDatasetBuildJob.config(r, "EXTENSION", scale));
+    }
 }

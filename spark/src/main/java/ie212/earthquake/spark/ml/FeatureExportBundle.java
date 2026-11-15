@@ -42,7 +42,7 @@ public final class FeatureExportBundle {
             && scaling.scalingConfigVersion().equals(manifest.path("scaling_config_version").asText()), "DS_EXPORT_SCALING_CONFLICT");
         require(selected.filter(not(col("dataset_id").eqNullSafe(id))).count() == 0
             && main.filter(not(col("dataset_id").eqNullSafe(id))).count() == 0, "DS_EXPORT_DATASET_LINEAGE_MISMATCH");
-        if ("scaling-global-research-40k-v1".equals(scaling.scalingConfigVersion())) {
+        if (Set.of("scaling-global-research-40k-v1", "scaling-global-research-90k-v1").contains(scaling.scalingConfigVersion())) {
             // Same 29 null rules and first failure order; one scan, not 29 separate Spark actions.
             var checks = COLUMNS.stream().map(name -> max(when(col(name).isNull(), lit(1)).otherwise(lit(0))).alias(name)).toArray(Column[]::new);
             var nulls = selected.agg(checks[0], Arrays.copyOfRange(checks, 1, checks.length)).first();

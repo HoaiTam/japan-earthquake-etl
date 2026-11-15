@@ -12,10 +12,11 @@ Không tắt verifier hoặc tự tính expected hash từ file bị nghi ngờ.
 byte identity, không thay xác thực người gửi nếu cả file và pins đều bị đổi.
 
 Tạo Python3.11–3.13 venv ngoài kit, cài requirements.txt (chỉ verifier/loader,
-không đủ dependency để fit model). Mỗi người tự chạy trên máy riêng:
+không đủ dependency để fit model). Giải nén vào `research-kit`; đứng ở thư mục
+cha của `research-kit` và tự chạy trên máy riêng:
 
 ```bash
-python verify_dataset.py --expected-handoff-sha256 "$EXPECTED_HANDOFF_SHA256" --recipient HoaiTam --receipt ../HoaiTam-research-receipt.json
+python research-kit/verify_dataset.py --expected-handoff-sha256 "$EXPECTED_HANDOFF_SHA256" --recipient HoaiTam --receipt HoaiTam-research-receipt.json
 ```
 
 ThanhTris/rosy179 đổi cả recipient và receipt. Verifier kiểm toàn file set/code
@@ -23,6 +24,8 @@ hash trước import, rồi lần lượt đọc/validate tất cả shards củ
 Không gộp mọi feature vào RAM. Thành công: TEAM_RESEARCH_VERIFIED,
 all_shards_verified=true, đúng hai dataset/collection IDs, hashes và counts.
 Gửi receipt cho owner; không tạo hộ receipt thành viên khác trên một máy.
+Receipt phải ở ngoài kit, không dùng đường dẫn chứa `..`; verifier chủ động
+reject đường dẫn không canonical. Có thể dùng absolute canonical path cho receipt.
 
 ## Dùng trong Jupyter
 

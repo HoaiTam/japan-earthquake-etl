@@ -313,6 +313,7 @@ RESEARCH_TEAM_ZIP ?= staging/shared-datasets/jma-research-team.zip
 
 test-research-team: ## DAT-03 paired kit/tamper/source race/offline fresh-process verifier fixtures; không Docker
 	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_research_team.py'
+	@$(PILOT_PYTHON) -B -m unittest tests.test_research_timestamp_interop
 
 .PHONY: test-catalog-prefix-kit
 test-catalog-prefix-kit: ## DAT-03 partial processed Parquet transport/pins/IDs/coverage; không Docker hoặc ETL
@@ -360,6 +361,7 @@ measure-research-light-session: ## DAT-03 EXPLICIT approved stop4/probe/restore4
 test-research-collection: ## DAT-03 collection/shared Mc/whole-window Parquet regression; không Docker hoặc nguồn thật
 	@./mvnw --batch-mode --no-transfer-progress -pl spark -am test -Dtest=ResearchCollectionPlanTest,ResearchCollectionJobTest,ResearchCollectionExportBundleTest,DatasetBuildJobTest,TrustedDatasetResolverTest,ResultBundleContractTest -Dsurefire.failIfNoSpecifiedTests=false
 	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_research_collection_loader.py'
+	@$(PILOT_PYTHON) -B -m unittest tests.test_research_timestamp_interop
 
 test-research-e2e: ## DAT-03 offline metadata/receipt guards, không Docker/mạng
 	@python3 -m unittest discover -s tests -p 'test_research_e2e.py'
@@ -492,6 +494,7 @@ test-pilot: ## Pilot/model regression; cần pyarrow/model deps và loopback Jup
 	@$(PILOT_PYTHON) -B -m unittest discover -s tests -p 'test_colab_bootstrap.py'
 	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_research_collection_loader.py'
 	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_research_team.py'
+	@$(PILOT_PYTHON) -B -m unittest tests.test_research_timestamp_interop
 	@$(MAKE) test-catalog-prefix-kit PILOT_PYTHON="$(PILOT_PYTHON)"
 	@$(PILOT_PYTHON) -m unittest tests/test_baseline_algorithms.py
 	@$(PILOT_PYTHON) -m unittest tests/test_adaptive_hdbscan.py
@@ -525,7 +528,7 @@ test-dat03-gold-spark: ## DAT-03 actual local Iceberg writer fixtures; requires 
 
 .PHONY: test-dat03-prepared-ml
 test-dat03-prepared-ml: ## DAT-03 Published PREPARED coverage/official ML guards; offline, không Docker
-	@python3 -B -m unittest tests.test_dat03_prepared_ml
+	@python3 -B -m unittest tests.test_dat03_prepared_ml tests.test_dat03_prepared_ml_capture
 	@./mvnw --batch-mode --no-transfer-progress -pl spark -am -Dtest=PublishedPreparedCoverageTest,PreparedDatasetBuildJobTest,PreparedGoldProofTest,FeatureExportCoverageTest,ResearchCollectionPlanTest,ResearchDatasetBuildJobTest,DatasetManifestTest -Dsurefire.failIfNoSpecifiedTests=false test
 
 .PHONY: test-mli04
@@ -737,7 +740,7 @@ ci-docs: ## Docs/contracts/secret hygiene/Compose tĩnh; không đọc .env riê
 ci-docs-base: ## Always-on CI guards; pilot tests được chọn riêng theo impact, không Docker daemon
 	@$(MAKE) test-dat03-lineage
 	@$(MAKE) test-dat03-payload-inventory
-	@python3 -B -m unittest tests.test_dat03_followup_verifier tests.test_dat03_portable_plan tests.test_dat03_readback_batches tests.test_dat03_bronze_relocation tests.test_dat03_portable_capacity tests.test_dat03_portable_import tests.test_dat03_portable_gold tests.test_dat03_prepared_ml
+	@python3 -B -m unittest tests.test_dat03_followup_verifier tests.test_dat03_portable_plan tests.test_dat03_readback_batches tests.test_dat03_bronze_relocation tests.test_dat03_portable_capacity tests.test_dat03_portable_import tests.test_dat03_portable_gold tests.test_dat03_prepared_ml tests.test_dat03_prepared_ml_capture
 	@$(MAKE) test-dat03-team-setup
 	@$(MAKE) test-dat03-range-worker
 	@$(MAKE) test-dat03-provenance

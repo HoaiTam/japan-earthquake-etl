@@ -16,6 +16,23 @@ dependencies: ["ORC-07", "MLD-05", "MLI-02", "EXP-01"]
 
 ## Giao việc hiện hành — 11/11/2026
 
+**15/11 — owner duyệt profile 90.000/window và tiếp tục phần 3:** tiếp tục cùng
+PR #131/branch `feat/dat-03-official-collections`, không tạo PR hoặc branch mới
+cho continuation của cùng task. Thiết kế/đo `dat03-whole-window-90k-v1`, giữ
+nguyên science và cap shard/metadata khác; chỉ prepare request mới sau measured
+profile/regression đạt. Giữ request/assets/evidence 10k/40k nguyên trạng, không
+gọi các preflight âm tính cũ thành PASS. Sau fresh preflight từng split mới
+được chạy official lifecycle/export và loader/rerun/release. Status In Progress,
+assignee HoaiTam/reviewer unassigned; không giả ba receipts hoặc scientific approval.
+Actual: [profile90k/preflight evidence](../../evidence/DAT-03_OFFICIAL_COLLECTIONS_20261115.md)
+đạt benchmark90k/205,959giây/~1,18GiB; cả hai fresh preflight PASS, counts/Mc và
+strict exclusions khớp baseline. **Cả hai split EXPORTED/rerun/all-shard loader
+PASS**, 311 SQL +13 độc lập; 390.374 features/239mainshocks/6shards. Paired kit
+bất biến, fresh restore và fresh Drive download/verifier đã đạt; đúng own lease
+release, runtime idle,5services healthy. [Release/hướng dẫn hai máy](../../runbooks/DAT-03_OFFICIAL_RESEARCH_HANDOFF.md).
+Có receipt thật HoaiTam; còn ThanhTris/rosy179, nên toàn task giữ In Progress.
+Không tự cấp scientific approval hoặc lấy hai receipts cùng máy thành ba máy.
+
 **15/11 — bắt đầu phần 3 official collections:** branch
 `feat/dat-03-official-collections` từ main `f09ac66`, fast-forward phần 1–2
 `404e7c7` của PR #131. HoaiTam, reviewer unassigned; giữ In Progress.
@@ -26,7 +43,7 @@ REPRODUCTION/EXTENSION chạy tuần tự, checkpoint/own lease, loader/rerun/im
 release theo acceptance. Không fit/model/scientific approval hoặc tạo hộ receipts.
 Owner yêu cầu commit/push/comment cùng PR #131 sau kiểm tra, không merge.
 
-**15/11 — preflight phần 3 có blocker resource:**
+**Lịch sử 15/11 — preflight phần 3 trước khi owner duyệt 90k:**
 [evidence](../../evidence/DAT-03_PREPARED_ML_20261115.md).
 Actual REPRODUCTION: Mc0,5, 194 mainshocks/156.710 candidate memberships,
 max38.854/window; EXTENSION: Mc0,4, 45/233.664, max83.504/window.
@@ -278,23 +295,26 @@ portable ETL import/merge hoặc official ML export. Không sửa flag setup đ�
   budgets dưới2h, fail/timeout giữ lease. Tháng đầu2000-01 có68reported checks/
   six pins, session exit0/release own lease. Không gọi controller hoặc checkpoint
   đầu là acceptance toàn catalog. [Contract](../../specs/RESEARCH_CATALOG_ROLLOUT.md).
-- [ ] Khối 3 tiếp theo: capacity gate và rollout catalog 225/63 tháng có
+- [x] Khối 3 tiếp theo: capacity gate và rollout catalog 225/63 tháng có
   source pins, checkpoint, six-snapshot publication và bounded recovery; chỉ
   tick khi runtime toàn kỳ đạt, không lấy planner hoặc bốn tháng mẫu thay thế.
-- [ ] Khối 4 tiếp theo: official collection-aware ML export từ full Gold pin,
+- [x] Khối 4 tiếp theo: official collection-aware ML export từ full Gold pin,
   lifecycle/registry/loader/import và rerun; không đổi PREPARED thành EXPORTED
   chỉ bằng metadata. Khối 5 là receipts từ ba máy thành viên.
-- [ ] Resource/boundary policies được kiểm trên dữ liệu thật; không silent sampling.
+  Actual15/11: portable import phần1 + trusted handoff/resolver phần3 đạt;
+  không tuyên bố đã fit/import model results của task MLI-03 trong phiên này.
+- [x] Resource/boundary policies được kiểm trên dữ liệu thật; không silent sampling.
   Đã triển khai opt-in resolver `orc-06-v2` và `dat03-strict-split-v1` trong nhánh
   PR #99; regression/reader profile không thay full-period runtime acceptance.
-- [ ] Source proof đủ JMA 225 tháng reproduction và 63 tháng extension; xử lý biên
+- [x] Source proof đủ JMA 225 tháng reproduction và 63 tháng extension; xử lý biên
   UTC/JST và source-link halo, không nhận boolean tự khai.
-- [ ] Gold publication/Trino/reconciliation đạt; audit/Mc/exclusion reasons có proof.
-- [ ] MLI-02 build/export thật, counts/pins/checksum/loader và rerun đạt.
+- [x] Gold publication/Trino/reconciliation đạt; audit/Mc/exclusion reasons có proof.
+- [x] MLI-02 build/export thật, counts/pins/checksum/loader và rerun đạt.
 - [ ] HoaiTam, ThanhTris, rosy179 verify cùng release trên máy riêng; receipt có
   người nhận, dataset/pilot ID, SHA và loader result. Không giả receipt của hai
   người khác bằng ba lần chạy trên máy owner.
 - [ ] Runbook, giới hạn và metadata task/index đồng bộ, không còn blocker chưa xử lý.
+  Docs đã đồng bộ15/11; terminal acceptance vẫn chờ hai receipts thật ở trên.
 
 ## Hard dependency / làm song song
 
@@ -328,6 +348,16 @@ release đủ gate. Không tạo dependency ngược từ DAT-03 sang EXP-02.
   MLI-04/MLQ-01 sở hữu report/ML E2E.
 
 ## Theo dõi
+
+- **15/11 — tiếp tục profile 90k theo owner duyệt:** đang thiết kế/kiểm chứng
+  rồi chạy hai official collections trên Gold pins phần 2. Các gate 100.000
+  rows/shard,128mainshocks/shard,64shards/4.096metadata giữ nguyên. Chưa có
+  acceptance official exports tại lúc bắt đầu; giữ In Progress. Hiện benchmark
+  và fresh preflight2/2 đã PASS theo [evidence90k](../../evidence/DAT-03_OFFICIAL_COLLECTIONS_20261115.md),
+  Cả hai split đã EXPORTED/rerun/loader PASS; paired release/fresh restore và Drive
+  roundtrip cũng đạt. [Handoff](../../runbooks/DAT-03_OFFICIAL_RESEARCH_HANDOFF.md)
+  có ZIP/handoff pins và lệnh setup từng OS. Còn đúng receipts thật ThanhTris và
+  rosy179 cho gate ba máy; không tạo hộ hoặc chuyển task Done sớm.
 
 - **15/11 — phần 2 đạt, toàn task In Progress:**
   [evidence Gold](../../evidence/DAT-03_PORTABLE_GOLD_20261115.md).
