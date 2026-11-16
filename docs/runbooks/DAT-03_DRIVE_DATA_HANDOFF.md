@@ -1,5 +1,13 @@
 # DAT-03 — Dữ liệu đã có trên Drive nhóm, 26/10/2026
 
+## Mới nhất 15/11 — official research release
+
+[Hai collection REPRODUCTION/EXTENSION đã EXPORTED](DAT-03_OFFICIAL_RESEARCH_HANDOFF.md):
+390.374 candidate memberships,239mainshocks/6shards, ZIP37.523.195bytes trên Drive.
+Upload immutable/remote SHA/fresh download/all-shard verifier PASS; giữ original
+science/pins và không đổi ACL. Đã có receipt máy HoaiTam, còn hai máy thành viên.
+Các mục pilot/source/partial dưới đây là lịch sử26/10, không phải release mới.
+
 ## Bổ sung: Parquet đã xử lý101tháng
 
 [ZIP101tháng](https://drive.google.com/file/d/1wLnASLdSnnis91wGApcRnfFCh2ASQQUd/view)

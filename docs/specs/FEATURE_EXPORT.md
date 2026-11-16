@@ -13,6 +13,13 @@ MLI-02 đã được nghiệm thu live. DAT-02 giữ development-only lifecycle 
 
 ## Gate trước khi ghi dữ liệu
 
+DAT-03 có thêm [Published-PREPARED coverage variant](PREPARED_ML_EXPORT.md),
+opt-in bằng identity-bound `source_coverage_contract`. Nó verify original
+prepared/checkpoint/source chain và actual Published bundle, **không** tạo
+legacy FullMonthReady/SilverReady/registry giả. Các gate legacy dưới đây vẫn
+áp dụng nguyên trạng cho input legacy; audit/Mc/strict windows/features/lifecycle
+vẫn chạy thật với variant mới.
+
 1. Một persisted dataset ở BUILDING/VALIDATED/EXPORTED, identity/config hợp lệ;
    Gold PASSED publication và exact snapshot, cutoff không trước publication.
 2. Gold commit SHA phải khớp publication. Full-month registry/receipt/marker

@@ -1,5 +1,10 @@
 # DAT-03 — Checkpointed official collection build/export
 
+**Nhánh Published PREPARED hiện hành:** xem
+[runbook riêng](DAT-03_PREPARED_ML.md). Controller bên dưới chỉ dành cho legacy
+single-catalog 288 checkpoints; không giả records/markers để gọi nó trên unified
+prepared input. Hai adapter dùng cùng 10-step MLI-02/collection export engines.
+
 Version `dat03-research-dataset-build-v1`, gọi lại10 fixed steps MLI-02 bằng
 Java/Spark, không thêm Python ETL. Hiện controller/component tests đã có;
 **chưa có real full-period acceptance**. Không chạy trước gate catalog288tháng.

@@ -103,8 +103,8 @@ WHERE publication_id = 'pub-202302-001';
 Khi chạy trực tiếp trên Power BI Desktop với Starburst ODBC Driver, các cột `TIMESTAMP WITH TIME ZONE` từ Trino được trả về dạng chuỗi kèm tên múi giờ (`"2026-10-10 16:13:28.691000 UTC"` hoặc `"2026-11-16 00:19:40.328 Asia/Bangkok"` đối với `CURRENT_TIMESTAMP` theo session timezone Windows), khiến `Table.TransformColumnTypes(..., type datetimezone)` ban đầu báo `Error`.
 * **Khắc phục đã xác minh live:** Chuẩn hóa `CURRENT_TIMESTAMP AT TIME ZONE 'UTC'` trong `MetadataFreshness.m` (đã đối chiếu qua `.NET System.Data.Odbc` trả về `"2026-11-15 17:20:03.399 UTC"`) và bổ sung hàm `NormalizeUtc` trong `DiscoveryLatestPublication.m`, `FactEarthquakeEvents.m`, `MetadataFreshness.m` để chuyển đổi sạch về `datetimezone` `+00:00` trên Power BI Desktop.
 
-### 5.3. Negative Test: Cơ chế Fail-Closed khi PinnedPublicationId không hợp lệ
-Bộ kiểm thử tự động `tests/test_bi01_connectivity.py` (**15/15 passed**) đã chứng minh:
+### 5.3. Negative Tests (Unit Tests — không thay live Power BI acceptance): Cơ chế Fail-Closed khi PinnedPublicationId không hợp lệ
+Bộ kiểm thử tự động `tests/test_bi01_connectivity.py` (**15/15 passed**, phạm vi unit test offline + mock localhost) đã chứng minh:
 1. **Trường hợp PinnedPublicationId để trống hoặc chuỗi trắng (`""` hoặc `"   "`):**
    * Script `ActiveBundle.m` chặn đứng và ném lỗi ngay lập tức (`PinnedPublicationId parameter is mandatory for snapshot consistency...`).
    * Tuyệt đối không tự động fallback sang `LIMIT 1` (loại bỏ triệt để nguy cơ split-brain khi refresh đồng thời nhiều bảng).
