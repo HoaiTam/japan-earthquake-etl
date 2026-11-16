@@ -1,0 +1,43 @@
+{
+  "task_id": "COL-02",
+  "status": "LOCAL_SWEEP_AND_RERUN_INVARIANTS_VERIFIED",
+  "version": "col02-sweep-report-v2",
+  "recipient": "rosy179",
+  "verified_at_utc": "2026-11-04T03:50:00.000000+00:00",
+  "local_gate": {
+    "status": "PASSED",
+    "fail_closed_overwrite_protection": true,
+    "explicit_pilot_path_validation": true,
+    "total_configurations_evaluated": 9,
+    "parameter_configurations": 8,
+    "control_configurations": 1
+  },
+  "cloud_acceptance": {
+    "status": "PENDING_FRESH_COLAB_EVIDENCE",
+    "cloud_session_verified": false
+  },
+  "pilot": {
+    "pilot_id": "pilot_196b6d4081d347e1c289e331022658fbbe572dd33181ad987900895c1f1b189c",
+    "candidate_count": 279,
+    "mainshock_count": 2,
+    "coverage_status": "PARTIAL",
+    "allowed_usage": "DEVELOPMENT_ONLY"
+  },
+  "sweep_configurations": {
+    "total_configurations": 9,
+    "parameter_configurations": 8,
+    "control_configurations": 1,
+    "dbscan_configurations": 4,
+    "hdbscan_configurations": 4
+  },
+  "rerun_verification": {
+    "status": "RERUN_INVARIANTS_PASSED",
+    "total_candidates": 279,
+    "rtol": 1e-06,
+    "atol": 1e-08
+  },
+  "allowed_usage": "DEVELOPMENT_ONLY",
+  "research_ready": false,
+  "official_exported": false,
+  "scientific_approval": false
+}

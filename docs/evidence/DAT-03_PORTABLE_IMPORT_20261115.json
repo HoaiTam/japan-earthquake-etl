@@ -1,0 +1,152 @@
+{
+  "version": "dat03-portable-import-acceptance-v1",
+  "date": "2026-11-15",
+  "task_id": "DAT-03",
+  "task_status": "In Progress",
+  "part1_status": "ACCEPTED_PREPARED_INPUTS",
+  "operation": "787ab335a1b54a83bf0d565031b0fb2a",
+  "request": {
+    "path": "staging/dat03-portable-import/787ab335a1b54a83bf0d565031b0fb2a/request.json",
+    "sha256": "5a4d858231efbb111f2b0313e240e5f7c24b3a884912c6b3e9274dcdba070b23"
+  },
+  "inputs": {
+    "path": "staging/dat03-portable-import/787ab335a1b54a83bf0d565031b0fb2a/inputs.json",
+    "sha256": "d3a32bdeff96fa9adbfc41b722d71d3f9151f58b11b8c68a68ec5d777f7ae265"
+  },
+  "runner_sha256": "8444a934b52d86a6250bfabe2a8a4977553dfa1beed3b6d9058c7e47e09b7612",
+  "worker_controller_sha256": "3b856338eb76a90d6a649414e023804561b7aa2714a9c9fb8db79112389bf462",
+  "host_controller_sha256": "1b603a33ef081590b286fcbe8044b92043539880dda4f7483f1a490ce7d5e847",
+  "catalog_sha256": "4e9282c35af384779fc5977c43b740e81a7185c9a9755b2cb117a2fbed75f8e8",
+  "months": 288,
+  "batches": 27,
+  "reproduction_months": 225,
+  "extension_months": 63,
+  "table_counts": {
+    "event_current": 4488650,
+    "event_source_bridge": 4489823,
+    "dim_date": 8767,
+    "dim_region": 1,
+    "dim_magnitude_band": 7,
+    "dim_depth_band": 5
+  },
+  "reconciliation": {
+    "version": "dat03-global-reconciliation-v1",
+    "counts": {
+      "input_events": 4488650,
+      "input_bridge": 4489823,
+      "input_links": 1976,
+      "exact_event_duplicates": 0,
+      "exact_bridge_duplicates": 0,
+      "exact_link_duplicates": 0,
+      "canonical_events": 4488650,
+      "bridge_rows": 4489823,
+      "source_links": 1976,
+      "accepted_source_links": 1173
+    },
+    "balanced": true,
+    "global_checks_passed": true,
+    "boundary_checks_passed": true,
+    "conflicting_revision_policy": "FAIL_CLOSED_REQUIRES_SOURCE_RESOLUTION",
+    "gold_published": false,
+    "official_export_ready": false
+  },
+  "sessions": [
+    {
+      "session": "0af41186f8554564be9813cfdc9e99a5",
+      "execution": {
+        "path": "staging/dat03-portable-import/787ab335a1b54a83bf0d565031b0fb2a/host-sessions/0af41186f8554564be9813cfdc9e99a5/runtime/execution.json",
+        "sha256": "9286544d6018646718315e206a60bc803a4816f7a43fb7154ec9945552c1b975"
+      },
+      "execution_result": {
+        "automatic_retry": false,
+        "exit_code": 0,
+        "lake_writes": false,
+        "stop_reason": null,
+        "timed_out": false,
+        "wall_seconds": 3715.556
+      },
+      "candidate": {
+        "path": "staging/dat03-portable-import/787ab335a1b54a83bf0d565031b0fb2a/host-sessions/0af41186f8554564be9813cfdc9e99a5/candidate.json",
+        "sha256": "c047a009f2adf47a932cdc799f15f3c93cf0dcfb6d6f5523483ee721b98fc2cc"
+      },
+      "report": {
+        "path": "staging/dat03-portable-import/787ab335a1b54a83bf0d565031b0fb2a/host-sessions/0af41186f8554564be9813cfdc9e99a5/metadata/session-report.json",
+        "sha256": "6b00238f623516b2b41bcc5a199ff7bb2c459b84154bb2c0c390b53ee7d3265f"
+      },
+      "acceptance": {
+        "path": "staging/dat03-portable-import/787ab335a1b54a83bf0d565031b0fb2a/host-sessions/0af41186f8554564be9813cfdc9e99a5/acceptance.json",
+        "sha256": "e530b4feff49fc89156058f2d23b2b50142207162502e3b056058a5aa6576901"
+      },
+      "acceptance_result": {
+        "candidate_sha256": "c047a009f2adf47a932cdc799f15f3c93cf0dcfb6d6f5523483ee721b98fc2cc",
+        "gold_published": false,
+        "host_controller_sha256": "1b603a33ef081590b286fcbe8044b92043539880dda4f7483f1a490ce7d5e847",
+        "inputs_sha256": "d3a32bdeff96fa9adbfc41b722d71d3f9151f58b11b8c68a68ec5d777f7ae265",
+        "official_export_ready": false,
+        "preparation_lease_released": true,
+        "request_sha256": "5a4d858231efbb111f2b0313e240e5f7c24b3a884912c6b3e9274dcdba070b23",
+        "services_unchanged": true,
+        "status": "PREPARED",
+        "version": "dat03-portable-import-session-v1"
+      },
+      "catalog": {
+        "path": "staging/dat03-portable-import/787ab335a1b54a83bf0d565031b0fb2a/host-sessions/0af41186f8554564be9813cfdc9e99a5/metadata/catalog.json",
+        "sha256": "4e9282c35af384779fc5977c43b740e81a7185c9a9755b2cb117a2fbed75f8e8"
+      }
+    },
+    {
+      "session": "8a9719be50d84d4d9b6521a2c44a3e76",
+      "execution": {
+        "path": "staging/dat03-portable-import/787ab335a1b54a83bf0d565031b0fb2a/host-sessions/8a9719be50d84d4d9b6521a2c44a3e76/runtime/execution.json",
+        "sha256": "fc0e5bbc31bc82b6f7fc42956029a35c35ea97e747d49b139609688ab1bc56ec"
+      },
+      "execution_result": {
+        "automatic_retry": false,
+        "exit_code": 0,
+        "lake_writes": false,
+        "stop_reason": null,
+        "timed_out": false,
+        "wall_seconds": 14.026
+      },
+      "candidate": {
+        "path": "staging/dat03-portable-import/787ab335a1b54a83bf0d565031b0fb2a/host-sessions/8a9719be50d84d4d9b6521a2c44a3e76/candidate.json",
+        "sha256": "5d927e9353fcc1572cf4d5c645418be6c35adbb4849967b3edd5b4ba183436e6"
+      },
+      "report": {
+        "path": "staging/dat03-portable-import/787ab335a1b54a83bf0d565031b0fb2a/host-sessions/8a9719be50d84d4d9b6521a2c44a3e76/metadata/session-report.json",
+        "sha256": "f8ee0b7e8751efae96014ea5d8d6298454781a15a3ffbc37abc858e13cdd001c"
+      },
+      "acceptance": {
+        "path": "staging/dat03-portable-import/787ab335a1b54a83bf0d565031b0fb2a/host-sessions/8a9719be50d84d4d9b6521a2c44a3e76/acceptance.json",
+        "sha256": "9047ec55b33a9d5f8b64e747a294aafaa9eedecb2becb67ebfd2ed4e242ac907"
+      },
+      "acceptance_result": {
+        "candidate_sha256": "5d927e9353fcc1572cf4d5c645418be6c35adbb4849967b3edd5b4ba183436e6",
+        "gold_published": false,
+        "host_controller_sha256": "1b603a33ef081590b286fcbe8044b92043539880dda4f7483f1a490ce7d5e847",
+        "inputs_sha256": "d3a32bdeff96fa9adbfc41b722d71d3f9151f58b11b8c68a68ec5d777f7ae265",
+        "official_export_ready": false,
+        "preparation_lease_released": true,
+        "request_sha256": "5a4d858231efbb111f2b0313e240e5f7c24b3a884912c6b3e9274dcdba070b23",
+        "services_unchanged": true,
+        "status": "PREPARED",
+        "version": "dat03-portable-import-session-v1"
+      },
+      "catalog": {
+        "path": "staging/dat03-portable-import/787ab335a1b54a83bf0d565031b0fb2a/host-sessions/8a9719be50d84d4d9b6521a2c44a3e76/metadata/catalog.json",
+        "sha256": "4e9282c35af384779fc5977c43b740e81a7185c9a9755b2cb117a2fbed75f8e8"
+      }
+    }
+  ],
+  "gold_published": false,
+  "official_export_ready": false,
+  "research_ready": false,
+  "ml_upstream_eligible": false,
+  "new_gold_writes": false,
+  "three_machine_receipts_accepted": false,
+  "remaining": [
+    "ACTUAL_SIX_TABLE_GOLD_TRINO_PUBLISH_RERUN",
+    "OFFICIAL_COLLECTION_ADAPTER_AND_TWO_EXPORTED_COLLECTIONS",
+    "ALL_SHARD_LOADER_IMMUTABLE_RELEASE_AND_THREE_MACHINE_RECEIPTS"
+  ]
+}

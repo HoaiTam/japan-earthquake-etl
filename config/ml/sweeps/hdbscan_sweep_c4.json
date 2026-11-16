@@ -1,0 +1,11 @@
+{
+  "algorithm_name": "HDBSCAN_GLOBAL",
+  "algorithm_version": "1.0.0",
+  "model_config_version": "hdbscan-sweep-c4-v1",
+  "min_cluster_size": 5,
+  "min_samples": 3,
+  "cluster_selection_epsilon": 0.0,
+  "allow_single_cluster": true,
+  "metric": "euclidean",
+  "description": "HDBSCAN Sweep C4 (Combined threshold and core samples): min_cluster_size=5, min_samples=3"
+}

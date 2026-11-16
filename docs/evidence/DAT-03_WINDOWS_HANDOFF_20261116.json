@@ -1,0 +1,131 @@
+{
+  "version": "dat03-windows-handoff-fix-v1",
+  "task_id": "DAT-03",
+  "task_status": "In Progress",
+  "assignee": "HoaiTam",
+  "reviewer": "unassigned",
+  "base_commit": "55ff906e464978e6bb63a8172edf2cfa62a26e92",
+  "source_comment": "https://github.com/HoaiTam/japan-earthquake-etl/pull/131#issuecomment-6897510175",
+  "regression": {
+    "status": "REAL_EXPORTS_VERIFIED_WITHOUT_TIMEZONE_LOOKUP",
+    "collections": {
+      "REPRODUCTION": {
+        "status": "COLLECTION_VERIFIED",
+        "dataset_id": "ds_907fe748fafdfc0f072ce4db4e1cf0aa619ed18877129e17c8440b43062c3d87",
+        "collection_id": "col_bd10c69365da841b2cf6a62172e2350a797001eac04ce4bc6f2277a4d150ad98",
+        "manifest_sha256": "d3ee1334bfc50005a527f7b32a8988fcb1bdd7659a7dd4e84de326a7735139ae",
+        "checksums_sha256": "4768e500754c569bc951f23e2ac14fa9b9703ae69fbd5f78de06eacbb72f7ae9",
+        "shard_count": 2,
+        "feature_row_count": 156710,
+        "mainshock_count": 194,
+        "loader_version": "dat03-collection-export-v1",
+        "all_shards_verified": true,
+        "timestamp_reader_profile": "prepared-spark-utc-int96-v1",
+        "timestamps_losslessly_normalized": true
+      },
+      "EXTENSION": {
+        "status": "COLLECTION_VERIFIED",
+        "dataset_id": "ds_5259d2fe13e027245559e1ec4a1e696b5d94d0b67f44d5ec80738c9e984978be",
+        "collection_id": "col_0dc6dc2fd0a60c2890f68863b8561813ecd1d5e1941a8995be1d58e192fe0906",
+        "manifest_sha256": "fd1908f77ffcc70e77250ef834883d0ab8bbaf38e40962958a5c296f90d4aad1",
+        "checksums_sha256": "753506e4039130e12f88746c5f95122a66a3bac36342634d082f89acf5ad89d8",
+        "shard_count": 4,
+        "feature_row_count": 233664,
+        "mainshock_count": 45,
+        "loader_version": "dat03-collection-export-v1",
+        "all_shards_verified": true,
+        "timestamp_reader_profile": "prepared-spark-utc-int96-v1",
+        "timestamps_losslessly_normalized": true
+      }
+    },
+    "all_shards_verified": true,
+    "timezone_lookup_calls": 0,
+    "collection_bytes_or_dataset_ids_changed": false,
+    "reader_sha256": "7a0f598b460d45233d8cf122c2f9e009b5d6185412a603c8d0d328555fa68b1a",
+    "verifier_sha256": "a8a134ac7e5ea445df8f4be8adf7033e094f1a5af1f9ac0fce4cb20cd2d9aa7d",
+    "native_windows_acceptance": false,
+    "scientific_approval": false
+  },
+  "actual_report_sha256": "0041714bd88efdab25afdd6c3c53baf21830ef270acb4bcc5589a63b6c91247b",
+  "local_tests": {
+    "loader_team_interop": 36,
+    "ci_policy": 43,
+    "passed": true
+  },
+  "release": {
+    "zip_file": "staging/dat03-windows-fix-20261115/jma-research-team-20261115-v4.zip",
+    "bytes": 37524315,
+    "files": 27,
+    "zip_sha256": "687170587e9db1d5d767722bf2fd4e1e2eecc1c3141ebfcdb10269a8b83b4c21",
+    "handoff_sha256": "6cf0af7c2a3d8e8ec4c993f84ed6d86cdc417324102133dd3068eb2ebc40d297",
+    "immutable_pack_rerun_same_bytes": true,
+    "fresh_process_receipt": {
+      "status": "TEAM_RESEARCH_VERIFIED",
+      "recipient": "HoaiTam",
+      "all_shards_verified": true,
+      "python_version": "3.13.3",
+      "verified_at_utc": "2026-11-15T17:39:03.884148+00:00"
+    },
+    "receipt_sha256": "90b3b3d5ed508be8f9ade39f9455175ce721d7abe77d731a7af9312d767b8c41",
+    "bundle_files_byte_identical_to_v2": 20,
+    "old_v2_zip_retained": true,
+    "candidate_v3_not_promoted": true,
+    "security_scan": {
+      "files": 27,
+      "decoded_parquet_values_scanned": true,
+      "findings": 0,
+      "report_sha256": "60b9725b314467414eba1e010509f5238d3f140366afd4579b4218f70f827f6a"
+    }
+  },
+  "native_ci": {
+    "configured_runners": [
+      "ubuntu-24.04",
+      "windows-latest"
+    ],
+    "python": "3.12",
+    "pyarrow": "21.0.0",
+    "tested_code_commit": "ed655bd572d1df7f026b487969ca4ff47de0b38d",
+    "run_url": "https://github.com/HoaiTam/japan-earthquake-etl/actions/runs/43741683342",
+    "state_at_commit": "WINDOWS_AND_LINUX_FIXTURE_TESTS_PASSED",
+    "tests_per_runner": 36,
+    "all_checks_successful": 23,
+    "windows_python_timezone_dependency": "tzdata==2025.2",
+    "first_failed_run_preserved": "https://github.com/HoaiTam/japan-earthquake-etl/actions/runs/43740686834",
+    "first_failure": "Python zoneinfo UTC data absent during Arrow datetime materialization",
+    "required_docs_gate": true
+  },
+  "drive_release": {
+    "remote_path": "dat03_team:data/dat03/accepted/official-research/687170587e9d",
+    "folder_id": "1LJJBpc7FjNQga_Ur-Kx3Z8AOPmJg-Req",
+    "zip_file_id": "1lSzNuYXt-mcTdci9nHNyoo3jdDVvRogj",
+    "url": "https://drive.google.com/file/d/1lSzNuYXt-mcTdci9nHNyoo3jdDVvRogj/view",
+    "exact_four_file_set_verified": true,
+    "remote_sha256_all_files_verified": true,
+    "fresh_download_zip_sha256": "687170587e9db1d5d767722bf2fd4e1e2eecc1c3141ebfcdb10269a8b83b4c21",
+    "transfer_proof_sha256": "46e6453944c76ce9b517a0f9b98696ba76a8561e62a26bf569c8c758e0e6e2c8",
+    "fresh_restore_receipt": {
+      "recipient": "HoaiTam",
+      "status": "TEAM_RESEARCH_VERIFIED",
+      "all_shards_verified": true,
+      "verified_at_utc": "2026-11-15T17:45:02.296166+00:00",
+      "receipt_sha256": "7c840027e2c886ba62131a450654b3b9139b4abead018d5c0be8cc3bcb7119c5",
+      "counts_as_additional_team_machine": false
+    },
+    "permissions": {
+      "root_user_permissions": 4,
+      "accepted_folder_user_permissions": 5,
+      "release_folder_user_permissions": 5,
+      "zip_user_permissions": 5,
+      "public_or_domain": false,
+      "roster_identity_mapping_verified": false,
+      "acl_changed": false
+    },
+    "old_v2_release_retained": true,
+    "candidate_v3_uploaded": false
+  },
+  "actual_windows_recipient_receipts": [],
+  "scientific_approval": false,
+  "warehouse_source_or_lake_writes": false,
+  "docker_operations": false,
+  "acl_changed": false
+}

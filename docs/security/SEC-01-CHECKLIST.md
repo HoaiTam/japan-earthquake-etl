@@ -1,7 +1,12 @@
 # SEC-01 — Review secret và bề mặt truy cập
 
-Owner hiện tại: **HoaiTam**. Status: **In Progress — cloud audit02/11**.
+Owner hiện tại: **HoaiTam**. Status: **In Progress — fresh cloud audit16/11**.
 Local acceptance23/10 giữ nguyên. Reviewer: **unassigned**.
+
+[Fresh audit16/11](../evidence/SEC-01_CLOUD_20261116.md): notebook rosy179 có
+anyone/writer; chưa Done trước khi sửa/recheck ACL, xác nhận private aliases
+và nhận actual session/output ThanhTris.66tests PASS/0skip. Các mốc bên dưới
+là lịch sử; không bật Docker hoặc ghi S3 probes chỉ để đóng scope cloud.
 
 Đang nghiệm thu cloud theo [runbook mới](./SEC-01-CLOUD-AUDIT.md) và
 [evidence02/11](../evidence/SEC-01_CLOUD_20261102.md): tám pinned artifacts và

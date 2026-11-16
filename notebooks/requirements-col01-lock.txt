@@ -1,0 +1,4 @@
+# COL-01 inspection only. Python 3.11–3.13; isolated venv, not host Colab.
+pyarrow==21.0.0
+numpy==2.2.2
+matplotlib==3.10.0

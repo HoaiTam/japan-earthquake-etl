@@ -1,0 +1,99 @@
+{
+  "status": "NOT_CHECKED",
+  "gate_status": "PENDING_CATALOG_MERGE",
+  "audit_scope": "DEVELOPMENT_VERIFICATION_HARNESS",
+  "description": "Boundary verification gate (Gate 2 of DAT-03) is currently PENDING. 288 months exist in 4 isolated worker packages (101 catalog base + 62 HoaiTam + 62 ThanhTris + 63 rosy179), but cross-boundary deduplication and Iceberg Gold merge have not yet been executed. Audit harness is implemented and verified via unit tests, but will only be marked PASS once packages are merged into Gold and audited via Trino.",
+  "contiguity": {
+    "status": "PASS_THEORETICAL",
+    "note": "CALENDAR_MATH_ONLY_NO_MANIFESTS_VERIFIED",
+    "total_months": 288,
+    "expected_months": 288,
+    "missing_months": [],
+    "overlapping_months": [],
+    "unexpected_months": [],
+    "segments": [
+      {
+        "segment_id": "catalog_base_101",
+        "owner": "Catalog nền",
+        "start_month": "2000-01",
+        "end_month": "2008-05",
+        "month_count": 101
+      },
+      {
+        "segment_id": "hoaitam_62",
+        "owner": "HoaiTam",
+        "start_month": "2008-06",
+        "end_month": "2013-07",
+        "month_count": 62
+      },
+      {
+        "segment_id": "thanhtris_62",
+        "owner": "ThanhTris",
+        "start_month": "2013-08",
+        "end_month": "2018-09",
+        "month_count": 62
+      },
+      {
+        "segment_id": "rosy179_63",
+        "owner": "rosy179",
+        "start_month": "2018-10",
+        "end_month": "2023-12",
+        "month_count": 63
+      }
+    ]
+  },
+  "boundaries": [
+    {
+      "boundary": "Boundary 1 (Base -> HoaiTam)",
+      "status": "NOT_CHECKED",
+      "reason": "MISSING_BOUNDARY_INPUT",
+      "prev_month": "2008-05",
+      "next_month": "2008-06",
+      "disjointness": {
+        "status": "NOT_CHECKED",
+        "reason": "NO_DATA"
+      },
+      "time_window": {
+        "status": "NOT_CHECKED",
+        "violations": [
+          "NO_DATA"
+        ]
+      }
+    },
+    {
+      "boundary": "Boundary 2 (HoaiTam -> ThanhTris)",
+      "status": "NOT_CHECKED",
+      "reason": "MISSING_BOUNDARY_INPUT",
+      "prev_month": "2013-07",
+      "next_month": "2013-08",
+      "disjointness": {
+        "status": "NOT_CHECKED",
+        "reason": "NO_DATA"
+      },
+      "time_window": {
+        "status": "NOT_CHECKED",
+        "violations": [
+          "NO_DATA"
+        ]
+      }
+    },
+    {
+      "boundary": "Boundary 3 (ThanhTris -> rosy179)",
+      "status": "NOT_CHECKED",
+      "reason": "MISSING_BOUNDARY_INPUT",
+      "prev_month": "2018-09",
+      "next_month": "2018-10",
+      "disjointness": {
+        "status": "NOT_CHECKED",
+        "reason": "NO_DATA"
+      },
+      "time_window": {
+        "status": "NOT_CHECKED",
+        "violations": [
+          "NO_DATA"
+        ]
+      }
+    }
+  ],
+  "checked_at_utc": "2026-11-05T16:57:02.986928+00:00"
+}

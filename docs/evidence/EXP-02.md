@@ -87,10 +87,16 @@ Tại Review Round 4 (PR #84, comment-6246509089), @HoaiTam đã phản hồi v�
   - Lệnh: `git diff --check`
   - Kết quả: 0 whitespace errors.
 
-## 4. Giới hạn / Rủi ro / Bước tiếp theo
+## 4. Nghiệm thu Colab Portability & Parity (Tuần 7 — 2026-11-02)
 
-- **Colab pilot portability:** Việc chạy đối soát cùng code/config/bundle trên Google Colab sau local gate thuộc về giai đoạn tiếp theo của [EXP-02 - Chạy Window, DBSCAN và HDBSCAN global](../task/tasks/EXP-02.md).
-- **Official research dataset export:** Nghiên cứu chính thức trên toàn kỳ phụ thuộc vào [MLD-05 - Validate feature snapshot và export Parquet bundle](../task/tasks/MLD-05.md); pilot hiện tại chỉ dùng phục vụ kiểm tra kỹ thuật (DEVELOPMENT_ONLY).
+Tại Tuần 7, phần Colab Portability của EXP-02 đã được kiểm chứng hoàn tất bởi assignee `rosy179` trên Google Colab CPU runtime với pilot JMA thật 279 dòng / 2 mainshocks. Cả 3 thuật toán baseline (`WINDOW`, `DBSCAN`, `HDBSCAN_GLOBAL`) đạt đối soát tương đương (parity) 100% giữa Local và Cloud.
+Xem chi tiết báo cáo bằng chứng tại: [EXP-02_COLAB_PARITY_20261102.md](./EXP-02_COLAB_PARITY_20261102.md) và metadata [EXP-02_COLAB_PARITY_20261102.json](./EXP-02_COLAB_PARITY_20261102.json).
+
+## 5. Giới hạn / Rủi ro / Bước tiếp theo
+
+- **Khảo sát tham số giới hạn (COL-02):** Khảo sát tối đa 8 cấu hình (DBSCAN 4 cấu hình, HDBSCAN 4 cấu hình) thuộc về [COL-02 - Sweep tham số baseline giới hạn trên pilot](../task/tasks/COL-02.md).
+- **Trực quan hóa và bảng metrics (COL-03):** Kết xuất bảng số liệu tự động và biểu đồ không gian - thời gian tương đối cho ThanhTris thuộc về [COL-03 - Metrics và trực quan hóa baseline pilot](../task/tasks/COL-03.md).
+- **Official research dataset export:** Nghiên cứu chính thức trên toàn kỳ phụ thuộc vào [MLD-05 - Validate feature snapshot và export Parquet bundle](../task/tasks/MLD-05.md) và [DAT-03 - Chuẩn bị catalog nghiên cứu thật](../task/tasks/DAT-03.md); pilot hiện tại chỉ dùng phục vụ kiểm tra kỹ thuật (DEVELOPMENT_ONLY).
 - **Kỹ thuật phân cụm nâng cao / Adaptive sequence resolver:** Thuật toán giải quyết candidate thuộc nhiều sequence thuộc về [EXP-03 - Xây HDBSCAN adaptive và giải quyết multi-sequence](../task/tasks/EXP-03.md).
 - **Import Iceberg `ml.*`:** Việc nạp kết quả nghiên cứu vào bảng Iceberg thuộc về [MLI-03 - Validate/import kết quả và commit bảng ML Iceberg](../task/tasks/MLI-03.md).
 - **Reviewer:** Reviewer độc lập cho task P0 này hiện là `unassigned`.

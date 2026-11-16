@@ -14,6 +14,27 @@ dependencies: ["ORC-05"]
 
 # SEC-01 - Review secret và bề mặt truy cập
 
+## Giao việc hiện hành — 11/11/2026
+
+- **Owner:** HoaiTam; **status:** In Progress.
+- **Làm phần gì / dùng để làm gì:** Bảo mật Drive/Colab.
+- **Bắt đầu độc lập:** Tiếp tục PR #119; scan exact notebooks/output đã có, kiểm ACL và xác nhận roster riêng.
+- **Đầu ra và điều kiện Done:** Hết finding/pending trong scope; actual session/recipient evidence ba người, không suy quyền nhận từ CI hoặc tên file.
+- **Lịch:** chuẩn bị 11–15/11, nghiệm thu tuần9 16–22/11; xem
+  [kế hoạch và setup](../WEEK_9_REPLAN_20261111.md). Giữ hard dependencies,
+  scope/effort lịch sử; các mục tuần cũ dưới đây là lịch sử.
+
+PR [#119](https://github.com/HoaiTam/japan-earthquake-etl/pull/119) còn Draft;
+không coi audit cloud đã merge hoặc audit local23/10 là cloud PASS.
+
+**16/11 — tiếp tục nghiệm thu:** [fresh evidence](../../evidence/SEC-01_CLOUD_20261116.md)
+và [report redacted](../../evidence/SEC-01_CLOUD_20261116.json). Xử lý conflict
+main local/no-commit, scan12Drive objects và6pinned owner ZIPs;66tests đạt.
+Finding thật: notebook rosy179 anyone/writer; còn private roster/aliases và
+actual Colab ThanhTris chưa tìm thấy. Đã comment/tag Trang ở PR #119 theo yêu
+cầu owner, không tự đổi ACL. Giữ In Progress, không Done từ DAT-03 receipts3/3.
+Ghi chú02/11/26/10 bên dưới là lịch sử.
+
 ## Mục đích
 
 Dùng để bảo đảm source credentials và storage không bị lộ khi nhóm chia sẻ repository/demo.
@@ -154,6 +175,12 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 - Không đánh dấu `Done` nếu chưa có evidence kiểm tra được.
 
 ## Theo dõi
+
+- **16/11 — In Progress:** fresh cloud audit có1ACL finding/14pending items;
+  source/history sau exact-fixture triage0untriaged findings.66security tests
+  PASS/0skip; không runtime/probes/commit/push/merge, reviewer unassigned.
+  [Evidence](../../evidence/SEC-01_CLOUD_20261116.md),
+  [yêu cầu Trang](https://github.com/HoaiTam/japan-earthquake-etl/pull/119#issuecomment-6922467511).
 
 - **Trạng thái:** In Progress
 - **Assignee:** HoaiTam

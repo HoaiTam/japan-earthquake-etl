@@ -43,7 +43,10 @@ public final class ResearchCollectionJob {
         var coverage=FeatureExportCoverage.resolve(store,pubs.get(0),parent);
         var audit=GoldInputAuditJob.runPinnedAudit(spark,parent,GoldAuditConfig.fromManifest(parent,run,"collection-audit.json"),Instant.now());
         audit.assertReconciled(); require(audit.completenessResult().isReliable() && Double.isFinite(audit.mcApplied()),"DS_EXPORT_MC_UNRELIABLE");
-        var audited=audit.auditedEvents().persist(StorageLevel.MEMORY_AND_DISK());
+        boolean portable=ie212.earthquake.spark.gold.PublishedPreparedCoverage.VERSION.equals(
+                JSON.readTree(parent.path("filter_config_json").asText()).path("source_coverage_contract").asText());
+        var audited=(portable?audit.auditedEvents().select("canonical_event_id","event_time_utc","latitude","longitude","depth_km","magnitude","is_eligible")
+                :audit.auditedEvents()).persist(portable?StorageLevel.DISK_ONLY():StorageLevel.MEMORY_AND_DISK());
         try {
             // A conservative pre-window metadata bound; no candidate/event catalog is collected by the driver.
             require(audited.filter(col("is_eligible").and(col("magnitude").gt(5.5)).and(col("depth_km").between(50,200)))

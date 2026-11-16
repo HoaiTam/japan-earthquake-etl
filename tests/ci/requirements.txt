@@ -3,3 +3,5 @@ pyarrow==21.0.0
 numpy==2.2.2
 scipy==1.15.1
 scikit-learn==1.6.1
+matplotlib==3.10.0
+pandas==2.2.3

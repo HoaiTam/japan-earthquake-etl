@@ -1,5 +1,11 @@
 # SEC-01 — audit Drive/Colab pilot chỉ đọc
 
+**Hiện hành16/11:** [fresh audit](../evidence/SEC-01_CLOUD_20261116.md) có1finding
+anyone/writer ở notebook rosy179; còn private roster và session ThanhTris.
+PR #119 giữ Draft/In Progress. Ba research receipts đã nhận, không phải blocker
+thiếu DAT-03 receipt nữa nhưng không thay cloud identity. Nội dung02/11 bên
+dưới là quy trình và snapshot lịch sử; không đổi ACL hoặc tăng budget để pass.
+
 Phần này bổ sung cloud acceptance của [SEC-01](../task/tasks/SEC-01.md), không
 thay [nghiệm thu local 23/10](../evidence/SEC-01_LOCAL_ACCEPTANCE_20261023.md).
 Không cần Docker hoặc chờ COL-01 merge. Code/artifacts PR chưa merge được pin

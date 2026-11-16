@@ -1,0 +1,864 @@
+{
+  "owner": "rosy179",
+  "version": "dat03-followup-original-metadata-request-v1",
+  "scope": "ORIGINAL_METADATA_READ_ONLY_NOT_ETL_OR_OFFICIAL_ACCEPTANCE",
+  "basis_audit_sha256": "bec5556c997600741755d7ca92157225797d10045ea62578e473111f30fad93a",
+  "basis_data_archive_sha256": "18bc436a25969a2d019b5db04bb1a2d20aa11a0c3039e2fd159da7f876b4a788",
+  "head_run_id": "orc07-22b5e7647a3df9ed83370139e11c48048845ee8f",
+  "head_phase_gold_member": "months/2023-10/gold.json",
+  "head_phase_gold_sha256": "21cc46b5d3be8fb3e3f54f7adf37102b3cac0ec31551a45cbedf2758f87a485b",
+  "head_phase_publish_member": "months/2023-10/publish.json",
+  "head_phase_publish_sha256": "abb25b06449fea3957735ebb25319a5680949c0f9a6ef3a1a431f4ba89b951e1",
+  "object_count": 24,
+  "objects": [
+    {
+      "uri": "s3://japan-earthquake/silver/gold-commits/orc07-0f87aad8b4ca1841cde6fe131eb17844ff848b7a/identity.json",
+      "sha256": "c107af920ad7d17ad081f734fecaa5665d05da73942ccc07576bb79a7e3ef944",
+      "kind": "gold_identity"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/gold-commits/orc07-1afeb8c3aa73a9f0e2ee03a5f028596edc454ea5/identity.json",
+      "sha256": "c1df05800eadab24407e9163ec8e9c31a40e6fd460f67459569d64241686512d",
+      "kind": "gold_identity"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/gold-commits/orc07-2e17ab4d8060235aabf7412a0ebb109bbdaa97f6/identity.json",
+      "sha256": "60af017627a1207751809d7d27b583256919aefd43bef563628a3018cf84b736",
+      "kind": "gold_identity"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/gold-commits/orc07-3963e6a5e322185df68fb64b09807ea934efb059/identity.json",
+      "sha256": "a80bf02ce84943025819dd65d92077b9348077204fca3e13a940fe4d60de032d",
+      "kind": "gold_identity"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/gold-commits/orc07-5a56c90a6a45e7cc83a1b412b1314e43ae8e5df5/identity.json",
+      "sha256": "773262565b87ec780a41ba008e154d91b7f77bcad40d2e74e6b020c9de0b6c64",
+      "kind": "gold_identity"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/gold-commits/orc07-5f6634681f7964e2edbf1b4a47888f02587bc6d8/identity.json",
+      "sha256": "21e945c96faeb0489e5b054266838046bf228ee12842d566702cd5e1976bd4e4",
+      "kind": "gold_identity"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/gold-commits/orc07-729094b2006decd4cc2929726b675b4548299dac/identity.json",
+      "sha256": "ac7ec5531761001fc31061c19e14d56ac083ab3926fbf3fafd7efd15b9280006",
+      "kind": "gold_identity"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/gold-commits/orc07-77c7f572ba474bfd67e407048501690ea6a0c4ec/identity.json",
+      "sha256": "59c35371e3d4b44b2cd1960e3e70dad9e6637e279cb534c6a900029f7da52fdc",
+      "kind": "gold_identity"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/gold-commits/orc07-77f499538541bddd8e01c5a9fd050fb8370796ab/identity.json",
+      "sha256": "484683d7cd49333c9171cc6ac9be9c4388e3f2b07cfc5a779d10242f45be12d8",
+      "kind": "gold_identity"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/gold-commits/orc07-7bb7f5dd6c0343856dec22c77b7b0c9381583976/identity.json",
+      "sha256": "aca351e6d855b4556a20a46ede393e6e5dc5c36b0b81780bc6702bc1c5696d72",
+      "kind": "gold_identity"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/gold-commits/orc07-88ca2c31b5642a360ab704e22842dde969223902/identity.json",
+      "sha256": "69174751bf9a7ce523968b1380c712b4376858ebeab0ab0a19d79896334ac5ec",
+      "kind": "gold_identity"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/gold-commits/orc07-91128054466629e71699527e14717be2fb068b11/identity.json",
+      "sha256": "7b3481d4d42b0fb4b1a3eab5644bf39c67f008442dc046c909733f97643412ef",
+      "kind": "gold_identity"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/gold-commits/orc07-9205e79ce793864082fe05235fe7716bb19d2726/identity.json",
+      "sha256": "be43b4684ea63b80a4bd322e078bb7771d35713a074fa83b87e30b17955830eb",
+      "kind": "gold_identity"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/gold-commits/orc07-923b4a3c11914704618ea793479520a1f7949f2a/identity.json",
+      "sha256": "bb3ac214deb3dbf871b4cce13c4a18b11394e33a9e442a502a18a2362238bdd3",
+      "kind": "gold_identity"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/gold-commits/orc07-999c65a30355df0ebedb27c47b866eac6e34a5d4/identity.json",
+      "sha256": "7d55273dde64b29595542dc2e36e7e45b01eba7c0830ae4c9c1baadc7e09143e",
+      "kind": "gold_identity"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/gold-commits/orc07-d015477d95e71434be37f54ad3dbaba08d06b2a4/identity.json",
+      "sha256": "544a1518580dd36380737550a7bb83a0509c737eb1922c8a006e1b628c7f0013",
+      "kind": "gold_identity"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/gold-commits/orc07-d2b7e004aaa0294b6605046ad91b6a50a1ae30a9/identity.json",
+      "sha256": "5826c93fdb0b167556a85949eb6b706a023d4ca164a250b16148c383102e2c4b",
+      "kind": "gold_identity"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/gold-commits/orc07-dbf9d836daa31a55127ad1325cfecc79fa533e1b/identity.json",
+      "sha256": "4e36d96f263f70fc7fc8e03d01c31e91ab31611202046f0bc54064c113e3cc8e",
+      "kind": "gold_identity"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/gold-commits/orc07-de8370dfe09b068c4fa13df76756e44232eecb16/identity.json",
+      "sha256": "607337413a0f5d31b819a8f206cd5e7a92a2ec3088a22d1daa24f616c0e5bda5",
+      "kind": "gold_identity"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/gold-commits/orc07-ecf3820c1d74aec97bbbf32c195ef3ebc4fe076c/identity.json",
+      "sha256": "95372dacc017ffcdc8a5ea25e58f52a15a307672bdcb355075be914186224018",
+      "kind": "gold_identity"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/gold-commits/orc07-ed8f8eb8179a5331b93b57c25afcfbdf64a9fd6a/identity.json",
+      "sha256": "ea6124d9a7dbbaa272e1df12e3c91386886682c929c47903ec58c3493e2a44fd",
+      "kind": "gold_identity"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/gold-commits/orc07-fe87d2edce1aa09024dd03d7c88ecfdefca1605c/identity.json",
+      "sha256": "4bdf3ac30237cfcdad6a4d3600f580163698b0528c9f2aab95472a523e25ab8a",
+      "kind": "gold_identity"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/gold-commits/orc07-22b5e7647a3df9ed83370139e11c48048845ee8f/commit.json",
+      "sha256": "07ad99e8c6ef7a54d09c03806bb23866d463869826a31087d4d7e1b3c00d1137",
+      "kind": "gold_commit",
+      "pin_basis": "bundle_sha256 in independently retained data ZIP phase publish receipt"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/gold-commits/orc07-22b5e7647a3df9ed83370139e11c48048845ee8f/identity.json",
+      "sha256": "335021da12aeb01581b8e16f86e2fdf878ed998a473289e83b3ed1cebfa84faa",
+      "kind": "gold_identity",
+      "pin_basis": "identity payload digest in independently retained phase Gold receipt"
+    }
+  ],
+  "unpinned_publication_uris": [
+    "s3://japan-earthquake/silver/gold-verification/orc07-0f87aad8b4ca1841cde6fe131eb17844ff848b7a/publication.json",
+    "s3://japan-earthquake/silver/gold-verification/orc07-1afeb8c3aa73a9f0e2ee03a5f028596edc454ea5/publication.json",
+    "s3://japan-earthquake/silver/gold-verification/orc07-2e17ab4d8060235aabf7412a0ebb109bbdaa97f6/publication.json",
+    "s3://japan-earthquake/silver/gold-verification/orc07-3963e6a5e322185df68fb64b09807ea934efb059/publication.json",
+    "s3://japan-earthquake/silver/gold-verification/orc07-5a56c90a6a45e7cc83a1b412b1314e43ae8e5df5/publication.json",
+    "s3://japan-earthquake/silver/gold-verification/orc07-5f6634681f7964e2edbf1b4a47888f02587bc6d8/publication.json",
+    "s3://japan-earthquake/silver/gold-verification/orc07-729094b2006decd4cc2929726b675b4548299dac/publication.json",
+    "s3://japan-earthquake/silver/gold-verification/orc07-77c7f572ba474bfd67e407048501690ea6a0c4ec/publication.json",
+    "s3://japan-earthquake/silver/gold-verification/orc07-77f499538541bddd8e01c5a9fd050fb8370796ab/publication.json",
+    "s3://japan-earthquake/silver/gold-verification/orc07-7bb7f5dd6c0343856dec22c77b7b0c9381583976/publication.json",
+    "s3://japan-earthquake/silver/gold-verification/orc07-88ca2c31b5642a360ab704e22842dde969223902/publication.json",
+    "s3://japan-earthquake/silver/gold-verification/orc07-91128054466629e71699527e14717be2fb068b11/publication.json",
+    "s3://japan-earthquake/silver/gold-verification/orc07-9205e79ce793864082fe05235fe7716bb19d2726/publication.json",
+    "s3://japan-earthquake/silver/gold-verification/orc07-923b4a3c11914704618ea793479520a1f7949f2a/publication.json",
+    "s3://japan-earthquake/silver/gold-verification/orc07-999c65a30355df0ebedb27c47b866eac6e34a5d4/publication.json",
+    "s3://japan-earthquake/silver/gold-verification/orc07-d015477d95e71434be37f54ad3dbaba08d06b2a4/publication.json",
+    "s3://japan-earthquake/silver/gold-verification/orc07-d2b7e004aaa0294b6605046ad91b6a50a1ae30a9/publication.json",
+    "s3://japan-earthquake/silver/gold-verification/orc07-dbf9d836daa31a55127ad1325cfecc79fa533e1b/publication.json",
+    "s3://japan-earthquake/silver/gold-verification/orc07-de8370dfe09b068c4fa13df76756e44232eecb16/publication.json",
+    "s3://japan-earthquake/silver/gold-verification/orc07-ecf3820c1d74aec97bbbf32c195ef3ebc4fe076c/publication.json",
+    "s3://japan-earthquake/silver/gold-verification/orc07-ed8f8eb8179a5331b93b57c25afcfbdf64a9fd6a/publication.json",
+    "s3://japan-earthquake/silver/gold-verification/orc07-fe87d2edce1aa09024dd03d7c88ecfdefca1605c/publication.json",
+    "s3://japan-earthquake/silver/gold-verification/orc07-22b5e7647a3df9ed83370139e11c48048845ee8f/publication.json"
+  ],
+  "snapshot_references": [
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-2e17ab4d8060235aabf7412a0ebb109bbdaa97f6/commit.json",
+      "table": "event_current",
+      "snapshot_id": 8026817303551712443
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-2e17ab4d8060235aabf7412a0ebb109bbdaa97f6/commit.json",
+      "table": "event_source_bridge",
+      "snapshot_id": 1790264522070007278
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-2e17ab4d8060235aabf7412a0ebb109bbdaa97f6/commit.json",
+      "table": "dim_date",
+      "snapshot_id": 8856644140716681308
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-2e17ab4d8060235aabf7412a0ebb109bbdaa97f6/commit.json",
+      "table": "dim_region",
+      "snapshot_id": 1330916887621610697
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-2e17ab4d8060235aabf7412a0ebb109bbdaa97f6/commit.json",
+      "table": "dim_magnitude_band",
+      "snapshot_id": 4871026939244897793
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-2e17ab4d8060235aabf7412a0ebb109bbdaa97f6/commit.json",
+      "table": "dim_depth_band",
+      "snapshot_id": 2155799769195820907
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-d2b7e004aaa0294b6605046ad91b6a50a1ae30a9/commit.json",
+      "table": "event_current",
+      "snapshot_id": 1737490004530642927
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-d2b7e004aaa0294b6605046ad91b6a50a1ae30a9/commit.json",
+      "table": "event_source_bridge",
+      "snapshot_id": 909331894961823375
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-d2b7e004aaa0294b6605046ad91b6a50a1ae30a9/commit.json",
+      "table": "dim_date",
+      "snapshot_id": 1671225504664655058
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-d2b7e004aaa0294b6605046ad91b6a50a1ae30a9/commit.json",
+      "table": "dim_region",
+      "snapshot_id": 7025901610457705528
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-d2b7e004aaa0294b6605046ad91b6a50a1ae30a9/commit.json",
+      "table": "dim_magnitude_band",
+      "snapshot_id": 4582765481594014274
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-d2b7e004aaa0294b6605046ad91b6a50a1ae30a9/commit.json",
+      "table": "dim_depth_band",
+      "snapshot_id": 1031593699680670143
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-9205e79ce793864082fe05235fe7716bb19d2726/commit.json",
+      "table": "event_current",
+      "snapshot_id": 2626318615827524017
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-9205e79ce793864082fe05235fe7716bb19d2726/commit.json",
+      "table": "event_source_bridge",
+      "snapshot_id": 4176287853443154288
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-9205e79ce793864082fe05235fe7716bb19d2726/commit.json",
+      "table": "dim_date",
+      "snapshot_id": 3511692156336674921
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-9205e79ce793864082fe05235fe7716bb19d2726/commit.json",
+      "table": "dim_region",
+      "snapshot_id": 3153262253387316978
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-9205e79ce793864082fe05235fe7716bb19d2726/commit.json",
+      "table": "dim_magnitude_band",
+      "snapshot_id": 6139513091159642454
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-9205e79ce793864082fe05235fe7716bb19d2726/commit.json",
+      "table": "dim_depth_band",
+      "snapshot_id": 1648856315434105941
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-729094b2006decd4cc2929726b675b4548299dac/commit.json",
+      "table": "event_current",
+      "snapshot_id": 6356597556786789565
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-729094b2006decd4cc2929726b675b4548299dac/commit.json",
+      "table": "event_source_bridge",
+      "snapshot_id": 2182753869818252907
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-729094b2006decd4cc2929726b675b4548299dac/commit.json",
+      "table": "dim_date",
+      "snapshot_id": 3762582442097782246
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-729094b2006decd4cc2929726b675b4548299dac/commit.json",
+      "table": "dim_region",
+      "snapshot_id": 6504607236741064870
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-729094b2006decd4cc2929726b675b4548299dac/commit.json",
+      "table": "dim_magnitude_band",
+      "snapshot_id": 3972732123219306469
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-729094b2006decd4cc2929726b675b4548299dac/commit.json",
+      "table": "dim_depth_band",
+      "snapshot_id": 5372843399889982299
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-0f87aad8b4ca1841cde6fe131eb17844ff848b7a/commit.json",
+      "table": "event_current",
+      "snapshot_id": 2399954151924783757
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-0f87aad8b4ca1841cde6fe131eb17844ff848b7a/commit.json",
+      "table": "event_source_bridge",
+      "snapshot_id": 1695049565726446693
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-0f87aad8b4ca1841cde6fe131eb17844ff848b7a/commit.json",
+      "table": "dim_date",
+      "snapshot_id": 3786491972859712051
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-0f87aad8b4ca1841cde6fe131eb17844ff848b7a/commit.json",
+      "table": "dim_region",
+      "snapshot_id": 8532918668046277244
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-0f87aad8b4ca1841cde6fe131eb17844ff848b7a/commit.json",
+      "table": "dim_magnitude_band",
+      "snapshot_id": 3672499594118972574
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-0f87aad8b4ca1841cde6fe131eb17844ff848b7a/commit.json",
+      "table": "dim_depth_band",
+      "snapshot_id": 501656120748241738
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-999c65a30355df0ebedb27c47b866eac6e34a5d4/commit.json",
+      "table": "event_current",
+      "snapshot_id": 9164067081293758877
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-999c65a30355df0ebedb27c47b866eac6e34a5d4/commit.json",
+      "table": "event_source_bridge",
+      "snapshot_id": 7740365519612723249
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-999c65a30355df0ebedb27c47b866eac6e34a5d4/commit.json",
+      "table": "dim_date",
+      "snapshot_id": 4111617773387697760
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-999c65a30355df0ebedb27c47b866eac6e34a5d4/commit.json",
+      "table": "dim_region",
+      "snapshot_id": 629053179862975307
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-999c65a30355df0ebedb27c47b866eac6e34a5d4/commit.json",
+      "table": "dim_magnitude_band",
+      "snapshot_id": 5825242747381919031
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-999c65a30355df0ebedb27c47b866eac6e34a5d4/commit.json",
+      "table": "dim_depth_band",
+      "snapshot_id": 7563087881801759046
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-5f6634681f7964e2edbf1b4a47888f02587bc6d8/commit.json",
+      "table": "event_current",
+      "snapshot_id": 9110247817860640846
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-5f6634681f7964e2edbf1b4a47888f02587bc6d8/commit.json",
+      "table": "event_source_bridge",
+      "snapshot_id": 7823638389946962562
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-5f6634681f7964e2edbf1b4a47888f02587bc6d8/commit.json",
+      "table": "dim_date",
+      "snapshot_id": 5810892466040036139
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-5f6634681f7964e2edbf1b4a47888f02587bc6d8/commit.json",
+      "table": "dim_region",
+      "snapshot_id": 7698752392526903371
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-5f6634681f7964e2edbf1b4a47888f02587bc6d8/commit.json",
+      "table": "dim_magnitude_band",
+      "snapshot_id": 3165872179120255422
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-5f6634681f7964e2edbf1b4a47888f02587bc6d8/commit.json",
+      "table": "dim_depth_band",
+      "snapshot_id": 8307433234037565300
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-91128054466629e71699527e14717be2fb068b11/commit.json",
+      "table": "event_current",
+      "snapshot_id": 8821080112180552206
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-91128054466629e71699527e14717be2fb068b11/commit.json",
+      "table": "event_source_bridge",
+      "snapshot_id": 6998140794269620904
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-91128054466629e71699527e14717be2fb068b11/commit.json",
+      "table": "dim_date",
+      "snapshot_id": 9130559801190183768
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-91128054466629e71699527e14717be2fb068b11/commit.json",
+      "table": "dim_region",
+      "snapshot_id": 660982049348387480
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-91128054466629e71699527e14717be2fb068b11/commit.json",
+      "table": "dim_magnitude_band",
+      "snapshot_id": 6160544109339194115
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-91128054466629e71699527e14717be2fb068b11/commit.json",
+      "table": "dim_depth_band",
+      "snapshot_id": 3058396648103639472
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-1afeb8c3aa73a9f0e2ee03a5f028596edc454ea5/commit.json",
+      "table": "event_current",
+      "snapshot_id": 1680007614828899453
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-1afeb8c3aa73a9f0e2ee03a5f028596edc454ea5/commit.json",
+      "table": "event_source_bridge",
+      "snapshot_id": 89818850541122720
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-1afeb8c3aa73a9f0e2ee03a5f028596edc454ea5/commit.json",
+      "table": "dim_date",
+      "snapshot_id": 1713268057402132647
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-1afeb8c3aa73a9f0e2ee03a5f028596edc454ea5/commit.json",
+      "table": "dim_region",
+      "snapshot_id": 6761048021581530059
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-1afeb8c3aa73a9f0e2ee03a5f028596edc454ea5/commit.json",
+      "table": "dim_magnitude_band",
+      "snapshot_id": 769046040591470082
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-1afeb8c3aa73a9f0e2ee03a5f028596edc454ea5/commit.json",
+      "table": "dim_depth_band",
+      "snapshot_id": 5861739076638937696
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-fe87d2edce1aa09024dd03d7c88ecfdefca1605c/commit.json",
+      "table": "event_current",
+      "snapshot_id": 6385558957077834501
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-fe87d2edce1aa09024dd03d7c88ecfdefca1605c/commit.json",
+      "table": "event_source_bridge",
+      "snapshot_id": 5258816081949087716
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-fe87d2edce1aa09024dd03d7c88ecfdefca1605c/commit.json",
+      "table": "dim_date",
+      "snapshot_id": 5964736041238244965
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-fe87d2edce1aa09024dd03d7c88ecfdefca1605c/commit.json",
+      "table": "dim_region",
+      "snapshot_id": 6320630111019889449
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-fe87d2edce1aa09024dd03d7c88ecfdefca1605c/commit.json",
+      "table": "dim_magnitude_band",
+      "snapshot_id": 26606417958116935
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-fe87d2edce1aa09024dd03d7c88ecfdefca1605c/commit.json",
+      "table": "dim_depth_band",
+      "snapshot_id": 6564378514077703162
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-d015477d95e71434be37f54ad3dbaba08d06b2a4/commit.json",
+      "table": "event_current",
+      "snapshot_id": 6259719914977212749
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-d015477d95e71434be37f54ad3dbaba08d06b2a4/commit.json",
+      "table": "event_source_bridge",
+      "snapshot_id": 8888749232735077182
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-d015477d95e71434be37f54ad3dbaba08d06b2a4/commit.json",
+      "table": "dim_date",
+      "snapshot_id": 5534872251426776980
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-d015477d95e71434be37f54ad3dbaba08d06b2a4/commit.json",
+      "table": "dim_region",
+      "snapshot_id": 4720672416601595050
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-d015477d95e71434be37f54ad3dbaba08d06b2a4/commit.json",
+      "table": "dim_magnitude_band",
+      "snapshot_id": 605734065388772625
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-d015477d95e71434be37f54ad3dbaba08d06b2a4/commit.json",
+      "table": "dim_depth_band",
+      "snapshot_id": 8006889175186898301
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-923b4a3c11914704618ea793479520a1f7949f2a/commit.json",
+      "table": "event_current",
+      "snapshot_id": 2840763121207282018
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-923b4a3c11914704618ea793479520a1f7949f2a/commit.json",
+      "table": "event_source_bridge",
+      "snapshot_id": 5640784709758432464
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-923b4a3c11914704618ea793479520a1f7949f2a/commit.json",
+      "table": "dim_date",
+      "snapshot_id": 8961371827615581031
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-923b4a3c11914704618ea793479520a1f7949f2a/commit.json",
+      "table": "dim_region",
+      "snapshot_id": 5433663861705058008
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-923b4a3c11914704618ea793479520a1f7949f2a/commit.json",
+      "table": "dim_magnitude_band",
+      "snapshot_id": 2857324549097762298
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-923b4a3c11914704618ea793479520a1f7949f2a/commit.json",
+      "table": "dim_depth_band",
+      "snapshot_id": 5222619489374697295
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-77f499538541bddd8e01c5a9fd050fb8370796ab/commit.json",
+      "table": "event_current",
+      "snapshot_id": 378784916371683946
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-77f499538541bddd8e01c5a9fd050fb8370796ab/commit.json",
+      "table": "event_source_bridge",
+      "snapshot_id": 8927816370787621301
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-77f499538541bddd8e01c5a9fd050fb8370796ab/commit.json",
+      "table": "dim_date",
+      "snapshot_id": 3477250783833058672
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-77f499538541bddd8e01c5a9fd050fb8370796ab/commit.json",
+      "table": "dim_region",
+      "snapshot_id": 9194064437594952919
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-77f499538541bddd8e01c5a9fd050fb8370796ab/commit.json",
+      "table": "dim_magnitude_band",
+      "snapshot_id": 5064397507864305891
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-77f499538541bddd8e01c5a9fd050fb8370796ab/commit.json",
+      "table": "dim_depth_band",
+      "snapshot_id": 4406457740656009038
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-88ca2c31b5642a360ab704e22842dde969223902/commit.json",
+      "table": "event_current",
+      "snapshot_id": 5199443155942072321
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-88ca2c31b5642a360ab704e22842dde969223902/commit.json",
+      "table": "event_source_bridge",
+      "snapshot_id": 8864040847175298465
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-88ca2c31b5642a360ab704e22842dde969223902/commit.json",
+      "table": "dim_date",
+      "snapshot_id": 7080157523048064659
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-88ca2c31b5642a360ab704e22842dde969223902/commit.json",
+      "table": "dim_region",
+      "snapshot_id": 6249242658682625943
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-88ca2c31b5642a360ab704e22842dde969223902/commit.json",
+      "table": "dim_magnitude_band",
+      "snapshot_id": 6295212769871508010
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-88ca2c31b5642a360ab704e22842dde969223902/commit.json",
+      "table": "dim_depth_band",
+      "snapshot_id": 2475248329545845127
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-de8370dfe09b068c4fa13df76756e44232eecb16/commit.json",
+      "table": "event_current",
+      "snapshot_id": 4334544247486054605
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-de8370dfe09b068c4fa13df76756e44232eecb16/commit.json",
+      "table": "event_source_bridge",
+      "snapshot_id": 5873338497274264112
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-de8370dfe09b068c4fa13df76756e44232eecb16/commit.json",
+      "table": "dim_date",
+      "snapshot_id": 7521604473574327235
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-de8370dfe09b068c4fa13df76756e44232eecb16/commit.json",
+      "table": "dim_region",
+      "snapshot_id": 64243371166246290
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-de8370dfe09b068c4fa13df76756e44232eecb16/commit.json",
+      "table": "dim_magnitude_band",
+      "snapshot_id": 3035520734167615174
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-de8370dfe09b068c4fa13df76756e44232eecb16/commit.json",
+      "table": "dim_depth_band",
+      "snapshot_id": 5125886700620960050
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-7bb7f5dd6c0343856dec22c77b7b0c9381583976/commit.json",
+      "table": "event_current",
+      "snapshot_id": 278587773586758303
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-7bb7f5dd6c0343856dec22c77b7b0c9381583976/commit.json",
+      "table": "event_source_bridge",
+      "snapshot_id": 7387136377882810523
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-7bb7f5dd6c0343856dec22c77b7b0c9381583976/commit.json",
+      "table": "dim_date",
+      "snapshot_id": 6775816071058714828
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-7bb7f5dd6c0343856dec22c77b7b0c9381583976/commit.json",
+      "table": "dim_region",
+      "snapshot_id": 115359591016541966
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-7bb7f5dd6c0343856dec22c77b7b0c9381583976/commit.json",
+      "table": "dim_magnitude_band",
+      "snapshot_id": 1395579278554447291
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-7bb7f5dd6c0343856dec22c77b7b0c9381583976/commit.json",
+      "table": "dim_depth_band",
+      "snapshot_id": 500994538120543843
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-ed8f8eb8179a5331b93b57c25afcfbdf64a9fd6a/commit.json",
+      "table": "event_current",
+      "snapshot_id": 2773556066883009541
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-ed8f8eb8179a5331b93b57c25afcfbdf64a9fd6a/commit.json",
+      "table": "event_source_bridge",
+      "snapshot_id": 1389547361163764560
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-ed8f8eb8179a5331b93b57c25afcfbdf64a9fd6a/commit.json",
+      "table": "dim_date",
+      "snapshot_id": 1302751189423451930
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-ed8f8eb8179a5331b93b57c25afcfbdf64a9fd6a/commit.json",
+      "table": "dim_region",
+      "snapshot_id": 281853821505229229
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-ed8f8eb8179a5331b93b57c25afcfbdf64a9fd6a/commit.json",
+      "table": "dim_magnitude_band",
+      "snapshot_id": 3210579227418992243
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-ed8f8eb8179a5331b93b57c25afcfbdf64a9fd6a/commit.json",
+      "table": "dim_depth_band",
+      "snapshot_id": 3816286124901373413
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-3963e6a5e322185df68fb64b09807ea934efb059/commit.json",
+      "table": "event_current",
+      "snapshot_id": 4381658574347963740
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-3963e6a5e322185df68fb64b09807ea934efb059/commit.json",
+      "table": "event_source_bridge",
+      "snapshot_id": 7613515595339035348
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-3963e6a5e322185df68fb64b09807ea934efb059/commit.json",
+      "table": "dim_date",
+      "snapshot_id": 4094261840552188851
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-3963e6a5e322185df68fb64b09807ea934efb059/commit.json",
+      "table": "dim_region",
+      "snapshot_id": 5866162180232668784
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-3963e6a5e322185df68fb64b09807ea934efb059/commit.json",
+      "table": "dim_magnitude_band",
+      "snapshot_id": 1874545660452312464
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-3963e6a5e322185df68fb64b09807ea934efb059/commit.json",
+      "table": "dim_depth_band",
+      "snapshot_id": 3571698997513290958
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-ecf3820c1d74aec97bbbf32c195ef3ebc4fe076c/commit.json",
+      "table": "event_current",
+      "snapshot_id": 1491573810451558590
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-ecf3820c1d74aec97bbbf32c195ef3ebc4fe076c/commit.json",
+      "table": "event_source_bridge",
+      "snapshot_id": 240428684561278453
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-ecf3820c1d74aec97bbbf32c195ef3ebc4fe076c/commit.json",
+      "table": "dim_date",
+      "snapshot_id": 112460036689604326
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-ecf3820c1d74aec97bbbf32c195ef3ebc4fe076c/commit.json",
+      "table": "dim_region",
+      "snapshot_id": 8355904316017583113
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-ecf3820c1d74aec97bbbf32c195ef3ebc4fe076c/commit.json",
+      "table": "dim_magnitude_band",
+      "snapshot_id": 2879426788231179290
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-ecf3820c1d74aec97bbbf32c195ef3ebc4fe076c/commit.json",
+      "table": "dim_depth_band",
+      "snapshot_id": 6314537287354126676
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-77c7f572ba474bfd67e407048501690ea6a0c4ec/commit.json",
+      "table": "event_current",
+      "snapshot_id": 6176799628079489966
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-77c7f572ba474bfd67e407048501690ea6a0c4ec/commit.json",
+      "table": "event_source_bridge",
+      "snapshot_id": 6795488662907283057
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-77c7f572ba474bfd67e407048501690ea6a0c4ec/commit.json",
+      "table": "dim_date",
+      "snapshot_id": 5652033719787525466
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-77c7f572ba474bfd67e407048501690ea6a0c4ec/commit.json",
+      "table": "dim_region",
+      "snapshot_id": 727795359357647717
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-77c7f572ba474bfd67e407048501690ea6a0c4ec/commit.json",
+      "table": "dim_magnitude_band",
+      "snapshot_id": 5506266995301293300
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-77c7f572ba474bfd67e407048501690ea6a0c4ec/commit.json",
+      "table": "dim_depth_band",
+      "snapshot_id": 1272996419051091391
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-5a56c90a6a45e7cc83a1b412b1314e43ae8e5df5/commit.json",
+      "table": "event_current",
+      "snapshot_id": 1838890749556881893
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-5a56c90a6a45e7cc83a1b412b1314e43ae8e5df5/commit.json",
+      "table": "event_source_bridge",
+      "snapshot_id": 4956686156697885663
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-5a56c90a6a45e7cc83a1b412b1314e43ae8e5df5/commit.json",
+      "table": "dim_date",
+      "snapshot_id": 1943005396029002323
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-5a56c90a6a45e7cc83a1b412b1314e43ae8e5df5/commit.json",
+      "table": "dim_region",
+      "snapshot_id": 3949752200021293931
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-5a56c90a6a45e7cc83a1b412b1314e43ae8e5df5/commit.json",
+      "table": "dim_magnitude_band",
+      "snapshot_id": 8377380285657102567
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-5a56c90a6a45e7cc83a1b412b1314e43ae8e5df5/commit.json",
+      "table": "dim_depth_band",
+      "snapshot_id": 133680687181889418
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-dbf9d836daa31a55127ad1325cfecc79fa533e1b/commit.json",
+      "table": "event_current",
+      "snapshot_id": 6332200239524708086
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-dbf9d836daa31a55127ad1325cfecc79fa533e1b/commit.json",
+      "table": "event_source_bridge",
+      "snapshot_id": 8943835037996116376
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-dbf9d836daa31a55127ad1325cfecc79fa533e1b/commit.json",
+      "table": "dim_date",
+      "snapshot_id": 3027406792480582742
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-dbf9d836daa31a55127ad1325cfecc79fa533e1b/commit.json",
+      "table": "dim_region",
+      "snapshot_id": 1221809421626252312
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-dbf9d836daa31a55127ad1325cfecc79fa533e1b/commit.json",
+      "table": "dim_magnitude_band",
+      "snapshot_id": 4969093738827732160
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-dbf9d836daa31a55127ad1325cfecc79fa533e1b/commit.json",
+      "table": "dim_depth_band",
+      "snapshot_id": 6073016078764615281
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-22b5e7647a3df9ed83370139e11c48048845ee8f/commit.json",
+      "table": "dim_date",
+      "snapshot_id": 8240464538929790815
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-22b5e7647a3df9ed83370139e11c48048845ee8f/commit.json",
+      "table": "dim_depth_band",
+      "snapshot_id": 7039383175288663773
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-22b5e7647a3df9ed83370139e11c48048845ee8f/commit.json",
+      "table": "dim_magnitude_band",
+      "snapshot_id": 865932660531288494
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-22b5e7647a3df9ed83370139e11c48048845ee8f/commit.json",
+      "table": "dim_region",
+      "snapshot_id": 957787327239394422
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-22b5e7647a3df9ed83370139e11c48048845ee8f/commit.json",
+      "table": "event_current",
+      "snapshot_id": 1895056968708547014
+    },
+    {
+      "commit_uri": "s3://japan-earthquake/silver/gold-commits/orc07-22b5e7647a3df9ed83370139e11c48048845ee8f/commit.json",
+      "table": "event_source_bridge",
+      "snapshot_id": 1333662999234609373
+    }
+  ],
+  "notes": [
+    "Preserve original bytes. Do not regenerate metadata or run ETL.",
+    "An identity expected SHA is the canonical payload digest; verify via the existing Gold identity serialization contract, not whole-file SHA.",
+    "A new publication checksum is not an independent acceptance proof; compare the original JSON to the retained pinned phase publish receipt and exact commit pins.",
+    "Current head commit raw bytes are not the month gold.json bytes; phase JSON was reserialized.",
+    "Snapshot references are not a portable Iceberg graph. Supply metadata/manifests/data inventory from actual table locations before transport acceptance.",
+    "Payload content bytes are already available by SHA/size, including shared 595-byte content; do not resend large data ZIPs or restore S3 aliases without explicit authority."
+  ],
+  "snapshot_reference_encoding": "json-sort-keys-compact-utf8-v1",
+  "snapshot_reference_sha256": "d84d17f903c5796f758f9c42929c67a3cc1579da41a9b374bf65f7719e4595d3"
+}

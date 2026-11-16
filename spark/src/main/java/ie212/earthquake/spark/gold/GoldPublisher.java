@@ -23,6 +23,7 @@ public final class GoldPublisher {
     private final boolean bucketedBlockers;
     private final boolean reuseVerified;
     private boolean singlePassPrimary;
+    private boolean preparedCatalog;
     public static final String SINGLE_PASS_PRIMARY_VERSION="dat03-primary-whole-other-buckets-v1";
     private final java.util.function.LongSupplier monotonic;
     private ObjectNode verificationCache;
@@ -62,6 +63,11 @@ public final class GoldPublisher {
         var publisher=researchCatalogCheckpointed(sql,store,lease);
         publisher.singlePassPrimary=true;
         return publisher;
+    }
+    /** Isolated full PREPARED import; retains exhaustive bucketed blockers and 300s SELECT profile. */
+    public static GoldPublisher preparedCatalog(Sql sql,SilverObjectStore store,Runnable lease) {
+        var publisher = researchCatalogCheckpointed(sql,store,lease);
+        publisher.preparedCatalog = true; return publisher;
     }
     private String factStrategy() {
         return singlePassPrimary ? SINGLE_PASS_PRIMARY_VERSION : BUCKETED_BLOCKERS_VERSION;
@@ -223,13 +229,15 @@ public final class GoldPublisher {
             throw new IOException("ASOF_PUBLICATION_ROW_POLICY_CONFLICT");
     }
     private void policy(JsonNode commit) {
+        if (preparedCatalog) PreparedGoldProof.validateCommit(commit);
+        else if (commit.path("scope").has("prepared_input")) throw new IllegalArgumentException("EXPLICIT_PREPARED_PUBLISHER_REQUIRED");
         // This opt-in is measured only at the current bounded catalog size, not the full research period.
         if(singlePassPrimary)for(String name:List.of("event_current","event_source_bridge")) {
             var count=commit.path("tables").path(name).path("count");
             if(!count.isIntegralNumber() || !count.canConvertToLong() || count.asLong()<0 || count.asLong()>1_300_000)
                 throw new IllegalArgumentException("SINGLE_PASS_PRIMARY_CAPACITY_NOT_MEASURED");
         }
-        if(bucketedOutside && !commit.path("namespace").asText().matches("iceberg\\.dat03_(?:catalog|range)_[a-f0-9]{32}"))
+        if(bucketedOutside && !preparedCatalog && !commit.path("namespace").asText().matches("iceberg\\.dat03_(?:catalog|range)_[a-f0-9]{32}"))
             throw new IllegalArgumentException("DAT03_ISOLATED_CATALOG_REQUIRED");
         if(operational) OperationalGoldPolicy.validate(commit.path("namespace").asText(),commit.path("operational_policy"));
         else {

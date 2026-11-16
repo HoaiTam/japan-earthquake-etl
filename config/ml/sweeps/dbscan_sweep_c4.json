@@ -1,0 +1,9 @@
+{
+  "algorithm_name": "DBSCAN",
+  "algorithm_version": "1.0.0",
+  "model_config_version": "dbscan-sweep-c4-v1",
+  "eps": 0.7,
+  "min_samples": 3,
+  "metric": "euclidean",
+  "description": "DBSCAN Sweep C4 (Expanded neighborhood radius): eps=0.7, min_samples=3"
+}

@@ -22,19 +22,117 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 
 ## Tổng quan
 
+**16/11 — SEC-01 In Progress / PR #119 Draft:** fresh actual Drive/Colab scan
+có1finding anyone/writer ở notebook Trang; còn private roster và actual Colab
+ThanhTris. Source/history triage0untriaged findings,66security tests đạt.
+[Evidence](../../evidence/SEC-01_CLOUD_20261116.md). Không sửa ACL/Docker hoặc
+nhận DAT-03 receipts thay cloud acceptance. Những mốc phía dưới là lịch sử.
+
+**16/11 — DAT-03 portability:** ThanhTris đã tải đúng ZIPv2 nhưng phát hiện hai
+lỗi verifier Windows. Bản vá cùng PR #131 dùng PurePosixPath/UTC epoch integer,
+không ETL/export lại hoặc đổi20collection files. 36loader/kit +43CI tests và
+all-shard fresh restore kitv4 trên HoaiTam đạt; native Windows/Linux CI PASS
+trên `ed655bd` sau khi pin Python tzdata chỉ cho Windows. Actual Windows
+receipts chưa tự coi PASS. [Evidence](../../evidence/DAT-03_WINDOWS_HANDOFF_20261116.md),
+[release/hướng dẫn hiện hành](../../runbooks/DAT-03_OFFICIAL_RESEARCH_HANDOFF.md).
+DAT-03 giữ In Progress, không giảm acceptance hoặc tự fake receipts để Done.
+
+**15/11 — DAT-03 continuation:** owner đã duyệt thiết kế/đo profile90.000/window,
+giữ science và các guard khác; sau measured capacity/regression/fresh preflight
+mới chạy official collections. Cùng PR #131, giữ In Progress; note "chưa duyệt
+trên40k" bên dưới là lịch sử trước quyết định này.
+[Actual90k](../../evidence/DAT-03_OFFICIAL_COLLECTIONS_20261115.md): benchmark và
+fresh preflight2/2, hai EXPORTED/rerun/all-shard loaders,311+13SQL, paired release/
+fresh restore/Drive roundtrip PASS. [Hướng dẫn nhận](../../runbooks/DAT-03_OFFICIAL_RESEARCH_HANDOFF.md),
+390.374features/239mainshocks/6shards. Có receipt HoaiTam; giữ In Progress chờ
+receipt thật ThanhTris/rosy179, không tự scientific approval hoặc tạo hộ receipt.
+
+**15/11 — DAT-03 phần 3 In Progress:** official PREPARED coverage adapter,
+read-only capacity gate rồi hai collection export/lifecycle/registry thật,
+loader/rerun/release; không đổi flags hoặc giả legacy receipts để mở gate.
+Hai preflight thật v1 BLOCKED_RESOURCE, không ML writes; owner duyệt kiểm chứng
+profile40.000 đã PASS98,107giây, nhưng EXTENSION còn max83.504/window, chưa được
+tự nâng cap. V2 metadata prepared, chưa fresh real v2 preflight/build;0bảng ML.
+[Evidence phần 3](../../evidence/DAT-03_PREPARED_ML_20261115.md); giữ In Progress.
+
+**15/11 — DAT-03 phần 2 đạt:**
+[evidence](../../evidence/DAT-03_PORTABLE_GOLD_20261115.md).
+Six-table Gold Published tại namespace mới đã duyệt; Trino 139 + 41 calls,
+rerun 139 + 15 calls giữ SHA/six pins/history 1/table. Own lease release, runtime
+idle/services unchanged; giữ original failure và scoped recovery provenance.
+Giữ In Progress cho official collections/EXPORTED, loader/release và receipts ba máy.
+Các note “chưa Gold” bên dưới là lịch sử trước phần 2; không fake legacy readiness.
+
+**15/11 — DAT-03 portable importer phần 1:**
+[contract](../../specs/DAT03_PREPARED_CATALOG.md),
+[evidence](../../evidence/DAT-03_PORTABLE_IMPORT_20261115.md).
+Adapter PREPARED baseline163 + worker125 tháng đã có full receipt27/27batch,
+288tháng;4.488.650canonical/4.489.823bridge,global reconciliation cân bằng.
+Independent reuse PASS, catalog SHA không đổi; phần1 hoàn tất kỹ thuật.
+Không ghi Gold/official export;
+giữ In Progress, không coi component này là Done toàn DAT-03.
+
+**15/11 — DAT-03 In Progress:** [capacity/provenance](../../evidence/DAT-03_CAPACITY_PROVENANCE_20261115.md)
+đạt event/bridge6.012.210 stress rows mỗi bảng và74→37 source mapping có physical
+readback. Chưa có versioned Gold importer/coverage adapter, unified publication
+hoặc official exports/receipts. Các blocker startup capacity14/11 là lịch sử.
+
+**14/11 — DAT-03 portable readback:** nhận đủ original follow-up Trang/Trí,
+Java kiểm125/125tháng worker qua13batch/42groups, không bung dataset hoặc ghi Gold.
+[Evidence](../../evidence/DAT-03_PORTABLE_READBACK_20261114.md),
+[runbook](../../runbooks/DAT-03_PORTABLE_READBACK.md). **In Progress**; còn actual
+unified Gold288tháng/Trino, official exports và receipts ba máy. Các ghi chú chờ
+24+23/2+1metadata trước đây giữ làm lịch sử, không yêu cầu gửi lại.
+
+**Hiện hành12/11:** 64/81 Done,5 Needs Update,11 Backlog,1 In Progress (DAT-03).
+**Lịch sử14/11 — byte audit trước follow-up / PR #131:** [Byte audit mới](../../evidence/DAT-03_BYTE_AVAILABILITY_20261114.md)
+đạt119/119payload refs Trí,144/144Trang,37/37source refs mỗi worker bằng
+bytes tái dùng có cùng SHA/size trên coordinator. Trang114metadata đã matched;
+còn identities/current-head metadata, complete Iceberg graph và actual
+integration/export/receipts. **In Progress**, không chứng nhận original S3keys.
+**13/11:** HoaiTam tiếp tục DAT-03 inventory tái dùng payload từ main #128;
+giữ In Progress, chưa nghiệm thu catalog hợp nhất hoặc official export.
+[Actual payload inventory13/11](../../evidence/DAT-03_PAYLOAD_REUSE_20261113.md):
+100/119refs Trí có sẵn, delta1content595bytes; Trang còn114metadata objects.
+[DAT-03 actual metadata audit](../../evidence/DAT-03_LINEAGE_FRONTIER_20261112.md): first-hop và Trí next-hop matched; [ThanhTris frontier metadata](../../evidence/DAT-03_LINEAGE_ThanhTris_METADATA_20261112.md) đã bàn giao; chưa official integration/export.
+[Kế hoạch tuần9,6task/người](../WEEK_9_REPLAN_20261111.md),
+[đối soát PR/acceptance](../../evidence/TASK_STATUS_AUDIT_20261111.md).
+COL-03 Done sau #117; #124 merge implementation, MLI-04 còn official parity.
+Các mốc bên dưới là lịch sử. Năm task dở chuyển Needs Update theo yêu cầu
+owner11/11, không sửa lịch sử thành từng Done; khi thực sự tiếp tục đổi In Progress.
+
+**DAT-03 14/11 — nghiệm thu 114 objects frontier rosy179 trên Drive:** Hoài Tâm đã tải và đối soát độc lập gói `rosy179-dat03-lineage-frontier.zip` (101.446 bytes, SHA-256 `0dd1c504f27489709c46748b313e9f764ecfc25a58ef50a2699cbcf0626e8453`): đủ 114/114 objects gốc khớp 100% SHA-256 (92 Silver manifests + 22 Gold parent commits), không thiếu/thừa metadata, không duplicate ZIP members. Cổng 1 tiếp tục MỞ chờ follow-up metadata `config/research/dat03_lineage_rosy179_followup_20261114.json` (PR #131: 22 parent identities + head `orc07-22b5e7647a3df9ed83370139e11c48048845ee8f` = 24 pinned objects + 23 publication URIs) và phần đối soát ThanhTris. Công cụ `scripts/pack-worker-lineage.py` và test harness hỗ trợ `AWS_SESSION_TOKEN`, cô lập mocking boto3 an toàn đạt 51 tests PASS (toàn bộ 73/73 worker tests PASS). [Evidence](../../evidence/DAT-03_PROGRESS.md). Giữ Needs Update / In Progress chờ nghiệm thu 4 cổng.
+
+**DAT-03 05/11 — đối soát 288 tháng và 75/75 provenance ThanhTris:** đối soát offline
+xác nhận đủ 288/288 tháng qua 4 gói phân đoạn (101 nền, 62 HoaiTam, 62 ThanhTris,
+63 rosy179), 0 gap và 0 overlap. Provenance ThanhTris đạt 75/75 objects khớp 100%
+SHA-256. [Evidence](../../evidence/DAT-03_INTEGRATION_EVIDENCE_288_MONTHS.md).
+Cả hai worker đã đưa đủ first-hop provenance lên Drive (ThanhTris: 75/75, rosy179: 83/83)
+và được đối chiếu độc lập khớp 100% SHA-256. Còn 4 cổng kỹ thuật: đối soát transitive lineage
+(Cổng 1), tích hợp catalog/khử trùng ranh giới (Cổng 2), official ML export cho 2 split
+REPRODUCTION/EXTENSION (Cổng 3) và 3 receipts (Cổng 4). Task In Progress.
+
 **DAT-03 29/10 — range recovery:** có [bản vá và hướng dẫn máy rosy179](../../runbooks/DAT-03_RANGE_RECOVERY.md)
 cho session952973b42c8d4570b653ece99c79ed78 bị ngắt ở Verify sau COMMITTED.
 Giữ failed evidence, không quarantine/skip. Báo cáo33/63 của chủ máy chưa
 được cộng thành acceptance; chờ actual recovery trên máy đó. Task In Progress.
 
-**Phân công hiện hành — tuần7, 02–08/11/2026:**
+**Phân công lịch sử — tuần7, 02–08/11/2026:**
 [kế hoạch Colab ba khối](../WEEK_7_COLAB_PLAN.md) và
 [setup đầy đủ](../../runbooks/WEEK_7_COLAB_SETUP.md). HoaiTam khối1
 (DAT-03 pilot/EXP-01/COL-01/DOC-01/SEC-01), rosy179 khối2
 (EXP-02/COL-02/COL-03), ThanhTris khối3 (EXP-03/COL-04/EXP-04/MLI-04).
 EXP-01 Done cho cloud harness01/11 qua Colab CPU thật/ba parity/output readback;
-local nghiệm thu cũ vẫn giữ. Bốn COL
-mới Backlog, EXP-03 chuyển owner ThanhTris; không claim Colab đã chạy từ plan.
+local nghiệm thu cũ vẫn giữ. COL-01 Done ngày02/11 sau fresh Colab Run all và
+[output ZIP readback](../../evidence/COL-01_PILOT_EDA_20261102.md).
+COL-02 Done ngày 05/11: fresh Colab CPU đạt 9 configs + DBSCAN_C1 rerun;
+actual notebook và ZIP đã tải về, independent readback đủ 75 files/10 parity đạt.
+[Evidence và pins](../../evidence/COL-02_COLAB_20261104.md),
+[runbook](../../runbooks/COL-02_COLAB_ACCEPTANCE.md). Chỉ development pilot,
+không scientific approval hoặc receipt chạy của cả nhóm.
+Trạng thái COL-03/04 theo file task và bảng bên dưới, không suy ra từ kế hoạch gốc.
+EXP-03 chuyển owner ThanhTris; kế hoạch không tự
+chứng nhận các task đã chạy Colab.
 Week metadata task cũ là lịch triển khai gốc, carryover tuần7 tại kế hoạch mới.
 Các ghi chú phân công tuần5 bên dưới giữ làm lịch sử, không là roster hiện hành.
 
@@ -71,7 +169,7 @@ full catalog/export/receipts ba máy.
 
 - Tổng số task: **81**.
 - Foundation: **9 task `Done`**, FND-01 đã nghiệm thu runtime của lifecycle mới ngày 2026-10-15.
-- Task còn ở trạng thái `Needs Update`: **0**; SEC-01 đang In Progress cho actual cloud audit. EXP-01 cloud harness tuần7 đã Done, không thay security/session audit.
+- Task còn ở trạng thái `Needs Update`: **4** — EXP-02/03/04, MLI-04; SEC-01 In Progress cho fresh cloud audit16/11. DAT-03 theo evidence/task riêng; EXP-01 cloud harness không thay security/session audit.
 - Core: **73 task**.
 - Stretch: **8 task**.
 - Tổng effort task: **416 giờ**; baseline 364h + ORC-06/07 16h + DAT-02 6h + DAT-03 16h + COL-01..04 14h.
@@ -254,7 +352,7 @@ portable merge, full catalog và official export/receipts. Không suy unit PASS 
 | Task | Tuần | Workstream | Scope | Priority | Effort | Trạng thái |
 |---|---:|---|---|---|---:|---|
 | [GLD-01](./GLD-01.md) - Xây canonical event, dimensions và bands | 4 | Analytics model | Core | P0 | 6h | Done |
-| [GLD-02](./GLD-02.md) - Tạo aggregate phục vụ dashboard | 4 | Aggregates | Stretch | P2 | 4h | Backlog |
+| [GLD-02](./GLD-02.md) - Tạo aggregate phục vụ dashboard | 4 | Aggregates | Stretch | P2 | 4h | Done |
 | [GLD-03](./GLD-03.md) - Ghi Gold Iceberg và commit snapshot | 4 | Iceberg publish | Core | P0 | 6h | Done |
 | [GLD-04](./GLD-04.md) - Tạo Trino views và verification SQL | 4 | Trino verification | Core | P0 | 4h | Done |
 
@@ -285,14 +383,14 @@ portable merge, full catalog và official export/receipts. Không suy unit PASS 
 | Task | Tuần | Workstream | Scope | Priority | Effort | Trạng thái |
 |---|---:|---|---|---|---:|---|
 | [EXP-01](./EXP-01.md) - Tạo Jupyter harness và chuẩn bị chuyển sang Colab | 5 | Jupyter-first harness | Core | P0 | 5h | Done |
-| [EXP-02](./EXP-02.md) - Chạy Window, DBSCAN và HDBSCAN global | 5 | Baseline algorithms | Core | P0 | 7h | In Progress |
-| [EXP-03](./EXP-03.md) - Xây HDBSCAN adaptive và giải quyết multi-sequence | 5 | Adaptive HDBSCAN | Core | P0 | 6h | In Progress |
-| [EXP-04](./EXP-04.md) - Đánh giá quality, physical consistency và stability | 7 | Scientific evaluation | Core | P0 | 7h | Backlog |
+| [EXP-02](./EXP-02.md) - Chạy Window, DBSCAN và HDBSCAN global | 5 | Baseline algorithms | Core | P0 | 7h | Needs Update |
+| [EXP-03](./EXP-03.md) - Xây HDBSCAN adaptive và giải quyết multi-sequence | 5 | Adaptive HDBSCAN | Core | P0 | 6h | Needs Update |
+| [EXP-04](./EXP-04.md) - Đánh giá quality, physical consistency và stability | 7 | Scientific evaluation | Core | P0 | 7h | Needs Update |
 | [EXP-05](./EXP-05.md) - Chạy out-of-period extension 2018-2023 | 7 | Out-of-period evaluation | Core | P0 | 5h | Backlog |
-| [COL-01](./COL-01.md) - Khảo sát và giải thích pilot trên Colab | 7 | Colab pilot data inspection | Core | P1 | 3h | Backlog |
-| [COL-02](./COL-02.md) - Sweep tham số baseline giới hạn trên pilot | 7 | Bounded baseline parameter sweep | Core | P1 | 4h | Backlog |
-| [COL-03](./COL-03.md) - Metrics và trực quan hóa baseline pilot | 7 | Pilot baseline metrics and plots | Core | P1 | 4h | Backlog |
-| [COL-04](./COL-04.md) - Kiểm thử biên, multi-sequence và rerun adaptive | 7 | Adaptive edge-case regression | Core | P1 | 3h | Backlog |
+| [COL-01](./COL-01.md) - Khảo sát và giải thích pilot trên Colab | 7 | Colab pilot data inspection | Core | P1 | 3h | Done |
+| [COL-02](./COL-02.md) - Sweep tham số baseline giới hạn trên pilot | 7 | Bounded baseline parameter sweep | Core | P1 | 4h | Done |
+| [COL-03](./COL-03.md) - Metrics và trực quan hóa baseline pilot | 7 | Pilot baseline metrics and plots | Core | P1 | 4h | Done |
+| [COL-04](./COL-04.md) - Kiểm thử biên, multi-sequence và rerun adaptive | 7 | Adaptive edge-case regression | Core | P1 | 3h | Done |
 
 ## I - ML Integration
 
@@ -301,7 +399,7 @@ portable merge, full catalog và official export/receipts. Không suy unit PASS 
 | [MLI-01](./MLI-01.md) - Khóa result bundle và experiment lifecycle | 4 | Result bundle contract | Core | P0 | 5h | Done |
 | [MLI-02](./MLI-02.md) - Tạo Airflow DAG build ML dataset | 5 | Dataset build orchestration | Core | P0 | 5h | Done |
 | [MLI-03](./MLI-03.md) - Validate/import kết quả và commit bảng ML Iceberg | 5 | Result import and Iceberg publish | Core | P0 | 7h | Done |
-| [MLI-04](./MLI-04.md) - Tạo Trino views và static report cho experiment | 8 | ML serving and report | Core | P0 | 4h | Backlog |
+| [MLI-04](./MLI-04.md) - Tạo Trino views và static report cho experiment | 8 | ML serving and report | Core | P0 | 4h | Needs Update |
 | [MLQ-01](./MLQ-01.md) - Chạy E2E Gold snapshot đến ML report | 8 | ML end-to-end QA | Core | P0 | 6h | Backlog |
 
 ## J - Power BI tùy chọn

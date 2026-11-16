@@ -1,5 +1,9 @@
 # GLD-03 — Gold Iceberg commit
 
+> DAT-03 bổ sung [explicit PREPARED input contract](PREPARED_GOLD_PUBLICATION.md).
+> Scope mới có `prepared_input`, không giả `silver_bundle_sha256` hoặc legacy
+> FullMonthReady. Chỉ namespace mới đã duyệt; legacy constructor/flow giữ nguyên.
+
 Historical v1 giữ nguyên `COMPLETE_MONTHS`. Extension operational dùng
 [component current-month riêng](../runbooks/CURRENT_MONTH_GOLD_PUBLICATION.md),
 reserved namespace và persisted policy; legacy writer từ chối namespace đó.

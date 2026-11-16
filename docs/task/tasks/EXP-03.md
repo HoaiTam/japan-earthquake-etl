@@ -1,6 +1,6 @@
 ---
 task_id: "EXP-03"
-status: "In Progress"
+status: "Needs Update"
 week: 5
 block: "H - Experiment"
 workstream: "Adaptive HDBSCAN"
@@ -13,6 +13,20 @@ dependencies: ["EXP-02"]
 ---
 
 # EXP-03 - Xây HDBSCAN adaptive và giải quyết multi-sequence
+
+## Giao việc hiện hành — 11/11/2026
+
+- **Owner:** ThanhTris; **status:** Needs Update.
+- **Làm phần gì / dùng để làm gì:** Adaptive và multi-sequence.
+- **Bắt đầu độc lập:** Tái dùng #113/#116; bổ sung actual Colab notebook/output/session cho SEC-01 sau local gate.
+- **Đầu ra và điều kiện Done:** Sau EXP-02 official: adaptive REPRODUCTION bundle, raw/resolved membership, ambiguous/nested counts; khóa config trước extension.
+- **Lịch:** chuẩn bị 11–15/11, nghiệm thu tuần9 16–22/11; xem
+  [kế hoạch và setup](../WEEK_9_REPLAN_20261111.md). Giữ hard dependencies,
+  scope/effort lịch sử; các mục tuần cũ dưới đây là lịch sử.
+
+Owner yêu cầu11/11: In Progress → Needs Update cho phần đã triển khai nhưng
+chưa đủ acceptance. Không khẳng định từng Done toàn task hoặc mất code.
+[Đối soát](../../evidence/TASK_STATUS_AUDIT_20261111.md).
 
 ## Mục đích
 
@@ -72,10 +86,21 @@ evidence cũ thành nghiệm thu của người mới. Giữ In Progress và har
 
 ## Theo dõi
 
-- **Trạng thái:** In Progress
+- **Trạng thái:** Needs Update
 - **Assignee:** ThanhTris
 - **Reviewer:** unassigned
-- **Evidence / PR:** [EXP-03 evidence](../../evidence/EXP-03.md), [PR #86](https://github.com/HoaiTam/japan-earthquake-etl/pull/86) đã merge implementation. Đồng bộ tuần 5 ngày 22/10/2026 theo phân công gần nhất. Evidence notebook hiện là isolated_exec/fallback, không thay fresh-kernel acceptance trên input hợp lệ; dependency EXP-02 còn In Progress.
+- **02/11/2026 — local smoke gate update & real pilot identity verification:** Hoàn thiện theo review của @HoaiTam (PR #113):
+  1. Loại bỏ fallback ngầm; gate fail ngay lập tức (`FileNotFoundError: PILOT_BUNDLE_NOT_FOUND`) nếu đường dẫn pilot thiếu hoặc không hợp lệ. Khắc phục lỗi CI runner bằng cách truyền fixture pilot rõ ràng trong unit tests notebook.
+  2. Xác minh và ghi nhận danh tính pilot thật vào evidence JSON: `pilot_id` (`pilot_196b6d4081d347e1c289e331022658fbbe572dd33181ad987900895c1f1b189c`), 279 dòng đặc trưng, 2 mainshock windows, `features_parquet_sha256` (`3baddf613f237d2117248ad9095230ec17e428ea47f73d499623035d3097d2e6`), `checksums_index_sha256` (`310b5f232ae34ca4f0a197b0181bff81efe6bee38897b6e151e9b58e8d5a6502`), `is_real_pilot=true`.
+  3. Siết chặt fail-closed hard gate EXP-02 (đối chiếu trực tiếp evidence report `docs/evidence/EXP-02_COLAB_PARITY_20261102.json`, pilot ID pin, feature SHA pin, và handoff archive pin `d6be707111be8d2b1a2ba64434d6c0cacaa67b73c5aae3235f9772403c544333`, `prerequisite_verified=true`) trước khi cấp phép `colab_migration_allowed=true`. Siết chặt `find_latest_experiment_run` kiểm tra khớp tuyệt đối `experiment_run_id` với subfolder và manifest thay vì sort theo mtime mù.
+  4. Bổ sung 9 regression tests trong `tests/test_adaptive_hdbscan.py` (nâng tổng số lên 32 tests PASS).
+  5. Thực thi fresh kernel `nbclient` Python 3.12.16 trên bundle pilot thật thành công; xuất bằng chứng tại [EXP-03-local-smoke.json](../../evidence/EXP-03-local-smoke.json). Giữ `In Progress` cho cloud run.
+- **03/11/2026 — gate hardening & exact run ID pinning (Round 3 review):** Hoàn thiện 2 điểm P2 theo review của @HoaiTam (PR #113):
+  1. Phân biệt rõ chế độ nghiệm thu artifact vs report verification: Trong chế độ `REPORT_ONLY_VERIFIED` (`handoff_archive_exists=false`), gate kiểm tra chặt chẽ metadata, binding pilot/code/config/run và trạng thái `local_smoke_status=PASSED`. Nếu truyền `EXP02_HANDOFF_ARCHIVE` nhưng file không tồn tại, hoặc report EXP-02 có trạng thái `FAILED`, gate lập tức fail-closed.
+  2. Loại bỏ hoàn toàn việc sort mtime mù khi resolve experiment output: Inspector tạo và truyền `experiment_run_id` xác định vào notebook kernel trước khi chạy; chỉ nghiệm thu đúng run đó và đối chiếu cấu trúc manifest JSON.
+  3. Bổ sung thêm 8 regression tests nâng tổng số lên **40 tests PASS** với fresh Jupyter kernel (đạt 21/21 CI checks).
+  4. Xuất evidence mới tại [EXP-03-local-smoke.json](../../evidence/EXP-03-local-smoke.json) với status `REPORT_ONLY_VERIFIED`. Giữ task `In Progress` chờ PR #114 merge và nghiệm thu Colab cloud.
+- **Evidence / PR:** [EXP-03 evidence](../../evidence/EXP-03.md), [PR #86](https://github.com/HoaiTam/japan-earthquake-etl/pull/86) đã merge implementation, [PR #113](https://github.com/HoaiTam/japan-earthquake-etl/pull/113) local smoke gate review round 2. Hard gate EXP-02 đã được liên kết với PR #114.
 - **Kỹ năng phù hợp:** HDBSCAN, parameter policies, entity resolution
 
 ## Checklist bàn giao

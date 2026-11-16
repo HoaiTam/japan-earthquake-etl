@@ -45,7 +45,7 @@ jobs:
 
   docs-contracts:
     name: docs-contracts
-    needs: [impact, pilot]
+    needs: [impact, pilot, portable-loader]
     if: ${{ always() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -93,6 +93,12 @@ jobs:
           CI_PLANNER_RESULT: ${{ needs.impact.result }}
           CI_MODE: ${{ needs.impact.outputs.pilot }}
           CI_SUITE_RESULT: ${{ needs.pilot.result }}
+        run: python3 scripts/ci-impact.py gate
+      - name: Require applicable cross-platform collection loaders
+        env:
+          CI_PLANNER_RESULT: ${{ needs.impact.result }}
+          CI_MODE: ${{ needs.impact.outputs.pilot }}
+          CI_SUITE_RESULT: ${{ needs.portable-loader.result }}
         run: python3 scripts/ci-impact.py gate
 
   java-tests:
@@ -185,6 +191,32 @@ jobs:
         run: python3 -m pip install -r tests/ci/requirements.txt
       - name: Test affected pilot loader and handoff
         run: make ci-pilot-impact
+
+  portable-loader:
+    name: DAT-03 / portable-loader (${{ matrix.os }})
+    needs: impact
+    if: ${{ needs.impact.outputs.pilot != 'none' }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        os: [ubuntu-24.04, windows-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install pinned collection reader
+        run: python -m pip install -r config/ml/research_team_requirements.txt
+      - name: Verify portable loaders and delivered verifier
+        run: python -B -m unittest tests.test_research_collection_loader tests.test_research_team tests.test_research_timestamp_interop
 
   # Keep the existing required-check names. An applicable failed/skipped/cancelled
   # matrix (or a failed planner) must fail its gate, not be reported as success.

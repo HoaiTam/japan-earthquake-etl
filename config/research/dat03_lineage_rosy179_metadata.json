@@ -1,0 +1,589 @@
+{
+  "version": "dat03-lineage-frontier-request-v1",
+  "owner": "rosy179",
+  "scope": "METADATA_FRONTIER_NOT_OFFICIAL_ACCEPTANCE",
+  "basis_roots_sha256": "f4fdc2115fc97da409231823b54a6eb7cecffe0557cb9f893e905b9cbdb39a4c",
+  "basis_archives": [
+    {
+      "sha256": "f818ba4697d3915376420ad66cd040c542853333a31bc2b4e4a5d0b4115d859e",
+      "entries": 84
+    }
+  ],
+  "object_count": 114,
+  "objects": [
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-0f87aad8b4ca1841cde6fe131eb17844ff848b7a/canonical_membership/manifest.json",
+      "sha256": "4b7c7ed0ad1e6374ba49f9495c58e0951264817ebfedc6a9fe02f7bc20009d61",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-0f87aad8b4ca1841cde6fe131eb17844ff848b7a/reject_record/manifest.json",
+      "sha256": "5e92b07a425dfbadda7826068894fb33a0eb2d73b5b06a89fe818e40ae642966",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-0f87aad8b4ca1841cde6fe131eb17844ff848b7a/source_link/manifest.json",
+      "sha256": "8183044b516e95e68ff4c03632dad5bf2e33f25b6635bfe4695e0432f1db1aed",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-0f87aad8b4ca1841cde6fe131eb17844ff848b7a/source_observation/manifest.json",
+      "sha256": "2164402e8ecb77cb8f98bad9b4589ca1266869536dd7324a1d449d60c0ffb5cf",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-1afeb8c3aa73a9f0e2ee03a5f028596edc454ea5/canonical_membership/manifest.json",
+      "sha256": "4439de0a7163664adf0a98939aeda10a462644e83f2d8d569a1b05fc68fe8df0",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-1afeb8c3aa73a9f0e2ee03a5f028596edc454ea5/reject_record/manifest.json",
+      "sha256": "fe3475b409bfefbc071205202a01629becedc78dea9aa5169d55f1328ca74f0c",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-1afeb8c3aa73a9f0e2ee03a5f028596edc454ea5/source_link/manifest.json",
+      "sha256": "2a8d9c24261d174aacb6c4c9808cb885f34e40c44449fd815b6e7eff211b15e7",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-1afeb8c3aa73a9f0e2ee03a5f028596edc454ea5/source_observation/manifest.json",
+      "sha256": "c82a2a2fe0e66f8b3c517c805152966a9f7ceaf2a7b2b0bec409f10875ebb32d",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-22b5e7647a3df9ed83370139e11c48048845ee8f/canonical_membership/manifest.json",
+      "sha256": "9a34cd7b5ba45af7e7f2aefa13bcfd8d8ae59106cf3045e49f9f794068c6a012",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-22b5e7647a3df9ed83370139e11c48048845ee8f/reject_record/manifest.json",
+      "sha256": "cc616084f12d2ee39274e804f1e7de9cf4ae8fb87c8ba25f84e965be67fcdec0",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-22b5e7647a3df9ed83370139e11c48048845ee8f/source_link/manifest.json",
+      "sha256": "448c458a6569ae3a1d0236c2e9823ceb7d0455b0d4aec6695e98f76656cdc609",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-22b5e7647a3df9ed83370139e11c48048845ee8f/source_observation/manifest.json",
+      "sha256": "7aaa16d1480150cb7746400d7d2af969aa4ac8b3fe86cd1271200545a294d39c",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-2e17ab4d8060235aabf7412a0ebb109bbdaa97f6/canonical_membership/manifest.json",
+      "sha256": "d6159ca6e7d1ac396c45ae650c4767368ae42e68e6fcbe7768219507bb38d71d",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-2e17ab4d8060235aabf7412a0ebb109bbdaa97f6/reject_record/manifest.json",
+      "sha256": "f53a969fad29484de85e2b5a7c9ea9557f36bb6b52511b90802064593b96ecba",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-2e17ab4d8060235aabf7412a0ebb109bbdaa97f6/source_link/manifest.json",
+      "sha256": "f7b1f27c6bc5df566e2cd4366ec7d555d7357e20334fd103306bdcb12e8aaec4",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-2e17ab4d8060235aabf7412a0ebb109bbdaa97f6/source_observation/manifest.json",
+      "sha256": "f6050a0f1d2f3f9bd9936bdf2e03fe056df54f4ecb4eadec1364190a465bc6a4",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-3963e6a5e322185df68fb64b09807ea934efb059/canonical_membership/manifest.json",
+      "sha256": "01f97bbf148d97dc85c7756c100604f5c1aee75d39ac25284cf40c51945f4fb3",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-3963e6a5e322185df68fb64b09807ea934efb059/reject_record/manifest.json",
+      "sha256": "7ff6dbd69c4192f077f6e5b6e25689d443993fcf9fe54e2f1d6df1532b1d6975",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-3963e6a5e322185df68fb64b09807ea934efb059/source_link/manifest.json",
+      "sha256": "08c7e99ce1f3bf7e471d5b7ecca9b83a04d281753b1fcfc643ec21075ca2474e",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-3963e6a5e322185df68fb64b09807ea934efb059/source_observation/manifest.json",
+      "sha256": "46a3601feb2b72b18a055574a5324b9d93a0634398112cd956780faefdc6234f",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-5a56c90a6a45e7cc83a1b412b1314e43ae8e5df5/canonical_membership/manifest.json",
+      "sha256": "949439c6645a40f2cfabac1bb7ea13ad78346aeb06b74c5b960cc6d882d767fd",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-5a56c90a6a45e7cc83a1b412b1314e43ae8e5df5/reject_record/manifest.json",
+      "sha256": "1a0df70bc38c17c190686e129fb459d7330db279b5031ece993db029867285fa",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-5a56c90a6a45e7cc83a1b412b1314e43ae8e5df5/source_link/manifest.json",
+      "sha256": "796e4603b26000d2aabbca27024872195ce1e817d222b241dbe8fb4a0190c225",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-5a56c90a6a45e7cc83a1b412b1314e43ae8e5df5/source_observation/manifest.json",
+      "sha256": "507709774cdc99af53bfdc62e30db898653116228d148f2d451b05a3cf669f6e",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-5f6634681f7964e2edbf1b4a47888f02587bc6d8/canonical_membership/manifest.json",
+      "sha256": "ec293e5fa15b8c07747259ca5456e79a6b0d7f49acd1ebcbe21bb242af125cd5",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-5f6634681f7964e2edbf1b4a47888f02587bc6d8/reject_record/manifest.json",
+      "sha256": "71032235c4362ce7a0d059e3f92311da4d30412a2258e1d5b83be05325f672b7",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-5f6634681f7964e2edbf1b4a47888f02587bc6d8/source_link/manifest.json",
+      "sha256": "2145993f98e19853e84282083418709592e9a44e56d1c16b5b69abe7a3b2d916",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-5f6634681f7964e2edbf1b4a47888f02587bc6d8/source_observation/manifest.json",
+      "sha256": "df6834678317d88c35bb17c60bc6a9c7ce8709e981dd1e3dfeede90378da115b",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-729094b2006decd4cc2929726b675b4548299dac/canonical_membership/manifest.json",
+      "sha256": "a23fa46920ce762484c97e4ee4fc2bbfca2a174c7253b25a8d849929e7e698c8",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-729094b2006decd4cc2929726b675b4548299dac/reject_record/manifest.json",
+      "sha256": "3cf06c1c02d3388caefb3acd5b8e5831dca4489e3f41f97de24ffdd1be5b864a",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-729094b2006decd4cc2929726b675b4548299dac/source_link/manifest.json",
+      "sha256": "771d4d0771616549c2ef4e9f5af6cf910dc5aa2b349ec030262d0f4b522dd741",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-729094b2006decd4cc2929726b675b4548299dac/source_observation/manifest.json",
+      "sha256": "c829bb421f84af3ae8740b1dc87eae9ed3ee8e627137f9092fc6a8d1c005f25c",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-77c7f572ba474bfd67e407048501690ea6a0c4ec/canonical_membership/manifest.json",
+      "sha256": "612a0f0493c6b745f2ab91b023663077e836f8f8b9a8d00661b0fa9a36d10948",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-77c7f572ba474bfd67e407048501690ea6a0c4ec/reject_record/manifest.json",
+      "sha256": "3c212a318ee2af481f8cdee50663f5c1d1f5fad8d68a0efec2a1324f5f5b4ce5",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-77c7f572ba474bfd67e407048501690ea6a0c4ec/source_link/manifest.json",
+      "sha256": "2ff3298bc2b815492df8c00fa335f8d13417731fc8c3c5cf4a1acb9c81c81ae6",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-77c7f572ba474bfd67e407048501690ea6a0c4ec/source_observation/manifest.json",
+      "sha256": "66d39238acd8972ddd228e984041aa9bae78de613f17b91a804323c40d44c669",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-77f499538541bddd8e01c5a9fd050fb8370796ab/canonical_membership/manifest.json",
+      "sha256": "c895ef1db72b9ae50dcc3233fbbc1161baaa21225d678577fd9c80b7baee75d3",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-77f499538541bddd8e01c5a9fd050fb8370796ab/reject_record/manifest.json",
+      "sha256": "3ecfbaaedf25ffb66b9a60f9b50f5d87cae338e3b0a81a15150c1e905cb7eb4f",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-77f499538541bddd8e01c5a9fd050fb8370796ab/source_link/manifest.json",
+      "sha256": "4b65dbbd8ea2a410d5b72c3bf58292b278cf05975852659e49f1d5170e789104",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-77f499538541bddd8e01c5a9fd050fb8370796ab/source_observation/manifest.json",
+      "sha256": "9a0db480a34fb01c4bafacb2879af189df6554a6b62ec0bf6d6415af8f337f76",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-7bb7f5dd6c0343856dec22c77b7b0c9381583976/canonical_membership/manifest.json",
+      "sha256": "052630f63bbd9ee2d62591e5eafb3eeec7171a0a29ad6e8b9a7ee7822de6031b",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-7bb7f5dd6c0343856dec22c77b7b0c9381583976/reject_record/manifest.json",
+      "sha256": "7f6bc8bf4a9ac3424eb06ce7e4271dcd9cfd8193c4388c3095b8d952a155f9df",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-7bb7f5dd6c0343856dec22c77b7b0c9381583976/source_link/manifest.json",
+      "sha256": "3e23da49cd4b0b0d37d283cd52ad061af8b4f6653d4acb56bb3cf7fa26e29974",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-7bb7f5dd6c0343856dec22c77b7b0c9381583976/source_observation/manifest.json",
+      "sha256": "50dc43da0cdb70fa4701766fb95f56b95de14b783421a8e23af1b93ee9755789",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-88ca2c31b5642a360ab704e22842dde969223902/canonical_membership/manifest.json",
+      "sha256": "fb074cab4d5e20ddf141292db71c84c39b74c17817bf752c92d57131fba64ebd",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-88ca2c31b5642a360ab704e22842dde969223902/reject_record/manifest.json",
+      "sha256": "317999dc0ce22464733b9b5dd4bf6fa0bf9df1bbcee245eee7414eb9e5428ebf",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-88ca2c31b5642a360ab704e22842dde969223902/source_link/manifest.json",
+      "sha256": "63c08d986b89c8c58c7f8f18bad1b68db1f6f13d31a130690d7bc70347c0e5fb",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-88ca2c31b5642a360ab704e22842dde969223902/source_observation/manifest.json",
+      "sha256": "b1b1d6d34dbccb486bad286a3ad3f7adf4ea4b4469f68210b74c1d86181cade8",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-91128054466629e71699527e14717be2fb068b11/canonical_membership/manifest.json",
+      "sha256": "3a60e941564dbb23fcf87dcfd4651c06fbbe7ea4d15c75592cbddffbe4c8890b",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-91128054466629e71699527e14717be2fb068b11/reject_record/manifest.json",
+      "sha256": "192a68177c1dd090e5dc2a83f4e752c4a1396b2992d7ea22d8b96f7d18306590",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-91128054466629e71699527e14717be2fb068b11/source_link/manifest.json",
+      "sha256": "c472a19dd0fc5892fa5d99bb4f8a4ac5bdb9d43d7dd3be885703f0fc7a25b28b",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-91128054466629e71699527e14717be2fb068b11/source_observation/manifest.json",
+      "sha256": "b47229290398fdbccc0d440a57fda71bc15a4f4ec8f6878a240cd758753ad45e",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-9205e79ce793864082fe05235fe7716bb19d2726/canonical_membership/manifest.json",
+      "sha256": "af05be9c5ecade0ae9d86490fc8371088cddea78a82eb7a38b12b805cccf2ee8",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-9205e79ce793864082fe05235fe7716bb19d2726/reject_record/manifest.json",
+      "sha256": "74b54d4dce1073879278822331c11a8f6356525121c2a0354e4d7b115f63b56f",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-9205e79ce793864082fe05235fe7716bb19d2726/source_link/manifest.json",
+      "sha256": "6d904cccca7035bca67436e543c37d05f1abfb4573059c70d4f000830bf171c7",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-9205e79ce793864082fe05235fe7716bb19d2726/source_observation/manifest.json",
+      "sha256": "252109dc53b43659084e6390d14a419f83ae9c88213fc313409fb09f6adb99a2",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-923b4a3c11914704618ea793479520a1f7949f2a/canonical_membership/manifest.json",
+      "sha256": "5a1b1d5a17bcae51c311e1700fb271592cf4714a3282ce5bae941c7a5b952dbd",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-923b4a3c11914704618ea793479520a1f7949f2a/reject_record/manifest.json",
+      "sha256": "b68cf5acd39a89e03e6704522250956403765b6e20274efd9a98aa7a8f7b16ab",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-923b4a3c11914704618ea793479520a1f7949f2a/source_link/manifest.json",
+      "sha256": "aebc59cbb7d2b129ff2a231858fbfd1a9885cec1067d7fc12280e74698d493b9",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-923b4a3c11914704618ea793479520a1f7949f2a/source_observation/manifest.json",
+      "sha256": "b6269864c83e94ed449af332a4623058efeffd10609a36a4c959d0243f9e761b",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-999c65a30355df0ebedb27c47b866eac6e34a5d4/canonical_membership/manifest.json",
+      "sha256": "8335d48eb852242403d03f51ca737fe02f081492e33988833e2c76bd66d470a6",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-999c65a30355df0ebedb27c47b866eac6e34a5d4/reject_record/manifest.json",
+      "sha256": "f84b70a2a665dbf1e21409a227c0f64a764abf8dd553d0c035b995874a313a1e",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-999c65a30355df0ebedb27c47b866eac6e34a5d4/source_link/manifest.json",
+      "sha256": "55d0039d669ffeb178452ff324e8070a016b2f0ee22cf913faab63075db8ee4f",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-999c65a30355df0ebedb27c47b866eac6e34a5d4/source_observation/manifest.json",
+      "sha256": "8651d0d52e40cafeeb8338b0f586f18ca2cab621a0b1ea123135e97c68e6f5f5",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-d015477d95e71434be37f54ad3dbaba08d06b2a4/canonical_membership/manifest.json",
+      "sha256": "9dd1f951775684fec35891c63e52183bc2da6363dc900327ca8d1878677dba08",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-d015477d95e71434be37f54ad3dbaba08d06b2a4/reject_record/manifest.json",
+      "sha256": "64a1a5614135eefd5e3f1af268b8e96c7be527b23783e483ca8699095e7102b9",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-d015477d95e71434be37f54ad3dbaba08d06b2a4/source_link/manifest.json",
+      "sha256": "58d414dfdfae8b3123d71c124b8d9031c86d336269966e01a3faace43d592791",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-d015477d95e71434be37f54ad3dbaba08d06b2a4/source_observation/manifest.json",
+      "sha256": "0e407b3e87f27567cb11509e3866ad0a3974a0503988c2403490eb438e5a9864",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-d2b7e004aaa0294b6605046ad91b6a50a1ae30a9/canonical_membership/manifest.json",
+      "sha256": "ea3a6eb9497cd51a960e4fedcc08a8b11a93edade5f8394f31c146fc607408e8",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-d2b7e004aaa0294b6605046ad91b6a50a1ae30a9/reject_record/manifest.json",
+      "sha256": "41144d645489fd16e92e25c17d957737fe84d4c6ea227bd80eb0f44ce72821f7",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-d2b7e004aaa0294b6605046ad91b6a50a1ae30a9/source_link/manifest.json",
+      "sha256": "a8dc9de81dd4785e64d898c64060348a9c69b6c116369f9bd0dc989f0f2eb1b9",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-d2b7e004aaa0294b6605046ad91b6a50a1ae30a9/source_observation/manifest.json",
+      "sha256": "5a1f14deb0c389a1f883a9991a480d0f75d7d12a4a669dfd943c02fe3a01539e",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-dbf9d836daa31a55127ad1325cfecc79fa533e1b/canonical_membership/manifest.json",
+      "sha256": "11a29aee35f2dd4056f8cfca239ad556e9ecc260258b39d13f9f5317d93a904a",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-dbf9d836daa31a55127ad1325cfecc79fa533e1b/reject_record/manifest.json",
+      "sha256": "15920abe2e3f4c4174928013ae96f78bd63a93e2fa48af97da2c6ccb27ae74b7",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-dbf9d836daa31a55127ad1325cfecc79fa533e1b/source_link/manifest.json",
+      "sha256": "e12f3d5d7ac2609d172ad84194421b942e2126d19458c17a06aee3004d9e72d7",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-dbf9d836daa31a55127ad1325cfecc79fa533e1b/source_observation/manifest.json",
+      "sha256": "dc4a8d5630f3d18e3a8c3c3281c29ece73d87141b6b2815ed1282ccf969539cc",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-de8370dfe09b068c4fa13df76756e44232eecb16/canonical_membership/manifest.json",
+      "sha256": "9b531aa8ad196c68ce88748c121fd7d6f444726737eec65ae2d95c852856344f",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-de8370dfe09b068c4fa13df76756e44232eecb16/reject_record/manifest.json",
+      "sha256": "7fd535e790e0c8f4f28457c3192c6c6815228d6f3884f0cc2bb1175e9481df2c",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-de8370dfe09b068c4fa13df76756e44232eecb16/source_link/manifest.json",
+      "sha256": "0ae240fd60645e56d4b0f83b07c1cc6253b7cb6f2bb4d74af22a51fc1877e22b",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-de8370dfe09b068c4fa13df76756e44232eecb16/source_observation/manifest.json",
+      "sha256": "85dc1b08091b880daf7461f172893a554393f5e308d9f3037f1d19b3aee96ce3",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-ecf3820c1d74aec97bbbf32c195ef3ebc4fe076c/canonical_membership/manifest.json",
+      "sha256": "e70d7357dc45db0f523ed1670afc3400bb2297ec46cb6ac228857078c176e224",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-ecf3820c1d74aec97bbbf32c195ef3ebc4fe076c/reject_record/manifest.json",
+      "sha256": "9f922d827d14a8a17cbdd6a3b3d026378cc9578e692feef819cc3dd5d3380ecf",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-ecf3820c1d74aec97bbbf32c195ef3ebc4fe076c/source_link/manifest.json",
+      "sha256": "f164f5645285c04d8b65ff935f61d05d56ce8f375beeb1fdeb1390ff342c5bee",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-ecf3820c1d74aec97bbbf32c195ef3ebc4fe076c/source_observation/manifest.json",
+      "sha256": "4a0015c552f15bdcadc642c2d4256eac35d07f2b95d56f919ac5b32185b6a779",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-ed8f8eb8179a5331b93b57c25afcfbdf64a9fd6a/canonical_membership/manifest.json",
+      "sha256": "7a25f23bcc2b73b433010e62a88b8ce272fdd717a4f58389d7fc8f5091d9a5bd",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-ed8f8eb8179a5331b93b57c25afcfbdf64a9fd6a/reject_record/manifest.json",
+      "sha256": "4b665be245b91e6e2c2f40fcfd034a39461e206dc09ce010add45854a46c1a8e",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-ed8f8eb8179a5331b93b57c25afcfbdf64a9fd6a/source_link/manifest.json",
+      "sha256": "93f4c8474f1fcd9ee6526c18811c2a641e665f1cc7167e8bb22cebf2fbd91df9",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-ed8f8eb8179a5331b93b57c25afcfbdf64a9fd6a/source_observation/manifest.json",
+      "sha256": "16bac85523023e02f6415a572d6f46d256ac8c4190ef5cb75c174d2e93064340",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-fe87d2edce1aa09024dd03d7c88ecfdefca1605c/canonical_membership/manifest.json",
+      "sha256": "755cf09e9494337b0cf58d3d05dbb7aa87de4468d49cb04d802cefd50a4cf97b",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-fe87d2edce1aa09024dd03d7c88ecfdefca1605c/reject_record/manifest.json",
+      "sha256": "9e5b530d55ffa14f3d0590aebf0f2950b8d6dee0a2ff892a0c1ea5034467dbba",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-fe87d2edce1aa09024dd03d7c88ecfdefca1605c/source_link/manifest.json",
+      "sha256": "5ac80cafe381aebe5abccb2eb473864cf74ceeae47e34d97fb24c13d3340ca55",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-fe87d2edce1aa09024dd03d7c88ecfdefca1605c/source_observation/manifest.json",
+      "sha256": "22c195272b1cb4bc878276e5f9ac67c93602839e94b2e453fb3ac0f02d9cad86",
+      "kind": "silver_dataset_manifest"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/gold-commits/orc07-0f87aad8b4ca1841cde6fe131eb17844ff848b7a/commit.json",
+      "sha256": "237bb49e014c4eaeaeb73912abf41f5112f8d2170a3b8173c0576b1d09ad0d3b",
+      "kind": "gold_commit"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/gold-commits/orc07-1afeb8c3aa73a9f0e2ee03a5f028596edc454ea5/commit.json",
+      "sha256": "e6d00d94fe037f6f29944f974810517231a0bdea764d1fcc1b9ec012c1d1f773",
+      "kind": "gold_commit"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/gold-commits/orc07-2e17ab4d8060235aabf7412a0ebb109bbdaa97f6/commit.json",
+      "sha256": "6638870e89495c54081516a990e53c81b8649c714f6ca5cd75d87d0d39b18545",
+      "kind": "gold_commit"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/gold-commits/orc07-3963e6a5e322185df68fb64b09807ea934efb059/commit.json",
+      "sha256": "82ef585a10735c3f1178665991b5f413bc09b1deb92a38e656f1d5c93060ed1c",
+      "kind": "gold_commit"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/gold-commits/orc07-5a56c90a6a45e7cc83a1b412b1314e43ae8e5df5/commit.json",
+      "sha256": "592ce544540e1cb8a49deda535a4496dbb49aa16e0fe979622e8facc721bc779",
+      "kind": "gold_commit"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/gold-commits/orc07-5f6634681f7964e2edbf1b4a47888f02587bc6d8/commit.json",
+      "sha256": "3a8747bb7a29719f88319987ff439cd0c4a716d1cb2e056f6e5406890da71c17",
+      "kind": "gold_commit"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/gold-commits/orc07-729094b2006decd4cc2929726b675b4548299dac/commit.json",
+      "sha256": "cf186f159d24b861eb410113fd596c064426b82c2891b4380a30babc7908945f",
+      "kind": "gold_commit"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/gold-commits/orc07-77c7f572ba474bfd67e407048501690ea6a0c4ec/commit.json",
+      "sha256": "54ff31cafead1c16c7df5989198a7f5e22866474fd384421a56f251d32656205",
+      "kind": "gold_commit"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/gold-commits/orc07-77f499538541bddd8e01c5a9fd050fb8370796ab/commit.json",
+      "sha256": "7eeb7c569ce472b15192c20194e2027661b9472ef41af3c8ce979b8ba2c8e050",
+      "kind": "gold_commit"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/gold-commits/orc07-7bb7f5dd6c0343856dec22c77b7b0c9381583976/commit.json",
+      "sha256": "e029f74d650f44a5eb22f7e430c2cf3fbd0caa0c679398b17aae71354ab5e490",
+      "kind": "gold_commit"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/gold-commits/orc07-88ca2c31b5642a360ab704e22842dde969223902/commit.json",
+      "sha256": "f57dc5e03c7cca97326002e3f0ea6ae04728910d35b3f05ee23e3f460bc26170",
+      "kind": "gold_commit"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/gold-commits/orc07-91128054466629e71699527e14717be2fb068b11/commit.json",
+      "sha256": "1a8faac245ae86028a2b29fbfbfcef24e098ae772929496f3fce0d2b03b7c7a3",
+      "kind": "gold_commit"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/gold-commits/orc07-9205e79ce793864082fe05235fe7716bb19d2726/commit.json",
+      "sha256": "92bda51b81044614e4df33a480a799eefd0039835af17dfdc457b359b49ad88f",
+      "kind": "gold_commit"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/gold-commits/orc07-923b4a3c11914704618ea793479520a1f7949f2a/commit.json",
+      "sha256": "8c9a6366b7ecd9e368636a352fbb08652189ccbf998fabf39e309c2173d859e3",
+      "kind": "gold_commit"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/gold-commits/orc07-999c65a30355df0ebedb27c47b866eac6e34a5d4/commit.json",
+      "sha256": "e216e1bd9b2e77f0562d03e95819e0f3a8a64f6fd53bee9224f3a31cb673c495",
+      "kind": "gold_commit"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/gold-commits/orc07-d015477d95e71434be37f54ad3dbaba08d06b2a4/commit.json",
+      "sha256": "27e67f0ddf0a993c2ea2aebbfaa2b2d3f66b8f2d0e2e94aded1b6743f13dd928",
+      "kind": "gold_commit"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/gold-commits/orc07-d2b7e004aaa0294b6605046ad91b6a50a1ae30a9/commit.json",
+      "sha256": "f52249944044d2edea9c5b7996674cc4395970a6abe8f51bb190c368594b554a",
+      "kind": "gold_commit"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/gold-commits/orc07-dbf9d836daa31a55127ad1325cfecc79fa533e1b/commit.json",
+      "sha256": "312f9f86e92dd68f7f3ed106ba48523b904e8c9653a7c57791d27153d5817156",
+      "kind": "gold_commit"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/gold-commits/orc07-de8370dfe09b068c4fa13df76756e44232eecb16/commit.json",
+      "sha256": "1db7db9ac6dfdee2ea0041b41cd99ce87ee3dcec36ea8d1cfb57e16988354362",
+      "kind": "gold_commit"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/gold-commits/orc07-ecf3820c1d74aec97bbbf32c195ef3ebc4fe076c/commit.json",
+      "sha256": "fc815cbbd0707043c74cb3166ee0e28f589ab342185c836919a9c346177329ff",
+      "kind": "gold_commit"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/gold-commits/orc07-ed8f8eb8179a5331b93b57c25afcfbdf64a9fd6a/commit.json",
+      "sha256": "aae8fefc0baa48194babf23027008ab67e02d8e711fb6b4c51906f3c81145ebe",
+      "kind": "gold_commit"
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/gold-commits/orc07-fe87d2edce1aa09024dd03d7c88ecfdefca1605c/commit.json",
+      "sha256": "270eafdac9724f442e39cf130065c27641735b09582c489ed20f839840632b7b",
+      "kind": "gold_commit"
+    }
+  ],
+  "instruction": "GET exact original bytes; verify external SHA; do not regenerate or replay ETL. Missing in provided ZIPs does not mean missing on MinIO. Reuse matching existing shared bytes before any transfer.",
+  "unpinned_publication_uris": [],
+  "snapshot_references": [],
+  "unbound_reference_rule": "Publication URIs have no expected hash here. Supply original bytes with independently anchored pins; do not claim trusted verification from a new self-checksum. Snapshot IDs alone are not portable snapshot metadata."
+}

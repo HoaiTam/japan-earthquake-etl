@@ -20,7 +20,7 @@ public final class ResearchDatasetBuildJob {
     static final List<String> STATUSES=List.of("VERIFIED_PUBLISHED","SNAPSHOT_PINNED","AUDIT_PASSED","MC_RESOLVED","MAINSHOCKS_SELECTED",
             "WINDOWS_BUILT","FEATURES_BUILT","FEATURE_SNAPSHOT_VALIDATED","DATASET_EXPORTED","DATASET_EXPORTED");
     private ResearchDatasetBuildJob() { }
-    static ObjectNode config(String split,Instant cutoff,String code,JsonNode scaling) throws Exception {
+    public static ObjectNode config(String split,Instant cutoff,String code,JsonNode scaling) throws Exception {
         FeatureScalingConfig.fromJson(scaling);
         var selection=switch(split) {case "REPRODUCTION"->MainshockSelectionConfig.reproductionBaseline();
             case "EXTENSION"->MainshockSelectionConfig.extensionBaseline();default->throw new IllegalArgumentException("DS_INVALID_PERIOD");};

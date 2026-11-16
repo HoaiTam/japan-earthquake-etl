@@ -99,7 +99,7 @@ current-month-gold: ## Opt-in MinIO Silver -> operational Gold/Trino; prebuilt J
 current-month-local: ## Opt-in live USGS -> isolated local Bronze/Silver; không Docker, Gold hoặc scheduler mutation
 	@test -n "$(CURRENT_MONTH_REQUEST)" || { echo 'Set CURRENT_MONTH_REQUEST to an exact request JSON'; exit 2; }
 	@python3 scripts/current-month.py --request "$(CURRENT_MONTH_REQUEST)" --root "$(CURRENT_MONTH_ROOT)"
-.PHONY: check-docs test-docs test-dat03-team-setup test-dat03-range-worker
+.PHONY: check-docs test-docs test-dat03-team-setup test-dat03-range-worker test-dat03-provenance
 
 test-dat03-range-worker: ## DAT-03 isolated range control/input guards; no Docker/network
 	@python3 -B -m unittest discover -s tests -p 'test_dat03_range_worker.py'
@@ -107,6 +107,11 @@ test-dat03-range-worker: ## DAT-03 isolated range control/input guards; no Docke
 
 test-dat03-team-setup: ## DAT-03 offline assignment/pin/readiness regression; không Docker/network
 	@python3 -B -m unittest discover -s tests -p 'test_dat03_team_setup.py'
+
+test-dat03-provenance: ## DAT-03 worker provenance packaging/verification regression
+	@python3 -B -m unittest discover -s tests -p 'test_pack_worker_provenance.py'
+	@python3 -B -m unittest discover -s tests -p 'test_extract_minio_provenance.py'
+	@python3 -B -m unittest discover -s tests -p 'test_pack_worker_lineage.py'
 .PHONY: test-mli-import smoke-mli-import smoke-mli-import-acceptance smoke-mli-import-dag up-ml
 .PHONY: test-qa-04 smoke-qa-04
 .PHONY: test-mli-build check-mli-build-runtime
@@ -151,7 +156,7 @@ smoke-qa-acceptance: check-config-local ## QA-02/03/04 storage acceptance; khôn
 	@$(COMPOSE) --profile ml run --rm --no-deps --pull never -e PIPELINE_QA_TASK="$(PIPELINE_QA_TASK)" pipeline-qa-acceptance
 
 .PHONY: test-ml-window smoke-ml-window resume-ml-window
-.PHONY: prepare-ml-local stage-ml-windows test-ml-feature ml-features-local ml-pilot-local pilot-env test-pilot inspect-pilot jupyter-pilot
+.PHONY: prepare-ml-local stage-ml-windows test-ml-feature ml-features-local ml-pilot-local pilot-env test-pilot test-col03 inspect-pilot jupyter-pilot
 .PHONY: pack-pilot test-exp01 inspect-exp01 jupyter-exp01
 .PHONY: pack-team-pilot test-team-pilot profile-jma-research profile-jma-replay test-research-profile plan-research-profiles capture-research-profiles profile-research-archives
 RESEARCH_PROFILE_ROOT ?= staging/dat03-research-profile-20261024
@@ -310,6 +315,7 @@ RESEARCH_TEAM_ZIP ?= staging/shared-datasets/jma-research-team.zip
 
 test-research-team: ## DAT-03 paired kit/tamper/source race/offline fresh-process verifier fixtures; không Docker
 	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_research_team.py'
+	@$(PILOT_PYTHON) -B -m unittest tests.test_research_timestamp_interop
 
 .PHONY: test-catalog-prefix-kit
 test-catalog-prefix-kit: ## DAT-03 partial processed Parquet transport/pins/IDs/coverage; không Docker hoặc ETL
@@ -357,6 +363,7 @@ measure-research-light-session: ## DAT-03 EXPLICIT approved stop4/probe/restore4
 test-research-collection: ## DAT-03 collection/shared Mc/whole-window Parquet regression; không Docker hoặc nguồn thật
 	@./mvnw --batch-mode --no-transfer-progress -pl spark -am test -Dtest=ResearchCollectionPlanTest,ResearchCollectionJobTest,ResearchCollectionExportBundleTest,DatasetBuildJobTest,TrustedDatasetResolverTest,ResultBundleContractTest -Dsurefire.failIfNoSpecifiedTests=false
 	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_research_collection_loader.py'
+	@$(PILOT_PYTHON) -B -m unittest tests.test_research_timestamp_interop
 
 test-research-e2e: ## DAT-03 offline metadata/receipt guards, không Docker/mạng
 	@python3 -m unittest discover -s tests -p 'test_research_e2e.py'
@@ -489,9 +496,59 @@ test-pilot: ## Pilot/model regression; cần pyarrow/model deps và loopback Jup
 	@$(PILOT_PYTHON) -B -m unittest discover -s tests -p 'test_colab_bootstrap.py'
 	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_research_collection_loader.py'
 	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_research_team.py'
+	@$(PILOT_PYTHON) -B -m unittest tests.test_research_timestamp_interop
 	@$(MAKE) test-catalog-prefix-kit PILOT_PYTHON="$(PILOT_PYTHON)"
 	@$(PILOT_PYTHON) -m unittest tests/test_baseline_algorithms.py
 	@$(PILOT_PYTHON) -m unittest tests/test_adaptive_hdbscan.py
+	@$(MAKE) test-col01 PILOT_PYTHON="$(PILOT_PYTHON)"
+	@$(MAKE) test-col02 PILOT_PYTHON="$(PILOT_PYTHON)"
+	@$(MAKE) test-col03 PILOT_PYTHON="$(PILOT_PYTHON)"
+	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_mli04_views_and_report.py'
+
+.PHONY: test-dat03-lineage test-dat03-payload-inventory test-dat03-portable
+test-dat03-lineage: ## DAT-03 bounded offline metadata frontier audit regression; không Docker/network
+	@python3 -B -m unittest discover -s tests -p 'test_dat03_lineage.py'
+
+test-dat03-payload-inventory: ## DAT-03 byte inventory regression; không giải nén hoặc ghi S3
+	@python3 -B -m unittest tests.test_dat03_payload_inventory
+
+test-dat03-portable: ## DAT-03 metadata/planner/checkpoint + Java Parquet readback tests; không Docker/ETL
+	@python3 -B -m unittest tests.test_dat03_followup_verifier tests.test_dat03_portable_plan tests.test_dat03_readback_batches tests.test_dat03_bronze_relocation tests.test_dat03_portable_capacity tests.test_dat03_portable_import
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am -Dtest=PortableSilverReadbackTest,PortableGoldCapacityJobTest,PortableBronzeProvenanceTest,PortableImportContractTest,PortablePreparedCatalogTest -Dsurefire.failIfNoSpecifiedTests=false test
+
+.PHONY: test-dat03-import-spark
+test-dat03-import-spark: ## DAT-03 offline global/boundary Spark fixtures; requires Java 17, no Docker/MinIO
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am -Dtest=PortableCatalogReconcilerTest -Dsurefire.failIfNoSpecifiedTests=false test
+
+.PHONY: test-dat03-gold test-dat03-gold-spark
+test-dat03-gold: ## DAT-03 PREPARED proof/publisher/controller regression; no Docker/network
+	@python3 -B -m unittest tests.test_dat03_portable_gold
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am -Dtest=PreparedGoldProofTest,PreparedGoldContinuationTest,GoldPublicationTest,GoldVerifiedReuseTest -Dsurefire.failIfNoSpecifiedTests=false test
+
+test-dat03-gold-spark: ## DAT-03 actual local Iceberg writer fixtures; requires Java17, no MinIO
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am -Dtest=PreparedGoldWriterTest -Dsurefire.failIfNoSpecifiedTests=false test
+
+.PHONY: test-dat03-prepared-ml
+test-dat03-prepared-ml: ## DAT-03 Published PREPARED coverage/official ML guards; offline, không Docker
+	@python3 -B -m unittest tests.test_dat03_prepared_ml tests.test_dat03_prepared_ml_capture
+	@./mvnw --batch-mode --no-transfer-progress -pl spark -am -Dtest=PublishedPreparedCoverageTest,PreparedDatasetBuildJobTest,PreparedGoldProofTest,FeatureExportCoverageTest,ResearchCollectionPlanTest,ResearchDatasetBuildJobTest,DatasetManifestTest -Dsurefire.failIfNoSpecifiedTests=false test
+
+.PHONY: test-mli04
+test-mli04: ## MLI-04 Trino views, verification SQL và static report regression; offline
+	@python3 -m unittest discover -s tests -p 'test_mli04_views_and_report.py'
+
+.PHONY: test-col01
+test-col01: ## COL-01 offline EDA/guard/real PNG regression; cần notebooks/requirements-col01-lock.txt, không Docker
+	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_col_01_eda.py'
+
+.PHONY: test-col02
+test-col02: ## COL-02 parameter sweep regression; không Docker
+	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_parameter_sweep.py'
+	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_col02_colab.py'
+
+.PHONY: test-col03
+test-col03: ## COL-03 baseline metrics and visualization regression; cần notebooks/requirements-colab-lock.txt, không Docker
+	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_baseline_visualization.py'
 
 inspect-pilot: ## Fresh Jupyter kernel Run All; PILOT_BUNDLE=exact local directory, không Docker/API
 	@test -n "$(PILOT_BUNDLE)" || { echo 'Set PILOT_BUNDLE=staging/ml-pilot/pilot_id=<exact-id>'; exit 2; }
@@ -683,8 +740,12 @@ ci-docs: ## Docs/contracts/secret hygiene/Compose tĩnh; không đọc .env riê
 	@$(MAKE) test-pilot PILOT_PYTHON=python3
 
 ci-docs-base: ## Always-on CI guards; pilot tests được chọn riêng theo impact, không Docker daemon
+	@$(MAKE) test-dat03-lineage
+	@$(MAKE) test-dat03-payload-inventory
+	@python3 -B -m unittest tests.test_dat03_followup_verifier tests.test_dat03_portable_plan tests.test_dat03_readback_batches tests.test_dat03_bronze_relocation tests.test_dat03_portable_capacity tests.test_dat03_portable_import tests.test_dat03_portable_gold tests.test_dat03_prepared_ml tests.test_dat03_prepared_ml_capture
 	@$(MAKE) test-dat03-team-setup
 	@$(MAKE) test-dat03-range-worker
+	@$(MAKE) test-dat03-provenance
 	@$(MAKE) check-docs test-docs test-jma-source-handoff
 	@$(MAKE) test-contracts
 	@python3 -m unittest discover -s tests -p 'test_real_etl_cli.py'
@@ -705,6 +766,7 @@ ci-docs-base: ## Always-on CI guards; pilot tests được chọn riêng theo im
 	@python3 -m unittest discover -s tests -p 'test_research_usgs_captures.py'
 	@$(MAKE) test-research-trino-profile
 	@$(MAKE) test-research-light-session
+	@$(MAKE) test-mli04
 	@$(MAKE) test-security-audit
 	@$(MAKE) test-docker-runtime
 	@$(MAKE) check-config ENV_FILE=/dev/null

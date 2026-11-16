@@ -7,12 +7,22 @@ workstream: "Release"
 scope: "Core"
 priority: "P0"
 effort_hours: 6
-assignee: "unassigned"
+assignee: "HoaiTam"
 reviewer: "unassigned"
 dependencies: ["QA-01", "QA-02", "QA-04", "MLQ-01", "SEC-01", "DOC-01", "DEMO-01"]
 ---
 
 # DEMO-02 - Rehearsal và tạo release candidate
+
+## Giao việc hiện hành — 11/11/2026
+
+- **Owner:** HoaiTam; **status:** Backlog.
+- **Làm phần gì / dùng để làm gì:** Rehearsal/release candidate.
+- **Bắt đầu độc lập:** Chuẩn bị checklist, phân vai và phương án demo offline.
+- **Đầu ra và điều kiện Done:** Sau hard dependencies: ba người rehearsal 15–20 phút, chốt blocker/known limits; tag/publish cần quyền riêng.
+- **Lịch:** chuẩn bị 11–15/11, nghiệm thu tuần9 16–22/11; xem
+  [kế hoạch và setup](../WEEK_9_REPLAN_20261111.md). Giữ hard dependencies,
+  scope/effort lịch sử; các mục tuần cũ dưới đây là lịch sử.
 
 ## Mục đích
 
@@ -68,7 +78,7 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 ## Theo dõi
 
 - **Trạng thái:** Backlog
-- **Assignee:** Chưa ghi lại
+- **Assignee:** HoaiTam
 - **Reviewer:** Chưa ghi lại
 - **Evidence / PR:** Chưa có
 - **Kỹ năng phù hợp:** Release management, presentation

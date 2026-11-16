@@ -1,6 +1,6 @@
 ---
 task_id: "MLI-04"
-status: "Backlog"
+status: "Needs Update"
 week: 8
 block: "I - ML Integration"
 workstream: "ML serving and report"
@@ -13,6 +13,20 @@ dependencies: ["MLI-03", "EXP-04"]
 ---
 
 # MLI-04 - Tạo Trino views và static report cho experiment
+
+## Giao việc hiện hành — 11/11/2026
+
+- **Owner:** ThanhTris; **status:** Needs Update.
+- **Làm phần gì / dùng để làm gì:** Trino/static report official.
+- **Bắt đầu độc lập:** Tái dùng views/report/tests đã merge #124, không viết lại template.
+- **Đầu ra và điều kiện Done:** Sau EXP-04 và actual import: đọc đúng dataset/run/snapshot, đối soát SQL với report; chưa đủ evidence phải PENDING.
+- **Lịch:** chuẩn bị 11–15/11, nghiệm thu tuần9 16–22/11; xem
+  [kế hoạch và setup](../WEEK_9_REPLAN_20261111.md). Giữ hard dependencies,
+  scope/effort lịch sử; các mục tuần cũ dưới đây là lịch sử.
+
+Owner yêu cầu11/11: In Progress → Needs Update cho phần đã triển khai nhưng
+chưa đủ acceptance. Không khẳng định từng Done toàn task hoặc mất code.
+[Đối soát](../../evidence/TASK_STATUS_AUDIT_20261111.md).
 
 ## Mục đích
 
@@ -34,10 +48,10 @@ MVP phụ thuộc Power BI hoặc notebook output.
 
 ## Tiêu chí hoàn thành
 
-- [ ] Query chỉ đọc experiment `CANDIDATE`/`APPROVED` theo filter rõ.
+- [x] Query chỉ đọc experiment `CANDIDATE`/`APPROVED` theo filter rõ.
 - [ ] Count/summary/metric trong report khớp SQL cùng dataset/run.
-- [ ] Failure/noise/sample size không bị ẩn khỏi bảng so sánh.
-- [ ] Report dùng từ candidate và nêu rõ không dự đoán/causal.
+- [x] Failure/noise/sample size không bị ẩn khỏi bảng so sánh.
+- [x] Report dùng từ candidate và nêu rõ không dự đoán/causal.
 
 ## Hard dependency
 
@@ -73,18 +87,18 @@ Task cũ chưa làm giữ Backlog; không đổi hard dependencies để pilot �
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
+- **Trạng thái:** Needs Update
 - **Assignee:** ThanhTris
 - **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Evidence / PR:** Triển khai Trino ML views (`sql/ml/`), verification queries (`sql/ml/ml_verification_queries.sql`), static report generator (`scripts/generate-experiment-report.py`), data dictionary (`docs/specs/ML_REPORT_DATA_DICTIONARY.md`), báo cáo tĩnh mẫu (`docs/evidence/MLI-04_STATIC_REPORT.md`), và regression test suite (`tests/test_mli04_views_and_report.py`) trên branch `feat/mli-04-trino-views-static-report` ([PR #124](https://github.com/HoaiTam/japan-earthquake-etl/pull/124)). Giữ `In Progress` chờ nghiệm thu SQL readback và count parity chính thức trên exact snapshot khi hoàn tất export official.
 - **Kỹ năng phù hợp:** Trino SQL, reproducible reporting, data validation
 
 ## Checklist bàn giao
 
-- [ ] Deliverable và test/evidence tồn tại trong repository.
+- [x] Deliverable và test/evidence tồn tại trong repository.
 - [ ] Acceptance criteria đã được kiểm tra.
-- [ ] Contract/docs đã cập nhật và không chứa secret/data dump.
-- [ ] Reviewer độc lập được khuyến nghị cho P0.
+- [x] Contract/docs đã cập nhật và không chứa secret/data dump.
+- [x] Reviewer độc lập được khuyến nghị cho P0.
 
 ## Tài liệu liên quan
 

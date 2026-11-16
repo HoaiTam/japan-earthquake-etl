@@ -1,0 +1,145 @@
+{
+  "version": "dat03-lineage-frontier-request-v1",
+  "owner": "ThanhTris",
+  "scope": "PAYLOAD_DELTA_NOT_GOLD_ACCEPTANCE",
+  "basis_payload_request_sha256": "0643f60280fa381f610b69c1f1e0c17fcc899521818363d32392b4883bdd1e25",
+  "basis_inventory_report_sha256": "d76c87d993adf2a8ffb0bf977e06d7e0ec8ae0df84a7635dcf9887cc9d54adcd",
+  "basis_archives": [
+    {
+      "sha256": "c072e14f4aa2964af3f9a641e0973bdff6b4dbdc6084d820df79a18707d3b231",
+      "compressed_bytes": 229190896,
+      "entries": 400,
+      "parquet_members": 100,
+      "candidate_members_hashed": 100,
+      "candidate_bytes_hashed": 522647844
+    },
+    {
+      "sha256": "b88c65f5a14a7f2ebe4c1c5483d5c6575bae28c73e4ac6cdc7b7bf83fe614b68",
+      "compressed_bytes": 1009356,
+      "entries": 222,
+      "parquet_members": 0,
+      "candidate_members_hashed": 0,
+      "candidate_bytes_hashed": 0
+    }
+  ],
+  "object_count": 19,
+  "unique_content_count": 1,
+  "unique_content_bytes": 595,
+  "objects": [
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-082db36f5ca34c6f7be6f210bee1197f10240880/reject_record/part-00000.parquet",
+      "sha256": "d07bbf8dbdcf824135f51d69e79418a4f5f35f37ed87f9ad7eac5396cab668c7",
+      "kind": "silver_payload",
+      "byte_size": 595
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-0953d5d2d5ea1f9b4150985340367fa47a4abfd4/reject_record/part-00000.parquet",
+      "sha256": "d07bbf8dbdcf824135f51d69e79418a4f5f35f37ed87f9ad7eac5396cab668c7",
+      "kind": "silver_payload",
+      "byte_size": 595
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-17326468816eae5c920b0317d3ad748207c00e1e/reject_record/part-00000.parquet",
+      "sha256": "d07bbf8dbdcf824135f51d69e79418a4f5f35f37ed87f9ad7eac5396cab668c7",
+      "kind": "silver_payload",
+      "byte_size": 595
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-1ca9bb57617c5647777f3fe8502366c32019362b/reject_record/part-00000.parquet",
+      "sha256": "d07bbf8dbdcf824135f51d69e79418a4f5f35f37ed87f9ad7eac5396cab668c7",
+      "kind": "silver_payload",
+      "byte_size": 595
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-2cee619a8c2e42f34431ad4783d0fce30c38f9c6/reject_record/part-00000.parquet",
+      "sha256": "d07bbf8dbdcf824135f51d69e79418a4f5f35f37ed87f9ad7eac5396cab668c7",
+      "kind": "silver_payload",
+      "byte_size": 595
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-45708f6ec5641fb8efb50aa28e0edd6699dba1c3/reject_record/part-00000.parquet",
+      "sha256": "d07bbf8dbdcf824135f51d69e79418a4f5f35f37ed87f9ad7eac5396cab668c7",
+      "kind": "silver_payload",
+      "byte_size": 595
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-4c388509c64df68a3ff50a0af3491d808810d557/reject_record/part-00000.parquet",
+      "sha256": "d07bbf8dbdcf824135f51d69e79418a4f5f35f37ed87f9ad7eac5396cab668c7",
+      "kind": "silver_payload",
+      "byte_size": 595
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-4e50aaad50668cd69b238e2b68ff467e2ba32da4/reject_record/part-00000.parquet",
+      "sha256": "d07bbf8dbdcf824135f51d69e79418a4f5f35f37ed87f9ad7eac5396cab668c7",
+      "kind": "silver_payload",
+      "byte_size": 595
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-5679c9c378edacb4e5f804613c8475351ce326b4/reject_record/part-00000.parquet",
+      "sha256": "d07bbf8dbdcf824135f51d69e79418a4f5f35f37ed87f9ad7eac5396cab668c7",
+      "kind": "silver_payload",
+      "byte_size": 595
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-98eee411ac549e4b18e06bf939d6039e8664d99c/reject_record/part-00000.parquet",
+      "sha256": "d07bbf8dbdcf824135f51d69e79418a4f5f35f37ed87f9ad7eac5396cab668c7",
+      "kind": "silver_payload",
+      "byte_size": 595
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-9cfd261527b05f5851778addeebf2d09d5799fb0/reject_record/part-00000.parquet",
+      "sha256": "d07bbf8dbdcf824135f51d69e79418a4f5f35f37ed87f9ad7eac5396cab668c7",
+      "kind": "silver_payload",
+      "byte_size": 595
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-ab3c35d5fe38dda32bfedbfd1340d8872cae120b/reject_record/part-00000.parquet",
+      "sha256": "d07bbf8dbdcf824135f51d69e79418a4f5f35f37ed87f9ad7eac5396cab668c7",
+      "kind": "silver_payload",
+      "byte_size": 595
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-c3c985db61b11a4bbd3f72ba2db88ca1d7975595/reject_record/part-00000.parquet",
+      "sha256": "d07bbf8dbdcf824135f51d69e79418a4f5f35f37ed87f9ad7eac5396cab668c7",
+      "kind": "silver_payload",
+      "byte_size": 595
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-c9fa6b114dfcfa7af3653cd54f35a64c5e84d1a2/reject_record/part-00000.parquet",
+      "sha256": "d07bbf8dbdcf824135f51d69e79418a4f5f35f37ed87f9ad7eac5396cab668c7",
+      "kind": "silver_payload",
+      "byte_size": 595
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-d954963fdd926abdc5e7807631f2e24f8112ff70/reject_record/part-00000.parquet",
+      "sha256": "d07bbf8dbdcf824135f51d69e79418a4f5f35f37ed87f9ad7eac5396cab668c7",
+      "kind": "silver_payload",
+      "byte_size": 595
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-ddb6a71d10f03598aa6f8138858e522165486410/reject_record/part-00000.parquet",
+      "sha256": "d07bbf8dbdcf824135f51d69e79418a4f5f35f37ed87f9ad7eac5396cab668c7",
+      "kind": "silver_payload",
+      "byte_size": 595
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-e4e879c8df576f57961ae02989a982618213e653/reject_record/part-00000.parquet",
+      "sha256": "d07bbf8dbdcf824135f51d69e79418a4f5f35f37ed87f9ad7eac5396cab668c7",
+      "kind": "silver_payload",
+      "byte_size": 595
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-ec9d8788a27175295ff6a47e9b94f33a1170b6ca/reject_record/part-00000.parquet",
+      "sha256": "d07bbf8dbdcf824135f51d69e79418a4f5f35f37ed87f9ad7eac5396cab668c7",
+      "kind": "silver_payload",
+      "byte_size": 595
+    },
+    {
+      "uri": "s3://japan-earthquake/silver/bundles/orc07-fb052729d91a1922e1328e3322594b4926b724d1/reject_record/part-00000.parquet",
+      "sha256": "d07bbf8dbdcf824135f51d69e79418a4f5f35f37ed87f9ad7eac5396cab668c7",
+      "kind": "silver_payload",
+      "byte_size": 595
+    }
+  ],
+  "note": "Original pinned bytes only. One byte-identical content may cover multiple references; no regeneration or S3 key existence claim. Not a full closure or Gold import request."
+}

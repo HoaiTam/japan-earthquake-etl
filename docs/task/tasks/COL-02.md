@@ -1,6 +1,6 @@
 ---
 task_id: "COL-02"
-status: "Backlog"
+status: "Done"
 week: 7
 block: "H - Experiment"
 workstream: "Bounded baseline parameter sweep"
@@ -24,6 +24,7 @@ baseline, không tuyên bố tìm được tham số tốt nhất cho dữ liệ
 [Setup Colab](../../runbooks/WEEK_7_COLAB_SETUP.md), cùng pilot/feature checksum
 và local gate như [EXP-02](./EXP-02.md). Không chờ notebook EDA; dùng shared
 loader/module/config hiện có. [Kế hoạch tuần](../WEEK_7_COLAB_PLAN.md).
+Đường nghiệm thu riêng: [local handoff → Colab → readback](../../runbooks/COL-02_COLAB_ACCEPTANCE.md).
 
 ## Phạm vi / cách làm
 
@@ -42,12 +43,14 @@ loader/module/config hiện có. [Kế hoạch tuần](../WEEK_7_COLAB_PLAN.md).
 
 ## Deliverable / nghiệm thu
 
-- [ ] Notebook/module sweep (đề xuất `notebooks/col_02_parameter_sweep.ipynb`),
+- [x] Notebook/module sweep (`notebooks/col_02_parameter_sweep.ipynb`, `notebooks/parameter_sweep.py`),
       matrix config có version và kết quả máy đọc được.
-- [ ] Không quá 8 cấu hình, cùng pilot/code/scaling pins; đủ failure windows.
-- [ ] Rerun không đổi input hoặc ghi đè result; comparison dựa grain/membership.
-- [ ] PARTIAL/development-only và lý do không dùng pilot để scientific selection.
-- [ ] Colab fresh-session evidence, config hashes và parity/rerun report.
+- [x] Không quá 8 cấu hình (chính xác 8 cấu hình: 4 DBSCAN, 4 HDBSCAN + 1 control WINDOW), cùng pilot/code/scaling pins; đủ failure windows.
+- [x] Rerun không đổi input hoặc ghi đè result; comparison dựa grain/membership đạt RERUN_INVARIANTS_PASSED; mặc định fail-closed khi output đã có kết quả.
+- [x] PARTIAL/development-only và lý do không dùng pilot để scientific selection.
+- [x] Colab fresh-session evidence, config hashes và parity/rerun report;
+      independent local readback đủ 75 files/10 comparisons PASSED
+      ([cloud acceptance](../../evidence/COL-02_COLAB_20261104.md)).
 
 ## Dependency / song song / ranh giới
 
@@ -58,7 +61,16 @@ Không thay feature math, không import `ml.*`, không fit toàn catalog.
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
+- **Trạng thái:** Done
 - **Assignee:** rosy179
 - **Reviewer:** unassigned
-- **Evidence / PR:** Chưa triển khai; chưa có sweep hoặc cloud acceptance.
+- **Evidence / PR:** [COL-02 Parameter Sweep Evidence](../../evidence/COL-02_PARAMETER_SWEEP_20261102.md)
+- **04/11/2026:** tiếp tục cloud acceptance trên branch riêng từ main; giữ
+  assignee rosy179, HoaiTam vận hành nghiệm thu. Actual Colab CPU fresh session
+  đã đạt 9 configs + DBSCAN_C1 rerun; không nới tolerance để vượt lỗi dispatch.
+  [Evidence phiên 04/11](../../evidence/COL-02_COLAB_20261104.md).
+- **05/11/2026:** tải actual notebook/output về máy; 4 original code cells
+  AST-identical, counts 1–4, không error; ZIP SHA khớp và independent readback
+  đủ 75 files/10 parity PASSED. Chuyển Done cho scope pilot portability,
+  không scientific approval hoặc official research acceptance. Reviewer vẫn
+  unassigned; không coi operator HoaiTam là receipt của rosy179.

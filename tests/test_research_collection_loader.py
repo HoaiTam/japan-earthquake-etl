@@ -159,5 +159,34 @@ class CollectionLoaderTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,"SCHEMA_TYPE_MISMATCH"):self.load().load_shard("shard_00000")
 
 
+class PreparedCoverageTests(unittest.TestCase):
+    def values(self):
+        m={"filter_config_json":json.dumps({"source_coverage_contract":collection.PREPARED_COVERAGE}),"observation_cutoff_utc":"2026-11-15T08:00:00Z"}
+        c={"coverage_version":collection.PREPARED_COVERAGE,"source_system":"JMA_BULLETIN","source_cutoff_utc":"2026-10-25T06:13:04.747Z"}
+        for k in ("prepared_catalog_sha256","prepared_coverage_sha256","provenance_sha256","published_commit_sha256","publication_sha256","gold_request_sha256"):c[k]="a"*64
+        return m,c
+    def test_new_proof_without_legacy_marker(self):
+        m,c=self.values();collection._prepared_coverage(m,c)
+    def test_missing_pin_and_fake_registry_fail(self):
+        m,c=self.values();c.pop("provenance_sha256")
+        with self.assertRaisesRegex(ValueError,"COVERAGE_PIN_REQUIRED"):collection._prepared_coverage(m,c)
+        m,c=self.values();c["registry_sha256"]="a"*64
+        with self.assertRaisesRegex(ValueError,"NOT_LEGACY_REGISTRY"):collection._prepared_coverage(m,c)
+    def test_manifest_and_proof_variant_must_agree(self):
+        m,c=self.values();m["filter_config_json"]="{}"
+        with self.assertRaisesRegex(ValueError,"COVERAGE_PROTOCOL_REQUIRED"):collection._prepared_coverage(m,c)
+    def test_source_cutoff_cannot_be_after_dataset_cutoff(self):
+        m,c=self.values();c["source_cutoff_utc"]="2027-01-01T00:00:00Z"
+        with self.assertRaisesRegex(ValueError,"CUTOFF_CONFLICT"):collection._prepared_coverage(m,c)
+    def test_unknown_variant_cannot_fall_back_to_legacy(self):
+        m,c=self.values();m["filter_config_json"]=json.dumps({"source_coverage_contract":"future-v99"});c["coverage_version"]="future-v99"
+        with self.assertRaisesRegex(ValueError,"COVERAGE_PROTOCOL_REQUIRED"):collection._prepared_coverage(m,c)
+    def test_non_string_config_and_naive_cutoff_fail(self):
+        m,c=self.values();m["filter_config_json"]=True
+        with self.assertRaisesRegex(ValueError,"CONFIG_INVALID"):collection._prepared_coverage(m,c)
+        m,c=self.values();c["source_cutoff_utc"]="2026-10-25T06:13:04"
+        with self.assertRaisesRegex(ValueError,"UTC_CUTOFF_REQUIRED"):collection._prepared_coverage(m,c)
+
+
 if __name__ == "__main__":
     unittest.main()
