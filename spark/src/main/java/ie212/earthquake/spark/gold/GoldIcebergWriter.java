@@ -54,10 +54,21 @@ public final class GoldIcebergWriter {
         assertLease.run();
         if (!scope.baselineSnapshots().keySet().equals(new HashSet<>(TABLES)))
             throw new IllegalArgumentException("ALL_TABLE_BASELINES_REQUIRED");
-        LinkedHashMap<String, Dataset<Row>> inputs = inputs(gold);
-        inputs.replaceAll((name, data) -> data.persist(org.apache.spark.storage.StorageLevel.MEMORY_AND_DISK()));
+        boolean prepared = scope.preparedProof() != null;
+        if (prepared && (!namespace.equals(scope.preparedProof().namespace()) || operationalPolicy != null))
+            throw new IOException("PREPARED_NAMESPACE_POLICY_CONFLICT");
+        LinkedHashMap<String, Dataset<Row>> inputs = inputs(gold, prepared);
+        inputs.replaceAll((name, data) -> data.persist(prepared ? org.apache.spark.storage.StorageLevel.DISK_ONLY()
+                : org.apache.spark.storage.StorageLevel.MEMORY_AND_DISK()));
         try {
-        Column eventScope = monthPredicate(scope.affectedMonths());
+        Column eventScope = prepared ? col("event_time_utc").geq(java.sql.Timestamp.from(scope.context().windowStartUtc()))
+                .and(col("event_time_utc").lt(java.sql.Timestamp.from(scope.context().windowEndUtc()))) : monthPredicate(scope.affectedMonths());
+        if (prepared) {
+            requireEmpty(gold.eventSourceBridge().filter(col("event_month_utc").isNull()
+                    .or(not(col("event_month_utc").isin(scope.affectedMonths().toArray())))), "PREPARED_BRIDGE_OUTSIDE_SCOPE");
+            if (gold.canonicalEventCount() > PreparedGoldProof.MAX_FACT_ROWS || gold.bridgeRowCount() > PreparedGoldProof.MAX_FACT_ROWS)
+                throw new IOException("PREPARED_MEASURED_CAPACITY_EXCEEDED");
+        }
         requireEmpty(gold.eventCurrent().filter(col("event_time_utc").isNull().or(not(eventScope))), "EVENT_OUTSIDE_AFFECTED_MONTHS");
         requireEmpty(gold.eventCurrent().filter(col("quality_status").isNull()
                 .or(not(col("quality_status").isin("VALID", "WARNING")))), "GOLD_QUALITY_BLOCKED");
@@ -128,7 +139,10 @@ public final class GoldIcebergWriter {
                 } else {
                     String key = dimensionKey(name); unique(incoming, key);
                     // Fixed dimension members are immutable. Dates/regions may be appended, never silently relabeled.
-                    Dataset<Row> overlap = previous.join(incoming.select(key), key, "inner");
+                    // USING joins move the key to column 0; EXCEPT compares by POSITION.
+                    // Align by name first, including on an empty initial dimension.
+                    Dataset<Row> overlap = previous.join(incoming.select(key), key, "inner")
+                            .select(Arrays.stream(incoming.columns()).map(org.apache.spark.sql.functions::col).toArray(Column[]::new));
                     if (overlap.except(incoming).limit(1).count() != 0) throw new IOException("DIMENSION_VALUE_CONFLICT");
                     replacement = previous.join(incoming.select(key), key, "left_anti").unionByName(incoming);
                     predicate = lit(true);
@@ -195,13 +209,17 @@ public final class GoldIcebergWriter {
             throw new IOException("ASOF_TABLE_POLICY_CONFLICT");
     }
 
-    private LinkedHashMap<String, Dataset<Row>> inputs(GoldTransformationResult result) {
+    private LinkedHashMap<String, Dataset<Row>> inputs(GoldTransformationResult result, boolean prepared) {
         var out = new LinkedHashMap<String, Dataset<Row>>();
         Dataset<Row> events = result.eventCurrent();
         if (Arrays.asList(events.columns()).contains("event_time_jst"))
             events = events.withColumn("event_time_jst", col("event_time_jst").cast("timestamp_ntz"));
         out.put("event_current", events);
-        out.put("event_source_bridge", result.eventSourceBridge().join(result.eventCurrent()
+        if (prepared) {
+            if (!Arrays.asList(result.eventSourceBridge().columns()).contains("event_month_utc"))
+                throw new IllegalArgumentException("PREPARED_PHYSICAL_BRIDGE_MONTH_REQUIRED");
+            out.put("event_source_bridge", result.eventSourceBridge());
+        } else out.put("event_source_bridge", result.eventSourceBridge().join(result.eventCurrent()
                 .select(col("canonical_event_id"), date_format(col("event_time_utc"), "yyyy-MM").alias("event_month_utc")),
                 "canonical_event_id"));
         out.put("dim_date", result.dimDate()); out.put("dim_region", result.dimRegion());
@@ -242,7 +260,9 @@ public final class GoldIcebergWriter {
         context.put("processing_date", scope.context().processingDate().toString()); context.put("is_backfill", scope.context().isBackfill());
         context.put("config_version", scope.context().configVersion());
         context.set("input_manifest_uris", JSON.valueToTree(scope.context().inputManifestUris()));
-        out.put("silver_bundle_sha256", scope.silverBundleSha256()); out.put("code_version", scope.codeVersion());
+        if (scope.preparedProof() == null) out.put("silver_bundle_sha256", scope.silverBundleSha256());
+        else out.set("prepared_input", scope.preparedProof().json());
+        out.put("code_version", scope.codeVersion());
         out.set("affected_months", JSON.valueToTree(scope.affectedMonths()));
         out.set("baseline_snapshots", JSON.valueToTree(new TreeMap<>(scope.baselineSnapshots()))); return out;
     }

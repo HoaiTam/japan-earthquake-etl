@@ -1,7 +1,7 @@
 {
   "schema_version": "demo-package-v1",
   "task_id": "DEMO-01",
-  "package_status": "PREPARED_PENDING_UPSTREAM_GATES",
+  "package_status": "PREPARED_PENDING_OFFICIAL_GATES",
   "official_release_ready": false,
   "depends_on_power_bi": false,
   "stage_40_year_rerun_required": false,
@@ -70,6 +70,44 @@
       "case_count": 10,
       "passed": 10
     },
+    "official_paired_release_v4": {
+      "task_id": "DAT-03",
+      "evidence_file": "docs/evidence/DAT-03_WINDOWS_HANDOFF_20261116.json",
+      "zip_name": "jma-research-team-20261115-v4.zip",
+      "zip_sha256": "687170587e9db1d5d767722bf2fd4e1e2eecc1c3141ebfcdb10269a8b83b4c21",
+      "handoff_sha256": "6cf0af7c2a3d8e8ec4c993f84ed6d86cdc417324102133dd3068eb2ebc40d297",
+      "receipt_version": "dat03-team-research-v1",
+      "scientific_approval": false,
+      "gold_pin": {
+        "gold_publication_id": "pub_832ce36ac875f546528718c3545442a77a0097f7573379f30ed92f2a43c481f4",
+        "gold_snapshot_id": "7580315846938041321",
+        "physical_gold_table_name": "iceberg.dat03_unified_20261114.event_current",
+        "publication_bundle_sha256": "832ce36ac875f546528718c3545442a77a0097f7573379f30ed92f2a43c481f4"
+      },
+      "collections": {
+        "REPRODUCTION": {
+          "dataset_id": "ds_907fe748fafdfc0f072ce4db4e1cf0aa619ed18877129e17c8440b43062c3d87",
+          "collection_id": "col_bd10c69365da841b2cf6a62172e2350a797001eac04ce4bc6f2277a4d150ad98",
+          "manifest_sha256": "d3ee1334bfc50005a527f7b32a8988fcb1bdd7659a7dd4e84de326a7735139ae",
+          "checksums_sha256": "4768e500754c569bc951f23e2ac14fa9b9703ae69fbd5f78de06eacbb72f7ae9",
+          "shard_count": 2,
+          "feature_row_count": 156710,
+          "mainshock_count": 194,
+          "timestamp_reader_profile": "prepared-spark-utc-int96-v1"
+        },
+        "EXTENSION": {
+          "dataset_id": "ds_5259d2fe13e027245559e1ec4a1e696b5d94d0b67f44d5ec80738c9e984978be",
+          "collection_id": "col_0dc6dc2fd0a60c2890f68863b8561813ecd1d5e1941a8995be1d58e192fe0906",
+          "manifest_sha256": "fd1908f77ffcc70e77250ef834883d0ab8bbaf38e40962958a5c296f90d4aad1",
+          "checksums_sha256": "753506e4039130e12f88746c5f95122a66a3bac36342634d082f89acf5ad89d8",
+          "shard_count": 4,
+          "feature_row_count": 233664,
+          "mainshock_count": 45,
+          "timestamp_reader_profile": "prepared-spark-utc-int96-v1"
+        }
+      },
+      "team_receipt_note": "3/3 receipts (HoaiTam, ThanhTris, rosy179) da duoc coordinator doi chieu tren PR #131; docs Done tren repo cho dong bo tiep."
+    },
     "pilot_dataset": {
       "task_id": "DAT-02",
       "evidence_file": "docs/evidence/DAT-03_TEAM_RELEASE.json",
@@ -124,6 +162,9 @@
     "docs/DEMO_FLOWS.md",
     "docs/KNOWN_ISSUES.md",
     "docs/runbooks/DEMO-01_DEMO_PACKAGE.md",
+    "docs/runbooks/DAT-03_OFFICIAL_RESEARCH_HANDOFF.md",
+    "docs/evidence/DAT-03_OFFICIAL_COLLECTIONS_20261115.md",
+    "docs/evidence/DAT-03_WINDOWS_HANDOFF_20261116.json",
     "docs/evidence/GLD-04-verification.sql",
     "docs/evidence/MLI-04_STATIC_REPORT.md",
     "docs/evidence/MLD-05_RUNTIME_ACCEPTANCE.md",
@@ -155,12 +196,8 @@
   },
   "pending_official_gates": [
     {
-      "task_id": "DAT-03",
-      "reason": "Con cho receipt thu 3 va hoan tat official catalog/export"
-    },
-    {
       "task_id": "EXP-02",
-      "reason": "Chua co official reproduction run sau DAT-03 EXPORTED"
+      "reason": "Chua co official baseline reproduction run tren collection EXPORTED"
     },
     {
       "task_id": "EXP-03",

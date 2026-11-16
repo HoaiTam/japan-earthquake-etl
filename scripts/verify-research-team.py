@@ -4,7 +4,7 @@ import argparse
 from datetime import datetime, timezone
 import hashlib
 import json
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import platform
 import re
 import sys
@@ -46,14 +46,27 @@ def valid_name(name):
     return name in SUPPORT or re.fullmatch(r"bundles/(?:REPRODUCTION|EXTENSION)/(?:dataset_manifest\.json|collection-preparation\.json|(?:export-)?checksums\.sha256|shard_[0-9]{5}/(?:features|mainshocks)\.parquet)",name) is not None
 
 
+def expected_directories(names):
+    # Archive/index names are POSIX on every host, including native Windows.
+    return {parent.as_posix() for name in names for parent in PurePosixPath(name).parents if parent.as_posix() != "."}
+
+
 def gold_pin(manifest):
     pin={key:manifest.get(key) for key in ("physical_gold_table_name","gold_publication_id","publication_bundle_sha256")}
     value=manifest.get("gold_snapshot_id")
     require(type(value) in (str,int) and re.fullmatch(r"[1-9][0-9]{0,18}",str(value)) and int(value)<=9223372036854775807,
             "RESEARCH_TEAM_GOLD_PIN_REQUIRED")
     pin["gold_snapshot_id"]=str(value)
-    require(isinstance(pin["physical_gold_table_name"],str)
-            and re.fullmatch(r"iceberg\.dat03_catalog_[a-f0-9]{32}\.event_current",pin["physical_gold_table_name"])
+    physical=pin["physical_gold_table_name"]
+    legacy=isinstance(physical,str) and re.fullmatch(r"iceberg\.dat03_catalog_[a-f0-9]{32}\.event_current",physical)
+    prepared=False
+    if physical=="iceberg.dat03_unified_20261114.event_current":
+        raw=manifest.get("filter_config_json")
+        require(isinstance(raw,str) and len(raw)<=65536,"RESEARCH_TEAM_PREPARED_PROTOCOL_REQUIRED")
+        filters=json.loads(raw);coverage=manifest.get("collection_plan",{}).get("coverage",{})
+        prepared=(filters.get("source_coverage_contract")==coverage.get("coverage_version")=="dat03-published-prepared-coverage-v1"
+                  and coverage.get("published_commit_sha256")==pin["publication_bundle_sha256"])
+    require(isinstance(physical,str) and (legacy or prepared)
             and isinstance(pin["gold_publication_id"],str) and re.fullmatch(r"pub_[a-f0-9]{64}",pin["gold_publication_id"])
             and isinstance(pin["publication_bundle_sha256"],str) and re.fullmatch(r"[a-f0-9]{64}",pin["publication_bundle_sha256"]),
             "RESEARCH_TEAM_GOLD_PIN_REQUIRED")
@@ -87,7 +100,7 @@ def verify(root,expected_handoff_sha256,recipient,receipt=None):
             and set(handoff.get("collections",{}))==set(SPLITS),"RESEARCH_TEAM_PAIRED_RELEASE_REQUIRED")
     files=handoff.get("files",{});require(isinstance(files,dict) and SUPPORT<=set(files) and len(files)<=270
                                          and all(valid_name(n) for n in files),"RESEARCH_TEAM_EXACT_FILE_SET_REQUIRED")
-    expected=set(files)|{"handoff.json"};directories={str(parent) for name in expected for parent in Path(name).parents if str(parent)!="."}
+    expected=set(files)|{"handoff.json"};directories=expected_directories(expected)
     found=set();total=0
     for path in root.rglob("*"):
         path=safe(path);name=path.relative_to(root).as_posix()

@@ -4,10 +4,15 @@
 Validates that every representative run, snapshot pin, SQL file, static report,
 fallback plan, and scientific disclaimer referenced by the demo package exists
 and agrees with repository evidence without executing ETL or needing Docker/network.
+
+Within DEMO-01 preparation scope (before MLQ-01 and MLI-04 official acceptance),
+preflight NEVER emits PASS_OFFICIAL_READY and fails closed if any upstream pending
+gate is stripped or official_release_ready is flagged true.
 """
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 import re
@@ -16,6 +21,9 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_MANIFEST = ROOT / "config" / "demo" / "demo_package_manifest_v1.json"
+PREPARED_PENDING_STATUS = "PREPARED_PENDING_OFFICIAL_GATES"
+REQUIRED_PENDING_GATES = ("EXP-02", "EXP-03", "EXP-04", "MLI-04", "MLQ-01")
+VALID_ROSTER = ("HoaiTam", "ThanhTris", "rosy179")
 
 FORBIDDEN_SECRET_PATTERNS = (
     re.compile(r"minio_root_password", re.IGNORECASE),
@@ -29,7 +37,7 @@ FORBIDDEN_SECRET_PATTERNS = (
 
 
 def _resolve_repo_path(root: Path, relative_path: str) -> Path:
-    """Resolve a relative repository path and fail closed on traversal."""
+    """Resolve a relative repository path and fail closed on traversal or symlinks."""
     candidate = Path(relative_path)
     if candidate.is_absolute():
         raise ValueError(f"DEMO_PATH_NOT_RELATIVE:{relative_path}")
@@ -37,13 +45,21 @@ def _resolve_repo_path(root: Path, relative_path: str) -> Path:
     resolved = (resolved_root / candidate).resolve()
     if not resolved.is_relative_to(resolved_root):
         raise ValueError(f"DEMO_PATH_ESCAPES_ROOT:{relative_path}")
+    if resolved.is_symlink() or any(p.is_symlink() for p in (resolved_root / candidate).parents if p != resolved_root and p.is_relative_to(resolved_root)):
+        raise ValueError(f"DEMO_PATH_SYMLINK_REJECTED:{relative_path}")
     if not resolved.exists():
         raise FileNotFoundError(f"DEMO_MISSING_FILE:{relative_path}")
     return resolved
 
 
-def _load_json(path: Path) -> dict[str, Any]:
-    return json.loads(path.read_text(encoding="utf-8"))
+def _load_json_strict(path: Path, error_code: str = "DEMO_INVALID_JSON") -> dict[str, Any]:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValueError(f"{error_code}:{exc}") from exc
+    if not isinstance(data, dict):
+        raise ValueError(f"{error_code}:TOP_LEVEL_OBJECT_REQUIRED")
+    return data
 
 
 def _check_secret_hygiene(text: str, label: str) -> None:
@@ -57,6 +73,10 @@ def _validate_boundary_and_policy(manifest: dict[str, Any]) -> None:
         raise ValueError("DEMO_INVALID_SCHEMA_VERSION")
     if manifest.get("task_id") != "DEMO-01":
         raise ValueError("DEMO_INVALID_TASK_ID")
+    if manifest.get("package_status") != PREPARED_PENDING_STATUS:
+        raise ValueError("DEMO_INVALID_PACKAGE_STATUS")
+    if manifest.get("official_release_ready") is not False:
+        raise ValueError("DEMO_OFFICIAL_RELEASE_NOT_ALLOWED_BEFORE_GATES")
     if manifest.get("depends_on_power_bi") is not False:
         raise ValueError("DEMO_POWER_BI_MUST_BE_OPTIONAL")
     if manifest.get("stage_40_year_rerun_required") is not False:
@@ -77,14 +97,22 @@ def _validate_boundary_and_policy(manifest: dict[str, Any]) -> None:
     if "candidate" not in statement or ("khong du doan" not in statement and "không dự đoán" not in statement):
         raise ValueError("DEMO_BOUNDARY_STATEMENT_INCOMPLETE")
 
-    pending = manifest.get("pending_official_gates") or []
-    if manifest.get("official_release_ready") is True and pending:
-        raise ValueError("DEMO_CANNOT_BE_OFFICIAL_READY_WITH_PENDING_GATES")
+    pending = manifest.get("pending_official_gates")
+    if not isinstance(pending, list) or not pending:
+        raise ValueError("DEMO_MISSING_REQUIRED_PENDING_GATES:EMPTY")
+    present_gate_ids = {
+        str(item.get("task_id") or "")
+        for item in pending
+        if isinstance(item, dict) and str(item.get("reason") or "").strip()
+    }
+    missing_gates = [gate for gate in REQUIRED_PENDING_GATES if gate not in present_gate_ids]
+    if missing_gates:
+        raise ValueError(f"DEMO_MISSING_REQUIRED_PENDING_GATES:{','.join(missing_gates)}")
 
 
 def _check_qa01_pin(root: Path, pin: dict[str, Any]) -> dict[str, Any]:
     path = _resolve_repo_path(root, pin["evidence_file"])
-    data = _load_json(path)
+    data = _load_json_strict(path)
     actual_run_id = (data.get("run") or {}).get("run_id")
     if actual_run_id != pin["run_id"]:
         raise ValueError(f"DEMO_PIN_MISMATCH:QA-01.run_id:{actual_run_id}!={pin['run_id']}")
@@ -101,7 +129,7 @@ def _check_qa01_pin(root: Path, pin: dict[str, Any]) -> dict[str, Any]:
 
 def _check_runtime_qa_pin(root: Path, key: str, pin: dict[str, Any]) -> dict[str, Any]:
     path = _resolve_repo_path(root, pin["evidence_file"])
-    data = _load_json(path)
+    data = _load_json_strict(path)
     acceptance = data.get("acceptance") or {}
     summary = acceptance.get("summary") or {}
     checks = (
@@ -116,24 +144,57 @@ def _check_runtime_qa_pin(root: Path, key: str, pin: dict[str, Any]) -> dict[str
     return {"task_id": pin["task_id"], "status": "VERIFIED", "run_id": pin["run_id"], "cases_passed": f"{pin['passed']}/{pin['case_count']}"}
 
 
+def _check_dat03_release_pin(root: Path, pin: dict[str, Any]) -> dict[str, Any]:
+    path = _resolve_repo_path(root, pin["evidence_file"])
+    data = _load_json_strict(path)
+    release = data.get("release") or {}
+    if release.get("zip_sha256") != pin["zip_sha256"]:
+        raise ValueError("DEMO_PIN_MISMATCH:DAT-03.zip_sha256")
+    if release.get("handoff_sha256") != pin["handoff_sha256"]:
+        raise ValueError("DEMO_PIN_MISMATCH:DAT-03.handoff_sha256")
+    reg = data.get("regression") or {}
+    if reg.get("scientific_approval") is not False:
+        raise ValueError("DEMO_PIN_MISMATCH:DAT-03.scientific_approval")
+    collections = reg.get("collections") or {}
+    for split_name, expected_col in (pin.get("collections") or {}).items():
+        actual_col = collections.get(split_name) or {}
+        for field in (
+            "dataset_id",
+            "collection_id",
+            "manifest_sha256",
+            "checksums_sha256",
+            "shard_count",
+            "feature_row_count",
+            "mainshock_count",
+            "timestamp_reader_profile",
+        ):
+            if actual_col.get(field) != expected_col[field]:
+                raise ValueError(f"DEMO_PIN_MISMATCH:DAT-03.{split_name}.{field}")
+    return {
+        "task_id": "DAT-03",
+        "status": "VERIFIED_PAIRED_RELEASE_V4",
+        "handoff_sha256": pin["handoff_sha256"],
+    }
+
+
 def _check_pilot_and_ml_pins(root: Path, ev: dict[str, Any]) -> list[dict[str, Any]]:
     results = []
 
     pilot_pin = ev["pilot_dataset"]
-    pilot_data = _load_json(_resolve_repo_path(root, pilot_pin["evidence_file"]))
+    pilot_data = _load_json_strict(_resolve_repo_path(root, pilot_pin["evidence_file"]))
     for field in ("pilot_id", "archive_name", "archive_sha256", "feature_count", "mainshock_count", "allowed_usage", "research_ready", "scientific_approval"):
         if pilot_data.get(field) != pilot_pin[field]:
             raise ValueError(f"DEMO_PIN_MISMATCH:pilot_dataset.{field}")
     results.append({"task_id": "DAT-02", "status": "VERIFIED_DEVELOPMENT_ONLY", "pilot_id": pilot_pin["pilot_id"]})
 
     exp02_pin = ev["pilot_baseline_parity"]
-    exp02_data = _load_json(_resolve_repo_path(root, exp02_pin["evidence_file"]))
+    exp02_data = _load_json_strict(_resolve_repo_path(root, exp02_pin["evidence_file"]))
     if exp02_data.get("status") != exp02_pin["status"] or (exp02_data.get("pilot") or {}).get("pilot_id") != exp02_pin["pilot_id"]:
         raise ValueError("DEMO_PIN_MISMATCH:pilot_baseline_parity")
     results.append({"task_id": "EXP-02", "status": "VERIFIED_PILOT_PARITY", "pilot_id": exp02_pin["pilot_id"]})
 
     exp03_pin = ev["pilot_adaptive_smoke"]
-    exp03_data = _load_json(_resolve_repo_path(root, exp03_pin["evidence_file"]))
+    exp03_data = _load_json_strict(_resolve_repo_path(root, exp03_pin["evidence_file"]))
     exp03_run = (exp03_data.get("experiment_summary") or {}).get("experiment_run_id")
     if exp03_run != exp03_pin["experiment_run_id"]:
         raise ValueError("DEMO_PIN_MISMATCH:pilot_adaptive_smoke.experiment_run_id")
@@ -143,7 +204,7 @@ def _check_pilot_and_ml_pins(root: Path, ev: dict[str, Any]) -> list[dict[str, A
     results.append({"task_id": "EXP-03", "status": "VERIFIED_LOCAL_SMOKE", "experiment_run_id": exp03_run})
 
     exp04_pin = ev["pilot_scientific_evaluation"]
-    exp04_data = _load_json(_resolve_repo_path(root, exp04_pin["evidence_file"]))
+    exp04_data = _load_json_strict(_resolve_repo_path(root, exp04_pin["evidence_file"]))
     pv = exp04_data.get("pilot_verification") or {}
     if exp04_data.get("evaluation_scope") != exp04_pin["evaluation_scope"] or pv.get("pilot_id") != exp04_pin["pilot_id"]:
         raise ValueError("DEMO_PIN_MISMATCH:pilot_scientific_evaluation")
@@ -152,6 +213,8 @@ def _check_pilot_and_ml_pins(root: Path, ev: dict[str, Any]) -> list[dict[str, A
     results.append({"task_id": "EXP-04", "status": "VERIFIED_PILOT_EVALUATION", "pilot_id": exp04_pin["pilot_id"]})
 
     mli04_pin = ev["static_report_and_ml_sql"]
+    if mli04_pin.get("official_sql_parity_verified") is not False:
+        raise ValueError("DEMO_MLI04_PARITY_MUST_BE_FALSE_BEFORE_OFFICIAL_IMPORT")
     report_text = _resolve_repo_path(root, mli04_pin["report_file"]).read_text(encoding="utf-8")
     if "candidate" not in report_text.lower() or "PENDING OFFICIAL IMPORT" not in report_text:
         raise ValueError("DEMO_PIN_MISMATCH:MLI-04_STATIC_REPORT_BOUNDARY")
@@ -179,18 +242,105 @@ def _check_fallback_modes(manifest: dict[str, Any]) -> list[str]:
     return list(required)
 
 
-def _check_optional_local_receipt(local_receipt_path: Path | None) -> dict[str, Any]:
+def _verify_local_receipt(
+    local_receipt_path: Path | None,
+    release_pin: dict[str, Any],
+    expected_receipt_sha256: str | None = None,
+) -> dict[str, Any]:
+    """Fail-closed validation of an optional external DAT-03 v4 team receipt JSON.
+
+    Never fabricates verification: rejects missing, malformed, failed, wrong-handoff,
+    or tampered collection/Gold pins, and notes that JSON alone does not prove kit shards
+    remain present on disk (which requires running verify_dataset.py on the kit).
+    """
+    if expected_receipt_sha256 is not None and local_receipt_path is None:
+        raise ValueError("DEMO_EXPECTED_RECEIPT_SHA_REQUIRES_LOCAL_RECEIPT")
     if local_receipt_path is None:
-        return {"checked": False, "status": "NOT_REQUESTED"}
-    if not local_receipt_path.exists():
-        return {"checked": True, "status": "ABSENT", "path": str(local_receipt_path)}
-    receipt = _load_json(local_receipt_path)
+        return {"checked": False, "status": "NOT_REQUESTED", "proves_kit_on_disk": False}
+
+    receipt_path = local_receipt_path.expanduser()
+    if receipt_path.is_symlink():
+        raise ValueError("DEMO_RECEIPT_SYMLINK_REJECTED")
+    if not receipt_path.is_file():
+        raise FileNotFoundError(f"DEMO_RECEIPT_MISSING:{receipt_path}")
+
+    raw_bytes = receipt_path.read_bytes()
+    if len(raw_bytes) == 0 or len(raw_bytes) > 512 * 1024:
+        raise ValueError("DEMO_RECEIPT_SIZE_BOUND_EXCEEDED")
+    actual_receipt_sha256 = hashlib.sha256(raw_bytes).hexdigest()
+
+    if expected_receipt_sha256 is not None:
+        if not re.fullmatch(r"[a-f0-9]{64}", expected_receipt_sha256):
+            raise ValueError("DEMO_EXPECTED_RECEIPT_SHA_INVALID_FORMAT")
+        if actual_receipt_sha256 != expected_receipt_sha256:
+            raise ValueError(f"DEMO_RECEIPT_SHA_MISMATCH:{actual_receipt_sha256}!={expected_receipt_sha256}")
+
+    receipt = _load_json_strict(receipt_path, error_code="DEMO_RECEIPT_INVALID_JSON")
+    _check_secret_hygiene(json.dumps(receipt, ensure_ascii=False), "local_receipt")
+
+    if receipt.get("version") != release_pin["receipt_version"]:
+        raise ValueError("DEMO_RECEIPT_VERSION_MISMATCH")
+    if receipt.get("status") != "TEAM_RESEARCH_VERIFIED":
+        raise ValueError(f"DEMO_RECEIPT_STATUS_NOT_VERIFIED:{receipt.get('status')}")
+    if receipt.get("all_shards_verified") is not True:
+        raise ValueError("DEMO_RECEIPT_ALL_SHARDS_NOT_VERIFIED")
+    if receipt.get("scientific_approval") is not False:
+        raise ValueError("DEMO_RECEIPT_SCIENTIFIC_APPROVAL_MUST_BE_FALSE")
+    if receipt.get("recipient") not in VALID_ROSTER:
+        raise ValueError(f"DEMO_RECEIPT_INVALID_RECIPIENT:{receipt.get('recipient')}")
+    if receipt.get("handoff_sha256") != release_pin["handoff_sha256"]:
+        raise ValueError("DEMO_RECEIPT_HANDOFF_SHA_MISMATCH")
+    fingerprint = str(receipt.get("machine_fingerprint_sha256") or "")
+    if not re.fullmatch(r"[a-f0-9]{64}", fingerprint):
+        raise ValueError("DEMO_RECEIPT_INVALID_MACHINE_FINGERPRINT")
+
+    collections = receipt.get("collections")
+    expected_collections = release_pin["collections"]
+    if not isinstance(collections, dict) or set(collections.keys()) != set(expected_collections.keys()):
+        raise ValueError("DEMO_RECEIPT_COLLECTIONS_SET_MISMATCH")
+
+    expected_gold = release_pin["gold_pin"]
+    for split_name, expected_col in expected_collections.items():
+        actual_col = collections.get(split_name)
+        if not isinstance(actual_col, dict):
+            raise ValueError(f"DEMO_RECEIPT_INVALID_COLLECTION:{split_name}")
+        if actual_col.get("status") != "COLLECTION_VERIFIED" or actual_col.get("all_shards_verified") is not True:
+            raise ValueError(f"DEMO_RECEIPT_COLLECTION_NOT_VERIFIED:{split_name}")
+        if actual_col.get("dataset_split") != split_name:
+            raise ValueError(f"DEMO_RECEIPT_SPLIT_MISMATCH:{split_name}")
+        if actual_col.get("timestamps_losslessly_normalized") is not True:
+            raise ValueError(f"DEMO_RECEIPT_TIMESTAMPS_NOT_NORMALIZED:{split_name}")
+        for field in (
+            "dataset_id",
+            "collection_id",
+            "manifest_sha256",
+            "checksums_sha256",
+            "shard_count",
+            "feature_row_count",
+            "mainshock_count",
+            "timestamp_reader_profile",
+        ):
+            if actual_col.get(field) != expected_col[field]:
+                raise ValueError(f"DEMO_RECEIPT_COLLECTION_MISMATCH:{split_name}.{field}")
+        actual_gold = actual_col.get("gold_pin")
+        if actual_gold != expected_gold:
+            raise ValueError(f"DEMO_RECEIPT_GOLD_PIN_MISMATCH:{split_name}")
+
+    auth_scope = (
+        "EXTERNAL_RECEIPT_SHA_AND_PINS_VERIFIED"
+        if expected_receipt_sha256 is not None
+        else "SCHEMA_AND_V4_PINS_VERIFIED_SELF_REPORTED_LOCAL_FILE"
+    )
     return {
         "checked": True,
-        "status": str(receipt.get("status") or "UNKNOWN"),
-        "recipient": receipt.get("recipient"),
-        "all_shards_verified": receipt.get("all_shards_verified"),
-        "handoff_sha256": receipt.get("handoff_sha256"),
+        "status": "TEAM_RESEARCH_VERIFIED",
+        "verification_scope": auth_scope,
+        "recipient": receipt["recipient"],
+        "recipient_self_reported": bool(receipt.get("recipient_self_reported", False)),
+        "all_shards_verified": True,
+        "handoff_sha256": receipt["handoff_sha256"],
+        "receipt_sha256": actual_receipt_sha256,
+        "proves_kit_on_disk": False,
     }
 
 
@@ -198,11 +348,12 @@ def run_preflight(
     manifest_path: Path = DEFAULT_MANIFEST,
     root: Path = ROOT,
     local_receipt_path: Path | None = None,
+    expected_receipt_sha256: str | None = None,
 ) -> dict[str, Any]:
-    """Run all offline DEMO-01 manifest, pin, fallback, and boundary checks."""
+    """Run all offline DEMO-01 manifest, pin, fallback, receipt, and boundary checks."""
     raw_manifest = manifest_path.read_text(encoding="utf-8")
     _check_secret_hygiene(raw_manifest, manifest_path.name)
-    manifest = json.loads(raw_manifest)
+    manifest = _load_json_strict(manifest_path, error_code="DEMO_INVALID_MANIFEST_JSON")
     _validate_boundary_and_policy(manifest)
 
     for rel_path in manifest.get("required_repo_files") or []:
@@ -215,25 +366,30 @@ def run_preflight(
         _check_runtime_qa_pin(root, "idempotency_rerun_qa", ev["idempotency_rerun_qa"]),
         _check_runtime_qa_pin(root, "historical_backfill_qa", ev["historical_backfill_qa"]),
         _check_runtime_qa_pin(root, "failure_recovery_qa", ev["failure_recovery_qa"]),
+        _check_dat03_release_pin(root, ev["official_paired_release_v4"]),
     ]
     verified_runs.extend(_check_pilot_and_ml_pins(root, ev))
     fallback_modes = _check_fallback_modes(manifest)
 
-    pending_gates = manifest.get("pending_official_gates") or []
-    overall_status = "PASS_OFFICIAL_READY" if not pending_gates else "PASS_WITH_PENDING_GATES"
+    pending_gates = manifest["pending_official_gates"]
+    receipt_info = _verify_local_receipt(
+        local_receipt_path=local_receipt_path,
+        release_pin=ev["official_paired_release_v4"],
+        expected_receipt_sha256=expected_receipt_sha256,
+    )
     report = {
         "schema_version": "demo-preflight-report-v1",
         "task_id": "DEMO-01",
-        "overall_status": overall_status,
+        "overall_status": PREPARED_PENDING_STATUS,
         "demo_package_prepared": True,
-        "official_release_ready": bool(manifest.get("official_release_ready", False)),
-        "depends_on_power_bi": bool(manifest.get("depends_on_power_bi", False)),
-        "stage_40_year_rerun_required": bool(manifest.get("stage_40_year_rerun_required", False)),
+        "official_release_ready": False,
+        "depends_on_power_bi": False,
+        "stage_40_year_rerun_required": False,
         "verified_evidence_count": len(verified_runs),
         "verified_runs": verified_runs,
         "fallback_modes_verified": fallback_modes,
         "pending_official_gates": pending_gates,
-        "local_research_receipt": _check_optional_local_receipt(local_receipt_path),
+        "local_research_receipt": receipt_info,
     }
     _check_secret_hygiene(json.dumps(report, ensure_ascii=False), "preflight_report")
     return report
@@ -243,12 +399,18 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST, help="Path to demo package manifest JSON.")
     parser.add_argument("--local-receipt", type=Path, default=None, help="Optional path to external DAT-03 v4 team receipt JSON.")
+    parser.add_argument("--expected-receipt-sha256", default=None, help="Optional trusted SHA-256 hex digest for --local-receipt.")
     parser.add_argument("--output-report", type=Path, default=None, help="Optional path to write preflight JSON summary.")
     parser.add_argument("--json", action="store_true", help="Print JSON summary to stdout.")
     args = parser.parse_args()
 
     try:
-        report = run_preflight(manifest_path=args.manifest, root=ROOT, local_receipt_path=args.local_receipt)
+        report = run_preflight(
+            manifest_path=args.manifest,
+            root=ROOT,
+            local_receipt_path=args.local_receipt,
+            expected_receipt_sha256=args.expected_receipt_sha256,
+        )
     except (OSError, ValueError, KeyError, json.JSONDecodeError) as exc:
         error_payload = {"task_id": "DEMO-01", "overall_status": "FAILED", "error": str(exc)}
         print(json.dumps(error_payload, ensure_ascii=False, indent=2), file=sys.stderr)

@@ -78,7 +78,7 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 - **Trạng thái:** In Progress
 - **Assignee:** ThanhTris
 - **Reviewer:** unassigned
-- **Evidence / PR:** Đã chuẩn bị phần độc lập trên nhánh `feat/demo-01-chuan-bi-du-lieu-va`: manifest ghim 10 bằng chứng đại diện (`QA-01`..`QA-04`, `ORC-07`, `DAT-02`, `EXP-02`..`EXP-04`, `MLI-04`) tại [demo_package_manifest_v1.json](../../../config/demo/demo_package_manifest_v1.json), kịch bản trình bày 15–20 phút + 4 phương án fallback tại [DEMO-01_DEMO_PACKAGE.md](../../runbooks/DEMO-01_DEMO_PACKAGE.md), công cụ kiểm tra offline [demo-preflight.py](../../../scripts/demo-preflight.py) và unit tests [test_demo_preflight.py](../../../tests/test_demo_preflight.py). Giữ `In Progress` chờ nghiệm thu official của [MLQ-01](./MLQ-01.md) và [MLI-04](./MLI-04.md) để chốt exact official runs/query/pins.
+- **Evidence / PR:** Đã chuẩn bị phần độc lập trên nhánh `feat/demo-01-chuan-bi-du-lieu-va` ([PR #135](https://github.com/HoaiTam/japan-earthquake-etl/pull/135)): manifest ghim 11 bằng chứng đại diện (`QA-01`..`QA-04`, `ORC-07`, `DAT-03` v4 release, `DAT-02`, `EXP-02`..`EXP-04`, `MLI-04`) tại [demo_package_manifest_v1.json](../../../config/demo/demo_package_manifest_v1.json), kịch bản trình bày 15–20 phút + 4 phương án fallback tại [DEMO-01_DEMO_PACKAGE.md](../../runbooks/DEMO-01_DEMO_PACKAGE.md), công cụ preflight fail-closed [demo-preflight.py](../../../scripts/demo-preflight.py) và unit tests [test_demo_preflight.py](../../../tests/test_demo_preflight.py). Giữ `In Progress` chờ nghiệm thu official của [EXP-02](./EXP-02.md)..[EXP-04](./EXP-04.md), [MLI-04](./MLI-04.md) và [MLQ-01](./MLQ-01.md) để chốt exact official runs/query/pins.
 - **Kỹ năng phù hợp:** Demo, communication, QA
 
 ## Checklist bàn giao

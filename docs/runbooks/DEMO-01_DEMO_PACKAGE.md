@@ -22,6 +22,7 @@ Toàn bộ con số trình bày đều gắn với `run_id` / `publication_id` /
 | Rerun & revision (`QA-02`) | Bounded runtime QA | Run: `qa02-runtime-1868715b4bb34f5a84b568c3cf64c1b6` | **8/8** cases PASS; **6** publications Trino readback, không duplicate khi rerun/late update | [QA-02 runtime](../evidence/QA-02_RUNTIME_ACCEPTANCE.md), [QA-02 JSON](../evidence/QA-02-runtime.json) |
 | Historical backfill (`QA-03`) | Bounded runtime QA | Run: `qa03-runtime-2bf249ede8a84947afb22c48beb77e07` | **6/6** cases PASS (`h199701`, `h199710`, `h2000`, `h2023`, `usgs-2023-09`) | [QA-03 runtime](../evidence/QA-03_RUNTIME_ACCEPTANCE.md), [QA-03 JSON](../evidence/QA-03-runtime.json) |
 | Failure & recovery (`QA-04`) | Bounded runtime QA | Run: `qa04-runtime-9504f2f71b884df0abb78ce50d4e7490` | **10/10** fault injection cases PASS; giữ exact lease/journal khi lỗi | [QA-04 runtime](../evidence/QA-04_RUNTIME_ACCEPTANCE.md), [QA-04 JSON](../evidence/QA-04-runtime.json) |
+| Official paired dataset v4 (`DAT-03`) | Official `EXPORTED` (`scientific_approval=false`) | Zip SHA: `68717058...`<br>Gold snapshot: `7580315846938041321` | **288 tháng**, **390.374** candidate memberships (**156.710** `REPRODUCTION` + **233.664** `EXTENSION`), **6/6** shard, đủ **3/3** receipts trên PR #131 (docs Done trên repo chờ đồng bộ tiếp) | [Official collections](../evidence/DAT-03_OFFICIAL_COLLECTIONS_20261115.md), [Windows handoff JSON](../evidence/DAT-03_WINDOWS_HANDOFF_20261116.json), [Team handoff](../runbooks/DAT-03_OFFICIAL_RESEARCH_HANDOFF.md) |
 | Gold verify SQL (`GLD-04`) | Sample QA bundle | Pub: `pub_d03dad056f8ea9b4af290ddf92009042d123bf9db0512e549ca0e5e180449b9f` | Đủ kiểm tra 6 snapshot `$refs`, provenance bridge, UTC/JST và serving count (`16` rows mẫu) | [GLD-04 SQL](../evidence/GLD-04-verification.sql) |
 | ML Pilot dataset (`DAT-02`) | `DEVELOPMENT_ONLY` (`PARTIAL`, `research_ready=false`) | Pilot: `pilot_196b6d4081d347e1c289e331022658fbbe572dd33181ad987900895c1f1b189c` | **279** feature rows / **2** mainshocks; ZIP SHA `f58291b72873e1b26791fef97818fdcf5e2b028a5dfa528885a666d8cdc1b870` | [DAT-03 team pilot JSON](../evidence/DAT-03_TEAM_RELEASE.json) |
 | Baseline parity (`EXP-02`) | `DEVELOPMENT_ONLY` (Local ↔ Colab parity) | Status: `COLAB_PILOT_PARITY_VERIFIED` | `WINDOW`, `DBSCAN`, `HDBSCAN_GLOBAL` đồng bộ seed `42`, fresh `nbclient` kernel | [EXP-02 parity](../evidence/EXP-02_COLAB_PARITY_20261102.md), [EXP-02 JSON](../evidence/EXP-02_COLAB_PARITY_20261102.json) |
@@ -30,10 +31,11 @@ Toàn bộ con số trình bày đều gắn với `run_id` / `publication_id` /
 
 ### Phần còn `PENDING` theo hard dependency (sẽ cập nhật khi hợp nhất chính thức)
 
+Gói `DAT-03` đã hoàn tất export hai collection official và đối chiếu đủ 3/3 receipts trên PR #131 (trên commit `main` hiện tại `DAT-03.md` đang chờ bản đồng bộ `Done` từ coordinator); các cổng còn lại đang chờ để chốt số liệu official:
+
 | Cổng chờ (`Pending Gate`) | Lý do hiện hành | Tài liệu liên quan |
 |---|---|---|
-| `DAT-03` | Còn chờ đủ 3 receipt máy thật cho release v4 và hoàn tất official catalog/export | [DAT-03](../task/tasks/DAT-03.md) |
-| `EXP-02` official | Chưa có official reproduction run trên `REPRODUCTION` `EXPORTED` | [EXP-02](../task/tasks/EXP-02.md) |
+| `EXP-02` official | Chưa có official baseline reproduction run trên collection `EXPORTED` | [EXP-02](../task/tasks/EXP-02.md) |
 | `EXP-03` official + `SEC-01` Colab | Chưa có official adaptive reproduction bundle và Colab session thực cho `EXP-03` | [EXP-03](../task/tasks/EXP-03.md), [SEC-01](../task/tasks/SEC-01.md) |
 | `EXP-04` official | Chưa có đánh giá chính thức và freeze rule trước `EXP-05` | [EXP-04](../task/tasks/EXP-04.md) |
 | `MLI-04` official | Chưa đối soát count parity và SQL readback trên bảng `iceberg.ml.*` đã import thật | [MLI-04](../task/tasks/MLI-04.md) |
@@ -63,15 +65,16 @@ Toàn bộ con số trình bày đều gắn với `run_id` / `publication_id` /
 python -B scripts/demo-preflight.py --json
 ```
 
-Nếu máy có sẵn receipt/bundle v4 cục bộ ngoài repository (ví dụ trên Windows của thành viên), có thể truyền thêm cờ tùy chọn để kiểm tra chéo tình trạng tệp cục bộ:
+Nếu máy có sẵn receipt v4 cục bộ ngoài repository (ví dụ trên Windows của thành viên), truyền thêm `--local-receipt` (và `--expected-receipt-sha256` nếu muốn khóa hash file receipt) để kiểm tra chặt schema, handoff SHA v4, 2 collections, exact counts và Gold pins:
 
 ```powershell
-python -B scripts/demo-preflight.py --local-receipt C:\Users\ADMIN\dat03-v4\ThanhTris-research-receipt.json --json
+python -B scripts/demo-preflight.py --local-receipt C:\Users\ADMIN\dat03-v4\ThanhTris-research-receipt.json --expected-receipt-sha256 73e1b66a2be094e0fcea0d8d5893ffa1d579b7519e7a29dba7a038151736a676 --json
 ```
 
 Điều kiện preflight đạt:
-- Exit code `0`, `overall_status = "PASS_WITH_PENDING_GATES"` (hoặc `"PASS_OFFICIAL_READY"` sau khi `pending_official_gates` trống).
+- Exit code `0`, `overall_status = "PREPARED_PENDING_OFFICIAL_GATES"` và `official_release_ready = false` (trong phạm vi chuẩn bị trước `MLQ-01` / `MLI-04`, preflight **không** hỗ trợ `PASS_OFFICIAL_READY` và fail-closed nếu xóa `pending_official_gates` hoặc đặt `official_release_ready = true`).
 - `depends_on_power_bi = false`, `stage_40_year_rerun_required = false`.
+- Nếu truyền `--local-receipt`, file receipt bắt buộc tồn tại, hợp lệ, đúng handoff SHA v4 (`6cf0af7c...`), đủ 2 collections/6 shards/Gold pins và `scientific_approval = false` (sai hoặc thiếu file sẽ exit `1`; lưu ý bản thân file JSON không thay việc chạy lại `verify_dataset.py` để chứng minh shard Parquet vẫn còn trên đĩa).
 - Không phát hiện chuỗi secret/credential hoặc tệp minh chứng bị thiếu/lệch `run_id`/`snapshot_id`.
 
 ### B. Checklist vận hành nhanh
