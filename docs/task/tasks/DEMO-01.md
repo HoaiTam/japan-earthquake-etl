@@ -1,6 +1,6 @@
 ---
 task_id: "DEMO-01"
-status: "Backlog"
+status: "In Progress"
 week: 8
 block: "K - QA & Release"
 workstream: "Demo"
@@ -16,7 +16,7 @@ dependencies: ["QA-01", "MLQ-01", "MLI-04"]
 
 ## Giao việc hiện hành — 11/11/2026
 
-- **Owner:** ThanhTris; **status:** Backlog.
+- **Owner:** ThanhTris; **status:** In Progress.
 - **Làm phần gì / dùng để làm gì:** Kịch bản demo.
 - **Bắt đầu độc lập:** Soạn luồng source → lakehouse → ML → report và fallback có nhãn rõ.
 - **Đầu ra và điều kiện Done:** Sau QA-01/MLQ-01/MLI-04: demo package với exact runs/query/pins, không chạy lại toàn catalog trên sân khấu.
@@ -45,10 +45,10 @@ Chọn daily/JMA evidence đại diện và một dataset/experiment nhỏ; chu�
 
 ## Tiêu chí hoàn thành
 
-- [ ] Demo có fallback mạng/Drive/Colab và không phụ thuộc Power BI.
+- [x] Demo có fallback mạng/Drive/Colab và không phụ thuộc Power BI.
 - [ ] mọi con số có run_id/query evidence.
-- [ ] không cần chạy lại 40 năm trên sân khấu.
-- [ ] Nêu rõ output là aftershock candidate, không phải dự đoán/quan hệ nhân quả.
+- [x] không cần chạy lại 40 năm trên sân khấu.
+- [x] Nêu rõ output là aftershock candidate, không phải dự đoán/quan hệ nhân quả.
 
 ## Hard dependency
 
@@ -75,10 +75,10 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
+- **Trạng thái:** In Progress
 - **Assignee:** ThanhTris
-- **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Reviewer:** unassigned
+- **Evidence / PR:** Đã chuẩn bị phần độc lập trên nhánh `feat/demo-01-chuan-bi-du-lieu-va`: manifest ghim 10 bằng chứng đại diện (`QA-01`..`QA-04`, `ORC-07`, `DAT-02`, `EXP-02`..`EXP-04`, `MLI-04`) tại [demo_package_manifest_v1.json](../../../config/demo/demo_package_manifest_v1.json), kịch bản trình bày 15–20 phút + 4 phương án fallback tại [DEMO-01_DEMO_PACKAGE.md](../../runbooks/DEMO-01_DEMO_PACKAGE.md), công cụ kiểm tra offline [demo-preflight.py](../../../scripts/demo-preflight.py) và unit tests [test_demo_preflight.py](../../../tests/test_demo_preflight.py). Giữ `In Progress` chờ nghiệm thu official của [MLQ-01](./MLQ-01.md) và [MLI-04](./MLI-04.md) để chốt exact official runs/query/pins.
 - **Kỹ năng phù hợp:** Demo, communication, QA
 
 ## Checklist bàn giao

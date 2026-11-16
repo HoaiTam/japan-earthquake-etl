@@ -22,7 +22,7 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 
 ## Tổng quan
 
-**Hiện hành12/11:** 64/81 Done,5 Needs Update,11 Backlog,1 In Progress (DAT-03).
+**Hiện hành12/11 (cập nhật DEMO-01 16/11):** 64/81 Done,5 Needs Update,10 Backlog,2 In Progress (DAT-03, DEMO-01).
 [DAT-03 actual metadata audit](../../evidence/DAT-03_LINEAGE_FRONTIER_20261112.md): first-hop và Trí next-hop matched; [ThanhTris frontier metadata](../../evidence/DAT-03_LINEAGE_ThanhTris_METADATA_20261112.md) đã bàn giao; chưa official integration/export.
 [Kế hoạch tuần9,6task/người](../WEEK_9_REPLAN_20261111.md),
 [đối soát PR/acceptance](../../evidence/TASK_STATUS_AUDIT_20261111.md).
@@ -342,7 +342,7 @@ portable merge, full catalog và official export/receipts. Không suy unit PASS 
 | Task | Tuần | Workstream | Scope | Priority | Effort | Trạng thái |
 |---|---:|---|---|---|---:|---|
 | [DOC-01](./DOC-01.md) - Cập nhật tài liệu theo từng block | 5 | Documentation | Core | P0 | 4h | Done |
-| [DEMO-01](./DEMO-01.md) - Chuẩn bị dữ liệu và kịch bản demo | 8 | Demo | Core | P0 | 4h | Backlog |
+| [DEMO-01](./DEMO-01.md) - Chuẩn bị dữ liệu và kịch bản demo | 8 | Demo | Core | P0 | 4h | In Progress |
 | [DEMO-02](./DEMO-02.md) - Rehearsal và tạo release candidate | 8 | Release | Core | P0 | 6h | Backlog |
 | [OPS-01](./OPS-01.md) - Smoke test backup và restore metadata | 6 | Backup and restore | Stretch | P2 | 4h | Backlog |
 | [QA-01](./QA-01.md) - Chạy E2E daily đa nguồn | 5 | E2E | Core | P0 | 5h | Done |
