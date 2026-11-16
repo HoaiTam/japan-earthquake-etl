@@ -1,0 +1,187 @@
+{
+  "version": "ops01-acceptance-v1",
+  "task_id": "OPS-01",
+  "task_status": "Done",
+  "status": "PASSED",
+  "assignee": "HoaiTam",
+  "reviewer": "unassigned",
+  "base_commit": "001e33b",
+  "backup": {
+    "airflow_scope": "schema_only_no_rows",
+    "artifact_lineage": {
+      "dataset_id": "ds_fixture",
+      "experiment_run_id": "exp_fixture",
+      "membership_rows": 2,
+      "summary_rows": 1
+    },
+    "bundle_sha256": "60b44f775308ab9b54cc0d258774c4b22f42a202f9d19c516e5312424ff1def2",
+    "completed_at_utc": "2026-11-16T18:08:09.481870+00:00",
+    "full_disaster_recovery": false,
+    "objects": 77,
+    "secret_scan": "PASSED",
+    "services_unchanged": true,
+    "status": "BACKUP_VERIFIED",
+    "tables": 13,
+    "uncompressed_bytes": 2043481,
+    "version": "ops01-backup-v1",
+    "zip_bytes": 1802349
+  },
+  "restore": {
+    "bundle_sha256": "60b44f775308ab9b54cc0d258774c4b22f42a202f9d19c516e5312424ff1def2",
+    "objects": 77,
+    "bytes": 2054459,
+    "tables": [
+      {
+        "checksum": "FF3AF8D4AA4F3658",
+        "restored": "ops01_921393754413447caa47597eddf21954_0.event_current",
+        "rows": 11034,
+        "snapshot_id": 7790528288584253066,
+        "source": "gold_qa_bc23073bbd474152a637769d7a1cd406.event_current"
+      },
+      {
+        "checksum": "DF6F05F7E028911B",
+        "restored": "ops01_921393754413447caa47597eddf21954_0.event_source_bridge",
+        "rows": 11034,
+        "snapshot_id": 3992289449863112731,
+        "source": "gold_qa_bc23073bbd474152a637769d7a1cd406.event_source_bridge"
+      },
+      {
+        "checksum": "4B7C188E02C7D953",
+        "restored": "ops01_921393754413447caa47597eddf21954_0.dim_date",
+        "rows": 33,
+        "snapshot_id": 8150631012670115470,
+        "source": "gold_qa_bc23073bbd474152a637769d7a1cd406.dim_date"
+      },
+      {
+        "checksum": "E0A5ADD4926E3E93",
+        "restored": "ops01_921393754413447caa47597eddf21954_0.dim_region",
+        "rows": 1,
+        "snapshot_id": 4661176038466025896,
+        "source": "gold_qa_bc23073bbd474152a637769d7a1cd406.dim_region"
+      },
+      {
+        "checksum": "195496C3C0771989",
+        "restored": "ops01_921393754413447caa47597eddf21954_0.dim_depth_band",
+        "rows": 5,
+        "snapshot_id": 5657266299176128434,
+        "source": "gold_qa_bc23073bbd474152a637769d7a1cd406.dim_depth_band"
+      },
+      {
+        "checksum": "59AA4551B59412E6",
+        "restored": "ops01_921393754413447caa47597eddf21954_0.dim_magnitude_band",
+        "rows": 7,
+        "snapshot_id": 7565580656894751199,
+        "source": "gold_qa_bc23073bbd474152a637769d7a1cd406.dim_magnitude_band"
+      },
+      {
+        "checksum": "C809377A8D34E7E2",
+        "restored": "ops01_921393754413447caa47597eddf21954_0.publication_status",
+        "rows": 1,
+        "snapshot_id": 583012400072819064,
+        "source": "gold_qa_bc23073bbd474152a637769d7a1cd406.publication_status"
+      },
+      {
+        "checksum": "A5FF2ABF80BB2DF7",
+        "restored": "ops01_921393754413447caa47597eddf21954_1.candidate_event",
+        "rows": 2,
+        "snapshot_id": 4691854184265549327,
+        "source": "ml_qa_6f191301e7734cec8a29185c2cbc0c0d.candidate_event"
+      },
+      {
+        "checksum": "8FF965123F1D0A0E",
+        "restored": "ops01_921393754413447caa47597eddf21954_1.mainshock_event",
+        "rows": 1,
+        "snapshot_id": 5630397825108091651,
+        "source": "ml_qa_6f191301e7734cec8a29185c2cbc0c0d.mainshock_event"
+      },
+      {
+        "checksum": "BD9B75AA19E907AA",
+        "restored": "ops01_921393754413447caa47597eddf21954_1.dataset_registry",
+        "rows": 1,
+        "snapshot_id": 1888776220574976321,
+        "source": "ml_qa_6f191301e7734cec8a29185c2cbc0c0d.dataset_registry"
+      },
+      {
+        "checksum": "F6E2B27A9D5AEC7E",
+        "restored": "ops01_921393754413447caa47597eddf21954_1.experiment_run",
+        "rows": 1,
+        "snapshot_id": 8634617115857105431,
+        "source": "ml_qa_6f191301e7734cec8a29185c2cbc0c0d.experiment_run"
+      },
+      {
+        "checksum": "5F109AC90B06348F",
+        "restored": "ops01_921393754413447caa47597eddf21954_1.sequence_membership",
+        "rows": 2,
+        "snapshot_id": 2416850644351807568,
+        "source": "ml_qa_6f191301e7734cec8a29185c2cbc0c0d.sequence_membership"
+      },
+      {
+        "checksum": "664ABF9F95EAE48A",
+        "restored": "ops01_921393754413447caa47597eddf21954_1.sequence_summary",
+        "rows": 1,
+        "snapshot_id": 8945933300571189287,
+        "source": "ml_qa_6f191301e7734cec8a29185c2cbc0c0d.sequence_summary"
+      }
+    ],
+    "ml_lineage": {
+      "candidate_keys": 0,
+      "membership_run": 2,
+      "published_experiment": 1,
+      "summary_run": 1
+    },
+    "restored_namespaces": [
+      "ops01_921393754413447caa47597eddf21954_0",
+      "ops01_921393754413447caa47597eddf21954_1"
+    ],
+    "airflow_database": "ops01_921393754413447caa47597eddf21954",
+    "airflow_schema_verified": true,
+    "secret_scan_coverage": {
+      "configured_secrets": "CHECKED",
+      "decoded_patterns": "PASSED"
+    },
+    "original_pins_unchanged": true,
+    "rerun_readback_unchanged": true,
+    "services_unchanged": true,
+    "completed_at_utc": "2026-11-16T18:11:44.773285+00:00"
+  },
+  "artifacts_restored_and_sha_verified": 14,
+  "airflow_schema": {
+    "tables": 71,
+    "columns": 531,
+    "data_rows_copied": 0
+  },
+  "graph_objects_by_role": {
+    "metadata": 24,
+    "manifest-list": 15,
+    "manifest": 15,
+    "data": 22,
+    "statistics": 1
+  },
+  "validation_queries_per_final_pass": {
+    "backup_row_fingerprints": 13,
+    "restore_row_fingerprints": 13,
+    "rerun_row_fingerprints": 13,
+    "ml_lineage_joins": 4
+  },
+  "tests": {
+    "ops_offline": 47,
+    "ci_policy": 43,
+    "skips": 0
+  },
+  "source_publications_or_experiments_created": false,
+  "source_lease_acquired_or_released": false,
+  "docker_build_pull_start_restart": false,
+  "acl_changed": false,
+  "full_disaster_recovery": false,
+  "official_scientific_acceptance": false,
+  "retained_receipt_pins": {
+    "backup": "8d1095964b7a77573904ecf32a9a362809fdc5e63c33022e61ce327fa5892ef9",
+    "restore": "07e593cab24751705e3ad871532dee0df914fb669e3bf345e730d2c38fd50a4c"
+  },
+  "source_sha256_at_final_review": {
+    "scripts/ops_backup.py": "9391b7c5b908c6e5453387d1c8cfdaa0b334bb43b69433ec87c07a452437f8f6",
+    "scripts/ops-backup.py": "b59a5af2302457a48645fe6a08c1336a7d43cc666380e0ec09212ebd29588866",
+    "config/ops/backup-smoke-v1.json": "0d38b531212726510edfe0d8f910632336804d5d4035003b5430badc2b81fa06",
+    "requirements-ops.txt": "6f0d9b8e23efa49c844f4338ae417485f23d3b0a4334b7cfa66b0b3b9753900b"
+  }
+}

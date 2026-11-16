@@ -25,8 +25,15 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 **17/11 — DAT-03 Done:** đã đối chiếu catalog288tháng, Gold Published/rerun,
 hai official collections EXPORTED và receipt thật cùng kitv4 trên ba máy.
 [Đối chiếu acceptance](../../evidence/DAT-03_FINAL_ACCEPTANCE_20261116.md).
-Hiện66/81Done,5Needs Update,10Backlog,0In Progress. Các mốc bên dưới giữ
+Hiện67/81Done,5Needs Update,9Backlog,0In Progress sau tích hợp OPS-01. Các mốc bên dưới giữ
 lịch sử, không thay scientific approval hoặc trạng thái SEC-01/EXP.
+
+**17/11 — OPS-01 Done (HoaiTam):** backup13bảng/77objects/14artifacts và
+restore prefix/namespace/DB mới; Trino signatures/rerun/ML joins, Airflow
+schema và secret scan đạt. [Evidence](../../evidence/OPS-01_BACKUP_RESTORE_20261117.md),
+[hướng dẫn](../../runbooks/OPS-01_BACKUP_RESTORE.md). Scope smoke đại diện,
+không full disaster recovery/official experiment hoặc SEC-01 cloud acceptance.
+DAT-03 closure đã merge [PR #136](https://github.com/HoaiTam/japan-earthquake-etl/pull/136).
 
 **16/11 — BI-01 Done (ThanhTris):** Kết nối ODBC Import 8 bảng Power Query M trên Power BI Desktop Windows 11 qua Trino snapshot `pub-202302-001` đã nghiệm thu; giữ scope Stretch connectivity ([evidence](../../evidence/BI-01_POWER_BI_IMPORT.md)).
 
@@ -418,7 +425,7 @@ và portable integration/full catalog/official export đã qua actual acceptance
 | [DOC-01](./DOC-01.md) - Cập nhật tài liệu theo từng block | 5 | Documentation | Core | P0 | 4h | Done |
 | [DEMO-01](./DEMO-01.md) - Chuẩn bị dữ liệu và kịch bản demo | 8 | Demo | Core | P0 | 4h | Backlog |
 | [DEMO-02](./DEMO-02.md) - Rehearsal và tạo release candidate | 8 | Release | Core | P0 | 6h | Backlog |
-| [OPS-01](./OPS-01.md) - Smoke test backup và restore metadata | 6 | Backup and restore | Stretch | P2 | 4h | Backlog |
+| [OPS-01](./OPS-01.md) - Smoke test backup và restore metadata | 6 | Backup and restore | Stretch | P2 | 4h | Done |
 | [QA-01](./QA-01.md) - Chạy E2E daily đa nguồn | 5 | E2E | Core | P0 | 5h | Done |
 | [QA-02](./QA-02.md) - Test rerun, duplicate và late revision | 5 | Idempotency | Core | P0 | 5h | Done |
 | [QA-03](./QA-03.md) - Kiểm thử JMA historical backfill | 5 | Historical backfill | Core | P0 | 5h | Done |

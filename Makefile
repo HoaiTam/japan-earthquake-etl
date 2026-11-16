@@ -714,6 +714,23 @@ smoke-qa-04: check-config-local ## QA-04 runtime recovery trong namespace QA; kh
 		qa-04-failure-recovery
 
 .PHONY: ci ci-docs ci-java ci-airflow test-ci-workflow test-security-audit audit-security audit-security-runtime audit-security-runtime-readonly
+.PHONY: test-ops-backup ops-backup ops-verify-backup ops-restore
+OPS_PYTHON ?= python3
+OPS_CONFIG ?= config/ops/backup-smoke-v1.json
+OPS_DEPLOYMENT_ROOT ?= $(CURDIR)
+
+test-ops-backup: ## OPS-01 offline Iceberg graph/SHA/relocation/secret guards; cần requirements-ops.txt và PyArrow
+	@$(OPS_PYTHON) -B -m unittest discover -s tests -p 'test_ops_backup.py'
+
+ops-backup: ## OPS-01 explicit read-only backup; OPS_OUTPUT phải là thư mục staging mới, không build/start
+	@$(OPS_PYTHON) -B scripts/ops-backup.py backup --config "$(OPS_CONFIG)" --output "$(OPS_OUTPUT)" --deployment-root "$(OPS_DEPLOYMENT_ROOT)"
+
+ops-verify-backup: ## OPS-01 offline SHA/full graph/decoded-secret verification; không Docker
+	@$(OPS_PYTHON) -B scripts/ops-backup.py verify --bundle "$(OPS_BUNDLE)" --sha256 "$(OPS_SHA256)" --deployment-root "$(OPS_DEPLOYMENT_ROOT)"
+
+ops-restore: ## OPS-01 explicit isolated namespaces/prefix/database mới; không ghi đè source hoặc retry tự động
+	@$(OPS_PYTHON) -B scripts/ops-backup.py restore --bundle "$(OPS_BUNDLE)" --sha256 "$(OPS_SHA256)" --output "$(OPS_OUTPUT)" --deployment-root "$(OPS_DEPLOYMENT_ROOT)"
+
 .PHONY: ci-plan ci-docs-base ci-java-impact ci-airflow-impact ci-pilot-impact ci-suite
 
 ci-suite: ## Chạy nhóm test chức năng/task; đặt CI_COMPONENT=java|airflow và CI_SUITE=<id từ ci-plan>
@@ -738,6 +755,7 @@ ci-docs: ## Docs/contracts/secret hygiene/Compose tĩnh; không đọc .env riê
 	@$(MAKE) test-pilot PILOT_PYTHON=python3
 
 ci-docs-base: ## Always-on CI guards; pilot tests được chọn riêng theo impact, không Docker daemon
+	@$(MAKE) test-ops-backup
 	@$(MAKE) test-dat03-lineage
 	@$(MAKE) test-dat03-payload-inventory
 	@python3 -B -m unittest tests.test_dat03_followup_verifier tests.test_dat03_portable_plan tests.test_dat03_readback_batches tests.test_dat03_bronze_relocation tests.test_dat03_portable_capacity tests.test_dat03_portable_import tests.test_dat03_portable_gold tests.test_dat03_prepared_ml tests.test_dat03_prepared_ml_capture

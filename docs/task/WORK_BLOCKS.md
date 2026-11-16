@@ -1,7 +1,11 @@
 # Các khối công việc sau Foundation
 
-> **Cập nhật16/11/2026:** [DAT-03 nghiệm thu Done](../evidence/DAT-03_FINAL_ACCEPTANCE_20261116.md).
-> 66 Done / 5 Needs Update / 10 Backlog / 0 In Progress trong81task (main đã có BI-01).
+> **Cập nhật17/11/2026:** [DAT-03 nghiệm thu Done](../evidence/DAT-03_FINAL_ACCEPTANCE_20261116.md),
+> đã merge [PR #136](https://github.com/HoaiTam/japan-earthquake-etl/pull/136).
+> [OPS-01](./tasks/OPS-01.md) Done cho smoke đại diện, [runbook](../runbooks/OPS-01_BACKUP_RESTORE.md)
+> có setup/guard/Make commands và [evidence thật](../evidence/OPS-01_BACKUP_RESTORE_20261117.md).
+> Không phải full warehouse backup hoặc SEC-01 cloud acceptance.
+> 67 Done / 5 Needs Update / 9 Backlog / 0 In Progress trong81task sau tích hợp OPS-01.
 > [Phân công tuần9 — 16–22/11](./WEEK_9_REPLAN_20261111.md) giữ kế hoạch18task,6task/người.
 > Roster/effort tuần cũ bên dưới là lịch sử. [Đối soát](../evidence/TASK_STATUS_AUDIT_20261111.md).
 
