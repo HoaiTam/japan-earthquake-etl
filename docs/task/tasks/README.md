@@ -22,6 +22,12 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 
 ## Tổng quan
 
+**17/11 — DAT-03 Done:** đã đối chiếu catalog288tháng, Gold Published/rerun,
+hai official collections EXPORTED và receipt thật cùng kitv4 trên ba máy.
+[Đối chiếu acceptance](../../evidence/DAT-03_FINAL_ACCEPTANCE_20261116.md).
+Hiện66/81Done,5Needs Update,10Backlog,0In Progress. Các mốc bên dưới giữ
+lịch sử, không thay scientific approval hoặc trạng thái SEC-01/EXP.
+
 **16/11 — BI-01 Done (ThanhTris):** Kết nối ODBC Import 8 bảng Power Query M trên Power BI Desktop Windows 11 qua Trino snapshot `pub-202302-001` đã nghiệm thu; giữ scope Stretch connectivity ([evidence](../../evidence/BI-01_POWER_BI_IMPORT.md)).
 
 **16/11 — DAT-03 portability:** ThanhTris đã tải đúng ZIPv2 nhưng phát hiện hai
@@ -80,7 +86,7 @@ Java kiểm125/125tháng worker qua13batch/42groups, không bung dataset hoặc 
 unified Gold288tháng/Trino, official exports và receipts ba máy. Các ghi chú chờ
 24+23/2+1metadata trước đây giữ làm lịch sử, không yêu cầu gửi lại.
 
-**Hiện hành12/11 (cập nhật BI-01 Done):** 65/81 Done,5 Needs Update,10 Backlog,1 In Progress (DAT-03).
+**Lịch sử12/11 (cập nhật BI-01 Done):** 65/81 Done,5 Needs Update,10 Backlog,1 In Progress (DAT-03).
 **Lịch sử14/11 — byte audit trước follow-up / PR #131:** [Byte audit mới](../../evidence/DAT-03_BYTE_AVAILABILITY_20261114.md)
 đạt119/119payload refs Trí,144/144Trang,37/37source refs mỗi worker bằng
 bytes tái dùng có cùng SHA/size trên coordinator. Trang114metadata đã matched;
@@ -298,11 +304,12 @@ fixture/inventory; assignee `HoaiTam`, reviewer `unassigned`. Xem
 | [CON-03](./CON-03.md) - Thiết kế mô hình dữ liệu Silver, Gold và ML | 2 | Data model contract | Core | P0 | 6h | Done |
 | [DAT-01](./DAT-01.md) - Chuẩn bị bộ dữ liệu mẫu thật từ USGS và JMA | 3 | Shared real samples | Core | P0 | 3h | Done |
 | [DAT-02](./DAT-02.md) - Tạo dataset pilot nhỏ để test trên Jupyter | 5 | Jupyter development pilot | Core | P0 | 6h | Done |
-| [DAT-03](./DAT-03.md) - Chuẩn bị catalog nghiên cứu thật và bàn giao dataset dùng chung | 6 | Verified research data and team handoff | Core | P0 | 16h | In Progress |
+| [DAT-03](./DAT-03.md) - Chuẩn bị catalog nghiên cứu thật và bàn giao dataset dùng chung | 6 | Verified research data and team handoff | Core | P0 | 16h | Done |
 
 DAT-03: [range worker + frozen USGS2023](../../runbooks/DAT-03_RANGE_WORKER.md)
-đã có code/transport; còn một tháng runtime acceptance trên từng máy,
-portable merge, full catalog và official export/receipts. Không suy unit PASS thành Done.
+và portable integration/full catalog/official export đã qua actual acceptance;
+[receipt ba máy và nghiệm thu cuối16/11](../../evidence/DAT-03_FINAL_ACCEPTANCE_20261116.md)
+đã đủ. Không suy unit PASS hoặc pilot receipt thành full research acceptance.
 
 ## B - USGS Bronze
 
