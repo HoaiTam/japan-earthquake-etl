@@ -90,7 +90,7 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 - **Trạng thái:** Done
 - **Assignee:** HoaiTam
 - **Reviewer:** unassigned
-- **Evidence / PR:** [Runtime + tests17/11](../../evidence/OPS-01_BACKUP_RESTORE_20261117.md), [machine-readable](../../evidence/OPS-01_BACKUP_RESTORE_20261117.json); chưa mở PR.
+- **Evidence / PR:** [Runtime + tests17/11](../../evidence/OPS-01_BACKUP_RESTORE_20261117.md), [machine-readable](../../evidence/OPS-01_BACKUP_RESTORE_20261117.json), [PR #137](https://github.com/HoaiTam/japan-earthquake-etl/pull/137).
 - **Kỹ năng phù hợp:** Backup, MinIO, operations
 
 ## Checklist bàn giao

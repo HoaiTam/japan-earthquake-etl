@@ -104,4 +104,8 @@ restart/cron/ACL hoặc release lease để vượt gate.
   [MLI-04](../task/tasks/MLI-04.md)/[MLQ-01](../task/tasks/MLQ-01.md) còn official
   ML/report/E2E acceptance, không được đóng từ synthetic component restore.
 - DAT-03 closure đã commit/push `fb4e2ca` trên `docs/dat-03-final-acceptance`
-  theo yêu cầu owner. Không merge main hoặc chuyển các edits SEC-01 sang đây.
+  và merge [PR #136](https://github.com/HoaiTam/japan-earthquake-etl/pull/136)
+  sau23/23checks PASS. [OPS-01 PR #137](https://github.com/HoaiTam/japan-earthquake-etl/pull/137)
+  rebase theo main mới, giữ DAT-03 Done và cập nhật counts67Done/5Needs Update/
+  9Backlog. Không chuyển các edits SEC-01 sang đây; chỉ merge khi CI của đúng
+  OPS-01 head đạt, không bypass hoặc tự tạo reviewer approval.
