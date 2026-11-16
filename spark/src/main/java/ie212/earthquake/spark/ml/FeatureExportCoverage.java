@@ -12,12 +12,18 @@ import java.util.*;
 public final class FeatureExportCoverage {
     private FeatureExportCoverage() { }
     public static ObjectNode resolve(SilverObjectStore store, JsonNode publication, JsonNode manifest) throws Exception {
-        String run = publication.path("gold_run_id").asText(); String root = FullMonthStateResolver.root(run);
+        String run = publication.path("gold_run_id").asText();
         byte[] commitBytes = store.read("gold-commits/" + run + "/commit.json");
         var commit = JSON.readTree(commitBytes);
         require(SilverBundlePublisher.sha(commitBytes).equals(publication.path("bundle_sha256").asText())
             && ("pub_" + SilverBundlePublisher.sha(commitBytes)).equals(manifest.path("gold_publication_id").asText())
             && commit.path("tables").path("event_current").path("snapshot_id").equals(manifest.path("gold_snapshot_id")), "DS_EXPORT_GOLD_PIN_CONFLICT");
+        if (commit.path("scope").has("prepared_input")) {
+            require(ie212.earthquake.spark.gold.PublishedPreparedCoverage.VERSION.equals(JSON.readTree(manifest.path("filter_config_json").asText())
+                    .path("source_coverage_contract").asText()), "PREPARED_ML_EXPLICIT_COVERAGE_PROTOCOL_REQUIRED");
+            return ie212.earthquake.spark.gold.PublishedPreparedCoverage.resolve(store, publication, manifest);
+        }
+        String root = FullMonthStateResolver.root(run);
         require(store.exists(root + "/registry.json") && store.exists(root + "/receipt.json") && store.exists(root + "/_SUCCESS"), "DS_EXPORT_COVERAGE_REQUIRED");
         byte[] registry = store.read(root + "/registry.json"), receiptBytes = store.read(root + "/receipt.json");
         var receipt = JSON.readTree(receiptBytes); var state = JSON.readTree(registry);

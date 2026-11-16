@@ -92,4 +92,10 @@ class ResearchCollectionPlanTest {
         parent.put("gold_snapshot_id",99.0);
         assertThrows(Exception.class,()->ResearchCollectionPlan.create(parent,coverage(),mc(parent),exclusions(1),windows(1,1),ResearchCollectionPlan.Limits.defaults()));
     }
+    @Test void unknownCoverageCannotFallBackToLegacyRegistryProof() {
+        var p = parent(); var c = coverage().put("coverage_version", "arbitrary-ready-v1");
+        assertThrows(Exception.class, () -> ResearchCollectionPlan.create(p, c, mc(p), exclusions(1), windows(1, 1), ResearchCollectionPlan.Limits.defaults()));
+        c.put("coverage_version", ie212.earthquake.spark.gold.PublishedPreparedCoverage.VERSION);
+        assertThrows(Exception.class, () -> ResearchCollectionPlan.create(p, c, mc(p), exclusions(1), windows(1, 1), ResearchCollectionPlan.Limits.defaults()));
+    }
 }

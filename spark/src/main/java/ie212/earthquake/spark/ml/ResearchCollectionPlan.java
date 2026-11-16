@@ -51,8 +51,15 @@ public final class ResearchCollectionPlan {
         int required="REPRODUCTION".equals(parent.path("dataset_split").asText())?225:
                 "EXTENSION".equals(parent.path("dataset_split").asText())?63:0;
         require(required>0 && "COMPLETE".equals(coverage.path("status").asText())
-                && coverage.path("required_month_count").isIntegralNumber() && coverage.path("required_month_count").asInt()==required
-                && coverage.path("registry_sha256").asText().matches("[a-f0-9]{64}"),"COLLECTION_FULL_SPLIT_COVERAGE_REQUIRED");
+                && coverage.path("required_month_count").isIntegralNumber() && coverage.path("required_month_count").asInt()==required,
+                "COLLECTION_FULL_SPLIT_COVERAGE_REQUIRED");
+        String coverageVersion = coverage.path("coverage_version").asText();
+        String requestedCoverage = config.path("filter_config").path("source_coverage_contract").asText();
+        if (ie212.earthquake.spark.gold.PublishedPreparedCoverage.VERSION.equals(coverageVersion)) {
+            require(coverageVersion.equals(requestedCoverage), "COLLECTION_PREPARED_COVERAGE_PROTOCOL_REQUIRED");
+            ie212.earthquake.spark.gold.PublishedPreparedCoverage.validateProof(coverage);
+        } else require(requestedCoverage.isEmpty() && (coverageVersion.isEmpty() || "mld05-receipt-bound-months-v1".equals(coverageVersion))
+                && coverage.path("registry_sha256").asText().matches("[a-f0-9]{64}"), "COLLECTION_FULL_SPLIT_COVERAGE_REQUIRED");
         require("FULL_PINNED_SPLIT".equals(mc.path("scope").asText()) && mc.path("mc_value").isNumber()
                 && Double.isFinite(mc.path("mc_value").asDouble()) && mc.path("mc_config_sha256").asText().matches("[a-f0-9]{64}"),
                 "COLLECTION_GLOBAL_MC_REQUIRED");

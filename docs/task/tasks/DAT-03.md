@@ -16,6 +16,141 @@ dependencies: ["ORC-07", "MLD-05", "MLI-02", "EXP-01"]
 
 ## Giao việc hiện hành — 11/11/2026
 
+**16/11 — sửa portability Windows theo comment ThanhTris trên PR #131:**
+ZIPv2 đúng SHA nhưng verifier chưa chạy được trên Windows native: directory
+index dùng backslash và UTC reader gọi IANA timezone lookup. Giữ data/export
+acceptance15/11, không gọi thiếu receipt chỉ là thủ tục. Bản vá dùng metadata
+PurePosixPath + epoch integer UTC cast, không sửa20collection files hoặc science.
+Giữ cùng branch/PR, In Progress/HoaiTam/reviewer unassigned. [Evidence](../../evidence/DAT-03_WINDOWS_HANDOFF_20261116.md)
+ghi regression/all-shard/macOS fresh restore/CI và releasev4. Native Windows/Linux
+CI trên commit `ed655bd` đã đạt; requirements cài Python tzdata chỉ trên Windows
+để materialize datetime, không cần C++ timezone database. Windows CI fixture
+không thay actual verifier receipts của hai thành viên; không đổi hard gates
+hoặc tự chuyển Done. Không ETL/export lại, Docker operations hoặc đổi ACL.
+
+**15/11 — owner duyệt profile 90.000/window và tiếp tục phần 3:** tiếp tục cùng
+PR #131/branch `feat/dat-03-official-collections`, không tạo PR hoặc branch mới
+cho continuation của cùng task. Thiết kế/đo `dat03-whole-window-90k-v1`, giữ
+nguyên science và cap shard/metadata khác; chỉ prepare request mới sau measured
+profile/regression đạt. Giữ request/assets/evidence 10k/40k nguyên trạng, không
+gọi các preflight âm tính cũ thành PASS. Sau fresh preflight từng split mới
+được chạy official lifecycle/export và loader/rerun/release. Status In Progress,
+assignee HoaiTam/reviewer unassigned; không giả ba receipts hoặc scientific approval.
+Actual: [profile90k/preflight evidence](../../evidence/DAT-03_OFFICIAL_COLLECTIONS_20261115.md)
+đạt benchmark90k/205,959giây/~1,18GiB; cả hai fresh preflight PASS, counts/Mc và
+strict exclusions khớp baseline. **Cả hai split EXPORTED/rerun/all-shard loader
+PASS**, 311 SQL +13 độc lập; 390.374 features/239mainshocks/6shards. Paired kit
+bất biến, fresh restore và fresh Drive download/verifier đã đạt; đúng own lease
+release, runtime idle,5services healthy. [Release/hướng dẫn hai máy](../../runbooks/DAT-03_OFFICIAL_RESEARCH_HANDOFF.md).
+Có receipt thật HoaiTam; còn ThanhTris/rosy179, nên toàn task giữ In Progress.
+Không tự cấp scientific approval hoặc lấy hai receipts cùng máy thành ba máy.
+
+**15/11 — bắt đầu phần 3 official collections:** branch
+`feat/dat-03-official-collections` từ main `f09ac66`, fast-forward phần 1–2
+`404e7c7` của PR #131. HoaiTam, reviewer unassigned; giữ In Progress.
+Triển khai coverage adapter có version cho PREPARED Published, giữ audit/Mc
+toàn split, strict windows và lifecycle/registry thật. Preflight capacity/read-only
+trước ML writes; không giả legacy receipts hoặc nới cap để pass. Hai collection
+REPRODUCTION/EXTENSION chạy tuần tự, checkpoint/own lease, loader/rerun/immutable
+release theo acceptance. Không fit/model/scientific approval hoặc tạo hộ receipts.
+Owner yêu cầu commit/push/comment cùng PR #131 sau kiểm tra, không merge.
+
+**Lịch sử 15/11 — preflight phần 3 trước khi owner duyệt 90k:**
+[evidence](../../evidence/DAT-03_PREPARED_ML_20261115.md).
+Actual REPRODUCTION: Mc0,5, 194 mainshocks/156.710 candidate memberships,
+max38.854/window; EXTENSION: Mc0,4, 45/233.664, max83.504/window.
+V1 cả hai `BLOCKED_RESOURCE`, exit0, Gold six pins unchanged, own lease release,
+không ML writes. Owner duyệt thiết kế/kiểm chứng v2 cap40.000/window, giữ science
+và các guard khác; **chưa duyệt cap lớn hơn40.000**. EXTENSION còn hai windows
+83.504/76.260, không drop để pass. Benchmark40k đã PASS sau98,107giây,
+peak1,05GiB/Java17.0.19/Spark3.5.9; readback/rerun/nullfaultinjections đạt.
+V2 metadata prepared, **chưa fresh real v2 preflight/build**. Postflight8/8SQL
+giữ Gold six pins,0bảng ML tại hai namespace; lease empty/runtime idle.
+Chưa EXPORTED/paired release/ba máy receipts, giữ In Progress.
+
+**15/11 — phần 2 Gold/publication hoàn tất kỹ thuật:**
+[Contract](../../specs/PREPARED_GOLD_PUBLICATION.md),
+[runbook](../../runbooks/DAT-03_PORTABLE_GOLD.md),
+[evidence](../../evidence/DAT-03_PORTABLE_GOLD_20261115.md).
+Branch `feat/dat-03-gold-publication` từ main `f09ac66`, nhận phần 1 `165763e`/PR #131.
+Actual sáu bảng `iceberg.dat03_unified_20261114` đã Published: 4.488.650 canonical,
+4.489.823 bridge; Trino 139 Verify + 41 Publish/readbacks. Rerun độc lập đạt
+139 + 15 calls, SHA commit/publication và sáu pins giữ nguyên, history 1/table.
+Known dimension-order failure được recovery có pin riêng; giữ hai fact snapshots
+và original failed evidence, không retry mù/đổi input hoặc mark lỗi thành success.
+Own lease release, services unchanged/idle. Không sửa namespace/source cũ hoặc
+gọi official export. DAT-03 vẫn In Progress, assignee HoaiTam/reviewer unassigned:
+còn phần 3 official collections/EXPORTED, loader/release và receipts ba máy.
+Owner yêu cầu commit/push/comment cùng PR #131, không merge. Các mốc “chưa Gold”
+bên dưới là lịch sử trước lần nghiệm thu này, không phải trạng thái phần 2 hiện tại.
+
+**15/11 — portable importer phần 1 đạt PREPARED:**
+[Contract](../../specs/DAT03_PREPARED_CATALOG.md),
+[runbook](../../runbooks/DAT-03_PORTABLE_IMPORT.md),
+[evidence](../../evidence/DAT-03_PORTABLE_IMPORT_20261115.md).
+Adapter PREPARED có version cho baseline163 + worker125 tháng đã qua27/27 batch,
+global dedup/revision/source-link/reconciliation:4.488.650canonical,
+4.489.823bridge,1.173accepted links,0exact duplicates; coverage đủ288 tháng.
+Independent reuse exit0 sau14,026 giây, giữ nguyên catalog SHA; own preparation
+lock release, services unchanged/idle. Phần1 hoàn tất kỹ thuật.
+Không giả FullMonthReady/SilverReady, không ghi Gold hoặc official export.
+Giữ In Progress; owner yêu cầu commit/push/comment trực tiếp PR #131 sau kiểm tra.
+Các mục chưa có implementation ở evidence capacity trước là mốc lịch sử.
+
+**15/11 — capacity/provenance tiếp tục đạt, chưa unified Gold:**
+[Evidence](../../evidence/DAT-03_CAPACITY_PROVENANCE_20261115.md), nhánh
+`feat/dat-03-unified-catalog`, HoaiTam/reviewer unassigned. Hai bảng đều đạt
+6.012.210 stress rows với exact repeat fingerprint; mapping74 original manifests
+→37 physical sources đã fresh readback SHA/size/structure/identity. Không sửa
+namespace cũ hoặc chạy lại batch nguồn. Chưa chuyển Done: còn versioned import/
+coverage adapter, Gold/Trino/official exports và receipts ba máy. Chưa ghi Gold
+trong phiên này; legacy ML export gate chưa chấp nhận portable integration.
+Owner yêu cầu bàn giao code qua PR #131 trên `feat/dat-03-payload-reuse-inventory`,
+không mở PR chồng hoặc merge main.
+
+**14/11 — portable integration từ main #127:** tiếp tục trên
+`feat/dat-03-portable-integration`, assignee HoaiTam, reviewer unassigned.
+[Evidence mới](../../evidence/DAT-03_PORTABLE_READBACK_20261114.md) ghi nhận đã
+nhận/kiểm original follow-up của cả Trang/Trí; không yêu cầu gửi lại24+23/2+1files.
+Java đọc125tháng worker qua13batch/42groups, kiểm pages/schema/counts/memberships/
+source links, không giải nén dataset hoặc ghi S3. Inventory tái dùng từ PR #131/
+c56f153; ngày15/11 owner yêu cầu commit/push phần đã làm trực tiếp vào PR #131.
+Không merge PR vào main. Chưa phải Gold hợp nhất288tháng.
+Giữ **In Progress**, còn capacity/import adapter, boundary/Trino, official exports
+và receipts ba máy. Owner duyệt namespace mới `iceberg.dat03_unified_20261114`
+**sau khi các gate đạt**, không build/pull/recreate, bật thêm container hoặc sửa
+namespace cũ.
+Capacity v2 timeout trong startup Spark/BlockManager, chưa có capacity report;
+không tự retry hoặc ghi Gold. Còn versioned mapping original worker Bronze URIs
+sang physical source đã xác minh, không giả markers hoặc source keys.
+
+**Lịch sử 14/11 — trước khi nhận follow-up, PR #131:** [Audit/evidence mới](../../evidence/DAT-03_BYTE_AVAILABILITY_20261114.md)
+xác nhận119/119payload references Trí,144/144Trang và37/37raw-source bytes
+mỗi worker có thể tái dùng theo SHA/size trên máy coordinator. Content595bytes
+đã tìm được bản nguyên bytes; không regenerate, không restore original S3keys.
+Trang đã bàn giao114frontier metadata khớp pin. Không còn yêu cầu gửi lại
+ZIP data lớn hoặc coi114objects này còn thiếu như mốc13/11 bên dưới.
+
+Còn original identities của Trang và current head cuối mỗi worker:
+[request Trang24pinned objects/23publication URIs](../../../config/research/dat03_lineage_rosy179_followup_20261114.json),
+[request Trí2pinned objects/1publication URI](../../../config/research/dat03_lineage_ThanhTris_followup_20261114.json).
+Full Iceberg graph, portable integration/Trino và official exports/receipts
+chưa đạt; giữ **In Progress**, reviewer `unassigned`. Các mốc12–13/11 bên
+dưới là lịch sử, không ghi đè evidence cũ hoặc chuyển Done vì đủ content bytes.
+
+**13/11 — tiếp tục trên `feat/dat-03-payload-reuse-inventory` từ main `df2fb01`:**
+HoaiTam kiểm lại metadata đã merge #128 và inventory payload theo bytes/SHA
+trong các gói đã chia sẻ; chỉ thu phần thiếu thực sự, không replay ETL hoặc
+nhận metadata references là portable Gold. Giữ **In Progress**, reviewer
+`unassigned`; còn chờ original bytes frontier của rosy179 và các gate tích hợp/
+official export/receipts ba máy.
+
+**Actual13/11:** [Inventory/evidence](../../evidence/DAT-03_PAYLOAD_REUSE_20261113.md)
+xác nhận100/119payload references Trí có bytes khớp trong data ZIP đã pin;
+19refs còn lại cùng1content595bytes. [Delta request](../../../config/research/dat03_lineage_ThanhTris_payload_delta.json)
+không yêu cầu upload lại498MiB. Publication giữ NOT_VERIFIED; Trang còn đúng
+114metadata objects, không thay bằng138journals. Chưa full closure/import/export.
+
 **12/11 — đã tiếp tục:** In Progress trên feat/dat-03-lineage-readiness.
 [Actual metadata audit](../../evidence/DAT-03_LINEAGE_FRONTIER_20261112.md)
 xác nhận75/83first-hop và Trí76dataset manifests/18parent commits.
@@ -172,23 +307,26 @@ portable ETL import/merge hoặc official ML export. Không sửa flag setup đ�
   budgets dưới2h, fail/timeout giữ lease. Tháng đầu2000-01 có68reported checks/
   six pins, session exit0/release own lease. Không gọi controller hoặc checkpoint
   đầu là acceptance toàn catalog. [Contract](../../specs/RESEARCH_CATALOG_ROLLOUT.md).
-- [ ] Khối 3 tiếp theo: capacity gate và rollout catalog 225/63 tháng có
+- [x] Khối 3 tiếp theo: capacity gate và rollout catalog 225/63 tháng có
   source pins, checkpoint, six-snapshot publication và bounded recovery; chỉ
   tick khi runtime toàn kỳ đạt, không lấy planner hoặc bốn tháng mẫu thay thế.
-- [ ] Khối 4 tiếp theo: official collection-aware ML export từ full Gold pin,
+- [x] Khối 4 tiếp theo: official collection-aware ML export từ full Gold pin,
   lifecycle/registry/loader/import và rerun; không đổi PREPARED thành EXPORTED
   chỉ bằng metadata. Khối 5 là receipts từ ba máy thành viên.
-- [ ] Resource/boundary policies được kiểm trên dữ liệu thật; không silent sampling.
+  Actual15/11: portable import phần1 + trusted handoff/resolver phần3 đạt;
+  không tuyên bố đã fit/import model results của task MLI-03 trong phiên này.
+- [x] Resource/boundary policies được kiểm trên dữ liệu thật; không silent sampling.
   Đã triển khai opt-in resolver `orc-06-v2` và `dat03-strict-split-v1` trong nhánh
   PR #99; regression/reader profile không thay full-period runtime acceptance.
-- [ ] Source proof đủ JMA 225 tháng reproduction và 63 tháng extension; xử lý biên
+- [x] Source proof đủ JMA 225 tháng reproduction và 63 tháng extension; xử lý biên
   UTC/JST và source-link halo, không nhận boolean tự khai.
-- [ ] Gold publication/Trino/reconciliation đạt; audit/Mc/exclusion reasons có proof.
-- [ ] MLI-02 build/export thật, counts/pins/checksum/loader và rerun đạt.
+- [x] Gold publication/Trino/reconciliation đạt; audit/Mc/exclusion reasons có proof.
+- [x] MLI-02 build/export thật, counts/pins/checksum/loader và rerun đạt.
 - [ ] HoaiTam, ThanhTris, rosy179 verify cùng release trên máy riêng; receipt có
   người nhận, dataset/pilot ID, SHA và loader result. Không giả receipt của hai
   người khác bằng ba lần chạy trên máy owner.
 - [ ] Runbook, giới hạn và metadata task/index đồng bộ, không còn blocker chưa xử lý.
+  Docs đã đồng bộ15/11; terminal acceptance vẫn chờ hai receipts thật ở trên.
 
 ## Hard dependency / làm song song
 
@@ -223,6 +361,46 @@ release đủ gate. Không tạo dependency ngược từ DAT-03 sang EXP-02.
 
 ## Theo dõi
 
+- **16/11 — Windows verifier patch:** 36 loader/kit tests và43CI policy tests
+  đạt local; all6shards/390.374rows xác minh với timezone lookup bị cấm.
+  20/20collection files giữ bytes/pins so v2, kitv4 immutable rerun/fresh restore
+  đạt trên HoaiTam. Native Windows/Linux CI PASS tại `ed655bd`; actual receipts
+  ThanhTris/rosy179 vẫn chưa có, không gọi CI fixture là nghiệm thu hai máy;
+  upload kitv4 bất biến, remote SHA4/4files và fresh Drive restore/verifier đạt.
+  [handoff hiện hành](../../runbooks/DAT-03_OFFICIAL_RESEARCH_HANDOFF.md).
+
+- **15/11 — tiếp tục profile 90k theo owner duyệt:** đang thiết kế/kiểm chứng
+  rồi chạy hai official collections trên Gold pins phần 2. Các gate 100.000
+  rows/shard,128mainshocks/shard,64shards/4.096metadata giữ nguyên. Chưa có
+  acceptance official exports tại lúc bắt đầu; giữ In Progress. Hiện benchmark
+  và fresh preflight2/2 đã PASS theo [evidence90k](../../evidence/DAT-03_OFFICIAL_COLLECTIONS_20261115.md),
+  Cả hai split đã EXPORTED/rerun/loader PASS; paired release/fresh restore và Drive
+  roundtrip cũng đạt. [Handoff](../../runbooks/DAT-03_OFFICIAL_RESEARCH_HANDOFF.md)
+  có ZIP/handoff pins và lệnh setup từng OS. Còn đúng receipts thật ThanhTris và
+  rosy179 cho gate ba máy; không tạo hộ hoặc chuyển task Done sớm.
+
+- **15/11 — phần 2 đạt, toàn task In Progress:**
+  [evidence Gold](../../evidence/DAT-03_PORTABLE_GOLD_20261115.md).
+  Six-table commit/Trino Published + immutable rerun đã nghiệm thu thật; SHA/pins
+  không đổi và own lease release. Còn official REPRODUCTION/EXTENSION EXPORTED,
+  loader/rerun/release và receipts ba máy; không fake registry/approval.
+
+- **15/11 — portable importer phần 1:** [evidence](../../evidence/DAT-03_PORTABLE_IMPORT_20261115.md).
+  Full PREPARED receipt đã đạt288/288tháng, global reconciliation cân bằng;
+  không dùng thư mục/batch đang ghi làm acceptance. Chưa Gold/Trino/official exports
+  hoặc receipts ba máy; DAT-03 giữ In Progress, reviewer unassigned.
+
+- **15/11 — In Progress:** [capacity/provenance](../../evidence/DAT-03_CAPACITY_PROVENANCE_20261115.md)
+  đạt riêng component, no lake writes. Blocker startup14/11 đã có profile local
+  dependencies được nghiệm thu; không coi fingerprint stress hoặc74mapping là
+  Gold288tháng, official export hoặc receipts ba máy.
+
+- **Actual14/11 — portable Silver readback:** [evidence/pins](../../evidence/DAT-03_PORTABLE_READBACK_20261114.md),
+  [runbook](../../runbooks/DAT-03_PORTABLE_READBACK.md). Trang63/63tháng,
+  Trí62/62tháng;4.973.482rows giải mã là tổng bốn Silver datasets, không phải
+  4.973.482canonical earthquakes. Chưa tạo Gold mới hoặc official export. Các
+  ghi chú chờ metadata follow-up bên dưới là lịch sử, không yêu cầu gửi lại.
+
 - **14/11 — nghiệm thu bytes gốc 114 objects frontier của rosy179 trên Google Drive:**
   Hoài Tâm đã tải và đối soát độc lập gói `rosy179-dat03-lineage-frontier.zip` (101.446 bytes, SHA-256
   `0dd1c504f27489709c46748b313e9f764ecfc25a58ef50a2699cbcf0626e8453`, Drive ID `1QsZHjXXsGmWvBDFHiicMdejmAN2Lehb-`):
@@ -249,6 +427,18 @@ release đủ gate. Không tạo dependency ngược từ DAT-03 sang EXP-02.
   và bổ sung lệnh `frontier-spec`) cùng bộ kiểm thử tự động `tests/test_pack_worker_lineage.py` (14/14 tests PASS).
   [Evidence](../../evidence/DAT-03_INTEGRATION_EVIDENCE_288_MONTHS.md).
   Giữ Needs Update theo phân công 11/11 của HoaiTam chờ nghiệm thu 4 cổng.
+
+- **Lịch sử14/11 — byte audit trước follow-up / PR #131:** [Byte availability evidence](../../evidence/DAT-03_BYTE_AVAILABILITY_20261114.md)
+  và [summary/pins](../../evidence/DAT-03_BYTE_AVAILABILITY_20261114.json): đủ119/119
+  payload refs Trí,144/144Trang,37/37raw-source contents mỗi worker trên owner.
+  Trang114metadata matched; còn identities/current-head/publication/graph theo
+  follow-up requests hiện hành. Giữ In Progress; original S3keys, portable
+  Gold/live Trino/official exports và receipts3máy chưa nghiệm thu mới.
+
+- **13/11 — actual metadata/payload inventory:** branch `feat/dat-03-payload-reuse-inventory`
+  từ main #128,75roots/76manifests/18commits/18identities matched;100/119payload
+  refs byte-identical, delta1content595bytes. [Evidence](../../evidence/DAT-03_PAYLOAD_REUSE_20261113.md).
+  Không ETL/runtime/Drive mutations; giữ In Progress và reviewer unassigned.
 
 - **05/11 — đối soát toàn kỳ 288 tháng và 75/75 provenance của ThanhTris:**
   đối soát offline 02/11 và cập nhật từ Hoài Tâm xác nhận đủ 288/288 tháng qua

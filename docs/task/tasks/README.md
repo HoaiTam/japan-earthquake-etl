@@ -22,7 +22,72 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 
 ## Tổng quan
 
+**16/11 — DAT-03 portability:** ThanhTris đã tải đúng ZIPv2 nhưng phát hiện hai
+lỗi verifier Windows. Bản vá cùng PR #131 dùng PurePosixPath/UTC epoch integer,
+không ETL/export lại hoặc đổi20collection files. 36loader/kit +43CI tests và
+all-shard fresh restore kitv4 trên HoaiTam đạt; native Windows/Linux CI PASS
+trên `ed655bd` sau khi pin Python tzdata chỉ cho Windows. Actual Windows
+receipts chưa tự coi PASS. [Evidence](../../evidence/DAT-03_WINDOWS_HANDOFF_20261116.md),
+[release/hướng dẫn hiện hành](../../runbooks/DAT-03_OFFICIAL_RESEARCH_HANDOFF.md).
+DAT-03 giữ In Progress, không giảm acceptance hoặc tự fake receipts để Done.
+
+**15/11 — DAT-03 continuation:** owner đã duyệt thiết kế/đo profile90.000/window,
+giữ science và các guard khác; sau measured capacity/regression/fresh preflight
+mới chạy official collections. Cùng PR #131, giữ In Progress; note "chưa duyệt
+trên40k" bên dưới là lịch sử trước quyết định này.
+[Actual90k](../../evidence/DAT-03_OFFICIAL_COLLECTIONS_20261115.md): benchmark và
+fresh preflight2/2, hai EXPORTED/rerun/all-shard loaders,311+13SQL, paired release/
+fresh restore/Drive roundtrip PASS. [Hướng dẫn nhận](../../runbooks/DAT-03_OFFICIAL_RESEARCH_HANDOFF.md),
+390.374features/239mainshocks/6shards. Có receipt HoaiTam; giữ In Progress chờ
+receipt thật ThanhTris/rosy179, không tự scientific approval hoặc tạo hộ receipt.
+
+**15/11 — DAT-03 phần 3 In Progress:** official PREPARED coverage adapter,
+read-only capacity gate rồi hai collection export/lifecycle/registry thật,
+loader/rerun/release; không đổi flags hoặc giả legacy receipts để mở gate.
+Hai preflight thật v1 BLOCKED_RESOURCE, không ML writes; owner duyệt kiểm chứng
+profile40.000 đã PASS98,107giây, nhưng EXTENSION còn max83.504/window, chưa được
+tự nâng cap. V2 metadata prepared, chưa fresh real v2 preflight/build;0bảng ML.
+[Evidence phần 3](../../evidence/DAT-03_PREPARED_ML_20261115.md); giữ In Progress.
+
+**15/11 — DAT-03 phần 2 đạt:**
+[evidence](../../evidence/DAT-03_PORTABLE_GOLD_20261115.md).
+Six-table Gold Published tại namespace mới đã duyệt; Trino 139 + 41 calls,
+rerun 139 + 15 calls giữ SHA/six pins/history 1/table. Own lease release, runtime
+idle/services unchanged; giữ original failure và scoped recovery provenance.
+Giữ In Progress cho official collections/EXPORTED, loader/release và receipts ba máy.
+Các note “chưa Gold” bên dưới là lịch sử trước phần 2; không fake legacy readiness.
+
+**15/11 — DAT-03 portable importer phần 1:**
+[contract](../../specs/DAT03_PREPARED_CATALOG.md),
+[evidence](../../evidence/DAT-03_PORTABLE_IMPORT_20261115.md).
+Adapter PREPARED baseline163 + worker125 tháng đã có full receipt27/27batch,
+288tháng;4.488.650canonical/4.489.823bridge,global reconciliation cân bằng.
+Independent reuse PASS, catalog SHA không đổi; phần1 hoàn tất kỹ thuật.
+Không ghi Gold/official export;
+giữ In Progress, không coi component này là Done toàn DAT-03.
+
+**15/11 — DAT-03 In Progress:** [capacity/provenance](../../evidence/DAT-03_CAPACITY_PROVENANCE_20261115.md)
+đạt event/bridge6.012.210 stress rows mỗi bảng và74→37 source mapping có physical
+readback. Chưa có versioned Gold importer/coverage adapter, unified publication
+hoặc official exports/receipts. Các blocker startup capacity14/11 là lịch sử.
+
+**14/11 — DAT-03 portable readback:** nhận đủ original follow-up Trang/Trí,
+Java kiểm125/125tháng worker qua13batch/42groups, không bung dataset hoặc ghi Gold.
+[Evidence](../../evidence/DAT-03_PORTABLE_READBACK_20261114.md),
+[runbook](../../runbooks/DAT-03_PORTABLE_READBACK.md). **In Progress**; còn actual
+unified Gold288tháng/Trino, official exports và receipts ba máy. Các ghi chú chờ
+24+23/2+1metadata trước đây giữ làm lịch sử, không yêu cầu gửi lại.
+
 **Hiện hành12/11:** 64/81 Done,5 Needs Update,11 Backlog,1 In Progress (DAT-03).
+**Lịch sử14/11 — byte audit trước follow-up / PR #131:** [Byte audit mới](../../evidence/DAT-03_BYTE_AVAILABILITY_20261114.md)
+đạt119/119payload refs Trí,144/144Trang,37/37source refs mỗi worker bằng
+bytes tái dùng có cùng SHA/size trên coordinator. Trang114metadata đã matched;
+còn identities/current-head metadata, complete Iceberg graph và actual
+integration/export/receipts. **In Progress**, không chứng nhận original S3keys.
+**13/11:** HoaiTam tiếp tục DAT-03 inventory tái dùng payload từ main #128;
+giữ In Progress, chưa nghiệm thu catalog hợp nhất hoặc official export.
+[Actual payload inventory13/11](../../evidence/DAT-03_PAYLOAD_REUSE_20261113.md):
+100/119refs Trí có sẵn, delta1content595bytes; Trang còn114metadata objects.
 [DAT-03 actual metadata audit](../../evidence/DAT-03_LINEAGE_FRONTIER_20261112.md): first-hop và Trí next-hop matched; [ThanhTris frontier metadata](../../evidence/DAT-03_LINEAGE_ThanhTris_METADATA_20261112.md) đã bàn giao; chưa official integration/export.
 [Kế hoạch tuần9,6task/người](../WEEK_9_REPLAN_20261111.md),
 [đối soát PR/acceptance](../../evidence/TASK_STATUS_AUDIT_20261111.md).

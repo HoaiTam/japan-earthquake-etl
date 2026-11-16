@@ -2,7 +2,7 @@
 import importlib.util
 import json
 import os
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 import sys
 import subprocess
 import tempfile
@@ -62,6 +62,15 @@ class ResearchTeamTest(unittest.TestCase):
         self.assertFalse(verified["scientific_approval"]);self.assertFalse((self.root/"rosy179-receipt.json").exists())
         self.assertEqual(8,sum(r["feature_row_count"] for r in verified["collections"].values()))
 
+    def test_archive_directory_names_are_posix_even_for_windows_paths(self):
+        names={'bundles/EXTENSION/shard_00000/features.parquet','bundles/REPRODUCTION/shard_00001/mainshocks.parquet','handoff.json'}
+        directories=v.expected_directories(names)
+        self.assertEqual({'bundles','bundles/EXTENSION','bundles/EXTENSION/shard_00000',
+                          'bundles/REPRODUCTION','bundles/REPRODUCTION/shard_00001'},directories)
+        for path in ('bundles/EXTENSION','bundles/EXTENSION/shard_00000'):
+            self.assertIn(PureWindowsPath(path).as_posix(),directories)
+        self.assertFalse(any('\\' in value for value in directories))
+
     def test_wrong_external_input_pin_never_creates_zip(self):
         self.inputs["REPRODUCTION"]["manifest_sha256"]="f"*64
         with self.assertRaisesRegex(ValueError,"EXTERNAL_PIN_MISMATCH"):self.packed()
@@ -69,8 +78,8 @@ class ResearchTeamTest(unittest.TestCase):
 
     def test_delivered_verifier_runs_in_a_fresh_process_without_repository_imports(self):
         result=self.packed();self.unpack();receipt=self.root/"fresh-recipient.json"
-        checked=subprocess.run([sys.executable,str(self.kit/"verify_dataset.py"),"--expected-handoff-sha256",result["handoff_sha256"],
-                                "--recipient","HoaiTam","--receipt",str(receipt)],cwd=self.kit,
+        checked=subprocess.run([sys.executable,"kit/verify_dataset.py","--expected-handoff-sha256",result["handoff_sha256"],
+                                "--recipient","HoaiTam","--receipt",receipt.name],cwd=self.root,
                                env={**os.environ,"PYTHONPATH":"","PYTHONDONTWRITEBYTECODE":"1"},capture_output=True,text=True,timeout=30)
         self.assertEqual(0,checked.returncode,checked.stderr)
         self.assertEqual("TEAM_RESEARCH_VERIFIED",json.loads(checked.stdout)["status"])
@@ -91,6 +100,27 @@ class ResearchTeamTest(unittest.TestCase):
         fixture.write_json(bundle/"dataset_manifest.json",manifest);self.inputs["EXTENSION"].update(fixture.reindex(bundle))
         with self.assertRaisesRegex(ValueError,"GOLD_PIN_CHANGED"):self.packed()
         self.assertFalse(self.output.exists())
+
+    def test_published_prepared_pin_is_explicit_and_verifies_as_paired_kit(self):
+        for split in v.SPLITS:
+            bundle=self.inputs[split]['directory'];m=json.loads((bundle/'dataset_manifest.json').read_bytes())
+            m.update(physical_gold_table_name='iceberg.dat03_unified_20261114.event_current',
+                     filter_config_json=json.dumps({'source_coverage_contract':'dat03-published-prepared-coverage-v1'}),observation_cutoff_utc='2026-11-15T00:00:00Z')
+            c=m['collection_plan']['coverage'];c.update(coverage_version='dat03-published-prepared-coverage-v1',source_system='JMA_BULLETIN',source_cutoff_utc='2026-10-25T00:00:00Z')
+            for key in ('prepared_catalog_sha256','prepared_coverage_sha256','provenance_sha256','published_commit_sha256','publication_sha256','gold_request_sha256'):c[key]='b'*64
+            fixture.write_json(bundle/'dataset_manifest.json',m)
+            fixture.write_json(bundle/'collection-preparation.json',{'status':'RESEARCH_COLLECTION_PREPARED','plan':m['collection_plan']})
+            self.inputs[split].update(fixture.reindex(bundle))
+        result=self.packed();self.unpack()
+        checked=v.verify(self.kit,result['handoff_sha256'],'HoaiTam')
+        self.assertTrue(checked['all_shards_verified'])
+
+    def test_no_arbitrary_unified_namespace_or_missing_prepared_protocol(self):
+        m={'physical_gold_table_name':'iceberg.dat03_unified_20261114.event_current','gold_snapshot_id':'9007199254740993',
+           'gold_publication_id':'pub_'+'b'*64,'publication_bundle_sha256':'b'*64}
+        with self.assertRaises(ValueError):v.gold_pin(m)
+        m.update(physical_gold_table_name='iceberg.dat03_unified_other.event_current',filter_config_json='{}')
+        with self.assertRaises(ValueError):v.gold_pin(m)
 
     def test_changed_shipped_code_is_rejected_before_import(self):
         result=self.packed();self.unpack();(self.kit/"tools/research_collection.py").write_text("raise AssertionError('never execute')")

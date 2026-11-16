@@ -5,7 +5,41 @@ Version `dat03-collection-export-v1`, execution protocol `mli-02-collection-v1`.
 lifecycle hoặc result-bundle schema. **Code/component tests không thay actual
 full research acceptance.** DAT-03 vẫn In Progress cho đến khi đủ mọi gate.
 
+## Reader interoperability của frozen writer90k
+
+Writer artifact `648d7779835ce8673a72d7d47852f68fa9b402da07a9a724f7d62be9a117e2b0`
+đặt Spark SQL timezone UTC nhưng collection Parquet dùng physical INT96. Arrow21
+đọc thành `timestamp[ns]` không timezone; không thỏa strict Arrow view
+`timestamp[us,UTC]` của loader. Không rewrite/re-export các bytes đã pin để che lỗi.
+
+Reader protocol `prepared-spark-utc-int96-v1` chỉ áp dụng khi **đúng code_version
+artifact trên**, dataset_config_version v2, prepared coverage và resource profile90k.
+Yêu cầu physical INT96 + Arrow naive ns, mọi epoch ns chia hết1000, roundtrip
+epoch giữ nguyên và toàn cột created_at khớp UTC anchor trong manifest. Chỉ khi
+đủ proof mới tạo **view trong RAM** microsecond UTC rồi chạy strict typed_schema
+và mọi quality/lineage check cũ. Unknown writer/type, mất nanosecond hoặc lệch UTC
+đều fail closed. Report ghi reader profile/normalization; bundle/SHA/IDs/lifecycle/
+Mc/window/features không đổi. Legacy MICROSECOND UTC vẫn được kiểm strict như cũ.
+
+Reader hiện dùng epoch ns integer → exact integer microseconds → Arrow
+timestamp(us,UTC) bằng [safe cast](https://arrow.apache.org/docs/21.0/python/generated/pyarrow.compute.cast.html).
+Chỉ chia sau alignment guard, kiểm roundtrip ns nguyên vẹn cả trước1970 và UTC
+anchor; không dùng số thực hoặc `assume_timezone`/C++ timezone database. Phiên kitv2
+dùng `assume_timezone` đã lộ lỗi trên Windows khi thiếu IANA database; giữ
+evidence/ZIPv2, không rewrite bytes data. Bản vá kitv4 loại C++ dependency này cho
+đúng frozen UTC writer, không mở rộng ngoại lệ cho naive timestamp nguồn khác.
+Python vẫn cần zoneinfo data khi Arrow materialize datetime: requirements pin
+`tzdata==2025.2; sys_platform == "win32"`. Native Windows/Linux Python3.12 và
+PyArrow21 fixture CI đã đạt trên commit `ed655bd`; CI không thay receipt real-data
+trên máy từng thành viên. [Evidence Windows](../evidence/DAT-03_WINDOWS_HANDOFF_20261116.md).
+Đây là reader adapter, không cấp scientific approval hoặc tạo feature bằng Python.
+
 ## Identity và nguồn
+
+[Published-PREPARED adapter](PREPARED_ML_EXPORT.md) bổ sung source coverage
+variant có version riêng cho catalog hợp nhất phần 1–2. Planner/loader giữ
+prepared/source/publication SHA thay `registry_sha256` legacy; không đổi grain,
+scientific config, resource caps hoặc promote preparation chỉ bằng metadata.
 
 `filter_config.collection_export` chứa đúng `version` và `layout_limits`.
 Limits: <=128 mainshock, <=100.000 dòng mỗi shard, <=64 shard; tổng metadata

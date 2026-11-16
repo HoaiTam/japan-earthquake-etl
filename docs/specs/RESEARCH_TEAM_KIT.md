@@ -4,6 +4,12 @@ Version `dat03-team-research-v1`, artifact_kind=PAIRED_COLLECTION_EXPORT.
 Mục tiêu: ba người nhận **một ZIP byte-identical**, gồm hai collection exports
 REPRODUCTION225tháng và EXTENSION63tháng từ cùng exact Published Gold pin.
 Không đổi dataset/collection IDs, schema, scaling, global Mc hoặc shard layout.
+Ngoài legacy `dat03_catalog_<uuid>`, receiver chấp nhận exact Published PREPARED
+table `iceberg.dat03_unified_20261114.event_current` khi có explicit coverage
+protocol và prepared commit SHA khớp Gold bundle; không mở arbitrary namespace.
+Kit dùng [reader interoperability](RESEARCH_COLLECTION_EXPORT.md#reader-interoperability-của-frozen-writer90k)
+có version cho đúng frozen UTC/INT96 writer90k; giữ nguyên bytes/pins và strict
+quality guards. Không auto-assume timezone hoặc silently truncate cho writer khác.
 
 ## Gate của operator trước đóng gói thật
 
@@ -57,6 +63,12 @@ hash/symlink trước chạy code. Ba modules được rehash rồi compile đú
 đã kiểm; không dùng ambient sys.modules hoặc timestamp pyc. Caller module/path
 state được khôi phục sau verify/failure. Đọc lần lượt all shards của cả hai
 splits, không concat toàn catalog. Không cần repo/Docker/Java/MinIO.
+
+Directory index luôn parse bằng PurePosixPath/as_posix trên mọi OS; không tạo
+expected metadata names bằng str(Path) vì Windows trả backslash. CI chạy cùng
+fixtures và shipped fresh-process verifier trên Windows native +Linux, có
+required docs-contracts gate fail khi matrix cần chạy không đạt. Unit mô phỏng
+Windows không thay receipt thật của người nhận trên Windows.
 
 Receipt ở ngoài kit có recipient, verified_at, machine fingerprint hash,
 Python version, two dataset/collection IDs/pins/counts và all_shards_verified.
