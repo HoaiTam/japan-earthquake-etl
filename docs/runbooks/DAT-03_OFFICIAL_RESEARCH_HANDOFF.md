@@ -1,5 +1,10 @@
 # DAT-03 — Nhận hai collection nghiên cứu chính thức, 16/11/2026
 
+**Đã nghiệm thu bàn giao3/3máy; DAT-03 Done16/11.**
+[Đối chiếu cuối và receipts thật](../evidence/DAT-03_FINAL_ACCEPTANCE_20261116.md).
+Không yêu cầu Trí/Trang chạy lại verifier; các lệnh bên dưới dành cho restore
+hoặc người nhận mới, không overwrite receipt đã có.
+
 Đây là **official feature export**, không phải pilot 279 dòng hoặc ZIP catalog
 partial. Cả hai split đã EXPORTED, rerun bất biến và all-shard loader đạt;
 13/13 Trino readbacks độc lập khớp counts, grain, Mc, registry và Gold pins.
@@ -103,8 +108,9 @@ nhạy cảm; không sửa expected SHA, tắt verifier hoặc regenerate input 
 ## Giới hạn và task còn lại
 
 - **[DAT-03 — Chuẩn bị catalog nghiên cứu thật và bàn giao dataset dùng chung](../task/tasks/DAT-03.md):**
-  giữ In Progress đến khi đủ receipt thật của ba máy. HoaiTam đã có receipt local
-  và fresh Drive restore; vẫn chỉ tính **một máy**, còn ThanhTris và rosy179.
+  Done sau khi đối chiếu đủ receipt thật ba máy16/11. HoaiTam local/Drive vẫn
+  chỉ tính một máy; Trí và Trang có receipt riêng, cùng handoff v4. Xem evidence
+  cuối để lấy link/SHA; không copy receipt khi restore trên máy khác.
 - **[SEC-01 — Review secret và bề mặt truy cập](../task/tasks/SEC-01.md):**
   kiểm quyền/identity của người nhận trên Drive/Colab còn riêng; scoped folders
   hiện chỉ có user permissions nhưng chưa map roster. Không đổi ACL hoặc gọi
