@@ -1,6 +1,6 @@
 ---
 task_id: "OPS-01"
-status: "Backlog"
+status: "Done"
 week: 6
 block: "K - QA & Release"
 workstream: "Backup and restore"
@@ -16,7 +16,18 @@ dependencies: ["GLD-03", "ORC-05"]
 
 ## Giao việc hiện hành — 11/11/2026
 
-- **Owner:** HoaiTam; **status:** Backlog.
+**17/11 — Done cho smoke đại diện**, không phải full disaster recovery.
+[Actual evidence](../../evidence/OPS-01_BACKUP_RESTORE_20261117.md) và
+[runbook/Make commands](../../runbooks/OPS-01_BACKUP_RESTORE.md): backup13bảng,
+77objects/14artifacts, hai Bronze manifests gốc, toàn graph metadata/Avro/
+Parquet/Puffin; restore namespace/prefix/DB riêng. Trino13signatures +13rerun
++4ML lineage joins đạt; PostgreSQL schema71tables/531columns khớp. Source pins
+và5services unchanged, lease empty/runtime idle, không ETL/build/restart/ACL.
+47offline regression tests/43CI policy tests đạt. HoaiTam, reviewer unassigned;
+owner duyệt commit/push/tạo PR và merge17/11 sau khi checks đạt.
+DAT-03 closure tách PR riêng, không sửa dataset.
+
+- **Owner:** HoaiTam; **status:** Done.
 - **Làm phần gì / dùng để làm gì:** Backup/restore.
 - **Bắt đầu độc lập:** Inventory metadata và chuẩn bị restore procedure trong namespace thử.
 - **Đầu ra và điều kiện Done:** Restore đọc được Gold và ML lineage/registry; backup chia sẻ không chứa secret, không restore đè deployment gốc.
@@ -45,9 +56,12 @@ Backup manifest Bronze/Gold/ML quan trọng, Iceberg catalog metadata, experimen
 
 ## Tiêu chí hoàn thành
 
-- [ ] Restore đọc được Gold snapshot/query kiểm chứng.
-- [ ] Restore truy vết được dataset/experiment manifest và bảng `ml.*` liên quan.
-- [ ] backup không chứa secret chia sẻ.
+- [x] Restore đọc được Gold snapshot/query kiểm chứng:7Gold/publication tables,
+  snapshot/count/full-row checksum giữ nguyên; data/metadata đọc từ prefix mới.
+- [x] Restore truy vết được dataset/experiment manifest và bảng `ml.*` liên quan:
+  6ML component tables, exact original manifests/registry,4join checks đạt.
+- [x] Backup không chứa secret chia sẻ: decoded Avro/Parquet/Puffin/JSON/text
+  và exact configured secrets đã kiểm; artifact/ZIP private, không tự upload.
 
 ## Hard dependency
 
@@ -73,20 +87,30 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
+- **Trạng thái:** Done
 - **Assignee:** HoaiTam
-- **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Reviewer:** unassigned
+- **Evidence / PR:** [Runtime + tests17/11](../../evidence/OPS-01_BACKUP_RESTORE_20261117.md), [machine-readable](../../evidence/OPS-01_BACKUP_RESTORE_20261117.json), [PR #137](https://github.com/HoaiTam/japan-earthquake-etl/pull/137).
 - **Kỹ năng phù hợp:** Backup, MinIO, operations
 
 ## Checklist bàn giao
 
-- [ ] Deliverable đã có trong repository hoặc môi trường demo.
-- [ ] Acceptance criteria đã được kiểm tra.
-- [ ] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
-- [ ] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
-- [ ] Không chứa secret, dữ liệu nhạy cảm hoặc file build không cần thiết.
-- [ ] P0/P1 có reviewer khác assignee xác nhận.
+- [x] Deliverable đã có trong repository hoặc môi trường demo.
+- [x] Acceptance criteria đã được kiểm tra trên13bảng đại diện.
+- [x] Test tự động đạt và có actual restore/readback evidence lặp lại được.
+- [x] Runbook, Make commands, profile và metadata task/index đã cập nhật.
+- [x] Không commit ZIP/data/secret/private logs/build artifacts.
+- Reviewer độc lập chưa có (`unassigned`); task P2, không tự tạo approval.
+
+## Giới hạn còn lại
+
+- Không phải backup full Bronze/Silver/warehouse/catalog volume hoặc Airflow
+  history/credentials. Full disaster recovery **chưa có task riêng**.
+- [SEC-01 — Review secret và bề mặt truy cập](./SEC-01.md) còn cloud ACL/roster/
+  session acceptance; OPS-01 không đóng task đó.
+- [MLQ-01 — Chạy E2E Gold snapshot đến ML report](./MLQ-01.md) và
+  [MLI-04 — Tạo Trino views và static report](./MLI-04.md) còn official
+  research/report gates. Synthetic ML restore không thay nghiệm thu đó.
 
 ## Tài liệu liên quan
 
