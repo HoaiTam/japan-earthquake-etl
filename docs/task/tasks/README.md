@@ -22,6 +22,8 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 
 ## Tổng quan
 
+**16/11 — BI-01 Done (ThanhTris):** Kết nối ODBC Import 8 bảng Power Query M trên Power BI Desktop Windows 11 qua Trino snapshot `pub-202302-001` đã nghiệm thu; giữ scope Stretch connectivity ([evidence](../../evidence/BI-01_POWER_BI_IMPORT.md)).
+
 **16/11 — DAT-03 portability:** ThanhTris đã tải đúng ZIPv2 nhưng phát hiện hai
 lỗi verifier Windows. Bản vá cùng PR #131 dùng PurePosixPath/UTC epoch integer,
 không ETL/export lại hoặc đổi20collection files. 36loader/kit +43CI tests và
@@ -78,7 +80,7 @@ Java kiểm125/125tháng worker qua13batch/42groups, không bung dataset hoặc 
 unified Gold288tháng/Trino, official exports và receipts ba máy. Các ghi chú chờ
 24+23/2+1metadata trước đây giữ làm lịch sử, không yêu cầu gửi lại.
 
-**Hiện hành12/11:** 64/81 Done,5 Needs Update,11 Backlog,1 In Progress (DAT-03).
+**Hiện hành12/11 (cập nhật BI-01 Done):** 65/81 Done,5 Needs Update,10 Backlog,1 In Progress (DAT-03).
 **Lịch sử14/11 — byte audit trước follow-up / PR #131:** [Byte audit mới](../../evidence/DAT-03_BYTE_AVAILABILITY_20261114.md)
 đạt119/119payload refs Trí,144/144Trang,37/37source refs mỗi worker bằng
 bytes tái dùng có cùng SHA/size trên coordinator. Trang114metadata đã matched;
@@ -396,7 +398,7 @@ portable merge, full catalog và official export/receipts. Không suy unit PASS 
 
 | Task | Tuần | Workstream | Scope | Priority | Effort | Trạng thái |
 |---|---:|---|---|---|---:|---|
-| [BI-01](./BI-01.md) - Tạo kết nối Trino và Power Query | 7 | Connectivity | Stretch | P2 | 4h | Backlog |
+| [BI-01](./BI-01.md) - Tạo kết nối Trino và Power Query | 7 | Connectivity | Stretch | P2 | 4h | Done |
 | [BI-02](./BI-02.md) - Tạo semantic model và KPI measures | 8 | Semantic model | Stretch | P2 | 5h | Backlog |
 | [BI-03](./BI-03.md) - Xây trang Tổng quan | 8 | Overview dashboard | Stretch | P2 | 5h | Backlog |
 | [BI-04](./BI-04.md) - Xây trang Không gian và Độ sâu - Độ lớn | 8 | Detail dashboards | Stretch | P2 | 5h | Backlog |
