@@ -1640,6 +1640,36 @@ class ExperimentHarnessTest(unittest.TestCase):
                 experiment_run_id=res1["run_id"], is_retry=True,
             )
 
+    def test_official_collection_loader_verifies_shards_and_rejects_dev_mode(self):
+        spec_col = importlib.util.spec_from_file_location("col_loader_test", ROOT / "tests/test_research_collection_loader.py")
+        col_mod = importlib.util.module_from_spec(spec_col)
+        spec_col.loader.exec_module(col_mod)
+
+        col_root = self.out_dir / "collection_bundle"
+        pilot_tmp = self.out_dir / "pilot_tmp"
+        col_root.mkdir()
+        pilot_tmp.mkdir()
+        pins = col_mod.fixture(col_root, pilot_tmp)
+
+        with self.assertRaisesRegex(ValueError, "DEVELOPMENT_LOADER_REJECTS_OFFICIAL_DATASET"):
+            harness.load_feature_bundle(col_root, mode=harness.MODE_DEVELOPMENT)
+
+        with self.assertRaisesRegex(ValueError, "COLLECTION_EXTERNAL_PINS_REQUIRED"):
+            harness.load_feature_bundle(col_root, mode=harness.MODE_OFFICIAL)
+
+        loaded = harness.load_feature_bundle(
+            col_root,
+            mode=harness.MODE_OFFICIAL,
+            manifest_sha256=pins["manifest_sha256"],
+            checksums_sha256=pins["checksums_sha256"],
+        )
+        self.assertTrue(loaded["is_collection"])
+        self.assertEqual(loaded["dataset_split"], "REPRODUCTION")
+        self.assertEqual(loaded["features_table"].num_rows, 4)
+        self.assertEqual(loaded["mainshocks_table"].num_rows, 2)
+        self.assertEqual(sorted(loaded["shards"].keys()), ["shard_00000", "shard_00001"])
+        self.assertEqual(loaded["shards"]["shard_00000"]["collection_scope"]["scope"], "WHOLE_WINDOW_SHARD")
+
 
 if __name__ == "__main__":
     unittest.main()

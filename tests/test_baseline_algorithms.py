@@ -927,6 +927,90 @@ class BaselineModelsTest(unittest.TestCase):
             f"Expected lineage or grain mismatch error, got: {err_msg}"
         )
 
+    def test_official_multishard_collection_baselines_and_runner(self):
+        spec_col = importlib.util.spec_from_file_location("col_loader_baseline", ROOT / "tests/test_research_collection_loader.py")
+        col_mod = importlib.util.module_from_spec(spec_col)
+        spec_col.loader.exec_module(col_mod)
+
+        spec_runner = importlib.util.spec_from_file_location("run_exp02_official", ROOT / "scripts/run-exp02-official.py")
+        runner = importlib.util.module_from_spec(spec_runner)
+        spec_runner.loader.exec_module(runner)
+
+        kit_dir = self.out_dir / "kit"
+        repro_dir = kit_dir / "bundles" / "REPRODUCTION"
+        ext_dir = kit_dir / "bundles" / "EXTENSION"
+        pilot_tmp = self.out_dir / "pilot_seed"
+        repro_dir.mkdir(parents=True)
+        ext_dir.mkdir(parents=True)
+        pilot_tmp.mkdir()
+
+        repro_pins = col_mod.fixture(repro_dir, pilot_tmp)
+        ext_pilot = self.out_dir / "pilot_seed_ext"
+        ext_pilot.mkdir()
+        ext_pins = col_mod.fixture(ext_dir, ext_pilot)
+        ext_manifest = json.loads((ext_dir / "dataset_manifest.json").read_bytes())
+        ext_manifest["dataset_split"] = "EXTENSION"
+        ext_manifest["collection_plan"]["coverage"]["required_month_count"] = 63
+        col_mod.write_json(ext_dir / "dataset_manifest.json", ext_manifest)
+        col_mod.write_json(ext_dir / "collection-preparation.json", {"status": "RESEARCH_COLLECTION_PREPARED", "plan": ext_manifest["collection_plan"]})
+        ext_pins = col_mod.reindex(ext_dir)
+
+        handoff = {
+            "collections": {
+                "REPRODUCTION": repro_pins,
+                "EXTENSION": ext_pins,
+            },
+            "files": {
+                "bundles/REPRODUCTION/dataset_manifest.json": {"sha256": repro_pins["manifest_sha256"]},
+                "bundles/REPRODUCTION/checksums.sha256": {"sha256": repro_pins["checksums_sha256"]},
+                "bundles/EXTENSION/dataset_manifest.json": {"sha256": ext_pins["manifest_sha256"]},
+                "bundles/EXTENSION/checksums.sha256": {"sha256": ext_pins["checksums_sha256"]},
+            },
+        }
+        handoff_file = kit_dir / "handoff.json"
+        handoff_file.write_text(harness.canonical(handoff) + "\n", encoding="utf-8")
+        handoff_sha = harness.sha256_bytes(handoff_file.read_bytes())
+
+        # Reject EXTENSION split for EXP-02
+        with self.assertRaisesRegex(ValueError, "EXP02_REQUIRES_REPRODUCTION_SPLIT"):
+            runner.execute_official_baselines(
+                bundle_dir=ext_dir,
+                output_dir=self.out_dir / "ext_out",
+                output_json=self.out_dir / "ext_report.json",
+                expected_handoff_sha256=handoff_sha,
+            )
+
+        out_dir = self.out_dir / "official_out"
+        out_json = self.out_dir / "official_report.json"
+        out_md = self.out_dir / "official_report.md"
+        report = runner.execute_official_baselines(
+            bundle_dir=repro_dir,
+            output_dir=out_dir,
+            output_json=out_json,
+            output_md=out_md,
+            expected_handoff_sha256=handoff_sha,
+            seed=42,
+        )
+
+        self.assertEqual(report["status"], "PASSED")
+        self.assertEqual(report["dataset"]["dataset_split"], "REPRODUCTION")
+        self.assertEqual(report["dataset"]["feature_row_count"], 4)
+        self.assertEqual(report["dataset"]["mainshock_count"], 2)
+        self.assertEqual(report["dataset"]["shard_count"], 2)
+        self.assertTrue(out_md.is_file())
+
+        for algo in ["WINDOW", "DBSCAN", "HDBSCAN_GLOBAL"]:
+            algo_dir = out_dir / algo.lower()
+            self.assertTrue((algo_dir / "_SUCCESS.json").is_file())
+            self.assertEqual(pq.read_table(algo_dir / "memberships.parquet").num_rows, 4)
+            self.assertEqual(pq.read_table(algo_dir / "sequence_summary.parquet").num_rows, 2)
+            for shard_id in ["shard_00000", "shard_00001"]:
+                shard_dir = algo_dir / "shards" / shard_id
+                self.assertTrue((shard_dir / "_SUCCESS.json").is_file())
+                cfg = json.loads((shard_dir / "experiment_config.json").read_text(encoding="utf-8"))
+                self.assertEqual(cfg["collection_scope"]["shard_id"], shard_id)
+                self.assertEqual(cfg["collection_scope"]["scope"], "WHOLE_WINDOW_SHARD")
+
 
 if __name__ == "__main__":
     unittest.main()
