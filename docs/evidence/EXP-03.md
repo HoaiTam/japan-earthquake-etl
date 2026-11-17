@@ -193,3 +193,11 @@ Toàn bộ cấu hình được cố định trong `config/ml/models/hdbscan_ada
     - `executed_code_cells`: 5
     - `source_notebook_outputs_cleared`: `true`
 - **Kết luận:** Đã khắc phục triệt để các nhận xét tại PR #113; loại bỏ hoàn toàn fallback ngầm; đối soát định danh pilot thật chính xác 100% và bảo đảm liên kết hard dependency EXP-02 trước khi cấp quyền di chuyển Google Colab.
+
+## 5. Phiên Kiểm chứng Colab Portability & Host Parity của ThanhTris (17/11/2026)
+
+- **Báo cáo chi tiết & metadata đã redact:** [THANHTRIS_COLAB_PORTABILITY_20261117.md](./THANHTRIS_COLAB_PORTABILITY_20261117.md), [THANHTRIS_COLAB_PORTABILITY_20261117.json](./THANHTRIS_COLAB_PORTABILITY_20261117.json).
+- **Local gates (Windows `Python 3.12.10`, base `001e33b8`):** `exp01-colab.py local-pack` đạt `LOCAL_GATE_AND_HANDOFF_VERIFIED` (`nbclient`, `2` cells, `25.6583s`, `exp01-colab-handoff.zip` SHA-256 `a35ec15fb6d5e7bcae68f669aa41c12659aecc8d15378886fc7308fa58304c78`); `inspect-exp03-notebook.py` trên pilot thật đạt `RESTART_RUN_ALL_PASSED` (`5` cells, `5.2503s`, `experiment_run_id=pilot_run_1a7b6edb9bb94ccf9caaac99e124f2b5`).
+- **Google Colab thực tế (`2026-11-17T02:27:41Z`, Linux `Python 3.13.18`, CPU):** Thực thi [exp_01_colab_bootstrap.ipynb](../../notebooks/exp_01_colab_bootstrap.ipynb) đạt `COLAB_HARNESS_PASSED` (`4` cells, `0` errors, `108` packages), đồng thời kiểm chứng parity độc lập cho `WINDOW`, `DBSCAN`, `HDBSCAN_GLOBAL` (`279` memberships / `2` mainshocks, `rtol=1e-6`, `atol=1e-8`).
+- **Shared Drive handoff (`SEC-01`):** Lưu 4 artifacts trong [thư mục Drive `ThanhTris-colab-20261117`](https://drive.google.com/drive/folders/1jjyh_FfpIlcPb6y5n58Ssi7q0X0Ns6zb) với ACL `type=user` (`0 anyone`, `0 domain`), phục vụ review [PR #119](https://github.com/HoaiTam/japan-earthquake-etl/pull/119).
+- **Giới hạn:** Kết quả này xác nhận Colab portability + pilot baseline parity của `ThanhTris` (`DEVELOPMENT_ONLY`, `research_ready=false`); **không** thay thế official adaptive reproduction run trên `DAT-03` (`EXP-03` giữ `Needs Update` chờ `EXP-02` official và official run).
