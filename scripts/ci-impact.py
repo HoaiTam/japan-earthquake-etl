@@ -36,6 +36,7 @@ EXP_SCRIPTS = {
     "scripts/inspect-exp02-notebook.py",
     "scripts/inspect-exp03-notebook.py",
     "scripts/inspect-col03-metrics.py",
+    "scripts/run-exp02-official.py",
     "scripts/generate-experiment-report.py",
 }
 EXP_CONFIGS = {

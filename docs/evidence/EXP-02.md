@@ -92,7 +92,13 @@ Tại Review Round 4 (PR #84, comment-6246509089), @HoaiTam đã phản hồi v�
 Tại Tuần 7, phần Colab Portability của EXP-02 đã được kiểm chứng hoàn tất bởi assignee `rosy179` trên Google Colab CPU runtime với pilot JMA thật 279 dòng / 2 mainshocks. Cả 3 thuật toán baseline (`WINDOW`, `DBSCAN`, `HDBSCAN_GLOBAL`) đạt đối soát tương đương (parity) 100% giữa Local và Cloud.
 Xem chi tiết báo cáo bằng chứng tại: [EXP-02_COLAB_PARITY_20261102.md](./EXP-02_COLAB_PARITY_20261102.md) và metadata [EXP-02_COLAB_PARITY_20261102.json](./EXP-02_COLAB_PARITY_20261102.json).
 
-## 5. Giới hạn / Rủi ro / Bước tiếp theo
+## 5. Nghiệm thu Official REPRODUCTION Collection (2026-11-17)
+
+Sau khi [DAT-03](../task/tasks/DAT-03.md) hoàn tất bàn giao official kit v4, `load_feature_bundle` (`notebooks/experiment_harness.py`) và `run_baseline_experiment` (`notebooks/baseline_models.py`) đã được mở rộng hỗ trợ đọc/xuất multi-shard `ResearchCollection` (`dat03-collection-export-v1`) và thực thi qua `scripts/run-exp02-official.py` trên tập `REPRODUCTION` (`194` mainshocks, `156.710` rows, `2` shards):
+- Xuất đủ per-shard `WHOLE_WINDOW_SHARD` official bundles (`_SUCCESS.json` + `collection_scope` theo MLI-01/MLI-03) và full-split official bundles cho `WINDOW`, `DBSCAN`, `HDBSCAN_GLOBAL`.
+- Chi tiết pins, run IDs và đối soát xem tại [EXP-02 Official Reproduction](./EXP-02_OFFICIAL_REPRODUCTION.md) và [EXP-02_OFFICIAL_REPRODUCTION.json](./EXP-02_OFFICIAL_REPRODUCTION.json).
+
+## 6. Giới hạn / Rủi ro / Bước tiếp theo
 
 - **Khảo sát tham số giới hạn (COL-02):** Khảo sát tối đa 8 cấu hình (DBSCAN 4 cấu hình, HDBSCAN 4 cấu hình) thuộc về [COL-02 - Sweep tham số baseline giới hạn trên pilot](../task/tasks/COL-02.md).
 - **Trực quan hóa và bảng metrics (COL-03):** Kết xuất bảng số liệu tự động và biểu đồ không gian - thời gian tương đối cho ThanhTris thuộc về [COL-03 - Metrics và trực quan hóa baseline pilot](../task/tasks/COL-03.md).

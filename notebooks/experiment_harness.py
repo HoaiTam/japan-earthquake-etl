@@ -199,16 +199,165 @@ def get_runtime_metadata(
 # -----------------------------------------------------------------------------
 # Bundle Loader (Mode-Aware: DEVELOPMENT vs OFFICIAL)
 # -----------------------------------------------------------------------------
-def load_feature_bundle(bundle_dir: Union[str, Path], mode: str = MODE_DEVELOPMENT) -> Dict[str, Any]:
+def _import_research_collection():
+    """Import ResearchCollection lazily to avoid circular import at module load."""
+    notebooks_dir = Path(__file__).resolve().parent
+    if str(notebooks_dir) not in sys.path:
+        sys.path.insert(0, str(notebooks_dir))
+    try:
+        from research_collection import ResearchCollection
+        return ResearchCollection
+    except ImportError:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("research_collection", notebooks_dir / "research_collection.py")
+        if spec and spec.loader:
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            return mod.ResearchCollection
+        raise ImportError("Cannot load research_collection module from " + str(notebooks_dir / "research_collection.py"))
+
+
+def _resolve_collection_pins(
+    root: Path,
+    manifest_sha256: Optional[str] = None,
+    checksums_sha256: Optional[str] = None,
+    handoff_path: Optional[Union[str, Path]] = None,
+    expected_handoff_sha256: Optional[str] = None,
+) -> Tuple[str, str]:
+    """Resolve external SHA-256 pins for a DAT-03 collection from args, env, or verified handoff.json."""
+    m_sha = manifest_sha256 or os.environ.get("MLD05_MANIFEST_SHA256", "").strip() or None
+    c_sha = checksums_sha256 or os.environ.get("MLD05_CHECKSUMS_SHA256", "").strip() or None
+    if m_sha and c_sha:
+        return m_sha, c_sha
+
+    candidate_handoff: Optional[Path] = None
+    if handoff_path is not None:
+        candidate_handoff = Path(handoff_path).resolve()
+        require(candidate_handoff.is_file() and not candidate_handoff.is_symlink(), "COLLECTION_HANDOFF_NOT_FOUND")
+    else:
+        default_handoff = root.parent.parent / "handoff.json"
+        if default_handoff.is_file() and not default_handoff.is_symlink():
+            candidate_handoff = default_handoff.resolve()
+
+    if candidate_handoff is not None:
+        handoff_bytes = candidate_handoff.read_bytes()
+        exp_h_sha = expected_handoff_sha256 or os.environ.get("DAT03_HANDOFF_SHA256", "").strip() or None
+        if exp_h_sha is not None:
+            require(sha256_bytes(handoff_bytes) == exp_h_sha, "COLLECTION_HANDOFF_SHA_MISMATCH")
+        handoff = read_json_safe(handoff_bytes)
+        split = root.name
+        col_entry = handoff.get("collections", {}).get(split, {})
+        files_map = handoff.get("files", {})
+        file_m_sha = files_map.get(f"bundles/{split}/dataset_manifest.json", {}).get("sha256")
+        file_c_sha = files_map.get(f"bundles/{split}/checksums.sha256", {}).get("sha256")
+        col_m_sha = col_entry.get("manifest_sha256")
+        col_c_sha = col_entry.get("checksums_sha256")
+        if col_m_sha and file_m_sha:
+            require(col_m_sha == file_m_sha, "COLLECTION_HANDOFF_MANIFEST_PIN_CONFLICT")
+        if col_c_sha and file_c_sha:
+            require(col_c_sha == file_c_sha, "COLLECTION_HANDOFF_CHECKSUMS_PIN_CONFLICT")
+        m_sha = m_sha or col_m_sha or file_m_sha
+        c_sha = c_sha or col_c_sha or file_c_sha
+
+    require(bool(m_sha) and bool(c_sha), "COLLECTION_EXTERNAL_PINS_REQUIRED")
+    return str(m_sha), str(c_sha)
+
+
+def _load_official_collection_bundle(
+    root: Path,
+    manifest_sha256: Optional[str] = None,
+    checksums_sha256: Optional[str] = None,
+    handoff_path: Optional[Union[str, Path]] = None,
+    expected_handoff_sha256: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Load and verify all shards of an EXPORTED dat03-collection-export-v1 bundle."""
+    ResearchCollection = _import_research_collection()
+    m_sha, c_sha = _resolve_collection_pins(
+        root,
+        manifest_sha256=manifest_sha256,
+        checksums_sha256=checksums_sha256,
+        handoff_path=handoff_path,
+        expected_handoff_sha256=expected_handoff_sha256,
+    )
+    collection = ResearchCollection(root, manifest_sha256=m_sha, checksums_sha256=c_sha)
+
+    shard_bundles: Dict[str, Dict[str, Any]] = {}
+    feature_tables: List[pa.Table] = []
+    mainshock_tables: List[pa.Table] = []
+
+    for shard_id in collection.shards:
+        shard_bundle = collection.load_shard(shard_id)
+        shard_bundles[shard_id] = shard_bundle
+        feature_tables.append(shard_bundle["features_table"])
+        mainshock_tables.append(shard_bundle["mainshocks_table"])
+
+    features_table = pa.concat_tables(feature_tables)
+    mainshocks_table = pa.concat_tables(mainshock_tables)
+
+    manifest = collection.manifest
+    require(features_table.num_rows == manifest["feature_row_count"], "EXP_FEATURE_ROW_COUNT_MISMATCH")
+    require(mainshocks_table.num_rows == manifest["mainshock_count"], "EXP_MAINSHOCK_ROW_COUNT_MISMATCH")
+
+    # Cross-shard global grain and mainshock uniqueness verification
+    dataset_ids = set(features_table["dataset_id"].to_pylist())
+    require(dataset_ids == {manifest["dataset_id"]}, f"EXP_DATASET_LINEAGE_MISMATCH:{dataset_ids}!={manifest['dataset_id']}")
+    main_ids = mainshocks_table["mainshock_event_id"].to_pylist()
+    require(len(main_ids) == len(set(main_ids)) == manifest["mainshock_count"], "EXP_COLLECTION_DUPLICATE_MAINSHOCK")
+
+    return {
+        "mode": MODE_OFFICIAL,
+        "bundle_id": manifest["dataset_id"],
+        "source_dataset_id": manifest["dataset_id"],
+        "manifest": manifest,
+        "features_table": features_table,
+        "mainshocks_table": mainshocks_table,
+        "coverage": collection.plan["coverage"],
+        "bundle_dir": collection.root,
+        "is_official": True,
+        "is_collection": True,
+        "collection_id": collection.plan["collection_id"],
+        "dataset_split": manifest["dataset_split"],
+        "shards": shard_bundles,
+        "manifest_sha256": m_sha,
+        "checksums_sha256": c_sha,
+        "checksums": collection.index,
+        "timestamp_reader_profile": (
+            "prepared-spark-utc-int96-v1" if collection.timestamp_interop_used else "arrow-utc-micros-v1"
+        ),
+    }
+
+
+def load_feature_bundle(
+    bundle_dir: Union[str, Path],
+    mode: str = MODE_DEVELOPMENT,
+    *,
+    manifest_sha256: Optional[str] = None,
+    checksums_sha256: Optional[str] = None,
+    handoff_path: Optional[Union[str, Path]] = None,
+    expected_handoff_sha256: Optional[str] = None,
+) -> Dict[str, Any]:
     """Load and strictly validate a feature bundle according to the declared mode.
 
     Fails before model fitting if checksum, schema, finite constraint or mode contracts fail.
     - DEVELOPMENT mode: requires DAT-02 DEVELOPMENT_PILOT bundle.
-    - OFFICIAL mode: requires MLD-05 EXPORTED official dataset bundle.
+    - OFFICIAL mode: requires MLD-05 EXPORTED official dataset bundle (flat or dat03-collection-export-v1).
     """
     require(mode in VALID_MODES, f"INVALID_MODE:{mode}")
     root = Path(bundle_dir).resolve()
     require(root.is_dir() and not root.is_symlink(), "EXP_EXPLICIT_DIRECTORY_REQUIRED")
+
+    if mode == MODE_DEVELOPMENT and (root / "dataset_manifest.json").exists():
+        require(False, "DEVELOPMENT_LOADER_REJECTS_OFFICIAL_DATASET")
+
+    if mode == MODE_OFFICIAL and (root / "collection-preparation.json").is_file():
+        require(not (root / "pilot_manifest.json").exists(), "OFFICIAL_LOADER_REJECTS_PILOT_BUNDLE")
+        return _load_official_collection_bundle(
+            root,
+            manifest_sha256=manifest_sha256,
+            checksums_sha256=checksums_sha256,
+            handoff_path=handoff_path,
+            expected_handoff_sha256=expected_handoff_sha256,
+        )
 
     checksum_file = root / "checksums.sha256"
     require(checksum_file.is_file() and not checksum_file.is_symlink(), "EXP_MISSING_CHECKSUMS_FILE")
