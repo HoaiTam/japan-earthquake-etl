@@ -1,0 +1,9 @@
+{
+  "version": "qa05-resource-profile-v1",
+  "evidence": "docs/evidence/DAT-03_PORTABLE_GOLD_20261115.json",
+  "evidence_sha256": "de3d2ff367eaebfc969541dba521a5f1efcf0129d3065e2dd6e6abf9cb1e1ba2",
+  "query_window_seconds": 60,
+  "suite_window_seconds": 600,
+  "repetitions": 2,
+  "profiles": [{"name": "baseline", "task_concurrency": 1}, {"name": "candidate", "task_concurrency": 2}]
+}
