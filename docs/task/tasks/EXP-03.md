@@ -1,6 +1,6 @@
 ---
 task_id: "EXP-03"
-status: "Needs Update"
+status: "Done"
 week: 5
 block: "H - Experiment"
 workstream: "Adaptive HDBSCAN"
@@ -86,7 +86,7 @@ evidence cũ thành nghiệm thu của người mới. Giữ In Progress và har
 
 ## Theo dõi
 
-- **Trạng thái:** Needs Update
+- **Trạng thái:** Done
 - **Assignee:** ThanhTris
 - **Reviewer:** unassigned
 - **02/11/2026 — local smoke gate update & real pilot identity verification:** Hoàn thiện theo review của @HoaiTam (PR #113):
@@ -101,13 +101,14 @@ evidence cũ thành nghiệm thu của người mới. Giữ In Progress và har
   3. Bổ sung thêm 8 regression tests nâng tổng số lên **40 tests PASS** với fresh Jupyter kernel (đạt 21/21 CI checks).
   4. Xuất evidence mới tại [EXP-03-local-smoke.json](../../evidence/EXP-03-local-smoke.json) với status `REPORT_ONLY_VERIFIED`. Giữ task `In Progress` chờ PR #114 merge và nghiệm thu Colab cloud.
 - **17/11/2026 — Colab portability, host parity & SEC-01 Drive artifacts (`ThanhTris`):** Hoàn tất local `exp01-colab.py local-pack` (`001e33b`, `25.6583s`), local adaptive fresh-kernel inspection trên real pilot (`5.2503s`, `pilot_run_1a7b6edb9bb94ccf9caaac99e124f2b5`), chạy thực tế [exp_01_colab_bootstrap.ipynb](../../../notebooks/exp_01_colab_bootstrap.ipynb) trên Google Colab (`Python 3.13.18` Linux CPU, `COLAB_HARNESS_PASSED`, parity `WINDOW`/`DBSCAN`/`HDBSCAN_GLOBAL` `PASSED` với `279` rows / `2` mainshocks), recheck parity trên host và upload `4` artifact sạch vào Drive (`type=user` ONLY, `anyone=0`, `domain=0`) cho [SEC-01](./SEC-01.md) (PR #119). Ghi nhận tại [THANHTRIS_COLAB_PORTABILITY_20261117.md](../../evidence/THANHTRIS_COLAB_PORTABILITY_20261117.md) và [JSON](../../evidence/THANHTRIS_COLAB_PORTABILITY_20261117.json); giữ `Needs Update` (`scientific_approval=false`) vì vẫn chờ [EXP-02](./EXP-02.md) official và official adaptive run trên `DAT-03`.
-- **Evidence / PR:** [EXP-03 evidence](../../evidence/EXP-03.md), [THANHTRIS Colab portability](../../evidence/THANHTRIS_COLAB_PORTABILITY_20261117.md), [PR #86](https://github.com/HoaiTam/japan-earthquake-etl/pull/86) đã merge implementation, [PR #113](https://github.com/HoaiTam/japan-earthquake-etl/pull/113) local smoke gate review round 2. Hard gate EXP-02 đã được liên kết với PR #114.
+- **18/11/2026 — Official REPRODUCTION run & cross-shard global entity resolution (`ThanhTris`):** Mở rộng `notebooks/adaptive_hdbscan.py` và bổ sung `scripts/run-exp03-official.py` để chạy `HDBSCAN_ADAPTIVE` (`hdbscan-adaptive-dev-v1`) trên toàn bộ official `REPRODUCTION` (`194` mainshocks, `156.710` rows, `2` shards); thực thi `resolve_multi_sequence_and_nested_mainshocks` toàn cục xuyên shard rồi ghi đầy đủ cả full-split bundle (`exp_run_70637f429d590e2ba8258f56b618ba85`) lẫn per-shard `WHOLE_WINDOW_SHARD` official bundles (`131` thành công / `63` `EXP_MAINSHOCK_CLASSIFIED_AS_NOISE`, `98.795` raw $\rightarrow$ `88.222` resolved unique POST aftershocks, `10.573` deduplicated, `0` ambiguous, `23` nested mainshocks). Xem [EXP-03_OFFICIAL_REPRODUCTION.md](../../evidence/EXP-03_OFFICIAL_REPRODUCTION.md) và [JSON](../../evidence/EXP-03_OFFICIAL_REPRODUCTION.json). Chuyển `EXP-03` sang `Done` (`scientific_approval=false`; reviewer giữ `unassigned`).
+- **Evidence / PR:** [EXP-03 evidence](../../evidence/EXP-03.md), [EXP-03 Official Reproduction](../../evidence/EXP-03_OFFICIAL_REPRODUCTION.md), [THANHTRIS Colab portability](../../evidence/THANHTRIS_COLAB_PORTABILITY_20261117.md), [PR #86](https://github.com/HoaiTam/japan-earthquake-etl/pull/86) đã merge implementation, [PR #113](https://github.com/HoaiTam/japan-earthquake-etl/pull/113) local smoke gate review round 2. Hard gate EXP-02 đã được liên kết với PR #114 và PR #139.
 - **Kỹ năng phù hợp:** HDBSCAN, parameter policies, entity resolution
 
 ## Checklist bàn giao
 
 - [x] Deliverable và test/evidence tồn tại trong repository.
-- [ ] Acceptance toàn task: unit/contract rules đã kiểm; còn reproduction run artifacts và nghiệm thu notebook fresh kernel trên input hợp lệ sau EXP-02.
+- [x] Acceptance toàn task: unit/contract rules, Colab/local fresh-kernel parity và official `REPRODUCTION` (`EXP-02` $\rightarrow$ `EXP-03`) đã hoàn tất.
 - [x] Contract/docs đã cập nhật và không chứa secret/data dump.
 - [ ] Reviewer độc lập xác nhận (khuyến nghị cho P0); reviewer unassigned, chưa có approval.
 

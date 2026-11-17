@@ -1,0 +1,208 @@
+{
+  "adaptive_param_stats": {
+    "min_cluster_size": {
+      "max": 20,
+      "median": 9.0,
+      "min": 4
+    },
+    "min_samples": {
+      "max": 12,
+      "median": 5.0,
+      "min": 2
+    },
+    "window_count": 194
+  },
+  "artifact_verified": {
+    "checksums": {
+      "_SUCCESS.json": "8aa2e6f0f71d5565a67bc2659d5d89c059d40dfeb3402f62ee08cdb492424f62",
+      "experiment_config.json": "a32ba8ca8b8c4d4049855aa2ca5f846d30350be2772e77128b656be75900144a",
+      "experiment_metrics.json": "d9bf7479172779ba83f8776024de877b8339347b98ce5efe30f61b4eef51f666",
+      "memberships.parquet": "14da34362eb66453ff530bb3ce4dfa40a7eb917e625661a577f4503d2f680716",
+      "requirements-lock.txt": "a18209bc5034cd643c892e8a492a12de787fc0fae7dfa79e05132f1500f77d9d",
+      "sequence_summary.parquet": "96b10bea1a2a47d28160942e5bcfb278bacdd8ace46f6b0f6effa2adf126f7eb"
+    },
+    "has_success_marker": true,
+    "manifest_file": "_SUCCESS.json",
+    "relative_dir": "hdbscan_adaptive",
+    "run_id": "exp_run_70637f429d590e2ba8258f56b618ba85"
+  },
+  "case_results": {
+    "empty_post_windows": 0,
+    "failed_windows": 63,
+    "mainshock_noise_windows": 63,
+    "successful_windows": 131,
+    "total_windows": 194
+  },
+  "code_version": "a9c0d4ef07616279f8b2bf487a294258a8021e03",
+  "created_at_utc": "2026-11-17T18:05:26.945916+00:00",
+  "dataset": {
+    "checksums_sha256": "4768e500754c569bc951f23e2ac14fa9b9703ae69fbd5f78de06eacbb72f7ae9",
+    "collection_id": "col_bd10c69365da841b2cf6a62172e2350a797001eac04ce4bc6f2277a4d150ad98",
+    "dataset_id": "ds_907fe748fafdfc0f072ce4db4e1cf0aa619ed18877129e17c8440b43062c3d87",
+    "dataset_split": "REPRODUCTION",
+    "dataset_status": "EXPORTED",
+    "feature_row_count": 156710,
+    "feature_version": "relative-4d-v1",
+    "gold_publication_id": "pub_832ce36ac875f546528718c3545442a77a0097f7573379f30ed92f2a43c481f4",
+    "gold_snapshot_id": "7580315846938041321",
+    "handoff_sha256": "6cf0af7c2a3d8e8ec4c993f84ed6d86cdc417324102133dd3068eb2ebc40d297",
+    "mainshock_count": 194,
+    "manifest_sha256": "d3ee1334bfc50005a527f7b32a8988fcb1bdd7659a7dd4e84de326a7735139ae",
+    "mc_value": 0.5,
+    "scaling_config_version": "scaling-global-research-90k-v1",
+    "shard_count": 2,
+    "timestamp_reader_profile": "prepared-spark-utc-int96-v1",
+    "window_model_version": "wm_expanded_v1.0"
+  },
+  "evaluation_scope": "OFFICIAL_RESEARCH",
+  "model_config_pin": {
+    "algorithm_name": "HDBSCAN_ADAPTIVE",
+    "algorithm_version": "1.0.0",
+    "canonical_config_sha256": "22ed180c746ff9656dfd04027e582cd167ccdec26db332cc16946eb143df418a",
+    "config_path": "config/ml/models/hdbscan_adaptive_dev_v1.json",
+    "file_bytes_sha256": "41a4232ad6e4ae50505f14f8af2ea5cbd9353c0dc43ce6f3776d539977adbd65",
+    "model_config_version": "hdbscan-adaptive-dev-v1"
+  },
+  "multi_sequence_reconciliation": {
+    "aftershocks_deduplicated_count": 10573,
+    "ambiguous_aftershocks_count": 0,
+    "ambiguous_candidates_count": 0,
+    "nested_mainshocks_count": 23,
+    "raw_aftershocks": 98795,
+    "raw_sequence_members": 115636,
+    "resolved_unique_aftershocks": 88222,
+    "total_raw_memberships": 156710,
+    "unique_candidates_in_multi_sequences": 9649
+  },
+  "package_versions": {
+    "hdbscan": "0.8.40",
+    "nbclient": "0.10.2",
+    "nbformat": "5.10.4",
+    "numpy": "2.2.2",
+    "pyarrow": "21.0.0",
+    "scikit-learn": "1.6.1",
+    "scipy": "1.15.1"
+  },
+  "python_version": "3.12.10",
+  "random_seed": 42,
+  "reconciliation": {
+    "adaptive_param_stats": {
+      "min_cluster_size": {
+        "max": 20,
+        "median": 9.0,
+        "min": 4
+      },
+      "min_samples": {
+        "max": 12,
+        "median": 5.0,
+        "min": 2
+      },
+      "window_count": 194
+    },
+    "algorithm_name": "HDBSCAN_ADAPTIVE",
+    "ambiguous_aftershocks_count": 0,
+    "ambiguous_candidates_count": 0,
+    "collection_id": "col_bd10c69365da841b2cf6a62172e2350a797001eac04ce4bc6f2277a4d150ad98",
+    "dataset_split": "REPRODUCTION",
+    "deduplicated_aftershocks": 10573,
+    "failed_windows": 63,
+    "model_config_version": "hdbscan-adaptive-dev-v1",
+    "nested_mainshocks_count": 23,
+    "raw_aftershocks": 98795,
+    "reconciliation": {
+      "aftershocks_deduplicated_count": 10573,
+      "ambiguous_aftershocks_count": 0,
+      "ambiguous_candidates_count": 0,
+      "nested_mainshocks_count": 23,
+      "raw_aftershocks": 98795,
+      "raw_sequence_members": 115636,
+      "resolved_unique_aftershocks": 88222,
+      "total_raw_memberships": 156710,
+      "unique_candidates_in_multi_sequences": 9649
+    },
+    "resolved_unique_aftershocks": 88222,
+    "runtime_seconds": 62.7525,
+    "shard_count": 2,
+    "shard_runs": {
+      "shard_00000": {
+        "failed_windows": 26,
+        "membership_row_count": 85972,
+        "nested_mainshocks_count": 13,
+        "raw_aftershocks": 53046,
+        "relative_dir": "shards/shard_00000",
+        "resolved_unique_aftershocks": 45288,
+        "run_id": "exp_run_7981f385cc8dba1effcd992bf6033f61",
+        "successful_windows": 61,
+        "summary_row_count": 87,
+        "total_sequence_members": 65266
+      },
+      "shard_00001": {
+        "failed_windows": 37,
+        "membership_row_count": 70738,
+        "nested_mainshocks_count": 10,
+        "raw_aftershocks": 45749,
+        "relative_dir": "shards/shard_00001",
+        "resolved_unique_aftershocks": 42934,
+        "run_id": "exp_run_b3ee65e6fa5269aa5a2795c6f579d4ae",
+        "successful_windows": 70,
+        "summary_row_count": 107,
+        "total_sequence_members": 50370
+      }
+    },
+    "skipped_windows": 0,
+    "successful_windows": 131,
+    "total_candidates": 156710,
+    "total_noise": 26709,
+    "total_noise_candidates": 26709,
+    "total_sequence_members": 115636,
+    "total_windows": 194,
+    "windows_processed": 194
+  },
+  "report_version": "exp-03-official-v1",
+  "scientific_approval": false,
+  "shard_verifications": {
+    "shard_00000": {
+      "checksums": {
+        "experiment_config.json": "a420b6a1827bd3a1ca503d05d1aad5cb3cd981a2e4d928c0f7f2fbd279572616",
+        "experiment_metrics.json": "d578e579b1e449bea0a205bc5c05c6cb23a1c2087cfeb266aa4e8e4edb0d3563",
+        "memberships.parquet": "ba31035e4d0d6c376a52d8304335561995cb153c320e2aa0ec7b180ac38110e3",
+        "requirements-lock.txt": "a18209bc5034cd643c892e8a492a12de787fc0fae7dfa79e05132f1500f77d9d",
+        "sequence_summary.parquet": "39a03cda67195b355b0e5e7ff3d38a35a095a7cb72b053d13d4d83318cab9769"
+      },
+      "collection_scope": {
+        "collection_id": "col_bd10c69365da841b2cf6a62172e2350a797001eac04ce4bc6f2277a4d150ad98",
+        "scope": "WHOLE_WINDOW_SHARD",
+        "shard_id": "shard_00000",
+        "version": "dat03-collection-export-v1"
+      },
+      "experiment_run_id": "exp_run_7981f385cc8dba1effcd992bf6033f61",
+      "membership_row_count": 85972,
+      "relative_dir": "shards/shard_00000",
+      "success_marker_sha256": "a6f8d8c7a3fe4a0588308ed025be055033c40752d03775bc5bbae61e1096bd33",
+      "summary_row_count": 87
+    },
+    "shard_00001": {
+      "checksums": {
+        "experiment_config.json": "9565b05ec67da012ef34aaf2eb8bc4370e48bb7272766c90f93f5641d12122ba",
+        "experiment_metrics.json": "44f79412997aa6c751c961fd0c12dfc348022d423cad5168810379f5516818b5",
+        "memberships.parquet": "93212920cad7e13fda9fede070e051f5e1ecc34f641cf0d443c925ea52f18a1f",
+        "requirements-lock.txt": "a18209bc5034cd643c892e8a492a12de787fc0fae7dfa79e05132f1500f77d9d",
+        "sequence_summary.parquet": "cb076bf44a289bfd509600cf84a8ff3972868c9e5ea36097b804e45b8693bb41"
+      },
+      "collection_scope": {
+        "collection_id": "col_bd10c69365da841b2cf6a62172e2350a797001eac04ce4bc6f2277a4d150ad98",
+        "scope": "WHOLE_WINDOW_SHARD",
+        "shard_id": "shard_00001",
+        "version": "dat03-collection-export-v1"
+      },
+      "experiment_run_id": "exp_run_b3ee65e6fa5269aa5a2795c6f579d4ae",
+      "membership_row_count": 70738,
+      "relative_dir": "shards/shard_00001",
+      "success_marker_sha256": "c3e252bdd3d5b3c754a8b43df8b20ccb489a7d314ed50795a367f9b7d7d4e81b",
+      "summary_row_count": 107
+    }
+  },
+  "status": "PASSED",
+  "task_id": "EXP-03",
+  "technical_summary": "Official EXP-03 HDBSCAN_ADAPTIVE with deterministic parameter scaling, global cross-shard multi-sequence entity resolution, and nested mainshock detection on EXPORTED REPRODUCTION."
+}

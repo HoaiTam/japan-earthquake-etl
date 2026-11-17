@@ -1016,7 +1016,7 @@ def _verify_and_reconcile_algo_bundle(
             else:
                 require(s["productive_sequence_detected"] is True, f"NON_EMPTY_POST_MUST_BE_PRODUCTIVE:{algo}:{mid}")
 
-            if algo in {"DBSCAN", "HDBSCAN_GLOBAL"}:
+            if algo in {"DBSCAN", "HDBSCAN_GLOBAL", "HDBSCAN_ADAPTIVE"}:
                 noises = [m for m in w_mems if m.get("is_noise") is True]
                 require(s["noise_count"] == len(noises),
                         f"NOISE_COUNT_MISMATCH:{algo}:{mid}:{s['noise_count']}!={len(noises)}")
@@ -1132,6 +1132,54 @@ def generate_local_smoke_report(
     return report
 
 
+def verify_official_collection_shards(
+    bundle: Dict[str, Any],
+    res: Dict[str, Any],
+    algo: str,
+    *,
+    expected_feature_count: int,
+    expected_mainshock_count: int,
+) -> Dict[str, Any]:
+    """Verify per-shard WHOLE_WINDOW_SHARD official bundles for a multi-shard collection."""
+    full_out_dir = Path(res["write_result"]["success_marker_path"]).parent
+    shard_runs = res.get("shard_runs", {})
+    require(set(shard_runs.keys()) == set(bundle["shards"].keys()),
+            f"MISSING_SHARD_RUNS:{algo}")
+    algo_shard_checks: Dict[str, Any] = {}
+    shard_row_sum = 0
+    shard_win_sum = 0
+    for shard_id, shard_bundle in bundle["shards"].items():
+        shard_dir = full_out_dir / "shards" / shard_id
+        success_path = shard_dir / "_SUCCESS.json"
+        cfg_path = shard_dir / "experiment_config.json"
+        require(success_path.is_file() and cfg_path.is_file(),
+                f"MISSING_SHARD_BUNDLE_FILES:{algo}:{shard_id}")
+        shard_success = read_json_safe(success_path.read_bytes())
+        shard_cfg = read_json_safe(cfg_path.read_bytes())
+        require(shard_cfg.get("collection_scope") == shard_bundle["collection_scope"],
+                f"SHARD_COLLECTION_SCOPE_MISMATCH:{algo}:{shard_id}")
+        expected_rows = shard_bundle["features_table"].num_rows
+        expected_mains = shard_bundle["mainshocks_table"].num_rows
+        require(shard_success.get("membership_row_count") == expected_rows,
+                f"SHARD_MEMBERSHIP_COUNT_MISMATCH:{algo}:{shard_id}")
+        require(shard_success.get("summary_row_count") == expected_mains,
+                f"SHARD_SUMMARY_COUNT_MISMATCH:{algo}:{shard_id}")
+        shard_row_sum += expected_rows
+        shard_win_sum += expected_mains
+        algo_shard_checks[shard_id] = {
+            "experiment_run_id": shard_success["experiment_run_id"],
+            "relative_dir": f"shards/{shard_id}",
+            "collection_scope": shard_bundle["collection_scope"],
+            "membership_row_count": expected_rows,
+            "summary_row_count": expected_mains,
+            "success_marker_sha256": sha256_bytes(success_path.read_bytes()),
+            "checksums": shard_success["checksums"],
+        }
+    require(shard_row_sum == expected_feature_count and shard_win_sum == expected_mainshock_count,
+            f"SHARD_TOTALS_MISMATCH:{algo}")
+    return algo_shard_checks
+
+
 def generate_official_baseline_report(
     bundle: Dict[str, Any],
     algorithm_results: Dict[str, Dict[str, Any]],
@@ -1179,43 +1227,13 @@ def generate_official_baseline_report(
 
         # Verify every per-shard WHOLE_WINDOW_SHARD bundle if input is a multi-shard collection
         if bundle.get("is_collection") and isinstance(bundle.get("shards"), dict):
-            full_out_dir = Path(res["write_result"]["success_marker_path"]).parent
-            shard_runs = res.get("shard_runs", {})
-            require(set(shard_runs.keys()) == set(bundle["shards"].keys()),
-                    f"MISSING_SHARD_RUNS:{algo}")
-            algo_shard_checks: Dict[str, Any] = {}
-            shard_row_sum = 0
-            shard_win_sum = 0
-            for shard_id, shard_bundle in bundle["shards"].items():
-                shard_dir = full_out_dir / "shards" / shard_id
-                success_path = shard_dir / "_SUCCESS.json"
-                cfg_path = shard_dir / "experiment_config.json"
-                require(success_path.is_file() and cfg_path.is_file(),
-                        f"MISSING_SHARD_BUNDLE_FILES:{algo}:{shard_id}")
-                shard_success = read_json_safe(success_path.read_bytes())
-                shard_cfg = read_json_safe(cfg_path.read_bytes())
-                require(shard_cfg.get("collection_scope") == shard_bundle["collection_scope"],
-                        f"SHARD_COLLECTION_SCOPE_MISMATCH:{algo}:{shard_id}")
-                expected_rows = shard_bundle["features_table"].num_rows
-                expected_mains = shard_bundle["mainshocks_table"].num_rows
-                require(shard_success.get("membership_row_count") == expected_rows,
-                        f"SHARD_MEMBERSHIP_COUNT_MISMATCH:{algo}:{shard_id}")
-                require(shard_success.get("summary_row_count") == expected_mains,
-                        f"SHARD_SUMMARY_COUNT_MISMATCH:{algo}:{shard_id}")
-                shard_row_sum += expected_rows
-                shard_win_sum += expected_mains
-                algo_shard_checks[shard_id] = {
-                    "experiment_run_id": shard_success["experiment_run_id"],
-                    "relative_dir": f"shards/{shard_id}",
-                    "collection_scope": shard_bundle["collection_scope"],
-                    "membership_row_count": expected_rows,
-                    "summary_row_count": expected_mains,
-                    "success_marker_sha256": sha256_bytes(success_path.read_bytes()),
-                    "checksums": shard_success["checksums"],
-                }
-            require(shard_row_sum == feature_count and shard_win_sum == len(input_mainshocks),
-                    f"SHARD_TOTALS_MISMATCH:{algo}")
-            shard_verifications[algo] = algo_shard_checks
+            shard_verifications[algo] = verify_official_collection_shards(
+                bundle,
+                res,
+                algo,
+                expected_feature_count=feature_count,
+                expected_mainshock_count=len(input_mainshocks),
+            )
 
     report: Dict[str, Any] = {
         "report_version": "exp-02-official-v1",
