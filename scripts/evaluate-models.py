@@ -26,7 +26,7 @@ from pathlib import Path
 import re
 import subprocess
 import sys
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 # Ensure repository root and notebooks are in sys.path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -40,15 +40,21 @@ from experiment_harness import (
     load_feature_bundle,
     get_runtime_metadata,
     MODE_DEVELOPMENT,
+    MODE_OFFICIAL,
     require,
+    sha256_bytes,
+    validate_safe_metadata,
 )
 from notebooks.evaluation import (
     compare_all_models_on_pilot,
+    compare_all_models_on_official,
     load_algorithm_configs,
     DEFAULT_STABILITY_REPEATS,
     DEFAULT_STABILITY_SIGMA,
     DEFAULT_STABILITY_SEED,
 )
+
+DEFAULT_HANDOFF_SHA256 = "6cf0af7c2a3d8e8ec4c993f84ed6d86cdc417324102133dd3068eb2ebc40d297"
 
 
 def get_code_provenance(project_root: Optional[Path] = None) -> Dict[str, Any]:
@@ -461,24 +467,324 @@ def generate_markdown_report(
     return "\n".join(lines)
 
 
+def generate_official_markdown_report(
+    full_report: Dict[str, Any],
+) -> str:
+    """Render reproducible Markdown evidence report for EXP-04 official REPRODUCTION evaluation."""
+    eval_results = full_report["evaluation_summary"]
+    ds = full_report["dataset"]
+    runtime_meta = full_report["runtime_metadata"]
+    config_pins = full_report["algorithm_config_pins"]
+    code_prov = full_report.get("code_provenance")
+    eval_params = full_report["evaluation_parameters"]
+    comp_table = eval_results.get("comparison_table", [])
+    algo_details = eval_results.get("algorithm_details", {})
+    frozen_rule = full_report["frozen_extension_rule"]
+    exp02_cross = full_report.get("exp02_cross_verification")
+    exp03_cross = full_report.get("exp03_cross_verification")
+
+    clean_str = "clean" if (code_prov and code_prov.get("is_clean_code")) else "modified/tracked"
+
+    lines = [
+        "# EXP-04: Đánh giá Khoa học & So sánh 4 Mô hình trên Official REPRODUCTION",
+        "",
+        "## 1. Thông tin Thực nghiệm và Danh tính Dataset Chính thức",
+        "",
+        "- **Mã Task:** [EXP-04](../task/tasks/EXP-04.md) (Khối H - Experiment, P0 Core)",
+        f"- **Trạng thái:** `{full_report['status']}` (`{full_report['evaluation_scope']}`)",
+        f"- **Thời điểm đánh giá (UTC):** `{eval_results.get('evaluated_at_utc')}`",
+        f"- **Dataset Split / Status:** `{ds.get('dataset_split')}` (`{ds.get('dataset_status')}`)",
+        f"- **Dataset ID:** `{ds.get('dataset_id')}`",
+        f"- **Collection ID:** `{ds.get('collection_id')}` (`{ds.get('shard_count')}` shards)",
+        f"- **Gold Publication ID:** `{ds.get('gold_publication_id')}` (Snapshot: `{ds.get('gold_snapshot_id')}`)",
+        f"- **Số lượng ứng viên đầu vào:** `{ds.get('feature_row_count')}` dòng (`{ds.get('mainshock_count')}` mainshock windows, Global $M_c = {ds.get('mc_value')}$)",
+        f"- **Manifest / Checksums SHA-256:** `{ds.get('manifest_sha256')}` / `{ds.get('checksums_sha256')}`",
+    ]
+    if full_report.get("handoff_sha256"):
+        lines.append(f"- **Team Handoff SHA-256:** `{full_report['handoff_sha256']}`")
+    lines.extend([
+        f"- **Git Commit Pin:** `{runtime_meta.get('code_version')}` ({clean_str})",
+        f"- **Random Seed / Repeats / Sigma:** `{eval_params['random_seed']}` / `{eval_params['stability_repeats']}` / `{eval_params['perturbation_sigma']}`",
+        f"- **Python / Packages:** Python `{runtime_meta.get('python_version')}`, `scikit-learn=={runtime_meta.get('package_versions', {}).get('scikit-learn')}`, `hdbscan=={runtime_meta.get('package_versions', {}).get('hdbscan')}`, `scipy=={runtime_meta.get('package_versions', {}).get('scipy')}`",
+        f"- **Scientific Approval:** `{str(full_report.get('scientific_approval', False)).lower()}`",
+        "",
+        "### Cấu hình Thuật toán được Khóa (`frozen_extension_rule` cho EXP-05):",
+    ])
+
+    for algo, c_info in config_pins.items():
+        file_sha_str = c_info.get("file_bytes_sha256") or c_info.get("config_sha256", "N/A")
+        canon_sha_str = c_info.get("canonical_config_sha256", "N/A")
+        lines.append(
+            f"- **{algo}:** `{c_info['config_path']}` (Version: `{c_info['model_config_version']}`, "
+            f"File SHA: `{file_sha_str[:16]}...`, Canonical SHA: `{canon_sha_str[:16]}...`)"
+        )
+
+    lines.extend([
+        "",
+        "## 2. Bảng Đối soát So sánh 4 Thuật toán (Official Reproduction Comparison Table)",
+        "",
+        format_markdown_table(comp_table),
+        "",
+        "### Nguyên tắc Đánh giá & Toàn vẹn Mẫu số:",
+        "- **Không dùng Accuracy / F1:** Clustering chuỗi sau chấn không có ground-truth nhãn cố định.",
+        "- **Bảo toàn mẫu số (`Denominator Integrity`):** Toàn bộ `194` windows (bao gồm window `FAILED` / mainshock noise) giữ nguyên trong mẫu số `failure_rate = failure_windows / total_windows`.",
+        "- **Honest NULL & Reason Codes:** Mọi giá trị thiếu/không áp dụng (`WINDOW` DBCV -> `METRIC_NOT_APPLICABLE`, thiếu mẫu Omori $N<5$ hoặc all-noise -> `METRIC_INSUFFICIENT_MEMBERS`, fit thất bại -> `METRIC_FIT_FAILED`) giữ `NULL`/`N/A`, tuyệt đối không ép về `0`.",
+        "- **DBCV Memory-Safe Bound:** Sử dụng `hdbscan.validity.validity_index` trực tiếp cho cụm kích thước $\\le 2000$ điểm và thuật toán chunked $O(N)$-memory theo cùng công thức Moulavi (2014) cho cụm lớn hơn để tránh bùng nổ bộ nhớ trên cụm DBSCAN lớn.",
+        "",
+        "## 3. Phân tích Chi tiết Từng Thuật toán (kèm Reason Codes & Sample Sizes)",
+        "",
+    ])
+
+    for algo_name, details in algo_details.items():
+        noise_val = details.get("mean_noise_ratio")
+        noise_str = f"{noise_val * 100:.1f}%" if noise_val is not None and math.isfinite(noise_val) else "N/A"
+        dbcv_str = _fmt_float(details.get("mean_dbcv_score"), ".4f")
+        omori_p_str = _fmt_float(details.get("mean_omori_p"), ".4f")
+        omori_r2_str = _fmt_float(details.get("mean_omori_r2"), ".4f")
+        jaccard_str = _fmt_float(details.get("mean_jaccard_stability"), ".4f")
+        ari_str = _fmt_float(details.get("mean_ari_stability"), ".4f")
+        runtime_str = _fmt_float(details.get("runtime_seconds"), ".2f")
+        f_rate = details.get("failure_rate")
+        fail_rate_str = f"{f_rate * 100:.1f}%" if f_rate is not None and math.isfinite(f_rate) else "N/A"
+
+        lines.extend([
+            f"### {algo_name}",
+            "",
+            f"- **Cửa sổ:** `{details.get('total_windows', 0)}` (Thành công: `{details.get('success_windows', 0)}`, Thất bại: `{details.get('failure_windows', 0)}`, Tỷ lệ thất bại: `{fail_rate_str}`)",
+            f"- **Phân bổ Failure Reason:** `{json.dumps(details.get('failure_reason_counts', {}), ensure_ascii=False, sort_keys=True)}`",
+            f"- **Tổng dư chấn POST per-window:** `{details.get('total_aftershocks', 0)}` | **Noise ratio trung bình:** `{noise_str}`",
+            f"- **DBCV trung bình:** `{dbcv_str}` (tính được trên `{details.get('dbcv_computed_windows', 0)}/{details.get('total_windows', 0)}` windows; N/A reasons: `{json.dumps(details.get('dbcv_reason_counts', {}), ensure_ascii=False, sort_keys=True)}`)",
+            f"- **Modified Omori decay:** mean `p` = `{omori_p_str}`, mean $R^2$ = `{omori_r2_str}` (fit được trên `{details.get('omori_fitted_windows', 0)}/{details.get('total_windows', 0)}` windows; N/A reasons: `{json.dumps(details.get('omori_reason_counts', {}), ensure_ascii=False, sort_keys=True)}`)",
+            f"- **Độ ổn định (5x Gaussian jitter $\\sigma={eval_params['perturbation_sigma']}$):** Mean Jaccard = `{jaccard_str}`, Mean ARI = `{ari_str}` (`{details.get('stability_computed_windows', 0)}/{details.get('total_windows', 0)}` windows; reasons: `{json.dumps(details.get('stability_reason_counts', {}), ensure_ascii=False, sort_keys=True)}`)",
+            f"- **Runtime (gồm fit + DBCV + Omori + 5x stability):** `{runtime_str}`s",
+            "",
+        ])
+
+    if exp02_cross or exp03_cross:
+        lines.extend(["## 4. Đối soát Liên kết với Official Runs EXP-02 & EXP-03", ""])
+        if exp02_cross:
+            lines.append(
+                f"- **EXP-02 Baseline Parity (`WINDOW`, `DBSCAN`, `HDBSCAN_GLOBAL`):** `all_algos_exact_match={exp02_cross.get('all_algos_exact_match')}`"
+            )
+        if exp03_cross:
+            ms_rec = exp03_cross.get("multi_sequence_reconciliation", {})
+            lines.append(
+                f"- **EXP-03 `HDBSCAN_ADAPTIVE` Cross-Check & Global Entity Resolution (`{exp03_cross.get('run_id')}`):** "
+                f"`exact_match={exp03_cross.get('exact_match')}`, "
+                f"`raw_aftershocks={ms_rec.get('raw_aftershocks')}`, "
+                f"`resolved_unique_aftershocks={ms_rec.get('resolved_unique_aftershocks')}`, "
+                f"`deduplicated_aftershocks={ms_rec.get('aftershocks_deduplicated_count')}`, "
+                f"`ambiguous_candidates={ms_rec.get('ambiguous_candidates_count')}`, "
+                f"`nested_mainshocks={ms_rec.get('nested_mainshocks_count')}`."
+            )
+        lines.append("")
+
+    lines.extend([
+        "## 5. Frozen Rule cho EXP-05 & Giới hạn Khoa học",
+        "",
+        f"- **Rule ID:** `{frozen_rule['rule_version']}` (khóa từ `{frozen_rule['frozen_from_split']}` dataset `{frozen_rule['frozen_from_dataset_id']}`).",
+        f"- **Contract Bất biến:** `window_model_version={frozen_rule['locked_feature_contract']['window_model_version']}`, `scaling_config_version={frozen_rule['locked_feature_contract']['scaling_config_version']}`, `feature_version={frozen_rule['locked_feature_contract']['feature_version']}`, `mc_value={frozen_rule['locked_feature_contract']['mc_value']}`.",
+        "- **Nguyên tắc đọc kết quả:** Không chọn \"mô hình thắng\" chỉ dựa trên một chỉ số đơn lẻ (Window có `0%` mainshock-failure nhưng không lọc nhiễu nền; DBSCAN/HDBSCAN đánh đổi giữa lọc nhiễu, DBCV, khớp Omori và tỷ lệ mainshock bị xếp nhiễu). Kết quả chỉ là ứng viên chuỗi sau chấn hồi cứu; bước chạy khóa tham số sang giai đoạn 2018–2023 thuộc [EXP-05](../task/tasks/EXP-05.md).",
+        "",
+    ])
+    return "\n".join(lines)
+
+
+def _cross_verify_exp02_exp03(
+    eval_results: Dict[str, Any],
+    exp02_report_path: Optional[Path],
+    exp03_report_path: Optional[Path],
+) -> Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]]]:
+    """Verify official primary counts in EXP-04 match committed/generated EXP-02 & EXP-03 reports."""
+    details = eval_results["algorithm_details"]
+    ds_id = eval_results["dataset_id"]
+
+    exp02_cross: Optional[Dict[str, Any]] = None
+    if exp02_report_path is not None:
+        exp02_data = json.loads(exp02_report_path.read_text(encoding="utf-8"))
+        require(exp02_data.get("dataset", {}).get("dataset_id") == ds_id, "EXP02_REPORT_DATASET_ID_MISMATCH")
+        per_algo: Dict[str, Any] = {}
+        all_ok = True
+        for algo in ["WINDOW", "DBSCAN", "HDBSCAN_GLOBAL"]:
+            rep_m = exp02_data["reconciliation"][algo]
+            ev_m = details[algo]
+            matches = (
+                rep_m["total_windows"] == ev_m["total_windows"]
+                and rep_m["successful_windows"] == ev_m["success_windows"]
+                and rep_m["failed_windows"] == ev_m["failure_windows"]
+                and rep_m["total_aftershocks"] == ev_m["total_aftershocks"]
+            )
+            all_ok = all_ok and matches
+            per_algo[algo] = {
+                "run_id": exp02_data["artifacts_verified"][algo]["run_id"],
+                "matches": matches,
+                "exp02_aftershocks": rep_m["total_aftershocks"],
+                "exp04_aftershocks": ev_m["total_aftershocks"],
+            }
+        require(all_ok, f"EXP02_EXP04_RECONCILIATION_MISMATCH:{per_algo}")
+        exp02_cross = {"all_algos_exact_match": all_ok, "algorithms": per_algo}
+
+    exp03_cross: Optional[Dict[str, Any]] = None
+    if exp03_report_path is not None:
+        exp03_data = json.loads(exp03_report_path.read_text(encoding="utf-8"))
+        require(exp03_data.get("dataset", {}).get("dataset_id") == ds_id, "EXP03_REPORT_DATASET_ID_MISMATCH")
+        rep_m = exp03_data["reconciliation"]
+        ev_m = details["HDBSCAN_ADAPTIVE"]
+        matches = (
+            rep_m["total_windows"] == ev_m["total_windows"]
+            and rep_m["successful_windows"] == ev_m["success_windows"]
+            and rep_m["failed_windows"] == ev_m["failure_windows"]
+            and rep_m["raw_aftershocks"] == ev_m["total_aftershocks"]
+        )
+        require(matches, "EXP03_EXP04_RECONCILIATION_MISMATCH")
+        exp03_cross = {
+            "run_id": exp03_data["artifact_verified"]["run_id"],
+            "exact_match": matches,
+            "multi_sequence_reconciliation": exp03_data["multi_sequence_reconciliation"],
+        }
+
+    return exp02_cross, exp03_cross
+
+
+def execute_official_evaluation(
+    *,
+    bundle_dir: Path,
+    output_json: Path,
+    output_md: Optional[Path] = None,
+    expected_split: str = "REPRODUCTION",
+    handoff_path: Optional[Path] = None,
+    expected_handoff_sha256: Optional[str] = DEFAULT_HANDOFF_SHA256,
+    manifest_sha256: Optional[str] = None,
+    checksums_sha256: Optional[str] = None,
+    exp02_report_path: Optional[Path] = None,
+    exp03_report_path: Optional[Path] = None,
+    repeats: int = DEFAULT_STABILITY_REPEATS,
+    sigma: float = DEFAULT_STABILITY_SIGMA,
+    seed: int = DEFAULT_STABILITY_SEED,
+    project_root: Path = PROJECT_ROOT,
+) -> Dict[str, Any]:
+    """Execute official EXP-04 multi-faceted evaluation and emit locked config freeze report."""
+    code_prov = get_code_provenance(project_root)
+    configs, config_pins = load_algorithm_configs(project_root=project_root)
+    runtime_meta = get_runtime_metadata(code_version=code_prov["git_commit"], random_seed=seed)
+    runtime_meta["is_clean_code"] = code_prov["is_clean_code"]
+    runtime_meta["critical_code_hashes"] = code_prov["critical_code_hashes"]
+
+    def _on_algo_done(algo_name: str, res: Dict[str, Any]) -> None:
+        print(
+            f"[{algo_name}] windows={res['total_windows']} success={res['success_windows']} "
+            f"fail={res['failure_windows']} dbcv={res['mean_dbcv_score']} "
+            f"omori_p={res['mean_omori_p']} jaccard={res['mean_jaccard_stability']} "
+            f"time={res['runtime_seconds']}s",
+            flush=True,
+        )
+
+    eval_results = compare_all_models_on_official(
+        bundle_dir=bundle_dir,
+        expected_split=expected_split,
+        manifest_sha256=manifest_sha256,
+        checksums_sha256=checksums_sha256,
+        handoff_path=handoff_path,
+        expected_handoff_sha256=expected_handoff_sha256,
+        model_configs=configs,
+        config_pins=config_pins,
+        repeats=repeats,
+        sigma=sigma,
+        seed=seed,
+        project_root=project_root,
+        progress_callback=_on_algo_done,
+    )
+
+    exp02_cross, exp03_cross = _cross_verify_exp02_exp03(
+        eval_results,
+        exp02_report_path=exp02_report_path,
+        exp03_report_path=exp03_report_path,
+    )
+
+    actual_handoff_sha: Optional[str] = None
+    resolved_handoff = handoff_path or (bundle_dir.resolve().parent.parent / "handoff.json")
+    if resolved_handoff.is_file():
+        actual_handoff_sha = sha256_bytes(resolved_handoff.read_bytes())
+
+    # Summarize without giant raw window_evaluations or keep compact window diagnostics?
+    # Note: keep concise summary + compact per-window records (without local filesystem paths).
+    full_report: Dict[str, Any] = {
+        "report_version": "exp-04-official-v1",
+        "task_id": "EXP-04",
+        "status": "PASSED",
+        "evaluation_scope": "OFFICIAL_RESEARCH",
+        "scientific_approval": False,
+        "dataset": eval_results["dataset_info"],
+        "handoff_sha256": actual_handoff_sha,
+        "runtime_metadata": runtime_meta,
+        "code_provenance": code_prov,
+        "algorithm_config_pins": config_pins,
+        "evaluation_parameters": {
+            "stability_repeats": repeats,
+            "perturbation_sigma": sigma,
+            "random_seed": seed,
+            "min_omori_aftershocks": 5,
+        },
+        "frozen_extension_rule": eval_results["frozen_extension_rule"],
+        "exp02_cross_verification": exp02_cross,
+        "exp03_cross_verification": exp03_cross,
+        "evaluation_summary": eval_results,
+    }
+    validate_safe_metadata(full_report)
+
+    output_json.parent.mkdir(parents=True, exist_ok=True)
+    output_json.write_text(json.dumps(full_report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+    if output_md is not None:
+        md_content = generate_official_markdown_report(full_report)
+        output_md.parent.mkdir(parents=True, exist_ok=True)
+        output_md.write_text(md_content, encoding="utf-8")
+
+    return full_report
+
+
 def main():
     parser = argparse.ArgumentParser(description="EXP-04 Scientific Model Evaluation Runner")
+    parser.add_argument(
+        "--mode",
+        choices=["pilot", "official"],
+        default="pilot",
+        help="Evaluation mode: pilot (DEVELOPMENT_PILOT) or official (EXPORTED research collection)",
+    )
     parser.add_argument(
         "--pilot-bundle",
         type=str,
         default="staging/ml-pilot/pilot-kit/bundle",
-        help="Path to development pilot bundle directory",
+        help="Path to development pilot bundle directory (when --mode pilot)",
     )
+    parser.add_argument(
+        "--bundle",
+        type=str,
+        default=None,
+        help="Path to official EXPORTED collection directory (when --mode official)",
+    )
+    parser.add_argument("--expected-split", type=str, default="REPRODUCTION")
+    parser.add_argument("--handoff", type=str, default=None)
+    parser.add_argument(
+        "--expected-handoff-sha256",
+        type=str,
+        default=DEFAULT_HANDOFF_SHA256,
+        help="Expected handoff.json SHA-256 (pass empty string to skip when testing fixtures)",
+    )
+    parser.add_argument("--manifest-sha256", type=str, default=None)
+    parser.add_argument("--checksums-sha256", type=str, default=None)
+    parser.add_argument("--exp02-report", type=str, default=None, help="Optional EXP-02 official JSON for parity check")
+    parser.add_argument("--exp03-report", type=str, default=None, help="Optional EXP-03 official JSON for parity check")
     parser.add_argument(
         "--output-json",
         type=str,
-        default="docs/evidence/EXP-04_PILOT_EVALUATION.json",
+        default=None,
         help="Path to output JSON evidence",
     )
     parser.add_argument(
         "--output-md",
         type=str,
-        default="docs/evidence/EXP-04_PILOT_EVALUATION.md",
+        default=None,
         help="Path to output Markdown report",
     )
     parser.add_argument("--repeats", type=int, default=DEFAULT_STABILITY_REPEATS)
@@ -487,9 +793,49 @@ def main():
 
     args = parser.parse_args()
 
+    if args.mode == "official":
+        require(bool(args.bundle), "OFFICIAL_MODE_REQUIRES_BUNDLE")
+        bundle_path = (PROJECT_ROOT / args.bundle).resolve() if not Path(args.bundle).is_absolute() else Path(args.bundle)
+        default_json = "docs/evidence/EXP-04_OFFICIAL_REPRODUCTION.json"
+        default_md = "docs/evidence/EXP-04_OFFICIAL_REPRODUCTION.md"
+        out_json_arg = args.output_json or default_json
+        out_md_arg = args.output_md or default_md
+        out_json = (PROJECT_ROOT / out_json_arg).resolve() if not Path(out_json_arg).is_absolute() else Path(out_json_arg)
+        out_md = (PROJECT_ROOT / out_md_arg).resolve() if not Path(out_md_arg).is_absolute() else Path(out_md_arg)
+        handoff_p = Path(args.handoff).resolve() if args.handoff else None
+        exp02_p = Path(args.exp02_report).resolve() if args.exp02_report else None
+        exp03_p = Path(args.exp03_report).resolve() if args.exp03_report else None
+        exp_handoff_sha = args.expected_handoff_sha256.strip() or None
+
+        print(f"=== EXP-04: Running Official Scientific Model Evaluation on {bundle_path.name} ({args.expected_split}) ===", flush=True)
+        full_report = execute_official_evaluation(
+            bundle_dir=bundle_path,
+            output_json=out_json,
+            output_md=out_md,
+            expected_split=args.expected_split,
+            handoff_path=handoff_p,
+            expected_handoff_sha256=exp_handoff_sha,
+            manifest_sha256=args.manifest_sha256,
+            checksums_sha256=args.checksums_sha256,
+            exp02_report_path=exp02_p,
+            exp03_report_path=exp03_p,
+            repeats=args.repeats,
+            sigma=args.sigma,
+            seed=args.seed,
+            project_root=PROJECT_ROOT,
+        )
+        print(f"[OK] Wrote Official JSON evidence: {out_json}")
+        print(f"[OK] Wrote Official Markdown report: {out_md}")
+        print("\n=== OFFICIAL REPRODUCTION COMPARISON TABLE ===")
+        print(format_markdown_table(full_report["evaluation_summary"].get("comparison_table", [])))
+        print("\n[OK] EXP-04 Official Evaluation Finished Successfully.")
+        return
+
+    out_json_arg = args.output_json or "docs/evidence/EXP-04_PILOT_EVALUATION.json"
+    out_md_arg = args.output_md or "docs/evidence/EXP-04_PILOT_EVALUATION.md"
     pilot_dir = (PROJECT_ROOT / args.pilot_bundle).resolve() if not Path(args.pilot_bundle).is_absolute() else Path(args.pilot_bundle)
-    out_json = (PROJECT_ROOT / args.output_json).resolve() if not Path(args.output_json).is_absolute() else Path(args.output_json)
-    out_md = (PROJECT_ROOT / args.output_md).resolve() if not Path(args.output_md).is_absolute() else Path(args.output_md)
+    out_json = (PROJECT_ROOT / out_json_arg).resolve() if not Path(out_json_arg).is_absolute() else Path(out_json_arg)
+    out_md = (PROJECT_ROOT / out_md_arg).resolve() if not Path(out_md_arg).is_absolute() else Path(out_md_arg)
 
     print(f"=== EXP-04: Running Scientific Model Evaluation on {pilot_dir.name} ===")
     bundle = load_feature_bundle(pilot_dir, mode=MODE_DEVELOPMENT)

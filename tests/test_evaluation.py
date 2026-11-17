@@ -768,6 +768,118 @@ class TestScientificEvaluation(unittest.TestCase):
         self.assertIsNotNone(stab_rep["mean_jaccard"])
         self.assertIn("PARTIAL_FIT_FAILURES", stab_rep["metric_reason_codes"])
 
+    def test_memory_safe_dbcv_matches_reference_formula_and_handles_single_cluster(self):
+        """Memory-safe DBCV must match hdbscan.validity on multi-cluster data and fail-honest on 1 cluster."""
+        try:
+            import hdbscan.validity as hv
+        except ImportError:
+            self.skipTest("standalone hdbscan package not installed")
+
+        rng = np.random.RandomState(7)
+        X = np.vstack([
+            rng.randn(40, 4) * 0.15,
+            rng.randn(35, 4) * 0.18 + 3.5,
+            rng.randn(30, 4) * 0.12 - 3.0,
+            rng.uniform(-4, 4, (15, 4)),
+        ])
+        labels = np.array([0] * 40 + [1] * 35 + [2] * 30 + [-1] * 15, dtype=np.int64)
+
+        score_safe = evaluation._compute_dbcv_memory_safe(X, labels)
+        score_ref = float(hv.validity_index(np.ascontiguousarray(X, dtype=np.float64), labels))
+        self.assertIsNotNone(score_safe)
+        self.assertTrue(np.isfinite(score_safe))
+        self.assertLess(abs(score_safe - score_ref), 0.05)
+
+        # Single cluster cannot compute inter-cluster separation -> returns METRIC_FIT_FAILED
+        one_cluster_labels = np.array([0] * 10 + [-1] * 5, dtype=np.int64)
+        score_one, reasons_one = compute_dbcv_score(X[:15], one_cluster_labels, algorithm_name="DBSCAN")
+        self.assertIsNone(score_one)
+        self.assertEqual(reasons_one, [METRIC_FIT_FAILED])
+
+        # Verify threshold routing invokes _compute_dbcv_memory_safe cleanly
+        with patch.object(evaluation, "DBCV_MEMORY_SAFE_CLUSTER_THRESHOLD", 10):
+            score_routed, reasons_routed = compute_dbcv_score(X, labels, algorithm_name="DBSCAN")
+            self.assertIsNotNone(score_routed)
+            self.assertEqual(reasons_routed, [])
+
+    def test_official_evaluation_frozen_rule_and_cross_verification(self):
+        """EXP-04 official evaluation must enforce EXPORTED REPRODUCTION, no accuracy/F1, and emit frozen rule."""
+        import importlib
+        import pyarrow.parquet as pq
+        import tests.test_research_collection_loader as col_mod
+
+        eval_script = importlib.import_module("scripts.evaluate-models")
+
+        kit_dir = self.tmp_dir / "eval_kit"
+        repro_dir = kit_dir / "bundles" / "REPRODUCTION"
+        ext_dir = kit_dir / "bundles" / "EXTENSION"
+        pilot_repro = self.tmp_dir / "seed_repro"
+        pilot_ext = self.tmp_dir / "seed_ext"
+        repro_dir.mkdir(parents=True)
+        ext_dir.mkdir(parents=True)
+        pilot_repro.mkdir()
+        pilot_ext.mkdir()
+
+        repro_pins = col_mod.fixture(repro_dir, pilot_repro)
+        col_mod.fixture(ext_dir, pilot_ext)
+        ext_manifest = json.loads((ext_dir / "dataset_manifest.json").read_bytes())
+        ext_manifest["dataset_split"] = "EXTENSION"
+        ext_manifest["collection_plan"]["coverage"]["required_month_count"] = 63
+        col_mod.write_json(ext_dir / "dataset_manifest.json", ext_manifest)
+        col_mod.write_json(
+            ext_dir / "collection-preparation.json",
+            {"status": "RESEARCH_COLLECTION_PREPARED", "plan": ext_manifest["collection_plan"]},
+        )
+        ext_pins = col_mod.reindex(ext_dir)
+
+        handoff = {
+            "collections": {"REPRODUCTION": repro_pins, "EXTENSION": ext_pins},
+            "files": {
+                "bundles/REPRODUCTION/dataset_manifest.json": {"sha256": repro_pins["manifest_sha256"]},
+                "bundles/REPRODUCTION/checksums.sha256": {"sha256": repro_pins["checksums_sha256"]},
+                "bundles/EXTENSION/dataset_manifest.json": {"sha256": ext_pins["manifest_sha256"]},
+                "bundles/EXTENSION/checksums.sha256": {"sha256": ext_pins["checksums_sha256"]},
+            },
+        }
+        handoff_file = kit_dir / "handoff.json"
+        handoff_file.write_text(json.dumps(handoff, sort_keys=True) + "\n", encoding="utf-8")
+        import notebooks.experiment_harness as eh
+        handoff_sha = eh.sha256_bytes(handoff_file.read_bytes())
+
+        # Reject wrong split when REPRODUCTION is expected
+        with self.assertRaisesRegex(ValueError, "OFFICIAL_SPLIT_MISMATCH"):
+            eval_script.execute_official_evaluation(
+                bundle_dir=ext_dir,
+                output_json=self.tmp_dir / "bad.json",
+                expected_split="REPRODUCTION",
+                expected_handoff_sha256=handoff_sha,
+            )
+
+        out_json = self.tmp_dir / "exp04_official.json"
+        out_md = self.tmp_dir / "exp04_official.md"
+        full_report = eval_script.execute_official_evaluation(
+            bundle_dir=repro_dir,
+            output_json=out_json,
+            output_md=out_md,
+            expected_split="REPRODUCTION",
+            expected_handoff_sha256=handoff_sha,
+            repeats=2,
+            sigma=0.01,
+            seed=42,
+            project_root=ROOT,
+        )
+
+        self.assertEqual(full_report["status"], "PASSED")
+        self.assertEqual(full_report["evaluation_scope"], "OFFICIAL_RESEARCH")
+        self.assertFalse(full_report["scientific_approval"])
+        self.assertEqual(full_report["frozen_extension_rule"]["frozen_from_split"], "REPRODUCTION")
+        self.assertTrue(full_report["frozen_extension_rule"]["extension_guardrails"]["no_parameter_override_on_extension"])
+        self.assertEqual(len(full_report["evaluation_summary"]["comparison_table"]), 4)
+        raw_txt = out_json.read_text(encoding="utf-8").lower()
+        self.assertNotIn("f1_score", raw_txt)
+        self.assertTrue(out_md.is_file())
+        eh.validate_safe_metadata(full_report)
+
 
 if __name__ == "__main__":
     unittest.main()

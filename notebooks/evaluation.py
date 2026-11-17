@@ -25,15 +25,17 @@ Implements rigorous scientific model evaluation for aftershock sequence clusteri
 """
 from __future__ import annotations
 
+from collections import Counter
 import hashlib
 import json
 import math
 from pathlib import Path
 import time
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
 import numpy as np
 from scipy.optimize import curve_fit
+from scipy.spatial.distance import cdist
 from sklearn.metrics import adjusted_rand_score
 
 # Constant Reason Codes
@@ -45,6 +47,9 @@ MIN_OMORI_AFTERSHOCKS = 5
 DEFAULT_STABILITY_REPEATS = 5
 DEFAULT_STABILITY_SIGMA = 0.01
 DEFAULT_STABILITY_SEED = 42
+DBCV_MEMORY_SAFE_CLUSTER_THRESHOLD = 2000
+DBCV_FAST_CLUSTER_COUNT_THRESHOLD = 50
+DBCV_BLOCK_SIZE = 512
 
 VECTOR_COLUMNS = ["x_scaled", "y_scaled", "z_scaled", "time_scaled"]
 
@@ -142,45 +147,154 @@ def compute_dbcv_score(
     if X is None or len(X) == 0 or labels is None or len(labels) == 0:
         return None, [METRIC_INSUFFICIENT_MEMBERS]
 
-    unique_labels = set(labels)
-    cluster_labels = [lbl for lbl in unique_labels if lbl != -1]
+    labels_int = np.ascontiguousarray(labels, dtype=np.int64)
+    uniq_lbls, uniq_counts = np.unique(labels_int, return_counts=True)
+    non_noise_mask = uniq_lbls != -1
+    cluster_labels = uniq_lbls[non_noise_mask]
+    cluster_sizes = uniq_counts[non_noise_mask]
 
-    if not cluster_labels:
+    if len(cluster_labels) == 0:
         return None, [METRIC_INSUFFICIENT_MEMBERS]
 
-    # Verify at least one cluster has >= 2 points
-    has_viable_cluster = False
-    for cl in cluster_labels:
-        if np.sum(labels == cl) >= 2:
-            has_viable_cluster = True
-            break
-
-    if not has_viable_cluster:
+    # Verify at least one cluster has >= 2 points and detect single-point clusters
+    max_cluster_size = int(cluster_sizes.max())
+    min_cluster_size = int(cluster_sizes.min())
+    if max_cluster_size < 2:
         return None, [METRIC_INSUFFICIENT_MEMBERS]
+    if min_cluster_size < 2:
+        return None, [METRIC_FIT_FAILED]
 
     try:
-        import hdbscan.validity as hdb_validity
-
-        # Convert to float64 C-contiguous array
         X_contig = np.ascontiguousarray(X, dtype=np.float64)
-        labels_int = np.ascontiguousarray(labels, dtype=np.int64)
 
-        score = float(hdb_validity.validity_index(X_contig, labels_int))
-        if math.isnan(score) or math.isinf(score):
+        if (
+            max_cluster_size > DBCV_MEMORY_SAFE_CLUSTER_THRESHOLD
+            or len(cluster_labels) > DBCV_FAST_CLUSTER_COUNT_THRESHOLD
+        ):
+            score = _compute_dbcv_memory_safe(X_contig, labels_int)
+        else:
+            import hdbscan.validity as hdb_validity
+            score = float(hdb_validity.validity_index(X_contig, labels_int))
+
+        if score is None or math.isnan(score) or math.isinf(score):
             return None, [METRIC_FIT_FAILED]
-        return round(score, 4), []
+        return round(float(score), 4), []
     except Exception:
-        # Fallback approximation for DBCV if standalone validity index is unavailable
-        try:
-            from sklearn.metrics import silhouette_score
+        # Fallback approximation for DBCV only on bounded windows to avoid O(N^2) memory spikes
+        if len(X) <= 5000:
+            try:
+                from sklearn.metrics import silhouette_score
 
-            mask = labels != -1
-            if len(set(labels[mask])) >= 2 and np.sum(mask) > len(set(labels[mask])):
-                score = float(silhouette_score(X[mask], labels[mask]))
-                return round(score, 4), []
-        except Exception:
-            pass
+                mask = labels_int != -1
+                if len(set(labels_int[mask])) >= 2 and np.sum(mask) > len(set(labels_int[mask])):
+                    score = float(silhouette_score(X[mask], labels_int[mask]))
+                    return round(score, 4), []
+            except Exception:
+                pass
         return None, [METRIC_FIT_FAILED]
+
+
+def _safe_all_points_core_distance(Xc: np.ndarray, block_size: int = DBCV_BLOCK_SIZE) -> np.ndarray:
+    """Compute Moulavi (2014) all-points core distances using O(block * N) memory."""
+    m, d = Xc.shape
+    inv_sum = np.zeros(m, dtype=np.float64)
+    for start in range(0, m, block_size):
+        end = min(start + block_size, m)
+        if d == 4:
+            sq = cdist(Xc[start:end], Xc, metric="sqeuclidean")
+            nz = sq != 0.0
+            inv = np.zeros_like(sq)
+            inv[nz] = 1.0 / (sq[nz] * sq[nz])
+        else:
+            dmat = cdist(Xc[start:end], Xc, metric="euclidean")
+            nz = dmat != 0.0
+            inv = np.zeros_like(dmat)
+            inv[nz] = np.power(1.0 / dmat[nz], d)
+        inv_sum[start:end] = inv.sum(axis=1)
+    inv_sum /= float(m - 1)
+    core = np.zeros(m, dtype=np.float64)
+    pos = inv_sum > 0.0
+    if np.any(pos):
+        core[pos] = np.power(inv_sum[pos], -1.0 / d)
+    return core
+
+
+def _compute_dbcv_memory_safe(X: np.ndarray, labels: np.ndarray) -> Optional[float]:
+    """Memory-bounded exact Moulavi (2014) DBCV using O(N log N) grouping and chunked BLAS separation."""
+    from hdbscan._hdbscan_linkage import mst_linkage_core_vector
+    from hdbscan.dist_metrics import DistanceMetric
+
+    non_noise = np.flatnonzero(labels != -1)
+    if len(non_noise) < 2:
+        return float("nan")
+
+    nn_labels = labels[non_noise]
+    order = np.argsort(nn_labels, kind="mergesort")
+    sorted_lbls = nn_labels[order]
+    sorted_idxs = non_noise[order]
+    split_pts = np.flatnonzero(np.diff(sorted_lbls)) + 1
+    groups = np.split(sorted_idxs, split_pts)
+    k = len(groups)
+    if k < 2:
+        # Separation between clusters is undefined when fewer than 2 clusters exist (matches validity_index NaN)
+        return float("nan")
+
+    dm_metric = DistanceMetric.get_metric("euclidean")
+    node_coords: List[np.ndarray] = []
+    node_cores: List[np.ndarray] = []
+    node_cids: List[np.ndarray] = []
+    sparseness = np.empty(k, dtype=np.float64)
+
+    for ci, idxs in enumerate(groups):
+        if len(idxs) < 2:
+            return float("nan")
+        Xc = np.ascontiguousarray(X[idxs], dtype=np.float64)
+        c_dist = _safe_all_points_core_distance(Xc)
+        mst = mst_linkage_core_vector(Xc, c_dist, dm_metric, 1.0)
+        deg = np.bincount(mst[:, :2].flatten().astype(np.intp), minlength=len(Xc))
+        internal_mask = deg > 1
+        if not np.any(internal_mask):
+            nodes = np.array([0], dtype=np.intp)
+            edges = mst
+        else:
+            nodes = np.flatnonzero(internal_mask)
+            u_idx = mst[:, 0].astype(np.intp)
+            v_idx = mst[:, 1].astype(np.intp)
+            edge_sel = internal_mask[u_idx] & internal_mask[v_idx]
+            edges = mst[edge_sel] if np.any(edge_sel) else mst
+        node_coords.append(Xc[nodes])
+        node_cores.append(c_dist[nodes])
+        node_cids.append(np.full(len(nodes), ci, dtype=np.int32))
+        sparseness[ci] = float(edges[:, 2].max())
+
+    # Flatten internal MST nodes across all clusters so inter-cluster separation runs in O(M/B) BLAS blocks
+    # instead of O(k^2) Python pairwise cluster loops.
+    all_X = np.ascontiguousarray(np.vstack(node_coords), dtype=np.float64)
+    all_core = np.ascontiguousarray(np.concatenate(node_cores), dtype=np.float64)
+    all_cid = np.concatenate(node_cids)
+
+    min_sep = np.full(k, np.inf, dtype=np.float64)
+    total_nodes = len(all_X)
+    for s in range(0, total_nodes, DBCV_BLOCK_SIZE):
+        e = min(s + DBCV_BLOCK_SIZE, total_nodes)
+        dm = cdist(all_X[s:e], all_X, metric="euclidean")
+        np.maximum(dm, all_core[s:e, None], out=dm)
+        np.maximum(dm, all_core[None, :], out=dm)
+        dm[all_cid[s:e, None] == all_cid[None, :]] = np.inf
+        row_min = dm.min(axis=1)
+        np.minimum.at(min_sep, all_cid[s:e], row_min)
+
+    n_tot = float(X.shape[0])
+    score = 0.0
+    for i, idxs in enumerate(groups):
+        min_s = float(min_sep[i])
+        sp = float(sparseness[i])
+        denom = max(min_s, sp)
+        if denom == 0.0 or math.isinf(denom):
+            return float("nan")
+        v_i = (min_s - sp) / denom
+        score += (len(idxs) / n_tot) * v_i
+    return float(score)
 
 
 # =============================================================================
@@ -640,6 +754,10 @@ def evaluate_model_on_bundle(
     success_windows = 0
     failure_windows = 0
     failure_reasons: List[str] = []
+    failure_reason_counts: Counter = Counter()
+    dbcv_reason_counts: Counter = Counter()
+    omori_reason_counts: Counter = Counter()
+    stability_reason_counts: Counter = Counter()
 
     total_candidates = 0
     total_aftershocks = 0
@@ -687,6 +805,7 @@ def evaluate_model_on_bundle(
             failure_windows += 1
             if fail_code:
                 failure_reasons.append(fail_code)
+                failure_reason_counts[fail_code] += 1
 
         aftershock_cnt = sum_row.get("aftershock_count") or sum_row.get("total_aftershocks", 0) or 0
         total_aftershocks += aftershock_cnt
@@ -719,6 +838,9 @@ def evaluate_model_on_bundle(
             )
             if dbcv is not None:
                 dbcv_scores.append(dbcv)
+        if dbcv is None:
+            for r_code in dbcv_reasons:
+                dbcv_reason_counts[r_code] += 1
 
         # 3. Physical Consistency: Modified Omori Law
         if fit_exception is not None:
@@ -750,6 +872,9 @@ def evaluate_model_on_bundle(
                 omori_p_values.append(omori_res["omori_p"])
                 omori_fit_metrics.append(omori_res["omori_fit_metric"])
                 omori_fit_success_count += 1
+        if omori_res.get("omori_p") is None:
+            for r_code in (omori_res.get("metric_reason_codes") or omori_res.get("reasons") or []):
+                omori_reason_counts[r_code] += 1
 
         # 4. Stability & Sensitivity Harness
         if fit_exception is not None:
@@ -789,6 +914,8 @@ def evaluate_model_on_bundle(
                 jaccard_scores.append(stability_res["mean_jaccard"])
             if stability_res.get("mean_ari") is not None:
                 ari_scores.append(stability_res["mean_ari"])
+        for r_code in (stability_res.get("metric_reason_codes") or []):
+            stability_reason_counts[r_code] += 1
 
         # Window evaluation record
         window_eval = {
@@ -825,74 +952,31 @@ def evaluate_model_on_bundle(
         "failure_windows": failure_windows,
         "failure_rate": failure_rate,
         "failure_reasons": failure_reasons,
+        "failure_reason_counts": dict(sorted(failure_reason_counts.items())),
         "total_candidates": total_candidates,
         "total_aftershocks": total_aftershocks,
         "mean_noise_ratio": mean_noise_ratio,
         "mean_dbcv_score": mean_dbcv,
         "dbcv_computed_windows": len(dbcv_scores),
+        "dbcv_reason_counts": dict(sorted(dbcv_reason_counts.items())),
         "mean_omori_p": mean_omori_p,
         "mean_omori_r2": mean_omori_r2,
         "omori_fitted_windows": omori_fit_success_count,
+        "omori_reason_counts": dict(sorted(omori_reason_counts.items())),
         "mean_jaccard_stability": mean_jaccard,
         "mean_ari_stability": mean_ari,
         "stability_computed_windows": len(jaccard_scores),
+        "stability_reason_counts": dict(sorted(stability_reason_counts.items())),
         "runtime_seconds": elapsed_seconds,
         "window_evaluations": window_evaluations,
     }
 
 
-def compare_all_models_on_pilot(
-    bundle_dir: Union[str, Path],
-    model_configs: Optional[Dict[str, Dict[str, Any]]] = None,
-    config_pins: Optional[Dict[str, Dict[str, Any]]] = None,
-    repeats: int = DEFAULT_STABILITY_REPEATS,
-    sigma: float = DEFAULT_STABILITY_SIGMA,
-    seed: int = DEFAULT_STABILITY_SEED,
-    project_root: Optional[Union[str, Path]] = None,
-) -> Dict[str, Any]:
-    """Execute comparative evaluation of the 4 models on a pilot bundle.
-
-    Evaluates:
-    - WINDOW
-    - DBSCAN
-    - HDBSCAN_GLOBAL
-    - HDBSCAN_ADAPTIVE
-
-    Binds unified pilot_id fail-closed from bundle manifest.
-    Loads and propagates exact validated model configs and config pins.
-    """
-    from experiment_harness import load_feature_bundle, MODE_DEVELOPMENT, require
-
-    bundle = load_feature_bundle(bundle_dir, mode=MODE_DEVELOPMENT)
-    manifest = bundle.get("manifest") or bundle.get("pilot_manifest")
-    require(manifest is not None and isinstance(manifest, dict), "BUNDLE_MANIFEST_MISSING")
-
-    pilot_id = manifest.get("pilot_id")
-    require(
-        pilot_id is not None and isinstance(pilot_id, str) and pilot_id.startswith("pilot_"),
-        f"INVALID_OR_MISSING_PILOT_ID:{pilot_id}",
-    )
-
-    algorithms = ["WINDOW", "DBSCAN", "HDBSCAN_GLOBAL", "HDBSCAN_ADAPTIVE"]
-    if config_pins is not None and model_configs is not None:
-        configs = model_configs
-        resolved_pins = config_pins
-    else:
-        configs, resolved_pins = load_algorithm_configs(project_root=project_root, custom_configs=model_configs)
-    comparison_results = {}
-
-    for algo in algorithms:
-        res = evaluate_model_on_bundle(
-            bundle=bundle,
-            algorithm_name=algo,
-            config=configs.get(algo),
-            repeats=repeats,
-            sigma=sigma,
-            seed=seed,
-        )
-        comparison_results[algo] = res
-
-    # Summary table rows (all values null-safe)
+def _build_comparison_table(
+    algorithms: List[str],
+    comparison_results: Dict[str, Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """Build standardized null-safe comparison table rows across algorithms."""
     comparison_table = []
     for algo in algorithms:
         r = comparison_results[algo]
@@ -916,7 +1000,7 @@ def compare_all_models_on_pilot(
         runtime_val = r.get("runtime_seconds")
         runtime_str = f"{runtime_val:.2f}" if runtime_val is not None and math.isfinite(runtime_val) else "N/A"
 
-        row = {
+        comparison_table.append({
             "Algorithm": algo,
             "Total Windows": r.get("total_windows", 0),
             "Success Windows": r.get("success_windows", 0),
@@ -930,13 +1014,176 @@ def compare_all_models_on_pilot(
             "Mean Jaccard Stability": j_str,
             "Mean ARI Stability": a_str,
             "Runtime (s)": runtime_str,
-        }
-        comparison_table.append(row)
+        })
+    return comparison_table
+
+
+def compare_all_models_on_pilot(
+    bundle_dir: Union[str, Path],
+    model_configs: Optional[Dict[str, Dict[str, Any]]] = None,
+    config_pins: Optional[Dict[str, Dict[str, Any]]] = None,
+    repeats: int = DEFAULT_STABILITY_REPEATS,
+    sigma: float = DEFAULT_STABILITY_SIGMA,
+    seed: int = DEFAULT_STABILITY_SEED,
+    project_root: Optional[Union[str, Path]] = None,
+) -> Dict[str, Any]:
+    """Execute comparative evaluation of the 4 models on a pilot bundle."""
+    from experiment_harness import load_feature_bundle, MODE_DEVELOPMENT, require
+
+    bundle = load_feature_bundle(bundle_dir, mode=MODE_DEVELOPMENT)
+    manifest = bundle.get("manifest") or bundle.get("pilot_manifest")
+    require(manifest is not None and isinstance(manifest, dict), "BUNDLE_MANIFEST_MISSING")
+
+    pilot_id = manifest.get("pilot_id")
+    require(
+        pilot_id is not None and isinstance(pilot_id, str) and pilot_id.startswith("pilot_"),
+        f"INVALID_OR_MISSING_PILOT_ID:{pilot_id}",
+    )
+
+    algorithms = ["WINDOW", "DBSCAN", "HDBSCAN_GLOBAL", "HDBSCAN_ADAPTIVE"]
+    if config_pins is not None and model_configs is not None:
+        configs = model_configs
+        resolved_pins = config_pins
+    else:
+        configs, resolved_pins = load_algorithm_configs(project_root=project_root, custom_configs=model_configs)
+
+    comparison_results = {
+        algo: evaluate_model_on_bundle(
+            bundle=bundle,
+            algorithm_name=algo,
+            config=configs.get(algo),
+            repeats=repeats,
+            sigma=sigma,
+            seed=seed,
+        )
+        for algo in algorithms
+    }
 
     return {
         "pilot_id": pilot_id,
         "evaluated_at_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        "comparison_table": comparison_table,
+        "comparison_table": _build_comparison_table(algorithms, comparison_results),
         "algorithm_details": comparison_results,
         "algorithm_config_pins": resolved_pins,
+    }
+
+
+def compare_all_models_on_official(
+    bundle_dir: Union[str, Path],
+    *,
+    expected_split: str = "REPRODUCTION",
+    manifest_sha256: Optional[str] = None,
+    checksums_sha256: Optional[str] = None,
+    handoff_path: Optional[Union[str, Path]] = None,
+    expected_handoff_sha256: Optional[str] = None,
+    model_configs: Optional[Dict[str, Dict[str, Any]]] = None,
+    config_pins: Optional[Dict[str, Dict[str, Any]]] = None,
+    repeats: int = DEFAULT_STABILITY_REPEATS,
+    sigma: float = DEFAULT_STABILITY_SIGMA,
+    seed: int = DEFAULT_STABILITY_SEED,
+    project_root: Optional[Union[str, Path]] = None,
+    progress_callback: Optional[Callable[[str, Dict[str, Any]], None]] = None,
+) -> Dict[str, Any]:
+    """Execute multi-faceted scientific evaluation across all windows of an EXPORTED official collection."""
+    from experiment_harness import load_feature_bundle, MODE_OFFICIAL, require
+
+    bundle = load_feature_bundle(
+        bundle_dir,
+        mode=MODE_OFFICIAL,
+        manifest_sha256=manifest_sha256,
+        checksums_sha256=checksums_sha256,
+        handoff_path=handoff_path,
+        expected_handoff_sha256=expected_handoff_sha256,
+    )
+    require(bundle.get("mode") == MODE_OFFICIAL and bundle.get("is_official") is True, "OFFICIAL_BUNDLE_REQUIRED")
+    manifest = bundle.get("manifest")
+    require(isinstance(manifest, dict), "BUNDLE_MANIFEST_MISSING")
+    require(manifest.get("dataset_status") == "EXPORTED", "OFFICIAL_EXPORTED_DATASET_REQUIRED")
+    require(
+        manifest.get("dataset_split") == expected_split,
+        f"OFFICIAL_SPLIT_MISMATCH: expected {expected_split}, got {manifest.get('dataset_split')}",
+    )
+
+    dataset_id = str(bundle.get("source_dataset_id") or manifest.get("dataset_id"))
+    require(bool(dataset_id), "MISSING_OFFICIAL_DATASET_ID")
+
+    algorithms = ["WINDOW", "DBSCAN", "HDBSCAN_GLOBAL", "HDBSCAN_ADAPTIVE"]
+    if config_pins is not None and model_configs is not None:
+        configs = model_configs
+        resolved_pins = config_pins
+    else:
+        configs, resolved_pins = load_algorithm_configs(project_root=project_root, custom_configs=model_configs)
+
+    comparison_results: Dict[str, Dict[str, Any]] = {}
+    for algo in algorithms:
+        res = evaluate_model_on_bundle(
+            bundle=bundle,
+            algorithm_name=algo,
+            config=configs.get(algo),
+            repeats=repeats,
+            sigma=sigma,
+            seed=seed,
+        )
+        comparison_results[algo] = res
+        if progress_callback is not None:
+            progress_callback(algo, res)
+
+    frozen_extension_rule = {
+        "rule_version": "exp04-frozen-reproduction-rule-v1",
+        "frozen_from_split": manifest.get("dataset_split"),
+        "frozen_from_dataset_id": dataset_id,
+        "frozen_from_collection_id": bundle.get("collection_id"),
+        "gold_publication_id": manifest.get("gold_publication_id"),
+        "gold_snapshot_id": str(manifest.get("gold_snapshot_id")) if manifest.get("gold_snapshot_id") is not None else None,
+        "locked_feature_contract": {
+            "window_model_version": manifest.get("window_model_version"),
+            "scaling_config_version": manifest.get("scaling_config_version"),
+            "feature_version": manifest.get("feature_version"),
+            "mc_value": manifest.get("collection_plan", {}).get("global_mc", {}).get("mc_value"),
+        },
+        "locked_algorithm_configs": {
+            algo: {
+                "config_path": resolved_pins[algo]["config_path"],
+                "model_config_version": resolved_pins[algo]["model_config_version"],
+                "algorithm_version": resolved_pins[algo]["algorithm_version"],
+                "file_bytes_sha256": resolved_pins[algo]["file_bytes_sha256"],
+                "canonical_config_sha256": resolved_pins[algo]["canonical_config_sha256"],
+            }
+            for algo in algorithms
+        },
+        "extension_guardrails": {
+            "no_parameter_override_on_extension": True,
+            "no_accuracy_or_f1_metric": True,
+            "preserve_failed_windows_in_denominator": True,
+            "preserve_honest_nulls_with_reason_codes": True,
+            "retrospective_candidate_only": True,
+            "scientific_approval": False,
+        },
+    }
+
+    return {
+        "dataset_id": dataset_id,
+        "dataset_info": {
+            "dataset_id": dataset_id,
+            "dataset_split": manifest.get("dataset_split"),
+            "dataset_status": manifest.get("dataset_status"),
+            "collection_id": bundle.get("collection_id"),
+            "shard_count": len(bundle.get("shards", {})) if bundle.get("is_collection") else 1,
+            "feature_row_count": bundle["features_table"].num_rows,
+            "mainshock_count": bundle["mainshocks_table"].num_rows,
+            "mc_value": manifest.get("collection_plan", {}).get("global_mc", {}).get("mc_value"),
+            "window_model_version": manifest.get("window_model_version"),
+            "scaling_config_version": manifest.get("scaling_config_version"),
+            "feature_version": manifest.get("feature_version"),
+            "manifest_sha256": bundle.get("manifest_sha256"),
+            "checksums_sha256": bundle.get("checksums_sha256"),
+            "gold_publication_id": manifest.get("gold_publication_id"),
+            "gold_snapshot_id": str(manifest.get("gold_snapshot_id")) if manifest.get("gold_snapshot_id") is not None else None,
+            "timestamp_reader_profile": bundle.get("timestamp_reader_profile"),
+        },
+        "evaluated_at_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "comparison_table": _build_comparison_table(algorithms, comparison_results),
+        "algorithm_details": comparison_results,
+        "algorithm_config_pins": resolved_pins,
+        "frozen_extension_rule": frozen_extension_rule,
     }
