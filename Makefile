@@ -759,6 +759,7 @@ ci-docs: ## Docs/contracts/secret hygiene/Compose tĩnh; không đọc .env riê
 	@$(MAKE) test-pilot PILOT_PYTHON=python3
 
 ci-docs-base: ## Always-on CI guards; pilot tests được chọn riêng theo impact, không Docker daemon
+	@$(MAKE) test-qa-05
 	@$(MAKE) test-ops-backup
 	@$(MAKE) test-dat03-lineage
 	@$(MAKE) test-dat03-payload-inventory
@@ -858,6 +859,15 @@ smoke-recovery: check-config-local ## ORC-05 exact Bronze recovery QA; không t�
 smoke-resource-pilot: check-config-local ## ORC-05 real parsers + standalone Spark shuffle; không tự build/start
 	@$(RUNTIME_CHECK) --component resource
 	@$(COMPOSE) --profile smoke run --rm --no-deps --pull never spark-resource-pilot
+
+.PHONY: test-qa-05 profile-qa-05
+QA05_OUTPUT ?=
+test-qa-05: ## QA-05 offline resource/profile guards; không Docker hoặc mạng
+	@python3 -B -m unittest tests.test_qa05_profile
+
+profile-qa-05: ## QA-05 SELECT-only historical Gold profile; existing idle services, không build/start/data writes
+	@test -n "$(QA05_OUTPUT)" || (echo 'QA05_OUTPUT must be a new explicit folder under staging/'; exit 1)
+	@python3 -B scripts/profile-qa05.py --output "$(QA05_OUTPUT)"
 
 maintenance-preview: ## ORC-05 read-only QA staging diagnosis; không xóa/di chuyển/release lease
 	@PYTHONPATH=airflow/dags python3 -m staging_maintenance --root "$(RUN_SUMMARY_ROOT)" \

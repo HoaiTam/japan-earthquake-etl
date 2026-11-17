@@ -5,7 +5,8 @@
 > [OPS-01](./tasks/OPS-01.md) Done cho smoke đại diện, [runbook](../runbooks/OPS-01_BACKUP_RESTORE.md)
 > có setup/guard/Make commands và [evidence thật](../evidence/OPS-01_BACKUP_RESTORE_20261117.md).
 > Không phải full warehouse backup hoặc SEC-01 cloud acceptance.
-> 67 Done / 5 Needs Update / 9 Backlog / 0 In Progress trong81task sau tích hợp OPS-01.
+> [QA-05 profile Done](../evidence/QA-05_RESOURCE_PROFILE_20261117.md) local17/11, chưa push;
+> 68 Done / 5 Needs Update / 7 Backlog / 1 In Progress trong81task (DEMO-01 còn In Progress).
 > [Phân công tuần9 — 16–22/11](./WEEK_9_REPLAN_20261111.md) giữ kế hoạch18task,6task/người.
 > Roster/effort tuần cũ bên dưới là lịch sử. [Đối soát](../evidence/TASK_STATUS_AUDIT_20261111.md).
 
