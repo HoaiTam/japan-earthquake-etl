@@ -110,6 +110,10 @@ test-dat03-provenance: ## DAT-03 worker provenance packaging/verification regres
 	@python3 -B -m unittest discover -s tests -p 'test_pack_worker_provenance.py'
 	@python3 -B -m unittest discover -s tests -p 'test_extract_minio_provenance.py'
 	@python3 -B -m unittest discover -s tests -p 'test_pack_worker_lineage.py'
+
+.PHONY: test-demo-preflight
+test-demo-preflight: ## DEMO-01 offline manifest/pin/boundary/receipt regression; không Docker/network
+	@python3 -B -m unittest tests.test_demo_preflight
 .PHONY: test-mli-import smoke-mli-import smoke-mli-import-acceptance smoke-mli-import-dag up-ml
 .PHONY: test-qa-04 smoke-qa-04
 .PHONY: test-mli-build check-mli-build-runtime
@@ -762,6 +766,7 @@ ci-docs-base: ## Always-on CI guards; pilot tests được chọn riêng theo im
 	@$(MAKE) test-dat03-team-setup
 	@$(MAKE) test-dat03-range-worker
 	@$(MAKE) test-dat03-provenance
+	@$(MAKE) test-demo-preflight
 	@$(MAKE) check-docs test-docs test-jma-source-handoff
 	@$(MAKE) test-contracts
 	@python3 -m unittest discover -s tests -p 'test_real_etl_cli.py'

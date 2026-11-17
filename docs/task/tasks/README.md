@@ -22,6 +22,7 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 
 ## Tổng quan
 
+**16/11 — DEMO-01 In Progress (ThanhTris):** Chuẩn bị manifest ghim bằng chứng đại diện, kịch bản demo 15–20 phút, 4 fallback và preflight checker offline ([gói demo](../../runbooks/DEMO-01_DEMO_PACKAGE.md)); chờ `MLI-04` và `MLQ-01` để chốt official pins.
 **17/11 — DAT-03 Done:** đã đối chiếu catalog288tháng, Gold Published/rerun,
 hai official collections EXPORTED và receipt thật cùng kitv4 trên ba máy.
 [Đối chiếu acceptance](../../evidence/DAT-03_FINAL_ACCEPTANCE_20261116.md).
@@ -93,7 +94,7 @@ Java kiểm125/125tháng worker qua13batch/42groups, không bung dataset hoặc 
 unified Gold288tháng/Trino, official exports và receipts ba máy. Các ghi chú chờ
 24+23/2+1metadata trước đây giữ làm lịch sử, không yêu cầu gửi lại.
 
-**Lịch sử12/11 (cập nhật BI-01 Done):** 65/81 Done,5 Needs Update,10 Backlog,1 In Progress (DAT-03).
+**Hiện hành12/11 (cập nhật BI-01 Done & DEMO-01 In Progress 16/11):** 65/81 Done,5 Needs Update,9 Backlog,2 In Progress (DAT-03, DEMO-01).
 **Lịch sử14/11 — byte audit trước follow-up / PR #131:** [Byte audit mới](../../evidence/DAT-03_BYTE_AVAILABILITY_20261114.md)
 đạt119/119payload refs Trí,144/144Trang,37/37source refs mỗi worker bằng
 bytes tái dùng có cùng SHA/size trên coordinator. Trang114metadata đã matched;
@@ -423,7 +424,7 @@ và portable integration/full catalog/official export đã qua actual acceptance
 | Task | Tuần | Workstream | Scope | Priority | Effort | Trạng thái |
 |---|---:|---|---|---|---:|---|
 | [DOC-01](./DOC-01.md) - Cập nhật tài liệu theo từng block | 5 | Documentation | Core | P0 | 4h | Done |
-| [DEMO-01](./DEMO-01.md) - Chuẩn bị dữ liệu và kịch bản demo | 8 | Demo | Core | P0 | 4h | Backlog |
+| [DEMO-01](./DEMO-01.md) - Chuẩn bị dữ liệu và kịch bản demo | 8 | Demo | Core | P0 | 4h | In Progress |
 | [DEMO-02](./DEMO-02.md) - Rehearsal và tạo release candidate | 8 | Release | Core | P0 | 6h | Backlog |
 | [OPS-01](./OPS-01.md) - Smoke test backup và restore metadata | 6 | Backup and restore | Stretch | P2 | 4h | Done |
 | [QA-01](./QA-01.md) - Chạy E2E daily đa nguồn | 5 | E2E | Core | P0 | 5h | Done |
