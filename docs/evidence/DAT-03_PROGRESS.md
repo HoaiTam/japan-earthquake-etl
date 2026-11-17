@@ -1,4 +1,14 @@
-# DAT-03 — Tiến độ thực tế (cập nhật 15/11/2026)
+# DAT-03 — Tiến độ thực tế (cập nhật 16/11/2026)
+
+## Hiện hành16/11 — Done
+
+[Nghiệm thu cuối](DAT-03_FINAL_ACCEPTANCE_20261116.md) đối chiếu toàn bộ checklist:
+full288tháng/225+63, global/boundary/reconciliation, six Gold Published và
+immutable rerun, hai collection EXPORTED/all-shard loader/releasev4, receipts
+thật của HoaiTam, ThanhTris và rosy179. PR #131 head922e8d2 có23checks SUCCESS.
+Không ETL mới/SQL/runtime/ACL mutations, không cấp scientific approval hoặc
+đóng SEC-01/experiment tasks. Reviewer unassigned. Các mục hiện hành15/11 trở
+về trước bên dưới là lịch sử; giữ nguyên failed evidence và exact SHA.
 
 ## Hiện hành15/11 — capacity fingerprint và physical provenance đạt
 

@@ -1,0 +1,72 @@
+{
+  "version": "dat03-final-acceptance-v1",
+  "task_id": "DAT-03",
+  "status": "ACCEPTANCE_PASSED",
+  "task_status": "Done",
+  "accepted_at_utc": "2026-11-16T16:06:43.296313+00:00",
+  "reviewer": "unassigned",
+  "source_evidence": [
+    {
+      "path": "DAT-03_PORTABLE_IMPORT_20261115.json",
+      "sha256": "54f24806ea672231dc311a56bac01ae1ecf9b6645ffcbfa4f95756d3b16b03d7"
+    },
+    {
+      "path": "DAT-03_PORTABLE_GOLD_20261115.json",
+      "sha256": "de3d2ff367eaebfc969541dba521a5f1efcf0129d3065e2dd6e6abf9cb1e1ba2"
+    },
+    {
+      "path": "DAT-03_OFFICIAL_COLLECTIONS_20261115.json",
+      "sha256": "9572a1c2b282bec6110f47eda15d356c2e461c8eea64966993aa7de1ae21f7c4"
+    },
+    {
+      "path": "DAT-03_WINDOWS_HANDOFF_20261116.json",
+      "sha256": "c7fe793a68fe3875b9b17a6cd2bd6f4ee9e88ffde746acd040f8a3835ffdb5f5"
+    }
+  ],
+  "months": 288,
+  "reproduction_months": 225,
+  "extension_months": 63,
+  "canonical_events": 4488650,
+  "bridge_rows": 4489823,
+  "gold_tables_published": 6,
+  "gold_rerun_pins_unchanged": true,
+  "exported_splits": [
+    "REPRODUCTION",
+    "EXTENSION"
+  ],
+  "feature_memberships": 390374,
+  "mainshocks": 239,
+  "shards": 6,
+  "zip_sha256": "687170587e9db1d5d767722bf2fd4e1e2eecc1c3141ebfcdb10269a8b83b4c21",
+  "handoff_sha256": "6cf0af7c2a3d8e8ec4c993f84ed6d86cdc417324102133dd3068eb2ebc40d297",
+  "owner_receipt_sha256": "7c840027e2c886ba62131a450654b3b9139b4abead018d5c0be8cc3bcb7119c5",
+  "member_receipts": [
+    {
+      "recipient": "ThanhTris",
+      "receipt_sha256": "73e1b66a2be094e0fcea0d8d5893ffa1d579b7519e7a29dba7a038151736a676",
+      "drive_file_id": "1R14b-naac-whWzyolKjSnEwi5Yd2Q_uH",
+      "url": "https://drive.google.com/file/d/1R14b-naac-whWzyolKjSnEwi5Yd2Q_uH/view",
+      "python_version": "3.12.10",
+      "verified_at_utc": "2026-11-16T11:52:22.110127+00:00"
+    },
+    {
+      "recipient": "rosy179",
+      "receipt_sha256": "0b7ee0cb7b885580800e8261f16b7ddb3e8be11de416c8b62368f434468c7433",
+      "drive_file_id": "179iR5legh-4gdZAt6eXNjBb8c3nfKH4-",
+      "url": "https://drive.google.com/file/d/179iR5legh-4gdZAt6eXNjBb8c3nfKH4-/view",
+      "python_version": "3.11.0",
+      "verified_at_utc": "2026-11-16T13:52:47.843887+00:00"
+    }
+  ],
+  "three_machine_receipts_complete": true,
+  "distinct_self_reported_machine_fingerprints": 3,
+  "hardware_attestation": false,
+  "ci_head": "922e8d2b1fdba064be6a7cc9f5d6eb11b883d2d9",
+  "ci_successful_checks": 23,
+  "old_evidence_preserved": true,
+  "etl_or_docker_operations": false,
+  "new_sql_readbacks": 0,
+  "acl_changed": false,
+  "scientific_approval": false,
+  "sec01_acceptance_claimed": false
+}

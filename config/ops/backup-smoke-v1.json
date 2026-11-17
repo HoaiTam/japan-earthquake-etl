@@ -1,0 +1,21 @@
+{
+  "version": "ops01-backup-v1",
+  "result_run": "mli03-qa-ea096dbd384a40b599137dff9df6d86c",
+  "bronze_manifests": [
+    {
+      "name": "jma-2000.json",
+      "uri": "s3://japan-earthquake/bronze/jma/year=2000/catalog_release=jma-lm-20160819T034819Z-sha256-268441420d9c/ingest_date=2026-10-07/run_id=jma-922316b2ad88fa07587948c310215600-2000-full-year/attempt=01/manifest.json",
+      "sha256": "0c54b3c664833819099926b1a773647c71e6819abecdb8a321d82211b95fb615"
+    },
+    {
+      "name": "usgs-20261001.json",
+      "uri": "s3://japan-earthquake/bronze/usgs/ingest_date=2026-10-23/run_id=cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa-1524e0c014aa50d0d570/attempt=01/manifest.json",
+      "sha256": "ac6e13f9d64cb4e88339d9ab617f717e08b1b65c78e1a53c9b47f0591c7abc83"
+    }
+  ],
+  "gold_namespace": "gold_qa_bc23073bbd474152a637769d7a1cd406",
+  "ml_namespace": "ml_qa_6f191301e7734cec8a29185c2cbc0c0d",
+  "gold_tables": ["event_current", "event_source_bridge", "dim_date", "dim_region", "dim_depth_band", "dim_magnitude_band", "publication_status"],
+  "ml_tables": ["candidate_event", "mainshock_event", "dataset_registry", "experiment_run", "sequence_membership", "sequence_summary"],
+  "evidence_files": ["docs/evidence/MLI-03-runtime.json"]
+}
