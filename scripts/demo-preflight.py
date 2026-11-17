@@ -24,6 +24,33 @@ DEFAULT_MANIFEST = ROOT / "config" / "demo" / "demo_package_manifest_v1.json"
 PREPARED_PENDING_STATUS = "PREPARED_PENDING_OFFICIAL_GATES"
 REQUIRED_PENDING_GATES = ("EXP-02", "EXP-03", "EXP-04", "MLI-04", "MLQ-01")
 VALID_ROSTER = ("HoaiTam", "ThanhTris", "rosy179")
+REQUIRED_DAT03_SPLITS = ("REPRODUCTION", "EXTENSION")
+REQUIRED_QA01_TABLES = (
+    "event_current",
+    "event_source_bridge",
+    "dim_date",
+    "dim_region",
+    "dim_magnitude_band",
+    "dim_depth_band",
+)
+REQUIRED_DAT03_COLLECTION_FIELDS = (
+    "dataset_id",
+    "collection_id",
+    "manifest_sha256",
+    "checksums_sha256",
+    "shard_count",
+    "feature_row_count",
+    "mainshock_count",
+    "timestamp_reader_profile",
+)
+REQUIRED_DAT03_COLLECTION_INT_FIELDS = ("shard_count", "feature_row_count", "mainshock_count")
+REQUIRED_GOLD_PIN_FIELDS = (
+    "gold_snapshot_id",
+    "publication_bundle_sha256",
+    "gold_publication_id",
+    "physical_gold_table_name",
+)
+INT64_MAX = 9223372036854775807
 
 FORBIDDEN_SECRET_PATTERNS = (
     re.compile(r"minio_root_password", re.IGNORECASE),
@@ -110,7 +137,69 @@ def _validate_boundary_and_policy(manifest: dict[str, Any]) -> None:
         raise ValueError(f"DEMO_MISSING_REQUIRED_PENDING_GATES:{','.join(missing_gates)}")
 
 
+def _normalize_int64_snapshot(value: Any, label: str) -> str:
+    """Validate and normalize an Iceberg int64 snapshot ID without float conversion."""
+    if isinstance(value, bool):
+        raise ValueError(f"DEMO_PIN_INVALID_INT64_SNAPSHOT:{label}")
+    if isinstance(value, int):
+        raw = str(value)
+    elif isinstance(value, str):
+        raw = value.strip()
+        if raw != value or not raw.isdigit():
+            raise ValueError(f"DEMO_PIN_INVALID_INT64_SNAPSHOT:{label}")
+    else:
+        raise ValueError(f"DEMO_PIN_INVALID_INT64_SNAPSHOT:{label}")
+    if not re.fullmatch(r"[1-9][0-9]{0,18}", raw) or int(raw) > INT64_MAX:
+        raise ValueError(f"DEMO_PIN_INVALID_INT64_SNAPSHOT:{label}")
+    return raw
+
+
+def _require_exact_keys(mapping: Any, required: tuple[str, ...], error_prefix: str) -> dict[str, Any]:
+    """Require mapping to be a dict containing the exact expected key set."""
+    if not isinstance(mapping, dict) or set(mapping.keys()) != set(required):
+        found = sorted(mapping.keys()) if isinstance(mapping, dict) else type(mapping).__name__
+        raise ValueError(f"{error_prefix}:expected={list(required)}:got={found}")
+    return mapping
+
+
+def _validate_collection_fields(col: Any, split_name: str, error_prefix: str) -> dict[str, Any]:
+    """Ensure every DAT-03 split collection entry carries complete non-empty fields."""
+    if not isinstance(col, dict):
+        raise ValueError(f"{error_prefix}:{split_name}:NOT_OBJECT")
+    for field in REQUIRED_DAT03_COLLECTION_FIELDS:
+        val = col.get(field)
+        if field in REQUIRED_DAT03_COLLECTION_INT_FIELDS:
+            if type(val) is not int or val <= 0:
+                raise ValueError(f"{error_prefix}:{split_name}.{field}:INVALID_INT")
+        elif not isinstance(val, str) or not val.strip():
+            raise ValueError(f"{error_prefix}:{split_name}.{field}:EMPTY_OR_INVALID")
+    return col
+
+
+def _validate_gold_pin_shape(gold_pin: Any, error_prefix: str) -> dict[str, str]:
+    """Validate structure and int64 snapshot fidelity of a DAT-03 Gold pin."""
+    pin = _require_exact_keys(gold_pin, REQUIRED_GOLD_PIN_FIELDS, error_prefix)
+    pub_sha = pin.get("publication_bundle_sha256")
+    pub_id = pin.get("gold_publication_id")
+    table_name = pin.get("physical_gold_table_name")
+    if not isinstance(pub_sha, str) or not re.fullmatch(r"[a-f0-9]{64}", pub_sha):
+        raise ValueError(f"{error_prefix}.publication_bundle_sha256")
+    if pub_id != f"pub_{pub_sha}":
+        raise ValueError(f"{error_prefix}.gold_publication_id")
+    if not isinstance(table_name, str) or not re.fullmatch(r"iceberg\.[A-Za-z0-9_]+\.event_current", table_name):
+        raise ValueError(f"{error_prefix}.physical_gold_table_name")
+    snap_id = _normalize_int64_snapshot(pin.get("gold_snapshot_id"), f"{error_prefix}.gold_snapshot_id")
+    return {
+        "gold_publication_id": pub_id,
+        "gold_snapshot_id": snap_id,
+        "physical_gold_table_name": table_name,
+        "publication_bundle_sha256": pub_sha,
+    }
+
+
 def _check_qa01_pin(root: Path, pin: dict[str, Any]) -> dict[str, Any]:
+    if not isinstance(pin, dict):
+        raise ValueError("DEMO_PIN_MISMATCH:QA-01.NOT_OBJECT")
     path = _resolve_repo_path(root, pin["evidence_file"])
     data = _load_json_strict(path)
     actual_run_id = (data.get("run") or {}).get("run_id")
@@ -119,12 +208,25 @@ def _check_qa01_pin(root: Path, pin: dict[str, Any]) -> dict[str, Any]:
     for field in ("operation_id", "publication_id", "status", "coverage_mode", "natural_roi_event_count", "research_ready", "ml_upstream_eligible"):
         if data.get(field) != pin[field]:
             raise ValueError(f"DEMO_PIN_MISMATCH:QA-01.{field}")
-    bundle = data.get("snapshot_bundle") or {}
-    for table_name, expected_snap in (pin.get("snapshot_ids") or {}).items():
-        actual_snap = str((bundle.get(table_name) or {}).get("snapshot_id") or "")
-        if actual_snap != str(expected_snap):
+    snapshot_ids = _require_exact_keys(
+        pin.get("snapshot_ids"),
+        REQUIRED_QA01_TABLES,
+        "DEMO_PIN_MISMATCH:QA-01.snapshot_ids_set_mismatch",
+    )
+    bundle = _require_exact_keys(
+        data.get("snapshot_bundle"),
+        REQUIRED_QA01_TABLES,
+        "DEMO_PIN_MISMATCH:QA-01.evidence_snapshot_bundle_incomplete",
+    )
+    for table_name in REQUIRED_QA01_TABLES:
+        expected_snap = _normalize_int64_snapshot(snapshot_ids[table_name], f"QA-01.{table_name}")
+        actual_snap = _normalize_int64_snapshot(
+            (bundle.get(table_name) or {}).get("snapshot_id"),
+            f"QA-01.evidence.{table_name}",
+        )
+        if actual_snap != expected_snap:
             raise ValueError(f"DEMO_PIN_MISMATCH:QA-01.snapshot.{table_name}")
-    return {"task_id": "QA-01", "status": "VERIFIED", "run_id": actual_run_id, "snapshot_count": len(pin.get("snapshot_ids") or {})}
+    return {"task_id": "QA-01", "status": "VERIFIED", "run_id": actual_run_id, "snapshot_count": len(REQUIRED_QA01_TABLES)}
 
 
 def _check_runtime_qa_pin(root: Path, key: str, pin: dict[str, Any]) -> dict[str, Any]:
@@ -144,37 +246,144 @@ def _check_runtime_qa_pin(root: Path, key: str, pin: dict[str, Any]) -> dict[str
     return {"task_id": pin["task_id"], "status": "VERIFIED", "run_id": pin["run_id"], "cases_passed": f"{pin['passed']}/{pin['case_count']}"}
 
 
-def _check_dat03_release_pin(root: Path, pin: dict[str, Any]) -> dict[str, Any]:
+def _load_authoritative_dat03_gold_and_collections(root: Path) -> tuple[dict[str, str], dict[str, dict[str, Any]]]:
+    """Derive authoritative Gold and split export pins from DAT-03 acceptance evidence."""
+    official_doc = _load_json_strict(_resolve_repo_path(root, "docs/evidence/DAT-03_OFFICIAL_COLLECTIONS_20261115.json"))
+    gold_filename = official_doc.get("gold_evidence")
+    if not isinstance(gold_filename, str) or "/" in gold_filename or "\\" in gold_filename or not gold_filename.endswith(".json"):
+        raise ValueError("DEMO_PIN_MISMATCH:DAT-03.authoritative_gold_evidence_ref")
+    gold_doc = _load_json_strict(_resolve_repo_path(root, f"docs/evidence/{gold_filename}"))
+
+    commit_sha = (gold_doc.get("first_publication") or {}).get("commit_sha256")
+    namespace = gold_doc.get("namespace")
+    gold_snap = _normalize_int64_snapshot(
+        ((gold_doc.get("tables") or {}).get("event_current") or {}).get("snapshot_id"),
+        "DAT-03.portable_gold.event_current",
+    )
+    postflight_snap = _normalize_int64_snapshot(
+        ((official_doc.get("independent_postflight") or {}).get("results") or {}).get("gold_event_current"),
+        "DAT-03.official_collections.gold_event_current",
+    )
+    if postflight_snap != gold_snap:
+        raise ValueError("DEMO_PIN_MISMATCH:DAT-03.authoritative_gold_snapshot_divergence")
+
+    auth_gold = _validate_gold_pin_shape(
+        {
+            "gold_publication_id": f"pub_{commit_sha}",
+            "gold_snapshot_id": gold_snap,
+            "physical_gold_table_name": f"{namespace}.event_current",
+            "publication_bundle_sha256": commit_sha,
+        },
+        "DEMO_PIN_MISMATCH:DAT-03.authoritative_gold_pin",
+    )
+
+    preflight_by_split: dict[str, dict[str, Any]] = {}
+    for entry in official_doc.get("preflights") or []:
+        if isinstance(entry, dict) and entry.get("dataset_split") in REQUIRED_DAT03_SPLITS:
+            preflight_by_split[entry["dataset_split"]] = entry
+    build_by_split: dict[str, dict[str, Any]] = {}
+    for session in official_doc.get("accepted_build_and_rerun_sessions") or []:
+        if (
+            isinstance(session, dict)
+            and session.get("mode") == "build"
+            and session.get("status") == "DATASET_EXPORTED"
+            and session.get("dataset_split") in REQUIRED_DAT03_SPLITS
+        ):
+            build_by_split[session["dataset_split"]] = session.get("final_readback") or {}
+
+    if set(preflight_by_split) != set(REQUIRED_DAT03_SPLITS) or set(build_by_split) != set(REQUIRED_DAT03_SPLITS):
+        raise ValueError("DEMO_PIN_MISMATCH:DAT-03.official_collections_splits_incomplete")
+
+    for split_name in REQUIRED_DAT03_SPLITS:
+        cov = preflight_by_split[split_name].get("coverage") or {}
+        if cov.get("published_commit_sha256") != auth_gold["publication_bundle_sha256"]:
+            raise ValueError(f"DEMO_PIN_MISMATCH:DAT-03.{split_name}.authoritative_commit_mismatch")
+        export_snap = _normalize_int64_snapshot(
+            build_by_split[split_name].get("gold_snapshot_id"),
+            f"DAT-03.official_collections.{split_name}.gold_snapshot_id",
+        )
+        if export_snap != auth_gold["gold_snapshot_id"]:
+            raise ValueError(f"DEMO_PIN_MISMATCH:DAT-03.{split_name}.authoritative_gold_snapshot_mismatch")
+
+    return auth_gold, build_by_split
+
+
+def _check_dat03_release_pin(root: Path, pin: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    if not isinstance(pin, dict):
+        raise ValueError("DEMO_PIN_MISMATCH:DAT-03.NOT_OBJECT")
     path = _resolve_repo_path(root, pin["evidence_file"])
     data = _load_json_strict(path)
     release = data.get("release") or {}
+    if not isinstance(pin.get("zip_sha256"), str) or not re.fullmatch(r"[a-f0-9]{64}", pin["zip_sha256"]):
+        raise ValueError("DEMO_PIN_MISMATCH:DAT-03.zip_sha256")
     if release.get("zip_sha256") != pin["zip_sha256"]:
         raise ValueError("DEMO_PIN_MISMATCH:DAT-03.zip_sha256")
+    if not isinstance(pin.get("handoff_sha256"), str) or not re.fullmatch(r"[a-f0-9]{64}", pin["handoff_sha256"]):
+        raise ValueError("DEMO_PIN_MISMATCH:DAT-03.handoff_sha256")
     if release.get("handoff_sha256") != pin["handoff_sha256"]:
         raise ValueError("DEMO_PIN_MISMATCH:DAT-03.handoff_sha256")
+    if pin.get("scientific_approval") is not False:
+        raise ValueError("DEMO_PIN_MISMATCH:DAT-03.manifest_scientific_approval")
     reg = data.get("regression") or {}
     if reg.get("scientific_approval") is not False:
         raise ValueError("DEMO_PIN_MISMATCH:DAT-03.scientific_approval")
-    collections = reg.get("collections") or {}
-    for split_name, expected_col in (pin.get("collections") or {}).items():
-        actual_col = collections.get(split_name) or {}
-        for field in (
-            "dataset_id",
-            "collection_id",
-            "manifest_sha256",
-            "checksums_sha256",
-            "shard_count",
-            "feature_row_count",
-            "mainshock_count",
-            "timestamp_reader_profile",
-        ):
+
+    auth_gold, auth_builds = _load_authoritative_dat03_gold_and_collections(root)
+    manifest_gold = _validate_gold_pin_shape(pin.get("gold_pin"), "DEMO_PIN_MISMATCH:DAT-03.gold_pin")
+    for field in REQUIRED_GOLD_PIN_FIELDS:
+        if manifest_gold[field] != auth_gold[field]:
+            raise ValueError(f"DEMO_PIN_MISMATCH:DAT-03.gold_pin.{field}")
+
+    acceptance_file = pin.get("final_acceptance_file")
+    if acceptance_file is not None:
+        acc_doc = _load_json_strict(_resolve_repo_path(root, acceptance_file))
+        if acc_doc.get("task_status") != "Done" or acc_doc.get("scientific_approval") is not False:
+            raise ValueError("DEMO_PIN_MISMATCH:DAT-03.final_acceptance_status")
+        if acc_doc.get("zip_sha256") != release["zip_sha256"] or acc_doc.get("handoff_sha256") != release["handoff_sha256"]:
+            raise ValueError("DEMO_PIN_MISMATCH:DAT-03.final_acceptance_hashes")
+        if set(acc_doc.get("exported_splits") or []) != set(REQUIRED_DAT03_SPLITS):
+            raise ValueError("DEMO_PIN_MISMATCH:DAT-03.final_acceptance_splits")
+    if pin.get("receipt_version") != "dat03-team-research-v1":
+        raise ValueError("DEMO_PIN_MISMATCH:DAT-03.receipt_version")
+
+    pin_collections = _require_exact_keys(
+        pin.get("collections"),
+        REQUIRED_DAT03_SPLITS,
+        "DEMO_PIN_MISMATCH:DAT-03.collections_set_mismatch",
+    )
+    actual_collections = _require_exact_keys(
+        reg.get("collections"),
+        REQUIRED_DAT03_SPLITS,
+        "DEMO_PIN_MISMATCH:DAT-03.evidence_collections_set_mismatch",
+    )
+
+    validated_collections: dict[str, dict[str, Any]] = {}
+    for split_name in REQUIRED_DAT03_SPLITS:
+        expected_col = _validate_collection_fields(pin_collections[split_name], split_name, "DEMO_PIN_MISMATCH:DAT-03")
+        actual_col = _validate_collection_fields(actual_collections[split_name], split_name, "DEMO_PIN_MISMATCH:DAT-03.evidence")
+        build_rb = auth_builds[split_name]
+        for field in REQUIRED_DAT03_COLLECTION_FIELDS:
             if actual_col.get(field) != expected_col[field]:
                 raise ValueError(f"DEMO_PIN_MISMATCH:DAT-03.{split_name}.{field}")
-    return {
-        "task_id": "DAT-03",
-        "status": "VERIFIED_PAIRED_RELEASE_V4",
-        "handoff_sha256": pin["handoff_sha256"],
+            build_field = "bundle_manifest_sha256" if field == "manifest_sha256" else field
+            if build_field in build_rb and build_rb.get(build_field) != expected_col[field]:
+                raise ValueError(f"DEMO_PIN_MISMATCH:DAT-03.{split_name}.official_export.{field}")
+        validated_collections[split_name] = dict(actual_col)
+
+    validated_release = {
+        "receipt_version": str(pin.get("receipt_version") or "dat03-team-research-v1"),
+        "handoff_sha256": release["handoff_sha256"],
+        "gold_pin": auth_gold,
+        "collections": validated_collections,
     }
+    return (
+        {
+            "task_id": "DAT-03",
+            "status": "VERIFIED_PAIRED_RELEASE_V4",
+            "handoff_sha256": release["handoff_sha256"],
+        },
+        validated_release,
+    )
 
 
 def _check_pilot_and_ml_pins(root: Path, ev: dict[str, Any]) -> list[dict[str, Any]]:
@@ -294,13 +503,20 @@ def _verify_local_receipt(
     if not re.fullmatch(r"[a-f0-9]{64}", fingerprint):
         raise ValueError("DEMO_RECEIPT_INVALID_MACHINE_FINGERPRINT")
 
-    collections = receipt.get("collections")
-    expected_collections = release_pin["collections"]
-    if not isinstance(collections, dict) or set(collections.keys()) != set(expected_collections.keys()):
-        raise ValueError("DEMO_RECEIPT_COLLECTIONS_SET_MISMATCH")
+    collections = _require_exact_keys(
+        receipt.get("collections"),
+        REQUIRED_DAT03_SPLITS,
+        "DEMO_RECEIPT_COLLECTIONS_SET_MISMATCH",
+    )
+    expected_collections = _require_exact_keys(
+        release_pin.get("collections"),
+        REQUIRED_DAT03_SPLITS,
+        "DEMO_PIN_MISMATCH:DAT-03.collections_set_mismatch",
+    )
 
-    expected_gold = release_pin["gold_pin"]
-    for split_name, expected_col in expected_collections.items():
+    expected_gold = _validate_gold_pin_shape(release_pin.get("gold_pin"), "DEMO_PIN_MISMATCH:DAT-03.gold_pin")
+    for split_name in REQUIRED_DAT03_SPLITS:
+        expected_col = _validate_collection_fields(expected_collections.get(split_name), split_name, "DEMO_PIN_MISMATCH:DAT-03")
         actual_col = collections.get(split_name)
         if not isinstance(actual_col, dict):
             raise ValueError(f"DEMO_RECEIPT_INVALID_COLLECTION:{split_name}")
@@ -310,19 +526,11 @@ def _verify_local_receipt(
             raise ValueError(f"DEMO_RECEIPT_SPLIT_MISMATCH:{split_name}")
         if actual_col.get("timestamps_losslessly_normalized") is not True:
             raise ValueError(f"DEMO_RECEIPT_TIMESTAMPS_NOT_NORMALIZED:{split_name}")
-        for field in (
-            "dataset_id",
-            "collection_id",
-            "manifest_sha256",
-            "checksums_sha256",
-            "shard_count",
-            "feature_row_count",
-            "mainshock_count",
-            "timestamp_reader_profile",
-        ):
+        _validate_collection_fields(actual_col, split_name, "DEMO_RECEIPT_INVALID_COLLECTION")
+        for field in REQUIRED_DAT03_COLLECTION_FIELDS:
             if actual_col.get(field) != expected_col[field]:
                 raise ValueError(f"DEMO_RECEIPT_COLLECTION_MISMATCH:{split_name}.{field}")
-        actual_gold = actual_col.get("gold_pin")
+        actual_gold = _validate_gold_pin_shape(actual_col.get("gold_pin"), f"DEMO_RECEIPT_GOLD_PIN_MISMATCH:{split_name}")
         if actual_gold != expected_gold:
             raise ValueError(f"DEMO_RECEIPT_GOLD_PIN_MISMATCH:{split_name}")
 
@@ -360,13 +568,14 @@ def run_preflight(
         _resolve_repo_path(root, rel_path)
 
     ev = manifest.get("representative_evidence") or {}
+    dat03_summary, validated_release_pin = _check_dat03_release_pin(root, ev["official_paired_release_v4"])
     verified_runs = [
         _check_qa01_pin(root, ev["daily_operational_v2"]),
         _check_orc07_pin(root, ev["bounded_real_etl"]),
         _check_runtime_qa_pin(root, "idempotency_rerun_qa", ev["idempotency_rerun_qa"]),
         _check_runtime_qa_pin(root, "historical_backfill_qa", ev["historical_backfill_qa"]),
         _check_runtime_qa_pin(root, "failure_recovery_qa", ev["failure_recovery_qa"]),
-        _check_dat03_release_pin(root, ev["official_paired_release_v4"]),
+        dat03_summary,
     ]
     verified_runs.extend(_check_pilot_and_ml_pins(root, ev))
     fallback_modes = _check_fallback_modes(manifest)
@@ -374,7 +583,7 @@ def run_preflight(
     pending_gates = manifest["pending_official_gates"]
     receipt_info = _verify_local_receipt(
         local_receipt_path=local_receipt_path,
-        release_pin=ev["official_paired_release_v4"],
+        release_pin=validated_release_pin,
         expected_receipt_sha256=expected_receipt_sha256,
     )
     report = {

@@ -73,6 +73,7 @@
     "official_paired_release_v4": {
       "task_id": "DAT-03",
       "evidence_file": "docs/evidence/DAT-03_WINDOWS_HANDOFF_20261116.json",
+      "final_acceptance_file": "docs/evidence/DAT-03_FINAL_ACCEPTANCE_20261116.json",
       "zip_name": "jma-research-team-20261115-v4.zip",
       "zip_sha256": "687170587e9db1d5d767722bf2fd4e1e2eecc1c3141ebfcdb10269a8b83b4c21",
       "handoff_sha256": "6cf0af7c2a3d8e8ec4c993f84ed6d86cdc417324102133dd3068eb2ebc40d297",
@@ -106,7 +107,7 @@
           "timestamp_reader_profile": "prepared-spark-utc-int96-v1"
         }
       },
-      "team_receipt_note": "3/3 receipts (HoaiTam, ThanhTris, rosy179) da duoc coordinator doi chieu tren PR #131; docs Done tren repo cho dong bo tiep."
+      "team_receipt_note": "3/3 receipts (HoaiTam, ThanhTris, rosy179) da duoc doi chieu tren PR #131 va DAT-03 da Done tren main qua PR #136 (DAT-03_FINAL_ACCEPTANCE_20261116.json); OPS-01 cung da Done qua PR #137."
     },
     "pilot_dataset": {
       "task_id": "DAT-02",
@@ -165,6 +166,8 @@
     "docs/runbooks/DAT-03_OFFICIAL_RESEARCH_HANDOFF.md",
     "docs/evidence/DAT-03_OFFICIAL_COLLECTIONS_20261115.md",
     "docs/evidence/DAT-03_WINDOWS_HANDOFF_20261116.json",
+    "docs/evidence/DAT-03_FINAL_ACCEPTANCE_20261116.json",
+    "docs/evidence/DAT-03_FINAL_ACCEPTANCE_20261116.md",
     "docs/evidence/GLD-04-verification.sql",
     "docs/evidence/MLI-04_STATIC_REPORT.md",
     "docs/evidence/MLD-05_RUNTIME_ACCEPTANCE.md",

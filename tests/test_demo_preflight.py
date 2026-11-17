@@ -85,14 +85,24 @@ class DemoPreflightTests(unittest.TestCase):
         self.assertEqual(report["local_research_receipt"]["status"], "NOT_REQUESTED")
         self.assertFalse(report["local_research_receipt"]["proves_kit_on_disk"])
 
-    def _run_with_mutated_manifest(self, mutate_fn):
+    def _run_with_mutated_manifest(
+        self,
+        mutate_fn,
+        local_receipt_path: Path | None = None,
+        expected_receipt_sha256: str | None = None,
+    ):
         base = json.loads(preflight.DEFAULT_MANIFEST.read_text(encoding="utf-8"))
         mutated = copy.deepcopy(base)
         mutate_fn(mutated)
         with tempfile.TemporaryDirectory() as tmp:
             manifest_path = Path(tmp) / "manifest.json"
             manifest_path.write_text(json.dumps(mutated, ensure_ascii=False), encoding="utf-8")
-            return preflight.run_preflight(manifest_path=manifest_path, root=ROOT)
+            return preflight.run_preflight(
+                manifest_path=manifest_path,
+                root=ROOT,
+                local_receipt_path=local_receipt_path,
+                expected_receipt_sha256=expected_receipt_sha256,
+            )
 
     # --- P1 regressions: official-readiness bypass prevention ---
 
@@ -230,6 +240,115 @@ class DemoPreflightTests(unittest.TestCase):
             receipt_path.write_text(json.dumps(_valid_v4_receipt()), encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "DEMO_RECEIPT_SHA_MISMATCH"):
                 preflight.run_preflight(local_receipt_path=receipt_path, expected_receipt_sha256="a" * 64)
+
+    # --- P2 regressions: required pin set completeness & authoritative evidence cross-checks ---
+
+    def test_manifest_missing_extension_collection_fails_closed(self):
+        with self.assertRaisesRegex(ValueError, "DEMO_PIN_MISMATCH:DAT-03.collections_set_mismatch"):
+            self._run_with_mutated_manifest(
+                lambda m: m["representative_evidence"]["official_paired_release_v4"]["collections"].pop("EXTENSION")
+            )
+
+    def test_manifest_and_receipt_both_missing_extension_collection_fail_closed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            receipt_path = Path(tmp) / "partial-receipt.json"
+            receipt = _valid_v4_receipt()
+            receipt["collections"].pop("EXTENSION")
+            receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "DEMO_PIN_MISMATCH:DAT-03.collections_set_mismatch"):
+                self._run_with_mutated_manifest(
+                    lambda m: m["representative_evidence"]["official_paired_release_v4"]["collections"].pop("EXTENSION"),
+                    local_receipt_path=receipt_path,
+                )
+
+    def test_manifest_and_receipt_both_empty_collections_fail_closed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            receipt_path = Path(tmp) / "empty-receipt.json"
+            receipt = _valid_v4_receipt()
+            receipt["collections"] = {}
+            receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "DEMO_PIN_MISMATCH:DAT-03.collections_set_mismatch"):
+                self._run_with_mutated_manifest(
+                    lambda m: m["representative_evidence"]["official_paired_release_v4"].__setitem__("collections", {}),
+                    local_receipt_path=receipt_path,
+                )
+
+    def test_receipt_missing_collection_fails_closed_even_without_manifest_change(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            receipt_path = Path(tmp) / "partial-receipt.json"
+            receipt = _valid_v4_receipt()
+            receipt["collections"].pop("EXTENSION")
+            receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "DEMO_RECEIPT_COLLECTIONS_SET_MISMATCH"):
+                preflight.run_preflight(local_receipt_path=receipt_path)
+
+    def test_qa01_missing_one_or_all_snapshots_fails_closed(self):
+        with self.assertRaisesRegex(ValueError, "DEMO_PIN_MISMATCH:QA-01.snapshot_ids_set_mismatch"):
+            self._run_with_mutated_manifest(
+                lambda m: m["representative_evidence"]["daily_operational_v2"]["snapshot_ids"].pop("dim_depth_band")
+            )
+        with self.assertRaisesRegex(ValueError, "DEMO_PIN_MISMATCH:QA-01.snapshot_ids_set_mismatch"):
+            self._run_with_mutated_manifest(
+                lambda m: m["representative_evidence"]["daily_operational_v2"].__setitem__("snapshot_ids", {})
+            )
+
+    def test_snapshot_ids_reject_float_or_overflow_int64(self):
+        with self.assertRaisesRegex(ValueError, "DEMO_PIN_INVALID_INT64_SNAPSHOT"):
+            self._run_with_mutated_manifest(
+                lambda m: m["representative_evidence"]["daily_operational_v2"]["snapshot_ids"].__setitem__(
+                    "event_current", 1543775439517699328.0
+                )
+            )
+        with self.assertRaisesRegex(ValueError, "DEMO_PIN_INVALID_INT64_SNAPSHOT"):
+            self._run_with_mutated_manifest(
+                lambda m: m["representative_evidence"]["official_paired_release_v4"]["gold_pin"].__setitem__(
+                    "gold_snapshot_id", "9223372036854775808"
+                )
+            )
+
+    def test_manifest_tampered_gold_pin_fails_closed_against_authoritative_evidence(self):
+        with self.assertRaisesRegex(ValueError, "DEMO_PIN_MISMATCH:DAT-03.gold_pin.gold_snapshot_id"):
+            self._run_with_mutated_manifest(
+                lambda m: m["representative_evidence"]["official_paired_release_v4"]["gold_pin"].__setitem__(
+                    "gold_snapshot_id", "123"
+                )
+            )
+
+        with self.assertRaisesRegex(ValueError, "DEMO_PIN_MISMATCH:DAT-03.gold_pin.gold_publication_id"):
+            self._run_with_mutated_manifest(
+                lambda m: m["representative_evidence"]["official_paired_release_v4"]["gold_pin"].__setitem__(
+                    "gold_publication_id", "pub_" + ("0" * 64)
+                )
+            )
+
+        def mutate_pub_bundle(m):
+            gold = m["representative_evidence"]["official_paired_release_v4"]["gold_pin"]
+            gold["publication_bundle_sha256"] = "0" * 64
+            gold["gold_publication_id"] = "pub_" + ("0" * 64)
+
+        with self.assertRaisesRegex(ValueError, "DEMO_PIN_MISMATCH:DAT-03.gold_pin.publication_bundle_sha256"):
+            self._run_with_mutated_manifest(mutate_pub_bundle)
+
+        with self.assertRaisesRegex(ValueError, "DEMO_PIN_MISMATCH:DAT-03.gold_pin.physical_gold_table_name"):
+            self._run_with_mutated_manifest(
+                lambda m: m["representative_evidence"]["official_paired_release_v4"]["gold_pin"].__setitem__(
+                    "physical_gold_table_name", "iceberg.other_ns.event_current"
+                )
+            )
+
+        with tempfile.TemporaryDirectory() as tmp:
+            receipt_path = Path(tmp) / "dual-tampered.json"
+            receipt = _valid_v4_receipt()
+            receipt["collections"]["REPRODUCTION"]["gold_pin"]["gold_snapshot_id"] = "123"
+            receipt["collections"]["EXTENSION"]["gold_pin"]["gold_snapshot_id"] = "123"
+            receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "DEMO_PIN_MISMATCH:DAT-03.gold_pin.gold_snapshot_id"):
+                self._run_with_mutated_manifest(
+                    lambda m: m["representative_evidence"]["official_paired_release_v4"]["gold_pin"].__setitem__(
+                        "gold_snapshot_id", "123"
+                    ),
+                    local_receipt_path=receipt_path,
+                )
 
     # --- Existing pin, path, scientific boundary, and secret checks ---
 
