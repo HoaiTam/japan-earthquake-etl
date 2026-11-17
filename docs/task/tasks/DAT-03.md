@@ -28,6 +28,19 @@ evidence gốc không sửa bytes/SHA. Nghiệm thu16/11 là continuation của 
 sau khi PR đó merge, bản chốt docs được push riêng17/11 theo yêu cầu owner.
 Không thực hiện ETL/runtime/ACL writes để đóng task.
 
+**17/11 — sửa helper/tests rosy179 theo review Hoài Tâm trên PR #134:** Sửa
+`scripts/pack-dat03-rosy179-followup.py` và `tests/test_pack_dat03_rosy179_followup.py`
+theo feedback P1/P2 từ comment `#issuecomment-6922066989`:
+(1) tests chuyển sang synthetic fixture + TemporaryDirectory, không phụ thuộc staging/ZIP thật;
+(2) verifier enforce exact unique URI set, reject duplicate members và cross-check manifest SHA/size;
+(3) CLI mặc định `overwrite=False`, same-byte rerun → REUSED, khác bytes → fail;
+(4) `get_s3_client` fail-closed credential (no hardcode, no cross-provider mix),
+`fetch_bytes` check symlink trước resolve và enforce within-root.
+Tests 24 passed, 1 skipped (Windows symlink privilege), 51/51 test_pack_worker_lineage PASS,
+docs 0 problems. Gói metadata thật đã bàn giao trước không bị sửa; không upload lại.
+Branch `docs/dat-03-rosy179-lineage-followup`; evidence tại
+[DAT-03_LINEAGE_rosy179_FOLLOWUP_20261114.md](../../evidence/DAT-03_LINEAGE_rosy179_FOLLOWUP_20261114.md).
+
 ### Lịch sử triển khai (không phải blocker hiện hành)
 
 **16/11 — sửa portability Windows theo comment ThanhTris trên PR #131:**
