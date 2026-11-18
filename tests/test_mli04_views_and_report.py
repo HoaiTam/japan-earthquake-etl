@@ -1587,5 +1587,78 @@ class TestMli04ViewsAndReport(unittest.TestCase):
             self.assertIn(c, content, f"Data dictionary must document reason code {c}")
 
 
+import runpy
+from collections import Counter
+from pathlib import Path
+from unittest.mock import patch
+
+READBACK = runpy.run_path(str(Path(__file__).resolve().parents[1] / "scripts/verify-mli04-parity.py"))
+
+
+class PinnedReadbackTests(unittest.TestCase):
+    def test_official_cohort_is_bound_to_the_replay(self):
+        dataset, digest, pins = READBACK["official_sources"]()
+        self.assertEqual("REPRODUCTION", dataset["dataset_split"])
+        self.assertEqual(64, len(digest))
+        self.assertEqual(Counter(dict.fromkeys(READBACK["ALGORITHMS"], 2)), Counter(v[0] for v in pins.values()))
+
+    def test_shard_queries_pin_each_table_and_reject_wrong_metrics(self):
+        rid = "exp_run_example"
+        fingerprint = "a" * 64
+        scope = {"shard_id": "shard_00000"}
+        receipt = {"experiment_run_id": rid, "dataset_id": "ds_fixture", "algorithm_name": "WINDOW",
+                   "experiment_status": "CANDIDATE", "result_bundle_sha256": fingerprint,
+                   "namespace": "iceberg.ml_qa_fixture", "collection_scope": scope, "candidate_at_utc": "2026-11-18T00:00:00Z",
+                   "experiment_snapshot_id": 13, "summary_snapshot_id": 12, "membership_snapshot_id": 11,
+                   "readback": {"sequence_membership": 4, "sequence_summary": 2, "experiment_run": 1}}
+        counts = [4, 2, 4, 1, 1, 0, 2, 1]
+        metrics = dict.fromkeys(READBACK["METRICS"], {"count": 0, "mean": None})
+        metrics["noise_ratio"] = {"count": 1, "mean": 0.0}
+
+        def verify(noise=0.0, status="CANDIDATE"):
+            calls = []
+            responses = [
+                [["ds_fixture", "WINDOW", "v1", "code", status, fingerprint, 11, 12, 4, 2, "c"*64, "101", "102", "103"]],
+                [[4, 2, 1]],
+                [[2, 4, 1, 1, 0, 1, noise, 0, None, 0, None, 0, None]],
+                [["FAILED", "NOISE", 1]],
+            ]
+            def query(sql):
+                calls.append(sql)
+                return "trino-" + str(len(calls)), responses[len(calls)-1]
+            args = ("v1", fingerprint, counts, Counter({("FAILED", "NOISE"): 1}), metrics, {"e1"})
+            fn = READBACK["verify_shard"]
+            with patch.dict(fn.__globals__, {"bundle_expectations": lambda *a: args}):
+                row, _ = fn(query, "iceberg.ml_qa_fixture",
+                            {"dataset_id": "ds_fixture", "registry_lineage": ["c"*64, "101", "102", "103"]}, rid,
+                            "WINDOW", "shard_00000", "code", {"collection_scope": scope, "success_marker_sha256": "b"*64},
+                            None, receipt)
+            return calls, row
+        calls, row = verify()
+        for index, snapshot in enumerate((13, 11, 12, 12)):
+            self.assertIn(f"FOR VERSION AS OF {snapshot}", calls[index])
+        self.assertEqual(0.0, row["actual_metrics"]["noise_ratio"]["mean"])
+        with self.assertRaisesRegex(ValueError, "METRIC_PARITY"):
+            verify(noise=None)
+        with self.assertRaisesRegex(ValueError, "REGISTRY_MISMATCH"):
+            verify(status="REJECTED")
+
+    def test_full_algorithm_rollup_deduplicates_and_weights(self):
+        def row(rid, snap, n, value):
+            return {"algorithm_name": "WINDOW", "experiment_run_id": rid, "snapshots": {"membership_snapshot_id": snap},
+                    "actual_counts": dict.fromkeys(READBACK["COUNTS"], 2),
+                    "actual_metrics": dict.fromkeys(READBACK["METRICS"], {"count": n, "mean": value})}
+        snapshots = [row("r0", 11, 1, 0.0), row("r1", 31, 3, 1.0)]
+        expected = {"r0": ("WINDOW",), "r1": ("WINDOW",)}
+        def query(sql):
+            self.assertIn("FOR VERSION AS OF 11", sql)
+            self.assertIn("FOR VERSION AS OF 31", sql)
+            return "query-distinct", [[3]]
+        result = READBACK["rollups"](snapshots, {"r0": {"a", "b"}, "r1": {"b", "c"}}, expected,
+                                      "iceberg.ml", "ds_fixture", query)["WINDOW"]
+        self.assertEqual(3, result["counts"]["resolved_unique"])
+        self.assertEqual(0.75, result["sql_metrics"]["noise_ratio"]["mean"])
+
+
 if __name__ == "__main__":
     unittest.main()
