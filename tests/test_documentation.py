@@ -1,5 +1,6 @@
 """DOC-01 link checker and runnable onboarding command regressions, offline."""
 import importlib.util
+import json
 from pathlib import Path
 import re
 import tempfile
@@ -74,6 +75,50 @@ class DocumentationTest(unittest.TestCase):
             source = (ROOT / "docs/runbooks" / name).read_text()
             for block in re.findall(r"```[^\n]*\n(.*?)```", source, re.S):
                 self.assertNotRegex(block, r"\brm\s+-[a-z]*f|docker compose down -v|git reset --hard")
+
+
+class ColabPortabilityEvidenceTest(unittest.TestCase):
+    def test_thanhtris_documented_sha256_pins_match_json(self):
+        evidence = ROOT / "docs/evidence/THANHTRIS_COLAB_PORTABILITY_20261117"
+        markdown = evidence.with_suffix(".md").read_text(encoding="utf-8")
+        metadata = json.loads(evidence.with_suffix(".json").read_text(encoding="utf-8"))
+        pilot = metadata["pilot"]
+        local = metadata["local_exp01_gate"]
+        adaptive = metadata["local_exp03_adaptive_inspection"]
+        cloud = metadata["cloud_colab_session"]
+        documented_pins = {
+            "Source identity SHA-256": metadata["source_sha256"],
+            "Archive ZIP SHA-256": pilot["zip_sha256"],
+            "**Handoff SHA-256": pilot["handoff_sha256"],
+            "Features Parquet SHA-256": pilot["feature_sha256"],
+            "Checksums Index SHA-256": pilot["index_sha256"],
+            "Receipt SHA-256 (local)": pilot["local_pilot_receipt_sha256"],
+            "**Handoff Archive (": local["handoff_zip_sha256"],
+            "**Handoff Receipt (": local["handoff_receipt_sha256"],
+            "Local Smoke Report SHA-256": local["local_smoke_sha256"],
+            "Inspection report SHA-256": adaptive["inspection_report_sha256"],
+            "(SHA nguồn ": cloud["notebook_source_sha256"],
+            "**Executed Notebook (": cloud["executed_notebook_sha256"],
+            "**Output Archive (": cloud["output_zip_sha256"],
+            "  - `colab-report.json`:": cloud["colab_report_sha256"],
+            "  - `output-checksums.json`:": cloud["output_checksums_sha256"],
+            "  - `pilot-receipt.json`:": pilot["colab_pilot_receipt_sha256"],
+        }
+        for name, artifact in metadata["drive_handoff"]["artifacts"].items():
+            documented_pins[f"| `{name}` |"] = artifact["sha256"]
+
+        sha256 = r"\A[0-9a-fA-F]{64}\Z"
+        for expected in (*documented_pins.values(), local["notebook_sha256"], adaptive["notebook_sha256"]):
+            self.assertRegex(expected, sha256)
+        for marker, expected in documented_pins.items():
+            with self.subTest(pin=marker):
+                lines = [line for line in markdown.splitlines() if marker in line]
+                self.assertEqual(1, len(lines))
+                tokens = re.findall(r"`([^`]+)`", lines[0])
+                self.assertTrue(tokens)
+                actual = tokens[-1]
+                self.assertRegex(actual, sha256)
+                self.assertEqual(expected, actual)
 
 
 if __name__ == "__main__": unittest.main()
