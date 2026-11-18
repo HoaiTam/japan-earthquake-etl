@@ -1002,6 +1002,10 @@ class BaselineModelsTest(unittest.TestCase):
         self.assertIn("code_provenance", report)
         self.assertIn("git_blob_hashes", report["code_provenance"])
         self.assertTrue(out_md.is_file())
+        rendered = out_md.read_text(encoding="utf-8")
+        self.assertIn("không dùng làm request import MLI-03", rendered)
+        self.assertIn("chỉ nhận `WHOLE_WINDOW_SHARD`", rendered)
+        self.assertIn("`dataset_manifest_ref` và `dataset_manifest_sha256` từ receipt export", rendered)
 
         allowed_official_files = {
             "_SUCCESS.json",

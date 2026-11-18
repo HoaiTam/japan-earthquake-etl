@@ -26,8 +26,10 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 **17/11 — DAT-03 Done:** đã đối chiếu catalog288tháng, Gold Published/rerun,
 hai official collections EXPORTED và receipt thật cùng kitv4 trên ba máy.
 [Đối chiếu acceptance](../../evidence/DAT-03_FINAL_ACCEPTANCE_20261116.md).
-Hiện68/81Done,5Needs Update,7Backlog,1In Progress sau QA-05 và phần chuẩn bị DEMO-01. Các mốc bên dưới giữ
-lịch sử, không thay scientific approval hoặc trạng thái SEC-01/EXP.
+Hiện 69/81 Done, 4 Needs Update, 7 Backlog, 1 In Progress sau nghiệm thu EXP-02
+official REPRODUCTION v2 ([evidence](../../evidence/EXP-02_OFFICIAL_REPRODUCTION.md)).
+Full-split dành cho đánh giá; MLI-03 dùng từng whole-window shard. Các mốc bên
+dưới giữ lịch sử, không thay scientific approval hoặc trạng thái SEC-01/EXP-03/04.
 
 **17/11 — OPS-01 Done (HoaiTam):** backup13bảng/77objects/14artifacts và
 restore prefix/namespace/DB mới; Trino signatures/rerun/ML joins, Airflow
@@ -185,7 +187,7 @@ full catalog/export/receipts ba máy.
 
 - Tổng số task: **81**.
 - Foundation: **9 task `Done`**, FND-01 đã nghiệm thu runtime của lifecycle mới ngày 2026-10-15.
-- Task còn ở trạng thái `Needs Update`: **5** — EXP-02/03/04, MLI-04, SEC-01; DAT-03 tiếp tục In Progress12/11; EXP-01 cloud harness tuần7 đã Done, không thay security/session audit.
+- Tại mốc lập kế hoạch 12/11, **5** task `Needs Update`: EXP-02/03/04, MLI-04, SEC-01; DAT-03 khi đó còn In Progress. EXP-01 cloud harness tuần7 đã Done, không thay security/session audit.
 - Core: **73 task**.
 - Stretch: **8 task**.
 - Tổng effort task: **416 giờ**; baseline 364h + ORC-06/07 16h + DAT-02 6h + DAT-03 16h + COL-01..04 14h.

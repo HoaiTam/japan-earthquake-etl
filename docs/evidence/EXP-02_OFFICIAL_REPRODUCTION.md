@@ -46,7 +46,10 @@
 
 ## 4. Per-Shard Official Bundles (`WHOLE_WINDOW_SHARD` — Sibling Layout Hợp đồng MLI-01/MLI-03)
 
-- Cả full-split bundle (`<algo>/`) và từng shard bundle (`<algo>_shards/<shard_id>/`) đều tách thành sibling directories không lồng nhau, tương thích trực tiếp `MlResultBundleReader` (`MLI-03`).
+- Full-split bundle (`<algo>/`) đọc được để đánh giá và đối soát; không dùng làm request import MLI-03 cho collection.
+- MLI-03 chỉ nhận `WHOLE_WINDOW_SHARD`: một request cho mỗi thư mục `<algo>_shards/<shard_id>/`. Dùng đúng Run ID và Shard bên dưới, cùng `dataset_id`, `collection_id`, thuật toán và model config version ở trên.
+- Lấy `dataset_manifest_ref` và `dataset_manifest_sha256` từ receipt export trỏ đến trusted registry, không lấy Manifest SHA-256 của bundle nghiên cứu ở mục 1. Xem [runbook MLI-03](../runbooks/MLI-03_RESULT_IMPORT.md#request-tối-thiểu).
+- Kiểm chứng file/shard và parity trong report này không có nghĩa đã import, commit Iceberg hoặc đạt `CANDIDATE`.
 
 | Thuật toán | Shard | Relative Dir | Run ID | Rows | Mainshocks | `_SUCCESS.json` SHA-256 (prefix) |
 |---|---|---|---|---:|---:|---|
@@ -56,6 +59,8 @@
 | `DBSCAN` | `shard_00001` | `dbscan_shards/shard_00001` | `exp_run_d18ffb0a5c4f94c6695aaae7e7bb0cf2` | 70738 | 107 | `205d73330e09fd20...` |
 | `HDBSCAN_GLOBAL` | `shard_00000` | `hdbscan_global_shards/shard_00000` | `exp_run_743cbbc3454a2d36432c0126c46b2ac1` | 85972 | 87 | `ab18295f63d79773...` |
 | `HDBSCAN_GLOBAL` | `shard_00001` | `hdbscan_global_shards/shard_00001` | `exp_run_4af0189724cf3cb5ef89514e523fbd18` | 70738 | 107 | `1d280c2b4f799262...` |
+
+**Regression offline (PR #139):** `TrustedDatasetResolver → MlResultBundleReader → ResultBundleContract` nhận shard đúng từ registry fixture độc lập; thiếu shard, sai shard và full-split gắn nhầm shard đều bị từ chối. Kiểm tra này không ghi vào Iceberg và không thay đổi JSON evidence, run IDs hoặc SHA của lần chạy official v2.
 
 ## 5. Tuân thủ Hợp đồng & Giới hạn Khoa học
 
