@@ -508,8 +508,12 @@ test-pilot: ## Pilot/model regression; cần pyarrow/model deps và loopback Jup
 	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_mli04_views_and_report.py'
 
 .PHONY: test-dat03-lineage test-dat03-payload-inventory test-dat03-portable
+.PHONY: test-dat03-rosy179-followup
 test-dat03-lineage: ## DAT-03 bounded offline metadata frontier audit regression; không Docker/network
 	@python3 -B -m unittest discover -s tests -p 'test_dat03_lineage.py'
+
+test-dat03-rosy179-followup: ## DAT-03 rosy179 ZIP regression with offline synthetic fixtures
+	@python3 -B -m unittest -v tests.test_pack_dat03_rosy179_followup
 
 test-dat03-payload-inventory: ## DAT-03 byte inventory regression; không giải nén hoặc ghi S3
 	@python3 -B -m unittest tests.test_dat03_payload_inventory
@@ -762,6 +766,7 @@ ci-docs-base: ## Always-on CI guards; pilot tests được chọn riêng theo im
 	@$(MAKE) test-qa-05
 	@$(MAKE) test-ops-backup
 	@$(MAKE) test-dat03-lineage
+	@$(MAKE) test-dat03-rosy179-followup
 	@$(MAKE) test-dat03-payload-inventory
 	@python3 -B -m unittest tests.test_dat03_followup_verifier tests.test_dat03_portable_plan tests.test_dat03_readback_batches tests.test_dat03_bronze_relocation tests.test_dat03_portable_capacity tests.test_dat03_portable_import tests.test_dat03_portable_gold tests.test_dat03_prepared_ml tests.test_dat03_prepared_ml_capture
 	@$(MAKE) test-dat03-team-setup
