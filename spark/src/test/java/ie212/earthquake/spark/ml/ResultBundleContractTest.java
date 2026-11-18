@@ -699,6 +699,9 @@ class ResultBundleContractTest {
 
         assertEquals("IMP_REQUEST_FIELD_REQUIRED", assertThrows(IllegalArgumentException.class,
             () -> TrustedDatasetResolver.resolve(fullReq, registryRoot, null)).getMessage());
+        assertEquals("IMP_COLLECTION_SCOPE_REQUIRED", assertThrows(IllegalArgumentException.class,
+            () -> TrustedDatasetResolver.resolve(
+                fullReq.deepCopy().put("collection_shard_id", "full"), registryRoot, null)).getMessage());
 
         var mislabeledFull = fullReq.deepCopy().put("collection_shard_id", "shard_00000");
         var shard0Ctx = TrustedDatasetResolver.resolve(mislabeledFull, registryRoot, null);
