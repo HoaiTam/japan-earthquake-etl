@@ -14,17 +14,17 @@
   },
   "artifact_verified": {
     "checksums": {
-      "_SUCCESS.json": "5dfaefbfd46ced4952ebf6048e0cf5ed2bf1abd6a89b3ffadaabc7cd40c2e072",
-      "experiment_config.json": "5c4608bd68ba62ae46b474a058b85fa5390b882e57322cf5337ca6d0f9221c78",
-      "experiment_metrics.json": "eef989444cbccc2e0e89ff8902f3489ddde9207c8dab9028f4d849cc73cb6fce",
-      "memberships.parquet": "22986416b4ed50a9bb62d031ce1e44c362fa2490a60b146b7fedc17af87a339b",
+      "_SUCCESS.json": "d7ce4daff9b21407df58939c6b8ea272b1df3107a10a65b7e058d3a94b4a013f",
+      "experiment_config.json": "a11f05106d21521b0fae662f5824b7639eed6bdfa03c266eebc7bc91603be23e",
+      "experiment_metrics.json": "969603602490b9a146f13e2b6cea5f670e3b63643f8eb526a7540c838290a6d6",
+      "memberships.parquet": "e27e112e5f3564ea2b03967d49889bdb6c3e4a2e27d0c66d7a92dbfbf0545b31",
       "requirements-lock.txt": "a18209bc5034cd643c892e8a492a12de787fc0fae7dfa79e05132f1500f77d9d",
-      "sequence_summary.parquet": "35631dc32be05749b784ac0850b1f19a2397d5ea46ef103cee0c8b6ad1ca310f"
+      "sequence_summary.parquet": "c49356a2a618ec32a2a70cc28f3f6463a6f7d1767d0854a8a7b97574945b79ee"
     },
     "has_success_marker": true,
     "manifest_file": "_SUCCESS.json",
     "relative_dir": "hdbscan_adaptive",
-    "run_id": "exp_run_293f2720c8a765c7ab6d20243d1b797b"
+    "run_id": "exp_run_b851f45893dc1d640f5c5940e1c08bdd"
   },
   "case_results": {
     "empty_post_windows": 0,
@@ -38,11 +38,11 @@
     "clean_verification_status": "CLEAN_VERIFIED",
     "critical_code_hashes": {
       "config/ml/models/hdbscan_adaptive_dev_v1.json": "41a4232ad6e4ae50505f14f8af2ea5cbd9353c0dc43ce6f3776d539977adbd65",
-      "notebooks/adaptive_hdbscan.py": "cbb2c62b7b40cb51c4a91c1a630fbe87c8b92600d8fd603c05b3cac9f9604b7b",
+      "notebooks/adaptive_hdbscan.py": "ad151c50fff22d2d7a2f1ab95d20683392b0e82b9ca99b9fcacf8616d3a2ac0d",
       "notebooks/baseline_models.py": "25d2a40b71da8bb8e5f5443ffaa3c19e46c6d173447085981cc1808ab9163cc5",
       "notebooks/experiment_harness.py": "09e98611733befdadf17b716579d81d95b9fd95c072a138878e5e4281913285d",
       "notebooks/research_collection.py": "1615f59938e18908b644b6007ea2fac3b0cd815b41ace7633b03fb2c962fd0ff",
-      "scripts/run-exp03-official.py": "ec3a9d0e4989385f2ba2c6614983408451b7b3ace8eae5af0081620d2827e45e"
+      "scripts/run-exp03-official.py": "3a824e62fe20adeb41a31937ae0c2a10a7a7bfb2225f82d9feffa89d3b4aa4cb"
     },
     "cross_platform_verification_note": "Working-tree hashes depend on local filesystem line endings (CRLF on Windows vs LF on Unix/macOS). For cross-platform reproducibility, verify against git_blob_hashes (via `git hash-object <file>`) or normalized_lf_code_hashes (via `sha256sum` after LF conversion).",
     "detected_line_endings": {
@@ -56,42 +56,42 @@
     "dirty_files": [],
     "git_blob_hashes": {
       "config/ml/models/hdbscan_adaptive_dev_v1.json": "042f3d1359e8b038ddd68963049bcd46f9ac405c",
-      "notebooks/adaptive_hdbscan.py": "c7a0412477c5bf5c133c05169b6694f99040aee0",
+      "notebooks/adaptive_hdbscan.py": "bc6ddbd06c97d3eb8c2a03b34df8a8257c4ff363",
       "notebooks/baseline_models.py": "174c8edfebc424d260f4a9d893109c5becd40797",
       "notebooks/experiment_harness.py": "1a81e66f8c20e01cf28d5254bf603e86894aebcb",
       "notebooks/research_collection.py": "6326d9c1a74fc658fa3211e8ce95ff1b9bece604",
-      "scripts/run-exp03-official.py": "2a2059347947c47bf7547db7224e71070fd6eafd"
+      "scripts/run-exp03-official.py": "ffd7832a56e8ad048c50fcdde46e89820c1d6348"
     },
-    "git_commit": "4a324b886a543347bbaafa6fdf5a07505de1c529",
+    "git_commit": "451a61580572fa23553170376cec274133021eaf",
     "head_blob_hashes": {
       "config/ml/models/hdbscan_adaptive_dev_v1.json": "042f3d1359e8b038ddd68963049bcd46f9ac405c",
-      "notebooks/adaptive_hdbscan.py": "c7a0412477c5bf5c133c05169b6694f99040aee0",
+      "notebooks/adaptive_hdbscan.py": "bc6ddbd06c97d3eb8c2a03b34df8a8257c4ff363",
       "notebooks/baseline_models.py": "174c8edfebc424d260f4a9d893109c5becd40797",
       "notebooks/experiment_harness.py": "1a81e66f8c20e01cf28d5254bf603e86894aebcb",
       "notebooks/research_collection.py": "6326d9c1a74fc658fa3211e8ce95ff1b9bece604",
-      "scripts/run-exp03-official.py": "2a2059347947c47bf7547db7224e71070fd6eafd"
+      "scripts/run-exp03-official.py": "ffd7832a56e8ad048c50fcdde46e89820c1d6348"
     },
     "is_clean_code": true,
     "missing_files": [],
     "normalized_lf_code_hashes": {
       "config/ml/models/hdbscan_adaptive_dev_v1.json": "d0f24c8732e47d094ea42af1eb41a9413a17af4760b3fc39864bc31f8d662c73",
-      "notebooks/adaptive_hdbscan.py": "6f49663dfb080214bd4375fdf27bcdef7a58b47eff06352911531d237bf6d5e1",
+      "notebooks/adaptive_hdbscan.py": "d1acc500d0ac2e06239420773843ffb73cc2f51213bd0a9a706f936dcc6b64b5",
       "notebooks/baseline_models.py": "d9e30eda33f74c8eb716167d84ad97269d7ff6d0916d713e5d48cb418451e3a7",
       "notebooks/experiment_harness.py": "1dfc4cbc394e9b2c5ef5ce9e403750267e0053314ccc25f32550bdb811e2c2af",
       "notebooks/research_collection.py": "7a0f598b460d45233d8cf122c2f9e009b5d6185412a603c8d0d328555fa68b1a",
-      "scripts/run-exp03-official.py": "3f5d3eed88e2af5eabca09ed388fd15a878cbf6b28400fa092588e4e5f09354f"
+      "scripts/run-exp03-official.py": "95976d6452e184c40cfb5d01f435eaf72614c265fb967c253fd725a27c14ccec"
     },
     "working_tree_code_hashes": {
       "config/ml/models/hdbscan_adaptive_dev_v1.json": "41a4232ad6e4ae50505f14f8af2ea5cbd9353c0dc43ce6f3776d539977adbd65",
-      "notebooks/adaptive_hdbscan.py": "cbb2c62b7b40cb51c4a91c1a630fbe87c8b92600d8fd603c05b3cac9f9604b7b",
+      "notebooks/adaptive_hdbscan.py": "ad151c50fff22d2d7a2f1ab95d20683392b0e82b9ca99b9fcacf8616d3a2ac0d",
       "notebooks/baseline_models.py": "25d2a40b71da8bb8e5f5443ffaa3c19e46c6d173447085981cc1808ab9163cc5",
       "notebooks/experiment_harness.py": "09e98611733befdadf17b716579d81d95b9fd95c072a138878e5e4281913285d",
       "notebooks/research_collection.py": "1615f59938e18908b644b6007ea2fac3b0cd815b41ace7633b03fb2c962fd0ff",
-      "scripts/run-exp03-official.py": "ec3a9d0e4989385f2ba2c6614983408451b7b3ace8eae5af0081620d2827e45e"
+      "scripts/run-exp03-official.py": "3a824e62fe20adeb41a31937ae0c2a10a7a7bfb2225f82d9feffa89d3b4aa4cb"
     }
   },
-  "code_version": "4a324b886a543347bbaafa6fdf5a07505de1c529",
-  "created_at_utc": "2026-11-18T04:18:39.349332+00:00",
+  "code_version": "451a61580572fa23553170376cec274133021eaf",
+  "created_at_utc": "2026-11-18T12:12:07.971367+00:00",
   "dataset": {
     "checksums_sha256": "4768e500754c569bc951f23e2ac14fa9b9703ae69fbd5f78de06eacbb72f7ae9",
     "collection_id": "col_bd10c69365da841b2cf6a62172e2350a797001eac04ce4bc6f2277a4d150ad98",
@@ -112,6 +112,21 @@
     "window_model_version": "wm_expanded_v1.0"
   },
   "evaluation_scope": "OFFICIAL_RESEARCH",
+  "mli03_import_boundary": {
+    "cross_shard_singleton_overlap_counts": {
+      "shard_00000": 5218,
+      "shard_00001": 4387
+    },
+    "followup_task_id": "MLI-03",
+    "full_split_block_reason": "IMP_COLLECTION_SCOPE_REQUIRED",
+    "full_split_reader_verified": true,
+    "full_split_role": "EVALUATION_AND_CONTRACT_VALIDATION_ONLY",
+    "full_split_trusted_resolver_importable": false,
+    "shard_import_block_reason": "IMP_SCHEMA_MISMATCH_PER_BUNDLE_SINGLETON_GLOBAL_MULTIPLE",
+    "shard_layout": "NON_NESTED_SIBLING_READBACK_VERIFIED",
+    "shard_mli03_import_accepted": false,
+    "shard_readback_verified": true
+  },
   "model_config_pin": {
     "algorithm_name": "HDBSCAN_ADAPTIVE",
     "algorithm_version": "1.0.0",
@@ -178,7 +193,7 @@
       "unique_candidates_in_multi_sequences": 9649
     },
     "resolved_unique_aftershocks": 88222,
-    "runtime_seconds": 39.6075,
+    "runtime_seconds": 50.4923,
     "shard_count": 2,
     "shard_runs": {
       "shard_00000": {
@@ -188,7 +203,7 @@
         "raw_aftershocks": 53046,
         "relative_dir": "hdbscan_adaptive_shards/shard_00000",
         "resolved_unique_aftershocks": 45288,
-        "run_id": "exp_run_b0e755065b1d241749634e754eb5003e",
+        "run_id": "exp_run_ad99c797cc01023db409ea9242310878",
         "successful_windows": 61,
         "summary_row_count": 87,
         "total_sequence_members": 65266
@@ -200,7 +215,7 @@
         "raw_aftershocks": 45749,
         "relative_dir": "hdbscan_adaptive_shards/shard_00001",
         "resolved_unique_aftershocks": 42934,
-        "run_id": "exp_run_cf9117b7016b3f54145a5cb60c1a9815",
+        "run_id": "exp_run_62508538ed0ff9b15ddde6cf4a072fd6",
         "successful_windows": 70,
         "summary_row_count": 107,
         "total_sequence_members": 50370
@@ -220,11 +235,11 @@
   "shard_verifications": {
     "shard_00000": {
       "checksums": {
-        "experiment_config.json": "5ecc1a53ec956ae06bbb4a8975e13b82a4ce721c11942099b0d21d16c40847dd",
-        "experiment_metrics.json": "f5563aae8d422dc3d112810676ef4270ccf13c6671fe62561ca889b8533435ff",
-        "memberships.parquet": "76bef558f09d8a71055a302cf69dbf864b758e97f56f11895baa0f4082274fdf",
+        "experiment_config.json": "1c692f8e1511623f1cb27e3633b42770c9dbfac80347d37a997f3b31a3d448c3",
+        "experiment_metrics.json": "ec968b56065130be2cbe3221275a9bceadda5f5a1ea8df24dcb3697d46a75f0b",
+        "memberships.parquet": "b676ddc1edd421efa2b23f9819fe2d47b8e7acb8a310b877ddececda58a10b20",
         "requirements-lock.txt": "a18209bc5034cd643c892e8a492a12de787fc0fae7dfa79e05132f1500f77d9d",
-        "sequence_summary.parquet": "85f3a2af867ab27264a24325ad596885385fef5e66a8b970361c1fdbca8f0a29"
+        "sequence_summary.parquet": "10783fe641859d9a93ce6fc45c5a73e4f53faec36888fa5f080a8c3341a1ad65"
       },
       "collection_scope": {
         "collection_id": "col_bd10c69365da841b2cf6a62172e2350a797001eac04ce4bc6f2277a4d150ad98",
@@ -232,19 +247,19 @@
         "shard_id": "shard_00000",
         "version": "dat03-collection-export-v1"
       },
-      "experiment_run_id": "exp_run_b0e755065b1d241749634e754eb5003e",
+      "experiment_run_id": "exp_run_ad99c797cc01023db409ea9242310878",
       "membership_row_count": 85972,
       "relative_dir": "hdbscan_adaptive_shards/shard_00000",
-      "success_marker_sha256": "cc32cc67d11661eb9457c545c82a677257629b5364b082ffb277a3ddd9a2765b",
+      "success_marker_sha256": "99aefd3e2f9c378d0ec470a2f6fa519181d44ff4d9fd123c9bb04a5db4b78ce2",
       "summary_row_count": 87
     },
     "shard_00001": {
       "checksums": {
-        "experiment_config.json": "36e86044d2962399d99ed8f9d30926b8f1bcba251eb1285205eaa10bf9c3fb58",
-        "experiment_metrics.json": "e1467e48e0e003e86f9ca6f0933c3bf0dc79ba0b40600bbd8fef29c3243039c5",
-        "memberships.parquet": "eb97e5ec304fe2c4ed0aa8c557b11c8be61923cf55081d5121ca88c579ae58cf",
+        "experiment_config.json": "a3977f1b688eebb2a88a9c7b6f6ad970972905b3fba70bf9e63b6deb37866f1f",
+        "experiment_metrics.json": "e2963d778b3644e5171859569c9f5829763d70c1a30f08b0f8a03f086884bde3",
+        "memberships.parquet": "8b70f561b958135d2d895091ae00e879e726770801d64b8d5ac262832e4c8c56",
         "requirements-lock.txt": "a18209bc5034cd643c892e8a492a12de787fc0fae7dfa79e05132f1500f77d9d",
-        "sequence_summary.parquet": "7d99c8caba810ed6d800fb3d22d1cfc56a45e66d32567cda84ac3ffc70c6e269"
+        "sequence_summary.parquet": "7941d382e055c22307fe87c249f723eb7087dfd3d7da75503d4c20d6b9811c64"
       },
       "collection_scope": {
         "collection_id": "col_bd10c69365da841b2cf6a62172e2350a797001eac04ce4bc6f2277a4d150ad98",
@@ -252,14 +267,14 @@
         "shard_id": "shard_00001",
         "version": "dat03-collection-export-v1"
       },
-      "experiment_run_id": "exp_run_cf9117b7016b3f54145a5cb60c1a9815",
+      "experiment_run_id": "exp_run_62508538ed0ff9b15ddde6cf4a072fd6",
       "membership_row_count": 70738,
       "relative_dir": "hdbscan_adaptive_shards/shard_00001",
-      "success_marker_sha256": "dc61c74d77d599aeea9a53329aa06ece76e14ebbafd53f6a1341f1913855a014",
+      "success_marker_sha256": "1be323202640de15f5743a35bca847baa3ee4c2d074f5b7cbc71f6ff030257ac",
       "summary_row_count": 107
     }
   },
   "status": "PASSED",
   "task_id": "EXP-03",
-  "technical_summary": "Official EXP-03 HDBSCAN_ADAPTIVE with deterministic parameter scaling, global cross-shard multi-sequence entity resolution, and nested mainshock detection on EXPORTED REPRODUCTION."
+  "technical_summary": "Official EXP-03 HDBSCAN_ADAPTIVE with deterministic parameter scaling, global cross-shard multi-sequence entity resolution, and nested mainshock detection on EXPORTED REPRODUCTION. Full-split bundle is used for evaluation; sibling WHOLE_WINDOW_SHARD bundles are readback-verified but not yet MLI-03 import-accepted under per-bundle singleton contract rules (follow-up under MLI-03)."
 }
