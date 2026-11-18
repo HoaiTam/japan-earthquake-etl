@@ -16,6 +16,7 @@ from __future__ import annotations
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
 import functools
+import json
 import math
 import os
 from pathlib import Path
@@ -52,11 +53,17 @@ from experiment_harness import (
     write_experiment_result,
     canonical,
     get_runtime_metadata,
+    read_json_safe,
     require,
     sha256_bytes,
+    validate_safe_metadata,
     MODE_DEVELOPMENT,
     MODE_OFFICIAL,
 )
+try:
+    from notebooks import baseline_models as _baseline_models
+except ImportError:
+    import baseline_models as _baseline_models
 
 
 def euclidean_distance_4d(vec: List[float]) -> float:
@@ -539,8 +546,116 @@ def resolve_multi_sequence_and_nested_mainshocks(
 
 
 # -----------------------------------------------------------------------------
-# 4. HDBSCAN Adaptive Experiment Runner
+# 4. HDBSCAN Adaptive Experiment Runner & Official Reporter
 # -----------------------------------------------------------------------------
+def _summarize_adaptive_params(param_records: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Summarize deterministic min_cluster_size and min_samples across windows."""
+    if not param_records:
+        return {}
+    mcls = sorted(int(p["min_cluster_size"]) for p in param_records)
+    msmp = sorted(int(p["min_samples"]) for p in param_records)
+    mid = len(mcls) // 2
+    med_mcls = float(mcls[mid]) if len(mcls) % 2 else float(mcls[mid - 1] + mcls[mid]) / 2.0
+    med_msmp = float(msmp[mid]) if len(msmp) % 2 else float(msmp[mid - 1] + msmp[mid]) / 2.0
+    return {
+        "window_count": len(param_records),
+        "min_cluster_size": {"min": mcls[0], "median": med_mcls, "max": mcls[-1]},
+        "min_samples": {"min": msmp[0], "median": med_msmp, "max": msmp[-1]},
+    }
+
+
+def _compute_adaptive_metrics(
+    *,
+    model_config_version: str,
+    memberships: List[Dict[str, Any]],
+    summaries: List[Dict[str, Any]],
+    recon: Dict[str, Any],
+    runtime_seconds: float,
+    total_windows: int,
+    adaptive_param_stats: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Build standardized HDBSCAN_ADAPTIVE summary metrics dictionary."""
+    member_count = recon["raw_sequence_members"]
+    raw_aftershocks = recon["raw_aftershocks"]
+    resolved_aftershocks = recon["resolved_unique_aftershocks"]
+    noise_count = sum(1 for m in memberships if m.get("is_noise") is True)
+
+    successful_windows = sum(1 for s in summaries if s["window_result_status"] == "SUCCESS")
+    failed_windows = sum(1 for s in summaries if s["window_result_status"] == "FAILED")
+    skipped_windows = sum(1 for s in summaries if s["window_result_status"] == "SKIPPED")
+
+    metrics: Dict[str, Any] = {
+        "algorithm_name": "HDBSCAN_ADAPTIVE",
+        "model_config_version": model_config_version,
+        "total_windows": total_windows,
+        "windows_processed": total_windows,
+        "successful_windows": successful_windows,
+        "failed_windows": failed_windows,
+        "skipped_windows": skipped_windows,
+        "total_candidates": len(memberships),
+        "total_sequence_members": member_count,
+        "raw_aftershocks": raw_aftershocks,
+        "resolved_unique_aftershocks": resolved_aftershocks,
+        "deduplicated_aftershocks": recon["aftershocks_deduplicated_count"],
+        "ambiguous_candidates_count": recon["ambiguous_candidates_count"],
+        "ambiguous_aftershocks_count": recon["ambiguous_aftershocks_count"],
+        "nested_mainshocks_count": recon["nested_mainshocks_count"],
+        "total_noise": noise_count,
+        "total_noise_candidates": noise_count,
+        "runtime_seconds": round(float(runtime_seconds), 4),
+        "reconciliation": recon,
+    }
+    if adaptive_param_stats:
+        metrics["adaptive_param_stats"] = adaptive_param_stats
+    return metrics
+
+
+def _compute_shard_slice_reconciliation(
+    shard_mems: List[Dict[str, Any]],
+    shard_sums: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    """Compute slice-level counts from globally resolved shard memberships without re-resolving."""
+    raw_members = sum(1 for m in shard_mems if m.get("is_sequence_member") is True)
+    raw_post = sum(
+        1 for m in shard_mems
+        if m.get("is_sequence_member") is True and m.get("event_role_candidate") == "POST"
+    )
+    rank1_post_ids = {
+        m["candidate_event_id"]
+        for m in shard_mems
+        if m.get("is_sequence_member") is True
+        and m.get("event_role_candidate") == "POST"
+        and (m.get("multi_sequence_status") == "UNIQUE" or m.get("resolution_rank") == 1)
+    }
+    multi_cand_ids = {
+        m["candidate_event_id"]
+        for m in shard_mems
+        if m.get("multi_sequence_status") == "MULTIPLE"
+    }
+    ambig_cand_ids = {
+        m["candidate_event_id"]
+        for m in shard_mems
+        if m.get("multi_sequence_status") == "AMBIGUOUS"
+    }
+    ambig_post_ids = {
+        m["candidate_event_id"]
+        for m in shard_mems
+        if m.get("multi_sequence_status") == "AMBIGUOUS" and m.get("event_role_candidate") == "POST"
+    }
+    nested_count = sum(1 for s in shard_sums if s.get("is_nested_mainshock_candidate") is True)
+    return {
+        "total_raw_memberships": len(shard_mems),
+        "raw_sequence_members": raw_members,
+        "raw_aftershocks": raw_post,
+        "unique_candidates_in_multi_sequences": len(multi_cand_ids),
+        "resolved_unique_aftershocks": len(rank1_post_ids),
+        "ambiguous_candidates_count": len(ambig_cand_ids),
+        "ambiguous_aftershocks_count": len(ambig_post_ids),
+        "aftershocks_deduplicated_count": raw_post - len(rank1_post_ids) - len(ambig_post_ids),
+        "nested_mainshocks_count": nested_count,
+    }
+
+
 def run_adaptive_experiment(
     bundle: Dict[str, Any],
     config: Dict[str, Any],
@@ -554,33 +669,42 @@ def run_adaptive_experiment(
     is_retry: bool = False,
     allow_overwrite: bool = False,
     subfolder_by_run_id: bool = False,
+    shard_output_dir: Optional[Union[str, Path]] = None,
 ) -> Dict[str, Any]:
-    """Execute HDBSCAN Adaptive with full entity resolution across all windows in bundle."""
+    """Execute HDBSCAN Adaptive with global cross-window entity resolution.
+
+    In OFFICIAL mode on multi-shard dat03-collection-export-v1 bundles, fits all
+    windows across shards, performs global cross-shard multi-sequence & nested
+    mainshock resolution first, then writes non-nested sibling bundles compatible
+    with MLI-01/MLI-03 MlResultBundleReader:
+    - Full-split official bundle directly under <output_dir>/
+    - Per-shard WHOLE_WINDOW_SHARD official bundles under <shard_output_dir>/<shard_id>/
+      (default sibling directory <output_dir.parent>/<output_dir.name>_shards/<shard_id>/).
+    """
     algorithm_name = "HDBSCAN_ADAPTIVE"
     features_table = bundle["features_table"]
     rows = features_table.to_pylist()
     source_ds_id = bundle.get("source_dataset_id", bundle.get("bundle_id"))
+    collection_scope = bundle.get("collection_scope")
 
     runtime_meta = get_runtime_metadata(code_version=code_version, random_seed=random_seed)
     code_ver = code_version or runtime_meta["code_version"]
+    exec_token = execution_id or uuid.uuid4().hex[:16]
 
     if experiment_run_id:
         effective_run_id = experiment_run_id
     else:
-        exec_token = execution_id or uuid.uuid4().hex[:16]
-        run_id_payload = {
-            "dataset_id": source_ds_id,
-            "algorithm_name": algorithm_name,
-            "algorithm_version": "1.0.0",
-            "model_config_version": model_config_version,
-            "model_config": config,
-            "code_version": code_ver,
-            "mode": mode,
-            "random_seed": random_seed,
-            "execution_token": exec_token,
-        }
-        identity_digest = sha256_bytes(canonical(run_id_payload).encode("utf-8"))[:32]
-        effective_run_id = f"pilot_run_{identity_digest}" if mode == MODE_DEVELOPMENT else f"exp_run_{identity_digest}"
+        effective_run_id = _baseline_models._derive_run_id(
+            source_ds_id=source_ds_id,
+            algorithm_name=algorithm_name,
+            model_config_version=model_config_version,
+            config=config,
+            code_ver=code_ver,
+            mode=mode,
+            random_seed=random_seed,
+            execution_token=exec_token,
+            collection_scope=collection_scope,
+        )
 
     target_dir = (Path(output_dir) / effective_run_id) if subfolder_by_run_id else Path(output_dir)
     target_dir.mkdir(parents=True, exist_ok=True)
@@ -593,9 +717,27 @@ def run_adaptive_experiment(
 
     all_memberships: List[Dict[str, Any]] = []
     all_summaries: List[Dict[str, Any]] = []
+    param_records: List[Dict[str, Any]] = []
 
     t_start = time.time()
     for mid, candidates in windows.items():
+        # Compute window's deterministic adaptive params for metadata audit
+        main_row = next(
+            (c for c in candidates if c.get("candidate_event_id", c.get("event_id")) == mid),
+            candidates[0],
+        )
+        raw_mag = (
+            main_row.get("mainshock_magnitude")
+            if main_row.get("mainshock_magnitude") is not None
+            else main_row.get("candidate_magnitude")
+            if main_row.get("candidate_magnitude") is not None
+            else main_row.get("magnitude")
+        )
+        if raw_mag is not None:
+            param_records.append(
+                resolve_adaptive_hdbscan_params(len(candidates), float(raw_mag), config)
+            )
+
         mem, sum_row = fit_hdbscan_adaptive(
             window_candidates=candidates,
             mainshock_id=mid,
@@ -607,49 +749,135 @@ def run_adaptive_experiment(
         all_memberships.extend(mem)
         all_summaries.append(sum_row)
 
-    total_fit_runtime = time.time() - t_start
-
-    # Apply global multi-sequence resolution and nested mainshock linking
+    # Apply global multi-sequence resolution and nested mainshock linking BEFORE any shard slicing
     resolved_memberships, resolved_summaries, recon = resolve_multi_sequence_and_nested_mainshocks(
         all_memberships=all_memberships,
         all_summaries=all_summaries,
     )
 
     total_runtime = time.time() - t_start
+    adaptive_param_stats = _summarize_adaptive_params(param_records)
 
-    # Metrics computation
-    total_candidates = len(resolved_memberships)
-    member_count = recon["raw_sequence_members"]
-    raw_aftershocks = recon["raw_aftershocks"]
-    resolved_aftershocks = recon["resolved_unique_aftershocks"]
-    noise_count = sum(1 for m in resolved_memberships if m.get("is_noise") is True)
-
-    successful_windows = sum(1 for s in resolved_summaries if s["window_result_status"] == "SUCCESS")
-    failed_windows = sum(1 for s in resolved_summaries if s["window_result_status"] == "FAILED")
-    skipped_windows = sum(1 for s in resolved_summaries if s["window_result_status"] == "SKIPPED")
-
-    metrics = {
-        "algorithm_name": algorithm_name,
-        "model_config_version": model_config_version,
-        "total_windows": len(windows),
-        "windows_processed": len(windows),
-        "successful_windows": successful_windows,
-        "failed_windows": failed_windows,
-        "skipped_windows": skipped_windows,
-        "total_candidates": total_candidates,
-        "total_sequence_members": member_count,
-        "raw_aftershocks": raw_aftershocks,
-        "resolved_unique_aftershocks": resolved_aftershocks,
-        "deduplicated_aftershocks": recon["aftershocks_deduplicated_count"],
-        "ambiguous_candidates_count": recon["ambiguous_candidates_count"],
-        "nested_mainshocks_count": recon["nested_mainshocks_count"],
-        "total_noise": noise_count,
-        "total_noise_candidates": noise_count,
-        "runtime_seconds": round(total_runtime, 4),
-        "reconciliation": recon,
+    resolved_mems_by_mid: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+    for m in resolved_memberships:
+        resolved_mems_by_mid[m["mainshock_event_id"]].append(m)
+    resolved_sum_by_mid: Dict[str, Dict[str, Any]] = {
+        s["mainshock_event_id"]: s for s in resolved_summaries
     }
 
-    # Write result bundle
+    # Write per-shard WHOLE_WINDOW_SHARD official bundles into a sibling directory
+    # so full-split and per-shard roots stay clean for MlResultBundleReader (MLI-03).
+    shard_runs: Dict[str, Dict[str, Any]] = {}
+    if mode == MODE_OFFICIAL and bundle.get("is_collection") and isinstance(bundle.get("shards"), dict):
+        out_root = target_dir.resolve()
+        shard_root = (
+            Path(shard_output_dir).resolve()
+            if shard_output_dir is not None
+            else (out_root.parent / f"{out_root.name}_shards").resolve()
+        )
+        require(
+            shard_root != out_root
+            and not shard_root.is_relative_to(out_root)
+            and not out_root.is_relative_to(shard_root),
+            f"SHARD_OUTPUT_DIR_MUST_BE_SIBLING_NOT_NESTED:{shard_root}",
+        )
+        for shard_id, shard_bundle in bundle["shards"].items():
+            shard_mids = shard_bundle["mainshocks_table"]["mainshock_event_id"].to_pylist()
+            shard_mems = [dict(m) for mid in shard_mids for m in resolved_mems_by_mid[mid]]
+            shard_sums = [dict(resolved_sum_by_mid[mid]) for mid in shard_mids]
+            shard_recon = _compute_shard_slice_reconciliation(shard_mems, shard_sums)
+            shard_runtime = sum(float(s.get("runtime_seconds", 0.0)) for s in shard_sums)
+            shard_metrics = _compute_adaptive_metrics(
+                model_config_version=model_config_version,
+                memberships=shard_mems,
+                summaries=shard_sums,
+                recon=shard_recon,
+                runtime_seconds=shard_runtime,
+                total_windows=len(shard_mids),
+            )
+            shard_metrics["collection_scope"] = shard_bundle["collection_scope"]
+
+            shard_run_id = (
+                f"{experiment_run_id}_{shard_id}"
+                if experiment_run_id
+                else _baseline_models._derive_run_id(
+                    source_ds_id=source_ds_id,
+                    algorithm_name=algorithm_name,
+                    model_config_version=model_config_version,
+                    config=config,
+                    code_ver=code_ver,
+                    mode=mode,
+                    random_seed=random_seed,
+                    execution_token=f"{exec_token}_{shard_id}",
+                    collection_scope=shard_bundle["collection_scope"],
+                )
+            )
+            shard_dir = shard_root / shard_id
+            shard_write = write_experiment_result(
+                output_dir=shard_dir,
+                bundle=shard_bundle,
+                algorithm_name=algorithm_name,
+                algorithm_version="1.0.0",
+                model_config_version=model_config_version,
+                model_config=config,
+                memberships=shard_mems,
+                summaries=shard_sums,
+                metrics=shard_metrics,
+                mode=MODE_OFFICIAL,
+                code_version=code_version,
+                random_seed=random_seed,
+                experiment_run_id=shard_run_id,
+                execution_id=f"{exec_token}_{shard_id}",
+                is_retry=is_retry,
+                allow_overwrite=allow_overwrite,
+            )
+            try:
+                rel_shard_dir = shard_dir.relative_to(out_root.parent).as_posix()
+            except ValueError:
+                rel_shard_dir = Path(os.path.relpath(shard_dir, out_root.parent)).as_posix()
+            shard_runs[shard_id] = {
+                "shard_id": shard_id,
+                "relative_dir": rel_shard_dir,
+                "run_id": shard_write["run_id"],
+                "collection_scope": shard_bundle["collection_scope"],
+                "membership_row_count": len(shard_mems),
+                "summary_row_count": len(shard_sums),
+                "has_success_marker": shard_write["has_success_marker"],
+                "checksums": shard_write["checksums"],
+                "is_reused": shard_write["is_reused"],
+                "metrics": shard_metrics,
+            }
+
+    metrics = _compute_adaptive_metrics(
+        model_config_version=model_config_version,
+        memberships=resolved_memberships,
+        summaries=resolved_summaries,
+        recon=recon,
+        runtime_seconds=total_runtime,
+        total_windows=len(windows),
+        adaptive_param_stats=adaptive_param_stats,
+    )
+    if shard_runs:
+        metrics["collection_id"] = bundle.get("collection_id")
+        metrics["dataset_split"] = bundle.get("dataset_split")
+        metrics["shard_count"] = len(shard_runs)
+        metrics["shard_runs"] = {
+            sid: {
+                "relative_dir": info["relative_dir"],
+                "run_id": info["run_id"],
+                "membership_row_count": info["membership_row_count"],
+                "summary_row_count": info["summary_row_count"],
+                "successful_windows": info["metrics"]["successful_windows"],
+                "failed_windows": info["metrics"]["failed_windows"],
+                "total_sequence_members": info["metrics"]["total_sequence_members"],
+                "raw_aftershocks": info["metrics"]["raw_aftershocks"],
+                "resolved_unique_aftershocks": info["metrics"]["resolved_unique_aftershocks"],
+                "nested_mainshocks_count": info["metrics"]["nested_mainshocks_count"],
+            }
+            for sid, info in shard_runs.items()
+        }
+
+    # Write full-split result bundle
     write_res = write_experiment_result(
         output_dir=target_dir,
         bundle=bundle,
@@ -664,12 +892,12 @@ def run_adaptive_experiment(
         code_version=code_ver,
         random_seed=random_seed,
         experiment_run_id=effective_run_id,
-        execution_id=execution_id,
+        execution_id=exec_token,
         is_retry=is_retry,
         allow_overwrite=allow_overwrite,
     )
 
-    return {
+    out: Dict[str, Any] = {
         "algorithm_name": algorithm_name,
         "run_id": effective_run_id,
         "output_dir": target_dir,
@@ -678,4 +906,189 @@ def run_adaptive_experiment(
         "summaries": resolved_summaries,
         "memberships": resolved_memberships,
         "reconciliation": recon,
+        "adaptive_param_stats": adaptive_param_stats,
     }
+    if shard_runs:
+        out["shard_runs"] = shard_runs
+    return out
+
+
+def generate_official_adaptive_report(
+    bundle: Dict[str, Any],
+    result: Dict[str, Any],
+    output_path: Union[str, Path],
+    *,
+    code_version: Optional[str] = None,
+    random_seed: Optional[int] = None,
+    model_config: Optional[Dict[str, Any]] = None,
+    model_config_pin: Optional[Dict[str, Any]] = None,
+    code_provenance: Optional[Dict[str, Any]] = None,
+    handoff_sha256: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Verify full-split & per-shard EXP-03 official results and emit evidence JSON."""
+    import pyarrow.parquet as pq
+
+    require(bundle.get("mode") == MODE_OFFICIAL and bundle.get("is_official") is True,
+            "OFFICIAL_BUNDLE_REQUIRED")
+    manifest = bundle.get("manifest", {})
+    require(manifest.get("dataset_status") == "EXPORTED", "OFFICIAL_EXPORTED_DATASET_REQUIRED")
+
+    input_grains, input_mainshocks, feature_count, _ = _baseline_models._extract_bundle_grains_and_checksum(bundle)
+    source_ds_id = bundle.get("source_dataset_id", bundle.get("bundle_id"))
+    meta = get_runtime_metadata(code_version=code_version, random_seed=random_seed)
+
+    metrics, case_summary, artifact_info = _baseline_models._verify_and_reconcile_algo_bundle(
+        "HDBSCAN_ADAPTIVE",
+        result,
+        input_grains=input_grains,
+        input_mainshocks=input_mainshocks,
+        feature_count=feature_count,
+        source_ds_id=source_ds_id,
+        bundle_id=source_ds_id,
+        mode=MODE_OFFICIAL,
+        expected_model_config=model_config,
+        expected_model_config_pin=model_config_pin,
+    )
+
+    # Verify multi-sequence & nested-mainshock invariants from persisted Parquet artifacts
+    full_dir = Path(result["write_result"]["success_marker_path"]).parent
+    disk_mems = pq.read_table(full_dir / "memberships.parquet").to_pylist()
+    disk_sums = pq.read_table(full_dir / "sequence_summary.parquet").to_pylist()
+
+    full_resolution_by_grain: Dict[Tuple[str, str], Tuple[str, Optional[int]]] = {}
+    for r in disk_mems:
+        status = r.get("multi_sequence_status")
+        rank = r.get("resolution_rank")
+        is_mem = r.get("is_sequence_member") is True
+        require(status in {"NOT_MEMBER", "UNIQUE", "MULTIPLE", "AMBIGUOUS"},
+                f"INVALID_MULTI_SEQUENCE_STATUS:{status}")
+        if not is_mem:
+            require(status == "NOT_MEMBER" and rank is None, "NON_MEMBER_STATUS_MISMATCH")
+        elif status == "UNIQUE":
+            require(rank == 1, f"UNIQUE_RANK_MISMATCH:{rank}")
+        elif status == "MULTIPLE":
+            require(rank is not None and rank >= 1, f"MULTIPLE_RANK_INVALID:{rank}")
+        elif status == "AMBIGUOUS":
+            require(rank is None, f"AMBIGUOUS_MUST_HAVE_NULL_RANK:{rank}")
+        full_resolution_by_grain[(r["mainshock_event_id"], r["candidate_event_id"])] = (status, rank)
+
+    recon = result["reconciliation"]
+    require(
+        recon["raw_aftershocks"]
+        == recon["resolved_unique_aftershocks"]
+        + recon["ambiguous_aftershocks_count"]
+        + recon["aftershocks_deduplicated_count"],
+        "ADAPTIVE_AFTERSHOCK_DEDUP_EQUATION_MISMATCH",
+    )
+    require(
+        sum(1 for s in disk_sums if s.get("is_nested_mainshock_candidate") is True)
+        == recon["nested_mainshocks_count"],
+        "NESTED_MAINSHOCK_COUNT_MISMATCH",
+    )
+
+    shard_verifications: Dict[str, Any] = {}
+    shard_overlap_singletons: Dict[str, int] = {}
+    if bundle.get("is_collection") and isinstance(bundle.get("shards"), dict):
+        shard_verifications = _baseline_models.verify_official_collection_shards(
+            bundle,
+            result,
+            "HDBSCAN_ADAPTIVE",
+            expected_feature_count=feature_count,
+            expected_mainshock_count=len(input_mainshocks),
+            expected_model_config=model_config,
+            expected_model_config_pin=model_config_pin,
+        )
+        # Verify per-shard Parquet rows match globally resolved status/rank and measure cross-shard overlap
+        for shard_id in bundle["shards"]:
+            shard_dir = (full_dir.parent / shard_verifications[shard_id]["relative_dir"]).resolve()
+            shard_mems = pq.read_table(shard_dir / "memberships.parquet").to_pylist()
+            cand_member_counts = Counter(
+                r["candidate_event_id"] for r in shard_mems if r.get("is_sequence_member") is True
+            )
+            overlap_singletons = 0
+            for r in shard_mems:
+                grain = (r["mainshock_event_id"], r["candidate_event_id"])
+                require(
+                    full_resolution_by_grain[grain] == (r.get("multi_sequence_status"), r.get("resolution_rank")),
+                    f"SHARD_GLOBAL_RESOLUTION_DRIFT:{shard_id}:{grain}",
+                )
+                if (
+                    r.get("is_sequence_member") is True
+                    and cand_member_counts[r["candidate_event_id"]] == 1
+                    and r.get("multi_sequence_status") in {"MULTIPLE", "AMBIGUOUS"}
+                ):
+                    overlap_singletons += 1
+            shard_overlap_singletons[shard_id] = overlap_singletons
+
+    has_cross_shard_singleton_overlap = any(v > 0 for v in shard_overlap_singletons.values())
+    mli03_import_boundary: Dict[str, Any] = {
+        "full_split_role": "EVALUATION_AND_CONTRACT_VALIDATION_ONLY",
+        "full_split_reader_verified": True,
+        "full_split_trusted_resolver_importable": False,
+        "full_split_block_reason": (
+            "IMP_REQUEST_FIELD_REQUIRED" if bool(shard_verifications) else "EVALUATION_ONLY"
+        ),
+        "shard_layout": "NON_NESTED_SIBLING_READBACK_VERIFIED" if bool(shard_verifications) else "SINGLE_SPLIT",
+        "shard_readback_verified": bool(shard_verifications),
+        "shard_mli03_import_accepted": False,
+        "shard_import_block_reason": (
+            "IMP_SCHEMA_MISMATCH_PER_BUNDLE_SINGLETON_GLOBAL_MULTIPLE"
+            if has_cross_shard_singleton_overlap
+            else "FOLLOWUP_MLI03_END_TO_END_RESOLVER_CONTRACT_NOT_EXECUTED"
+        ),
+        "cross_shard_singleton_overlap_counts": shard_overlap_singletons,
+        "followup_task_id": "MLI-03",
+    }
+
+    report: Dict[str, Any] = {
+        "report_version": "exp-03-official-v2",
+        "task_id": "EXP-03",
+        "status": "PASSED",
+        "evaluation_scope": "OFFICIAL_RESEARCH",
+        "scientific_approval": False,
+        "dataset": {
+            "dataset_id": source_ds_id,
+            "dataset_split": manifest.get("dataset_split"),
+            "dataset_status": manifest.get("dataset_status"),
+            "collection_id": bundle.get("collection_id"),
+            "shard_count": len(bundle.get("shards", {})) if bundle.get("is_collection") else 1,
+            "feature_row_count": feature_count,
+            "mainshock_count": len(input_mainshocks),
+            "mc_value": bundle.get("manifest", {}).get("collection_plan", {}).get("global_mc", {}).get("mc_value"),
+            "window_model_version": manifest.get("window_model_version"),
+            "scaling_config_version": manifest.get("scaling_config_version"),
+            "feature_version": manifest.get("feature_version"),
+            "manifest_sha256": bundle.get("manifest_sha256"),
+            "checksums_sha256": bundle.get("checksums_sha256"),
+            "handoff_sha256": handoff_sha256,
+            "gold_publication_id": manifest.get("gold_publication_id"),
+            "gold_snapshot_id": str(manifest.get("gold_snapshot_id")) if manifest.get("gold_snapshot_id") is not None else None,
+            "timestamp_reader_profile": bundle.get("timestamp_reader_profile"),
+        },
+        "code_version": meta["code_version"],
+        "code_provenance": code_provenance or {},
+        "python_version": meta["python_version"],
+        "package_versions": meta["package_versions"],
+        "random_seed": random_seed,
+        "model_config_pin": model_config_pin or {},
+        "adaptive_param_stats": result.get("adaptive_param_stats", {}),
+        "reconciliation": metrics,
+        "multi_sequence_reconciliation": recon,
+        "case_results": case_summary,
+        "artifact_verified": artifact_info,
+        "shard_verifications": shard_verifications,
+        "mli03_import_boundary": mli03_import_boundary,
+        "technical_summary": (
+            "Official EXP-03 HDBSCAN_ADAPTIVE with deterministic parameter scaling, global cross-shard "
+            "multi-sequence entity resolution, and nested mainshock detection on EXPORTED REPRODUCTION. "
+            "Full-split bundle is used for evaluation; sibling WHOLE_WINDOW_SHARD bundles are readback-verified "
+            "but not yet MLI-03 import-accepted under per-bundle singleton contract rules (follow-up under MLI-03)."
+        ),
+        "created_at_utc": datetime.now(timezone.utc).isoformat(),
+    }
+    validate_safe_metadata(report)
+
+    out_file = Path(output_path).resolve()
+    out_file.parent.mkdir(parents=True, exist_ok=True)
+    out_file.write_text(json.dumps(report, indent=2, ensure_ascii=False, sort_keys=True) + "\n", encoding="utf-8")
+    return report

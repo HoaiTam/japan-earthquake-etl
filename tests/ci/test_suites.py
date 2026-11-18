@@ -24,6 +24,21 @@ class SuitePolicyTest(unittest.TestCase):
         self.assertIn("test_research_catalog_recovery.py", (ROOT / "Makefile").read_text().split("ci-docs-base:", 1)[1])
         self.assertIn("test-dat03-provenance", (ROOT / "Makefile").read_text().split("ci-docs-base:", 1)[1])
 
+    def test_demo_preflight_regression_is_wired_into_ci_docs_base(self):
+        makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
+        self.assertIn(".PHONY: test-demo-preflight", makefile)
+        ci_docs_base = makefile.split("ci-docs-base:", 1)[1]
+        self.assertIn("test-demo-preflight", ci_docs_base)
+        self.assertIn("python3 -B -m unittest tests.test_demo_preflight", makefile)
+
+    def test_dat03_rosy179_followup_regression_is_wired_into_ci_docs_base(self):
+        makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
+        self.assertIn(".PHONY: test-dat03-rosy179-followup", makefile)
+        ci_docs_base = makefile.split("ci-docs-base:", 1)[1].split("\n\n", 1)[0]
+        self.assertIn("$(MAKE) test-dat03-rosy179-followup", ci_docs_base)
+        target = makefile.split("\ntest-dat03-rosy179-followup:", 1)[1].split("\n\n", 1)[0]
+        self.assertIn("unittest -v tests.test_pack_dat03_rosy179_followup", target)
+
     def test_strict_split_policy_regression_is_visible_in_window_suite_and_local_target(self):
         groups = impact.inventory("java")
         self.assertIn("ie212.earthquake.spark.ml.WindowCoveragePolicyTest", groups["mld-03-windows"])

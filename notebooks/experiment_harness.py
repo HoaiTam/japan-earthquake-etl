@@ -18,8 +18,9 @@ import math
 import os
 from pathlib import Path
 import re
+import subprocess
 import sys
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 import uuid
 
 import pyarrow as pa
@@ -199,16 +200,175 @@ def get_runtime_metadata(
 # -----------------------------------------------------------------------------
 # Bundle Loader (Mode-Aware: DEVELOPMENT vs OFFICIAL)
 # -----------------------------------------------------------------------------
-def load_feature_bundle(bundle_dir: Union[str, Path], mode: str = MODE_DEVELOPMENT) -> Dict[str, Any]:
+def _import_research_collection():
+    """Import ResearchCollection lazily to avoid circular import at module load."""
+    notebooks_dir = Path(__file__).resolve().parent
+    if str(notebooks_dir) not in sys.path:
+        sys.path.insert(0, str(notebooks_dir))
+    try:
+        from research_collection import ResearchCollection
+        return ResearchCollection
+    except ImportError:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("research_collection", notebooks_dir / "research_collection.py")
+        if spec and spec.loader:
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            return mod.ResearchCollection
+        raise ImportError("Cannot load research_collection module from " + str(notebooks_dir / "research_collection.py"))
+
+
+def _resolve_collection_pins(
+    root: Path,
+    manifest_sha256: Optional[str] = None,
+    checksums_sha256: Optional[str] = None,
+    handoff_path: Optional[Union[str, Path]] = None,
+    expected_handoff_sha256: Optional[str] = None,
+) -> Tuple[str, str]:
+    """Resolve external SHA-256 pins for a DAT-03 collection from args/env or a SHA-verified handoff.json."""
+    m_sha = manifest_sha256 or os.environ.get("MLD05_MANIFEST_SHA256", "").strip() or None
+    c_sha = checksums_sha256 or os.environ.get("MLD05_CHECKSUMS_SHA256", "").strip() or None
+    if m_sha and c_sha:
+        require(re.fullmatch(r"[a-f0-9]{64}", str(m_sha)) is not None, "COLLECTION_INVALID_MANIFEST_SHA256")
+        require(re.fullmatch(r"[a-f0-9]{64}", str(c_sha)) is not None, "COLLECTION_INVALID_CHECKSUMS_SHA256")
+        return str(m_sha), str(c_sha)
+
+    candidate_handoff: Optional[Path] = None
+    if handoff_path is not None:
+        candidate_handoff = Path(handoff_path).resolve()
+        require(candidate_handoff.is_file() and not candidate_handoff.is_symlink(), "COLLECTION_HANDOFF_NOT_FOUND")
+    else:
+        default_handoff = root.parent.parent / "handoff.json"
+        if default_handoff.is_file() and not default_handoff.is_symlink():
+            candidate_handoff = default_handoff.resolve()
+
+    if candidate_handoff is not None:
+        handoff_bytes = candidate_handoff.read_bytes()
+        exp_h_sha = (
+            expected_handoff_sha256.strip()
+            if isinstance(expected_handoff_sha256, str) and expected_handoff_sha256.strip()
+            else os.environ.get("DAT03_HANDOFF_SHA256", "").strip() or None
+        )
+        # Fail closed: never extract collection pins from an unverified handoff file next to the bundle.
+        require(
+            exp_h_sha is not None and re.fullmatch(r"[a-f0-9]{64}", exp_h_sha) is not None,
+            "COLLECTION_HANDOFF_TRUSTED_SHA_REQUIRED",
+        )
+        require(sha256_bytes(handoff_bytes) == exp_h_sha, "COLLECTION_HANDOFF_SHA_MISMATCH")
+        handoff = read_json_safe(handoff_bytes)
+        split = root.name
+        col_entry = handoff.get("collections", {}).get(split, {})
+        files_map = handoff.get("files", {})
+        file_m_sha = files_map.get(f"bundles/{split}/dataset_manifest.json", {}).get("sha256")
+        file_c_sha = files_map.get(f"bundles/{split}/checksums.sha256", {}).get("sha256")
+        col_m_sha = col_entry.get("manifest_sha256")
+        col_c_sha = col_entry.get("checksums_sha256")
+        if col_m_sha and file_m_sha:
+            require(col_m_sha == file_m_sha, "COLLECTION_HANDOFF_MANIFEST_PIN_CONFLICT")
+        if col_c_sha and file_c_sha:
+            require(col_c_sha == file_c_sha, "COLLECTION_HANDOFF_CHECKSUMS_PIN_CONFLICT")
+        m_sha = m_sha or col_m_sha or file_m_sha
+        c_sha = c_sha or col_c_sha or file_c_sha
+
+    require(bool(m_sha) and bool(c_sha), "COLLECTION_EXTERNAL_PINS_REQUIRED")
+    return str(m_sha), str(c_sha)
+
+
+def _load_official_collection_bundle(
+    root: Path,
+    manifest_sha256: Optional[str] = None,
+    checksums_sha256: Optional[str] = None,
+    handoff_path: Optional[Union[str, Path]] = None,
+    expected_handoff_sha256: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Load and verify all shards of an EXPORTED dat03-collection-export-v1 bundle."""
+    ResearchCollection = _import_research_collection()
+    m_sha, c_sha = _resolve_collection_pins(
+        root,
+        manifest_sha256=manifest_sha256,
+        checksums_sha256=checksums_sha256,
+        handoff_path=handoff_path,
+        expected_handoff_sha256=expected_handoff_sha256,
+    )
+    collection = ResearchCollection(root, manifest_sha256=m_sha, checksums_sha256=c_sha)
+
+    shard_bundles: Dict[str, Dict[str, Any]] = {}
+    feature_tables: List[pa.Table] = []
+    mainshock_tables: List[pa.Table] = []
+
+    for shard_id in collection.shards:
+        shard_bundle = collection.load_shard(shard_id)
+        shard_bundles[shard_id] = shard_bundle
+        feature_tables.append(shard_bundle["features_table"])
+        mainshock_tables.append(shard_bundle["mainshocks_table"])
+
+    features_table = pa.concat_tables(feature_tables)
+    mainshocks_table = pa.concat_tables(mainshock_tables)
+
+    manifest = collection.manifest
+    require(features_table.num_rows == manifest["feature_row_count"], "EXP_FEATURE_ROW_COUNT_MISMATCH")
+    require(mainshocks_table.num_rows == manifest["mainshock_count"], "EXP_MAINSHOCK_ROW_COUNT_MISMATCH")
+
+    # Cross-shard global grain and mainshock uniqueness verification
+    dataset_ids = set(features_table["dataset_id"].to_pylist())
+    require(dataset_ids == {manifest["dataset_id"]}, f"EXP_DATASET_LINEAGE_MISMATCH:{dataset_ids}!={manifest['dataset_id']}")
+    main_ids = mainshocks_table["mainshock_event_id"].to_pylist()
+    require(len(main_ids) == len(set(main_ids)) == manifest["mainshock_count"], "EXP_COLLECTION_DUPLICATE_MAINSHOCK")
+
+    return {
+        "mode": MODE_OFFICIAL,
+        "bundle_id": manifest["dataset_id"],
+        "source_dataset_id": manifest["dataset_id"],
+        "manifest": manifest,
+        "features_table": features_table,
+        "mainshocks_table": mainshocks_table,
+        "coverage": collection.plan["coverage"],
+        "bundle_dir": collection.root,
+        "is_official": True,
+        "is_collection": True,
+        "collection_id": collection.plan["collection_id"],
+        "dataset_split": manifest["dataset_split"],
+        "shards": shard_bundles,
+        "manifest_sha256": m_sha,
+        "checksums_sha256": c_sha,
+        "checksums": collection.index,
+        "timestamp_reader_profile": (
+            "prepared-spark-utc-int96-v1" if collection.timestamp_interop_used else "arrow-utc-micros-v1"
+        ),
+    }
+
+
+def load_feature_bundle(
+    bundle_dir: Union[str, Path],
+    mode: str = MODE_DEVELOPMENT,
+    *,
+    manifest_sha256: Optional[str] = None,
+    checksums_sha256: Optional[str] = None,
+    handoff_path: Optional[Union[str, Path]] = None,
+    expected_handoff_sha256: Optional[str] = None,
+) -> Dict[str, Any]:
     """Load and strictly validate a feature bundle according to the declared mode.
 
     Fails before model fitting if checksum, schema, finite constraint or mode contracts fail.
     - DEVELOPMENT mode: requires DAT-02 DEVELOPMENT_PILOT bundle.
-    - OFFICIAL mode: requires MLD-05 EXPORTED official dataset bundle.
+    - OFFICIAL mode: requires MLD-05 EXPORTED official dataset bundle (flat or dat03-collection-export-v1).
     """
     require(mode in VALID_MODES, f"INVALID_MODE:{mode}")
     root = Path(bundle_dir).resolve()
     require(root.is_dir() and not root.is_symlink(), "EXP_EXPLICIT_DIRECTORY_REQUIRED")
+
+    if mode == MODE_DEVELOPMENT and (root / "dataset_manifest.json").exists():
+        require(False, "DEVELOPMENT_LOADER_REJECTS_OFFICIAL_DATASET")
+
+    if mode == MODE_OFFICIAL and (root / "collection-preparation.json").is_file():
+        require(not (root / "pilot_manifest.json").exists(), "OFFICIAL_LOADER_REJECTS_PILOT_BUNDLE")
+        return _load_official_collection_bundle(
+            root,
+            manifest_sha256=manifest_sha256,
+            checksums_sha256=checksums_sha256,
+            handoff_path=handoff_path,
+            expected_handoff_sha256=expected_handoff_sha256,
+        )
 
     checksum_file = root / "checksums.sha256"
     require(checksum_file.is_file() and not checksum_file.is_symlink(), "EXP_MISSING_CHECKSUMS_FILE")
@@ -1105,6 +1265,189 @@ class ColabPathAdapter:
         validate_safe_metadata(str(resolved_input))
         validate_safe_metadata(str(resolved_output))
         return resolved_input, resolved_output
+
+
+# -----------------------------------------------------------------------------
+# Shared Provenance & Verified Handoff Helpers for Official Runners (EXP-02/03/04)
+# -----------------------------------------------------------------------------
+def resolve_verified_handoff_sha256(
+    bundle_dir: Path,
+    handoff_path: Optional[Path] = None,
+    expected_handoff_sha256: Optional[str] = None,
+) -> Optional[str]:
+    """Return handoff.json SHA-256 ONLY if verified against a valid trusted expected_handoff_sha256."""
+    if not (
+        isinstance(expected_handoff_sha256, str)
+        and re.fullmatch(r"[a-f0-9]{64}", expected_handoff_sha256.strip())
+    ):
+        return None
+    resolved_handoff = handoff_path or (bundle_dir.resolve().parent.parent / "handoff.json")
+    if not resolved_handoff.is_file() or resolved_handoff.is_symlink():
+        return None
+    cand_sha = sha256_bytes(resolved_handoff.read_bytes())
+    exp = expected_handoff_sha256.strip()
+    return cand_sha if cand_sha == exp else None
+
+
+def collect_code_provenance(
+    root: Path,
+    critical_files: Sequence[str],
+    *,
+    config_files: Optional[Sequence[str]] = None,
+    status_paths: Optional[Sequence[str]] = None,
+    clean_status_label: str = "CLEAN_VERIFIED",
+) -> Dict[str, Any]:
+    """Capture strict git commit, blob hashes, LF-normalized hashes, and clean status for official runners."""
+    crit_list = list(critical_files)
+    cfg_list = list(config_files or [])
+    all_monitored = crit_list + [p for p in cfg_list if p not in crit_list]
+
+    git_commit = "unknown"
+    try:
+        res = subprocess.run(
+            ["git", "-C", str(root), "rev-parse", "HEAD"],
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=15,
+        )
+        cand = res.stdout.strip()
+        if re.fullmatch(r"[a-f0-9]{40}", cand):
+            git_commit = cand
+    except Exception:
+        pass
+
+    working_hashes: Dict[str, str] = {}
+    lf_hashes: Dict[str, str] = {}
+    git_blob_hashes: Dict[str, str] = {}
+    head_blob_hashes: Dict[str, str] = {}
+    line_endings: Dict[str, str] = {}
+    missing_files: List[str] = []
+    blob_mismatches: List[str] = []
+
+    for rel_path in all_monitored:
+        fpath = root / rel_path
+        is_crit = rel_path in crit_list
+        if not fpath.is_file():
+            missing_files.append(rel_path)
+            git_blob_hashes[rel_path] = "MISSING"
+            head_blob_hashes[rel_path] = "MISSING"
+            if is_crit:
+                working_hashes[rel_path] = "MISSING"
+                lf_hashes[rel_path] = "MISSING"
+                line_endings[rel_path] = "unknown"
+            continue
+
+        raw_bytes = fpath.read_bytes()
+        if is_crit:
+            working_hashes[rel_path] = hashlib.sha256(raw_bytes).hexdigest()
+            lf_hashes[rel_path] = hashlib.sha256(raw_bytes.replace(b"\r\n", b"\n")).hexdigest()
+            line_endings[rel_path] = "crlf" if b"\r\n" in raw_bytes else "lf"
+
+        work_blob = "unknown"
+        try:
+            b_res = subprocess.run(
+                [
+                    "git",
+                    "-C",
+                    str(root),
+                    "-c",
+                    "core.autocrlf=true",
+                    "hash-object",
+                    f"--path={rel_path}",
+                    str(fpath),
+                ],
+                capture_output=True,
+                text=True,
+                check=True,
+                timeout=10,
+            )
+            b_cand = b_res.stdout.strip()
+            if re.fullmatch(r"[a-f0-9]{40}", b_cand):
+                work_blob = b_cand
+        except Exception:
+            pass
+        git_blob_hashes[rel_path] = work_blob
+
+        head_blob = "UNCOMMITTED"
+        if git_commit != "unknown":
+            try:
+                h_res = subprocess.run(
+                    ["git", "-C", str(root), "rev-parse", f"HEAD:{rel_path}"],
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                    timeout=10,
+                )
+                h_cand = h_res.stdout.strip()
+                head_blob = h_cand if re.fullmatch(r"[a-f0-9]{40}", h_cand) else "UNKNOWN"
+            except Exception:
+                head_blob = "UNCOMMITTED"
+        head_blob_hashes[rel_path] = head_blob
+
+        if work_blob != head_blob or work_blob in ("unknown", "MISSING"):
+            blob_mismatches.append(rel_path)
+
+    dirty_files: List[str] = []
+    status_targets = list(status_paths) if status_paths is not None else all_monitored
+    if git_commit != "unknown":
+        try:
+            st = subprocess.run(
+                [
+                    "git",
+                    "-C",
+                    str(root),
+                    "-c",
+                    "core.autocrlf=true",
+                    "-c",
+                    "core.fileMode=false",
+                    "status",
+                    "--porcelain",
+                    "-uall",
+                    "--",
+                    *status_targets,
+                ],
+                capture_output=True,
+                text=True,
+                check=True,
+                timeout=15,
+            )
+            for line in st.stdout.splitlines():
+                if not line.strip():
+                    continue
+                parts = line.split(maxsplit=1)
+                dirty_files.append(parts[1].strip() if len(parts) >= 2 else line.strip())
+        except Exception:
+            dirty_files.append("GIT_STATUS_UNAVAILABLE")
+
+    has_valid_commit = bool(re.fullmatch(r"[a-f0-9]{40}", git_commit))
+    is_clean = bool(
+        has_valid_commit
+        and not dirty_files
+        and not missing_files
+        and not blob_mismatches
+    )
+    all_dirty_or_mismatched = sorted(list(set(dirty_files + blob_mismatches + missing_files)))
+
+    return {
+        "git_commit": git_commit,
+        "is_clean_code": is_clean,
+        "clean_verification_status": clean_status_label if is_clean else "DIRTY_OR_UNVERIFIED",
+        "dirty_files": all_dirty_or_mismatched,
+        "missing_files": missing_files,
+        "blob_mismatches": blob_mismatches,
+        "critical_code_hashes": working_hashes,
+        "working_tree_code_hashes": working_hashes,
+        "normalized_lf_code_hashes": lf_hashes,
+        "git_blob_hashes": git_blob_hashes,
+        "head_blob_hashes": head_blob_hashes,
+        "detected_line_endings": line_endings,
+        "cross_platform_verification_note": (
+            "Working-tree hashes depend on local filesystem line endings (CRLF on Windows vs LF on Unix/macOS). "
+            "For cross-platform reproducibility, verify against git_blob_hashes (via `git hash-object <file>`) "
+            "or normalized_lf_code_hashes (via `sha256sum` after LF conversion)."
+        ),
+    }
 
 
 # -----------------------------------------------------------------------------

@@ -22,11 +22,16 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 
 ## Tổng quan
 
+**16/11 — DEMO-01 In Progress (ThanhTris):** Chuẩn bị manifest ghim bằng chứng đại diện, kịch bản demo 15–20 phút, 4 fallback và preflight checker offline ([gói demo](../../runbooks/DEMO-01_DEMO_PACKAGE.md)); chờ `MLI-04` và `MLQ-01` để chốt official pins.
 **17/11 — DAT-03 Done:** đã đối chiếu catalog288tháng, Gold Published/rerun,
 hai official collections EXPORTED và receipt thật cùng kitv4 trên ba máy.
 [Đối chiếu acceptance](../../evidence/DAT-03_FINAL_ACCEPTANCE_20261116.md).
-Hiện67/81Done,5Needs Update,9Backlog,0In Progress sau tích hợp OPS-01. Các mốc bên dưới giữ
-lịch sử, không thay scientific approval hoặc trạng thái SEC-01/EXP.
+Hiện 71/81 Done, 2 Needs Update, 7 Backlog, 1 In Progress sau nghiệm thu
+[EXP-02](../../evidence/EXP-02_OFFICIAL_REPRODUCTION.md),
+[EXP-03](../../evidence/EXP-03_OFFICIAL_REPRODUCTION.md) và
+[EXP-04](../../evidence/EXP-04_OFFICIAL_REPRODUCTION.md). EXP-04 phát hành rule
+v2 sau khi đối soát cả hai upstream; EXP-03 adaptive shard chỉ đạt readback.
+Các mốc bên dưới giữ lịch sử, không thay scientific approval hoặc trạng thái SEC-01.
 
 **17/11 — OPS-01 Done (HoaiTam):** backup13bảng/77objects/14artifacts và
 restore prefix/namespace/DB mới; Trino signatures/rerun/ML joins, Airflow
@@ -34,6 +39,12 @@ schema và secret scan đạt. [Evidence](../../evidence/OPS-01_BACKUP_RESTORE_2
 [hướng dẫn](../../runbooks/OPS-01_BACKUP_RESTORE.md). Scope smoke đại diện,
 không full disaster recovery/official experiment hoặc SEC-01 cloud acceptance.
 DAT-03 closure đã merge [PR #136](https://github.com/HoaiTam/japan-earthquake-etl/pull/136).
+
+**17/11 — QA-05 Done (HoaiTam, local chưa push):** profile chỉ đọc Gold288tháng,
+26SELECTs/118,366s, A/B session concurrency1/2 và17resource samples; không tăng
+OOM, six pins/services giữ nguyên. Giữ concurrency1 và file/tháng hiện có.
+[Evidence](../../evidence/QA-05_RESOURCE_PROFILE_20261117.md),
+[runbook](../../runbooks/QA-05_RESOURCE_PROFILE.md); không full ETL/scientific acceptance.
 
 **16/11 — BI-01 Done (ThanhTris):** Kết nối ODBC Import 8 bảng Power Query M trên Power BI Desktop Windows 11 qua Trino snapshot `pub-202302-001` đã nghiệm thu; giữ scope Stretch connectivity ([evidence](../../evidence/BI-01_POWER_BI_IMPORT.md)).
 
@@ -93,7 +104,7 @@ Java kiểm125/125tháng worker qua13batch/42groups, không bung dataset hoặc 
 unified Gold288tháng/Trino, official exports và receipts ba máy. Các ghi chú chờ
 24+23/2+1metadata trước đây giữ làm lịch sử, không yêu cầu gửi lại.
 
-**Lịch sử12/11 (cập nhật BI-01 Done):** 65/81 Done,5 Needs Update,10 Backlog,1 In Progress (DAT-03).
+**Hiện hành12/11 (cập nhật BI-01 Done & DEMO-01 In Progress 16/11):** 65/81 Done,5 Needs Update,9 Backlog,2 In Progress (DAT-03, DEMO-01).
 **Lịch sử14/11 — byte audit trước follow-up / PR #131:** [Byte audit mới](../../evidence/DAT-03_BYTE_AVAILABILITY_20261114.md)
 đạt119/119payload refs Trí,144/144Trang,37/37source refs mỗi worker bằng
 bytes tái dùng có cùng SHA/size trên coordinator. Trang114metadata đã matched;
@@ -178,7 +189,7 @@ full catalog/export/receipts ba máy.
 
 - Tổng số task: **81**.
 - Foundation: **9 task `Done`**, FND-01 đã nghiệm thu runtime của lifecycle mới ngày 2026-10-15.
-- Task còn ở trạng thái `Needs Update`: **5** — EXP-02/03/04, MLI-04, SEC-01; DAT-03 tiếp tục In Progress12/11; EXP-01 cloud harness tuần7 đã Done, không thay security/session audit.
+- Tại mốc lập kế hoạch 12/11, **5** task `Needs Update`: EXP-02/03/04, MLI-04, SEC-01; DAT-03 khi đó còn In Progress. EXP-01 cloud harness tuần7 đã Done, không thay security/session audit.
 - Core: **73 task**.
 - Stretch: **8 task**.
 - Tổng effort task: **416 giờ**; baseline 364h + ORC-06/07 16h + DAT-02 6h + DAT-03 16h + COL-01..04 14h.
@@ -389,9 +400,9 @@ và portable integration/full catalog/official export đã qua actual acceptance
 | Task | Tuần | Workstream | Scope | Priority | Effort | Trạng thái |
 |---|---:|---|---|---|---:|---|
 | [EXP-01](./EXP-01.md) - Tạo Jupyter harness và chuẩn bị chuyển sang Colab | 5 | Jupyter-first harness | Core | P0 | 5h | Done |
-| [EXP-02](./EXP-02.md) - Chạy Window, DBSCAN và HDBSCAN global | 5 | Baseline algorithms | Core | P0 | 7h | Needs Update |
-| [EXP-03](./EXP-03.md) - Xây HDBSCAN adaptive và giải quyết multi-sequence | 5 | Adaptive HDBSCAN | Core | P0 | 6h | Needs Update |
-| [EXP-04](./EXP-04.md) - Đánh giá quality, physical consistency và stability | 7 | Scientific evaluation | Core | P0 | 7h | Needs Update |
+| [EXP-02](./EXP-02.md) - Chạy Window, DBSCAN và HDBSCAN global | 5 | Baseline algorithms | Core | P0 | 7h | Done |
+| [EXP-03](./EXP-03.md) - Xây HDBSCAN adaptive và giải quyết multi-sequence | 5 | Adaptive HDBSCAN | Core | P0 | 6h | Done |
+| [EXP-04](./EXP-04.md) - Đánh giá quality, physical consistency và stability | 7 | Scientific evaluation | Core | P0 | 7h | Done |
 | [EXP-05](./EXP-05.md) - Chạy out-of-period extension 2018-2023 | 7 | Out-of-period evaluation | Core | P0 | 5h | Backlog |
 | [COL-01](./COL-01.md) - Khảo sát và giải thích pilot trên Colab | 7 | Colab pilot data inspection | Core | P1 | 3h | Done |
 | [COL-02](./COL-02.md) - Sweep tham số baseline giới hạn trên pilot | 7 | Bounded baseline parameter sweep | Core | P1 | 4h | Done |
@@ -423,12 +434,12 @@ và portable integration/full catalog/official export đã qua actual acceptance
 | Task | Tuần | Workstream | Scope | Priority | Effort | Trạng thái |
 |---|---:|---|---|---|---:|---|
 | [DOC-01](./DOC-01.md) - Cập nhật tài liệu theo từng block | 5 | Documentation | Core | P0 | 4h | Done |
-| [DEMO-01](./DEMO-01.md) - Chuẩn bị dữ liệu và kịch bản demo | 8 | Demo | Core | P0 | 4h | Backlog |
+| [DEMO-01](./DEMO-01.md) - Chuẩn bị dữ liệu và kịch bản demo | 8 | Demo | Core | P0 | 4h | In Progress |
 | [DEMO-02](./DEMO-02.md) - Rehearsal và tạo release candidate | 8 | Release | Core | P0 | 6h | Backlog |
 | [OPS-01](./OPS-01.md) - Smoke test backup và restore metadata | 6 | Backup and restore | Stretch | P2 | 4h | Done |
 | [QA-01](./QA-01.md) - Chạy E2E daily đa nguồn | 5 | E2E | Core | P0 | 5h | Done |
 | [QA-02](./QA-02.md) - Test rerun, duplicate và late revision | 5 | Idempotency | Core | P0 | 5h | Done |
 | [QA-03](./QA-03.md) - Kiểm thử JMA historical backfill | 5 | Historical backfill | Core | P0 | 5h | Done |
 | [QA-04](./QA-04.md) - Test failure và recovery theo tầng | 5 | Failure recovery | Core | P0 | 4h | Done |
-| [QA-05](./QA-05.md) - Profile dữ liệu lịch sử và tài nguyên local | 8 | Performance | Stretch | P2 | 4h | Backlog |
+| [QA-05](./QA-05.md) - Profile dữ liệu lịch sử và tài nguyên local | 8 | Performance | Stretch | P2 | 4h | Done |
 | [SEC-01](./SEC-01.md) - Review secret và bề mặt truy cập | 4 | Security | Core | P1 | 4h | Needs Update |

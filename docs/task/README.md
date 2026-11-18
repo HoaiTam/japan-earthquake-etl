@@ -4,7 +4,8 @@
 > đã merge [PR #136](https://github.com/HoaiTam/japan-earthquake-etl/pull/136).
 > [OPS-01 smoke backup/restore Done](../evidence/OPS-01_BACKUP_RESTORE_20261117.md);
 > [runbook và Make commands](../runbooks/OPS-01_BACKUP_RESTORE.md), không full disaster recovery.
-> 67 Done / 5 Needs Update / 9 Backlog / 0 In Progress trong81task sau tích hợp OPS-01.
+> [QA-05 profile Done](../evidence/QA-05_RESOURCE_PROFILE_20261117.md) local17/11, chưa push;
+> 68 Done / 5 Needs Update / 7 Backlog / 1 In Progress trong81task (DEMO-01 còn In Progress).
 > [Phân công tuần9 — 16–22/11](./WEEK_9_REPLAN_20261111.md) là kế hoạch18task,6task/người;
 > trạng thái thực tế xem từng task/index, không suy từ roster lịch sử.
 > Roster/effort tuần cũ bên dưới là lịch sử. [Đối soát](../evidence/TASK_STATUS_AUDIT_20261111.md).

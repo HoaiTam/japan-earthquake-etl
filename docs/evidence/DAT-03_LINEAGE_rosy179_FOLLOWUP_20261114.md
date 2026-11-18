@@ -3,7 +3,9 @@
 Tác giả: **rosy179** (@rosy179).
 Đáp ứng yêu cầu bổ sung metadata nguyên bản từ Hoài Tâm (@HoaiTam) trong PR #131 và cấu hình [dat03_lineage_rosy179_followup_20261114.json](../../config/research/dat03_lineage_rosy179_followup_20261114.json).
 
-Task DAT-03 vẫn giữ trạng thái **In Progress**; việc bàn giao này nhằm cung cấp đầy đủ metadata phục vụ đối soát đóng Cổng 1, chưa đồng nghĩa DAT-03 Done toàn bộ.
+Đây là bằng chứng lịch sử bàn giao metadata cho Cổng 1 ngày 14/11. DAT-03
+hiện **Done** theo [nghiệm thu cuối](DAT-03_FINAL_ACCEPTANCE_20261116.md); PR #134
+chỉ hoàn thiện helper và regression, không thay dữ liệu hay receipt đã chốt.
 
 ---
 
@@ -14,7 +16,7 @@ Thư mục đích của worker: `data/dat03/workers/rosy179/` (Folder worker tr�
 | Tên tệp | Kích thước | SHA-256 | Mô tả |
 | :--- | :--- | :--- | :--- |
 | `rosy179-dat03-lineage-followup.zip` | 190.379 bytes | `517f8625ef7de46d50e81c79f22b1ad878a5820174104ee5c3daa27ce5cadc7c` | ZIP chứa 47 file metadata nguyên bản (23 identities, 1 head commit, 23 publications) và `manifest.json` |
-| `rosy179-dat03-lineage-followup.zip.sha256` | 101 bytes | `517f8625ef7de46d50e81c79f22b1ad878a5820174104ee5c3daa27ce5cadc7c` | Checksum SHA-256 của file ZIP |
+| `rosy179-dat03-lineage-followup.zip.sha256` | 101 bytes | — | Sidecar chứa SHA-256 của ZIP ở dòng trên, không phải SHA của bản thân sidecar |
 
 * **Trạng thái lưu trữ:** Đã đóng gói từ MinIO local, cập nhật checksum tại `staging/dat03-range-handoff-rosy179/checksums.sha256` và `staging/dat03-range-handoff-rosy179/handoff-summary.json`.
 
@@ -72,11 +74,16 @@ Tất cả 22 tệp identity cha được trích xuất từ MinIO local, tách 
 
 ---
 
-## 3. Đối soát 23 tệp `publication.json` (23/23 PASSED & PUBLISHED)
+## 3. Kiểm 23 tệp `publication.json` và phạm vi xác minh
 
 Toàn bộ 23 tệp `publication.json` được trích xuất từ `s3://japan-earthquake/silver/gold-verification/<run_id>/publication.json`:
-- Đạt trạng thái `verify_status: "PASSED"` và `published: true` cho toàn bộ 23 runs.
-- Chứa liên kết chính xác tới snapshot IDs của 6 bảng Iceberg (`event_current`, `event_source_bridge`, `dim_date`, `dim_region`, `dim_magnitude_band`, `dim_depth_band`) cho từng run, khớp đủ 138 snapshot references trong cấu hình yêu cầu.
+- Cả 23 object ghi `verify_status: "PASSED"` và `published: true`. Helper kiểm
+  exact paths, bytes/manifest SHA và các liên kết identity/commit có pin; kết quả
+  cho publication là `PACKAGE_SELF_CHECK_ONLY`, không phải chứng nhận nguồn độc lập.
+- Đối soát publication với các phase JSON đã pin và liên kết đủ sáu snapshot
+  thuộc [verifier độc lập](../../scripts/verify-dat03-followup.py) và
+  [nghiệm thu coordinator](DAT-03_FINAL_ACCEPTANCE_20261116.md). Kết quả của helper
+  không thay thế kiểm tra đó hoặc xác minh SQL live.
 
 ---
 
@@ -104,21 +111,35 @@ rosy179-dat03-lineage-followup.zip
 
 ## 5. Kiểm thử Tự động và Công cụ Đóng gói
 
-Bộ công cụ và kiểm thử độc lập đã được bổ sung và thực thi thành công:
-1. **Công cụ đóng gói & đối soát:** `scripts/pack-dat03-rosy179-followup.py` (hỗ trợ cả đọc local raw directory và kết nối MinIO S3 qua boto3, verify atomicity và deterministic ZIP attributes).
-2. **Bộ unit tests:** `tests/test_pack_dat03_rosy179_followup.py` gồm 7 test cases độc lập:
-   - `test_zip_archive_exists_and_valid`: PASS.
-   - `test_all_24_pinned_objects_match`: PASS.
-   - `test_all_23_publications_valid`: PASS.
-   - `test_manifest_metadata`: PASS.
-   - `test_extract_identity_payload_digest_logic`: PASS.
-   - `test_verify_followup_archive_tamper_detection`: PASS.
-   - `test_pack_followup_archive_roundtrip`: PASS.
-   - Kết quả: **7/7 tests PASS (0,79s)**.
+[Helper](../../scripts/pack-dat03-rosy179-followup.py) kiểm đúng 48 member duy nhất
+(manifest + 47 object), giới hạn size trước khi đọc payload, kiểm checksum và từ
+chối symlink/member không hợp lệ. Manifest cũ `LEGACY_MINIMAL` vẫn được đọc và
+phải khớp toàn bộ dữ liệu/tham chiếu. CLI mặc định dùng source local và không
+fallback sang mạng; `--s3` là opt-in và cần một bộ credential đầy đủ.
+
+```bash
+make test-dat03-rosy179-followup
+python3 -B scripts/pack-dat03-rosy179-followup.py --verify
+```
+
+Lệnh đầu chạy 33 fixture tests offline (33 đạt trên macOS, không skip) và được
+`ci-docs-base` gọi. Lệnh thứ hai chỉ đọc ZIP có sẵn tại đường dẫn staging mặc
+định; có thể chỉ bản sao có sẵn khác bằng `--output-zip`. Bản sao readback đã
+được kiểm trong PR #134: SHA ZIP không đổi, 24 pinned + 23 publication đạt trong
+phạm vi helper. Không tải mới, ghi đè hoặc upload lại.
+
+Khi pack, ZIP và `.sha256` trùng bytes được reuse, khác bytes mặc định bị từ
+chối. `--overwrite` là opt-in trên cặp hợp lệ; test chứng minh khôi phục ZIP
+cũ khi lỗi ghi sidecar. Hai đường dẫn không phải một giao dịch filesystem;
+nếu bị ngắt đột ngột hoặc lock còn giữ, giữ nguyên file và đối chiếu cặp trước
+khi chạy lại. Với bản release đã ghim, dùng tên mới nếu cần đóng gói lại.
 
 ---
 
 ## 6. Kết luận và Bước tiếp theo của DAT-03
 
-- **Hoàn tất phía rosy179:** Toàn bộ 4 tầng bằng chứng lineage của rosy179 cho 63 tháng (83 first-hop provenance, 138 supplemental phase journals, 114 frontier manifests/commits, và 47 followup metadata objects) đã được trích xuất từ dữ liệu nguyên bản, xác thực 100% SHA-256 và đóng gói hoàn chỉnh.
-- **Tiến độ DAT-03:** Cổng 1 (Transitive Closure) của phân đoạn rosy179 đã hội đủ điều kiện để đóng. Task DAT-03 tiếp tục giữ `In Progress` chờ Coordinator (Hoài Tâm) hợp nhất với phần việc của ThanhTris và tiến hành Cổng 2 (Tích hợp catalog Iceberg Gold và khử trùng lặp ranh giới).
+- **Bàn giao phía rosy179:** 83 first-hop provenance, 138 supplemental phase
+  journals, 114 frontier metadata và 47 follow-up objects. Helper #134 chỉ
+  đóng gói và tự kiểm tập 47 object cuối, không chứng nhận toàn bộ lineage.
+- **Tiến độ DAT-03:** [Nghiệm thu cuối](DAT-03_FINAL_ACCEPTANCE_20261116.md) đã
+  đóng task. Không yêu cầu chạy lại ETL, export hay tạo lại receipt cho PR này.
