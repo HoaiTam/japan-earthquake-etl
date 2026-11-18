@@ -124,7 +124,7 @@ release thật EXPORTED. Colab pilot đạt chưa chuyển toàn EXP-02 Done.
 ## Checklist bàn giao
 
 - [x] Deliverable và test/evidence tồn tại trong repository.
-- [x] Acceptance criteria đã được kiểm tra (local development, Colab portability và official REPRODUCTION collection run 194 mainshocks / 156.710 rows đã hoàn tất).
+- [x] Acceptance criteria đã được kiểm tra (local development, Colab parity và official REPRODUCTION v2 trên clean commit `4a324b8` — 194 mainshocks / 156.710 rows, non-nested sibling `MLI-03` layout, physical shard union verification & Java `MlResultBundleReader`/`ResultBundleContract` `RESULT_READY`, `scientific_approval=false`; đồng bộ kết quả PR #139 `df10230`).
 - [x] Contract/docs đã cập nhật và không chứa secret/data dump.
 - [ ] Reviewer độc lập được khuyến nghị cho P0.
 

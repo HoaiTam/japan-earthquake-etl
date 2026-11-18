@@ -14,17 +14,17 @@
   },
   "artifact_verified": {
     "checksums": {
-      "_SUCCESS.json": "8aa2e6f0f71d5565a67bc2659d5d89c059d40dfeb3402f62ee08cdb492424f62",
-      "experiment_config.json": "a32ba8ca8b8c4d4049855aa2ca5f846d30350be2772e77128b656be75900144a",
-      "experiment_metrics.json": "d9bf7479172779ba83f8776024de877b8339347b98ce5efe30f61b4eef51f666",
-      "memberships.parquet": "14da34362eb66453ff530bb3ce4dfa40a7eb917e625661a577f4503d2f680716",
+      "_SUCCESS.json": "5dfaefbfd46ced4952ebf6048e0cf5ed2bf1abd6a89b3ffadaabc7cd40c2e072",
+      "experiment_config.json": "5c4608bd68ba62ae46b474a058b85fa5390b882e57322cf5337ca6d0f9221c78",
+      "experiment_metrics.json": "eef989444cbccc2e0e89ff8902f3489ddde9207c8dab9028f4d849cc73cb6fce",
+      "memberships.parquet": "22986416b4ed50a9bb62d031ce1e44c362fa2490a60b146b7fedc17af87a339b",
       "requirements-lock.txt": "a18209bc5034cd643c892e8a492a12de787fc0fae7dfa79e05132f1500f77d9d",
-      "sequence_summary.parquet": "96b10bea1a2a47d28160942e5bcfb278bacdd8ace46f6b0f6effa2adf126f7eb"
+      "sequence_summary.parquet": "35631dc32be05749b784ac0850b1f19a2397d5ea46ef103cee0c8b6ad1ca310f"
     },
     "has_success_marker": true,
     "manifest_file": "_SUCCESS.json",
     "relative_dir": "hdbscan_adaptive",
-    "run_id": "exp_run_70637f429d590e2ba8258f56b618ba85"
+    "run_id": "exp_run_293f2720c8a765c7ab6d20243d1b797b"
   },
   "case_results": {
     "empty_post_windows": 0,
@@ -33,8 +33,65 @@
     "successful_windows": 131,
     "total_windows": 194
   },
-  "code_version": "a9c0d4ef07616279f8b2bf487a294258a8021e03",
-  "created_at_utc": "2026-11-17T18:05:26.945916+00:00",
+  "code_provenance": {
+    "blob_mismatches": [],
+    "clean_verification_status": "CLEAN_VERIFIED",
+    "critical_code_hashes": {
+      "config/ml/models/hdbscan_adaptive_dev_v1.json": "41a4232ad6e4ae50505f14f8af2ea5cbd9353c0dc43ce6f3776d539977adbd65",
+      "notebooks/adaptive_hdbscan.py": "cbb2c62b7b40cb51c4a91c1a630fbe87c8b92600d8fd603c05b3cac9f9604b7b",
+      "notebooks/baseline_models.py": "25d2a40b71da8bb8e5f5443ffaa3c19e46c6d173447085981cc1808ab9163cc5",
+      "notebooks/experiment_harness.py": "09e98611733befdadf17b716579d81d95b9fd95c072a138878e5e4281913285d",
+      "notebooks/research_collection.py": "1615f59938e18908b644b6007ea2fac3b0cd815b41ace7633b03fb2c962fd0ff",
+      "scripts/run-exp03-official.py": "ec3a9d0e4989385f2ba2c6614983408451b7b3ace8eae5af0081620d2827e45e"
+    },
+    "cross_platform_verification_note": "Working-tree hashes depend on local filesystem line endings (CRLF on Windows vs LF on Unix/macOS). For cross-platform reproducibility, verify against git_blob_hashes (via `git hash-object <file>`) or normalized_lf_code_hashes (via `sha256sum` after LF conversion).",
+    "detected_line_endings": {
+      "config/ml/models/hdbscan_adaptive_dev_v1.json": "crlf",
+      "notebooks/adaptive_hdbscan.py": "crlf",
+      "notebooks/baseline_models.py": "crlf",
+      "notebooks/experiment_harness.py": "crlf",
+      "notebooks/research_collection.py": "crlf",
+      "scripts/run-exp03-official.py": "crlf"
+    },
+    "dirty_files": [],
+    "git_blob_hashes": {
+      "config/ml/models/hdbscan_adaptive_dev_v1.json": "042f3d1359e8b038ddd68963049bcd46f9ac405c",
+      "notebooks/adaptive_hdbscan.py": "c7a0412477c5bf5c133c05169b6694f99040aee0",
+      "notebooks/baseline_models.py": "174c8edfebc424d260f4a9d893109c5becd40797",
+      "notebooks/experiment_harness.py": "1a81e66f8c20e01cf28d5254bf603e86894aebcb",
+      "notebooks/research_collection.py": "6326d9c1a74fc658fa3211e8ce95ff1b9bece604",
+      "scripts/run-exp03-official.py": "2a2059347947c47bf7547db7224e71070fd6eafd"
+    },
+    "git_commit": "4a324b886a543347bbaafa6fdf5a07505de1c529",
+    "head_blob_hashes": {
+      "config/ml/models/hdbscan_adaptive_dev_v1.json": "042f3d1359e8b038ddd68963049bcd46f9ac405c",
+      "notebooks/adaptive_hdbscan.py": "c7a0412477c5bf5c133c05169b6694f99040aee0",
+      "notebooks/baseline_models.py": "174c8edfebc424d260f4a9d893109c5becd40797",
+      "notebooks/experiment_harness.py": "1a81e66f8c20e01cf28d5254bf603e86894aebcb",
+      "notebooks/research_collection.py": "6326d9c1a74fc658fa3211e8ce95ff1b9bece604",
+      "scripts/run-exp03-official.py": "2a2059347947c47bf7547db7224e71070fd6eafd"
+    },
+    "is_clean_code": true,
+    "missing_files": [],
+    "normalized_lf_code_hashes": {
+      "config/ml/models/hdbscan_adaptive_dev_v1.json": "d0f24c8732e47d094ea42af1eb41a9413a17af4760b3fc39864bc31f8d662c73",
+      "notebooks/adaptive_hdbscan.py": "6f49663dfb080214bd4375fdf27bcdef7a58b47eff06352911531d237bf6d5e1",
+      "notebooks/baseline_models.py": "d9e30eda33f74c8eb716167d84ad97269d7ff6d0916d713e5d48cb418451e3a7",
+      "notebooks/experiment_harness.py": "1dfc4cbc394e9b2c5ef5ce9e403750267e0053314ccc25f32550bdb811e2c2af",
+      "notebooks/research_collection.py": "7a0f598b460d45233d8cf122c2f9e009b5d6185412a603c8d0d328555fa68b1a",
+      "scripts/run-exp03-official.py": "3f5d3eed88e2af5eabca09ed388fd15a878cbf6b28400fa092588e4e5f09354f"
+    },
+    "working_tree_code_hashes": {
+      "config/ml/models/hdbscan_adaptive_dev_v1.json": "41a4232ad6e4ae50505f14f8af2ea5cbd9353c0dc43ce6f3776d539977adbd65",
+      "notebooks/adaptive_hdbscan.py": "cbb2c62b7b40cb51c4a91c1a630fbe87c8b92600d8fd603c05b3cac9f9604b7b",
+      "notebooks/baseline_models.py": "25d2a40b71da8bb8e5f5443ffaa3c19e46c6d173447085981cc1808ab9163cc5",
+      "notebooks/experiment_harness.py": "09e98611733befdadf17b716579d81d95b9fd95c072a138878e5e4281913285d",
+      "notebooks/research_collection.py": "1615f59938e18908b644b6007ea2fac3b0cd815b41ace7633b03fb2c962fd0ff",
+      "scripts/run-exp03-official.py": "ec3a9d0e4989385f2ba2c6614983408451b7b3ace8eae5af0081620d2827e45e"
+    }
+  },
+  "code_version": "4a324b886a543347bbaafa6fdf5a07505de1c529",
+  "created_at_utc": "2026-11-18T04:18:39.349332+00:00",
   "dataset": {
     "checksums_sha256": "4768e500754c569bc951f23e2ac14fa9b9703ae69fbd5f78de06eacbb72f7ae9",
     "collection_id": "col_bd10c69365da841b2cf6a62172e2350a797001eac04ce4bc6f2277a4d150ad98",
@@ -121,7 +178,7 @@
       "unique_candidates_in_multi_sequences": 9649
     },
     "resolved_unique_aftershocks": 88222,
-    "runtime_seconds": 62.7525,
+    "runtime_seconds": 39.6075,
     "shard_count": 2,
     "shard_runs": {
       "shard_00000": {
@@ -129,9 +186,9 @@
         "membership_row_count": 85972,
         "nested_mainshocks_count": 13,
         "raw_aftershocks": 53046,
-        "relative_dir": "shards/shard_00000",
+        "relative_dir": "hdbscan_adaptive_shards/shard_00000",
         "resolved_unique_aftershocks": 45288,
-        "run_id": "exp_run_7981f385cc8dba1effcd992bf6033f61",
+        "run_id": "exp_run_b0e755065b1d241749634e754eb5003e",
         "successful_windows": 61,
         "summary_row_count": 87,
         "total_sequence_members": 65266
@@ -141,9 +198,9 @@
         "membership_row_count": 70738,
         "nested_mainshocks_count": 10,
         "raw_aftershocks": 45749,
-        "relative_dir": "shards/shard_00001",
+        "relative_dir": "hdbscan_adaptive_shards/shard_00001",
         "resolved_unique_aftershocks": 42934,
-        "run_id": "exp_run_b3ee65e6fa5269aa5a2795c6f579d4ae",
+        "run_id": "exp_run_cf9117b7016b3f54145a5cb60c1a9815",
         "successful_windows": 70,
         "summary_row_count": 107,
         "total_sequence_members": 50370
@@ -158,16 +215,16 @@
     "total_windows": 194,
     "windows_processed": 194
   },
-  "report_version": "exp-03-official-v1",
+  "report_version": "exp-03-official-v2",
   "scientific_approval": false,
   "shard_verifications": {
     "shard_00000": {
       "checksums": {
-        "experiment_config.json": "a420b6a1827bd3a1ca503d05d1aad5cb3cd981a2e4d928c0f7f2fbd279572616",
-        "experiment_metrics.json": "d578e579b1e449bea0a205bc5c05c6cb23a1c2087cfeb266aa4e8e4edb0d3563",
-        "memberships.parquet": "ba31035e4d0d6c376a52d8304335561995cb153c320e2aa0ec7b180ac38110e3",
+        "experiment_config.json": "5ecc1a53ec956ae06bbb4a8975e13b82a4ce721c11942099b0d21d16c40847dd",
+        "experiment_metrics.json": "f5563aae8d422dc3d112810676ef4270ccf13c6671fe62561ca889b8533435ff",
+        "memberships.parquet": "76bef558f09d8a71055a302cf69dbf864b758e97f56f11895baa0f4082274fdf",
         "requirements-lock.txt": "a18209bc5034cd643c892e8a492a12de787fc0fae7dfa79e05132f1500f77d9d",
-        "sequence_summary.parquet": "39a03cda67195b355b0e5e7ff3d38a35a095a7cb72b053d13d4d83318cab9769"
+        "sequence_summary.parquet": "85f3a2af867ab27264a24325ad596885385fef5e66a8b970361c1fdbca8f0a29"
       },
       "collection_scope": {
         "collection_id": "col_bd10c69365da841b2cf6a62172e2350a797001eac04ce4bc6f2277a4d150ad98",
@@ -175,19 +232,19 @@
         "shard_id": "shard_00000",
         "version": "dat03-collection-export-v1"
       },
-      "experiment_run_id": "exp_run_7981f385cc8dba1effcd992bf6033f61",
+      "experiment_run_id": "exp_run_b0e755065b1d241749634e754eb5003e",
       "membership_row_count": 85972,
-      "relative_dir": "shards/shard_00000",
-      "success_marker_sha256": "a6f8d8c7a3fe4a0588308ed025be055033c40752d03775bc5bbae61e1096bd33",
+      "relative_dir": "hdbscan_adaptive_shards/shard_00000",
+      "success_marker_sha256": "cc32cc67d11661eb9457c545c82a677257629b5364b082ffb277a3ddd9a2765b",
       "summary_row_count": 87
     },
     "shard_00001": {
       "checksums": {
-        "experiment_config.json": "9565b05ec67da012ef34aaf2eb8bc4370e48bb7272766c90f93f5641d12122ba",
-        "experiment_metrics.json": "44f79412997aa6c751c961fd0c12dfc348022d423cad5168810379f5516818b5",
-        "memberships.parquet": "93212920cad7e13fda9fede070e051f5e1ecc34f641cf0d443c925ea52f18a1f",
+        "experiment_config.json": "36e86044d2962399d99ed8f9d30926b8f1bcba251eb1285205eaa10bf9c3fb58",
+        "experiment_metrics.json": "e1467e48e0e003e86f9ca6f0933c3bf0dc79ba0b40600bbd8fef29c3243039c5",
+        "memberships.parquet": "eb97e5ec304fe2c4ed0aa8c557b11c8be61923cf55081d5121ca88c579ae58cf",
         "requirements-lock.txt": "a18209bc5034cd643c892e8a492a12de787fc0fae7dfa79e05132f1500f77d9d",
-        "sequence_summary.parquet": "cb076bf44a289bfd509600cf84a8ff3972868c9e5ea36097b804e45b8693bb41"
+        "sequence_summary.parquet": "7d99c8caba810ed6d800fb3d22d1cfc56a45e66d32567cda84ac3ffc70c6e269"
       },
       "collection_scope": {
         "collection_id": "col_bd10c69365da841b2cf6a62172e2350a797001eac04ce4bc6f2277a4d150ad98",
@@ -195,10 +252,10 @@
         "shard_id": "shard_00001",
         "version": "dat03-collection-export-v1"
       },
-      "experiment_run_id": "exp_run_b3ee65e6fa5269aa5a2795c6f579d4ae",
+      "experiment_run_id": "exp_run_cf9117b7016b3f54145a5cb60c1a9815",
       "membership_row_count": 70738,
-      "relative_dir": "shards/shard_00001",
-      "success_marker_sha256": "c3e252bdd3d5b3c754a8b43df8b20ccb489a7d314ed50795a367f9b7d7d4e81b",
+      "relative_dir": "hdbscan_adaptive_shards/shard_00001",
+      "success_marker_sha256": "dc61c74d77d599aeea9a53329aa06ece76e14ebbafd53f6a1341f1913855a014",
       "summary_row_count": 107
     }
   },

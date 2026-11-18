@@ -1,5 +1,5 @@
 {
-  "report_version": "exp-04-official-v1",
+  "report_version": "exp-04-official-v2",
   "task_id": "EXP-04",
   "status": "PASSED",
   "evaluation_scope": "OFFICIAL_RESEARCH",
@@ -35,79 +35,69 @@
       "nbformat": "5.10.4",
       "nbclient": "0.10.2"
     },
-    "code_version": "a9c0d4ef07616279f8b2bf487a294258a8021e03",
+    "code_version": "4a324b886a543347bbaafa6fdf5a07505de1c529",
     "random_seed": 42,
-    "timestamp_utc": "2026-11-17T18:29:43.721612+00:00",
+    "timestamp_utc": "2026-11-18T04:19:24.205770+00:00",
     "vector_columns": [
       "x_scaled",
       "y_scaled",
       "z_scaled",
       "time_scaled"
     ],
-    "is_clean_code": false,
+    "is_clean_code": true,
     "critical_code_hashes": {
-      "notebooks/evaluation.py": "2efdbfe73f9dfd20cc8f8b7c8715ca05f90ce076bbef5c8cc19fd10c60544767",
-      "scripts/evaluate-models.py": "182f0b845f8d7001324c49e3e7fad3f4a92cfd3d661ff70ecc8daf2a3c8c205b",
-      "notebooks/baseline_models.py": "e6bdebe5de913eef0fe9c6722949a205f5b47577d1023f740f8e54c36e205aaa",
-      "notebooks/adaptive_hdbscan.py": "9197e7219f2edd612296bb85bf2a21d3c4fd24a64ec233877540e3de2b7599c4",
-      "notebooks/experiment_harness.py": "84888083b1c694d52bc39fb04c33ac8411a6769966dae8fcd5dc83263c0c59e6"
+      "notebooks/evaluation.py": "b3286b06bd38f3c0b78e0f224cd50010d11d3d111570a25c7362d297d9480ef4",
+      "scripts/evaluate-models.py": "33e18d2ac1348f5ff005c5e08654d97383d9ff44c5e04e72a4275ea6779a5ca4",
+      "notebooks/baseline_models.py": "25d2a40b71da8bb8e5f5443ffaa3c19e46c6d173447085981cc1808ab9163cc5",
+      "notebooks/adaptive_hdbscan.py": "cbb2c62b7b40cb51c4a91c1a630fbe87c8b92600d8fd603c05b3cac9f9604b7b",
+      "notebooks/experiment_harness.py": "09e98611733befdadf17b716579d81d95b9fd95c072a138878e5e4281913285d"
     }
   },
   "code_provenance": {
-    "git_commit": "a9c0d4ef07616279f8b2bf487a294258a8021e03",
-    "is_clean_code": false,
-    "clean_verification_status": "DIRTY_OR_UNVERIFIED",
-    "dirty_files": [
-      "notebooks/adaptive_hdbscan.py",
-      "notebooks/baseline_models.py",
-      "notebooks/evaluation.py",
-      "scripts/evaluate-models.py"
-    ],
+    "git_commit": "4a324b886a543347bbaafa6fdf5a07505de1c529",
+    "is_clean_code": true,
+    "clean_verification_status": "VERIFIED_CLEAN",
+    "dirty_files": [],
     "missing_files": [],
-    "blob_mismatches": [
-      "notebooks/evaluation.py",
-      "scripts/evaluate-models.py",
-      "notebooks/baseline_models.py",
-      "notebooks/adaptive_hdbscan.py"
-    ],
+    "blob_mismatches": [],
     "critical_code_hashes": {
-      "notebooks/evaluation.py": "2efdbfe73f9dfd20cc8f8b7c8715ca05f90ce076bbef5c8cc19fd10c60544767",
-      "scripts/evaluate-models.py": "182f0b845f8d7001324c49e3e7fad3f4a92cfd3d661ff70ecc8daf2a3c8c205b",
-      "notebooks/baseline_models.py": "e6bdebe5de913eef0fe9c6722949a205f5b47577d1023f740f8e54c36e205aaa",
-      "notebooks/adaptive_hdbscan.py": "9197e7219f2edd612296bb85bf2a21d3c4fd24a64ec233877540e3de2b7599c4",
-      "notebooks/experiment_harness.py": "84888083b1c694d52bc39fb04c33ac8411a6769966dae8fcd5dc83263c0c59e6"
+      "notebooks/evaluation.py": "b3286b06bd38f3c0b78e0f224cd50010d11d3d111570a25c7362d297d9480ef4",
+      "scripts/evaluate-models.py": "33e18d2ac1348f5ff005c5e08654d97383d9ff44c5e04e72a4275ea6779a5ca4",
+      "notebooks/baseline_models.py": "25d2a40b71da8bb8e5f5443ffaa3c19e46c6d173447085981cc1808ab9163cc5",
+      "notebooks/adaptive_hdbscan.py": "cbb2c62b7b40cb51c4a91c1a630fbe87c8b92600d8fd603c05b3cac9f9604b7b",
+      "notebooks/experiment_harness.py": "09e98611733befdadf17b716579d81d95b9fd95c072a138878e5e4281913285d"
     },
     "working_tree_code_hashes": {
-      "notebooks/evaluation.py": "2efdbfe73f9dfd20cc8f8b7c8715ca05f90ce076bbef5c8cc19fd10c60544767",
-      "scripts/evaluate-models.py": "182f0b845f8d7001324c49e3e7fad3f4a92cfd3d661ff70ecc8daf2a3c8c205b",
-      "notebooks/baseline_models.py": "e6bdebe5de913eef0fe9c6722949a205f5b47577d1023f740f8e54c36e205aaa",
-      "notebooks/adaptive_hdbscan.py": "9197e7219f2edd612296bb85bf2a21d3c4fd24a64ec233877540e3de2b7599c4",
-      "notebooks/experiment_harness.py": "84888083b1c694d52bc39fb04c33ac8411a6769966dae8fcd5dc83263c0c59e6"
+      "notebooks/evaluation.py": "b3286b06bd38f3c0b78e0f224cd50010d11d3d111570a25c7362d297d9480ef4",
+      "scripts/evaluate-models.py": "33e18d2ac1348f5ff005c5e08654d97383d9ff44c5e04e72a4275ea6779a5ca4",
+      "notebooks/baseline_models.py": "25d2a40b71da8bb8e5f5443ffaa3c19e46c6d173447085981cc1808ab9163cc5",
+      "notebooks/adaptive_hdbscan.py": "cbb2c62b7b40cb51c4a91c1a630fbe87c8b92600d8fd603c05b3cac9f9604b7b",
+      "notebooks/experiment_harness.py": "09e98611733befdadf17b716579d81d95b9fd95c072a138878e5e4281913285d"
     },
     "normalized_lf_code_hashes": {
-      "notebooks/evaluation.py": "02c3c776e98b0b7c6a6a300c662dcf03218121827e1633baf85e8e62a54b4719",
-      "scripts/evaluate-models.py": "c778c1a0050fac8cec03271caeaf9b160b958e7593e0f68c2735d1c8339e4c61",
-      "notebooks/baseline_models.py": "924bcddd5d738302f67b1d61eafed184b74e0f84498bdfab22806f2a38d7d9a8",
-      "notebooks/adaptive_hdbscan.py": "39950197b832fd525efaab2671204dbb7c830e5372b17eea59cfd041f7f049e8",
-      "notebooks/experiment_harness.py": "bc5fd6efb0112813f2a74a8f849d42b7c2e8f7e69cf7dc3758b56bc511b3b55f"
+      "notebooks/evaluation.py": "a8304574fdc0a87c8ce6c0493ea04120645db4146fc5909d493bd9adc04f8d1e",
+      "scripts/evaluate-models.py": "fb6f37b7eaf9ca381a4d416b35ccc5ffce49e78474c533f53d312007be2dfe12",
+      "notebooks/baseline_models.py": "d9e30eda33f74c8eb716167d84ad97269d7ff6d0916d713e5d48cb418451e3a7",
+      "notebooks/adaptive_hdbscan.py": "6f49663dfb080214bd4375fdf27bcdef7a58b47eff06352911531d237bf6d5e1",
+      "notebooks/experiment_harness.py": "1dfc4cbc394e9b2c5ef5ce9e403750267e0053314ccc25f32550bdb811e2c2af"
     },
     "git_blob_hashes": {
-      "notebooks/evaluation.py": "79178147c8c69132202ff729bc259fe23ef7468d",
-      "scripts/evaluate-models.py": "5fa4adb776933fcf22a3177dcb57a1346beb2146",
-      "notebooks/baseline_models.py": "10d3046f3d9bdd74356e0208e3c330f0c19ff458",
-      "notebooks/adaptive_hdbscan.py": "cb3c3773fe31c078b9219d2378d09f75dfe063c1",
-      "notebooks/experiment_harness.py": "aa6934e456fb5b97ef0c7550847808e40a8fe920",
+      "notebooks/evaluation.py": "eb255c51e9e875e9aad1976680ba576d73c59ceb",
+      "scripts/evaluate-models.py": "815471a11b251b574f989c185ce5f58bf04e1fcf",
+      "notebooks/baseline_models.py": "174c8edfebc424d260f4a9d893109c5becd40797",
+      "notebooks/adaptive_hdbscan.py": "c7a0412477c5bf5c133c05169b6694f99040aee0",
+      "notebooks/experiment_harness.py": "1a81e66f8c20e01cf28d5254bf603e86894aebcb",
       "config/ml/models/window_baseline_v1.json": "2c5dd1877c74dc8551610941df6e59d46b11f618",
       "config/ml/models/dbscan_global_dev_v1.json": "13cfc6c04dbae9717a4530649a87504f14885c25",
       "config/ml/models/hdbscan_global_dev_v1.json": "eeb8a0cdc4db7224391c858de5272e77a5e08183",
       "config/ml/models/hdbscan_adaptive_dev_v1.json": "042f3d1359e8b038ddd68963049bcd46f9ac405c"
     },
     "head_blob_hashes": {
-      "notebooks/evaluation.py": "52ed9dd8cff595fc5e9397238810f24eab541fa6",
-      "scripts/evaluate-models.py": "4fd2006abc820c3812b621b05873c4ebdc720505",
-      "notebooks/baseline_models.py": "da2f61e580d5b67041e2d10db0c46dd69ecc0108",
-      "notebooks/adaptive_hdbscan.py": "0611002c83fff6757461478908645b5c03db5852",
-      "notebooks/experiment_harness.py": "aa6934e456fb5b97ef0c7550847808e40a8fe920",
+      "notebooks/evaluation.py": "eb255c51e9e875e9aad1976680ba576d73c59ceb",
+      "scripts/evaluate-models.py": "815471a11b251b574f989c185ce5f58bf04e1fcf",
+      "notebooks/baseline_models.py": "174c8edfebc424d260f4a9d893109c5becd40797",
+      "notebooks/adaptive_hdbscan.py": "c7a0412477c5bf5c133c05169b6694f99040aee0",
+      "notebooks/experiment_harness.py": "1a81e66f8c20e01cf28d5254bf603e86894aebcb",
       "config/ml/models/window_baseline_v1.json": "2c5dd1877c74dc8551610941df6e59d46b11f618",
       "config/ml/models/dbscan_global_dev_v1.json": "13cfc6c04dbae9717a4530649a87504f14885c25",
       "config/ml/models/hdbscan_global_dev_v1.json": "eeb8a0cdc4db7224391c858de5272e77a5e08183",
@@ -125,35 +115,39 @@
   "algorithm_config_pins": {
     "WINDOW": {
       "config_path": "config/ml/models/window_baseline_v1.json",
+      "algorithm_name": "WINDOW",
       "model_config_version": "window-baseline-v1",
       "algorithm_version": "1.0.0",
       "config_sha256": "78feda8112fd4a687be8383cc100faa20fdc0f0ae7a9d54a312a4868d703ad40",
       "file_bytes_sha256": "78feda8112fd4a687be8383cc100faa20fdc0f0ae7a9d54a312a4868d703ad40",
-      "canonical_config_sha256": "2307ac48bb5583f0f01ec8a02b108138718d1ddd3dea9ef8802a61988466a934"
+      "canonical_config_sha256": "dfa2ee1635fc19a9f8ac438223245e5695d91110be622f6e67b0e58b89200a24"
     },
     "DBSCAN": {
       "config_path": "config/ml/models/dbscan_global_dev_v1.json",
+      "algorithm_name": "DBSCAN",
       "model_config_version": "dbscan-global-dev-v1",
       "algorithm_version": "1.0.0",
       "config_sha256": "f089d928f4ace1c695207b1b4200f03c34e782a9fef3069f9da4518fcf5dcba1",
       "file_bytes_sha256": "f089d928f4ace1c695207b1b4200f03c34e782a9fef3069f9da4518fcf5dcba1",
-      "canonical_config_sha256": "0f280869d059dd2d61790a33695f17d3ef55d75e90a6e768d6ac6dc34592b451"
+      "canonical_config_sha256": "8b5408356c8dbb711e4760e9160011e19b0518dfef1bfeae1b2a2ce2cdfb8de0"
     },
     "HDBSCAN_GLOBAL": {
       "config_path": "config/ml/models/hdbscan_global_dev_v1.json",
+      "algorithm_name": "HDBSCAN_GLOBAL",
       "model_config_version": "hdbscan-global-dev-v1",
       "algorithm_version": "1.0.0",
       "config_sha256": "10d2b375d66c8c95a6388c8dbda068dfebc1a492bcfd27df8bd5e1c8a20829f2",
       "file_bytes_sha256": "10d2b375d66c8c95a6388c8dbda068dfebc1a492bcfd27df8bd5e1c8a20829f2",
-      "canonical_config_sha256": "52672a9974954e055022fabe8beb433d044b0df836bb5e6eed95a57685906a72"
+      "canonical_config_sha256": "0d05d137dab9702d8ff5fc5522ef9cd19bd3eafe8699c6c5d956eea848780ba8"
     },
     "HDBSCAN_ADAPTIVE": {
       "config_path": "config/ml/models/hdbscan_adaptive_dev_v1.json",
+      "algorithm_name": "HDBSCAN_ADAPTIVE",
       "model_config_version": "hdbscan-adaptive-dev-v1",
       "algorithm_version": "1.0.0",
       "config_sha256": "41a4232ad6e4ae50505f14f8af2ea5cbd9353c0dc43ce6f3776d539977adbd65",
       "file_bytes_sha256": "41a4232ad6e4ae50505f14f8af2ea5cbd9353c0dc43ce6f3776d539977adbd65",
-      "canonical_config_sha256": "55c8077ef11023de79a9e2d9935d3168bce9c4b3fa9b32c23bad3ade79f57a3d"
+      "canonical_config_sha256": "22ed180c746ff9656dfd04027e582cd167ccdec26db332cc16946eb143df418a"
     }
   },
   "evaluation_parameters": {
@@ -163,7 +157,7 @@
     "min_omori_aftershocks": 5
   },
   "frozen_extension_rule": {
-    "rule_version": "exp04-frozen-reproduction-rule-v1",
+    "rule_version": "exp04-frozen-reproduction-rule-v2",
     "frozen_from_split": "REPRODUCTION",
     "frozen_from_dataset_id": "ds_907fe748fafdfc0f072ce4db4e1cf0aa619ed18877129e17c8440b43062c3d87",
     "frozen_from_collection_id": "col_bd10c69365da841b2cf6a62172e2350a797001eac04ce4bc6f2277a4d150ad98",
@@ -181,28 +175,28 @@
         "model_config_version": "window-baseline-v1",
         "algorithm_version": "1.0.0",
         "file_bytes_sha256": "78feda8112fd4a687be8383cc100faa20fdc0f0ae7a9d54a312a4868d703ad40",
-        "canonical_config_sha256": "2307ac48bb5583f0f01ec8a02b108138718d1ddd3dea9ef8802a61988466a934"
+        "canonical_config_sha256": "dfa2ee1635fc19a9f8ac438223245e5695d91110be622f6e67b0e58b89200a24"
       },
       "DBSCAN": {
         "config_path": "config/ml/models/dbscan_global_dev_v1.json",
         "model_config_version": "dbscan-global-dev-v1",
         "algorithm_version": "1.0.0",
         "file_bytes_sha256": "f089d928f4ace1c695207b1b4200f03c34e782a9fef3069f9da4518fcf5dcba1",
-        "canonical_config_sha256": "0f280869d059dd2d61790a33695f17d3ef55d75e90a6e768d6ac6dc34592b451"
+        "canonical_config_sha256": "8b5408356c8dbb711e4760e9160011e19b0518dfef1bfeae1b2a2ce2cdfb8de0"
       },
       "HDBSCAN_GLOBAL": {
         "config_path": "config/ml/models/hdbscan_global_dev_v1.json",
         "model_config_version": "hdbscan-global-dev-v1",
         "algorithm_version": "1.0.0",
         "file_bytes_sha256": "10d2b375d66c8c95a6388c8dbda068dfebc1a492bcfd27df8bd5e1c8a20829f2",
-        "canonical_config_sha256": "52672a9974954e055022fabe8beb433d044b0df836bb5e6eed95a57685906a72"
+        "canonical_config_sha256": "0d05d137dab9702d8ff5fc5522ef9cd19bd3eafe8699c6c5d956eea848780ba8"
       },
       "HDBSCAN_ADAPTIVE": {
         "config_path": "config/ml/models/hdbscan_adaptive_dev_v1.json",
         "model_config_version": "hdbscan-adaptive-dev-v1",
         "algorithm_version": "1.0.0",
         "file_bytes_sha256": "41a4232ad6e4ae50505f14f8af2ea5cbd9353c0dc43ce6f3776d539977adbd65",
-        "canonical_config_sha256": "55c8077ef11023de79a9e2d9935d3168bce9c4b3fa9b32c23bad3ade79f57a3d"
+        "canonical_config_sha256": "22ed180c746ff9656dfd04027e582cd167ccdec26db332cc16946eb143df418a"
       }
     },
     "extension_guardrails": {
@@ -215,31 +209,78 @@
     }
   },
   "exp02_cross_verification": {
+    "report_sha256": "a1472cb417b038262df8fcb8cbe0246b1356aa22a4645289aee1b90319bdefb9",
+    "report_sha256_verified": true,
+    "upstream_status": "PASSED",
+    "upstream_evaluation_scope": "OFFICIAL_RESEARCH",
+    "upstream_scientific_approval": false,
+    "upstream_code_version": "4a324b886a543347bbaafa6fdf5a07505de1c529",
+    "upstream_is_clean_code": true,
+    "dataset_and_pins_verified": true,
+    "config_pins_verified": true,
+    "physical_bundles_verified": true,
+    "physical_shards_verified": true,
+    "primary_membership_parity_verified": true,
     "all_algos_exact_match": true,
+    "all_checks_passed": true,
     "algorithms": {
       "WINDOW": {
-        "run_id": "exp_run_b7f44708355e251ec1ff317b1524419d",
+        "run_id": "exp_run_b04ddf3fee79c3ed890b7045c4cf5ea4",
         "matches": true,
         "exp02_aftershocks": 135853,
-        "exp04_aftershocks": 135853
+        "exp04_aftershocks": 135853,
+        "full_bundle_success_sha256": "3cbbcd0fd539285be9915cb54d350f156be39466cec8738fd168505135ade066",
+        "primary_membership_sha256": "1883066761758f2ab555f9c65baef54ac3f9444dffb3afc134929dd6cc5896a9",
+        "primary_window_summary_sha256": "cc70ecec93eba811d2ea90a04f0a4b036f57b6e93ef0106c758674634e3d36b5",
+        "physical_bundle_verified": true,
+        "physical_shards_verified": true,
+        "primary_membership_parity_verified": true
       },
       "DBSCAN": {
-        "run_id": "exp_run_a6e7dc09579ffba9b232c06942c84161",
+        "run_id": "exp_run_d931de9db53233d902e1b8eff431384d",
         "matches": true,
         "exp02_aftershocks": 118487,
-        "exp04_aftershocks": 118487
+        "exp04_aftershocks": 118487,
+        "full_bundle_success_sha256": "4efc600725e45d8b92012c1b717d1b44d0a98d1d882d2b504317ad6d86316b21",
+        "primary_membership_sha256": "67e6bad3e00b0cbe7982022795d28740c6ca703fc98992f9243ea8855e4e9127",
+        "primary_window_summary_sha256": "10e5ec2b114efb63337746146a1b2bd6cee55b6f918335c90de0d57b81e3fb2a",
+        "physical_bundle_verified": true,
+        "physical_shards_verified": true,
+        "primary_membership_parity_verified": true
       },
       "HDBSCAN_GLOBAL": {
-        "run_id": "exp_run_2d3a6a0e31271394b42fb16ae64248c6",
+        "run_id": "exp_run_269004caefa48d43e32818fcc7fe427f",
         "matches": true,
         "exp02_aftershocks": 15118,
-        "exp04_aftershocks": 15118
+        "exp04_aftershocks": 15118,
+        "full_bundle_success_sha256": "d93ad39d0ddc6502b69c7436aa232d5e673632a5425e90bd0e8eff688061340b",
+        "primary_membership_sha256": "18b4c860be3060a6cf6235bae8d891c09b6a0f6c327776e11b81e120b328a795",
+        "primary_window_summary_sha256": "3f6c4545fd035ca91f8ac87bd69d7865b4d4d6b8484d9ff544ca5e889c17cc89",
+        "physical_bundle_verified": true,
+        "physical_shards_verified": true,
+        "primary_membership_parity_verified": true
       }
     }
   },
   "exp03_cross_verification": {
-    "run_id": "exp_run_70637f429d590e2ba8258f56b618ba85",
+    "run_id": "exp_run_293f2720c8a765c7ab6d20243d1b797b",
+    "report_sha256": "e0e1bfeb5cacea1399d3a3ebd0cec167b6f8a69a6bc0f1bbc1706fe47df49697",
+    "report_sha256_verified": true,
+    "upstream_status": "PASSED",
+    "upstream_evaluation_scope": "OFFICIAL_RESEARCH",
+    "upstream_scientific_approval": false,
+    "upstream_code_version": "4a324b886a543347bbaafa6fdf5a07505de1c529",
+    "upstream_is_clean_code": true,
+    "dataset_and_pins_verified": true,
+    "config_pins_verified": true,
+    "physical_bundles_verified": true,
+    "physical_shards_verified": true,
+    "primary_membership_parity_verified": true,
+    "full_bundle_success_sha256": "5dfaefbfd46ced4952ebf6048e0cf5ed2bf1abd6a89b3ffadaabc7cd40c2e072",
+    "primary_membership_sha256": "728132be32f4f209050541731330f218dcd9eb508daf49815fd5d5cb70626f88",
+    "primary_window_summary_sha256": "d101484b3cfca36ce75c9b8fb05073409bd654a9b331c92f59db64bc4f250099",
     "exact_match": true,
+    "all_checks_passed": true,
     "multi_sequence_reconciliation": {
       "aftershocks_deduplicated_count": 10573,
       "ambiguous_aftershocks_count": 0,
@@ -272,7 +313,7 @@
       "gold_snapshot_id": "7580315846938041321",
       "timestamp_reader_profile": "prepared-spark-utc-int96-v1"
     },
-    "evaluated_at_utc": "2026-11-17T18:39:52Z",
+    "evaluated_at_utc": "2026-11-18T04:37:10Z",
     "comparison_table": [
       {
         "Algorithm": "WINDOW",
@@ -287,7 +328,7 @@
         "Omori Fitted Windows": "155/194",
         "Mean Jaccard Stability": "1.0000",
         "Mean ARI Stability": "1.0000",
-        "Runtime (s)": "24.08"
+        "Runtime (s)": "22.51"
       },
       {
         "Algorithm": "DBSCAN",
@@ -297,12 +338,12 @@
         "Failure Rate": "34.0%",
         "Total Aftershocks": 118487,
         "Mean Noise Ratio": "20.6%",
-        "Mean DBCV": "0.1195",
+        "Mean DBCV": "0.0912",
         "Mean Omori p": "0.70",
         "Omori Fitted Windows": "106/194",
         "Mean Jaccard Stability": "0.9743",
         "Mean ARI Stability": "0.9456",
-        "Runtime (s)": "148.84"
+        "Runtime (s)": "181.77"
       },
       {
         "Algorithm": "HDBSCAN_GLOBAL",
@@ -312,12 +353,12 @@
         "Failure Rate": "26.8%",
         "Total Aftershocks": 15118,
         "Mean Noise Ratio": "16.0%",
-        "Mean DBCV": "0.3244",
+        "Mean DBCV": "0.3195",
         "Mean Omori p": "0.82",
         "Omori Fitted Windows": "99/194",
         "Mean Jaccard Stability": "0.8718",
         "Mean ARI Stability": "0.8164",
-        "Runtime (s)": "203.51"
+        "Runtime (s)": "407.32"
       },
       {
         "Algorithm": "HDBSCAN_ADAPTIVE",
@@ -327,12 +368,12 @@
         "Failure Rate": "32.5%",
         "Total Aftershocks": 98795,
         "Mean Noise Ratio": "31.9%",
-        "Mean DBCV": "0.3178",
+        "Mean DBCV": "0.3056",
         "Mean Omori p": "0.71",
         "Omori Fitted Windows": "124/194",
         "Mean Jaccard Stability": "0.9342",
         "Mean ARI Stability": "0.8727",
-        "Runtime (s)": "222.01"
+        "Runtime (s)": "436.42"
       }
     ],
     "algorithm_details": {
@@ -363,7 +404,9 @@
         "mean_ari_stability": 1.0,
         "stability_computed_windows": 194,
         "stability_reason_counts": {},
-        "runtime_seconds": 24.0769,
+        "primary_membership_sha256": "1883066761758f2ab555f9c65baef54ac3f9444dffb3afc134929dd6cc5896a9",
+        "primary_window_summary_sha256": "cc70ecec93eba811d2ea90a04f0a4b036f57b6e93ef0106c758674634e3d36b5",
+        "runtime_seconds": 22.5145,
         "window_evaluations": [
           {
             "mainshock_id": "evt_000330c473767daca9c833120089a1d6",
@@ -8674,7 +8717,7 @@
         "total_candidates": 156710,
         "total_aftershocks": 118487,
         "mean_noise_ratio": 0.2063,
-        "mean_dbcv_score": 0.1195,
+        "mean_dbcv_score": 0.0912,
         "dbcv_computed_windows": 98,
         "dbcv_reason_counts": {
           "METRIC_FIT_FAILED": 49,
@@ -8690,7 +8733,9 @@
         "mean_ari_stability": 0.9456,
         "stability_computed_windows": 194,
         "stability_reason_counts": {},
-        "runtime_seconds": 148.8418,
+        "primary_membership_sha256": "67e6bad3e00b0cbe7982022795d28740c6ca703fc98992f9243ea8855e4e9127",
+        "primary_window_summary_sha256": "10e5ec2b114efb63337746146a1b2bd6cee55b6f918335c90de0d57b81e3fb2a",
+        "runtime_seconds": 181.7726,
         "window_evaluations": [
           {
             "mainshock_id": "evt_000330c473767daca9c833120089a1d6",
@@ -10369,7 +10414,7 @@
             "failure_reason_code": null,
             "aftershock_count": 5122,
             "noise_ratio": 0.004111321948134092,
-            "dbcv_score": 0.5987,
+            "dbcv_score": 0.2046,
             "dbcv_reason_codes": [],
             "omori_fit": {
               "omori_k": 7.946,
@@ -10575,7 +10620,7 @@
             "failure_reason_code": null,
             "aftershock_count": 28735,
             "noise_ratio": 0.007927111751685798,
-            "dbcv_score": -0.5633,
+            "dbcv_score": -0.6523,
             "dbcv_reason_codes": [],
             "omori_fit": {
               "omori_k": 395.1865,
@@ -10909,7 +10954,7 @@
             "failure_reason_code": null,
             "aftershock_count": 6749,
             "noise_ratio": 0.02580813347236705,
-            "dbcv_score": -0.4705,
+            "dbcv_score": -0.6365,
             "dbcv_reason_codes": [],
             "omori_fit": {
               "omori_k": 11.1775,
@@ -11449,7 +11494,7 @@
             "failure_reason_code": null,
             "aftershock_count": 1930,
             "noise_ratio": 0.003067484662576687,
-            "dbcv_score": 0.0066,
+            "dbcv_score": -0.2482,
             "dbcv_reason_codes": [],
             "omori_fit": {
               "omori_k": 4.3779,
@@ -11947,7 +11992,7 @@
             "failure_reason_code": null,
             "aftershock_count": 3244,
             "noise_ratio": 0.003905233012236397,
-            "dbcv_score": -0.3005,
+            "dbcv_score": -0.5611,
             "dbcv_reason_codes": [],
             "omori_fit": {
               "omori_k": 3.8967,
@@ -12317,7 +12362,7 @@
             "failure_reason_code": null,
             "aftershock_count": 15135,
             "noise_ratio": 0.02076328941390277,
-            "dbcv_score": -0.4712,
+            "dbcv_score": -0.716,
             "dbcv_reason_codes": [],
             "omori_fit": {
               "omori_k": 790.2925,
@@ -12401,7 +12446,7 @@
             "failure_reason_code": null,
             "aftershock_count": 18178,
             "noise_ratio": 0.0028499661868418512,
-            "dbcv_score": 0.2206,
+            "dbcv_score": -0.0458,
             "dbcv_reason_codes": [],
             "omori_fit": {
               "omori_k": 18.3555,
@@ -13879,7 +13924,7 @@
             "failure_reason_code": null,
             "aftershock_count": 2970,
             "noise_ratio": 0.005529953917050691,
-            "dbcv_score": 0.2817,
+            "dbcv_score": -0.2158,
             "dbcv_reason_codes": [],
             "omori_fit": {
               "omori_k": 17.3445,
@@ -14433,7 +14478,7 @@
             "failure_reason_code": null,
             "aftershock_count": 1551,
             "noise_ratio": 0.015356820234869015,
-            "dbcv_score": 0.1679,
+            "dbcv_score": -0.4325,
             "dbcv_reason_codes": [],
             "omori_fit": {
               "omori_k": 1.877,
@@ -16889,7 +16934,7 @@
         "total_candidates": 156710,
         "total_aftershocks": 15118,
         "mean_noise_ratio": 0.1595,
-        "mean_dbcv_score": 0.3244,
+        "mean_dbcv_score": 0.3195,
         "dbcv_computed_windows": 101,
         "dbcv_reason_counts": {
           "METRIC_FIT_FAILED": 65,
@@ -16905,7 +16950,9 @@
         "mean_ari_stability": 0.8164,
         "stability_computed_windows": 194,
         "stability_reason_counts": {},
-        "runtime_seconds": 203.5085,
+        "primary_membership_sha256": "18b4c860be3060a6cf6235bae8d891c09b6a0f6c327776e11b81e120b328a795",
+        "primary_window_summary_sha256": "3f6c4545fd035ca91f8ac87bd69d7865b4d4d6b8484d9ff544ca5e889c17cc89",
+        "runtime_seconds": 407.3212,
         "window_evaluations": [
           {
             "mainshock_id": "evt_000330c473767daca9c833120089a1d6",
@@ -17044,7 +17091,7 @@
             "failure_reason_code": null,
             "aftershock_count": 29,
             "noise_ratio": 0.19678714859437751,
-            "dbcv_score": 0.3516,
+            "dbcv_score": 0.3087,
             "dbcv_reason_codes": [],
             "omori_fit": {
               "omori_k": 7.5345,
@@ -17252,7 +17299,7 @@
             "failure_reason_code": null,
             "aftershock_count": 5,
             "noise_ratio": 0.35739561217268223,
-            "dbcv_score": 0.1964,
+            "dbcv_score": 0.1865,
             "dbcv_reason_codes": [],
             "omori_fit": {
               "omori_k": 1.1783,
@@ -17292,7 +17339,7 @@
             "failure_reason_code": null,
             "aftershock_count": 6,
             "noise_ratio": 0.3163163163163163,
-            "dbcv_score": 0.1967,
+            "dbcv_score": 0.1926,
             "dbcv_reason_codes": [],
             "omori_fit": {
               "omori_k": 9.3246,
@@ -17746,7 +17793,7 @@
             "failure_reason_code": null,
             "aftershock_count": 3,
             "noise_ratio": 0.21052631578947367,
-            "dbcv_score": 0.2768,
+            "dbcv_score": 0.2627,
             "dbcv_reason_codes": [],
             "omori_fit": {
               "omori_k": null,
@@ -17872,7 +17919,7 @@
             "failure_reason_code": null,
             "aftershock_count": 12,
             "noise_ratio": 0.3130211674150096,
-            "dbcv_score": 0.1722,
+            "dbcv_score": 0.1599,
             "dbcv_reason_codes": [],
             "omori_fit": {
               "omori_k": 1.3091,
@@ -17954,7 +18001,7 @@
             "failure_reason_code": null,
             "aftershock_count": 10,
             "noise_ratio": 0.21532846715328466,
-            "dbcv_score": 0.2702,
+            "dbcv_score": 0.2291,
             "dbcv_reason_codes": [],
             "omori_fit": {
               "omori_k": 12.3277,
@@ -18036,7 +18083,7 @@
             "failure_reason_code": null,
             "aftershock_count": 1,
             "noise_ratio": 0.28894080996884736,
-            "dbcv_score": 0.2123,
+            "dbcv_score": 0.1975,
             "dbcv_reason_codes": [],
             "omori_fit": {
               "omori_k": null,
@@ -18498,7 +18545,7 @@
             "failure_reason_code": null,
             "aftershock_count": 53,
             "noise_ratio": 0.23411562678878076,
-            "dbcv_score": 0.3078,
+            "dbcv_score": 0.2738,
             "dbcv_reason_codes": [],
             "omori_fit": {
               "omori_k": 9.6728,
@@ -18578,7 +18625,7 @@
             "failure_reason_code": null,
             "aftershock_count": 19,
             "noise_ratio": 0.26154332700822264,
-            "dbcv_score": 0.2372,
+            "dbcv_score": 0.2163,
             "dbcv_reason_codes": [],
             "omori_fit": {
               "omori_k": 2.0126,
@@ -18782,7 +18829,7 @@
             "failure_reason_code": "EXP_MAINSHOCK_CLASSIFIED_AS_NOISE",
             "aftershock_count": 0,
             "noise_ratio": null,
-            "dbcv_score": 0.1839,
+            "dbcv_score": 0.1694,
             "dbcv_reason_codes": [],
             "omori_fit": {
               "omori_k": null,
@@ -19120,7 +19167,7 @@
             "failure_reason_code": null,
             "aftershock_count": 6,
             "noise_ratio": 0.31895203336809175,
-            "dbcv_score": 0.199,
+            "dbcv_score": 0.1888,
             "dbcv_reason_codes": [],
             "omori_fit": {
               "omori_k": 207.6812,
@@ -19374,7 +19421,7 @@
             "failure_reason_code": "EXP_MAINSHOCK_CLASSIFIED_AS_NOISE",
             "aftershock_count": 0,
             "noise_ratio": null,
-            "dbcv_score": 0.3411,
+            "dbcv_score": 0.3387,
             "dbcv_reason_codes": [],
             "omori_fit": {
               "omori_k": null,
@@ -19458,7 +19505,7 @@
             "failure_reason_code": "EXP_MAINSHOCK_CLASSIFIED_AS_NOISE",
             "aftershock_count": 0,
             "noise_ratio": null,
-            "dbcv_score": 0.1498,
+            "dbcv_score": 0.1371,
             "dbcv_reason_codes": [],
             "omori_fit": {
               "omori_k": null,
@@ -19670,7 +19717,7 @@
             "failure_reason_code": null,
             "aftershock_count": 13,
             "noise_ratio": 0.34925503943908853,
-            "dbcv_score": 0.1604,
+            "dbcv_score": 0.1466,
             "dbcv_reason_codes": [],
             "omori_fit": {
               "omori_k": 233.5641,
@@ -19710,7 +19757,7 @@
             "failure_reason_code": "EXP_MAINSHOCK_CLASSIFIED_AS_NOISE",
             "aftershock_count": 0,
             "noise_ratio": null,
-            "dbcv_score": 0.2035,
+            "dbcv_score": 0.1897,
             "dbcv_reason_codes": [],
             "omori_fit": {
               "omori_k": null,
@@ -20042,7 +20089,7 @@
             "failure_reason_code": null,
             "aftershock_count": 4,
             "noise_ratio": 0.3394736842105263,
-            "dbcv_score": 0.1992,
+            "dbcv_score": 0.1963,
             "dbcv_reason_codes": [],
             "omori_fit": {
               "omori_k": null,
@@ -20168,7 +20215,7 @@
             "failure_reason_code": null,
             "aftershock_count": 18,
             "noise_ratio": 0.2965373600624837,
-            "dbcv_score": 0.1878,
+            "dbcv_score": 0.1803,
             "dbcv_reason_codes": [],
             "omori_fit": {
               "omori_k": 2.359,
@@ -20332,7 +20379,7 @@
             "failure_reason_code": "EXP_MAINSHOCK_CLASSIFIED_AS_NOISE",
             "aftershock_count": 0,
             "noise_ratio": null,
-            "dbcv_score": 0.2318,
+            "dbcv_score": 0.2041,
             "dbcv_reason_codes": [],
             "omori_fit": {
               "omori_k": null,
@@ -20374,7 +20421,7 @@
             "failure_reason_code": "EXP_MAINSHOCK_CLASSIFIED_AS_NOISE",
             "aftershock_count": 0,
             "noise_ratio": null,
-            "dbcv_score": 0.161,
+            "dbcv_score": 0.145,
             "dbcv_reason_codes": [],
             "omori_fit": {
               "omori_k": null,
@@ -20544,7 +20591,7 @@
             "failure_reason_code": "EXP_MAINSHOCK_CLASSIFIED_AS_NOISE",
             "aftershock_count": 0,
             "noise_ratio": null,
-            "dbcv_score": 0.1916,
+            "dbcv_score": 0.1781,
             "dbcv_reason_codes": [],
             "omori_fit": {
               "omori_k": null,
@@ -20628,7 +20675,7 @@
             "failure_reason_code": "EXP_MAINSHOCK_CLASSIFIED_AS_NOISE",
             "aftershock_count": 0,
             "noise_ratio": null,
-            "dbcv_score": 0.2351,
+            "dbcv_score": 0.2176,
             "dbcv_reason_codes": [],
             "omori_fit": {
               "omori_k": null,
@@ -20928,7 +20975,7 @@
             "failure_reason_code": null,
             "aftershock_count": 2,
             "noise_ratio": 0.24324324324324326,
-            "dbcv_score": 0.2651,
+            "dbcv_score": 0.2314,
             "dbcv_reason_codes": [],
             "omori_fit": {
               "omori_k": null,
@@ -21568,7 +21615,7 @@
             "failure_reason_code": null,
             "aftershock_count": 8,
             "noise_ratio": 0.18157181571815717,
-            "dbcv_score": 0.2612,
+            "dbcv_score": 0.2521,
             "dbcv_reason_codes": [],
             "omori_fit": {
               "omori_k": 1.4725,
@@ -21608,7 +21655,7 @@
             "failure_reason_code": null,
             "aftershock_count": 2,
             "noise_ratio": 0.3268156424581006,
-            "dbcv_score": 0.1582,
+            "dbcv_score": 0.1457,
             "dbcv_reason_codes": [],
             "omori_fit": {
               "omori_k": null,
@@ -22112,7 +22159,7 @@
             "failure_reason_code": null,
             "aftershock_count": 23,
             "noise_ratio": 0.295852534562212,
-            "dbcv_score": 0.2123,
+            "dbcv_score": 0.2023,
             "dbcv_reason_codes": [],
             "omori_fit": {
               "omori_k": 0.393,
@@ -22278,7 +22325,7 @@
             "failure_reason_code": "EXP_MAINSHOCK_CLASSIFIED_AS_NOISE",
             "aftershock_count": 0,
             "noise_ratio": null,
-            "dbcv_score": 0.1807,
+            "dbcv_score": 0.17,
             "dbcv_reason_codes": [],
             "omori_fit": {
               "omori_k": null,
@@ -22658,7 +22705,7 @@
             "failure_reason_code": null,
             "aftershock_count": 4,
             "noise_ratio": 0.2940379403794038,
-            "dbcv_score": 0.2616,
+            "dbcv_score": 0.2331,
             "dbcv_reason_codes": [],
             "omori_fit": {
               "omori_k": null,
@@ -22948,7 +22995,7 @@
             "failure_reason_code": "EXP_MAINSHOCK_CLASSIFIED_AS_NOISE",
             "aftershock_count": 0,
             "noise_ratio": null,
-            "dbcv_score": 0.1978,
+            "dbcv_score": 0.2004,
             "dbcv_reason_codes": [],
             "omori_fit": {
               "omori_k": null,
@@ -24056,7 +24103,7 @@
             "failure_reason_code": "EXP_MAINSHOCK_CLASSIFIED_AS_NOISE",
             "aftershock_count": 0,
             "noise_ratio": null,
-            "dbcv_score": 0.29,
+            "dbcv_score": 0.2853,
             "dbcv_reason_codes": [],
             "omori_fit": {
               "omori_k": null,
@@ -24554,7 +24601,7 @@
             "failure_reason_code": null,
             "aftershock_count": 28,
             "noise_ratio": 0.28073668491786957,
-            "dbcv_score": 0.2265,
+            "dbcv_score": 0.2023,
             "dbcv_reason_codes": [],
             "omori_fit": {
               "omori_k": 1.6701,
@@ -24926,7 +24973,7 @@
             "failure_reason_code": "EXP_MAINSHOCK_CLASSIFIED_AS_NOISE",
             "aftershock_count": 0,
             "noise_ratio": null,
-            "dbcv_score": 0.1903,
+            "dbcv_score": 0.1724,
             "dbcv_reason_codes": [],
             "omori_fit": {
               "omori_k": null,
@@ -25123,7 +25170,7 @@
         "total_candidates": 156710,
         "total_aftershocks": 98795,
         "mean_noise_ratio": 0.3187,
-        "mean_dbcv_score": 0.3178,
+        "mean_dbcv_score": 0.3056,
         "dbcv_computed_windows": 32,
         "dbcv_reason_counts": {
           "METRIC_FIT_FAILED": 125,
@@ -25139,7 +25186,9 @@
         "mean_ari_stability": 0.8727,
         "stability_computed_windows": 194,
         "stability_reason_counts": {},
-        "runtime_seconds": 222.0123,
+        "primary_membership_sha256": "728132be32f4f209050541731330f218dcd9eb508daf49815fd5d5cb70626f88",
+        "primary_window_summary_sha256": "d101484b3cfca36ce75c9b8fb05073409bd654a9b331c92f59db64bc4f250099",
+        "runtime_seconds": 436.4233,
         "window_evaluations": [
           {
             "mainshock_id": "evt_000330c473767daca9c833120089a1d6",
@@ -26832,7 +26881,7 @@
             "failure_reason_code": null,
             "aftershock_count": 208,
             "noise_ratio": 0.3200506008855155,
-            "dbcv_score": 0.3277,
+            "dbcv_score": 0.1859,
             "dbcv_reason_codes": [],
             "omori_fit": {
               "omori_k": 0.5791,
@@ -28822,7 +28871,7 @@
             "failure_reason_code": null,
             "aftershock_count": 13315,
             "noise_ratio": 0.19654702407996366,
-            "dbcv_score": 0.4619,
+            "dbcv_score": 0.2114,
             "dbcv_reason_codes": [],
             "omori_fit": {
               "omori_k": 1270.6924,
@@ -33371,39 +33420,43 @@
     "algorithm_config_pins": {
       "WINDOW": {
         "config_path": "config/ml/models/window_baseline_v1.json",
+        "algorithm_name": "WINDOW",
         "model_config_version": "window-baseline-v1",
         "algorithm_version": "1.0.0",
         "config_sha256": "78feda8112fd4a687be8383cc100faa20fdc0f0ae7a9d54a312a4868d703ad40",
         "file_bytes_sha256": "78feda8112fd4a687be8383cc100faa20fdc0f0ae7a9d54a312a4868d703ad40",
-        "canonical_config_sha256": "2307ac48bb5583f0f01ec8a02b108138718d1ddd3dea9ef8802a61988466a934"
+        "canonical_config_sha256": "dfa2ee1635fc19a9f8ac438223245e5695d91110be622f6e67b0e58b89200a24"
       },
       "DBSCAN": {
         "config_path": "config/ml/models/dbscan_global_dev_v1.json",
+        "algorithm_name": "DBSCAN",
         "model_config_version": "dbscan-global-dev-v1",
         "algorithm_version": "1.0.0",
         "config_sha256": "f089d928f4ace1c695207b1b4200f03c34e782a9fef3069f9da4518fcf5dcba1",
         "file_bytes_sha256": "f089d928f4ace1c695207b1b4200f03c34e782a9fef3069f9da4518fcf5dcba1",
-        "canonical_config_sha256": "0f280869d059dd2d61790a33695f17d3ef55d75e90a6e768d6ac6dc34592b451"
+        "canonical_config_sha256": "8b5408356c8dbb711e4760e9160011e19b0518dfef1bfeae1b2a2ce2cdfb8de0"
       },
       "HDBSCAN_GLOBAL": {
         "config_path": "config/ml/models/hdbscan_global_dev_v1.json",
+        "algorithm_name": "HDBSCAN_GLOBAL",
         "model_config_version": "hdbscan-global-dev-v1",
         "algorithm_version": "1.0.0",
         "config_sha256": "10d2b375d66c8c95a6388c8dbda068dfebc1a492bcfd27df8bd5e1c8a20829f2",
         "file_bytes_sha256": "10d2b375d66c8c95a6388c8dbda068dfebc1a492bcfd27df8bd5e1c8a20829f2",
-        "canonical_config_sha256": "52672a9974954e055022fabe8beb433d044b0df836bb5e6eed95a57685906a72"
+        "canonical_config_sha256": "0d05d137dab9702d8ff5fc5522ef9cd19bd3eafe8699c6c5d956eea848780ba8"
       },
       "HDBSCAN_ADAPTIVE": {
         "config_path": "config/ml/models/hdbscan_adaptive_dev_v1.json",
+        "algorithm_name": "HDBSCAN_ADAPTIVE",
         "model_config_version": "hdbscan-adaptive-dev-v1",
         "algorithm_version": "1.0.0",
         "config_sha256": "41a4232ad6e4ae50505f14f8af2ea5cbd9353c0dc43ce6f3776d539977adbd65",
         "file_bytes_sha256": "41a4232ad6e4ae50505f14f8af2ea5cbd9353c0dc43ce6f3776d539977adbd65",
-        "canonical_config_sha256": "55c8077ef11023de79a9e2d9935d3168bce9c4b3fa9b32c23bad3ade79f57a3d"
+        "canonical_config_sha256": "22ed180c746ff9656dfd04027e582cd167ccdec26db332cc16946eb143df418a"
       }
     },
     "frozen_extension_rule": {
-      "rule_version": "exp04-frozen-reproduction-rule-v1",
+      "rule_version": "exp04-frozen-reproduction-rule-v2",
       "frozen_from_split": "REPRODUCTION",
       "frozen_from_dataset_id": "ds_907fe748fafdfc0f072ce4db4e1cf0aa619ed18877129e17c8440b43062c3d87",
       "frozen_from_collection_id": "col_bd10c69365da841b2cf6a62172e2350a797001eac04ce4bc6f2277a4d150ad98",
@@ -33421,28 +33474,28 @@
           "model_config_version": "window-baseline-v1",
           "algorithm_version": "1.0.0",
           "file_bytes_sha256": "78feda8112fd4a687be8383cc100faa20fdc0f0ae7a9d54a312a4868d703ad40",
-          "canonical_config_sha256": "2307ac48bb5583f0f01ec8a02b108138718d1ddd3dea9ef8802a61988466a934"
+          "canonical_config_sha256": "dfa2ee1635fc19a9f8ac438223245e5695d91110be622f6e67b0e58b89200a24"
         },
         "DBSCAN": {
           "config_path": "config/ml/models/dbscan_global_dev_v1.json",
           "model_config_version": "dbscan-global-dev-v1",
           "algorithm_version": "1.0.0",
           "file_bytes_sha256": "f089d928f4ace1c695207b1b4200f03c34e782a9fef3069f9da4518fcf5dcba1",
-          "canonical_config_sha256": "0f280869d059dd2d61790a33695f17d3ef55d75e90a6e768d6ac6dc34592b451"
+          "canonical_config_sha256": "8b5408356c8dbb711e4760e9160011e19b0518dfef1bfeae1b2a2ce2cdfb8de0"
         },
         "HDBSCAN_GLOBAL": {
           "config_path": "config/ml/models/hdbscan_global_dev_v1.json",
           "model_config_version": "hdbscan-global-dev-v1",
           "algorithm_version": "1.0.0",
           "file_bytes_sha256": "10d2b375d66c8c95a6388c8dbda068dfebc1a492bcfd27df8bd5e1c8a20829f2",
-          "canonical_config_sha256": "52672a9974954e055022fabe8beb433d044b0df836bb5e6eed95a57685906a72"
+          "canonical_config_sha256": "0d05d137dab9702d8ff5fc5522ef9cd19bd3eafe8699c6c5d956eea848780ba8"
         },
         "HDBSCAN_ADAPTIVE": {
           "config_path": "config/ml/models/hdbscan_adaptive_dev_v1.json",
           "model_config_version": "hdbscan-adaptive-dev-v1",
           "algorithm_version": "1.0.0",
           "file_bytes_sha256": "41a4232ad6e4ae50505f14f8af2ea5cbd9353c0dc43ce6f3776d539977adbd65",
-          "canonical_config_sha256": "55c8077ef11023de79a9e2d9935d3168bce9c4b3fa9b32c23bad3ade79f57a3d"
+          "canonical_config_sha256": "22ed180c746ff9656dfd04027e582cd167ccdec26db332cc16946eb143df418a"
         }
       },
       "extension_guardrails": {
