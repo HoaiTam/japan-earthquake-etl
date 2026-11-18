@@ -26,7 +26,7 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 **17/11 — DAT-03 Done:** đã đối chiếu catalog288tháng, Gold Published/rerun,
 hai official collections EXPORTED và receipt thật cùng kitv4 trên ba máy.
 [Đối chiếu acceptance](../../evidence/DAT-03_FINAL_ACCEPTANCE_20261116.md).
-Hiện67/81Done,5Needs Update,9Backlog,0In Progress sau tích hợp OPS-01. Các mốc bên dưới giữ
+Hiện68/81Done,5Needs Update,7Backlog,1In Progress sau QA-05 và phần chuẩn bị DEMO-01. Các mốc bên dưới giữ
 lịch sử, không thay scientific approval hoặc trạng thái SEC-01/EXP.
 
 **17/11 — OPS-01 Done (HoaiTam):** backup13bảng/77objects/14artifacts và
@@ -35,6 +35,12 @@ schema và secret scan đạt. [Evidence](../../evidence/OPS-01_BACKUP_RESTORE_2
 [hướng dẫn](../../runbooks/OPS-01_BACKUP_RESTORE.md). Scope smoke đại diện,
 không full disaster recovery/official experiment hoặc SEC-01 cloud acceptance.
 DAT-03 closure đã merge [PR #136](https://github.com/HoaiTam/japan-earthquake-etl/pull/136).
+
+**17/11 — QA-05 Done (HoaiTam, local chưa push):** profile chỉ đọc Gold288tháng,
+26SELECTs/118,366s, A/B session concurrency1/2 và17resource samples; không tăng
+OOM, six pins/services giữ nguyên. Giữ concurrency1 và file/tháng hiện có.
+[Evidence](../../evidence/QA-05_RESOURCE_PROFILE_20261117.md),
+[runbook](../../runbooks/QA-05_RESOURCE_PROFILE.md); không full ETL/scientific acceptance.
 
 **16/11 — BI-01 Done (ThanhTris):** Kết nối ODBC Import 8 bảng Power Query M trên Power BI Desktop Windows 11 qua Trino snapshot `pub-202302-001` đã nghiệm thu; giữ scope Stretch connectivity ([evidence](../../evidence/BI-01_POWER_BI_IMPORT.md)).
 
@@ -431,5 +437,5 @@ và portable integration/full catalog/official export đã qua actual acceptance
 | [QA-02](./QA-02.md) - Test rerun, duplicate và late revision | 5 | Idempotency | Core | P0 | 5h | Done |
 | [QA-03](./QA-03.md) - Kiểm thử JMA historical backfill | 5 | Historical backfill | Core | P0 | 5h | Done |
 | [QA-04](./QA-04.md) - Test failure và recovery theo tầng | 5 | Failure recovery | Core | P0 | 4h | Done |
-| [QA-05](./QA-05.md) - Profile dữ liệu lịch sử và tài nguyên local | 8 | Performance | Stretch | P2 | 4h | Backlog |
+| [QA-05](./QA-05.md) - Profile dữ liệu lịch sử và tài nguyên local | 8 | Performance | Stretch | P2 | 4h | Done |
 | [SEC-01](./SEC-01.md) - Review secret và bề mặt truy cập | 4 | Security | Core | P1 | 4h | Needs Update |
