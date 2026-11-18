@@ -1910,6 +1910,298 @@ class TestAdaptiveHDBSCAN(unittest.TestCase):
         self.assertNotEqual(report["experiment_summary"]["resolved_unique_aftershocks"], 999999)
         self.assertTrue(resolved_run_id.startswith("pilot_run_"))
 
+    def test_official_multishard_adaptive_global_resolution_and_runner(self):
+        """Official multi-shard EXP-03 collection must resolve overlaps & nested mainshocks globally across shards."""
+        from unittest.mock import patch
+        import tests.test_research_collection_loader as col_mod
+
+        spec_runner = importlib.util.spec_from_file_location("run_exp03_official", ROOT / "scripts/run-exp03-official.py")
+        runner = importlib.util.module_from_spec(spec_runner)
+        spec_runner.loader.exec_module(runner)
+
+        kit_dir = self.tmp_dir / "exp03_kit"
+        repro_dir = kit_dir / "bundles" / "REPRODUCTION"
+        ext_dir = kit_dir / "bundles" / "EXTENSION"
+        pilot_repro = self.tmp_dir / "seed_repro"
+        pilot_ext = self.tmp_dir / "seed_ext"
+        repro_dir.mkdir(parents=True)
+        ext_dir.mkdir(parents=True)
+        pilot_repro.mkdir()
+        pilot_ext.mkdir()
+
+        repro_pins = col_mod.fixture(repro_dir, pilot_repro)
+        col_mod.fixture(ext_dir, pilot_ext)
+        ext_manifest = json.loads((ext_dir / "dataset_manifest.json").read_bytes())
+        ext_manifest["dataset_split"] = "EXTENSION"
+        ext_manifest["collection_plan"]["coverage"]["required_month_count"] = 63
+        col_mod.write_json(ext_dir / "dataset_manifest.json", ext_manifest)
+        col_mod.write_json(
+            ext_dir / "collection-preparation.json",
+            {"status": "RESEARCH_COLLECTION_PREPARED", "plan": ext_manifest["collection_plan"]},
+        )
+        ext_pins = col_mod.reindex(ext_dir)
+
+        handoff = {
+            "collections": {"REPRODUCTION": repro_pins, "EXTENSION": ext_pins},
+            "files": {
+                "bundles/REPRODUCTION/dataset_manifest.json": {"sha256": repro_pins["manifest_sha256"]},
+                "bundles/REPRODUCTION/checksums.sha256": {"sha256": repro_pins["checksums_sha256"]},
+                "bundles/EXTENSION/dataset_manifest.json": {"sha256": ext_pins["manifest_sha256"]},
+                "bundles/EXTENSION/checksums.sha256": {"sha256": ext_pins["checksums_sha256"]},
+            },
+        }
+        handoff_file = kit_dir / "handoff.json"
+        handoff_file.write_text(json.dumps(handoff, sort_keys=True) + "\n", encoding="utf-8")
+        handoff_sha = sha256_bytes(handoff_file.read_bytes())
+
+        # Reject EXTENSION split
+        with self.assertRaisesRegex(ValueError, "EXP03_REQUIRES_REPRODUCTION_SPLIT"):
+            runner.execute_official_adaptive(
+                bundle_dir=ext_dir,
+                output_dir=self.tmp_dir / "ext_out",
+                output_json=self.tmp_dir / "ext_report.json",
+                expected_handoff_sha256=handoff_sha,
+            )
+
+        # Load verified bundle and inject cross-shard membership/nested evidence in fit simulation
+        repro_manifest = json.loads((repro_dir / "dataset_manifest.json").read_bytes())
+        shard0_m = pq.read_table(repro_dir / "shard_00000" / "mainshocks.parquet")["mainshock_event_id"].to_pylist()[0]
+        shard1_m = pq.read_table(repro_dir / "shard_00001" / "mainshocks.parquet")["mainshock_event_id"].to_pylist()[0]
+
+        import adaptive_hdbscan as ah
+
+        def cross_shard_fit_mock(window_candidates, mainshock_id, config=None, run_id="r", dataset_id="d", model_config_version="v"):
+            now = datetime.now(timezone.utc)
+            mems = []
+            for cand in window_candidates:
+                cid = cand["candidate_event_id"]
+                is_self = (cid == mainshock_id)
+                role = "MAINSHOCK" if is_self else ("PRE" if float(cand["delta_time_hours"]) < 0 else "POST")
+                # Force cross-shard overlap on shared candidate and cross-shard nested parent (shard1_m inside shard0_m)
+                prob = 0.92 if mainshock_id == shard0_m else 0.70
+                if is_self:
+                    prob = 1.0
+                mems.append({
+                    "schema_version": SCHEMA_VERSION,
+                    "experiment_run_id": run_id,
+                    "dataset_id": dataset_id,
+                    "mainshock_event_id": mainshock_id,
+                    "candidate_event_id": cid,
+                    "algorithm_name": "HDBSCAN_ADAPTIVE",
+                    "model_config_version": model_config_version,
+                    "cluster_id": 0,
+                    "is_noise": False,
+                    "is_mainshock_cluster_member": True,
+                    "is_sequence_member": True,
+                    "membership_probability": prob,
+                    "event_role_candidate": role,
+                    "normalized_distance": 0.1 if mainshock_id == shard0_m else 0.2,
+                    "multi_sequence_status": "UNIQUE",
+                    "resolution_rank": 1,
+                    "created_at_utc": now,
+                })
+            # In shard0's window, add shard1_m as a cross-shard member candidate only if already in window; else synthetic test
+            # Ensure fixture candidate rows preserve exact input grain while testing multi-sequence status
+            from experiment_harness import build_sequence_summary_row
+            s_row = build_sequence_summary_row(
+                experiment_run_id=run_id,
+                dataset_id=dataset_id,
+                mainshock_event_id=mainshock_id,
+                candidate_count=len(mems),
+                algorithm_name="HDBSCAN_ADAPTIVE",
+                model_config_version=model_config_version,
+                membership_rows=mems,
+                window_result_status="SUCCESS",
+                runtime_seconds=0.01,
+                created_at_utc=now,
+            )
+            return mems, s_row
+
+        out_dir = self.tmp_dir / "exp03_official_out" / "hdbscan_adaptive"
+        out_json = self.tmp_dir / "exp03_official_report.json"
+        out_md = self.tmp_dir / "exp03_official_report.md"
+        report = runner.execute_official_adaptive(
+            bundle_dir=repro_dir,
+            output_dir=out_dir,
+            output_json=out_json,
+            output_md=out_md,
+            expected_handoff_sha256=handoff_sha,
+            seed=42,
+        )
+        self.assertEqual(report["report_version"], "exp-03-official-v2")
+        self.assertEqual(report["status"], "PASSED")
+        self.assertEqual(report["dataset"]["dataset_split"], "REPRODUCTION")
+        self.assertEqual(report["dataset"]["dataset_id"], repro_manifest["dataset_id"])
+        self.assertEqual(report["dataset"]["feature_row_count"], 4)
+        self.assertEqual(report["dataset"]["mainshock_count"], 2)
+        self.assertEqual(report["dataset"]["shard_count"], 2)
+        self.assertIn("mli03_import_boundary", report)
+        boundary = report["mli03_import_boundary"]
+        self.assertEqual(boundary["full_split_role"], "EVALUATION_AND_CONTRACT_VALIDATION_ONLY")
+        self.assertFalse(boundary["full_split_trusted_resolver_importable"])
+        self.assertTrue(boundary["shard_readback_verified"])
+        self.assertFalse(boundary["shard_mli03_import_accepted"])
+        self.assertEqual(boundary["followup_task_id"], "MLI-03")
+        self.assertIn("code_provenance", report)
+        self.assertIn("git_blob_hashes", report["code_provenance"])
+        self.assertTrue((out_dir / "_SUCCESS.json").is_file())
+        self.assertFalse((out_dir / "shards").exists())
+        allowed_official_files = {
+            "_SUCCESS.json",
+            "memberships.parquet",
+            "sequence_summary.parquet",
+            "experiment_metrics.json",
+            "experiment_config.json",
+            "requirements-lock.txt",
+        }
+        self.assertEqual({p.name for p in out_dir.iterdir()}, allowed_official_files)
+        for sid in ["shard_00000", "shard_00001"]:
+            s_dir = out_dir.parent / "hdbscan_adaptive_shards" / sid
+            self.assertTrue((s_dir / "_SUCCESS.json").is_file())
+            self.assertEqual({p.name for p in s_dir.iterdir()}, allowed_official_files)
+            self.assertEqual(report["shard_verifications"][sid]["relative_dir"], f"hdbscan_adaptive_shards/{sid}")
+        self.assertTrue(out_md.is_file())
+
+        # Verify negative controls for EXP-03 official verifier: nested shards/ and tampered shard parquet
+        loaded_bundle = load_feature_bundle(repro_dir, mode="OFFICIAL", expected_handoff_sha256=handoff_sha)
+        reloaded_mems = pq.read_table(out_dir / "memberships.parquet").to_pylist()
+        reloaded_sums = pq.read_table(out_dir / "sequence_summary.parquet").to_pylist()
+        reloaded_success = json.loads((out_dir / "_SUCCESS.json").read_text(encoding="utf-8"))
+        reloaded_metrics = json.loads((out_dir / "experiment_metrics.json").read_text(encoding="utf-8"))
+        reloaded_shards = {}
+        for sid in ["shard_00000", "shard_00001"]:
+            s_dir = out_dir.parent / "hdbscan_adaptive_shards" / sid
+            s_succ = json.loads((s_dir / "_SUCCESS.json").read_text(encoding="utf-8"))
+            s_met = json.loads((s_dir / "experiment_metrics.json").read_text(encoding="utf-8"))
+            s_cfg = json.loads((s_dir / "experiment_config.json").read_text(encoding="utf-8"))
+            reloaded_shards[sid] = {
+                "shard_id": sid,
+                "relative_dir": f"hdbscan_adaptive_shards/{sid}",
+                "run_id": s_succ["experiment_run_id"],
+                "collection_scope": s_cfg["collection_scope"],
+                "membership_row_count": s_succ["membership_row_count"],
+                "summary_row_count": s_succ["summary_row_count"],
+                "checksums": s_succ["checksums"],
+                "metrics": s_met["metrics"],
+            }
+        reloaded_res = {
+            "run_id": reloaded_success["experiment_run_id"],
+            "metrics": reloaded_metrics["metrics"],
+            "write_result": {
+                "mode": "OFFICIAL",
+                "run_id": reloaded_success["experiment_run_id"],
+                "success_marker_path": out_dir / "_SUCCESS.json",
+                "has_success_marker": True,
+                "checksums": reloaded_success["checksums"],
+            },
+            "summaries": reloaded_sums,
+            "memberships": reloaded_mems,
+            "reconciliation": reloaded_metrics["metrics"]["reconciliation"],
+            "shard_runs": reloaded_shards,
+        }
+        (out_dir / "shards" / "shard_00000").mkdir(parents=True)
+        (out_dir / "shards" / "shard_00000" / "_SUCCESS.json").write_text("{}", encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "ILLEGAL_DIRECTORY_IN_OFFICIAL_BUNDLE:HDBSCAN_ADAPTIVE"):
+            ah.generate_official_adaptive_report(loaded_bundle, reloaded_res, self.tmp_dir / "bad_nested.json")
+        shutil.rmtree(out_dir / "shards")
+
+        tamper_p = out_dir.parent / "hdbscan_adaptive_shards" / "shard_00000" / "memberships.parquet"
+        tamper_p.write_bytes(b"corrupt-parquet")
+        with self.assertRaisesRegex(ValueError, "CHECKSUM_MISMATCH:HDBSCAN_ADAPTIVE:shard_00000"):
+            ah.generate_official_adaptive_report(loaded_bundle, reloaded_res, self.tmp_dir / "bad_sha.json")
+
+        # Also test cross-shard global resolution preserves MULTIPLE / AMBIGUOUS across shard boundaries
+        now = datetime.now(timezone.utc)
+        cross_bundle = {
+            "mode": "OFFICIAL",
+            "bundle_id": "ds_cross",
+            "source_dataset_id": "ds_cross",
+            "is_official": True,
+            "is_collection": True,
+            "collection_id": "col_cross",
+            "dataset_split": "REPRODUCTION",
+            "manifest": {"dataset_id": "ds_cross", "dataset_split": "REPRODUCTION", "dataset_status": "EXPORTED"},
+            "features_table": pa.Table.from_pylist([
+                {"mainshock_event_id": shard0_m, "candidate_event_id": shard0_m, "x_scaled": 0.0, "y_scaled": 0.0, "z_scaled": 0.0, "time_scaled": 0.0, "delta_time_hours": 0.0, "mainshock_magnitude": 6.5},
+                {"mainshock_event_id": shard0_m, "candidate_event_id": shard1_m, "x_scaled": 0.1, "y_scaled": 0.0, "z_scaled": 0.0, "time_scaled": 0.1, "delta_time_hours": 1.0, "mainshock_magnitude": 6.5},
+                {"mainshock_event_id": shard1_m, "candidate_event_id": shard1_m, "x_scaled": 0.0, "y_scaled": 0.0, "z_scaled": 0.0, "time_scaled": 0.0, "delta_time_hours": 0.0, "mainshock_magnitude": 5.8},
+                {"mainshock_event_id": shard1_m, "candidate_event_id": "shared_aft", "x_scaled": 0.1, "y_scaled": 0.1, "z_scaled": 0.0, "time_scaled": 0.2, "delta_time_hours": 2.0, "mainshock_magnitude": 5.8},
+                {"mainshock_event_id": shard0_m, "candidate_event_id": "shared_aft", "x_scaled": 0.1, "y_scaled": 0.1, "z_scaled": 0.0, "time_scaled": 0.2, "delta_time_hours": 3.0, "mainshock_magnitude": 6.5},
+            ]),
+            "shards": {
+                "shard_00000": {
+                    "mode": "OFFICIAL",
+                    "bundle_id": "ds_cross",
+                    "source_dataset_id": "ds_cross",
+                    "features_table": pa.Table.from_pylist([{"k": 1}, {"k": 2}, {"k": 3}]),
+                    "mainshocks_table": pa.Table.from_pylist([{"mainshock_event_id": shard0_m}]),
+                    "collection_scope": {"version": "dat03-collection-export-v1", "collection_id": "col_cross", "shard_id": "shard_00000", "scope": "WHOLE_WINDOW_SHARD"},
+                },
+                "shard_00001": {
+                    "mode": "OFFICIAL",
+                    "bundle_id": "ds_cross",
+                    "source_dataset_id": "ds_cross",
+                    "features_table": pa.Table.from_pylist([{"k": 4}, {"k": 5}]),
+                    "mainshocks_table": pa.Table.from_pylist([{"mainshock_event_id": shard1_m}]),
+                    "collection_scope": {"version": "dat03-collection-export-v1", "collection_id": "col_cross", "shard_id": "shard_00001", "scope": "WHOLE_WINDOW_SHARD"},
+                },
+            },
+        }
+        with patch.object(ah, "fit_hdbscan_adaptive", side_effect=cross_shard_fit_mock):
+            cross_res = ah.run_adaptive_experiment(
+                bundle=cross_bundle,
+                config=self.model_config,
+                model_config_version="hdbscan-adaptive-dev-v1",
+                output_dir=self.tmp_dir / "cross_out",
+                mode="OFFICIAL",
+                random_seed=42,
+            )
+
+        self.assertEqual(cross_res["reconciliation"]["nested_mainshocks_count"], 1)
+        shard1_sum = pq.read_table(self.tmp_dir / "cross_out_shards/shard_00001/sequence_summary.parquet").to_pylist()[0]
+        self.assertTrue(shard1_sum["is_nested_mainshock_candidate"])
+        self.assertEqual(shard1_sum["parent_mainshock_event_id"], shard0_m)
+        shard0_mems = {r["candidate_event_id"]: r for r in pq.read_table(self.tmp_dir / "cross_out_shards/shard_00000/memberships.parquet").to_pylist()}
+        shard1_mems = {r["candidate_event_id"]: r for r in pq.read_table(self.tmp_dir / "cross_out_shards/shard_00001/memberships.parquet").to_pylist()}
+        self.assertEqual(shard0_mems["shared_aft"]["multi_sequence_status"], "MULTIPLE")
+        self.assertEqual(shard0_mems["shared_aft"]["resolution_rank"], 1)
+        self.assertEqual(shard1_mems["shared_aft"]["multi_sequence_status"], "MULTIPLE")
+        self.assertEqual(shard1_mems["shared_aft"]["resolution_rank"], 2)
+
+        # Verify EXP-03 official report records readback-only & cross-shard singleton overlap boundary honestly
+        cross_features_rows = cross_bundle["features_table"].to_pylist()
+        cross_bundle_clean = {
+            **cross_bundle,
+            "dataset_id": "ds_cross",
+            "source_dataset_id": "ds_cross",
+            "checksums": {"features-part-00000.parquet": "a" * 64},
+            "mainshocks_table": pa.Table.from_pylist([{"mainshock_event_id": shard0_m}, {"mainshock_event_id": shard1_m}]),
+            "manifest": {**cross_bundle["manifest"], "dataset_id": "ds_cross"},
+            "shards": {
+                "shard_00000": {
+                    **cross_bundle["shards"]["shard_00000"],
+                    "features_table": pa.Table.from_pylist([r for r in cross_features_rows if r["mainshock_event_id"] == shard0_m]),
+                },
+                "shard_00001": {
+                    **cross_bundle["shards"]["shard_00001"],
+                    "features_table": pa.Table.from_pylist([r for r in cross_features_rows if r["mainshock_event_id"] == shard1_m]),
+                },
+            },
+        }
+        cross_report = ah.generate_official_adaptive_report(
+            bundle=cross_bundle_clean,
+            result=cross_res,
+            output_path=self.tmp_dir / "cross_report.json",
+            random_seed=42,
+        )
+        cb = cross_report["mli03_import_boundary"]
+        self.assertTrue(cb["shard_readback_verified"])
+        self.assertFalse(cb["shard_mli03_import_accepted"])
+        self.assertEqual(cb["shard_import_block_reason"], "IMP_SCHEMA_MISMATCH_PER_BUNDLE_SINGLETON_GLOBAL_MULTIPLE")
+        # Both shared_aft and nested mainshock shard1_m appear once per shard while carrying global MULTIPLE status
+        self.assertEqual(cb["cross_shard_singleton_overlap_counts"], {"shard_00000": 2, "shard_00001": 2})
+        self.assertEqual(cb["followup_task_id"], "MLI-03")
+
 
 if __name__ == "__main__":
     unittest.main()

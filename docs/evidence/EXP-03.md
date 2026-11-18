@@ -200,4 +200,25 @@ Toàn bộ cấu hình được cố định trong `config/ml/models/hdbscan_ada
 - **Local gates (Windows `Python 3.12.10`, base `001e33b8`):** `exp01-colab.py local-pack` đạt `LOCAL_GATE_AND_HANDOFF_VERIFIED` (`nbclient`, `2` cells, `25.6583s`, `exp01-colab-handoff.zip` SHA-256 `a35ec15fb6d5e7bcae68f669aa41c12659aecc8d15378886fc7308fa58304c78`); `inspect-exp03-notebook.py` trên pilot thật đạt `RESTART_RUN_ALL_PASSED` (`5` cells, `5.2503s`, `experiment_run_id=pilot_run_1a7b6edb9bb94ccf9caaac99e124f2b5`).
 - **Google Colab thực tế (`2026-11-17T02:27:41Z`, Linux `Python 3.13.18`, CPU):** Thực thi [exp_01_colab_bootstrap.ipynb](../../notebooks/exp_01_colab_bootstrap.ipynb) đạt `COLAB_HARNESS_PASSED` (`4` cells, `0` errors, `108` packages), đồng thời kiểm chứng parity độc lập cho `WINDOW`, `DBSCAN`, `HDBSCAN_GLOBAL` (`279` memberships / `2` mainshocks, `rtol=1e-6`, `atol=1e-8`).
 - **Shared Drive handoff (`SEC-01`):** Lưu 4 artifacts trong [thư mục Drive `ThanhTris-colab-20261117`](https://drive.google.com/drive/folders/1jjyh_FfpIlcPb6y5n58Ssi7q0X0Ns6zb) với ACL `type=user` (`0 anyone`, `0 domain`), phục vụ review [PR #119](https://github.com/HoaiTam/japan-earthquake-etl/pull/119).
-- **Giới hạn:** Kết quả này xác nhận Colab portability + pilot baseline parity của `ThanhTris` (`DEVELOPMENT_ONLY`, `research_ready=false`); **không** thay thế official adaptive reproduction run trên `DAT-03` (`EXP-03` giữ `Needs Update` chờ `EXP-02` official và official run).
+- **Giới hạn:** Kết quả này xác nhận Colab portability + pilot baseline parity của `ThanhTris` (`DEVELOPMENT_ONLY`, `research_ready=false`); **không** thay thế official adaptive reproduction run trên `DAT-03` (mục tiêu official được hoàn tất ở mục 6 bên dưới).
+
+## 6. Nghiệm thu official REPRODUCTION sau khi tích hợp EXP-02
+
+Chạy lại từ commit sạch `c746dc6` trên kit DAT-03 v4 đã ghim: 194 cửa sổ,
+156.710 membership pairs, 2 shard. Fit đủ hai shard trước khi resolve toàn cục,
+rồi đối soát full-split với cả hai lát cắt Parquet.
+
+- **Run:** `exp_run_ade47fe60932cbcd046100b023a89e3c`; 130/194 cửa sổ thành
+  công, 64 mainshock noise, 0 skipped. 99.067 raw POST → 88.078 unique POST +
+  10.989 secondary ranks; 0 ambiguous và 21 nested mainshocks.
+- **Giới hạn tái lập:** [lần chạy Windows trước tích hợp](https://github.com/HoaiTam/japan-earthquake-etl/blob/c2d00ff9d28f8acc69d551fec5f51ad55e8f9a39/docs/evidence/EXP-03_OFFICIAL_REPRODUCTION.json)
+  ghi 131/194 thành công và 88.222 unique POST. Không coi artifacts hai lần chạy
+  là thay thế được cho nhau, không khẳng định nguyên nhân khác biệt hoặc parity
+  giữa hệ điều hành. EXP-04 phải kiểm đúng run và bytes của lần chạy đang dùng.
+- **Ranh giới import:** Full-split phục vụ đánh giá. Hai adaptive shard đạt
+  Parquet readback, không đạt nghiệm thu import. Lát cắt có 5.170/4.340 singleton
+  giữ status toàn cục; fixture Java xác nhận resolver từ chối full-split không
+  có shard ID và validator v1 từ chối overlap singleton. Không đổi rank để
+  vượt gate; xử lý scope import trong [MLI-03](../task/tasks/MLI-03.md).
+- [Report official](./EXP-03_OFFICIAL_REPRODUCTION.md) và [JSON](./EXP-03_OFFICIAL_REPRODUCTION.json)
+  giữ timestamp, toàn bộ pins, counts, checksum và `scientific_approval=false`.

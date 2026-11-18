@@ -910,7 +910,7 @@ def _validate_bundle_semantics(
             else:
                 require(s["productive_sequence_detected"] is True, f"NON_EMPTY_POST_MUST_BE_PRODUCTIVE:{algo}:{mid}")
 
-            if algo in {"DBSCAN", "HDBSCAN_GLOBAL"}:
+            if algo in {"DBSCAN", "HDBSCAN_GLOBAL", "HDBSCAN_ADAPTIVE"}:
                 noises = [m for m in w_mems if m.get("is_noise") is True]
                 require(s["noise_count"] == len(noises),
                         f"NOISE_COUNT_MISMATCH:{algo}:{mid}:{s['noise_count']}!={len(noises)}")
@@ -1367,6 +1367,11 @@ def _summary_physical_signature(row: Dict[str, Any]) -> Tuple[Any, ...]:
         row.get("aftershock_count"),
         row.get("foreshock_candidate_count"),
         row.get("failure_reason_code"),
+        row.get("is_nested_mainshock_candidate"),
+        row.get("parent_mainshock_event_id"),
+        _norm_opt_float(row.get("nested_membership_probability")),
+        _norm_opt_float(row.get("mean_membership_probability")),
+        _norm_opt_float(row.get("dbcv_score")),
     )
 
 
@@ -1465,9 +1470,14 @@ def verify_official_collection_shards(
         actual_noise = sum(1 for r in disk_mems if r.get("is_noise") is True)
         reported_m = shard_info.get("metrics") or {}
         if reported_m:
+            reported_aftershocks = (
+                reported_m.get("total_aftershocks")
+                if "total_aftershocks" in reported_m
+                else reported_m.get("raw_aftershocks")
+            )
             require(
                 reported_m.get("total_sequence_members") == actual_seq_members
-                and reported_m.get("total_aftershocks") == actual_aftershocks
+                and reported_aftershocks == actual_aftershocks
                 and reported_m.get("total_noise_candidates") == actual_noise
                 and reported_m.get("successful_windows") == disk_shard["case_summary"]["successful_windows"]
                 and reported_m.get("failed_windows") == disk_shard["case_summary"]["failed_windows"],

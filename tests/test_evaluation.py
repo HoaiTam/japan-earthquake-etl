@@ -16,6 +16,7 @@ Verifies:
 """
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 import shutil
@@ -767,6 +768,562 @@ class TestScientificEvaluation(unittest.TestCase):
         self.assertIn("repeat fit 1 crashed", stab_rep["failed_repeat_details"][0]["error_message"])
         self.assertIsNotNone(stab_rep["mean_jaccard"])
         self.assertIn("PARTIAL_FIT_FAILURES", stab_rep["metric_reason_codes"])
+
+    def test_memory_safe_dbcv_matches_reference_formula_and_handles_single_cluster(self):
+        """Memory-safe DBCV must match hdbscan.validity on multi-cluster data and fail-honest on 1 cluster."""
+        try:
+            import hdbscan.validity as hv
+        except ImportError:
+            self.skipTest("standalone hdbscan package not installed")
+
+        rng = np.random.RandomState(7)
+        X = np.vstack([
+            rng.randn(40, 4) * 0.15,
+            rng.randn(35, 4) * 0.18 + 3.5,
+            rng.randn(30, 4) * 0.12 - 3.0,
+            rng.uniform(-4, 4, (15, 4)),
+        ])
+        labels = np.array([0] * 40 + [1] * 35 + [2] * 30 + [-1] * 15, dtype=np.int64)
+
+        score_safe = evaluation._compute_dbcv_memory_safe(X, labels)
+        score_ref = float(hv.validity_index(np.ascontiguousarray(X, dtype=np.float64), labels))
+        self.assertIsNotNone(score_safe)
+        self.assertTrue(np.isfinite(score_safe))
+        self.assertLess(abs(score_safe - score_ref), 0.05)
+
+        # Single cluster cannot compute inter-cluster separation -> returns METRIC_FIT_FAILED
+        one_cluster_labels = np.array([0] * 10 + [-1] * 5, dtype=np.int64)
+        score_one, reasons_one = compute_dbcv_score(X[:15], one_cluster_labels, algorithm_name="DBSCAN")
+        self.assertIsNone(score_one)
+        self.assertEqual(reasons_one, [METRIC_FIT_FAILED])
+
+        # Verify threshold routing invokes _compute_dbcv_memory_safe cleanly
+        with patch.object(evaluation, "DBCV_MEMORY_SAFE_CLUSTER_THRESHOLD", 10):
+            score_routed, reasons_routed = compute_dbcv_score(X, labels, algorithm_name="DBSCAN")
+            self.assertIsNotNone(score_routed)
+            self.assertEqual(reasons_routed, [])
+
+    def test_official_evaluation_frozen_rule_and_cross_verification(self):
+        """EXP-04 official evaluation must enforce EXPORTED REPRODUCTION, no accuracy/F1, and emit frozen rule."""
+        import importlib
+        import pyarrow.parquet as pq
+        import tests.test_research_collection_loader as col_mod
+
+        eval_script = importlib.import_module("scripts.evaluate-models")
+
+        kit_dir = self.tmp_dir / "eval_kit"
+        repro_dir = kit_dir / "bundles" / "REPRODUCTION"
+        ext_dir = kit_dir / "bundles" / "EXTENSION"
+        pilot_repro = self.tmp_dir / "seed_repro"
+        pilot_ext = self.tmp_dir / "seed_ext"
+        repro_dir.mkdir(parents=True)
+        ext_dir.mkdir(parents=True)
+        pilot_repro.mkdir()
+        pilot_ext.mkdir()
+
+        repro_pins = col_mod.fixture(repro_dir, pilot_repro)
+        col_mod.fixture(ext_dir, pilot_ext)
+        ext_manifest = json.loads((ext_dir / "dataset_manifest.json").read_bytes())
+        ext_manifest["dataset_split"] = "EXTENSION"
+        ext_manifest["collection_plan"]["coverage"]["required_month_count"] = 63
+        col_mod.write_json(ext_dir / "dataset_manifest.json", ext_manifest)
+        col_mod.write_json(
+            ext_dir / "collection-preparation.json",
+            {"status": "RESEARCH_COLLECTION_PREPARED", "plan": ext_manifest["collection_plan"]},
+        )
+        ext_pins = col_mod.reindex(ext_dir)
+
+        handoff = {
+            "collections": {"REPRODUCTION": repro_pins, "EXTENSION": ext_pins},
+            "files": {
+                "bundles/REPRODUCTION/dataset_manifest.json": {"sha256": repro_pins["manifest_sha256"]},
+                "bundles/REPRODUCTION/checksums.sha256": {"sha256": repro_pins["checksums_sha256"]},
+                "bundles/EXTENSION/dataset_manifest.json": {"sha256": ext_pins["manifest_sha256"]},
+                "bundles/EXTENSION/checksums.sha256": {"sha256": ext_pins["checksums_sha256"]},
+            },
+        }
+        handoff_file = kit_dir / "handoff.json"
+        handoff_file.write_text(json.dumps(handoff, sort_keys=True) + "\n", encoding="utf-8")
+        import notebooks.experiment_harness as eh
+        handoff_sha = eh.sha256_bytes(handoff_file.read_bytes())
+
+        # Reject wrong split when REPRODUCTION is expected (checked in diagnostic mode as well)
+        with self.assertRaisesRegex(ValueError, "OFFICIAL_SPLIT_MISMATCH"):
+            eval_script.execute_official_evaluation(
+                bundle_dir=ext_dir,
+                output_json=self.tmp_dir / "bad.json",
+                expected_split="REPRODUCTION",
+                expected_handoff_sha256=handoff_sha,
+                diagnostic_only=True,
+            )
+
+        out_json = self.tmp_dir / "exp04_official.json"
+        out_md = self.tmp_dir / "exp04_official.md"
+
+        import importlib.util as _ilu
+        spec_r02 = _ilu.spec_from_file_location("run_exp02_eval_test", ROOT / "scripts/run-exp02-official.py")
+        r02 = _ilu.module_from_spec(spec_r02); spec_r02.loader.exec_module(r02)
+        spec_r03 = _ilu.spec_from_file_location("run_exp03_eval_test", ROOT / "scripts/run-exp03-official.py")
+        r03 = _ilu.module_from_spec(spec_r03); spec_r03.loader.exec_module(r03)
+
+        exp02_out = self.tmp_dir / "exp02_out"
+        exp02_json = self.tmp_dir / "exp02.json"
+        r02.execute_official_baselines(
+            bundle_dir=repro_dir,
+            output_dir=exp02_out,
+            output_json=exp02_json,
+            expected_handoff_sha256=handoff_sha,
+            seed=42,
+            root=ROOT,
+        )
+        exp02_sha = eh.sha256_bytes(exp02_json.read_bytes())
+
+        exp03_out = self.tmp_dir / "exp03_out" / "hdbscan_adaptive"
+        exp03_json = self.tmp_dir / "exp03.json"
+        r03.execute_official_adaptive(
+            bundle_dir=repro_dir,
+            output_dir=exp03_out,
+            output_json=exp03_json,
+            expected_handoff_sha256=handoff_sha,
+            seed=42,
+            root=ROOT,
+        )
+        exp03_sha = eh.sha256_bytes(exp03_json.read_bytes())
+
+        full_report = eval_script.execute_official_evaluation(
+            bundle_dir=repro_dir,
+            output_json=out_json,
+            output_md=out_md,
+            expected_split="REPRODUCTION",
+            expected_handoff_sha256=handoff_sha,
+            exp02_report_path=exp02_json,
+            expected_exp02_report_sha256=exp02_sha,
+            exp02_output_dir=exp02_out,
+            exp03_report_path=exp03_json,
+            expected_exp03_report_sha256=exp03_sha,
+            exp03_output_dir=exp03_out,
+            repeats=2,
+            sigma=0.01,
+            seed=42,
+            project_root=ROOT,
+        )
+
+        self.assertEqual(full_report["report_version"], "exp-04-official-v2")
+        self.assertEqual(full_report["status"], "PASSED")
+        self.assertEqual(full_report["evaluation_scope"], "OFFICIAL_RESEARCH")
+        self.assertTrue(full_report["frozen_rule_published"])
+        self.assertEqual(full_report["frozen_rule_block_reasons"], [])
+        self.assertFalse(full_report["scientific_approval"])
+        self.assertEqual(full_report["frozen_extension_rule"]["rule_version"], "exp04-frozen-reproduction-rule-v2")
+        self.assertEqual(full_report["frozen_extension_rule"]["frozen_from_split"], "REPRODUCTION")
+        self.assertTrue(full_report["frozen_extension_rule"]["extension_guardrails"]["no_parameter_override_on_extension"])
+        self.assertTrue(full_report["exp02_cross_verification"]["all_checks_passed"])
+        self.assertTrue(full_report["exp03_cross_verification"]["all_checks_passed"])
+        self.assertEqual(len(full_report["evaluation_summary"]["comparison_table"]), 4)
+        raw_txt = out_json.read_text(encoding="utf-8").lower()
+        self.assertNotIn("f1_score", raw_txt)
+        self.assertTrue(out_md.is_file())
+        eh.validate_safe_metadata(full_report)
+
+    def test_dbcv_memory_safe_exact_match_and_tie_breaking_regressions(self):
+        """Memory-safe DBCV must match hdbscan.validity.validity_index on >50 clusters, >2000 pts, and ties."""
+        try:
+            import hdbscan.validity as hv
+        except ImportError:
+            self.skipTest("standalone hdbscan package not installed")
+
+        # 1. Exact PR #141 repro #1: >50 clusters (51 clusters x 4 points = 204)
+        X1 = np.random.RandomState(7).normal(size=(204, 4))
+        y1 = np.repeat(np.arange(51), 4).astype(np.int64)
+        ref1 = float(hv.validity_index(X1, y1))
+        safe1 = evaluation._compute_dbcv_memory_safe(X1, y1)
+        self.assertAlmostEqual(safe1, ref1, delta=1e-12)
+        score1, reasons1 = compute_dbcv_score(X1, y1, algorithm_name="HDBSCAN_GLOBAL")
+        self.assertEqual(reasons1, [])
+        self.assertAlmostEqual(score1, round(ref1, 4), delta=1e-4)
+
+        # 2. Exact PR #141 repro #2: seed=18, (40, 4), 4 clusters
+        X2 = np.random.RandomState(18).normal(size=(40, 4))
+        y2 = np.repeat(np.arange(4), 10).astype(np.int64)
+        ref2 = float(hv.validity_index(X2, y2))
+        safe2 = evaluation._compute_dbcv_memory_safe(X2, y2)
+        self.assertAlmostEqual(safe2, ref2, delta=1e-12)
+
+        # 3. Non-consecutive labels + noise
+        X3 = np.random.RandomState(11).normal(size=(90, 4))
+        y3 = np.array([0] * 25 + [3] * 25 + [7] * 25 + [-1] * 15, dtype=np.int64)
+        ref3 = float(hv.validity_index(X3, y3))
+        safe3 = evaluation._compute_dbcv_memory_safe(X3, y3)
+        self.assertAlmostEqual(safe3, ref3, delta=1e-12)
+
+        # 4. Exact distance ties & duplicate coordinates within clusters (MST parent tie repair)
+        base = np.array([[0.0, 0.0, 0.0, 0.0], [1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0], [1.0, 1.0, 0.0, 0.0],
+                         [0.5, 0.5, 0.0, 0.0], [0.5, 0.5, 0.0, 0.0]])
+        X4 = np.vstack([base, base + 10.0])
+        y4 = np.array([0] * len(base) + [1] * len(base), dtype=np.int64)
+        ref4 = float(hv.validity_index(X4, y4))
+        safe4 = evaluation._compute_dbcv_memory_safe(X4, y4)
+        self.assertAlmostEqual(safe4, ref4, delta=1e-12)
+
+        # 5. Forced >2000-member cluster path (testing blocked core distance + blocked MST tie repair)
+        rng5 = np.random.RandomState(23)
+        X5 = np.vstack([
+            rng5.normal(size=(2050, 4)) * 0.3,
+            rng5.normal(size=(30, 4)) * 0.2 + 5.0,
+        ])
+        y5 = np.array([0] * 2050 + [1] * 30, dtype=np.int64)
+        ref5 = float(hv.validity_index(X5, y5))
+        safe5 = evaluation._compute_dbcv_memory_safe(X5, y5)
+        self.assertAlmostEqual(safe5, ref5, delta=1e-12)
+
+    def test_dbcv_exception_never_falls_back_to_silhouette(self):
+        """Injected exceptions in either DBCV backend must return (None, [METRIC_FIT_FAILED]), never Silhouette."""
+        X_small = np.random.RandomState(7).normal(size=(40, 4))
+        y_small = np.repeat(np.arange(4), 10).astype(np.int64)
+
+        with patch("hdbscan.validity.validity_index", side_effect=RuntimeError("boom ref")):
+            score_s, reasons_s = compute_dbcv_score(X_small, y_small, algorithm_name="DBSCAN")
+        self.assertIsNone(score_s)
+        self.assertEqual(reasons_s, [METRIC_FIT_FAILED])
+
+        # Also verify >50 cluster / memory-safe path returns (None, [METRIC_FIT_FAILED]) on error
+        X_many = np.random.RandomState(7).normal(size=(204, 4))
+        y_many = np.repeat(np.arange(51), 4).astype(np.int64)
+        with patch.object(evaluation, "_compute_dbcv_memory_safe", side_effect=MemoryError("boom safe")):
+            score_m, reasons_m = compute_dbcv_score(X_many, y_many, algorithm_name="HDBSCAN_GLOBAL")
+        self.assertIsNone(score_m)
+        self.assertEqual(reasons_m, [METRIC_FIT_FAILED])
+
+    def test_cross_verify_exp02_exp03_fail_closed_negative_controls(self):
+        """_cross_verify_exp02_exp03 must reject FAILED reports, untrusted SHAs, pin drift, and swapped memberships."""
+        import importlib
+        import importlib.util as _ilu
+        import pyarrow as pa
+        import pyarrow.parquet as pq
+        import notebooks.experiment_harness as eh
+        import tests.test_research_collection_loader as col_mod
+
+        eval_script = importlib.import_module("scripts.evaluate-models")
+        spec_r02 = _ilu.spec_from_file_location("run_exp02_neg_test", ROOT / "scripts/run-exp02-official.py")
+        r02 = _ilu.module_from_spec(spec_r02); spec_r02.loader.exec_module(r02)
+        spec_r03 = _ilu.spec_from_file_location("run_exp03_neg_test", ROOT / "scripts/run-exp03-official.py")
+        r03 = _ilu.module_from_spec(spec_r03); spec_r03.loader.exec_module(r03)
+
+        kit_dir = self.tmp_dir / "cv_kit"
+        repro_dir = kit_dir / "bundles" / "REPRODUCTION"
+        pilot_tmp = self.tmp_dir / "cv_pilot"
+        repro_dir.mkdir(parents=True)
+        pilot_tmp.mkdir()
+        pins = col_mod.fixture(repro_dir, pilot_tmp)
+
+        exp02_out = self.tmp_dir / "cv_exp02_out"
+        exp02_json = self.tmp_dir / "cv_exp02.json"
+        r02.execute_official_baselines(
+            bundle_dir=repro_dir,
+            output_dir=exp02_out,
+            output_json=exp02_json,
+            manifest_sha256=pins["manifest_sha256"],
+            checksums_sha256=pins["checksums_sha256"],
+            expected_handoff_sha256=None,
+            seed=42,
+            root=ROOT,
+        )
+        exp02_sha = eh.sha256_bytes(exp02_json.read_bytes())
+
+        exp03_out = self.tmp_dir / "cv_exp03_out" / "hdbscan_adaptive"
+        exp03_json = self.tmp_dir / "cv_exp03.json"
+        r03.execute_official_adaptive(
+            bundle_dir=repro_dir,
+            output_dir=exp03_out,
+            output_json=exp03_json,
+            manifest_sha256=pins["manifest_sha256"],
+            checksums_sha256=pins["checksums_sha256"],
+            expected_handoff_sha256=None,
+            seed=42,
+            root=ROOT,
+        )
+        exp03_sha = eh.sha256_bytes(exp03_json.read_bytes())
+
+        base_kwargs = dict(
+            bundle_dir=repro_dir,
+            output_json=self.tmp_dir / "cv_exp04.json",
+            expected_split="REPRODUCTION",
+            manifest_sha256=pins["manifest_sha256"],
+            checksums_sha256=pins["checksums_sha256"],
+            expected_handoff_sha256=None,
+            exp02_report_path=exp02_json,
+            expected_exp02_report_sha256=exp02_sha,
+            exp02_output_dir=exp02_out,
+            exp03_report_path=exp03_json,
+            expected_exp03_report_sha256=exp03_sha,
+            exp03_output_dir=exp03_out,
+            repeats=2,
+            sigma=0.01,
+            seed=42,
+            project_root=ROOT,
+        )
+
+        # 1. Missing or wrong upstream report SHA, or missing output dir -> must fail
+        with self.assertRaisesRegex(ValueError, "EXP-02_TRUSTED_REPORT_SHA_REQUIRED"):
+            eval_script.execute_official_evaluation(**{**base_kwargs, "expected_exp02_report_sha256": None})
+        with self.assertRaisesRegex(ValueError, "EXP-02_REPORT_SHA_MISMATCH"):
+            eval_script.execute_official_evaluation(**{**base_kwargs, "expected_exp02_report_sha256": "0" * 64})
+        with self.assertRaisesRegex(ValueError, "EXP-03_OUTPUT_DIR_REQUIRED"):
+            eval_script.execute_official_evaluation(**{**base_kwargs, "exp03_output_dir": None})
+
+        # 2. Helper to write mutated report & trusted SHA to confirm pin/status failures
+        def _mutate_report(src_path: Path, dst_path: Path, mutator) -> str:
+            doc = json.loads(src_path.read_text(encoding="utf-8"))
+            mutator(doc)
+            dst_path.write_text(json.dumps(doc, sort_keys=True) + "\n", encoding="utf-8")
+            return eh.sha256_bytes(dst_path.read_bytes())
+
+        # 2a. status="FAILED"
+        p_fail = self.tmp_dir / "exp02_failed.json"
+        sha_fail = _mutate_report(exp02_json, p_fail, lambda d: d.__setitem__("status", "FAILED"))
+        with self.assertRaisesRegex(ValueError, "EXP-02_UPSTREAM_STATUS_NOT_PASSED"):
+            eval_script.execute_official_evaluation(**{**base_kwargs, "exp02_report_path": p_fail, "expected_exp02_report_sha256": sha_fail})
+
+        # 2b. Wrong manifest_sha256 / gold_snapshot_id
+        p_pin = self.tmp_dir / "exp02_badpin.json"
+        sha_pin = _mutate_report(exp02_json, p_pin, lambda d: d["dataset"].__setitem__("manifest_sha256", "0" * 64))
+        with self.assertRaisesRegex(ValueError, "EXP-02_PIN_MISMATCH:manifest_sha256"):
+            eval_script.execute_official_evaluation(**{**base_kwargs, "exp02_report_path": p_pin, "expected_exp02_report_sha256": sha_pin})
+
+        p_gold = self.tmp_dir / "exp03_badgold.json"
+        sha_gold = _mutate_report(exp03_json, p_gold, lambda d: d["dataset"].__setitem__("gold_snapshot_id", "999999"))
+        with self.assertRaisesRegex(ValueError, "EXP-03_PIN_MISMATCH:gold_snapshot_id"):
+            eval_script.execute_official_evaluation(**{**base_kwargs, "exp03_report_path": p_gold, "expected_exp03_report_sha256": sha_gold})
+
+        # 2c. Changed model config pin SHA
+        p_cfg = self.tmp_dir / "exp03_badcfg.json"
+        sha_cfg = _mutate_report(exp03_json, p_cfg, lambda d: d["model_config_pin"].__setitem__("canonical_config_sha256", "a" * 64))
+        with self.assertRaisesRegex(ValueError, "EXP-03_CONFIG_PIN_MISMATCH:HDBSCAN_ADAPTIVE:canonical_config_sha256"):
+            eval_script.execute_official_evaluation(**{**base_kwargs, "exp03_report_path": p_cfg, "expected_exp03_report_sha256": sha_cfg})
+
+        # 3. Same summary counts on disk, but swapped/mutated membership rows + rehashed _SUCCESS & report
+        swap_out = self.tmp_dir / "cv_exp02_swapped"
+        shutil.copytree(exp02_out, swap_out)
+        win_dir = swap_out / "window"
+        mems_p = win_dir / "memberships.parquet"
+        m_rows = pq.read_table(mems_p).to_pylist()
+        # Flip non-member/distance on a candidate without changing window/aftershock summary totals
+        for row in m_rows:
+            if row["event_role_candidate"] == "POST":
+                row["normalized_distance"] = float(row["normalized_distance"]) + 1.25
+                break
+        pq.write_table(pa.Table.from_pylist(m_rows, schema=eh.MEMBERSHIP_SCHEMA), mems_p)
+        succ_doc = json.loads((win_dir / "_SUCCESS.json").read_text(encoding="utf-8"))
+        succ_doc["checksums"]["memberships.parquet"] = eh.sha256_bytes(mems_p.read_bytes())
+        (win_dir / "_SUCCESS.json").write_text(eh.canonical(succ_doc) + "\n", encoding="utf-8")
+        new_success_sha = eh.sha256_bytes((win_dir / "_SUCCESS.json").read_bytes())
+
+        p_swap = self.tmp_dir / "exp02_swap.json"
+        def _update_win_checksums(d):
+            d["artifacts_verified"]["WINDOW"]["checksums"]["memberships.parquet"] = succ_doc["checksums"]["memberships.parquet"]
+            d["artifacts_verified"]["WINDOW"]["checksums"]["_SUCCESS.json"] = new_success_sha
+
+        sha_swap = _mutate_report(exp02_json, p_swap, _update_win_checksums)
+        with self.assertRaisesRegex(ValueError, "EXP-02_PRIMARY_MEMBERSHIP_PARITY_MISMATCH:WINDOW"):
+            eval_script.execute_official_evaluation(
+                **{
+                    **base_kwargs,
+                    "exp02_report_path": p_swap,
+                    "expected_exp02_report_sha256": sha_swap,
+                    "exp02_output_dir": swap_out,
+                }
+            )
+
+    def test_official_evaluation_blocks_frozen_rule_when_upstream_missing(self):
+        """Missing EXP-02, EXP-03, or both must fail official publication and never emit PASSED + frozen rule."""
+        import importlib
+        import importlib.util as _ilu
+        import notebooks.experiment_harness as eh
+        import tests.test_research_collection_loader as col_mod
+
+        eval_script = importlib.import_module("scripts.evaluate-models")
+        spec_r02 = _ilu.spec_from_file_location("run_exp02_missing_up", ROOT / "scripts/run-exp02-official.py")
+        r02 = _ilu.module_from_spec(spec_r02); spec_r02.loader.exec_module(r02)
+        spec_r03 = _ilu.spec_from_file_location("run_exp03_missing_up", ROOT / "scripts/run-exp03-official.py")
+        r03 = _ilu.module_from_spec(spec_r03); spec_r03.loader.exec_module(r03)
+
+        kit_dir = self.tmp_dir / "miss_kit"
+        repro_dir = kit_dir / "bundles" / "REPRODUCTION"
+        pilot_tmp = self.tmp_dir / "miss_pilot"
+        repro_dir.mkdir(parents=True)
+        pilot_tmp.mkdir()
+        pins = col_mod.fixture(repro_dir, pilot_tmp)
+
+        exp02_out = self.tmp_dir / "miss_exp02_out"
+        exp02_json = self.tmp_dir / "miss_exp02.json"
+        r02.execute_official_baselines(
+            bundle_dir=repro_dir,
+            output_dir=exp02_out,
+            output_json=exp02_json,
+            manifest_sha256=pins["manifest_sha256"],
+            checksums_sha256=pins["checksums_sha256"],
+            expected_handoff_sha256=None,
+            seed=42,
+            root=ROOT,
+        )
+        exp02_sha = eh.sha256_bytes(exp02_json.read_bytes())
+
+        exp03_out = self.tmp_dir / "miss_exp03_out" / "hdbscan_adaptive"
+        exp03_json = self.tmp_dir / "miss_exp03.json"
+        r03.execute_official_adaptive(
+            bundle_dir=repro_dir,
+            output_dir=exp03_out,
+            output_json=exp03_json,
+            manifest_sha256=pins["manifest_sha256"],
+            checksums_sha256=pins["checksums_sha256"],
+            expected_handoff_sha256=None,
+            seed=42,
+            root=ROOT,
+        )
+        exp03_sha = eh.sha256_bytes(exp03_json.read_bytes())
+
+        base_kwargs = dict(
+            bundle_dir=repro_dir,
+            expected_split="REPRODUCTION",
+            manifest_sha256=pins["manifest_sha256"],
+            checksums_sha256=pins["checksums_sha256"],
+            expected_handoff_sha256=None,
+            exp02_report_path=exp02_json,
+            expected_exp02_report_sha256=exp02_sha,
+            exp02_output_dir=exp02_out,
+            exp03_report_path=exp03_json,
+            expected_exp03_report_sha256=exp03_sha,
+            exp03_output_dir=exp03_out,
+            repeats=2,
+            sigma=0.01,
+            seed=42,
+            project_root=ROOT,
+        )
+
+        cases = [
+            (
+                "missing_exp02",
+                {
+                    "exp02_report_path": None,
+                    "expected_exp02_report_sha256": None,
+                    "exp02_output_dir": None,
+                },
+                "EXP02_CROSS_VERIFICATION_MISSING",
+            ),
+            (
+                "missing_exp03",
+                {
+                    "exp03_report_path": None,
+                    "expected_exp03_report_sha256": None,
+                    "exp03_output_dir": None,
+                },
+                "EXP03_CROSS_VERIFICATION_MISSING",
+            ),
+            (
+                "missing_both",
+                {
+                    "exp02_report_path": None,
+                    "expected_exp02_report_sha256": None,
+                    "exp02_output_dir": None,
+                    "exp03_report_path": None,
+                    "expected_exp03_report_sha256": None,
+                    "exp03_output_dir": None,
+                },
+                "EXP02_CROSS_VERIFICATION_MISSING,EXP03_CROSS_VERIFICATION_MISSING",
+            ),
+        ]
+
+        for idx, (label, overrides, expected_reason) in enumerate(cases):
+            # 1. Official mode (default) must reject and write NO report or rule
+            refused_json = self.tmp_dir / f"{label}_refused.json"
+            refused_md = self.tmp_dir / f"{label}_refused.md"
+            with self.assertRaisesRegex(ValueError, f"EXP04_UPSTREAM_CROSS_VERIFICATION_REQUIRED:{expected_reason}"):
+                eval_script.execute_official_evaluation(
+                    **{**base_kwargs, **overrides, "output_json": refused_json, "output_md": refused_md}
+                )
+            self.assertFalse(refused_json.exists())
+            self.assertFalse(refused_md.exists())
+
+            # 2. Explicit diagnostic mode can run, but NEVER marks PASSED / OFFICIAL_RESEARCH or emits frozen rule
+            diag_json = self.tmp_dir / f"{label}_diag.json"
+            diag_md = self.tmp_dir / f"{label}_diag.md"
+            rep = eval_script.execute_official_evaluation(
+                **{
+                    **base_kwargs,
+                    **overrides,
+                    "output_json": diag_json,
+                    "output_md": diag_md,
+                    "diagnostic_only": True,
+                }
+            )
+            self.assertEqual(rep["status"], "DIAGNOSTIC_ONLY")
+            self.assertEqual(rep["evaluation_scope"], "DIAGNOSTIC_UNVERIFIED")
+            self.assertFalse(rep["frozen_rule_published"])
+            self.assertIsNone(rep["frozen_extension_rule"])
+            self.assertNotIn("frozen_extension_rule", rep["evaluation_summary"])
+            self.assertFalse(rep["scientific_approval"])
+            for token in expected_reason.split(","):
+                self.assertIn(token, rep["frozen_rule_block_reasons"])
+            md_txt = diag_md.read_text(encoding="utf-8")
+            self.assertIn("CHƯA PHÁT HÀNH", md_txt)
+            self.assertNotIn("exp04-frozen-reproduction-rule", diag_json.read_text(encoding="utf-8"))
+
+        # Even if both upstream reports pass, diagnostic_only=True must not publish OFFICIAL_RESEARCH PASSED + rule
+        both_diag = eval_script.execute_official_evaluation(
+            **{
+                **base_kwargs,
+                "output_json": self.tmp_dir / "both_diag.json",
+                "output_md": self.tmp_dir / "both_diag.md",
+                "diagnostic_only": True,
+            }
+        )
+        self.assertEqual(both_diag["status"], "DIAGNOSTIC_ONLY")
+        self.assertEqual(both_diag["evaluation_scope"], "DIAGNOSTIC_UNVERIFIED")
+        self.assertFalse(both_diag["frozen_rule_published"])
+        self.assertIsNone(both_diag["frozen_extension_rule"])
+        self.assertIn("DIAGNOSTIC_ONLY_MODE_NO_RULE_PUBLICATION", both_diag["frozen_rule_block_reasons"])
+
+
+class TestCommittedOfficialEvidence(unittest.TestCase):
+    def test_published_rule_binds_both_current_physical_replay_reports(self):
+        evidence = ROOT / "docs/evidence"
+        merged_baseline = json.loads((evidence / "EXP-02_OFFICIAL_REPRODUCTION.json").read_bytes())
+        report = json.loads((evidence / "EXP-04_OFFICIAL_REPRODUCTION.json").read_bytes())
+        self.assertEqual(report["status"], "PASSED")
+        self.assertTrue(report["frozen_rule_published"])
+        self.assertFalse(report["scientific_approval"])
+
+        upstreams = {
+            "exp02": "EXP-02_REPRODUCTION_REPLAY_FOR_EXP04.json",
+            "exp03": "EXP-03_OFFICIAL_REPRODUCTION.json",
+        }
+        reports = {}
+        for tag, filename in upstreams.items():
+            # The recorded upstream SHA is of the LF runner output; a Windows
+            # checkout may use CRLF for the same tracked report.
+            raw = (evidence / filename).read_bytes().replace(b"\r\n", b"\n")
+            reports[tag] = json.loads(raw)
+            receipt = report[f"{tag}_cross_verification"]
+            self.assertEqual(receipt["report_sha256"], hashlib.sha256(raw).hexdigest())
+            for flag in ("all_checks_passed", "dataset_and_pins_verified", "config_pins_verified",
+                         "physical_bundles_verified", "physical_shards_verified", "primary_membership_parity_verified"):
+                self.assertIs(receipt[flag], True)
+
+        replay = reports["exp02"]
+        self.assertEqual(replay["dataset"], merged_baseline["dataset"])
+        self.assertEqual(replay["case_results"], merged_baseline["case_results"])
+        for algo, values in replay["reconciliation"].items():
+            with self.subTest(algorithm=algo):
+                original = merged_baseline["reconciliation"][algo]
+                for field in ("total_windows", "successful_windows", "failed_windows", "total_candidates",
+                              "total_aftershocks", "total_noise_candidates", "total_sequence_members"):
+                    self.assertEqual(values[field], original[field])
+                self.assertEqual(replay["model_config_pins"][algo]["canonical_config_sha256"],
+                                 merged_baseline["model_config_pins"][algo]["canonical_config_sha256"])
+                self.assertEqual(report["exp02_cross_verification"]["algorithms"][algo]["run_id"],
+                                 replay["artifacts_verified"][algo]["run_id"])
+        self.assertEqual(report["exp03_cross_verification"]["run_id"],
+                         reports["exp03"]["artifact_verified"]["run_id"])
 
 
 if __name__ == "__main__":
