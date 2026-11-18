@@ -326,6 +326,7 @@ class ExtensionEvaluationTest(unittest.TestCase):
             seed=42,
             project_root=cls.proj_root,
         )
+        repro_details = repro_eval["algorithm_details"]
         cls.base_exp04_report = {
             "report_version": "exp04-official-reproduction-v2",
             "task_id": "EXP-04",
@@ -339,6 +340,57 @@ class ExtensionEvaluationTest(unittest.TestCase):
                 "perturbation_sigma": 0.01,
                 "random_seed": 42,
                 "min_omori_aftershocks": 5,
+            },
+            "exp02_cross_verification": {
+                "report_sha256": "a" * 64,
+                "report_sha256_verified": True,
+                "upstream_status": "PASSED",
+                "upstream_evaluation_scope": "OFFICIAL_RESEARCH",
+                "upstream_scientific_approval": False,
+                "dataset_and_pins_verified": True,
+                "config_pins_verified": True,
+                "physical_bundles_verified": True,
+                "physical_shards_verified": True,
+                "primary_membership_parity_verified": True,
+                "all_algos_exact_match": True,
+                "all_checks_passed": True,
+                "algorithms": {
+                    algo: {
+                        "run_id": f"exp_run_{algo.lower()}_fixture",
+                        "matches": True,
+                        "exp02_aftershocks": repro_details[algo]["total_aftershocks"],
+                        "exp04_aftershocks": repro_details[algo]["total_aftershocks"],
+                        "primary_membership_sha256": repro_details[algo]["primary_membership_sha256"],
+                        "primary_window_summary_sha256": repro_details[algo]["primary_window_summary_sha256"],
+                        "physical_bundle_verified": True,
+                        "physical_shards_verified": True,
+                        "primary_membership_parity_verified": True,
+                    }
+                    for algo in ("WINDOW", "DBSCAN", "HDBSCAN_GLOBAL")
+                },
+            },
+            "exp03_cross_verification": {
+                "run_id": "exp_run_adaptive_fixture",
+                "report_sha256": "b" * 64,
+                "report_sha256_verified": True,
+                "upstream_status": "PASSED",
+                "upstream_evaluation_scope": "OFFICIAL_RESEARCH",
+                "upstream_scientific_approval": False,
+                "dataset_and_pins_verified": True,
+                "config_pins_verified": True,
+                "physical_bundles_verified": True,
+                "physical_shards_verified": True,
+                "primary_membership_parity_verified": True,
+                "primary_membership_sha256": repro_details["HDBSCAN_ADAPTIVE"]["primary_membership_sha256"],
+                "primary_window_summary_sha256": repro_details["HDBSCAN_ADAPTIVE"]["primary_window_summary_sha256"],
+                "exact_match": True,
+                "all_checks_passed": True,
+                "multi_sequence_reconciliation": {
+                    "raw_aftershocks": repro_details["HDBSCAN_ADAPTIVE"]["total_aftershocks"],
+                    "resolved_unique_aftershocks": repro_details["HDBSCAN_ADAPTIVE"]["total_aftershocks"],
+                    "aftershocks_deduplicated_count": 0,
+                    "ambiguous_candidates_count": 0,
+                },
             },
             "frozen_extension_rule": {
                 "rule_version": ext_eval.FROZEN_EXTENSION_RULE_VERSION,
@@ -477,6 +529,104 @@ class ExtensionEvaluationTest(unittest.TestCase):
                     project_root=self.proj,
                     **kwargs,
                 )
+
+    def test_rejects_unsupported_min_omori_aftershocks_even_when_matching_frozen_report(self) -> None:
+        bad_report = copy.deepcopy(self.base_exp04_report)
+        bad_report["evaluation_parameters"]["min_omori_aftershocks"] = 99
+        sha = self._write_exp04(bad_report)
+        with self.assertRaisesRegex(ValueError, "EXP05_UNSUPPORTED_MIN_OMORI_AFTERSHOCKS"):
+            ext_eval.verify_reproduction_freeze_gate(
+                self.exp04_path,
+                expected_exp04_report_sha256=sha,
+                extension_bundle=self.ext_bundle,
+                project_root=self.proj,
+                min_omori_aftershocks=99,
+            )
+
+        cli = _load_cli_module()
+        with self.assertRaisesRegex(ValueError, "EXP05_UNSUPPORTED_MIN_OMORI_AFTERSHOCKS"):
+            cli.execute_official_extension(
+                bundle_dir=self.ext_root,
+                exp04_report_path=self.exp04_path,
+                expected_exp04_report_sha256=sha,
+                output_dir=self.tmp / "blocked_omori99",
+                output_json=self.tmp / "blocked_omori99.json",
+                output_md=self.tmp / "blocked_omori99.md",
+                handoff_path=None,
+                expected_handoff_sha256=None,
+                manifest_sha256=self.ext_pins["manifest_sha256"],
+                checksums_sha256=self.ext_pins["checksums_sha256"],
+                min_omori_aftershocks=99,
+                project_root=self.proj,
+            )
+
+    def test_rejects_missing_or_failed_exp02_and_exp03_cross_verifications_even_with_valid_sha(self) -> None:
+        # Missing exp02_cross_verification
+        no_exp02 = copy.deepcopy(self.base_exp04_report)
+        no_exp02.pop("exp02_cross_verification")
+        sha = self._write_exp04(no_exp02)
+        with self.assertRaisesRegex(ValueError, "EXP05_EXP02_CROSS_VERIFY_REQUIRED"):
+            ext_eval.verify_reproduction_freeze_gate(
+                self.exp04_path,
+                expected_exp04_report_sha256=sha,
+                extension_bundle=self.ext_bundle,
+                project_root=self.proj,
+            )
+
+        # Missing exp03_cross_verification
+        no_exp03 = copy.deepcopy(self.base_exp04_report)
+        no_exp03.pop("exp03_cross_verification")
+        sha = self._write_exp04(no_exp03)
+        with self.assertRaisesRegex(ValueError, "EXP05_EXP03_CROSS_VERIFY_REQUIRED"):
+            ext_eval.verify_reproduction_freeze_gate(
+                self.exp04_path,
+                expected_exp04_report_sha256=sha,
+                extension_bundle=self.ext_bundle,
+                project_root=self.proj,
+            )
+
+        # Disabled / mismatched exp02 flags even with valid SHA
+        for mutator in (
+            lambda r: r["exp02_cross_verification"].update({"all_checks_passed": False}),
+            lambda r: r["exp02_cross_verification"].update({"physical_shards_verified": False}),
+            lambda r: r["exp02_cross_verification"].update({"upstream_status": "FAILED"}),
+            lambda r: r["exp02_cross_verification"]["algorithms"]["DBSCAN"].update({"matches": False}),
+            lambda r: r["exp02_cross_verification"]["algorithms"]["WINDOW"].update({"primary_membership_sha256": "0" * 64}),
+        ):
+            bad = copy.deepcopy(self.base_exp04_report)
+            mutator(bad)
+            sha = self._write_exp04(bad)
+            with self.assertRaisesRegex(ValueError, "EXP05_EXP02_CROSS_VERIFY_FAILED"):
+                ext_eval.verify_reproduction_freeze_gate(
+                    self.exp04_path,
+                    expected_exp04_report_sha256=sha,
+                    extension_bundle=self.ext_bundle,
+                    project_root=self.proj,
+                )
+
+        # Disabled / mismatched exp03 flags even with valid SHA
+        for mutator in (
+            lambda r: r["exp03_cross_verification"].update({"all_checks_passed": False}),
+            lambda r: r["exp03_cross_verification"].update({"exact_match": False}),
+            lambda r: r["exp03_cross_verification"].update({"primary_membership_parity_verified": False}),
+            lambda r: r["exp03_cross_verification"].update({"primary_membership_sha256": "0" * 64}),
+            lambda r: r["exp03_cross_verification"].pop("multi_sequence_reconciliation"),
+        ):
+            bad = copy.deepcopy(self.base_exp04_report)
+            mutator(bad)
+            sha = self._write_exp04(bad)
+            with self.assertRaisesRegex(ValueError, "EXP05_EXP03_CROSS_VERIFY_FAILED"):
+                ext_eval.verify_reproduction_freeze_gate(
+                    self.exp04_path,
+                    expected_exp04_report_sha256=sha,
+                    extension_bundle=self.ext_bundle,
+                    project_root=self.proj,
+                )
+
+        # Real committed EXP-04_OFFICIAL_REPRODUCTION.json passes strict upstream cross-check validation
+        real_exp04 = ROOT / "docs/evidence/EXP-04_OFFICIAL_REPRODUCTION.json"
+        if real_exp04.is_file():
+            ext_eval._verify_exp04_upstream_cross_checks(json.loads(real_exp04.read_bytes()))
 
     def test_rejects_non_extension_split_same_dataset_and_contract_mismatch(self) -> None:
         repro_bundle = harness.load_feature_bundle(

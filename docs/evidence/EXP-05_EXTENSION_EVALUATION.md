@@ -85,6 +85,8 @@
 | `HDBSCAN_GLOBAL` | `exp_run_ba9e6bcfc1264176586077993dbd874b` | `ddbbf62e9231abbc...` | `cbbed42eb5bd19e9...` | 4 (`True`) | `True` |
 | `HDBSCAN_ADAPTIVE` | `exp_run_3ba14e9eb1cbb50b3cce83ac66321db1` | `0c8a5422d1429677...` | `8188d6799a2c38d2...` | 4 (`True`) | `True` |
 
+- **Phạm vi kiểm chứng MLI-03:** Bảng trên phản ánh kiểm tra readback/checksum/Parquet/primary-digest phía Python (`4` full-split + `16` sibling shards); đối soát Java offline ghi nhận `4/4` full-split + `12/12` baseline shard đạt `ResultBundleContract` (`RESULT_READY`, `exactSchema=true`), còn `4/4` shard `hdbscan_adaptive_shards/` mới kiểm tra `MlResultBundleReader.read` (`reader=OK`, `exactSchema=true`), **không** thay thế bước import thật vào Iceberg `ml.*` hay validator overlap xuyên shard cho adaptive shards (xem [MLI-03](../task/tasks/MLI-03.md)).
+
 ## 7. Ranh giới Phương pháp luận & Hạn chế Khoa học
 
 1. **Out-of-Period Temporal Generalization Check (Unsupervised):** Kiểm thử trên `EXTENSION` đo tính ổn định tổng quát hóa theo thời gian khi khóa nguyên Rule/Config từ `EXP-04`; **không phải** độ chính xác có nhãn (cấm tuyệt đối `accuracy`/`F1`).

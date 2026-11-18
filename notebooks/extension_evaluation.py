@@ -269,6 +269,105 @@ def _config_bytes_match_pin(
     return hashlib.sha256(crlf_bytes).hexdigest() == locked_file_sha256
 
 
+def _is_sha256_hex(val: Any) -> bool:
+    return isinstance(val, str) and re.fullmatch(r"[a-f0-9]{64}", val.strip()) is not None
+
+
+def _verify_exp04_upstream_cross_checks(exp04_report: Dict[str, Any]) -> None:
+    """Enforce fail-closed EXP-02 and EXP-03 upstream cross-verification blocks inside EXP-04 report."""
+    eval_summary = exp04_report.get("evaluation_summary")
+    require(isinstance(eval_summary, dict), "EXP05_EXP04_EVAL_SUMMARY_MISSING")
+    eval_details = eval_summary.get("algorithm_details")
+    require(isinstance(eval_details, dict), "EXP05_EXP04_ALGORITHM_DETAILS_MISSING")
+
+    exp02 = exp04_report.get("exp02_cross_verification")
+    require(
+        isinstance(exp02, dict) and bool(exp02),
+        "EXP05_EXP02_CROSS_VERIFY_REQUIRED: EXP-04 report missing exp02_cross_verification",
+    )
+    require(
+        _is_sha256_hex(exp02.get("report_sha256")) and exp02.get("report_sha256_verified") is True,
+        "EXP05_EXP02_CROSS_VERIFY_FAILED:report_sha256",
+    )
+    require(
+        exp02.get("upstream_status") == "PASSED"
+        and exp02.get("upstream_evaluation_scope") == "OFFICIAL_RESEARCH"
+        and exp02.get("upstream_scientific_approval") is False,
+        "EXP05_EXP02_CROSS_VERIFY_FAILED:upstream_status_or_scope",
+    )
+    for flag in (
+        "dataset_and_pins_verified",
+        "config_pins_verified",
+        "physical_bundles_verified",
+        "physical_shards_verified",
+        "primary_membership_parity_verified",
+        "all_algos_exact_match",
+        "all_checks_passed",
+    ):
+        require(exp02.get(flag) is True, f"EXP05_EXP02_CROSS_VERIFY_FAILED:{flag}={exp02.get(flag)}")
+
+    exp02_algos = exp02.get("algorithms")
+    require(isinstance(exp02_algos, dict), "EXP05_EXP02_CROSS_VERIFY_FAILED:algorithms")
+    for algo in ("WINDOW", "DBSCAN", "HDBSCAN_GLOBAL"):
+        entry = exp02_algos.get(algo)
+        det = eval_details.get(algo)
+        require(
+            isinstance(entry, dict) and isinstance(det, dict),
+            f"EXP05_EXP02_CROSS_VERIFY_FAILED:missing_{algo}",
+        )
+        for aflag in (
+            "matches",
+            "physical_bundle_verified",
+            "physical_shards_verified",
+            "primary_membership_parity_verified",
+        ):
+            require(
+                entry.get(aflag) is True,
+                f"EXP05_EXP02_CROSS_VERIFY_FAILED:{algo}:{aflag}={entry.get(aflag)}",
+            )
+        require(
+            entry.get("primary_membership_sha256") == det.get("primary_membership_sha256")
+            and entry.get("primary_window_summary_sha256") == det.get("primary_window_summary_sha256")
+            and entry.get("exp04_aftershocks") == entry.get("exp02_aftershocks") == det.get("total_aftershocks"),
+            f"EXP05_EXP02_CROSS_VERIFY_FAILED:{algo}:digest_or_aftershock_mismatch",
+        )
+
+    exp03 = exp04_report.get("exp03_cross_verification")
+    require(
+        isinstance(exp03, dict) and bool(exp03),
+        "EXP05_EXP03_CROSS_VERIFY_REQUIRED: EXP-04 report missing exp03_cross_verification",
+    )
+    require(
+        _is_sha256_hex(exp03.get("report_sha256")) and exp03.get("report_sha256_verified") is True,
+        "EXP05_EXP03_CROSS_VERIFY_FAILED:report_sha256",
+    )
+    require(
+        exp03.get("upstream_status") == "PASSED"
+        and exp03.get("upstream_evaluation_scope") == "OFFICIAL_RESEARCH"
+        and exp03.get("upstream_scientific_approval") is False,
+        "EXP05_EXP03_CROSS_VERIFY_FAILED:upstream_status_or_scope",
+    )
+    for flag in (
+        "dataset_and_pins_verified",
+        "config_pins_verified",
+        "physical_bundles_verified",
+        "physical_shards_verified",
+        "primary_membership_parity_verified",
+        "exact_match",
+        "all_checks_passed",
+    ):
+        require(exp03.get(flag) is True, f"EXP05_EXP03_CROSS_VERIFY_FAILED:{flag}={exp03.get(flag)}")
+
+    adapt_det = eval_details.get("HDBSCAN_ADAPTIVE")
+    require(isinstance(adapt_det, dict), "EXP05_EXP03_CROSS_VERIFY_FAILED:missing_HDBSCAN_ADAPTIVE")
+    require(
+        exp03.get("primary_membership_sha256") == adapt_det.get("primary_membership_sha256")
+        and exp03.get("primary_window_summary_sha256") == adapt_det.get("primary_window_summary_sha256")
+        and isinstance(exp03.get("multi_sequence_reconciliation"), dict),
+        "EXP05_EXP03_CROSS_VERIFY_FAILED:digest_or_reconciliation_mismatch",
+    )
+
+
 def verify_reproduction_freeze_gate(
     exp04_report_path: Union[str, Path],
     *,
@@ -320,6 +419,7 @@ def verify_reproduction_freeze_gate(
         exp04_report.get("scientific_approval") is False,
         f"EXP05_EXP04_GATE_FAILED:scientific_approval={exp04_report.get('scientific_approval')}",
     )
+    _verify_exp04_upstream_cross_checks(exp04_report)
 
     frozen_rule = exp04_report.get("frozen_extension_rule")
     require(isinstance(frozen_rule, dict), "EXP05_FROZEN_RULE_MISSING")
@@ -360,8 +460,14 @@ def verify_reproduction_freeze_gate(
         and not isinstance(seed, bool)
         and eval_params.get("random_seed") == int(seed)
         and not isinstance(min_omori_aftershocks, bool)
+        and not isinstance(eval_params.get("min_omori_aftershocks"), bool)
         and eval_params.get("min_omori_aftershocks") == int(min_omori_aftershocks),
         "EXP05_EVAL_PARAM_OVERRIDE_FORBIDDEN: Evaluation parameters must match frozen EXP-04 settings",
+    )
+    require(
+        int(eval_params.get("min_omori_aftershocks")) == MIN_OMORI_AFTERSHOCKS
+        and int(min_omori_aftershocks) == MIN_OMORI_AFTERSHOCKS,
+        f"EXP05_UNSUPPORTED_MIN_OMORI_AFTERSHOCKS: v1 evaluator only supports min_omori_aftershocks={MIN_OMORI_AFTERSHOCKS} (got {min_omori_aftershocks})",
     )
 
     # Verify live algorithm configs strictly match EXP-04 frozen pins
@@ -455,6 +561,8 @@ def verify_reproduction_freeze_gate(
         "config_freeze_verified": True,
         "evaluation_param_freeze_verified": True,
         "feature_contract_freeze_verified": True,
+        "exp02_cross_verify_passed": True,
+        "exp03_cross_verify_passed": True,
         "reproduction_mc_value": frozen_mc,
         "extension_mc_value": ext_mc,
         "mc_drift": mc_drift,
@@ -918,6 +1026,8 @@ def compare_reproduction_vs_extension(
             "config_freeze_verified": freeze_gate_result["config_freeze_verified"],
             "evaluation_param_freeze_verified": freeze_gate_result["evaluation_param_freeze_verified"],
             "feature_contract_freeze_verified": freeze_gate_result["feature_contract_freeze_verified"],
+            "exp02_cross_verify_passed": freeze_gate_result.get("exp02_cross_verify_passed", False),
+            "exp03_cross_verify_passed": freeze_gate_result.get("exp03_cross_verify_passed", False),
             "mc_drift": freeze_gate_result["mc_drift"],
         },
         "data_drift": data_drift,

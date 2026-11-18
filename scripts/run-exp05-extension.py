@@ -146,7 +146,7 @@ def render_extension_markdown(report: Dict[str, Any]) -> str:
         f"- **Môi trường Python:** Python `{rt.get('python_version')}`, `scikit-learn=={rt.get('package_versions', {}).get('scikit-learn')}`, `hdbscan=={rt.get('package_versions', {}).get('hdbscan')}`, `pyarrow=={rt.get('package_versions', {}).get('pyarrow')}`",
         f"- **Scientific Approval:** `{str(report['scientific_approval']).lower()}`",
         f"- **Frozen Rule Source:** `{fg['frozen_rule_version']}` từ [EXP-04_OFFICIAL_REPRODUCTION.json](./EXP-04_OFFICIAL_REPRODUCTION.json) (`SHA-256={fg['exp04_report_sha256']}`, `LF SHA-256={fg['exp04_report_normalized_lf_sha256']}`)",
-        f"- **Parameter Tuning trên EXTENSION:** `{str(fg['parameter_tuning_applied_on_extension']).lower()}` (`config_freeze={fg['config_freeze_verified']}`, `eval_param_freeze={fg['evaluation_param_freeze_verified']}`, `feature_contract_freeze={fg['feature_contract_freeze_verified']}`)",
+        f"- **Parameter Tuning trên EXTENSION:** `{str(fg['parameter_tuning_applied_on_extension']).lower()}` (`config_freeze={fg['config_freeze_verified']}`, `eval_param_freeze={fg['evaluation_param_freeze_verified']}`, `feature_contract_freeze={fg['feature_contract_freeze_verified']}`, `exp02_cross_verify={fg.get('exp02_cross_verify_passed')}`, `exp03_cross_verify={fg.get('exp03_cross_verify_passed')}`)",
         "",
         "### Thông số `EXTENSION` Collection (`EXPORTED`)",
         "",
@@ -252,6 +252,8 @@ def render_extension_markdown(report: Dict[str, Any]) -> str:
         )
 
     lines.extend([
+        "",
+        "- **Phạm vi kiểm chứng MLI-03:** Bảng trên phản ánh kiểm tra readback/checksum/Parquet/primary-digest phía Python và `MlResultBundleReader` / `ResultBundleContract` offline (không thay thế bước chạy Spark/Airflow import thật các bundle `EXTENSION` vào Iceberg `ml.*` hay validator overlap xuyên shard cho từng shard `hdbscan_adaptive_shards/` tách lẻ).",
         "",
         "## 7. Ranh giới Phương pháp luận & Hạn chế Khoa học",
         "",
