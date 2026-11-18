@@ -16,6 +16,7 @@ import org.apache.parquet.hadoop.example.ExampleParquetWriter;
 import org.apache.parquet.io.*;
 import org.apache.parquet.schema.*;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.io.TempDir;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ResultBundleContractTest {
@@ -353,5 +354,238 @@ class ResultBundleContractTest {
             .start();
         assertTrue(procConflict.waitFor(30, java.util.concurrent.TimeUnit.SECONDS));
         assertNotEquals(0, procConflict.exitValue());
+    }
+
+    private static ObjectNode collectionRegistry(Path root, String datasetId, String collectionId,
+            Map<String, List<ResultBundleValidator.Candidate>> sourceShards) throws Exception {
+        String exportRef = "exports/" + datasetId + "/";
+        Files.createDirectories(root.resolve(exportRef));
+        var manifest = JSON.createObjectNode().put("dataset_id", datasetId).put("dataset_status", "EXPORTED")
+            .put("export_version", ResearchCollectionExportBundle.VERSION)
+            .put("registry_snapshot_id", "101").put("candidate_snapshot_id", "102").put("mainshock_snapshot_id", "103");
+        var plan = manifest.putObject("collection_plan").put("collection_id", collectionId).putArray("shards");
+        var entries = manifest.putObject("collection_shards");
+        var exportChecksums = new StringBuilder();
+        for (var shard : new TreeMap<>(sourceShards).entrySet()) {
+            String shardId = shard.getKey();
+            var lineage = JSON.createObjectNode().put("dataset_id", datasetId)
+                .put("collection_id", collectionId).put("shard_id", shardId);
+            var candidates = lineage.putArray("candidates");
+            Map<String, Long> counts = new TreeMap<>();
+            for (var source : shard.getValue()) {
+                candidates.addObject().put("mainshock_event_id", source.mainshockId())
+                    .put("candidate_event_id", source.eventId()).put("role", source.role());
+                counts.merge(source.mainshockId(), 1L, Long::sum);
+            }
+            String lineageRef = exportRef + shardId + ".json";
+            var bytes = FeatureExportBundle.bytes(lineage);
+            Files.write(root.resolve(lineageRef), bytes);
+            String sha = TrustedDatasetResolver.sha256(bytes);
+            exportChecksums.append(sha).append("  ").append(shardId).append(".json\n");
+            entries.putObject(shardId).put("lineage_ref", lineageRef).put("lineage_sha256", sha)
+                .put("mainshock_count", counts.size()).put("feature_row_count", shard.getValue().size());
+            var mainshocks = plan.addObject().put("shard_id", shardId).putArray("mainshocks");
+            counts.forEach((id, count) -> mainshocks.addObject().put("mainshock_event_id", id)
+                .put("candidate_row_count", count));
+        }
+        String checksumsRef = exportRef + "export-checksums.sha256";
+        Path checksums = Files.writeString(root.resolve(checksumsRef), exportChecksums);
+        manifest.put("export_manifest_ref", checksumsRef)
+            .put("export_manifest_sha256", TrustedDatasetResolver.sha256(Files.readAllBytes(checksums)));
+        Path path = root.resolve("registry/" + datasetId + ".json");
+        Files.createDirectories(path.getParent());
+        byte[] bytes = FeatureExportBundle.bytes(manifest);
+        Files.write(path, bytes);
+        return JSON.createObjectNode().put("dataset_id", datasetId).put("collection_id", collectionId)
+            .put("dataset_manifest_ref", "registry/" + datasetId + ".json")
+            .put("dataset_manifest_sha256", TrustedDatasetResolver.sha256(bytes));
+    }
+
+    @Test void collectionImportAcceptsOnlyMatchingSiblingShards(@TempDir Path temp) throws Exception {
+        Path root = temp.toRealPath();
+        Path fullDir = root.resolve("window");
+        Path shard0Dir = root.resolve("window_shards").resolve("shard_00000");
+        Path shard1Dir = root.resolve("window_shards").resolve("shard_00001");
+        Files.createDirectories(fullDir);
+        Files.createDirectories(shard0Dir);
+        Files.createDirectories(shard1Dir);
+
+        String dsId = "ds_fixture";
+        String collectionId = "col_" + "a".repeat(64);
+        var fullCandidates = List.of(
+            new ResultBundleValidator.Candidate("main-0", "main-0", "MAINSHOCK"),
+            new ResultBundleValidator.Candidate("main-0", "post-0", "POST"),
+            new ResultBundleValidator.Candidate("main-1", "main-1", "MAINSHOCK"),
+            new ResultBundleValidator.Candidate("main-1", "post-1", "POST")
+        );
+        // Registry inputs are fixed before any result artifact is written or decoded.
+        Path registry = root.resolve("trusted");
+        var request = collectionRegistry(registry, dsId, collectionId, Map.of(
+            "shard_00000", fullCandidates.subList(0, 2), "shard_00001", fullCandidates.subList(2, 4)))
+            .put("algorithm_name", "WINDOW").put("model_config_version", "1");
+
+        java.util.function.BiConsumer<Path, List<String>> writeCleanBundle = (dir, midsAndScope) -> {
+            try {
+                boolean isShard = midsAndScope.size() == 2 && midsAndScope.get(1).startsWith("shard_");
+                List<String> mids = isShard ? List.of(midsAndScope.get(0)) : midsAndScope;
+                String shardId = isShard ? midsAndScope.get(1) : null;
+                String runId = isShard ? "exp_fixture_" + shardId : "exp_fixture_full";
+
+                List<JsonNode> members = new ArrayList<>();
+                List<JsonNode> summaries = new ArrayList<>();
+                for (String mid : mids) {
+                    String pid = mid.equals("main-0") ? "post-0" : "post-1";
+                    ObjectNode m = base("memberships.parquet");
+                    m.put("dataset_id", dsId).put("experiment_run_id", runId).put("mainshock_event_id", mid)
+                        .put("candidate_event_id", mid).put("event_role_candidate", "MAINSHOCK")
+                        .put("is_sequence_member", true).put("multi_sequence_status", "UNIQUE").put("resolution_rank", 1);
+                    ObjectNode p = m.deepCopy();
+                    p.put("candidate_event_id", pid).put("event_role_candidate", "POST");
+                    members.add(m);
+                    members.add(p);
+
+                    ObjectNode s = base("sequence_summary.parquet");
+                    s.put("dataset_id", dsId).put("experiment_run_id", runId).put("mainshock_event_id", mid)
+                        .put("window_result_status", "SUCCESS").put("productive_sequence_detected", true)
+                        .put("candidate_count", 2L).put("sequence_member_count", 2L)
+                        .put("aftershock_count", 1L).put("foreshock_candidate_count", 0L);
+                    s.putArray("metric_reason_codes").add("METRIC_NOT_APPLICABLE");
+                    summaries.add(s);
+                }
+
+                writeParquet(dir.resolve("memberships.parquet"), "memberships.parquet", members);
+                writeParquet(dir.resolve("sequence_summary.parquet"), "sequence_summary.parquet", summaries);
+                ObjectNode cfg = JSON.createObjectNode().put("dataset_id", dsId).put("experiment_run_id", runId)
+                    .put("algorithm_name", "WINDOW").put("model_config_version", "1")
+                    .put("algorithm_version", "1.0.0").put("package_version", "1.0.0").put("code_version", "v1");
+                if (isShard) {
+                    cfg.set("collection_scope", new ResultBundleValidator.CollectionScope(
+                        ResearchCollectionExportBundle.VERSION, collectionId, shardId).toJson());
+                }
+                Files.writeString(dir.resolve("experiment_config.json"), fixtureJson(cfg));
+                Files.writeString(dir.resolve("experiment_metrics.json"), fixtureJson(
+                    JSON.createObjectNode().put("dataset_id", dsId).put("experiment_run_id", runId)
+                        .put("algorithm_name", "WINDOW").put("model_config_version", "1")
+                        .put("membership_row_count", (long) members.size()).put("summary_row_count", (long) summaries.size())));
+                Files.writeString(dir.resolve("requirements-lock.txt"), "# verified sibling bundle\n");
+                ObjectNode succ = JSON.createObjectNode().put("schema_version", "1.0")
+                    .put("dataset_id", dsId).put("experiment_run_id", runId)
+                    .put("algorithm_name", "WINDOW").put("model_config_version", "1")
+                    .put("algorithm_version", "1.0.0").put("package_version", "1.0.0").put("code_version", "v1")
+                    .put("membership_row_count", (long) members.size()).put("summary_row_count", (long) summaries.size())
+                    .put("status", "COMPLETED").put("completed_at_utc", "2024-01-01T00:00:00Z")
+                    .put("artifact_uri", "s3://fixture/results/" + runId + "/");
+                ObjectNode chks = succ.putObject("checksums");
+                for (JsonNode file : ResultBundleContract.contract().get("required_artifacts")) {
+                    chks.put(file.asText(), ResultBundleContract.sha256(Files.readAllBytes(dir.resolve(file.asText()))));
+                }
+                Files.writeString(dir.resolve("_SUCCESS.json"), fixtureJson(succ));
+            } catch (Exception ex) {
+                throw new RuntimeException(ex);
+            }
+        };
+
+        writeCleanBundle.accept(fullDir, List.of("main-0", "main-1"));
+        writeCleanBundle.accept(shard0Dir, List.of("main-0", "shard_00000"));
+        writeCleanBundle.accept(shard1Dir, List.of("main-1", "shard_00001"));
+
+        var fullDecoded = MlResultBundleReader.read(fullDir);
+        assertEquals(4, fullDecoded.memberships().size());
+        var fullRequest = request.deepCopy().put("experiment_run_id", "exp_fixture_full");
+        assertEquals("IMP_REQUEST_FIELD_REQUIRED", assertThrows(IllegalArgumentException.class,
+            () -> TrustedDatasetResolver.resolve(fullRequest, registry, null)).getMessage());
+        fullRequest.put("collection_shard_id", "shard_00000");
+        var fullAsShard = TrustedDatasetResolver.resolve(fullRequest, registry, null);
+        assertEquals("IMP_COLLECTION_SCOPE_MISMATCH", assertThrows(IllegalArgumentException.class,
+            () -> VALIDATOR.validate(fullDecoded, fullAsShard)).getMessage());
+
+        for (var shardDir : List.of(shard0Dir, shard1Dir)) {
+            String shardId = shardDir.getFileName().toString();
+            var shardRequest = request.deepCopy().put("collection_shard_id", shardId)
+                .put("experiment_run_id", "exp_fixture_" + shardId);
+            var context = TrustedDatasetResolver.resolve(shardRequest, registry, null);
+            var decoded = MlResultBundleReader.read(shardDir);
+            assertEquals("RESULT_READY", VALIDATOR.validate(decoded, context).nextStatus());
+
+            shardRequest.put("collection_shard_id", shardId.equals("shard_00000") ? "shard_00001" : "shard_00000");
+            var otherShard = TrustedDatasetResolver.resolve(shardRequest, registry, null);
+            assertEquals("IMP_COLLECTION_SCOPE_MISMATCH", assertThrows(IllegalArgumentException.class,
+                () -> VALIDATOR.validate(decoded, otherShard)).getMessage());
+            shardRequest.put("collection_shard_id", "shard_00002");
+            assertEquals("IMP_COLLECTION_SCOPE_REQUIRED", assertThrows(IllegalArgumentException.class,
+                () -> TrustedDatasetResolver.resolve(shardRequest, registry, null)).getMessage());
+        }
+
+        // Legacy nested full/shards/ layout must be rejected by MlResultBundleReader
+        Files.createDirectories(fullDir.resolve("shards/shard_00000"));
+        Files.writeString(fullDir.resolve("shards/shard_00000/_SUCCESS.json"), "{}\n");
+        assertEquals("IMP_UNSAFE_ARTIFACT_METADATA",
+            assertThrows(IllegalArgumentException.class, () -> MlResultBundleReader.read(fullDir)).getMessage());
+    }
+
+    @Test void officialPythonBaselinesValidateEachShardThroughTrustedRegistry(@TempDir Path temp) throws Exception {
+        Path root = Files.exists(Path.of("notebooks")) ? Path.of(".") : Path.of("..");
+        Assumptions.assumeTrue(Files.exists(root.resolve("notebooks/baseline_models.py")), "baseline_models.py must exist");
+
+        String pythonExe = null;
+        for (String cmd : List.of("python", "python3", "py")) {
+            try {
+                var p = new ProcessBuilder(cmd, "-c", "import pyarrow, sklearn, notebooks.baseline_models, tests.test_research_collection_loader")
+                    .directory(root.toFile()).start();
+                if (p.waitFor() == 0) {
+                    pythonExe = cmd;
+                    break;
+                }
+            } catch (Exception ignored) {}
+        }
+        Assumptions.assumeTrue(pythonExe != null, "Python with pyarrow, sklearn, and baseline_models required");
+
+        Path workDir = temp.toRealPath();
+        String pyCode = "import importlib.util, sys\n"
+            + "from pathlib import Path\n"
+            + "work = Path(sys.argv[1])\n"
+            + "spec_c = importlib.util.spec_from_file_location('col_fx', 'tests/test_research_collection_loader.py')\n"
+            + "col_mod = importlib.util.module_from_spec(spec_c); spec_c.loader.exec_module(col_mod)\n"
+            + "spec_r = importlib.util.spec_from_file_location('exp02_r', 'scripts/run-exp02-official.py')\n"
+            + "runner = importlib.util.module_from_spec(spec_r); spec_r.loader.exec_module(runner)\n"
+            + "repro = work / 'repro'; pilot = work / 'pilot'; out = work / 'out'\n"
+            + "repro.mkdir(); pilot.mkdir()\n"
+            + "pins = col_mod.fixture(repro, pilot)\n"
+            + "runner.execute_official_baselines(bundle_dir=repro, output_dir=out, output_json=work / 'report.json', manifest_sha256=pins['manifest_sha256'], checksums_sha256=pins['checksums_sha256'], expected_handoff_sha256=None)\n";
+
+        Path runnerLog = workDir.resolve("runner.log");
+        var proc = new ProcessBuilder(pythonExe, "-c", pyCode, workDir.toAbsolutePath().toString())
+            .directory(root.toFile()).redirectErrorStream(true).redirectOutput(runnerLog.toFile()).start();
+        if (!proc.waitFor(60, java.util.concurrent.TimeUnit.SECONDS)) {
+            proc.destroyForcibly();
+            fail("Fixture baseline runner exceeded its time budget");
+        }
+        assertEquals(0, proc.exitValue(), () -> "Fixture baseline runner failed; inspect " + runnerLog);
+        JsonNode report = JSON.readTree(Files.readAllBytes(workDir.resolve("report.json")));
+        // Independent expectations from tests.test_research_collection_loader.fixture and its pilot seed.
+        String post = "evt_" + "2".repeat(32);
+        Path registry = workDir.resolve("trusted");
+        var request = collectionRegistry(registry, "ds_" + "1".repeat(64), "col_" + "2".repeat(64), Map.of(
+            "shard_00000", List.of(new ResultBundleValidator.Candidate("main-0", "main-0", "MAINSHOCK"),
+                new ResultBundleValidator.Candidate("main-0", post, "POST")),
+            "shard_00001", List.of(new ResultBundleValidator.Candidate("main-1", "main-1", "MAINSHOCK"),
+                new ResultBundleValidator.Candidate("main-1", post, "POST"))));
+
+        for (String algorithm : List.of("WINDOW", "DBSCAN", "HDBSCAN_GLOBAL")) {
+            String dirName = algorithm.toLowerCase(Locale.ROOT);
+            var full = MlResultBundleReader.read(workDir.resolve("out").resolve(dirName));
+            assertEquals(4, full.memberships().size());
+            assertEquals(2, full.summaries().size());
+            for (String shard : List.of("shard_00000", "shard_00001")) {
+                var entry = report.path("shard_verifications").path(algorithm).path(shard);
+                var shardRequest = request.deepCopy().put("collection_shard_id", shard)
+                    .put("experiment_run_id", entry.path("experiment_run_id").asText())
+                    .put("algorithm_name", algorithm).put("model_config_version",
+                        report.path("model_config_pins").path(algorithm).path("model_config_version").asText());
+                var context = TrustedDatasetResolver.resolve(shardRequest, registry, null);
+                var decoded = MlResultBundleReader.read(workDir.resolve("out").resolve(dirName + "_shards").resolve(shard));
+                assertEquals("RESULT_READY", VALIDATOR.validate(decoded, context).nextStatus(), algorithm + "/" + shard);
+            }
+        }
     }
 }

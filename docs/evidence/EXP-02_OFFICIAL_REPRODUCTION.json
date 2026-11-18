@@ -1,0 +1,448 @@
+{
+  "algorithms_evaluated": [
+    "DBSCAN",
+    "HDBSCAN_GLOBAL",
+    "WINDOW"
+  ],
+  "artifacts_verified": {
+    "DBSCAN": {
+      "checksums": {
+        "_SUCCESS.json": "b1c5660c886af1963fb1c476db5b110a452661be8da27e4882e2e32e2fbd06e8",
+        "experiment_config.json": "2f420ac70eed0d288d6c219d7cad1480936d37eced8b50ec45b548a0ea2ba9ef",
+        "experiment_metrics.json": "2fc61abbf2106680682f022f025e9ba435c68cf2ec242bdda3468ef822c35b99",
+        "memberships.parquet": "949d5f481e2fa31e7f4ae8639fb4444df35577dceb1b16f5a7df818d6696a373",
+        "requirements-lock.txt": "a18209bc5034cd643c892e8a492a12de787fc0fae7dfa79e05132f1500f77d9d",
+        "sequence_summary.parquet": "06638b73c069cd312721a1d987b733f94d3e81e2b321ff063dd6fbd6d9b487d6"
+      },
+      "has_success_marker": true,
+      "manifest_file": "_SUCCESS.json",
+      "relative_dir": "dbscan",
+      "run_id": "exp_run_625da38ae6c398504b840adeede88014"
+    },
+    "HDBSCAN_GLOBAL": {
+      "checksums": {
+        "_SUCCESS.json": "8b3f0e07e53107e6a0cdea6c6485e29f621c02fddac5ff7466eda3cb4e542c8f",
+        "experiment_config.json": "d1340a7fd5aa56941de38d009e7e19871ebee886189d648b5cb7d09817256312",
+        "experiment_metrics.json": "145a8295270d99ccba5c984d3006bebeb6025382ae2e7eaba1b2a5bbf1fabddb",
+        "memberships.parquet": "5a9de12090d83a90796e1825647b315eec61bea0ccbc3fcf1c4249736386803d",
+        "requirements-lock.txt": "a18209bc5034cd643c892e8a492a12de787fc0fae7dfa79e05132f1500f77d9d",
+        "sequence_summary.parquet": "78ed5f7a64baeb734c066158e6bb4ca4cd395f4be407e19ef5fdc74a19c4d138"
+      },
+      "has_success_marker": true,
+      "manifest_file": "_SUCCESS.json",
+      "relative_dir": "hdbscan_global",
+      "run_id": "exp_run_e3bbf51736ed7c88b06a530aba1cdc7a"
+    },
+    "WINDOW": {
+      "checksums": {
+        "_SUCCESS.json": "b7fd0a92c587962934ee80be3c433224e2fd05c2f8fb147e0a54eaad1a84f945",
+        "experiment_config.json": "a899aec3d8f49d1a1ec090cd1d994adfe95daad5c03bce887a928025a5ef4698",
+        "experiment_metrics.json": "730b33bcba6f17b395f5ae10bbaa22fdeffdc4bdfeb0d00f6be7cd9c7139952c",
+        "memberships.parquet": "d36c65d9caff7bcc5a20f753e5fc31741729c1aa2f1a067380244c108406de3a",
+        "requirements-lock.txt": "a18209bc5034cd643c892e8a492a12de787fc0fae7dfa79e05132f1500f77d9d",
+        "sequence_summary.parquet": "d082a480786e992ae24958496c1bf4838011d4b30395fc4cac262627194a704c"
+      },
+      "has_success_marker": true,
+      "manifest_file": "_SUCCESS.json",
+      "relative_dir": "window",
+      "run_id": "exp_run_a996231b94b1a60a7891b221da549d99"
+    }
+  },
+  "case_results": {
+    "DBSCAN": {
+      "empty_post_windows": 1,
+      "failed_windows": 66,
+      "mainshock_noise_windows": 66,
+      "successful_windows": 128,
+      "total_windows": 194
+    },
+    "HDBSCAN_GLOBAL": {
+      "empty_post_windows": 2,
+      "failed_windows": 52,
+      "mainshock_noise_windows": 52,
+      "successful_windows": 142,
+      "total_windows": 194
+    },
+    "WINDOW": {
+      "empty_post_windows": 24,
+      "failed_windows": 0,
+      "mainshock_noise_windows": 0,
+      "successful_windows": 194,
+      "total_windows": 194
+    }
+  },
+  "code_provenance": {
+    "blob_mismatches": [],
+    "clean_verification_status": "CLEAN_VERIFIED",
+    "cross_platform_verification_note": "Verify reproducible code identity via git_blob_hashes (`git hash-object <file>`) or normalized_lf_code_hashes (`sha256sum` after LF normalization).",
+    "detected_line_endings": {
+      "config/ml/models/dbscan_global_dev_v1.json": "crlf",
+      "config/ml/models/hdbscan_global_dev_v1.json": "crlf",
+      "config/ml/models/window_baseline_v1.json": "crlf",
+      "notebooks/baseline_models.py": "crlf",
+      "notebooks/experiment_harness.py": "crlf",
+      "notebooks/research_collection.py": "crlf",
+      "scripts/run-exp02-official.py": "crlf"
+    },
+    "dirty_files": [],
+    "git_blob_hashes": {
+      "config/ml/models/dbscan_global_dev_v1.json": "13cfc6c04dbae9717a4530649a87504f14885c25",
+      "config/ml/models/hdbscan_global_dev_v1.json": "eeb8a0cdc4db7224391c858de5272e77a5e08183",
+      "config/ml/models/window_baseline_v1.json": "2c5dd1877c74dc8551610941df6e59d46b11f618",
+      "notebooks/baseline_models.py": "7f0e62805ab40e4c2bbe34ed94ebe6c15a021220",
+      "notebooks/experiment_harness.py": "5200eb45842250a73220b1f78c952b2288432435",
+      "notebooks/research_collection.py": "6326d9c1a74fc658fa3211e8ce95ff1b9bece604",
+      "scripts/run-exp02-official.py": "f481fff07302e2fe116f676c486c434ad7fd7008"
+    },
+    "git_commit": "df10230a2574c09fdba468ead50bf5808911dcd1",
+    "head_blob_hashes": {
+      "config/ml/models/dbscan_global_dev_v1.json": "13cfc6c04dbae9717a4530649a87504f14885c25",
+      "config/ml/models/hdbscan_global_dev_v1.json": "eeb8a0cdc4db7224391c858de5272e77a5e08183",
+      "config/ml/models/window_baseline_v1.json": "2c5dd1877c74dc8551610941df6e59d46b11f618",
+      "notebooks/baseline_models.py": "7f0e62805ab40e4c2bbe34ed94ebe6c15a021220",
+      "notebooks/experiment_harness.py": "5200eb45842250a73220b1f78c952b2288432435",
+      "notebooks/research_collection.py": "6326d9c1a74fc658fa3211e8ce95ff1b9bece604",
+      "scripts/run-exp02-official.py": "f481fff07302e2fe116f676c486c434ad7fd7008"
+    },
+    "is_clean_code": true,
+    "missing_files": [],
+    "normalized_lf_code_hashes": {
+      "config/ml/models/dbscan_global_dev_v1.json": "ab5c5150eefd58c674937ebc885275f74f96810dc05197d936d94d70fec06c75",
+      "config/ml/models/hdbscan_global_dev_v1.json": "eb8c3e8cf63f1cfa30669094b0bcf3808f8fe780afdf24c4ae795bbbfee99111",
+      "config/ml/models/window_baseline_v1.json": "5ba1a7aadb46a00c85058c5d4f0a27812f97bfee877601acfae10168dc454797",
+      "notebooks/baseline_models.py": "3099827f8f93c661a4efc86fe8d49edf2c7ff76de44c02c636d02d89069075f9",
+      "notebooks/experiment_harness.py": "5d9f1805e5eb29d0b3ec58a56fb2308373519ef504a6a832b22d1b6ba8160476",
+      "notebooks/research_collection.py": "7a0f598b460d45233d8cf122c2f9e009b5d6185412a603c8d0d328555fa68b1a",
+      "scripts/run-exp02-official.py": "375c3b5486e7a615f65ef8df2a0fc4d0570f82c347282731398f59eda1387175"
+    },
+    "working_tree_code_hashes": {
+      "config/ml/models/dbscan_global_dev_v1.json": "f089d928f4ace1c695207b1b4200f03c34e782a9fef3069f9da4518fcf5dcba1",
+      "config/ml/models/hdbscan_global_dev_v1.json": "10d2b375d66c8c95a6388c8dbda068dfebc1a492bcfd27df8bd5e1c8a20829f2",
+      "config/ml/models/window_baseline_v1.json": "78feda8112fd4a687be8383cc100faa20fdc0f0ae7a9d54a312a4868d703ad40",
+      "notebooks/baseline_models.py": "32cc3f6d4caf2c2fd29b7c1079628fbdeb1e56ec709c673b6c9698eacc59a2d8",
+      "notebooks/experiment_harness.py": "6bfd060b889d8137c7e38634b679a8511d559e8789cd3b64367b07f1243806cd",
+      "notebooks/research_collection.py": "1615f59938e18908b644b6007ea2fac3b0cd815b41ace7633b03fb2c962fd0ff",
+      "scripts/run-exp02-official.py": "1736593f1b25deb4ace73ad8e0e2455868824d95abe2f493a0dd4e07e305fa10"
+    }
+  },
+  "code_version": "df10230a2574c09fdba468ead50bf5808911dcd1",
+  "created_at_utc": "2026-11-18T03:31:56.892001+00:00",
+  "dataset": {
+    "checksums_sha256": "4768e500754c569bc951f23e2ac14fa9b9703ae69fbd5f78de06eacbb72f7ae9",
+    "collection_id": "col_bd10c69365da841b2cf6a62172e2350a797001eac04ce4bc6f2277a4d150ad98",
+    "dataset_id": "ds_907fe748fafdfc0f072ce4db4e1cf0aa619ed18877129e17c8440b43062c3d87",
+    "dataset_split": "REPRODUCTION",
+    "dataset_status": "EXPORTED",
+    "feature_row_count": 156710,
+    "feature_version": "relative-4d-v1",
+    "gold_publication_id": "pub_832ce36ac875f546528718c3545442a77a0097f7573379f30ed92f2a43c481f4",
+    "gold_snapshot_id": "7580315846938041321",
+    "handoff_sha256": "6cf0af7c2a3d8e8ec4c993f84ed6d86cdc417324102133dd3068eb2ebc40d297",
+    "mainshock_count": 194,
+    "manifest_sha256": "d3ee1334bfc50005a527f7b32a8988fcb1bdd7659a7dd4e84de326a7735139ae",
+    "mc_value": 0.5,
+    "scaling_config_version": "scaling-global-research-90k-v1",
+    "shard_count": 2,
+    "timestamp_reader_profile": "prepared-spark-utc-int96-v1",
+    "window_model_version": "wm_expanded_v1.0"
+  },
+  "evaluation_scope": "OFFICIAL_RESEARCH",
+  "model_config_pins": {
+    "DBSCAN": {
+      "algorithm_version": "1.0.0",
+      "canonical_config_sha256": "8b5408356c8dbb711e4760e9160011e19b0518dfef1bfeae1b2a2ce2cdfb8de0",
+      "config_path": "config/ml/models/dbscan_global_dev_v1.json",
+      "file_bytes_sha256": "f089d928f4ace1c695207b1b4200f03c34e782a9fef3069f9da4518fcf5dcba1",
+      "model_config_version": "dbscan-global-dev-v1"
+    },
+    "HDBSCAN_GLOBAL": {
+      "algorithm_version": "1.0.0",
+      "canonical_config_sha256": "0d05d137dab9702d8ff5fc5522ef9cd19bd3eafe8699c6c5d956eea848780ba8",
+      "config_path": "config/ml/models/hdbscan_global_dev_v1.json",
+      "file_bytes_sha256": "10d2b375d66c8c95a6388c8dbda068dfebc1a492bcfd27df8bd5e1c8a20829f2",
+      "model_config_version": "hdbscan-global-dev-v1"
+    },
+    "WINDOW": {
+      "algorithm_version": "1.0.0",
+      "canonical_config_sha256": "dfa2ee1635fc19a9f8ac438223245e5695d91110be622f6e67b0e58b89200a24",
+      "config_path": "config/ml/models/window_baseline_v1.json",
+      "file_bytes_sha256": "78feda8112fd4a687be8383cc100faa20fdc0f0ae7a9d54a312a4868d703ad40",
+      "model_config_version": "window-baseline-v1"
+    }
+  },
+  "package_versions": {
+    "hdbscan": "0.8.40",
+    "nbclient": "0.10.2",
+    "nbformat": "5.10.4",
+    "numpy": "2.2.2",
+    "pyarrow": "21.0.0",
+    "scikit-learn": "1.6.1",
+    "scipy": "1.15.1"
+  },
+  "python_version": "3.12.10",
+  "random_seed": 42,
+  "reconciliation": {
+    "DBSCAN": {
+      "algorithm_name": "DBSCAN",
+      "ambiguous_candidates_count": 18314,
+      "collection_id": "col_bd10c69365da841b2cf6a62172e2350a797001eac04ce4bc6f2277a4d150ad98",
+      "dataset_split": "REPRODUCTION",
+      "failed_windows": 66,
+      "model_config_version": "dbscan-global-dev-v1",
+      "runtime_seconds": 10.4821,
+      "shard_count": 2,
+      "shard_runs": {
+        "shard_00000": {
+          "failed_windows": 22,
+          "membership_row_count": 85972,
+          "relative_dir": "dbscan_shards/shard_00000",
+          "run_id": "exp_run_4be55b5a1de311fcb2ae78102af812ca",
+          "successful_windows": 65,
+          "summary_row_count": 87,
+          "total_aftershocks": 64514,
+          "total_noise_candidates": 2936,
+          "total_sequence_members": 78387
+        },
+        "shard_00001": {
+          "failed_windows": 44,
+          "membership_row_count": 70738,
+          "relative_dir": "dbscan_shards/shard_00001",
+          "run_id": "exp_run_d18ffb0a5c4f94c6695aaae7e7bb0cf2",
+          "successful_windows": 63,
+          "summary_row_count": 107,
+          "total_aftershocks": 53973,
+          "total_noise_candidates": 2343,
+          "total_sequence_members": 59453
+        }
+      },
+      "skipped_windows": 0,
+      "successful_windows": 128,
+      "total_aftershocks": 118487,
+      "total_candidates": 156710,
+      "total_noise": 5279,
+      "total_noise_candidates": 5279,
+      "total_sequence_members": 137840,
+      "total_windows": 194,
+      "windows_processed": 194
+    },
+    "HDBSCAN_GLOBAL": {
+      "algorithm_name": "HDBSCAN_GLOBAL",
+      "ambiguous_candidates_count": 2378,
+      "collection_id": "col_bd10c69365da841b2cf6a62172e2350a797001eac04ce4bc6f2277a4d150ad98",
+      "dataset_split": "REPRODUCTION",
+      "failed_windows": 52,
+      "model_config_version": "hdbscan-global-dev-v1",
+      "runtime_seconds": 33.773,
+      "shard_count": 2,
+      "shard_runs": {
+        "shard_00000": {
+          "failed_windows": 20,
+          "membership_row_count": 85972,
+          "relative_dir": "hdbscan_global_shards/shard_00000",
+          "run_id": "exp_run_743cbbc3454a2d36432c0126c46b2ac1",
+          "successful_windows": 67,
+          "summary_row_count": 87,
+          "total_aftershocks": 7399,
+          "total_noise_candidates": 24118,
+          "total_sequence_members": 8177
+        },
+        "shard_00001": {
+          "failed_windows": 32,
+          "membership_row_count": 70738,
+          "relative_dir": "hdbscan_global_shards/shard_00001",
+          "run_id": "exp_run_4af0189724cf3cb5ef89514e523fbd18",
+          "successful_windows": 75,
+          "summary_row_count": 107,
+          "total_aftershocks": 7719,
+          "total_noise_candidates": 18217,
+          "total_sequence_members": 8762
+        }
+      },
+      "skipped_windows": 0,
+      "successful_windows": 142,
+      "total_aftershocks": 15118,
+      "total_candidates": 156710,
+      "total_noise": 42335,
+      "total_noise_candidates": 42335,
+      "total_sequence_members": 16939,
+      "total_windows": 194,
+      "windows_processed": 194
+    },
+    "WINDOW": {
+      "algorithm_name": "WINDOW",
+      "ambiguous_candidates_count": 16615,
+      "collection_id": "col_bd10c69365da841b2cf6a62172e2350a797001eac04ce4bc6f2277a4d150ad98",
+      "dataset_split": "REPRODUCTION",
+      "failed_windows": 0,
+      "model_config_version": "window-baseline-v1",
+      "runtime_seconds": 0.4676,
+      "shard_count": 2,
+      "shard_runs": {
+        "shard_00000": {
+          "failed_windows": 0,
+          "membership_row_count": 85972,
+          "relative_dir": "window_shards/shard_00000",
+          "run_id": "exp_run_0dfd6de7816ede922a9a87851bd3f07e",
+          "successful_windows": 87,
+          "summary_row_count": 87,
+          "total_aftershocks": 71139,
+          "total_noise_candidates": 0,
+          "total_sequence_members": 71226
+        },
+        "shard_00001": {
+          "failed_windows": 0,
+          "membership_row_count": 70738,
+          "relative_dir": "window_shards/shard_00001",
+          "run_id": "exp_run_1ddd02dbc57e84013508ca8c35b2c423",
+          "successful_windows": 107,
+          "summary_row_count": 107,
+          "total_aftershocks": 64714,
+          "total_noise_candidates": 0,
+          "total_sequence_members": 64821
+        }
+      },
+      "skipped_windows": 0,
+      "successful_windows": 194,
+      "total_aftershocks": 135853,
+      "total_candidates": 156710,
+      "total_noise": 0,
+      "total_noise_candidates": 0,
+      "total_sequence_members": 136047,
+      "total_windows": 194,
+      "windows_processed": 194
+    }
+  },
+  "report_version": "exp-02-official-v2",
+  "scientific_approval": false,
+  "shard_verifications": {
+    "DBSCAN": {
+      "shard_00000": {
+        "checksums": {
+          "experiment_config.json": "ef0f915ffa63e26bef5129f47e6a4cf6629334b9933cbf89e8336b2c8cef6620",
+          "experiment_metrics.json": "b5fc924febf26b306aef51cd95a2900c979cff5bfbf25440368438c3e9343873",
+          "memberships.parquet": "09ec93507e0f02fc4e8f3eae36131f0a8e3a848f2eea653623363d5e452e4582",
+          "requirements-lock.txt": "a18209bc5034cd643c892e8a492a12de787fc0fae7dfa79e05132f1500f77d9d",
+          "sequence_summary.parquet": "28c2cd8492c27bc2ef160eee65bbc3c859b4bc25962f073ed5a5f53d94724667"
+        },
+        "collection_scope": {
+          "collection_id": "col_bd10c69365da841b2cf6a62172e2350a797001eac04ce4bc6f2277a4d150ad98",
+          "scope": "WHOLE_WINDOW_SHARD",
+          "shard_id": "shard_00000",
+          "version": "dat03-collection-export-v1"
+        },
+        "experiment_run_id": "exp_run_4be55b5a1de311fcb2ae78102af812ca",
+        "membership_row_count": 85972,
+        "relative_dir": "dbscan_shards/shard_00000",
+        "success_marker_sha256": "991f3c6a3e85a6d18d320943bb06f1d6e5dc74e68c0e8b47b6110ab5a7f6cb49",
+        "summary_row_count": 87
+      },
+      "shard_00001": {
+        "checksums": {
+          "experiment_config.json": "48eff5a81c2145321ffc262aaa25fda14ac547a2ad8240d7902d3cb6a8e86bce",
+          "experiment_metrics.json": "2bce5d2d7d3fa80d0bf88ebecd223b389f1826ccd96bd888f6c0fe487d4ac76b",
+          "memberships.parquet": "6b0e77d89f60d16d49b0bd5100b21c99eece1638d79e74c8769c579f740eba9b",
+          "requirements-lock.txt": "a18209bc5034cd643c892e8a492a12de787fc0fae7dfa79e05132f1500f77d9d",
+          "sequence_summary.parquet": "e1c5e84d68db761dabbe86ac2a2256dee6f1db7564d95b9d41208d9c912f646d"
+        },
+        "collection_scope": {
+          "collection_id": "col_bd10c69365da841b2cf6a62172e2350a797001eac04ce4bc6f2277a4d150ad98",
+          "scope": "WHOLE_WINDOW_SHARD",
+          "shard_id": "shard_00001",
+          "version": "dat03-collection-export-v1"
+        },
+        "experiment_run_id": "exp_run_d18ffb0a5c4f94c6695aaae7e7bb0cf2",
+        "membership_row_count": 70738,
+        "relative_dir": "dbscan_shards/shard_00001",
+        "success_marker_sha256": "205d73330e09fd204b3b3f703d1e0de14447d02bb6ed029c6bc7c1d2b0b6b55d",
+        "summary_row_count": 107
+      }
+    },
+    "HDBSCAN_GLOBAL": {
+      "shard_00000": {
+        "checksums": {
+          "experiment_config.json": "d8b974bccdcb57a1963e3404a4bb70e23a0c19672eaf57ad86217eebc10fdb95",
+          "experiment_metrics.json": "455d224ab0605864bc7ad80d6c0f516a594a9a0af1376cc2a0cad13d193814b0",
+          "memberships.parquet": "af5e6e00567990731b8740e1ed54208cbf329acfe80733d7abc5dcf46a557a62",
+          "requirements-lock.txt": "a18209bc5034cd643c892e8a492a12de787fc0fae7dfa79e05132f1500f77d9d",
+          "sequence_summary.parquet": "e4d1f9d047e5b3035ad5695b7c0051af041eb30813ea8a5aa50ea76d4f327343"
+        },
+        "collection_scope": {
+          "collection_id": "col_bd10c69365da841b2cf6a62172e2350a797001eac04ce4bc6f2277a4d150ad98",
+          "scope": "WHOLE_WINDOW_SHARD",
+          "shard_id": "shard_00000",
+          "version": "dat03-collection-export-v1"
+        },
+        "experiment_run_id": "exp_run_743cbbc3454a2d36432c0126c46b2ac1",
+        "membership_row_count": 85972,
+        "relative_dir": "hdbscan_global_shards/shard_00000",
+        "success_marker_sha256": "ab18295f63d7977399a33894ef5717c6440d8d7189c2c209ed6138e26512c368",
+        "summary_row_count": 87
+      },
+      "shard_00001": {
+        "checksums": {
+          "experiment_config.json": "6d8af1c0185089b6ca2dcceeb90ada4ae7d10ac4fb0d3639250f8100532dd42b",
+          "experiment_metrics.json": "8f406cac82c6e2a989891ec1e3a479979795726de497f4001276b846e53d8b05",
+          "memberships.parquet": "c66a07b5b69305e002f152d66388f1816d6da861b125d9e2d10d0b8f29c09717",
+          "requirements-lock.txt": "a18209bc5034cd643c892e8a492a12de787fc0fae7dfa79e05132f1500f77d9d",
+          "sequence_summary.parquet": "f1aa0c1396221475a602bc84a3052592004bd2cb36dfb17f83409f91f2cb71b0"
+        },
+        "collection_scope": {
+          "collection_id": "col_bd10c69365da841b2cf6a62172e2350a797001eac04ce4bc6f2277a4d150ad98",
+          "scope": "WHOLE_WINDOW_SHARD",
+          "shard_id": "shard_00001",
+          "version": "dat03-collection-export-v1"
+        },
+        "experiment_run_id": "exp_run_4af0189724cf3cb5ef89514e523fbd18",
+        "membership_row_count": 70738,
+        "relative_dir": "hdbscan_global_shards/shard_00001",
+        "success_marker_sha256": "1d280c2b4f7992622bac223f5564a65c3fa56b842ee3acdea268f988e4b080f2",
+        "summary_row_count": 107
+      }
+    },
+    "WINDOW": {
+      "shard_00000": {
+        "checksums": {
+          "experiment_config.json": "dc4daf11ebdf5131e5be111f45ca003b6553a0391e5ced52d3bc3190be43b1c7",
+          "experiment_metrics.json": "71292c0a711b97693430ab0df268a5c9b0c266f6507563b68ef8ca56965a256b",
+          "memberships.parquet": "b8b874b7f34d14f64578513e92b1228cfbf8d400484caf4a4ad26684762ba78f",
+          "requirements-lock.txt": "a18209bc5034cd643c892e8a492a12de787fc0fae7dfa79e05132f1500f77d9d",
+          "sequence_summary.parquet": "6f32c520d02611f21aa516cfe6bdfc56a26c6bda5d849816f652ca6583832efa"
+        },
+        "collection_scope": {
+          "collection_id": "col_bd10c69365da841b2cf6a62172e2350a797001eac04ce4bc6f2277a4d150ad98",
+          "scope": "WHOLE_WINDOW_SHARD",
+          "shard_id": "shard_00000",
+          "version": "dat03-collection-export-v1"
+        },
+        "experiment_run_id": "exp_run_0dfd6de7816ede922a9a87851bd3f07e",
+        "membership_row_count": 85972,
+        "relative_dir": "window_shards/shard_00000",
+        "success_marker_sha256": "5cc2f5b96929ad9194290513435a7a0f01225e369dcfe6b03bae8fbb98643bb3",
+        "summary_row_count": 87
+      },
+      "shard_00001": {
+        "checksums": {
+          "experiment_config.json": "dd6334955ad81500aa20ef0c716591a6ce62501c87accac12a134b4e699e345c",
+          "experiment_metrics.json": "516c46658f5434f7321399b3ba5c313ec8abe03781f4ed75031d5286d983bec7",
+          "memberships.parquet": "d80ec19e14ea3bdfe514a197bd0ce6cf1b5dbd66cad7673170c21bda91ec14e5",
+          "requirements-lock.txt": "a18209bc5034cd643c892e8a492a12de787fc0fae7dfa79e05132f1500f77d9d",
+          "sequence_summary.parquet": "9fb56cd4400e5fd9d5fcf07c2c3d79ad7fc416cbc771f6be5dac5eff7e95f369"
+        },
+        "collection_scope": {
+          "collection_id": "col_bd10c69365da841b2cf6a62172e2350a797001eac04ce4bc6f2277a4d150ad98",
+          "scope": "WHOLE_WINDOW_SHARD",
+          "shard_id": "shard_00001",
+          "version": "dat03-collection-export-v1"
+        },
+        "experiment_run_id": "exp_run_1ddd02dbc57e84013508ca8c35b2c423",
+        "membership_row_count": 70738,
+        "relative_dir": "window_shards/shard_00001",
+        "success_marker_sha256": "0ecc13ea170d965a2aa562d937825f8a4ce501d31403e640ffc513351c52cff7",
+        "summary_row_count": 107
+      }
+    }
+  },
+  "status": "PASSED",
+  "task_id": "EXP-02",
+  "technical_summary": "Official EXP-02 baselines (WINDOW, DBSCAN, HDBSCAN_GLOBAL) executed per-mainshock on EXPORTED research collection into non-nested sibling MLI-03 bundles, physically verified and union-reconciled without mutating inputs or dropping failure windows."
+}
