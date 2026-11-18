@@ -21,8 +21,10 @@ if str(NOTEBOOKS_DIR) not in sys.path:
 from experiment_harness import (  # noqa: E402
     MODE_OFFICIAL,
     canonical,
+    collect_code_provenance,
     load_feature_bundle,
     require,
+    resolve_verified_handoff_sha256,
     sha256_bytes,
     validate_safe_metadata,
 )
@@ -33,6 +35,23 @@ from adaptive_hdbscan import (  # noqa: E402
 
 DEFAULT_HANDOFF_SHA256 = "6cf0af7c2a3d8e8ec4c993f84ed6d86cdc417324102133dd3068eb2ebc40d297"
 ADAPTIVE_CONFIG_PATH = "config/ml/models/hdbscan_adaptive_dev_v1.json"
+CRITICAL_PROVENANCE_FILES = [
+    "notebooks/experiment_harness.py",
+    "notebooks/research_collection.py",
+    "notebooks/baseline_models.py",
+    "notebooks/adaptive_hdbscan.py",
+    "scripts/run-exp03-official.py",
+    ADAPTIVE_CONFIG_PATH,
+]
+
+
+def get_code_provenance(root: Path) -> Dict[str, Any]:
+    """Capture strict git commit, blob hashes, LF-normalized hashes, and clean status for EXP-03 files."""
+    return collect_code_provenance(
+        root,
+        CRITICAL_PROVENANCE_FILES,
+        clean_status_label="CLEAN_VERIFIED",
+    )
 
 
 def resolve_git_commit(root: Path) -> str:
@@ -73,6 +92,7 @@ def load_adaptive_config(root: Path) -> tuple[Dict[str, Any], Dict[str, Any]]:
 def render_official_markdown(report: Dict[str, Any]) -> str:
     """Render reproducible Markdown evidence report for EXP-03 official REPRODUCTION run."""
     ds = report["dataset"]
+    prov = report.get("code_provenance") or {}
     pin = report.get("model_config_pin", {})
     m = report["reconciliation"]
     rec = report["multi_sequence_reconciliation"]
@@ -84,9 +104,9 @@ def render_official_markdown(report: Dict[str, Any]) -> str:
         "# EXP-03 — Kết quả Official HDBSCAN Adaptive & Multi-Sequence trên REPRODUCTION Collection",
         "",
         "- **Task:** [EXP-03](../task/tasks/EXP-03.md) (Khối H - Experiment, P0 Core)",
-        f"- **Trạng thái:** `{report['status']}` (`{report['evaluation_scope']}`)",
+        f"- **Report Version / Trạng thái:** `{report.get('report_version')}` / `{report['status']}` (`{report['evaluation_scope']}`)",
         f"- **Thời điểm tạo (UTC):** `{report['created_at_utc']}`",
-        f"- **Git Commit Pin:** `{report['code_version']}`",
+        f"- **Git Commit Pin / Code Status:** `{report['code_version']}` (`{prov.get('clean_verification_status', 'UNSPECIFIED')}`)",
         f"- **Python / HDBSCAN Runtime:** Python `{report['python_version']}`, `scikit-learn=={report['package_versions'].get('scikit-learn')}`, `hdbscan=={report['package_versions'].get('hdbscan')}`, `pyarrow=={report['package_versions'].get('pyarrow')}`",
         f"- **Random Seed:** `{report['random_seed']}`",
         f"- **Scientific Approval:** `{str(report['scientific_approval']).lower()}`",
@@ -109,10 +129,15 @@ def render_official_markdown(report: Dict[str, Any]) -> str:
 
     lines.extend([
         "",
-        "## 2. Cấu hình Thuật toán đã Khóa (Config Pin)",
+        "## 2. Cấu hình Thuật toán & Code Provenance đã Khóa",
         "",
-        f"- **HDBSCAN_ADAPTIVE:** `{pin.get('config_path')}` (`{pin.get('model_config_version')}`, File SHA: `{str(pin.get('file_bytes_sha256', ''))[:16]}...`, Canonical SHA: `{str(pin.get('canonical_config_sha256', ''))[:16]}...`)",
+        f"- **HDBSCAN_ADAPTIVE:** `{pin.get('config_path')}` (`{pin.get('model_config_version')}`, File SHA: `{pin.get('file_bytes_sha256')}`, Canonical SHA: `{pin.get('canonical_config_sha256')}`)",
     ])
+    if prov:
+        lines.append(f"- **Clean Verification:** `is_clean_code={prov.get('is_clean_code')}` (`git_commit={prov.get('git_commit')}`)")
+        for rel, bsha in (prov.get("git_blob_hashes") or {}).items():
+            lf_sha = (prov.get("normalized_lf_code_hashes") or {}).get(rel)
+            lines.append(f"  - `{rel}`: git_blob=`{bsha}`, lf_sha256=`{lf_sha}`")
     if pstats:
         mcls = pstats.get("min_cluster_size", {})
         msmp = pstats.get("min_samples", {})
@@ -141,14 +166,16 @@ def render_official_markdown(report: Dict[str, Any]) -> str:
         f"| **Noise Events** | {m['total_noise_candidates']} |",
         f"| **Runtime (s)** | {m['runtime_seconds']:.2f} |",
         "",
-        "## 4. Per-Shard Official Bundles (`WHOLE_WINDOW_SHARD` — giữ nguyên kết quả resolve toàn cục)",
+        "## 4. Per-Shard Official Bundles (`WHOLE_WINDOW_SHARD` — Sibling Layout Hợp đồng MLI-01/MLI-03)",
         "",
-        "| Shard | Run ID | Rows | Mainshocks | `_SUCCESS.json` SHA-256 (prefix) |",
-        "|---|---|---:|---:|---|",
+        "- Full-split bundle (`hdbscan_adaptive/`) và từng shard bundle (`hdbscan_adaptive_shards/<shard_id>/`) tách thành thư mục đồng cấp không lồng nhau, tương thích trực tiếp `MlResultBundleReader` (`MLI-03`).",
+        "",
+        "| Shard | Relative Dir | Run ID | Rows | Mainshocks | `_SUCCESS.json` SHA-256 (prefix) |",
+        "|---|---|---|---:|---:|---|",
     ])
     for shard_id, s_info in sorted(report.get("shard_verifications", {}).items()):
         lines.append(
-            f"| `{shard_id}` | `{s_info['experiment_run_id']}` | {s_info['membership_row_count']} | {s_info['summary_row_count']} | `{s_info['success_marker_sha256'][:16]}...` |"
+            f"| `{shard_id}` | `{s_info.get('relative_dir')}` | `{s_info['experiment_run_id']}` | {s_info['membership_row_count']} | {s_info['summary_row_count']} | `{s_info['success_marker_sha256'][:16]}...` |"
         )
 
     lines.extend([
@@ -158,7 +185,8 @@ def render_official_markdown(report: Dict[str, Any]) -> str:
         "1. **Deterministic Adaptive Rule:** `min_cluster_size` và `min_samples` tính xác định theo `(candidate_count, mainshock_magnitude)` từ `hdbscan-adaptive-dev-v1`; không chỉnh tay theo từng sequence và không chạm dữ liệu `EXTENSION`.",
         "2. **Global Multi-Sequence & Raw Grain Preservation:** Lưu đủ toàn bộ `156710` raw membership pairs; phân giải đa chuỗi toàn cục trước khi tách `WHOLE_WINDOW_SHARD` theo `probability -> normalized_distance -> AMBIGUOUS` (giữ `resolution_rank = NULL` cho các trường hợp hòa).",
         "3. **Nested Mainshock Evidence:** Giữ toàn bộ `parent_mainshock_event_id` và `nested_membership_probability` trên `sequence_summary.parquet` (và gắn `AMBIGUOUS_NESTED_PARENT_TIE` nếu hòa parent).",
-        "4. **Ranh giới Khoa học:** Kết quả chỉ là ứng viên chuỗi sau chấn hồi cứu; không tuyên bố adaptive tốt hơn hay dự đoán động đất trước khi hoàn tất đánh giá định lượng ở [EXP-04](../task/tasks/EXP-04.md).",
+        "4. **Ranh giới MLI-03 Full-Split vs Shard:** `MlResultBundleReader.read` đọc được cả full-split (`hdbscan_adaptive/`) lẫn từng shard (`hdbscan_adaptive_shards/<shard_id>/`). `ResultBundleContract.validate` kiểm tra đầy đủ trạng thái toàn cục trên full-split bundle; với các shard tách riêng có candidate giao cắt giữa nhiều shard (ví dụ `13.097` candidate dùng chung giữa `shard_00000` và `shard_00001`), việc giữ nhãn đã resolve toàn cục (`MULTIPLE`/`AMBIGUOUS`) khiến bản thân slice đơn lẻ chứa các dòng đơn có status liên-shard.",
+        "5. **Ranh giới Khoa học:** Kết quả chỉ là ứng viên chuỗi sau chấn hồi cứu; không tuyên bố adaptive tốt hơn hay dự đoán động đất trước khi hoàn tất đánh giá định lượng ở [EXP-04](../task/tasks/EXP-04.md).",
         "",
     ])
     return "\n".join(lines)
@@ -192,8 +220,10 @@ def execute_official_adaptive(
             f"EXP03_REQUIRES_REPRODUCTION_SPLIT: got {bundle.get('dataset_split')}")
 
     cfg, cfg_pin = load_adaptive_config(root)
-    code_ver = resolve_git_commit(root)
+    code_prov = get_code_provenance(root)
+    code_ver = code_prov["git_commit"]
     output_dir.mkdir(parents=True, exist_ok=True)
+    shard_out = output_dir.parent / f"{output_dir.name}_shards"
 
     result = run_adaptive_experiment(
         bundle=bundle,
@@ -206,12 +236,14 @@ def execute_official_adaptive(
         execution_id=f"exp03_official_hdbscan_adaptive_seed{seed}",
         allow_overwrite=allow_overwrite,
         is_retry=is_retry,
+        shard_output_dir=shard_out,
     )
 
-    actual_handoff_sha: Optional[str] = None
-    resolved_handoff = handoff_path or (bundle_dir.resolve().parent.parent / "handoff.json")
-    if resolved_handoff.is_file():
-        actual_handoff_sha = sha256_bytes(resolved_handoff.read_bytes())
+    actual_handoff_sha = resolve_verified_handoff_sha256(
+        bundle_dir,
+        handoff_path=handoff_path,
+        expected_handoff_sha256=expected_handoff_sha256,
+    )
 
     report = generate_official_adaptive_report(
         bundle=bundle,
@@ -219,7 +251,9 @@ def execute_official_adaptive(
         output_path=output_json,
         code_version=code_ver,
         random_seed=seed,
+        model_config=cfg,
         model_config_pin=cfg_pin,
+        code_provenance=code_prov,
         handoff_sha256=actual_handoff_sha,
     )
     validate_safe_metadata(report)
@@ -246,7 +280,7 @@ def main() -> int:
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=PROJECT_ROOT / "staging/ml-experiments/exp03-official-reproduction/hdbscan_adaptive",
+        default=PROJECT_ROOT / "staging/ml-experiments/exp03-official-reproduction-v2/hdbscan_adaptive",
         help="Destination directory for official HDBSCAN_ADAPTIVE result bundles",
     )
     parser.add_argument(

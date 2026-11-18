@@ -21,8 +21,10 @@ if str(NOTEBOOKS_DIR) not in sys.path:
 from experiment_harness import (  # noqa: E402
     MODE_OFFICIAL,
     canonical,
+    collect_code_provenance,
     load_feature_bundle,
     require,
+    resolve_verified_handoff_sha256,
     sha256_bytes,
     validate_safe_metadata,
 )
@@ -68,103 +70,11 @@ def resolve_git_commit(root: Path) -> str:
 
 def get_code_provenance(root: Path) -> Dict[str, Any]:
     """Capture strict git commit, blob hashes, LF-normalized hashes, and clean status for critical EXP-02 files."""
-    commit = resolve_git_commit(root)
-    working_hashes: Dict[str, Optional[str]] = {}
-    normalized_lf_hashes: Dict[str, Optional[str]] = {}
-    git_blob_hashes: Dict[str, Optional[str]] = {}
-    head_blob_hashes: Dict[str, Optional[str]] = {}
-    line_endings: Dict[str, str] = {}
-    missing_files: List[str] = []
-    blob_mismatches: List[str] = []
-
-    for rel in CRITICAL_PROVENANCE_FILES:
-        fpath = root / rel
-        if not fpath.is_file():
-            missing_files.append(rel)
-            working_hashes[rel] = None
-            normalized_lf_hashes[rel] = None
-            git_blob_hashes[rel] = None
-            head_blob_hashes[rel] = None
-            line_endings[rel] = "missing"
-            continue
-
-        raw = fpath.read_bytes()
-        working_hashes[rel] = hashlib.sha256(raw).hexdigest()
-        has_crlf = b"\r\n" in raw
-        has_lf = b"\n" in raw.replace(b"\r\n", b"")
-        line_endings[rel] = "mixed" if (has_crlf and has_lf) else ("crlf" if has_crlf else ("lf" if has_lf else "none"))
-        normalized_lf_hashes[rel] = hashlib.sha256(raw.replace(b"\r\n", b"\n")).hexdigest()
-
-        work_blob: Optional[str] = None
-        try:
-            b_res = subprocess.run(
-                ["git", "-C", str(root), "hash-object", rel],
-                capture_output=True,
-                text=True,
-                check=True,
-                timeout=10,
-            )
-            work_blob = b_res.stdout.strip()
-        except Exception:
-            work_blob = None
-        git_blob_hashes[rel] = work_blob
-
-        head_blob: Optional[str] = None
-        if commit != "dev-local":
-            try:
-                h_res = subprocess.run(
-                    ["git", "-C", str(root), "rev-parse", f"HEAD:{rel}"],
-                    capture_output=True,
-                    text=True,
-                    check=True,
-                    timeout=10,
-                )
-                head_blob = h_res.stdout.strip()
-            except Exception:
-                head_blob = None
-        head_blob_hashes[rel] = head_blob
-        if work_blob is None or head_blob is None or work_blob != head_blob:
-            blob_mismatches.append(rel)
-
-    dirty_files: List[str] = []
-    git_clean = False
-    if commit != "dev-local":
-        try:
-            st = subprocess.run(
-                ["git", "-C", str(root), "status", "--porcelain", "-uall", "--", *CRITICAL_PROVENANCE_FILES],
-                capture_output=True,
-                text=True,
-                check=True,
-                timeout=15,
-            )
-            dirty_files = [line.strip() for line in st.stdout.splitlines() if line.strip()]
-            git_clean = len(dirty_files) == 0
-        except Exception:
-            git_clean = False
-
-    is_clean = bool(
-        commit != "dev-local"
-        and git_clean
-        and not missing_files
-        and not blob_mismatches
+    return collect_code_provenance(
+        root,
+        CRITICAL_PROVENANCE_FILES,
+        clean_status_label="CLEAN_VERIFIED",
     )
-    return {
-        "git_commit": commit,
-        "is_clean_code": is_clean,
-        "clean_verification_status": "CLEAN_VERIFIED" if is_clean else "DIRTY_OR_UNVERIFIED",
-        "dirty_files": dirty_files,
-        "missing_files": missing_files,
-        "blob_mismatches": blob_mismatches,
-        "working_tree_code_hashes": working_hashes,
-        "normalized_lf_code_hashes": normalized_lf_hashes,
-        "git_blob_hashes": git_blob_hashes,
-        "head_blob_hashes": head_blob_hashes,
-        "detected_line_endings": line_endings,
-        "cross_platform_verification_note": (
-            "Verify reproducible code identity via git_blob_hashes (`git hash-object <file>`) "
-            "or normalized_lf_code_hashes (`sha256sum` after LF normalization)."
-        ),
-    }
 
 
 def load_baseline_configs(root: Path) -> tuple[Dict[str, Dict[str, Any]], Dict[str, Dict[str, Any]]]:
@@ -326,18 +236,11 @@ def execute_official_baselines(
             is_retry=is_retry,
         )
 
-    actual_handoff_sha: Optional[str] = None
-    resolved_handoff = handoff_path or (bundle_dir.resolve().parent.parent / "handoff.json")
-    if (
-        expected_handoff_sha256
-        and isinstance(expected_handoff_sha256, str)
-        and re.fullmatch(r"[a-f0-9]{64}", expected_handoff_sha256.strip())
-        and resolved_handoff.is_file()
-        and not resolved_handoff.is_symlink()
-    ):
-        cand_sha = sha256_bytes(resolved_handoff.read_bytes())
-        if cand_sha == expected_handoff_sha256.strip():
-            actual_handoff_sha = cand_sha
+    actual_handoff_sha = resolve_verified_handoff_sha256(
+        bundle_dir,
+        handoff_path=handoff_path,
+        expected_handoff_sha256=expected_handoff_sha256,
+    )
 
     report = generate_official_baseline_report(
         bundle=bundle,

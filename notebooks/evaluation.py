@@ -91,9 +91,15 @@ def load_algorithm_configs(
 
         if custom_configs and algo in custom_configs:
             cfg = dict(custom_configs[algo])
-            canonical_bytes = json.dumps(cfg, sort_keys=True).encode("utf-8")
-            canonical_sha256 = hashlib.sha256(canonical_bytes).hexdigest()
+        else:
+            if not abs_path.is_file():
+                raise FileNotFoundError(f"CONFIG_FILE_MISSING:{abs_path}")
+            cfg = file_cfg if file_cfg is not None else json.loads(abs_path.read_bytes().decode("utf-8"))
 
+        canonical_str = json.dumps(cfg, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False)
+        canonical_sha256 = hashlib.sha256(canonical_str.encode("utf-8")).hexdigest()
+
+        if custom_configs and algo in custom_configs:
             # If custom config matches the on-disk file, recognize it as file-backed
             if file_cfg is not None and cfg == file_cfg:
                 cfg_path = str(rel_path).replace("\\", "/")
@@ -103,17 +109,13 @@ def load_algorithm_configs(
                 pin_sha256 = canonical_sha256
                 file_bytes_sha256 = None
         else:
-            if not abs_path.is_file():
-                raise FileNotFoundError(f"CONFIG_FILE_MISSING:{abs_path}")
-            cfg = file_cfg if file_cfg is not None else json.loads(abs_path.read_bytes().decode("utf-8"))
-            canonical_bytes = json.dumps(cfg, sort_keys=True).encode("utf-8")
-            canonical_sha256 = hashlib.sha256(canonical_bytes).hexdigest()
             cfg_path = str(rel_path).replace("\\", "/")
             pin_sha256 = file_bytes_sha256
 
         configs[algo] = cfg
         config_pins[algo] = {
             "config_path": cfg_path,
+            "algorithm_name": str(cfg.get("algorithm_name", algo)),
             "model_config_version": str(cfg.get("model_config_version", "unknown")),
             "algorithm_version": str(cfg.get("algorithm_version", "unknown")),
             "config_sha256": pin_sha256,
@@ -156,12 +158,12 @@ def compute_dbcv_score(
     if len(cluster_labels) == 0:
         return None, [METRIC_INSUFFICIENT_MEMBERS]
 
-    # Verify at least one cluster has >= 2 points and detect single-point clusters
+    # Verify at least one cluster has >= 2 points and detect single-point/single-cluster partitions
     max_cluster_size = int(cluster_sizes.max())
     min_cluster_size = int(cluster_sizes.min())
     if max_cluster_size < 2:
         return None, [METRIC_INSUFFICIENT_MEMBERS]
-    if min_cluster_size < 2:
+    if min_cluster_size < 2 or len(cluster_labels) < 2:
         return None, [METRIC_FIT_FAILED]
 
     try:
@@ -180,17 +182,6 @@ def compute_dbcv_score(
             return None, [METRIC_FIT_FAILED]
         return round(float(score), 4), []
     except Exception:
-        # Fallback approximation for DBCV only on bounded windows to avoid O(N^2) memory spikes
-        if len(X) <= 5000:
-            try:
-                from sklearn.metrics import silhouette_score
-
-                mask = labels_int != -1
-                if len(set(labels_int[mask])) >= 2 and np.sum(mask) > len(set(labels_int[mask])):
-                    score = float(silhouette_score(X[mask], labels_int[mask]))
-                    return round(score, 4), []
-            except Exception:
-                pass
         return None, [METRIC_FIT_FAILED]
 
 
@@ -203,14 +194,15 @@ def _safe_all_points_core_distance(Xc: np.ndarray, block_size: int = DBCV_BLOCK_
         if d == 4:
             sq = cdist(Xc[start:end], Xc, metric="sqeuclidean")
             nz = sq != 0.0
-            inv = np.zeros_like(sq)
-            inv[nz] = 1.0 / (sq[nz] * sq[nz])
+            np.multiply(sq, sq, out=sq, where=nz)
+            np.divide(1.0, sq, out=sq, where=nz)
+            inv_sum[start:end] = sq.sum(axis=1)
         else:
             dmat = cdist(Xc[start:end], Xc, metric="euclidean")
             nz = dmat != 0.0
-            inv = np.zeros_like(dmat)
-            inv[nz] = np.power(1.0 / dmat[nz], d)
-        inv_sum[start:end] = inv.sum(axis=1)
+            np.power(dmat, float(d), out=dmat, where=nz)
+            np.divide(1.0, dmat, out=dmat, where=nz)
+            inv_sum[start:end] = dmat.sum(axis=1)
     inv_sum /= float(m - 1)
     core = np.zeros(m, dtype=np.float64)
     pos = inv_sum > 0.0
@@ -219,8 +211,41 @@ def _safe_all_points_core_distance(Xc: np.ndarray, block_size: int = DBCV_BLOCK_
     return core
 
 
+def _repair_mst_ties_blocked(
+    Xc: np.ndarray,
+    c_dist: np.ndarray,
+    mst: np.ndarray,
+    block_size: int = 256,
+) -> np.ndarray:
+    """Apply hdbscan.validity.internal_minimum_spanning_tree parent tie-repair in bounded memory."""
+    m = len(Xc)
+    if len(mst) <= 1:
+        return mst.copy()
+
+    repaired = mst.copy()
+    in_tree = np.zeros(m, dtype=bool)
+    for start in range(1, len(repaired), block_size):
+        end = min(start + block_size, len(repaired))
+        v_batch = mst[start:end, 1].astype(np.intp)
+        w_batch = mst[start:end, 2]
+        dists = cdist(Xc[v_batch], Xc, metric="euclidean")
+        np.maximum(dists, c_dist[v_batch, None], out=dists)
+        np.maximum(dists, c_dist[None, :], out=dists)
+        close_mask = np.isclose(dists, w_batch[:, None])
+        for offset, idx in enumerate(range(start, end)):
+            in_tree[int(mst[idx - 1, 0])] = True
+            in_tree[int(mst[idx - 1, 1])] = True
+            v = int(v_batch[offset])
+            valid = close_mask[offset] & in_tree
+            valid[v] = False
+            if np.any(valid):
+                repaired[idx, 0] = float(np.argmax(valid))
+    return repaired
+
+
 def _compute_dbcv_memory_safe(X: np.ndarray, labels: np.ndarray) -> Optional[float]:
-    """Memory-bounded exact Moulavi (2014) DBCV using O(N log N) grouping and chunked BLAS separation."""
+    """Memory-bounded exact Moulavi (2014) DBCV matching hdbscan.validity.validity_index."""
+    import hdbscan.validity as hdb_validity
     from hdbscan._hdbscan_linkage import mst_linkage_core_vector
     from hdbscan.dist_metrics import DistanceMetric
 
@@ -249,19 +274,29 @@ def _compute_dbcv_memory_safe(X: np.ndarray, labels: np.ndarray) -> Optional[flo
         if len(idxs) < 2:
             return float("nan")
         Xc = np.ascontiguousarray(X[idxs], dtype=np.float64)
-        c_dist = _safe_all_points_core_distance(Xc)
-        mst = mst_linkage_core_vector(Xc, c_dist, dm_metric, 1.0)
-        deg = np.bincount(mst[:, :2].flatten().astype(np.intp), minlength=len(Xc))
-        internal_mask = deg > 1
-        if not np.any(internal_mask):
-            nodes = np.array([0], dtype=np.intp)
-            edges = mst
+        if len(idxs) <= DBCV_MEMORY_SAFE_CLUSTER_THRESHOLD:
+            # Exact per-cluster reference path (<= 32 MB for m <= 2000) so tie-breaking & core distances are identical
+            dist_mat = cdist(Xc, Xc, metric="euclidean")
+            c_dist = hdb_validity.all_points_core_distance(dist_mat.copy(), d=Xc.shape[1])
+            mr_dists = np.maximum(dist_mat, c_dist[:, None])
+            np.maximum(mr_dists, c_dist[None, :], out=mr_dists)
+            nodes_arr, edges = hdb_validity.internal_minimum_spanning_tree(mr_dists)
+            nodes = np.asarray(nodes_arr, dtype=np.intp)
         else:
-            nodes = np.flatnonzero(internal_mask)
-            u_idx = mst[:, 0].astype(np.intp)
-            v_idx = mst[:, 1].astype(np.intp)
-            edge_sel = internal_mask[u_idx] & internal_mask[v_idx]
-            edges = mst[edge_sel] if np.any(edge_sel) else mst
+            c_dist = _safe_all_points_core_distance(Xc)
+            mst = mst_linkage_core_vector(Xc, c_dist, dm_metric, 1.0)
+            repaired = _repair_mst_ties_blocked(Xc, c_dist, mst)
+            deg = np.bincount(repaired[:, :2].flatten().astype(np.intp), minlength=len(Xc))
+            internal_mask = deg > 1
+            if not np.any(internal_mask):
+                nodes = np.array([0], dtype=np.intp)
+                edges = repaired
+            else:
+                nodes = np.flatnonzero(internal_mask)
+                u_idx = repaired[:, 0].astype(np.intp)
+                v_idx = repaired[:, 1].astype(np.intp)
+                edge_sel = internal_mask[u_idx] & internal_mask[v_idx]
+                edges = repaired[edge_sel] if np.any(edge_sel) else repaired
         node_coords.append(Xc[nodes])
         node_cores.append(c_dist[nodes])
         node_cids.append(np.full(len(nodes), ci, dtype=np.int32))
@@ -718,6 +753,62 @@ def run_window_stability_analysis(
 # =============================================================================
 # 4. Multi-Model Pilot Evaluation & Comparison Table Engine
 # =============================================================================
+def _opt_round(val: Optional[float], digits: int = 10) -> Optional[float]:
+    if val is None:
+        return None
+    f = float(val)
+    if not math.isfinite(f):
+        return None
+    return round(f, digits)
+
+
+def compute_primary_membership_digest(rows: List[Dict[str, Any]]) -> str:
+    """Compute canonical SHA-256 over primary per-window clustering membership outcomes."""
+    records = sorted(
+        (
+            str(r.get("mainshock_event_id") or ""),
+            str(r.get("candidate_event_id") or ""),
+            str(r.get("event_role_candidate") or ""),
+            bool(r.get("is_sequence_member")),
+            None if r.get("cluster_id") is None else int(r["cluster_id"]),
+            None if r.get("is_noise") is None else bool(r["is_noise"]),
+            None if r.get("is_mainshock_cluster_member") is None else bool(r["is_mainshock_cluster_member"]),
+            _opt_round(r.get("membership_probability")),
+            _opt_round(r.get("normalized_distance")),
+        )
+        for r in rows
+    )
+    h = hashlib.sha256()
+    for rec in records:
+        h.update(json.dumps(rec, separators=(",", ":"), ensure_ascii=False).encode("utf-8"))
+        h.update(b"\n")
+    return h.hexdigest()
+
+
+def compute_primary_summary_digest(rows: List[Dict[str, Any]]) -> str:
+    """Compute canonical SHA-256 over primary per-window sequence summary counts & statuses."""
+    records = sorted(
+        (
+            str(r.get("mainshock_event_id") or ""),
+            str(r.get("window_result_status") or ""),
+            r.get("productive_sequence_detected"),
+            None if r.get("candidate_count") is None else int(r["candidate_count"]),
+            None if r.get("cluster_count") is None else int(r["cluster_count"]),
+            None if r.get("noise_count") is None else int(r["noise_count"]),
+            None if r.get("sequence_member_count") is None else int(r["sequence_member_count"]),
+            None if r.get("aftershock_count") is None else int(r["aftershock_count"]),
+            None if r.get("foreshock_candidate_count") is None else int(r["foreshock_candidate_count"]),
+            r.get("failure_reason_code"),
+        )
+        for r in rows
+    )
+    h = hashlib.sha256()
+    for rec in records:
+        h.update(json.dumps(rec, separators=(",", ":"), ensure_ascii=False).encode("utf-8"))
+        h.update(b"\n")
+    return h.hexdigest()
+
+
 def evaluate_model_on_bundle(
     bundle: Dict[str, Any],
     algorithm_name: str,
@@ -772,6 +863,8 @@ def evaluate_model_on_bundle(
     ari_scores: List[float] = []
 
     window_evaluations = []
+    primary_membership_rows: List[Dict[str, Any]] = []
+    primary_summary_rows: List[Dict[str, Any]] = []
 
     for mainshock_id, cands in raw_windows.items():
         n_cands = len(cands)
@@ -786,6 +879,8 @@ def evaluate_model_on_bundle(
                 mainshock_id=mainshock_id,
                 config=config,
             )
+            primary_membership_rows.extend(mem_rows)
+            primary_summary_rows.append(sum_row)
         except Exception as exc:
             fit_exception = exc
             mem_rows = []
@@ -967,6 +1062,8 @@ def evaluate_model_on_bundle(
         "mean_ari_stability": mean_ari,
         "stability_computed_windows": len(jaccard_scores),
         "stability_reason_counts": dict(sorted(stability_reason_counts.items())),
+        "primary_membership_sha256": compute_primary_membership_digest(primary_membership_rows),
+        "primary_window_summary_sha256": compute_primary_summary_digest(primary_summary_rows),
         "runtime_seconds": elapsed_seconds,
         "window_evaluations": window_evaluations,
     }
@@ -1129,7 +1226,7 @@ def compare_all_models_on_official(
             progress_callback(algo, res)
 
     frozen_extension_rule = {
-        "rule_version": "exp04-frozen-reproduction-rule-v1",
+        "rule_version": "exp04-frozen-reproduction-rule-v2",
         "frozen_from_split": manifest.get("dataset_split"),
         "frozen_from_dataset_id": dataset_id,
         "frozen_from_collection_id": bundle.get("collection_id"),

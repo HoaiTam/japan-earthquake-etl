@@ -2017,8 +2017,7 @@ class TestAdaptiveHDBSCAN(unittest.TestCase):
             )
             return mems, s_row
 
-        # First verify pure runner execution against the untouched REPRODUCTION fixture
-        out_dir = self.tmp_dir / "exp03_official_out"
+        out_dir = self.tmp_dir / "exp03_official_out" / "hdbscan_adaptive"
         out_json = self.tmp_dir / "exp03_official_report.json"
         out_md = self.tmp_dir / "exp03_official_report.md"
         report = runner.execute_official_adaptive(
@@ -2029,14 +2028,80 @@ class TestAdaptiveHDBSCAN(unittest.TestCase):
             expected_handoff_sha256=handoff_sha,
             seed=42,
         )
+        self.assertEqual(report["report_version"], "exp-03-official-v2")
         self.assertEqual(report["status"], "PASSED")
         self.assertEqual(report["dataset"]["dataset_split"], "REPRODUCTION")
         self.assertEqual(report["dataset"]["dataset_id"], repro_manifest["dataset_id"])
         self.assertEqual(report["dataset"]["feature_row_count"], 4)
         self.assertEqual(report["dataset"]["mainshock_count"], 2)
         self.assertEqual(report["dataset"]["shard_count"], 2)
+        self.assertIn("code_provenance", report)
+        self.assertIn("git_blob_hashes", report["code_provenance"])
         self.assertTrue((out_dir / "_SUCCESS.json").is_file())
+        self.assertFalse((out_dir / "shards").exists())
+        allowed_official_files = {
+            "_SUCCESS.json",
+            "memberships.parquet",
+            "sequence_summary.parquet",
+            "experiment_metrics.json",
+            "experiment_config.json",
+            "requirements-lock.txt",
+        }
+        self.assertEqual({p.name for p in out_dir.iterdir()}, allowed_official_files)
+        for sid in ["shard_00000", "shard_00001"]:
+            s_dir = out_dir.parent / "hdbscan_adaptive_shards" / sid
+            self.assertTrue((s_dir / "_SUCCESS.json").is_file())
+            self.assertEqual({p.name for p in s_dir.iterdir()}, allowed_official_files)
+            self.assertEqual(report["shard_verifications"][sid]["relative_dir"], f"hdbscan_adaptive_shards/{sid}")
         self.assertTrue(out_md.is_file())
+
+        # Verify negative controls for EXP-03 official verifier: nested shards/ and tampered shard parquet
+        loaded_bundle = load_feature_bundle(repro_dir, mode="OFFICIAL", expected_handoff_sha256=handoff_sha)
+        reloaded_mems = pq.read_table(out_dir / "memberships.parquet").to_pylist()
+        reloaded_sums = pq.read_table(out_dir / "sequence_summary.parquet").to_pylist()
+        reloaded_success = json.loads((out_dir / "_SUCCESS.json").read_text(encoding="utf-8"))
+        reloaded_metrics = json.loads((out_dir / "experiment_metrics.json").read_text(encoding="utf-8"))
+        reloaded_shards = {}
+        for sid in ["shard_00000", "shard_00001"]:
+            s_dir = out_dir.parent / "hdbscan_adaptive_shards" / sid
+            s_succ = json.loads((s_dir / "_SUCCESS.json").read_text(encoding="utf-8"))
+            s_met = json.loads((s_dir / "experiment_metrics.json").read_text(encoding="utf-8"))
+            s_cfg = json.loads((s_dir / "experiment_config.json").read_text(encoding="utf-8"))
+            reloaded_shards[sid] = {
+                "shard_id": sid,
+                "relative_dir": f"hdbscan_adaptive_shards/{sid}",
+                "run_id": s_succ["experiment_run_id"],
+                "collection_scope": s_cfg["collection_scope"],
+                "membership_row_count": s_succ["membership_row_count"],
+                "summary_row_count": s_succ["summary_row_count"],
+                "checksums": s_succ["checksums"],
+                "metrics": s_met["metrics"],
+            }
+        reloaded_res = {
+            "run_id": reloaded_success["experiment_run_id"],
+            "metrics": reloaded_metrics["metrics"],
+            "write_result": {
+                "mode": "OFFICIAL",
+                "run_id": reloaded_success["experiment_run_id"],
+                "success_marker_path": out_dir / "_SUCCESS.json",
+                "has_success_marker": True,
+                "checksums": reloaded_success["checksums"],
+            },
+            "summaries": reloaded_sums,
+            "memberships": reloaded_mems,
+            "reconciliation": reloaded_metrics["metrics"]["reconciliation"],
+            "shard_runs": reloaded_shards,
+        }
+        (out_dir / "shards" / "shard_00000").mkdir(parents=True)
+        (out_dir / "shards" / "shard_00000" / "_SUCCESS.json").write_text("{}", encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "ILLEGAL_DIRECTORY_IN_OFFICIAL_BUNDLE:HDBSCAN_ADAPTIVE"):
+            ah.generate_official_adaptive_report(loaded_bundle, reloaded_res, self.tmp_dir / "bad_nested.json")
+        shutil.rmtree(out_dir / "shards")
+
+        tamper_p = out_dir.parent / "hdbscan_adaptive_shards" / "shard_00000" / "memberships.parquet"
+        tamper_p.write_bytes(b"corrupt-parquet")
+        with self.assertRaisesRegex(ValueError, "CHECKSUM_MISMATCH:HDBSCAN_ADAPTIVE:shard_00000"):
+            ah.generate_official_adaptive_report(loaded_bundle, reloaded_res, self.tmp_dir / "bad_sha.json")
 
         # Also test cross-shard global resolution preserves MULTIPLE / AMBIGUOUS across shard boundaries
         now = datetime.now(timezone.utc)
@@ -2086,11 +2151,11 @@ class TestAdaptiveHDBSCAN(unittest.TestCase):
             )
 
         self.assertEqual(cross_res["reconciliation"]["nested_mainshocks_count"], 1)
-        shard1_sum = pq.read_table(self.tmp_dir / "cross_out/shards/shard_00001/sequence_summary.parquet").to_pylist()[0]
+        shard1_sum = pq.read_table(self.tmp_dir / "cross_out_shards/shard_00001/sequence_summary.parquet").to_pylist()[0]
         self.assertTrue(shard1_sum["is_nested_mainshock_candidate"])
         self.assertEqual(shard1_sum["parent_mainshock_event_id"], shard0_m)
-        shard0_mems = {r["candidate_event_id"]: r for r in pq.read_table(self.tmp_dir / "cross_out/shards/shard_00000/memberships.parquet").to_pylist()}
-        shard1_mems = {r["candidate_event_id"]: r for r in pq.read_table(self.tmp_dir / "cross_out/shards/shard_00001/memberships.parquet").to_pylist()}
+        shard0_mems = {r["candidate_event_id"]: r for r in pq.read_table(self.tmp_dir / "cross_out_shards/shard_00000/memberships.parquet").to_pylist()}
+        shard1_mems = {r["candidate_event_id"]: r for r in pq.read_table(self.tmp_dir / "cross_out_shards/shard_00001/memberships.parquet").to_pylist()}
         self.assertEqual(shard0_mems["shared_aft"]["multi_sequence_status"], "MULTIPLE")
         self.assertEqual(shard0_mems["shared_aft"]["resolution_rank"], 1)
         self.assertEqual(shard1_mems["shared_aft"]["multi_sequence_status"], "MULTIPLE")

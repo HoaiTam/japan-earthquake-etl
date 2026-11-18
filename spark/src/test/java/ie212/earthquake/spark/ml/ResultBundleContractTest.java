@@ -461,21 +461,34 @@ class ResultBundleContractTest {
             assertThrows(IllegalArgumentException.class, () -> MlResultBundleReader.read(fullDir)).getMessage());
     }
 
+    private static String detectPythonWithDeps(Path root, String importCheck) {
+        for (String cmd : List.of("python", "python3", "py")) {
+            try {
+                var p = new ProcessBuilder(cmd, "-c", importCheck).directory(root.toFile()).start();
+                if (p.waitFor() == 0) {
+                    return cmd;
+                }
+            } catch (Exception ignored) {}
+        }
+        return null;
+    }
+
+    private static List<ResultBundleValidator.Candidate> candidatesFromDecoded(ResultBundleValidator.DecodedBundle decoded) {
+        List<ResultBundleValidator.Candidate> cands = new ArrayList<>();
+        for (JsonNode r : decoded.memberships()) {
+            cands.add(new ResultBundleValidator.Candidate(
+                r.path("mainshock_event_id").asText(),
+                r.path("candidate_event_id").asText(),
+                r.path("event_role_candidate").asText()));
+        }
+        return cands;
+    }
+
     @Test void officialMultishardPythonBaselineFullAndShardBundlesPassMlResultBundleReader() throws Exception {
         Path root = Files.exists(Path.of("notebooks")) ? Path.of(".") : Path.of("..");
         Assumptions.assumeTrue(Files.exists(root.resolve("notebooks/baseline_models.py")), "baseline_models.py must exist");
 
-        String pythonExe = null;
-        for (String cmd : List.of("python", "python3", "py")) {
-            try {
-                var p = new ProcessBuilder(cmd, "-c", "import pyarrow, sklearn, notebooks.baseline_models, tests.test_research_collection_loader")
-                    .directory(root.toFile()).start();
-                if (p.waitFor() == 0) {
-                    pythonExe = cmd;
-                    break;
-                }
-            } catch (Exception ignored) {}
-        }
+        String pythonExe = detectPythonWithDeps(root, "import pyarrow, sklearn, notebooks.baseline_models, tests.test_research_collection_loader");
         Assumptions.assumeTrue(pythonExe != null, "Python with pyarrow, sklearn, and baseline_models required");
 
         Path workDir = Files.createTempDirectory("mli03-exp02-multishard-");
@@ -506,29 +519,63 @@ class ResultBundleContractTest {
         var fullDecoded = MlResultBundleReader.read(outRoot.resolve("window"));
         assertEquals(4, fullDecoded.memberships().size());
         assertEquals(2, fullDecoded.summaries().size());
-        List<ResultBundleValidator.Candidate> fullCands = new ArrayList<>();
-        for (JsonNode r : fullDecoded.memberships()) {
-            fullCands.add(new ResultBundleValidator.Candidate(
-                r.path("mainshock_event_id").asText(),
-                r.path("candidate_event_id").asText(),
-                r.path("event_role_candidate").asText()));
-        }
         assertEquals("RESULT_READY", VALIDATOR.validate(fullDecoded, new ResultBundleValidator.Context(
-            dsId, "EXPORTED", meta.path("window_run").asText(), "WINDOW", modelVer, fullCands, null)).nextStatus());
+            dsId, "EXPORTED", meta.path("window_run").asText(), "WINDOW", modelVer, candidatesFromDecoded(fullDecoded), null)).nextStatus());
 
         for (String sid : List.of("shard_00000", "shard_00001")) {
             var sd = MlResultBundleReader.read(outRoot.resolve("window_shards").resolve(sid));
-            List<ResultBundleValidator.Candidate> sc = new ArrayList<>();
-            for (JsonNode r : sd.memberships()) {
-                sc.add(new ResultBundleValidator.Candidate(
-                    r.path("mainshock_event_id").asText(),
-                    r.path("candidate_event_id").asText(),
-                    r.path("event_role_candidate").asText()));
-            }
             String sRun = meta.path(sid.equals("shard_00000") ? "s0_run" : "s1_run").asText();
             assertEquals("RESULT_READY", VALIDATOR.validate(sd, new ResultBundleValidator.Context(
-                dsId, "EXPORTED", sRun, "WINDOW", modelVer, sc, null, null, null,
+                dsId, "EXPORTED", sRun, "WINDOW", modelVer, candidatesFromDecoded(sd), null, null, null,
                 new ResultBundleValidator.CollectionScope(ResearchCollectionExportBundle.VERSION, colId, sid))).nextStatus());
+        }
+    }
+
+    @Test void officialMultishardPythonAdaptiveFullAndShardBundlesPassMlResultBundleReader() throws Exception {
+        Path root = Files.exists(Path.of("notebooks")) ? Path.of(".") : Path.of("..");
+        Assumptions.assumeTrue(Files.exists(root.resolve("notebooks/adaptive_hdbscan.py")), "adaptive_hdbscan.py must exist");
+
+        String pythonExe = detectPythonWithDeps(root, "import pyarrow, sklearn, hdbscan, notebooks.adaptive_hdbscan, tests.test_research_collection_loader");
+        Assumptions.assumeTrue(pythonExe != null, "Python with pyarrow, sklearn, hdbscan, and adaptive_hdbscan required");
+
+        Path workDir = Files.createTempDirectory("mli03-exp03-multishard-");
+        String pyCode = "import importlib.util, json, sys\n"
+            + "from pathlib import Path\n"
+            + "work = Path(sys.argv[1])\n"
+            + "spec_c = importlib.util.spec_from_file_location('col_fx', 'tests/test_research_collection_loader.py')\n"
+            + "col_mod = importlib.util.module_from_spec(spec_c); spec_c.loader.exec_module(col_mod)\n"
+            + "spec_r = importlib.util.spec_from_file_location('exp03_r', 'scripts/run-exp03-official.py')\n"
+            + "runner = importlib.util.module_from_spec(spec_r); spec_r.loader.exec_module(runner)\n"
+            + "repro = work / 'repro'; pilot = work / 'pilot'; out = work / 'out' / 'hdbscan_adaptive'\n"
+            + "repro.mkdir(); pilot.mkdir()\n"
+            + "pins = col_mod.fixture(repro, pilot)\n"
+            + "rep = runner.execute_official_adaptive(bundle_dir=repro, output_dir=out, output_json=work / 'rep.json', manifest_sha256=pins['manifest_sha256'], checksums_sha256=pins['checksums_sha256'], expected_handoff_sha256=None)\n"
+            + "print(json.dumps({'dataset_id': rep['dataset']['dataset_id'], 'collection_id': rep['dataset']['collection_id'], 'full_run': rep['artifact_verified']['run_id'], 's0_run': rep['shard_verifications']['shard_00000']['experiment_run_id'], 's1_run': rep['shard_verifications']['shard_00001']['experiment_run_id'], 'cfg_ver': rep['model_config_pin']['model_config_version']}))\n";
+
+        var proc = new ProcessBuilder(pythonExe, "-c", pyCode, workDir.toAbsolutePath().toString())
+            .directory(root.toFile()).start();
+        String stdout = new String(proc.getInputStream().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8).trim();
+        assertTrue(proc.waitFor(60, java.util.concurrent.TimeUnit.SECONDS));
+        assertEquals(0, proc.exitValue());
+        JsonNode meta = JSON.readTree(stdout);
+        String dsId = meta.path("dataset_id").asText();
+        String colId = meta.path("collection_id").asText();
+        String modelVer = meta.path("cfg_ver").asText();
+
+        Path outRoot = workDir.resolve("out");
+        var fullDecoded = MlResultBundleReader.read(outRoot.resolve("hdbscan_adaptive"));
+        assertEquals(4, fullDecoded.memberships().size());
+        assertEquals(2, fullDecoded.summaries().size());
+        assertEquals("RESULT_READY", VALIDATOR.validate(fullDecoded, new ResultBundleValidator.Context(
+            dsId, "EXPORTED", meta.path("full_run").asText(), "HDBSCAN_ADAPTIVE", modelVer, candidatesFromDecoded(fullDecoded), null)).nextStatus());
+
+        for (String sid : List.of("shard_00000", "shard_00001")) {
+            var sd = MlResultBundleReader.read(outRoot.resolve("hdbscan_adaptive_shards").resolve(sid));
+            JsonNode sdCfg = JSON.readTree(sd.artifacts().get("experiment_config.json"));
+            assertEquals(colId, sdCfg.path("collection_scope").path("collection_id").asText());
+            assertEquals(sid, sdCfg.path("collection_scope").path("shard_id").asText());
+            assertEquals(meta.path(sid.equals("shard_00000") ? "s0_run" : "s1_run").asText(),
+                sd.success().path("experiment_run_id").asText());
         }
     }
 }

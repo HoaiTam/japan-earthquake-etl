@@ -18,8 +18,9 @@ import math
 import os
 from pathlib import Path
 import re
+import subprocess
 import sys
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 import uuid
 
 import pyarrow as pa
@@ -1264,6 +1265,189 @@ class ColabPathAdapter:
         validate_safe_metadata(str(resolved_input))
         validate_safe_metadata(str(resolved_output))
         return resolved_input, resolved_output
+
+
+# -----------------------------------------------------------------------------
+# Shared Provenance & Verified Handoff Helpers for Official Runners (EXP-02/03/04)
+# -----------------------------------------------------------------------------
+def resolve_verified_handoff_sha256(
+    bundle_dir: Path,
+    handoff_path: Optional[Path] = None,
+    expected_handoff_sha256: Optional[str] = None,
+) -> Optional[str]:
+    """Return handoff.json SHA-256 ONLY if verified against a valid trusted expected_handoff_sha256."""
+    if not (
+        isinstance(expected_handoff_sha256, str)
+        and re.fullmatch(r"[a-f0-9]{64}", expected_handoff_sha256.strip())
+    ):
+        return None
+    resolved_handoff = handoff_path or (bundle_dir.resolve().parent.parent / "handoff.json")
+    if not resolved_handoff.is_file() or resolved_handoff.is_symlink():
+        return None
+    cand_sha = sha256_bytes(resolved_handoff.read_bytes())
+    exp = expected_handoff_sha256.strip()
+    return cand_sha if cand_sha == exp else None
+
+
+def collect_code_provenance(
+    root: Path,
+    critical_files: Sequence[str],
+    *,
+    config_files: Optional[Sequence[str]] = None,
+    status_paths: Optional[Sequence[str]] = None,
+    clean_status_label: str = "CLEAN_VERIFIED",
+) -> Dict[str, Any]:
+    """Capture strict git commit, blob hashes, LF-normalized hashes, and clean status for official runners."""
+    crit_list = list(critical_files)
+    cfg_list = list(config_files or [])
+    all_monitored = crit_list + [p for p in cfg_list if p not in crit_list]
+
+    git_commit = "unknown"
+    try:
+        res = subprocess.run(
+            ["git", "-C", str(root), "rev-parse", "HEAD"],
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=15,
+        )
+        cand = res.stdout.strip()
+        if re.fullmatch(r"[a-f0-9]{40}", cand):
+            git_commit = cand
+    except Exception:
+        pass
+
+    working_hashes: Dict[str, str] = {}
+    lf_hashes: Dict[str, str] = {}
+    git_blob_hashes: Dict[str, str] = {}
+    head_blob_hashes: Dict[str, str] = {}
+    line_endings: Dict[str, str] = {}
+    missing_files: List[str] = []
+    blob_mismatches: List[str] = []
+
+    for rel_path in all_monitored:
+        fpath = root / rel_path
+        is_crit = rel_path in crit_list
+        if not fpath.is_file():
+            missing_files.append(rel_path)
+            git_blob_hashes[rel_path] = "MISSING"
+            head_blob_hashes[rel_path] = "MISSING"
+            if is_crit:
+                working_hashes[rel_path] = "MISSING"
+                lf_hashes[rel_path] = "MISSING"
+                line_endings[rel_path] = "unknown"
+            continue
+
+        raw_bytes = fpath.read_bytes()
+        if is_crit:
+            working_hashes[rel_path] = hashlib.sha256(raw_bytes).hexdigest()
+            lf_hashes[rel_path] = hashlib.sha256(raw_bytes.replace(b"\r\n", b"\n")).hexdigest()
+            line_endings[rel_path] = "crlf" if b"\r\n" in raw_bytes else "lf"
+
+        work_blob = "unknown"
+        try:
+            b_res = subprocess.run(
+                [
+                    "git",
+                    "-C",
+                    str(root),
+                    "-c",
+                    "core.autocrlf=true",
+                    "hash-object",
+                    f"--path={rel_path}",
+                    str(fpath),
+                ],
+                capture_output=True,
+                text=True,
+                check=True,
+                timeout=10,
+            )
+            b_cand = b_res.stdout.strip()
+            if re.fullmatch(r"[a-f0-9]{40}", b_cand):
+                work_blob = b_cand
+        except Exception:
+            pass
+        git_blob_hashes[rel_path] = work_blob
+
+        head_blob = "UNCOMMITTED"
+        if git_commit != "unknown":
+            try:
+                h_res = subprocess.run(
+                    ["git", "-C", str(root), "rev-parse", f"HEAD:{rel_path}"],
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                    timeout=10,
+                )
+                h_cand = h_res.stdout.strip()
+                head_blob = h_cand if re.fullmatch(r"[a-f0-9]{40}", h_cand) else "UNKNOWN"
+            except Exception:
+                head_blob = "UNCOMMITTED"
+        head_blob_hashes[rel_path] = head_blob
+
+        if work_blob != head_blob or work_blob in ("unknown", "MISSING"):
+            blob_mismatches.append(rel_path)
+
+    dirty_files: List[str] = []
+    status_targets = list(status_paths) if status_paths is not None else all_monitored
+    if git_commit != "unknown":
+        try:
+            st = subprocess.run(
+                [
+                    "git",
+                    "-C",
+                    str(root),
+                    "-c",
+                    "core.autocrlf=true",
+                    "-c",
+                    "core.fileMode=false",
+                    "status",
+                    "--porcelain",
+                    "-uall",
+                    "--",
+                    *status_targets,
+                ],
+                capture_output=True,
+                text=True,
+                check=True,
+                timeout=15,
+            )
+            for line in st.stdout.splitlines():
+                if not line.strip():
+                    continue
+                parts = line.split(maxsplit=1)
+                dirty_files.append(parts[1].strip() if len(parts) >= 2 else line.strip())
+        except Exception:
+            dirty_files.append("GIT_STATUS_UNAVAILABLE")
+
+    has_valid_commit = bool(re.fullmatch(r"[a-f0-9]{40}", git_commit))
+    is_clean = bool(
+        has_valid_commit
+        and not dirty_files
+        and not missing_files
+        and not blob_mismatches
+    )
+    all_dirty_or_mismatched = sorted(list(set(dirty_files + blob_mismatches + missing_files)))
+
+    return {
+        "git_commit": git_commit,
+        "is_clean_code": is_clean,
+        "clean_verification_status": clean_status_label if is_clean else "DIRTY_OR_UNVERIFIED",
+        "dirty_files": all_dirty_or_mismatched,
+        "missing_files": missing_files,
+        "blob_mismatches": blob_mismatches,
+        "critical_code_hashes": working_hashes,
+        "working_tree_code_hashes": working_hashes,
+        "normalized_lf_code_hashes": lf_hashes,
+        "git_blob_hashes": git_blob_hashes,
+        "head_blob_hashes": head_blob_hashes,
+        "detected_line_endings": line_endings,
+        "cross_platform_verification_note": (
+            "Working-tree hashes depend on local filesystem line endings (CRLF on Windows vs LF on Unix/macOS). "
+            "For cross-platform reproducibility, verify against git_blob_hashes (via `git hash-object <file>`) "
+            "or normalized_lf_code_hashes (via `sha256sum` after LF conversion)."
+        ),
+    }
 
 
 # -----------------------------------------------------------------------------

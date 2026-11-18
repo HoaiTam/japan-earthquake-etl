@@ -669,13 +669,17 @@ def run_adaptive_experiment(
     is_retry: bool = False,
     allow_overwrite: bool = False,
     subfolder_by_run_id: bool = False,
+    shard_output_dir: Optional[Union[str, Path]] = None,
 ) -> Dict[str, Any]:
     """Execute HDBSCAN Adaptive with global cross-window entity resolution.
 
     In OFFICIAL mode on multi-shard dat03-collection-export-v1 bundles, fits all
     windows across shards, performs global cross-shard multi-sequence & nested
-    mainshock resolution first, then writes both per-shard WHOLE_WINDOW_SHARD
-    official bundles and the full-split official bundle.
+    mainshock resolution first, then writes non-nested sibling bundles compatible
+    with MLI-01/MLI-03 MlResultBundleReader:
+    - Full-split official bundle directly under <output_dir>/
+    - Per-shard WHOLE_WINDOW_SHARD official bundles under <shard_output_dir>/<shard_id>/
+      (default sibling directory <output_dir.parent>/<output_dir.name>_shards/<shard_id>/).
     """
     algorithm_name = "HDBSCAN_ADAPTIVE"
     features_table = bundle["features_table"]
@@ -761,10 +765,22 @@ def run_adaptive_experiment(
         s["mainshock_event_id"]: s for s in resolved_summaries
     }
 
-    # Write per-shard WHOLE_WINDOW_SHARD official bundles preserving global resolution fields
+    # Write per-shard WHOLE_WINDOW_SHARD official bundles into a sibling directory
+    # so full-split and per-shard roots stay clean for MlResultBundleReader (MLI-03).
     shard_runs: Dict[str, Dict[str, Any]] = {}
     if mode == MODE_OFFICIAL and bundle.get("is_collection") and isinstance(bundle.get("shards"), dict):
         out_root = target_dir.resolve()
+        shard_root = (
+            Path(shard_output_dir).resolve()
+            if shard_output_dir is not None
+            else (out_root.parent / f"{out_root.name}_shards").resolve()
+        )
+        require(
+            shard_root != out_root
+            and not shard_root.is_relative_to(out_root)
+            and not out_root.is_relative_to(shard_root),
+            f"SHARD_OUTPUT_DIR_MUST_BE_SIBLING_NOT_NESTED:{shard_root}",
+        )
         for shard_id, shard_bundle in bundle["shards"].items():
             shard_mids = shard_bundle["mainshocks_table"]["mainshock_event_id"].to_pylist()
             shard_mems = [dict(m) for mid in shard_mids for m in resolved_mems_by_mid[mid]]
@@ -796,7 +812,7 @@ def run_adaptive_experiment(
                     collection_scope=shard_bundle["collection_scope"],
                 )
             )
-            shard_dir = out_root / "shards" / shard_id
+            shard_dir = shard_root / shard_id
             shard_write = write_experiment_result(
                 output_dir=shard_dir,
                 bundle=shard_bundle,
@@ -815,9 +831,13 @@ def run_adaptive_experiment(
                 is_retry=is_retry,
                 allow_overwrite=allow_overwrite,
             )
+            try:
+                rel_shard_dir = shard_dir.relative_to(out_root.parent).as_posix()
+            except ValueError:
+                rel_shard_dir = Path(os.path.relpath(shard_dir, out_root.parent)).as_posix()
             shard_runs[shard_id] = {
                 "shard_id": shard_id,
-                "relative_dir": f"shards/{shard_id}",
+                "relative_dir": rel_shard_dir,
                 "run_id": shard_write["run_id"],
                 "collection_scope": shard_bundle["collection_scope"],
                 "membership_row_count": len(shard_mems),
@@ -900,7 +920,9 @@ def generate_official_adaptive_report(
     *,
     code_version: Optional[str] = None,
     random_seed: Optional[int] = None,
+    model_config: Optional[Dict[str, Any]] = None,
     model_config_pin: Optional[Dict[str, Any]] = None,
+    code_provenance: Optional[Dict[str, Any]] = None,
     handoff_sha256: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Verify full-split & per-shard EXP-03 official results and emit evidence JSON."""
@@ -924,6 +946,8 @@ def generate_official_adaptive_report(
         source_ds_id=source_ds_id,
         bundle_id=source_ds_id,
         mode=MODE_OFFICIAL,
+        expected_model_config=model_config,
+        expected_model_config_pin=model_config_pin,
     )
 
     # Verify multi-sequence & nested-mainshock invariants from persisted Parquet artifacts
@@ -970,10 +994,13 @@ def generate_official_adaptive_report(
             "HDBSCAN_ADAPTIVE",
             expected_feature_count=feature_count,
             expected_mainshock_count=len(input_mainshocks),
+            expected_model_config=model_config,
+            expected_model_config_pin=model_config_pin,
         )
         # Verify per-shard Parquet rows match the globally resolved status and rank
         for shard_id in bundle["shards"]:
-            shard_mems = pq.read_table(full_dir / "shards" / shard_id / "memberships.parquet").to_pylist()
+            shard_dir = (full_dir.parent / shard_verifications[shard_id]["relative_dir"]).resolve()
+            shard_mems = pq.read_table(shard_dir / "memberships.parquet").to_pylist()
             for r in shard_mems:
                 grain = (r["mainshock_event_id"], r["candidate_event_id"])
                 require(
@@ -982,7 +1009,7 @@ def generate_official_adaptive_report(
                 )
 
     report: Dict[str, Any] = {
-        "report_version": "exp-03-official-v1",
+        "report_version": "exp-03-official-v2",
         "task_id": "EXP-03",
         "status": "PASSED",
         "evaluation_scope": "OFFICIAL_RESEARCH",
@@ -1007,6 +1034,7 @@ def generate_official_adaptive_report(
             "timestamp_reader_profile": bundle.get("timestamp_reader_profile"),
         },
         "code_version": meta["code_version"],
+        "code_provenance": code_provenance or {},
         "python_version": meta["python_version"],
         "package_versions": meta["package_versions"],
         "random_seed": random_seed,
