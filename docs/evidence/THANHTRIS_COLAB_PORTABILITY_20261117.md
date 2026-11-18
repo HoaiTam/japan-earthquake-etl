@@ -48,7 +48,7 @@ Notebook thực thi trực tiếp trên Google Colab (`Runtime: CPU`): [exp_01_c
 - **Output Archive (`exp01-colab-output.zip`):** `70.913` bytes, `25` entries (`24` allowlist files + `output-checksums.json`), SHA-256 `85c2b8769781edb89d4147d4c3def61e38b4864793b706d3a8154c98f0c8077b`
 - **Extracted Key JSON Checksums:**
   - `colab-report.json`: `d64d1ba58940f08bb5a5d4d98b59f06d58754efba29c57a07448b720ae42a27c`
-  - `output-checksums.json`: `9d9faf9c1170ef2cce4788dbf4fe65dfd097e242f7fde59595363a116fa8746`
+  - `output-checksums.json`: `9d9faf9c1170ef2cce4788dbf4fe65dfd097e242f7fde589595363a116fa8746`
   - `pilot-receipt.json`: `2cd0ef71b23b53b90aee52eef13549adb46961a342f1d82731faf7dda25814e5`
 
 ### Đối soát Parity giữa Local (`Windows Python 3.12.10`) và Google Colab (`Linux Python 3.13.18`)

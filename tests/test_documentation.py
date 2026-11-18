@@ -75,5 +75,36 @@ class DocumentationTest(unittest.TestCase):
             for block in re.findall(r"```[^\n]*\n(.*?)```", source, re.S):
                 self.assertNotRegex(block, r"\brm\s+-[a-z]*f|docker compose down -v|git reset --hard")
 
+    def test_colab_portability_evidence_checksums_are_64_hex_and_match_json(self):
+        md_path = ROOT / "docs/evidence/THANHTRIS_COLAB_PORTABILITY_20261117.md"
+        json_path = ROOT / "docs/evidence/THANHTRIS_COLAB_PORTABILITY_20261117.json"
+        if not md_path.is_file() or not json_path.is_file():
+            self.skipTest("THANHTRIS portability evidence not present on this branch")
+        import json as _json
+
+        md_text = md_path.read_text(encoding="utf-8")
+        json_text = json_path.read_text(encoding="utf-8")
+        payload = _json.loads(json_text)
+
+        # Every backticked SHA-256 hex token in the markdown summary must be exact 64 hex chars and match JSON
+        md_shas = re.findall(r"`([0-9a-f]{48,128})`", md_text)
+        self.assertGreaterEqual(len(md_shas), 5)
+        for token in md_shas:
+            self.assertEqual(len(token), 64, f"Expected 64-hex SHA in markdown, got {len(token)} chars: {token}")
+            self.assertIn(token, json_text, f"Markdown SHA {token} missing from JSON evidence")
+
+        # Recursively check all *_sha256 fields in JSON are 64-hex strings
+        def _walk(node):
+            if isinstance(node, dict):
+                for k, v in node.items():
+                    if k.endswith("_sha256") and isinstance(v, str):
+                        self.assertRegex(v, r"^[0-9a-f]{64}$", f"Invalid SHA length/chars for {k}: {v}")
+                    _walk(v)
+            elif isinstance(node, list):
+                for item in node:
+                    _walk(item)
+
+        _walk(payload)
+
 
 if __name__ == "__main__": unittest.main()
