@@ -846,13 +846,14 @@ class TestScientificEvaluation(unittest.TestCase):
         import notebooks.experiment_harness as eh
         handoff_sha = eh.sha256_bytes(handoff_file.read_bytes())
 
-        # Reject wrong split when REPRODUCTION is expected
+        # Reject wrong split when REPRODUCTION is expected (checked in diagnostic mode as well)
         with self.assertRaisesRegex(ValueError, "OFFICIAL_SPLIT_MISMATCH"):
             eval_script.execute_official_evaluation(
                 bundle_dir=ext_dir,
                 output_json=self.tmp_dir / "bad.json",
                 expected_split="REPRODUCTION",
                 expected_handoff_sha256=handoff_sha,
+                diagnostic_only=True,
             )
 
         out_json = self.tmp_dir / "exp04_official.json"
@@ -909,6 +910,8 @@ class TestScientificEvaluation(unittest.TestCase):
         self.assertEqual(full_report["report_version"], "exp-04-official-v2")
         self.assertEqual(full_report["status"], "PASSED")
         self.assertEqual(full_report["evaluation_scope"], "OFFICIAL_RESEARCH")
+        self.assertTrue(full_report["frozen_rule_published"])
+        self.assertEqual(full_report["frozen_rule_block_reasons"], [])
         self.assertFalse(full_report["scientific_approval"])
         self.assertEqual(full_report["frozen_extension_rule"]["rule_version"], "exp04-frozen-reproduction-rule-v2")
         self.assertEqual(full_report["frozen_extension_rule"]["frozen_from_split"], "REPRODUCTION")
@@ -1129,6 +1132,155 @@ class TestScientificEvaluation(unittest.TestCase):
                     "exp02_output_dir": swap_out,
                 }
             )
+
+    def test_official_evaluation_blocks_frozen_rule_when_upstream_missing(self):
+        """Missing EXP-02, EXP-03, or both must fail official publication and never emit PASSED + frozen rule."""
+        import importlib
+        import importlib.util as _ilu
+        import notebooks.experiment_harness as eh
+        import tests.test_research_collection_loader as col_mod
+
+        eval_script = importlib.import_module("scripts.evaluate-models")
+        spec_r02 = _ilu.spec_from_file_location("run_exp02_missing_up", ROOT / "scripts/run-exp02-official.py")
+        r02 = _ilu.module_from_spec(spec_r02); spec_r02.loader.exec_module(r02)
+        spec_r03 = _ilu.spec_from_file_location("run_exp03_missing_up", ROOT / "scripts/run-exp03-official.py")
+        r03 = _ilu.module_from_spec(spec_r03); spec_r03.loader.exec_module(r03)
+
+        kit_dir = self.tmp_dir / "miss_kit"
+        repro_dir = kit_dir / "bundles" / "REPRODUCTION"
+        pilot_tmp = self.tmp_dir / "miss_pilot"
+        repro_dir.mkdir(parents=True)
+        pilot_tmp.mkdir()
+        pins = col_mod.fixture(repro_dir, pilot_tmp)
+
+        exp02_out = self.tmp_dir / "miss_exp02_out"
+        exp02_json = self.tmp_dir / "miss_exp02.json"
+        r02.execute_official_baselines(
+            bundle_dir=repro_dir,
+            output_dir=exp02_out,
+            output_json=exp02_json,
+            manifest_sha256=pins["manifest_sha256"],
+            checksums_sha256=pins["checksums_sha256"],
+            expected_handoff_sha256=None,
+            seed=42,
+            root=ROOT,
+        )
+        exp02_sha = eh.sha256_bytes(exp02_json.read_bytes())
+
+        exp03_out = self.tmp_dir / "miss_exp03_out" / "hdbscan_adaptive"
+        exp03_json = self.tmp_dir / "miss_exp03.json"
+        r03.execute_official_adaptive(
+            bundle_dir=repro_dir,
+            output_dir=exp03_out,
+            output_json=exp03_json,
+            manifest_sha256=pins["manifest_sha256"],
+            checksums_sha256=pins["checksums_sha256"],
+            expected_handoff_sha256=None,
+            seed=42,
+            root=ROOT,
+        )
+        exp03_sha = eh.sha256_bytes(exp03_json.read_bytes())
+
+        base_kwargs = dict(
+            bundle_dir=repro_dir,
+            expected_split="REPRODUCTION",
+            manifest_sha256=pins["manifest_sha256"],
+            checksums_sha256=pins["checksums_sha256"],
+            expected_handoff_sha256=None,
+            exp02_report_path=exp02_json,
+            expected_exp02_report_sha256=exp02_sha,
+            exp02_output_dir=exp02_out,
+            exp03_report_path=exp03_json,
+            expected_exp03_report_sha256=exp03_sha,
+            exp03_output_dir=exp03_out,
+            repeats=2,
+            sigma=0.01,
+            seed=42,
+            project_root=ROOT,
+        )
+
+        cases = [
+            (
+                "missing_exp02",
+                {
+                    "exp02_report_path": None,
+                    "expected_exp02_report_sha256": None,
+                    "exp02_output_dir": None,
+                },
+                "EXP02_CROSS_VERIFICATION_MISSING",
+            ),
+            (
+                "missing_exp03",
+                {
+                    "exp03_report_path": None,
+                    "expected_exp03_report_sha256": None,
+                    "exp03_output_dir": None,
+                },
+                "EXP03_CROSS_VERIFICATION_MISSING",
+            ),
+            (
+                "missing_both",
+                {
+                    "exp02_report_path": None,
+                    "expected_exp02_report_sha256": None,
+                    "exp02_output_dir": None,
+                    "exp03_report_path": None,
+                    "expected_exp03_report_sha256": None,
+                    "exp03_output_dir": None,
+                },
+                "EXP02_CROSS_VERIFICATION_MISSING,EXP03_CROSS_VERIFICATION_MISSING",
+            ),
+        ]
+
+        for idx, (label, overrides, expected_reason) in enumerate(cases):
+            # 1. Official mode (default) must reject and write NO report or rule
+            refused_json = self.tmp_dir / f"{label}_refused.json"
+            refused_md = self.tmp_dir / f"{label}_refused.md"
+            with self.assertRaisesRegex(ValueError, f"EXP04_UPSTREAM_CROSS_VERIFICATION_REQUIRED:{expected_reason}"):
+                eval_script.execute_official_evaluation(
+                    **{**base_kwargs, **overrides, "output_json": refused_json, "output_md": refused_md}
+                )
+            self.assertFalse(refused_json.exists())
+            self.assertFalse(refused_md.exists())
+
+            # 2. Explicit diagnostic mode can run, but NEVER marks PASSED / OFFICIAL_RESEARCH or emits frozen rule
+            diag_json = self.tmp_dir / f"{label}_diag.json"
+            diag_md = self.tmp_dir / f"{label}_diag.md"
+            rep = eval_script.execute_official_evaluation(
+                **{
+                    **base_kwargs,
+                    **overrides,
+                    "output_json": diag_json,
+                    "output_md": diag_md,
+                    "diagnostic_only": True,
+                }
+            )
+            self.assertEqual(rep["status"], "DIAGNOSTIC_ONLY")
+            self.assertEqual(rep["evaluation_scope"], "DIAGNOSTIC_UNVERIFIED")
+            self.assertFalse(rep["frozen_rule_published"])
+            self.assertIsNone(rep["frozen_extension_rule"])
+            self.assertNotIn("frozen_extension_rule", rep["evaluation_summary"])
+            self.assertFalse(rep["scientific_approval"])
+            for token in expected_reason.split(","):
+                self.assertIn(token, rep["frozen_rule_block_reasons"])
+            md_txt = diag_md.read_text(encoding="utf-8")
+            self.assertIn("CHƯA PHÁT HÀNH", md_txt)
+            self.assertNotIn("exp04-frozen-reproduction-rule", diag_json.read_text(encoding="utf-8"))
+
+        # Even if both upstream reports pass, diagnostic_only=True must not publish OFFICIAL_RESEARCH PASSED + rule
+        both_diag = eval_script.execute_official_evaluation(
+            **{
+                **base_kwargs,
+                "output_json": self.tmp_dir / "both_diag.json",
+                "output_md": self.tmp_dir / "both_diag.md",
+                "diagnostic_only": True,
+            }
+        )
+        self.assertEqual(both_diag["status"], "DIAGNOSTIC_ONLY")
+        self.assertEqual(both_diag["evaluation_scope"], "DIAGNOSTIC_UNVERIFIED")
+        self.assertFalse(both_diag["frozen_rule_published"])
+        self.assertIsNone(both_diag["frozen_extension_rule"])
+        self.assertIn("DIAGNOSTIC_ONLY_MODE_NO_RULE_PUBLICATION", both_diag["frozen_rule_block_reasons"])
 
 
 if __name__ == "__main__":

@@ -314,7 +314,8 @@ def generate_official_markdown_report(
     eval_params = full_report["evaluation_parameters"]
     comp_table = eval_results.get("comparison_table", [])
     algo_details = eval_results.get("algorithm_details", {})
-    frozen_rule = full_report["frozen_extension_rule"]
+    frozen_rule = full_report.get("frozen_extension_rule")
+    frozen_rule_published = bool(full_report.get("frozen_rule_published", False)) and isinstance(frozen_rule, dict)
     exp02_cross = full_report.get("exp02_cross_verification")
     exp03_cross = full_report.get("exp03_cross_verification")
 
@@ -327,6 +328,7 @@ def generate_official_markdown_report(
         "",
         "- **Mã Task:** [EXP-04](../task/tasks/EXP-04.md) (Khối H - Experiment, P0 Core)",
         f"- **Report Version / Trạng thái:** `{full_report.get('report_version')}` / `{full_report['status']}` (`{full_report['evaluation_scope']}`)",
+        f"- **Frozen Rule Published:** `{str(frozen_rule_published).lower()}`",
         f"- **Thời điểm đánh giá (UTC):** `{eval_results.get('evaluated_at_utc')}`",
         f"- **Dataset Split / Status:** `{ds.get('dataset_split')}` (`{ds.get('dataset_status')}`)",
         f"- **Dataset ID:** `{ds.get('dataset_id')}`",
@@ -343,7 +345,11 @@ def generate_official_markdown_report(
         f"- **Python / Packages:** Python `{runtime_meta.get('python_version')}`, `scikit-learn=={runtime_meta.get('package_versions', {}).get('scikit-learn')}`, `hdbscan=={runtime_meta.get('package_versions', {}).get('hdbscan')}`, `scipy=={runtime_meta.get('package_versions', {}).get('scipy')}`",
         f"- **Scientific Approval:** `{str(full_report.get('scientific_approval', False)).lower()}`",
         "",
-        "### Cấu hình Thuật toán được Khóa (`frozen_extension_rule` cho EXP-05):",
+        (
+            "### Cấu hình Thuật toán được Khóa (`frozen_extension_rule` cho EXP-05):"
+            if frozen_rule_published
+            else "### Cấu hình Thuật toán Chạy Chẩn đoán (CHƯA KHÓA / KHÔNG PHÁT HÀNH RULE cho EXP-05):"
+        ),
     ])
 
     for algo, c_info in config_pins.items():
@@ -429,14 +435,25 @@ def generate_official_markdown_report(
             )
         lines.append("")
 
-    lines.extend([
-        "## 5. Frozen Rule cho EXP-05 & Giới hạn Khoa học",
-        "",
-        f"- **Rule ID:** `{frozen_rule['rule_version']}` (khóa từ `{frozen_rule['frozen_from_split']}` dataset `{frozen_rule['frozen_from_dataset_id']}`).",
-        f"- **Contract Bất biến:** `window_model_version={frozen_rule['locked_feature_contract']['window_model_version']}`, `scaling_config_version={frozen_rule['locked_feature_contract']['scaling_config_version']}`, `feature_version={frozen_rule['locked_feature_contract']['feature_version']}`, `mc_value={frozen_rule['locked_feature_contract']['mc_value']}`.",
-        "- **Nguyên tắc đọc kết quả:** Không chọn \"mô hình thắng\" chỉ dựa trên một chỉ số đơn lẻ (Window có `0%` mainshock-failure nhưng không lọc nhiễu nền; DBSCAN/HDBSCAN đánh đổi giữa lọc nhiễu, DBCV, khớp Omori và tỷ lệ mainshock bị xếp nhiễu). Kết quả chỉ là ứng viên chuỗi sau chấn hồi cứu; bước chạy khóa tham số sang giai đoạn 2018–2023 thuộc [EXP-05](../task/tasks/EXP-05.md).",
-        "",
-    ])
+    if frozen_rule_published:
+        lines.extend([
+            "## 5. Frozen Rule cho EXP-05 & Giới hạn Khoa học",
+            "",
+            f"- **Rule ID:** `{frozen_rule['rule_version']}` (khóa từ `{frozen_rule['frozen_from_split']}` dataset `{frozen_rule['frozen_from_dataset_id']}`).",
+            f"- **Contract Bất biến:** `window_model_version={frozen_rule['locked_feature_contract']['window_model_version']}`, `scaling_config_version={frozen_rule['locked_feature_contract']['scaling_config_version']}`, `feature_version={frozen_rule['locked_feature_contract']['feature_version']}`, `mc_value={frozen_rule['locked_feature_contract']['mc_value']}`.",
+            "- **Nguyên tắc đọc kết quả:** Không chọn \"mô hình thắng\" chỉ dựa trên một chỉ số đơn lẻ (Window có `0%` mainshock-failure nhưng không lọc nhiễu nền; DBSCAN/HDBSCAN đánh đổi giữa lọc nhiễu, DBCV, khớp Omori và tỷ lệ mainshock bị xếp nhiễu). Kết quả chỉ là ứng viên chuỗi sau chấn hồi cứu; bước chạy khóa tham số sang giai đoạn 2018–2023 thuộc [EXP-05](../task/tasks/EXP-05.md).",
+            "",
+        ])
+    else:
+        reasons = ", ".join(full_report.get("frozen_rule_block_reasons") or ["UPSTREAM_CROSS_VERIFICATION_MISSING"])
+        lines.extend([
+            "## 5. Chế độ Chẩn đoán — Frozen Rule CHƯA PHÁT HÀNH cho EXP-05",
+            "",
+            f"- **Frozen Rule Published:** `false` (`evaluation_scope={full_report['evaluation_scope']}`, `status={full_report['status']}`).",
+            f"- **Lý do chặn phát hành:** `{reasons}`.",
+            "- **Cảnh báo:** Báo cáo chẩn đoán này thiếu cross-check đầy đủ cả hai upstream `EXP-02` và `EXP-03` hoặc chạy với `--diagnostic-only`; **tuyệt đối không** dùng để khóa cấu hình hoặc bàn giao cho [EXP-05](../task/tasks/EXP-05.md).",
+            "",
+        ])
     return "\n".join(lines)
 
 
@@ -820,12 +837,24 @@ def execute_official_evaluation(
     exp03_report_path: Optional[Path] = None,
     expected_exp03_report_sha256: Optional[str] = None,
     exp03_output_dir: Optional[Path] = None,
+    diagnostic_only: bool = False,
     repeats: int = DEFAULT_STABILITY_REPEATS,
     sigma: float = DEFAULT_STABILITY_SIGMA,
     seed: int = DEFAULT_STABILITY_SEED,
     project_root: Path = PROJECT_ROOT,
 ) -> Dict[str, Any]:
-    """Execute official EXP-04 multi-faceted evaluation and emit locked config freeze report."""
+    """Execute official EXP-04 evaluation; emit OFFICIAL_RESEARCH PASSED + frozen rule ONLY when both EXP-02 & EXP-03 pass."""
+    missing_upstream_reasons: List[str] = []
+    if exp02_report_path is None:
+        missing_upstream_reasons.append("EXP02_CROSS_VERIFICATION_MISSING")
+    if exp03_report_path is None:
+        missing_upstream_reasons.append("EXP03_CROSS_VERIFICATION_MISSING")
+    if missing_upstream_reasons and not diagnostic_only:
+        require(
+            False,
+            "EXP04_UPSTREAM_CROSS_VERIFICATION_REQUIRED:" + ",".join(missing_upstream_reasons),
+        )
+
     code_prov = get_code_provenance(project_root)
     configs, config_pins = load_algorithm_configs(project_root=project_root)
     runtime_meta = get_runtime_metadata(code_version=code_prov["git_commit"], random_seed=seed)
@@ -889,13 +918,37 @@ def execute_official_evaluation(
         bundle=loaded_bundle,
     )
 
-    # Summarize concise report metadata + compact per-window diagnostics
+    both_cross_verified = (
+        exp02_cross is not None
+        and exp02_cross.get("all_checks_passed") is True
+        and exp03_cross is not None
+        and exp03_cross.get("all_checks_passed") is True
+    )
+    if not diagnostic_only:
+        require(both_cross_verified, "EXP04_UPSTREAM_CROSS_VERIFICATION_FAILED")
+
+    can_publish_frozen_rule = (not diagnostic_only) and both_cross_verified
+    block_reasons = list(missing_upstream_reasons)
+    if diagnostic_only and not block_reasons:
+        block_reasons.append("DIAGNOSTIC_ONLY_MODE_NO_RULE_PUBLICATION")
+    elif not can_publish_frozen_rule and not block_reasons:
+        block_reasons.append("UPSTREAM_CROSS_VERIFICATION_INCOMPLETE")
+
+    raw_frozen_rule = eval_results.get("frozen_extension_rule")
+    eval_summary_out = dict(eval_results)
+    if not can_publish_frozen_rule:
+        eval_summary_out.pop("frozen_extension_rule", None)
+
+    # Emit official PASSED + frozen rule ONLY when both EXP-02 and EXP-03 cross-checks passed;
+    # diagnostic mode stays non-deliverable and never emits PASSED / OFFICIAL_RESEARCH / frozen rule.
     full_report: Dict[str, Any] = {
         "report_version": "exp-04-official-v2",
         "task_id": "EXP-04",
-        "status": "PASSED",
-        "evaluation_scope": "OFFICIAL_RESEARCH",
+        "status": "PASSED" if can_publish_frozen_rule else "DIAGNOSTIC_ONLY",
+        "evaluation_scope": "OFFICIAL_RESEARCH" if can_publish_frozen_rule else "DIAGNOSTIC_UNVERIFIED",
         "scientific_approval": False,
+        "frozen_rule_published": can_publish_frozen_rule,
+        "frozen_rule_block_reasons": block_reasons,
         "dataset": eval_results["dataset_info"],
         "handoff_sha256": actual_handoff_sha,
         "runtime_metadata": runtime_meta,
@@ -907,10 +960,10 @@ def execute_official_evaluation(
             "random_seed": seed,
             "min_omori_aftershocks": 5,
         },
-        "frozen_extension_rule": eval_results["frozen_extension_rule"],
+        "frozen_extension_rule": raw_frozen_rule if can_publish_frozen_rule else None,
         "exp02_cross_verification": exp02_cross,
         "exp03_cross_verification": exp03_cross,
-        "evaluation_summary": eval_results,
+        "evaluation_summary": eval_summary_out,
     }
     validate_safe_metadata(full_report)
 
@@ -962,6 +1015,11 @@ def main():
     parser.add_argument("--expected-exp03-report-sha256", type=str, default=None, help="Trusted SHA-256 of EXP-03 official JSON")
     parser.add_argument("--exp03-output-dir", type=str, default=None, help="Path to EXP-03 official HDBSCAN_ADAPTIVE bundle directory")
     parser.add_argument(
+        "--diagnostic-only",
+        action="store_true",
+        help="Run diagnostic evaluation without both verified upstream EXP-02 & EXP-03 reports; never publishes PASSED or frozen_extension_rule",
+    )
+    parser.add_argument(
         "--output-json",
         type=str,
         default=None,
@@ -1011,6 +1069,7 @@ def main():
             exp03_report_path=exp03_p,
             expected_exp03_report_sha256=args.expected_exp03_report_sha256,
             exp03_output_dir=exp03_out_p,
+            diagnostic_only=bool(args.diagnostic_only),
             repeats=args.repeats,
             sigma=args.sigma,
             seed=args.seed,

@@ -578,4 +578,179 @@ class ResultBundleContractTest {
                 sd.success().path("experiment_run_id").asText());
         }
     }
+
+    @Test void crossShardAdaptiveOverlapPassesReaderWhileContractAndResolverBoundariesHold(@TempDir Path temporary) throws Exception {
+        Path root = temporary.toRealPath();
+        Path registryRoot = root.resolve("registry");
+        String dsId = "ds_" + "c".repeat(64);
+        String colId = "col_" + "d".repeat(64);
+        String modelVer = "hdbscan-adaptive-dev-v1";
+
+        Path exportsDir = registryRoot.resolve("exports/" + dsId);
+        Files.createDirectories(exportsDir);
+        Files.writeString(exportsDir.resolve("export-checksums.sha256"), "cross-shard-fixture\n");
+        String exportSha = TrustedDatasetResolver.sha256(Files.readAllBytes(exportsDir.resolve("export-checksums.sha256")));
+
+        var lineage0 = JSON.createObjectNode().put("dataset_id", dsId).put("collection_id", colId).put("shard_id", "shard_00000");
+        lineage0.putArray("candidates")
+            .addObject().put("mainshock_event_id", "main-0").put("candidate_event_id", "main-0").put("role", "MAINSHOCK");
+        lineage0.withArray("candidates")
+            .addObject().put("mainshock_event_id", "main-0").put("candidate_event_id", "shared_aft").put("role", "POST");
+        Files.write(exportsDir.resolve("shard_00000.json"), FeatureExportBundle.bytes(lineage0));
+
+        var lineage1 = JSON.createObjectNode().put("dataset_id", dsId).put("collection_id", colId).put("shard_id", "shard_00001");
+        lineage1.putArray("candidates")
+            .addObject().put("mainshock_event_id", "main-1").put("candidate_event_id", "main-1").put("role", "MAINSHOCK");
+        lineage1.withArray("candidates")
+            .addObject().put("mainshock_event_id", "main-1").put("candidate_event_id", "shared_aft").put("role", "POST");
+        Files.write(exportsDir.resolve("shard_00001.json"), FeatureExportBundle.bytes(lineage1));
+
+        var regManifest = JSON.createObjectNode().put("dataset_id", dsId).put("dataset_status", "EXPORTED")
+            .put("export_version", ResearchCollectionExportBundle.VERSION)
+            .put("export_manifest_ref", "exports/" + dsId + "/export-checksums.sha256")
+            .put("export_manifest_sha256", exportSha)
+            .put("registry_snapshot_id", "201").put("candidate_snapshot_id", "202").put("mainshock_snapshot_id", "203");
+        var plan = regManifest.putObject("collection_plan").put("collection_id", colId);
+        var planShards = plan.putArray("shards");
+        planShards.addObject().put("shard_id", "shard_00000").putArray("mainshocks")
+            .addObject().put("mainshock_event_id", "main-0").put("candidate_row_count", 2);
+        planShards.addObject().put("shard_id", "shard_00001").putArray("mainshocks")
+            .addObject().put("mainshock_event_id", "main-1").put("candidate_row_count", 2);
+        var colShards = regManifest.putObject("collection_shards");
+        colShards.putObject("shard_00000").put("lineage_ref", "exports/" + dsId + "/shard_00000.json")
+            .put("lineage_sha256", TrustedDatasetResolver.sha256(Files.readAllBytes(exportsDir.resolve("shard_00000.json"))))
+            .put("mainshock_count", 1).put("feature_row_count", 2);
+        colShards.putObject("shard_00001").put("lineage_ref", "exports/" + dsId + "/shard_00001.json")
+            .put("lineage_sha256", TrustedDatasetResolver.sha256(Files.readAllBytes(exportsDir.resolve("shard_00001.json"))))
+            .put("mainshock_count", 1).put("feature_row_count", 2);
+        Path regManifestPath = registryRoot.resolve(dsId + ".json");
+        Files.write(regManifestPath, FeatureExportBundle.bytes(regManifest));
+        String regManifestSha = TrustedDatasetResolver.sha256(Files.readAllBytes(regManifestPath));
+
+        Path outRoot = root.resolve("out");
+        Path fullDir = outRoot.resolve("hdbscan_adaptive");
+        Path shard0Dir = outRoot.resolve("hdbscan_adaptive_shards").resolve("shard_00000");
+        Path shard1Dir = outRoot.resolve("hdbscan_adaptive_shards").resolve("shard_00001");
+        Files.createDirectories(fullDir);
+        Files.createDirectories(shard0Dir);
+        Files.createDirectories(shard1Dir);
+
+        java.util.function.Function<String, JsonNode[]> buildWindowRows = (mid) -> {
+            String runId = mid.equals("main-0") ? "exp_adapt_shard_00000" : "exp_adapt_shard_00001";
+            int sharedRank = mid.equals("main-0") ? 1 : 2;
+            ObjectNode mRow = base("memberships.parquet");
+            mRow.put("dataset_id", dsId).put("experiment_run_id", runId).put("algorithm_name", "HDBSCAN_ADAPTIVE")
+                .put("model_config_version", modelVer).put("mainshock_event_id", mid).put("candidate_event_id", mid)
+                .put("event_role_candidate", "MAINSHOCK").put("cluster_id", 0L).put("is_noise", false)
+                .put("is_mainshock_cluster_member", true).put("is_sequence_member", true).put("membership_probability", 1.0)
+                .put("multi_sequence_status", "UNIQUE").put("resolution_rank", 1);
+            ObjectNode aRow = mRow.deepCopy();
+            aRow.put("candidate_event_id", "shared_aft").put("event_role_candidate", "POST")
+                .put("membership_probability", mid.equals("main-0") ? 0.92 : 0.70)
+                .put("multi_sequence_status", "MULTIPLE").put("resolution_rank", sharedRank);
+            ObjectNode sRow = base("sequence_summary.parquet");
+            sRow.put("dataset_id", dsId).put("experiment_run_id", runId).put("algorithm_name", "HDBSCAN_ADAPTIVE")
+                .put("model_config_version", modelVer).put("mainshock_event_id", mid)
+                .put("window_result_status", "SUCCESS").put("productive_sequence_detected", true)
+                .put("candidate_count", 2L).put("cluster_count", 1).put("noise_count", 0L).put("noise_ratio", 0.0)
+                .put("sequence_member_count", 2L).put("aftershock_count", 1L).put("foreshock_candidate_count", 0L)
+                .put("mean_membership_probability", mid.equals("main-0") ? 0.96 : 0.85);
+            sRow.putArray("metric_reason_codes").add("METRIC_NOT_APPLICABLE");
+            return new JsonNode[] { mRow, aRow, sRow };
+        };
+
+        java.util.function.BiConsumer<Path, String> writeAdaptiveBundle = (dir, modeTag) -> {
+            try {
+                boolean isShard = modeTag.startsWith("shard_");
+                String runId = isShard ? "exp_adapt_" + modeTag : "exp_adapt_full";
+                List<JsonNode> members = new ArrayList<>();
+                List<JsonNode> summaries = new ArrayList<>();
+                List<String> mids = isShard ? List.of(modeTag.equals("shard_00000") ? "main-0" : "main-1") : List.of("main-0", "main-1");
+                for (String mid : mids) {
+                    JsonNode[] rows = buildWindowRows.apply(mid);
+                    ((ObjectNode) rows[0]).put("experiment_run_id", runId);
+                    ((ObjectNode) rows[1]).put("experiment_run_id", runId);
+                    ((ObjectNode) rows[2]).put("experiment_run_id", runId);
+                    members.add(rows[0]);
+                    members.add(rows[1]);
+                    summaries.add(rows[2]);
+                }
+                writeParquet(dir.resolve("memberships.parquet"), "memberships.parquet", members);
+                writeParquet(dir.resolve("sequence_summary.parquet"), "sequence_summary.parquet", summaries);
+                ObjectNode cfg = JSON.createObjectNode().put("dataset_id", dsId).put("experiment_run_id", runId)
+                    .put("algorithm_name", "HDBSCAN_ADAPTIVE").put("model_config_version", modelVer)
+                    .put("algorithm_version", "1.0.0").put("package_version", "1.0.0").put("code_version", "v2");
+                if (isShard) {
+                    cfg.set("collection_scope", new ResultBundleValidator.CollectionScope(
+                        ResearchCollectionExportBundle.VERSION, colId, modeTag).toJson());
+                }
+                Files.writeString(dir.resolve("experiment_config.json"), fixtureJson(cfg));
+                Files.writeString(dir.resolve("experiment_metrics.json"), fixtureJson(
+                    JSON.createObjectNode().put("dataset_id", dsId).put("experiment_run_id", runId)
+                        .put("algorithm_name", "HDBSCAN_ADAPTIVE").put("model_config_version", modelVer)
+                        .put("membership_row_count", (long) members.size()).put("summary_row_count", (long) summaries.size())));
+                Files.writeString(dir.resolve("requirements-lock.txt"), "# verified adaptive sibling fixture\n");
+                ObjectNode succ = JSON.createObjectNode().put("schema_version", "1.0")
+                    .put("dataset_id", dsId).put("experiment_run_id", runId)
+                    .put("algorithm_name", "HDBSCAN_ADAPTIVE").put("model_config_version", modelVer)
+                    .put("algorithm_version", "1.0.0").put("package_version", "1.0.0").put("code_version", "v2")
+                    .put("membership_row_count", (long) members.size()).put("summary_row_count", (long) summaries.size())
+                    .put("status", "COMPLETED").put("completed_at_utc", "2024-01-01T00:00:00Z")
+                    .put("artifact_uri", "s3://fixture/results/" + runId + "/");
+                ObjectNode chks = succ.putObject("checksums");
+                for (JsonNode file : ResultBundleContract.contract().get("required_artifacts")) {
+                    chks.put(file.asText(), ResultBundleContract.sha256(Files.readAllBytes(dir.resolve(file.asText()))));
+                }
+                Files.writeString(dir.resolve("_SUCCESS.json"), fixtureJson(succ));
+            } catch (Exception ex) {
+                throw new RuntimeException(ex);
+            }
+        };
+
+        writeAdaptiveBundle.accept(fullDir, "full");
+        writeAdaptiveBundle.accept(shard0Dir, "shard_00000");
+        writeAdaptiveBundle.accept(shard1Dir, "shard_00001");
+
+        // 1. Full-split passes MlResultBundleReader + standalone contract check (evaluation only),
+        //    but TrustedDatasetResolver rejects full-split requests lacking collection_shard_id.
+        var fullDecoded = MlResultBundleReader.read(fullDir);
+        assertEquals(4, fullDecoded.memberships().size());
+        var fullCandidates = List.of(
+            new ResultBundleValidator.Candidate("main-0", "main-0", "MAINSHOCK"),
+            new ResultBundleValidator.Candidate("main-0", "shared_aft", "POST"),
+            new ResultBundleValidator.Candidate("main-1", "main-1", "MAINSHOCK"),
+            new ResultBundleValidator.Candidate("main-1", "shared_aft", "POST")
+        );
+        assertEquals("RESULT_READY", VALIDATOR.validate(fullDecoded, new ResultBundleValidator.Context(
+            dsId, "EXPORTED", "exp_adapt_full", "HDBSCAN_ADAPTIVE", modelVer, fullCandidates, null)).nextStatus());
+
+        ObjectNode fullReq = JSON.createObjectNode().put("dataset_id", dsId).put("dataset_manifest_ref", dsId + ".json")
+            .put("dataset_manifest_sha256", regManifestSha).put("experiment_run_id", "exp_adapt_full")
+            .put("algorithm_name", "HDBSCAN_ADAPTIVE").put("model_config_version", modelVer).put("collection_id", colId);
+        assertEquals("IMP_COLLECTION_SCOPE_REQUIRED", assertThrows(IllegalArgumentException.class,
+            () -> TrustedDatasetResolver.resolve(fullReq, registryRoot, null)).getMessage());
+
+        // Passing shard-resolved context alongside full-split bundle fails IMP_COLLECTION_SCOPE_MISMATCH.
+        ObjectNode shard0Req = fullReq.deepCopy().put("experiment_run_id", "exp_adapt_shard_00000").put("collection_shard_id", "shard_00000");
+        var shard0Ctx = TrustedDatasetResolver.resolve(shard0Req, registryRoot, null);
+        assertEquals("IMP_COLLECTION_SCOPE_MISMATCH", assertThrows(IllegalArgumentException.class,
+            () -> VALIDATOR.validate(fullDecoded, new ResultBundleValidator.Context(
+                shard0Ctx.datasetId(), shard0Ctx.datasetStatus(), "exp_adapt_full", "HDBSCAN_ADAPTIVE",
+                modelVer, shard0Ctx.candidates(), null, shard0Ctx.datasetPins(), null, shard0Ctx.collectionScope()))).getMessage());
+
+        // 2. Each per-shard bundle passes TrustedDatasetResolver & MlResultBundleReader readback,
+        //    while preserving global MULTIPLE/rank=1,2 causes per-bundle ResultBundleContract validation
+        //    to reject with IMP_SCHEMA_MISMATCH (proving shards are readback-only until MLI-03 follow-up).
+        for (String sid : List.of("shard_00000", "shard_00001")) {
+            Path shardDir = outRoot.resolve("hdbscan_adaptive_shards").resolve(sid);
+            ObjectNode req = fullReq.deepCopy().put("experiment_run_id", "exp_adapt_" + sid).put("collection_shard_id", sid);
+            var resolvedCtx = TrustedDatasetResolver.resolve(req, registryRoot, null);
+            var shardDecoded = MlResultBundleReader.read(shardDir);
+            assertEquals(2, shardDecoded.memberships().size());
+            assertEquals("MULTIPLE", shardDecoded.memberships().get(1).path("multi_sequence_status").asText());
+            assertEquals(sid.equals("shard_00000") ? 1 : 2, shardDecoded.memberships().get(1).path("resolution_rank").asInt());
+            assertEquals("IMP_SCHEMA_MISMATCH", assertThrows(IllegalArgumentException.class,
+                () -> VALIDATOR.validate(shardDecoded, resolvedCtx)).getMessage());
+        }
+    }
 }

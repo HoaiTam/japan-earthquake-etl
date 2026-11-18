@@ -2035,6 +2035,13 @@ class TestAdaptiveHDBSCAN(unittest.TestCase):
         self.assertEqual(report["dataset"]["feature_row_count"], 4)
         self.assertEqual(report["dataset"]["mainshock_count"], 2)
         self.assertEqual(report["dataset"]["shard_count"], 2)
+        self.assertIn("mli03_import_boundary", report)
+        boundary = report["mli03_import_boundary"]
+        self.assertEqual(boundary["full_split_role"], "EVALUATION_AND_CONTRACT_VALIDATION_ONLY")
+        self.assertFalse(boundary["full_split_trusted_resolver_importable"])
+        self.assertTrue(boundary["shard_readback_verified"])
+        self.assertFalse(boundary["shard_mli03_import_accepted"])
+        self.assertEqual(boundary["followup_task_id"], "MLI-03")
         self.assertIn("code_provenance", report)
         self.assertIn("git_blob_hashes", report["code_provenance"])
         self.assertTrue((out_dir / "_SUCCESS.json").is_file())
@@ -2160,6 +2167,40 @@ class TestAdaptiveHDBSCAN(unittest.TestCase):
         self.assertEqual(shard0_mems["shared_aft"]["resolution_rank"], 1)
         self.assertEqual(shard1_mems["shared_aft"]["multi_sequence_status"], "MULTIPLE")
         self.assertEqual(shard1_mems["shared_aft"]["resolution_rank"], 2)
+
+        # Verify EXP-03 official report records readback-only & cross-shard singleton overlap boundary honestly
+        cross_features_rows = cross_bundle["features_table"].to_pylist()
+        cross_bundle_clean = {
+            **cross_bundle,
+            "dataset_id": "ds_cross",
+            "source_dataset_id": "ds_cross",
+            "checksums": {"features-part-00000.parquet": "a" * 64},
+            "mainshocks_table": pa.Table.from_pylist([{"mainshock_event_id": shard0_m}, {"mainshock_event_id": shard1_m}]),
+            "manifest": {**cross_bundle["manifest"], "dataset_id": "ds_cross"},
+            "shards": {
+                "shard_00000": {
+                    **cross_bundle["shards"]["shard_00000"],
+                    "features_table": pa.Table.from_pylist([r for r in cross_features_rows if r["mainshock_event_id"] == shard0_m]),
+                },
+                "shard_00001": {
+                    **cross_bundle["shards"]["shard_00001"],
+                    "features_table": pa.Table.from_pylist([r for r in cross_features_rows if r["mainshock_event_id"] == shard1_m]),
+                },
+            },
+        }
+        cross_report = ah.generate_official_adaptive_report(
+            bundle=cross_bundle_clean,
+            result=cross_res,
+            output_path=self.tmp_dir / "cross_report.json",
+            random_seed=42,
+        )
+        cb = cross_report["mli03_import_boundary"]
+        self.assertTrue(cb["shard_readback_verified"])
+        self.assertFalse(cb["shard_mli03_import_accepted"])
+        self.assertEqual(cb["shard_import_block_reason"], "IMP_SCHEMA_MISMATCH_PER_BUNDLE_SINGLETON_GLOBAL_MULTIPLE")
+        # Both shared_aft and nested mainshock shard1_m appear once per shard while carrying global MULTIPLE status
+        self.assertEqual(cb["cross_shard_singleton_overlap_counts"], {"shard_00000": 2, "shard_00001": 2})
+        self.assertEqual(cb["followup_task_id"], "MLI-03")
 
 
 if __name__ == "__main__":
