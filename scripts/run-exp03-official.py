@@ -166,9 +166,10 @@ def render_official_markdown(report: Dict[str, Any]) -> str:
         f"| **Noise Events** | {m['total_noise_candidates']} |",
         f"| **Runtime (s)** | {m['runtime_seconds']:.2f} |",
         "",
-        "## 4. Per-Shard Official Bundles (`WHOLE_WINDOW_SHARD` — Sibling Layout Hợp đồng MLI-01/MLI-03)",
+        "## 4. Per-Shard Official Bundles (`WHOLE_WINDOW_SHARD` — Readback-Only, Chưa Nghiệm thu Import MLI-03)",
         "",
-        "- Full-split bundle (`hdbscan_adaptive/`) và từng shard bundle (`hdbscan_adaptive_shards/<shard_id>/`) tách thành thư mục đồng cấp không lồng nhau, tương thích trực tiếp `MlResultBundleReader` (`MLI-03`).",
+        "- Full-split bundle (`hdbscan_adaptive/`) dùng để đánh giá khoa học (`EXP-04`), không đi qua đường import hiện tại do `TrustedDatasetResolver` (`MLI-03`) bắt buộc `collection_shard_id` cho `dat03-collection-export-v1`.",
+        "- Từng shard bundle (`hdbscan_adaptive_shards/<shard_id>/`, sibling layout) đã được đọc lại và đối soát Parquet với full-split, **chưa được nghiệm thu import qua `MLI-03`**: xem mục 5.4 và follow-up tại [MLI-03](../task/tasks/MLI-03.md).",
         "",
         "| Shard | Relative Dir | Run ID | Rows | Mainshocks | `_SUCCESS.json` SHA-256 (prefix) |",
         "|---|---|---|---:|---:|---|",
@@ -178,14 +179,17 @@ def render_official_markdown(report: Dict[str, Any]) -> str:
             f"| `{shard_id}` | `{s_info.get('relative_dir')}` | `{s_info['experiment_run_id']}` | {s_info['membership_row_count']} | {s_info['summary_row_count']} | `{s_info['success_marker_sha256'][:16]}...` |"
         )
 
+    boundary = report.get("mli03_import_boundary") or {}
+    overlap_counts = boundary.get("cross_shard_singleton_overlap_counts") or {}
+    overlap_str = ", ".join(f"`{k}`=`{v}`" for k, v in sorted(overlap_counts.items())) or "`N/A`"
     lines.extend([
         "",
         "## 5. Tuân thủ Hợp đồng & Giới hạn Khoa học",
         "",
         "1. **Deterministic Adaptive Rule:** `min_cluster_size` và `min_samples` tính xác định theo `(candidate_count, mainshock_magnitude)` từ `hdbscan-adaptive-dev-v1`; không chỉnh tay theo từng sequence và không chạm dữ liệu `EXTENSION`.",
-        "2. **Global Multi-Sequence & Raw Grain Preservation:** Lưu đủ toàn bộ `156710` raw membership pairs; phân giải đa chuỗi toàn cục trước khi tách `WHOLE_WINDOW_SHARD` theo `probability -> normalized_distance -> AMBIGUOUS` (giữ `resolution_rank = NULL` cho các trường hợp hòa).",
+        f"2. **Global Multi-Sequence & Raw Grain Preservation:** Lưu đủ toàn bộ `{ds['feature_row_count']}` raw membership pairs; phân giải đa chuỗi toàn cục trước khi tách `WHOLE_WINDOW_SHARD` theo `probability -> normalized_distance -> AMBIGUOUS` (giữ `resolution_rank = NULL` cho các trường hợp hòa).",
         "3. **Nested Mainshock Evidence:** Giữ toàn bộ `parent_mainshock_event_id` và `nested_membership_probability` trên `sequence_summary.parquet` (và gắn `AMBIGUOUS_NESTED_PARENT_TIE` nếu hòa parent).",
-        "4. **Ranh giới MLI-03 Full-Split vs Shard:** `MlResultBundleReader.read` đọc được cả full-split (`hdbscan_adaptive/`) lẫn từng shard (`hdbscan_adaptive_shards/<shard_id>/`). `ResultBundleContract.validate` kiểm tra đầy đủ trạng thái toàn cục trên full-split bundle; với các shard tách riêng có candidate giao cắt giữa nhiều shard (ví dụ `13.097` candidate dùng chung giữa `shard_00000` và `shard_00001`), việc giữ nhãn đã resolve toàn cục (`MULTIPLE`/`AMBIGUOUS`) khiến bản thân slice đơn lẻ chứa các dòng đơn có status liên-shard.",
+        f"4. **Ranh giới MLI-03 Readback vs Import (Follow-up tại [MLI-03](../task/tasks/MLI-03.md)):** Request full-split không có `collection_shard_id` bị `TrustedDatasetResolver` từ chối (`IMP_REQUEST_FIELD_REQUIRED`). Các shard đồng cấp chỉ đạt **Parquet readback** (`shard_readback_verified={boundary.get('shard_readback_verified')}`) và **chưa nghiệm thu import** (`shard_mli03_import_accepted={boundary.get('shard_mli03_import_accepted')}`). Kết quả khoa học giữ rank toàn cục; singleton mang `MULTIPLE`/`AMBIGUOUS` (đếm theo shard: {overlap_str}) bị `ResultBundleContract` từ chối (`IMP_SCHEMA_MISMATCH`). Regression Java chứng minh ranh giới với fixture, không thay cho live import.",
         "5. **Ranh giới Khoa học:** Kết quả chỉ là ứng viên chuỗi sau chấn hồi cứu; không tuyên bố adaptive tốt hơn hay dự đoán động đất trước khi hoàn tất đánh giá định lượng ở [EXP-04](../task/tasks/EXP-04.md).",
         "",
     ])

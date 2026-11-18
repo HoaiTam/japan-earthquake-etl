@@ -987,6 +987,7 @@ def generate_official_adaptive_report(
     )
 
     shard_verifications: Dict[str, Any] = {}
+    shard_overlap_singletons: Dict[str, int] = {}
     if bundle.get("is_collection") and isinstance(bundle.get("shards"), dict):
         shard_verifications = _baseline_models.verify_official_collection_shards(
             bundle,
@@ -997,16 +998,47 @@ def generate_official_adaptive_report(
             expected_model_config=model_config,
             expected_model_config_pin=model_config_pin,
         )
-        # Verify per-shard Parquet rows match the globally resolved status and rank
+        # Verify per-shard Parquet rows match globally resolved status/rank and measure cross-shard overlap
         for shard_id in bundle["shards"]:
             shard_dir = (full_dir.parent / shard_verifications[shard_id]["relative_dir"]).resolve()
             shard_mems = pq.read_table(shard_dir / "memberships.parquet").to_pylist()
+            cand_member_counts = Counter(
+                r["candidate_event_id"] for r in shard_mems if r.get("is_sequence_member") is True
+            )
+            overlap_singletons = 0
             for r in shard_mems:
                 grain = (r["mainshock_event_id"], r["candidate_event_id"])
                 require(
                     full_resolution_by_grain[grain] == (r.get("multi_sequence_status"), r.get("resolution_rank")),
                     f"SHARD_GLOBAL_RESOLUTION_DRIFT:{shard_id}:{grain}",
                 )
+                if (
+                    r.get("is_sequence_member") is True
+                    and cand_member_counts[r["candidate_event_id"]] == 1
+                    and r.get("multi_sequence_status") in {"MULTIPLE", "AMBIGUOUS"}
+                ):
+                    overlap_singletons += 1
+            shard_overlap_singletons[shard_id] = overlap_singletons
+
+    has_cross_shard_singleton_overlap = any(v > 0 for v in shard_overlap_singletons.values())
+    mli03_import_boundary: Dict[str, Any] = {
+        "full_split_role": "EVALUATION_AND_CONTRACT_VALIDATION_ONLY",
+        "full_split_reader_verified": True,
+        "full_split_trusted_resolver_importable": False,
+        "full_split_block_reason": (
+            "IMP_REQUEST_FIELD_REQUIRED" if bool(shard_verifications) else "EVALUATION_ONLY"
+        ),
+        "shard_layout": "NON_NESTED_SIBLING_READBACK_VERIFIED" if bool(shard_verifications) else "SINGLE_SPLIT",
+        "shard_readback_verified": bool(shard_verifications),
+        "shard_mli03_import_accepted": False,
+        "shard_import_block_reason": (
+            "IMP_SCHEMA_MISMATCH_PER_BUNDLE_SINGLETON_GLOBAL_MULTIPLE"
+            if has_cross_shard_singleton_overlap
+            else "FOLLOWUP_MLI03_END_TO_END_RESOLVER_CONTRACT_NOT_EXECUTED"
+        ),
+        "cross_shard_singleton_overlap_counts": shard_overlap_singletons,
+        "followup_task_id": "MLI-03",
+    }
 
     report: Dict[str, Any] = {
         "report_version": "exp-03-official-v2",
@@ -1045,9 +1077,12 @@ def generate_official_adaptive_report(
         "case_results": case_summary,
         "artifact_verified": artifact_info,
         "shard_verifications": shard_verifications,
+        "mli03_import_boundary": mli03_import_boundary,
         "technical_summary": (
             "Official EXP-03 HDBSCAN_ADAPTIVE with deterministic parameter scaling, global cross-shard "
-            "multi-sequence entity resolution, and nested mainshock detection on EXPORTED REPRODUCTION."
+            "multi-sequence entity resolution, and nested mainshock detection on EXPORTED REPRODUCTION. "
+            "Full-split bundle is used for evaluation; sibling WHOLE_WINDOW_SHARD bundles are readback-verified "
+            "but not yet MLI-03 import-accepted under per-bundle singleton contract rules (follow-up under MLI-03)."
         ),
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
     }

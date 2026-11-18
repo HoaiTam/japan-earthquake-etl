@@ -3,7 +3,7 @@
 
 Enforces the fail-closed REPRODUCTION freeze gate (`exp04-frozen-reproduction-rule-v2`),
 executes all 4 frozen algorithms (`WINDOW`, `DBSCAN`, `HDBSCAN_GLOBAL`, `HDBSCAN_ADAPTIVE`)
-into sibling MLI-03 result bundles without tuning or parameter overrides, evaluates quality,
+into full-split and sibling shard result bundles without tuning or parameter overrides, evaluates quality,
 Omori physical consistency, and stability across all EXTENSION windows, and compares splits.
 """
 from __future__ import annotations
@@ -43,8 +43,8 @@ from extension_evaluation import (  # noqa: E402
 )
 
 DEFAULT_HANDOFF_SHA256 = "6cf0af7c2a3d8e8ec4c993f84ed6d86cdc417324102133dd3068eb2ebc40d297"
-DEFAULT_EXP04_REPORT_CRLF_SHA256 = "b5ec696aa844c6ff1541d71e8fa98f1eea6e3f69587cdc1be19a51524f6257f5"
-DEFAULT_EXP04_REPORT_LF_SHA256 = "e99ba8ac14f62f132369faaa0b4b37f4378908e8a97d950623e1d75678f6f3b1"
+DEFAULT_EXP04_REPORT_CRLF_SHA256 = "2d9552724356235cbdf186a5a98687a1fdfb16e49e60caa56c55709a7a7a3ae0"
+DEFAULT_EXP04_REPORT_LF_SHA256 = "0946298b33aa871273071ea2b64e9490a4a63bd639f515a6d0fdf9d9a7fb12b6"
 
 MODEL_CONFIG_FILES = [
     "config/ml/models/window_baseline_v1.json",
@@ -133,6 +133,7 @@ def render_extension_markdown(report: Dict[str, Any]) -> str:
     shifts = drift["shifts"]
     algo_comps = report["algorithm_comparisons"]
     ms_summary = report.get("adaptive_multi_sequence_summary") or {}
+    revalidation = report.get("comparison_revalidation")
 
     lines: List[str] = [
         "# EXP-05 — Đánh giá Out-of-Period (2018–2023) theo Rule đã Khóa trên Tập EXTENSION",
@@ -146,6 +147,9 @@ def render_extension_markdown(report: Dict[str, Any]) -> str:
         f"- **Môi trường Python:** Python `{rt.get('python_version')}`, `scikit-learn=={rt.get('package_versions', {}).get('scikit-learn')}`, `hdbscan=={rt.get('package_versions', {}).get('hdbscan')}`, `pyarrow=={rt.get('package_versions', {}).get('pyarrow')}`",
         f"- **Scientific Approval:** `{str(report['scientific_approval']).lower()}`",
         f"- **Frozen Rule Source:** `{fg['frozen_rule_version']}` từ [EXP-04_OFFICIAL_REPRODUCTION.json](./EXP-04_OFFICIAL_REPRODUCTION.json) (`SHA-256={fg['exp04_report_sha256']}`, `LF SHA-256={fg['exp04_report_normalized_lf_sha256']}`)",
+        *([
+            f"- **Đối soát lại trên main:** `{revalidation['main_commit']}`. Kiểm lại kit và bundle EXTENSION đã có, rồi tính lại delta và decision table với EXP-04 mới. Metrics EXTENSION và metadata chạy model lấy từ evidence v1 đã pin `{revalidation['prior_report_sha256_lf']}`.",
+        ] if revalidation else []),
         f"- **Parameter Tuning trên EXTENSION:** `{str(fg['parameter_tuning_applied_on_extension']).lower()}` (`config_freeze={fg['config_freeze_verified']}`, `eval_param_freeze={fg['evaluation_param_freeze_verified']}`, `feature_contract_freeze={fg['feature_contract_freeze_verified']}`, `exp02_cross_verify={fg.get('exp02_cross_verify_passed')}`, `exp03_cross_verify={fg.get('exp03_cross_verify_passed')}`)",
         "",
         "### Thông số `EXTENSION` Collection (`EXPORTED`)",
@@ -253,7 +257,10 @@ def render_extension_markdown(report: Dict[str, Any]) -> str:
 
     lines.extend([
         "",
-        "- **Phạm vi kiểm chứng MLI-03:** Bảng trên phản ánh kiểm tra readback/checksum/Parquet/primary-digest phía Python và `MlResultBundleReader` / `ResultBundleContract` offline (không thay thế bước chạy Spark/Airflow import thật các bundle `EXTENSION` vào Iceberg `ml.*` hay validator overlap xuyên shard cho từng shard `hdbscan_adaptive_shards/` tách lẻ).",
+        "- **Phạm vi bảng:** Bảng ghi kiểm tra checksum, Parquet readback và primary digest phía Python. Full-split phục vụ đánh giá; MLI-03 resolve theo `WHOLE_WINDOW_SHARD`.",
+        *([
+            "- **Evidence Java offline của run v1:** 12 shard baseline đạt `RESULT_READY`; 4 shard adaptive đạt reader readback. Nghiệm thu import Iceberg và contract overlap xuyên shard thuộc [MLI-03](../task/tasks/MLI-03.md).",
+        ] if revalidation else []),
         "",
         "## 7. Ranh giới Phương pháp luận & Hạn chế Khoa học",
         "",

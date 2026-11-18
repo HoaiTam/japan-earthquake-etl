@@ -22,14 +22,17 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 
 ## Tổng quan
 
-**18/11 — EXP-03 & EXP-04 Done (ThanhTris, v2 Clean/Reference-Exact):** Hoàn tất `EXP-03` (`HDBSCAN_ADAPTIVE` + global cross-shard entity resolution trên official `REPRODUCTION` với sibling `MLI-03` layout & Java reader validation trên clean commit `4a324b8`: `194` windows, `131` success / `63` `EXP_MAINSHOCK_CLASSIFIED_AS_NOISE`, `98.795` raw $\rightarrow$ `88.222` resolved unique POST aftershocks, `10.573` deduplicated, `0` ambiguous, `23` nested mainshocks; [EXP-03 Official](../../evidence/EXP-03_OFFICIAL_REPRODUCTION.md)) và `EXP-04` (`exp-04-official-v2`, sửa exact MST tie-breaking DBCV `0.0912` / `0.3195` / `0.3056`, loại bỏ hoàn toàn Silhouette fallback, siết fail-closed physical bundle + primary membership SHA cross-verify với `EXP-02` & `EXP-03`, phát hành `frozen_extension_rule` `exp04-frozen-reproduction-rule-v2` cho `EXP-05`; [EXP-04 Official](../../evidence/EXP-04_OFFICIAL_REPRODUCTION.md)). Cả hai giữ `scientific_approval=false`, `reviewer: unassigned`.
-**18/11 — EXP-05 Done (rosy179; ThanhTris triển khai hỗ trợ P0):** Chạy out-of-period trên `EXTENSION` `EXPORTED` (`2018-10-01`..`2023-12-31`, `45` mainshocks, `233.664` rows, `4` shards, $M_c=0.4$) theo rule đã khóa `exp04-frozen-reproduction-rule-v2` (không tune lại tham số): `WINDOW` `45/45`, `DBSCAN` `30/45` (`fail=33.3%`, Jaccard `0.9917`), `HDBSCAN_GLOBAL` `26/45` (`fail=42.2%`, delta `+0.1542`, Jaccard `0.8129`), `HDBSCAN_ADAPTIVE` `30/45` (`fail=33.3%`, delta `+0.0086`, Jaccard `0.9542`, `128.527` raw $\rightarrow$ `71.012` resolved unique POST aftershocks, `0` ambiguous); toàn bộ `4` full-split + `16` sibling shard đạt Python checksum/parity, Java `MlResultBundleReader`/`ResultBundleContract` offline đạt `RESULT_READY` (`exactSchema=true`) cho `4` full-split + `12` baseline shard (`4` adaptive shard mới đạt `MlResultBundleReader` `reader=OK`; chưa chạy import live vào Iceberg `ml.*`). Giữ `scientific_approval=false`, `reviewer: unassigned`, mở khóa [MLQ-01](./MLQ-01.md); xem [EXP-05 Official](../../evidence/EXP-05_EXTENSION_EVALUATION.md).
 **16/11 — DEMO-01 In Progress (ThanhTris):** Chuẩn bị manifest ghim bằng chứng đại diện, kịch bản demo 15–20 phút, 4 fallback và preflight checker offline ([gói demo](../../runbooks/DEMO-01_DEMO_PACKAGE.md)); chờ `MLI-04` và `MLQ-01` để chốt official pins.
 **17/11 — DAT-03 Done:** đã đối chiếu catalog288tháng, Gold Published/rerun,
 hai official collections EXPORTED và receipt thật cùng kitv4 trên ba máy.
 [Đối chiếu acceptance](../../evidence/DAT-03_FINAL_ACCEPTANCE_20261116.md).
-Hiện 72/81 Done, 2 Needs Update, 6 Backlog, 1 In Progress sau EXP-02/EXP-03/EXP-04/EXP-05, QA-05 và phần chuẩn bị DEMO-01. Các mốc bên dưới giữ
-lịch sử, không thay scientific approval hoặc trạng thái SEC-01/EXP.
+Hiện 72/81 Done, 2 Needs Update, 6 Backlog, 1 In Progress sau nghiệm thu
+[EXP-02](../../evidence/EXP-02_OFFICIAL_REPRODUCTION.md),
+[EXP-03](../../evidence/EXP-03_OFFICIAL_REPRODUCTION.md) và
+[EXP-04](../../evidence/EXP-04_OFFICIAL_REPRODUCTION.md) và
+[EXP-05](../../evidence/EXP-05_EXTENSION_EVALUATION.md). EXP-04 phát hành rule
+v2 sau khi đối soát cả hai upstream; EXP-03 adaptive shard chỉ đạt readback.
+Các mốc bên dưới giữ lịch sử, không thay scientific approval hoặc trạng thái SEC-01.
 
 **17/11 — OPS-01 Done (HoaiTam):** backup13bảng/77objects/14artifacts và
 restore prefix/namespace/DB mới; Trino signatures/rerun/ML joins, Airflow
@@ -187,7 +190,7 @@ full catalog/export/receipts ba máy.
 
 - Tổng số task: **81**.
 - Foundation: **9 task `Done`**, FND-01 đã nghiệm thu runtime của lifecycle mới ngày 2026-10-15.
-- Task còn ở trạng thái `Needs Update`: **5** — EXP-02/03/04, MLI-04, SEC-01; DAT-03 tiếp tục In Progress12/11; EXP-01 cloud harness tuần7 đã Done, không thay security/session audit.
+- Tại mốc lập kế hoạch 12/11, **5** task `Needs Update`: EXP-02/03/04, MLI-04, SEC-01; DAT-03 khi đó còn In Progress. EXP-01 cloud harness tuần7 đã Done, không thay security/session audit.
 - Core: **73 task**.
 - Stretch: **8 task**.
 - Tổng effort task: **416 giờ**; baseline 364h + ORC-06/07 16h + DAT-02 6h + DAT-03 16h + COL-01..04 14h.

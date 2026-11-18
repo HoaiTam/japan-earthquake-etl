@@ -61,6 +61,20 @@ trước khi Colab sinh output thật.
 - Không đặt Drive/MinIO credential trong bundle hoặc log.
 - Không xóa warehouse/bucket để recovery.
 
+### Follow-up — import adaptive overlap xuyên shard (EXP-03 và EXP-05)
+
+Contract v1 đã nghiệm thu cho đường import hiện có; **chưa nghiệm thu** các shard
+`HDBSCAN_ADAPTIVE` giữ `MULTIPLE`/`AMBIGUOUS` toàn cục trong từng lát cắt.
+Full-split là đầu vào đánh giá EXP-04, không phải work unit cho resolver.
+Trước khi đưa adaptive overlap vào Iceberg, cần contract scope có version,
+đối soát membership trên đúng collection và integration test qua trusted
+resolver → reader → validator → Iceberg/Trino. Không đổi rank khoa học chỉ
+để pass validator v1. Xem [evidence EXP-03](../../evidence/EXP-03_OFFICIAL_REPRODUCTION.md).
+Với EXTENSION của EXP-05, 12 shard baseline đạt `RESULT_READY` khi kiểm tra
+contract offline và 4 shard adaptive đạt Parquet reader readback. Nghiệm thu
+import Iceberg của các shard EXTENSION cần receipt runtime riêng.
+Xem [evidence EXP-05](../../evidence/EXP-05_EXTENSION_EVALUATION.md).
+
 ## Phân công tuần 5
 
 - **Owner / effort:** ThanhTris, 7h Core; [kế hoạch và handoff](../WEEK_5_PARALLEL_PLAN.md).
@@ -114,5 +128,4 @@ Thêm acceptance case reject DAT-02 DEVELOPMENT_PILOT/pilot_result_manifest và 
 
 - [MLD-05 — Validate feature snapshot/export](./MLD-05.md), [MLI-02 — Build dataset DAG](./MLI-02.md): còn official export/coverage acceptance, không dùng DAT-02 pilot thay EXPORTED.
 - [EXP-04 — Scientific evaluation](./EXP-04.md): scientific review và APPROVED riêng; fixture runtime chỉ chứng minh importer.
-- **Official `EXP-02`/`EXP-03`/`EXP-05` bundles (`REPRODUCTION` & `EXTENSION`):** Các kiểm tra Python parity/checksum/`primary_membership_sha256` và Java `MlResultBundleReader` (`reader=OK` trên `4` shard `hdbscan_adaptive_shards/`) hoặc offline `ResultBundleContract` không thay thế cho nghiệm thu import thật vào Iceberg `ml.*` qua Spark/Airflow DAG. Nếu follow-up import đọc từng shard `hdbscan_adaptive_shards/` thay vì full-split `hdbscan_adaptive/`, cần bổ sung test resolver + validator cho overlap ứng viên xuyên shard trước khi coi bước import adaptive shard là đạt.
 - [MLI-04 — Trino/static report](./MLI-04.md), [MLQ-01 — ML E2E](./MLQ-01.md): serving/report và toàn flow Gold→ML còn riêng. [QA-01 — Daily E2E](./QA-01.md) vẫn cần scheduled Published; DAG.test không thay cron evidence.

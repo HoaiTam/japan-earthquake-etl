@@ -333,6 +333,7 @@ class ExtensionEvaluationTest(unittest.TestCase):
             "status": "PASSED",
             "evaluation_scope": "OFFICIAL_RESEARCH",
             "scientific_approval": False,
+            "frozen_rule_published": True,
             "dataset": repro_eval["dataset_info"],
             "algorithm_config_pins": pins,
             "evaluation_parameters": {
@@ -628,6 +629,30 @@ class ExtensionEvaluationTest(unittest.TestCase):
         if real_exp04.is_file():
             ext_eval._verify_exp04_upstream_cross_checks(json.loads(real_exp04.read_bytes()))
 
+    def test_rejects_unpublished_rule_and_missing_cross_check_digests(self) -> None:
+        for field in ("frozen_rule_published", "EXP-02 summary SHA", "EXP-03 membership SHA"):
+            with self.subTest(field=field):
+                report = copy.deepcopy(self.base_exp04_report)
+                if field == "frozen_rule_published":
+                    report[field] = False
+                    reason = "EXP05_FROZEN_RULE_NOT_PUBLISHED"
+                elif field.startswith("EXP-02"):
+                    report["exp02_cross_verification"]["algorithms"]["DBSCAN"].pop("primary_window_summary_sha256")
+                    report["evaluation_summary"]["algorithm_details"]["DBSCAN"].pop("primary_window_summary_sha256")
+                    reason = "EXP05_EXP02_CROSS_VERIFY_FAILED"
+                else:
+                    report["exp03_cross_verification"].pop("primary_membership_sha256")
+                    report["evaluation_summary"]["algorithm_details"]["HDBSCAN_ADAPTIVE"].pop("primary_membership_sha256")
+                    reason = "EXP05_EXP03_CROSS_VERIFY_FAILED"
+                sha = self._write_exp04(report)
+                with self.assertRaisesRegex(ValueError, reason):
+                    ext_eval.verify_reproduction_freeze_gate(
+                        self.exp04_path,
+                        expected_exp04_report_sha256=sha,
+                        extension_bundle=self.ext_bundle,
+                        project_root=self.proj,
+                    )
+
     def test_rejects_non_extension_split_same_dataset_and_contract_mismatch(self) -> None:
         repro_bundle = harness.load_feature_bundle(
             self.repro_root,
@@ -748,11 +773,13 @@ class ExtensionEvaluationTest(unittest.TestCase):
         cli = _load_cli_module()
         real_exp04 = ROOT / "docs/evidence/EXP-04_OFFICIAL_REPRODUCTION.json"
         if real_exp04.is_file():
-            resolved = cli.resolve_default_exp04_report_sha256(real_exp04)
-            self.assertIn(
-                resolved,
-                {cli.DEFAULT_EXP04_REPORT_CRLF_SHA256, cli.DEFAULT_EXP04_REPORT_LF_SHA256},
-            )
+            lf_bytes = real_exp04.read_bytes().replace(b"\r\n", b"\n")
+            for newline in (b"\n", b"\r\n"):
+                with self.subTest(newline=newline):
+                    report_bytes = lf_bytes.replace(b"\n", newline)
+                    path = self.tmp / "official-exp04.json"
+                    path.write_bytes(report_bytes)
+                    self.assertEqual(harness.sha256_bytes(report_bytes), cli.resolve_default_exp04_report_sha256(path))
 
         out_dir = self.tmp / "cli_bundles"
         out_json = self.tmp / "EXP-05_TEST.json"

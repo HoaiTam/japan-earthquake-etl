@@ -326,8 +326,8 @@ def _verify_exp04_upstream_cross_checks(exp04_report: Dict[str, Any]) -> None:
                 f"EXP05_EXP02_CROSS_VERIFY_FAILED:{algo}:{aflag}={entry.get(aflag)}",
             )
         require(
-            entry.get("primary_membership_sha256") == det.get("primary_membership_sha256")
-            and entry.get("primary_window_summary_sha256") == det.get("primary_window_summary_sha256")
+            all(_is_sha256_hex(entry.get(key)) and entry[key] == det.get(key)
+                for key in ("primary_membership_sha256", "primary_window_summary_sha256"))
             and entry.get("exp04_aftershocks") == entry.get("exp02_aftershocks") == det.get("total_aftershocks"),
             f"EXP05_EXP02_CROSS_VERIFY_FAILED:{algo}:digest_or_aftershock_mismatch",
         )
@@ -361,8 +361,8 @@ def _verify_exp04_upstream_cross_checks(exp04_report: Dict[str, Any]) -> None:
     adapt_det = eval_details.get("HDBSCAN_ADAPTIVE")
     require(isinstance(adapt_det, dict), "EXP05_EXP03_CROSS_VERIFY_FAILED:missing_HDBSCAN_ADAPTIVE")
     require(
-        exp03.get("primary_membership_sha256") == adapt_det.get("primary_membership_sha256")
-        and exp03.get("primary_window_summary_sha256") == adapt_det.get("primary_window_summary_sha256")
+        all(_is_sha256_hex(exp03.get(key)) and exp03[key] == adapt_det.get(key)
+            for key in ("primary_membership_sha256", "primary_window_summary_sha256"))
         and isinstance(exp03.get("multi_sequence_reconciliation"), dict),
         "EXP05_EXP03_CROSS_VERIFY_FAILED:digest_or_reconciliation_mismatch",
     )
@@ -420,6 +420,7 @@ def verify_reproduction_freeze_gate(
         f"EXP05_EXP04_GATE_FAILED:scientific_approval={exp04_report.get('scientific_approval')}",
     )
     _verify_exp04_upstream_cross_checks(exp04_report)
+    require(exp04_report.get("frozen_rule_published") is True, "EXP05_FROZEN_RULE_NOT_PUBLISHED")
 
     frozen_rule = exp04_report.get("frozen_extension_rule")
     require(isinstance(frozen_rule, dict), "EXP05_FROZEN_RULE_MISSING")
@@ -459,14 +460,13 @@ def verify_reproduction_freeze_gate(
         and math.isclose(float(eval_params.get("perturbation_sigma", -1.0)), float(sigma), rel_tol=0.0, abs_tol=1e-12)
         and not isinstance(seed, bool)
         and eval_params.get("random_seed") == int(seed)
-        and not isinstance(min_omori_aftershocks, bool)
-        and not isinstance(eval_params.get("min_omori_aftershocks"), bool)
-        and eval_params.get("min_omori_aftershocks") == int(min_omori_aftershocks),
+        and type(min_omori_aftershocks) is int
+        and type(eval_params.get("min_omori_aftershocks")) is int
+        and eval_params["min_omori_aftershocks"] == min_omori_aftershocks,
         "EXP05_EVAL_PARAM_OVERRIDE_FORBIDDEN: Evaluation parameters must match frozen EXP-04 settings",
     )
     require(
-        int(eval_params.get("min_omori_aftershocks")) == MIN_OMORI_AFTERSHOCKS
-        and int(min_omori_aftershocks) == MIN_OMORI_AFTERSHOCKS,
+        min_omori_aftershocks == MIN_OMORI_AFTERSHOCKS,
         f"EXP05_UNSUPPORTED_MIN_OMORI_AFTERSHOCKS: v1 evaluator only supports min_omori_aftershocks={MIN_OMORI_AFTERSHOCKS} (got {min_omori_aftershocks})",
     )
 

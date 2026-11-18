@@ -54,6 +54,18 @@ Manifest phải có `dataset_status=EXPORTED`, `export_manifest_ref`,
 mainshock snapshot ID và candidate rows. Dataset chưa có các pins hoặc bị
 đổi bytes sẽ bị reject; không fallback sang bảng current.
 
+Với export `dat03-collection-export-v1`, tạo **một request cho từng
+`WHOLE_WINDOW_SHARD`**. Thêm `collection_id` và `collection_shard_id`; đặt
+`artifact_root` đến đúng `<algo>_shards/<shard_id>/`, dùng `experiment_run_id`
+của shard đó và `model_config_version` của thuật toán. Cặp
+`dataset_manifest_ref` / `dataset_manifest_sha256` lấy từ receipt export đã
+được pin, trỏ đến manifest trong `MLI_DATASET_REGISTRY_ROOT` (không dùng
+`bundle_manifest_sha256` hoặc manifest của kit tải xuống). Ví dụ các shard
+và Run ID baseline nằm trong [evidence EXP-02](../evidence/EXP-02_OFFICIAL_REPRODUCTION.md).
+Full-split `<algo>/` dành cho đánh giá/đối soát, không import qua luồng
+collection này; thêm shard ID vào full-split không làm nó hợp lệ. `RESULT_READY`
+là kết quả kiểm cấu trúc và lineage, chưa phải receipt `CANDIDATE` của Iceberg.
+
 `MLI_IMPORT_RUNNER_COMMAND` chỉ lấy từ môi trường vận hành và được chạy
 không qua shell. Image Airflow đóng gói `/opt/pipeline/bin/mli-import-runner`
 và Spark/Iceberg runtime; runner phải nhận request path cuối cùng, tạo

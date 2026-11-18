@@ -3,13 +3,14 @@
 ## 1. Phạm vi, Danh tính Dataset & Freeze Gate
 
 - **Task:** [EXP-05](../task/tasks/EXP-05.md) (Tuần 7, Khối H — Out-of-period evaluation, P0 Core)
-- **Report Version / Trạng thái:** `exp05-official-extension-v1` / `PASSED` (`OFFICIAL_EXTENSION_OUT_OF_PERIOD`)
+- **Report Version / Trạng thái:** `exp05-official-extension-v2` / `PASSED` (`OFFICIAL_EXTENSION_OUT_OF_PERIOD`)
 - **Thời điểm chạy (UTC):** `2026-11-18T05:28:16.509672+00:00`
 - **Git Commit Pin / Code Status:** `281fcce4296205ffaa5b1c9dbf1ad9b9d9edaf16` (`DIRTY_OR_UNVERIFIED`, `is_clean_code=False`)
 - **Môi trường Python:** Python `3.12.10`, `scikit-learn==1.6.1`, `hdbscan==0.8.40`, `pyarrow==21.0.0`
 - **Scientific Approval:** `false`
-- **Frozen Rule Source:** `exp04-frozen-reproduction-rule-v2` từ [EXP-04_OFFICIAL_REPRODUCTION.json](./EXP-04_OFFICIAL_REPRODUCTION.json) (`SHA-256=b5ec696aa844c6ff1541d71e8fa98f1eea6e3f69587cdc1be19a51524f6257f5`, `LF SHA-256=e99ba8ac14f62f132369faaa0b4b37f4378908e8a97d950623e1d75678f6f3b1`)
-- **Parameter Tuning trên EXTENSION:** `false` (`config_freeze=True`, `eval_param_freeze=True`, `feature_contract_freeze=True`)
+- **Frozen Rule Source:** `exp04-frozen-reproduction-rule-v2` từ [EXP-04_OFFICIAL_REPRODUCTION.json](./EXP-04_OFFICIAL_REPRODUCTION.json) (`SHA-256=2d9552724356235cbdf186a5a98687a1fdfb16e49e60caa56c55709a7a7a3ae0`, `LF SHA-256=0946298b33aa871273071ea2b64e9490a4a63bd639f515a6d0fdf9d9a7fb12b6`)
+- **Đối soát lại trên main:** `74e4170e895e750a8d70f6887691435f30c598c8`. Kiểm lại kit và bundle EXTENSION đã có, rồi tính lại delta và decision table với EXP-04 mới. Metrics EXTENSION và metadata chạy model lấy từ evidence v1 đã pin `bf678c4f815baccf54e45aa45b012a3f127f26b304285641d720b48098b30fba`.
+- **Parameter Tuning trên EXTENSION:** `false` (`config_freeze=True`, `eval_param_freeze=True`, `feature_contract_freeze=True`, `exp02_cross_verify=True`, `exp03_cross_verify=True`)
 
 ### Thông số `EXTENSION` Collection (`EXPORTED`)
 
@@ -44,21 +45,21 @@
 
 | Algorithm | Fail Rate Delta | Noise Ratio Delta | DBCV Delta | Omori p Delta | Jaccard Delta | ARI Delta | Runtime Ratio (Ext/Repro) |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| WINDOW | +0.0000 | +0.0000 | N/A | -0.11 | +0.0000 | +0.0000 | 2.48x |
-| DBSCAN | -0.0069 | -0.0036 | -0.0886 | -0.09 | +0.0174 | +0.0143 | 8.19x |
-| HDBSCAN_GLOBAL | +0.1542 | +0.0526 | -0.0615 | +0.10 | -0.0589 | -0.0252 | 4.30x |
-| HDBSCAN_ADAPTIVE | +0.0086 | -0.0508 | -0.2256 | -0.16 | +0.0200 | +0.0260 | 11.77x |
+| WINDOW | +0.0000 | +0.0000 | N/A | -0.11 | +0.0000 | +0.0000 | 2.63x |
+| DBSCAN | -0.0069 | -0.0036 | -0.0886 | -0.09 | +0.0174 | +0.0143 | 20.14x |
+| HDBSCAN_GLOBAL | +0.1542 | +0.0526 | -0.0615 | +0.10 | -0.0589 | -0.0252 | 18.73x |
+| HDBSCAN_ADAPTIVE | +0.0034 | -0.0432 | -0.2312 | -0.14 | +0.0204 | +0.0257 | 46.55x |
 
 ## 4. Phân giải Đa chuỗi Toàn cục `HDBSCAN_ADAPTIVE` trên `EXTENSION`
 
 | Chỉ số | REPRODUCTION | EXTENSION |
 |---|---:|---:|
-| Raw Sequence Members | 115636 | 132264 |
-| Raw Aftershocks (POST trước khử trùng lặp) | 98795 | 128527 |
-| Resolved Unique Aftershocks (Rank 1) | 88222 | 71012 |
-| Aftershocks Deduplicated (Secondary Ranks) | 10573 | 57515 |
+| Raw Sequence Members | 116059 | 132264 |
+| Raw Aftershocks (POST trước khử trùng lặp) | 99067 | 128527 |
+| Resolved Unique Aftershocks (Rank 1) | 88078 | 71012 |
+| Aftershocks Deduplicated (Secondary Ranks) | 10989 | 57515 |
 | Ambiguous Candidates / Aftershocks | 0 / 0 | 0 / 0 |
-| Nested Mainshocks Detected | 23 | 3 |
+| Nested Mainshocks Detected | 21 | 3 |
 
 ## 5. Bảng Quyết định & Các Trường hợp Thất bại (Decision Table)
 
@@ -67,7 +68,7 @@
 | WINDOW | window-baseline-v1 | 194/194 | 45/45 | +0.0000 | 0.0000 | N/A | 0.4381 | 1.0000 | 0/45 windows failed | STABLE_UNFILTERED_BASELINE |
 | DBSCAN | dbscan-global-dev-v1 | 128/194 | 30/45 | -0.0069 | 0.2027 | 0.0026 | 0.6110 | 0.9917 | 15/45 (EXP_MAINSHOCK_CLASSIFIED_AS_NOISE=15) | GENERALIZES_WITH_TRADEOFFS |
 | HDBSCAN_GLOBAL | hdbscan-global-dev-v1 | 142/194 | 26/45 | +0.1542 | 0.2121 | 0.2580 | 0.9268 | 0.8129 | 19/45 (EXP_MAINSHOCK_CLASSIFIED_AS_NOISE=19) | SHIFTED_ON_EXTENSION |
-| HDBSCAN_ADAPTIVE | hdbscan-adaptive-dev-v1 | 131/194 | 30/45 | +0.0086 | 0.2679 | 0.0800 | 0.5536 | 0.9542 | 15/45 (EXP_MAINSHOCK_CLASSIFIED_AS_NOISE=15) | GENERALIZES_WITH_TRADEOFFS |
+| HDBSCAN_ADAPTIVE | hdbscan-adaptive-dev-v1 | 130/194 | 30/45 | +0.0034 | 0.2679 | 0.0800 | 0.5536 | 0.9542 | 15/45 (EXP_MAINSHOCK_CLASSIFIED_AS_NOISE=15) | GENERALIZES_WITH_TRADEOFFS |
 
 ### Chi tiết Failure Cases & Honest NULL Reasons trên `EXTENSION`
 
@@ -85,7 +86,8 @@
 | `HDBSCAN_GLOBAL` | `exp_run_ba9e6bcfc1264176586077993dbd874b` | `ddbbf62e9231abbc...` | `cbbed42eb5bd19e9...` | 4 (`True`) | `True` |
 | `HDBSCAN_ADAPTIVE` | `exp_run_3ba14e9eb1cbb50b3cce83ac66321db1` | `0c8a5422d1429677...` | `8188d6799a2c38d2...` | 4 (`True`) | `True` |
 
-- **Phạm vi kiểm chứng MLI-03:** Bảng trên phản ánh kiểm tra readback/checksum/Parquet/primary-digest phía Python (`4` full-split + `16` sibling shards); đối soát Java offline ghi nhận `4/4` full-split + `12/12` baseline shard đạt `ResultBundleContract` (`RESULT_READY`, `exactSchema=true`), còn `4/4` shard `hdbscan_adaptive_shards/` mới kiểm tra `MlResultBundleReader.read` (`reader=OK`, `exactSchema=true`), **không** thay thế bước import thật vào Iceberg `ml.*` hay validator overlap xuyên shard cho adaptive shards (xem [MLI-03](../task/tasks/MLI-03.md)).
+- **Phạm vi bảng:** Bảng ghi kiểm tra checksum, Parquet readback và primary digest phía Python. Full-split phục vụ đánh giá; MLI-03 resolve theo `WHOLE_WINDOW_SHARD`.
+- **Evidence Java offline của run v1:** 12 shard baseline đạt `RESULT_READY`; 4 shard adaptive đạt reader readback. Nghiệm thu import Iceberg và contract overlap xuyên shard thuộc [MLI-03](../task/tasks/MLI-03.md).
 
 ## 7. Ranh giới Phương pháp luận & Hạn chế Khoa học
 

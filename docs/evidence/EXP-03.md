@@ -202,12 +202,23 @@ Toàn bộ cấu hình được cố định trong `config/ml/models/hdbscan_ada
 - **Shared Drive handoff (`SEC-01`):** Lưu 4 artifacts trong [thư mục Drive `ThanhTris-colab-20261117`](https://drive.google.com/drive/folders/1jjyh_FfpIlcPb6y5n58Ssi7q0X0Ns6zb) với ACL `type=user` (`0 anyone`, `0 domain`), phục vụ review [PR #119](https://github.com/HoaiTam/japan-earthquake-etl/pull/119).
 - **Giới hạn:** Kết quả này xác nhận Colab portability + pilot baseline parity của `ThanhTris` (`DEVELOPMENT_ONLY`, `research_ready=false`); **không** thay thế official adaptive reproduction run trên `DAT-03` (mục tiêu official được hoàn tất ở mục 6 bên dưới).
 
-## 6. Nghiệm thu Official REPRODUCTION Collection (`exp-03-official-v2`, 2026-11-18)
+## 6. Nghiệm thu official REPRODUCTION sau khi tích hợp EXP-02
 
-Sau khi `EXP-02` official hoàn tất và xử lý review P1 của PR #139 / PR #141, `run_adaptive_experiment` (`notebooks/adaptive_hdbscan.py`) và `scripts/run-exp03-official.py` đã thực thi lại **REPRODUCTION v2** (`194` mainshocks, `156.710` rows, `2` shards) trên commit clean **`4a324b886a543347bbaafa6fdf5a07505de1c529`** (`is_clean_code=true`, `scientific_approval=false`, `Reviewer=unassigned`) theo đúng thứ tự: fit toàn bộ cửa sổ trên cả 2 shards $\rightarrow$ chạy `resolve_multi_sequence_and_nested_mainshocks` **toàn cục xuyên shard** $\rightarrow$ xuất non-nested sibling bundles tương thích `MLI-03` (`staging/ml-experiments/exp03-official-reproduction-v2/hdbscan_adaptive/` lẫn `hdbscan_adaptive_shards/shard_00000`, `shard_00001`):
-- **Run ID full-split v2 (`REPRODUCTION`, `194` windows, `156.710` rows, `2` shards):** `exp_run_293f2720c8a765c7ab6d20243d1b797b` (`131` thành công, `63` `EXP_MAINSHOCK_CLASSIFIED_AS_NOISE`, `0` skipped, runtime `39.61s`; `shard_00000` `exp_run_b0e755065b1d241749634e754eb5003e`, `shard_00001` `exp_run_cf9117b7016b3f54145a5cb60c1a9815`; JSON report SHA `e0e1bfeb5cacea1399d3a3ebd0cec167b6f8a69a6bc0f1bbc1706fe47df49697`).
-- **Multi-sequence & Nested Resolution:** `98.795` raw POST aftershocks $\rightarrow$ `88.222` resolved unique POST aftershocks + `10.573` secondary ranks deduplicated (`9.649` ứng viên xuất hiện ở nhiều chuỗi, `0` trường hợp `AMBIGUOUS`), phát hiện `23` nested mainshocks (`13` trên `shard_00000` + `10` trên `shard_00001`).
-- **Java MLI-03 Verification & Shard Boundary:** `MlResultBundleReader.read` + `ResultBundleContract.validate` đạt `RESULT_READY` (`exactSchema=true`) trên full-split bundle; `MlResultBundleReader.read` đọc sạch cả hai sibling shards (`exactSchema=true`), đồng thời ghi nhận ranh giới hợp đồng khi bảo toàn nhãn resolve toàn cục trên lát cắt từng shard (do có `13.097` candidate dùng chung giữa `shard_00000` và `shard_00001`).
-- **Ghi chú lịch sử Run v1 (`exp-03-official-v1`):** Bản chạy trước đó (`exp_run_70637f429d590e2ba8258f56b618ba85` tại `staging/ml-experiments/exp03-official-reproduction/hdbscan_adaptive` với layout `shards/` lồng cũ) được giữ làm historical reference, không dùng cho đối soát official hiện hành.
-- Chi tiết pins, SHA-256 checksums, adaptive parameter range (`min_cluster_size` 4–20, `min_samples` 2–12), code provenance và per-shard verification xem tại [EXP-03 Official Reproduction](./EXP-03_OFFICIAL_REPRODUCTION.md) và [EXP-03_OFFICIAL_REPRODUCTION.json](./EXP-03_OFFICIAL_REPRODUCTION.json).
-- **Giới hạn / Bước tiếp theo:** Kết quả vẫn giữ `scientific_approval=false`; việc đánh giá DBCV/Omori/Stability và so sánh 4 thuật toán thuộc [EXP-04](../task/tasks/EXP-04.md), import Iceberg `ml.*` thuộc [MLI-03](../task/tasks/MLI-03.md), và out-of-period 2018–2023 thuộc [EXP-05](../task/tasks/EXP-05.md). Reviewer độc lập hiện giữ `unassigned`.
+Chạy lại từ commit sạch `c746dc6` trên kit DAT-03 v4 đã ghim: 194 cửa sổ,
+156.710 membership pairs, 2 shard. Fit đủ hai shard trước khi resolve toàn cục,
+rồi đối soát full-split với cả hai lát cắt Parquet.
+
+- **Run:** `exp_run_ade47fe60932cbcd046100b023a89e3c`; 130/194 cửa sổ thành
+  công, 64 mainshock noise, 0 skipped. 99.067 raw POST → 88.078 unique POST +
+  10.989 secondary ranks; 0 ambiguous và 21 nested mainshocks.
+- **Giới hạn tái lập:** [lần chạy Windows trước tích hợp](https://github.com/HoaiTam/japan-earthquake-etl/blob/c2d00ff9d28f8acc69d551fec5f51ad55e8f9a39/docs/evidence/EXP-03_OFFICIAL_REPRODUCTION.json)
+  ghi 131/194 thành công và 88.222 unique POST. Không coi artifacts hai lần chạy
+  là thay thế được cho nhau, không khẳng định nguyên nhân khác biệt hoặc parity
+  giữa hệ điều hành. EXP-04 phải kiểm đúng run và bytes của lần chạy đang dùng.
+- **Ranh giới import:** Full-split phục vụ đánh giá. Hai adaptive shard đạt
+  Parquet readback, không đạt nghiệm thu import. Lát cắt có 5.170/4.340 singleton
+  giữ status toàn cục; fixture Java xác nhận resolver từ chối full-split không
+  có shard ID và validator v1 từ chối overlap singleton. Không đổi rank để
+  vượt gate; xử lý scope import trong [MLI-03](../task/tasks/MLI-03.md).
+- [Report official](./EXP-03_OFFICIAL_REPRODUCTION.md) và [JSON](./EXP-03_OFFICIAL_REPRODUCTION.json)
+  giữ timestamp, toàn bộ pins, counts, checksum và `scientific_approval=false`.
