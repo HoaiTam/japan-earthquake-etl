@@ -844,6 +844,8 @@ def execute_official_evaluation(
     project_root: Path = PROJECT_ROOT,
 ) -> Dict[str, Any]:
     """Execute official EXP-04 evaluation; emit OFFICIAL_RESEARCH PASSED + frozen rule ONLY when both EXP-02 & EXP-03 pass."""
+    if not diagnostic_only:
+        require(expected_split == "REPRODUCTION", "EXP04_FREEZE_REQUIRES_REPRODUCTION")
     missing_upstream_reasons: List[str] = []
     if exp02_report_path is None:
         missing_upstream_reasons.append("EXP02_CROSS_VERIFICATION_MISSING")
@@ -935,6 +937,8 @@ def execute_official_evaluation(
         block_reasons.append("UPSTREAM_CROSS_VERIFICATION_INCOMPLETE")
 
     raw_frozen_rule = eval_results.get("frozen_extension_rule")
+    if can_publish_frozen_rule:
+        require(isinstance(raw_frozen_rule, dict), "EXP04_FROZEN_RULE_MISSING")
     eval_summary_out = dict(eval_results)
     if not can_publish_frozen_rule:
         eval_summary_out.pop("frozen_extension_rule", None)
@@ -1008,10 +1012,10 @@ def main():
     )
     parser.add_argument("--manifest-sha256", type=str, default=None)
     parser.add_argument("--checksums-sha256", type=str, default=None)
-    parser.add_argument("--exp02-report", type=str, default=None, help="Optional EXP-02 official JSON for parity check")
+    parser.add_argument("--exp02-report", type=str, default=None, help="EXP-02 official JSON; required to publish a rule")
     parser.add_argument("--expected-exp02-report-sha256", type=str, default=None, help="Trusted SHA-256 of EXP-02 official JSON")
     parser.add_argument("--exp02-output-dir", type=str, default=None, help="Path to EXP-02 official result bundles directory")
-    parser.add_argument("--exp03-report", type=str, default=None, help="Optional EXP-03 official JSON for parity check")
+    parser.add_argument("--exp03-report", type=str, default=None, help="EXP-03 official JSON; required to publish a rule")
     parser.add_argument("--expected-exp03-report-sha256", type=str, default=None, help="Trusted SHA-256 of EXP-03 official JSON")
     parser.add_argument("--exp03-output-dir", type=str, default=None, help="Path to EXP-03 official HDBSCAN_ADAPTIVE bundle directory")
     parser.add_argument(
@@ -1042,6 +1046,9 @@ def main():
         bundle_path = (PROJECT_ROOT / args.bundle).resolve() if not Path(args.bundle).is_absolute() else Path(args.bundle)
         default_json = "docs/evidence/EXP-04_OFFICIAL_REPRODUCTION.json"
         default_md = "docs/evidence/EXP-04_OFFICIAL_REPRODUCTION.md"
+        if args.diagnostic_only:
+            default_json = "staging/exp04-diagnostic/report.json"
+            default_md = "staging/exp04-diagnostic/report.md"
         out_json_arg = args.output_json or default_json
         out_md_arg = args.output_md or default_md
         out_json = (PROJECT_ROOT / out_json_arg).resolve() if not Path(out_json_arg).is_absolute() else Path(out_json_arg)

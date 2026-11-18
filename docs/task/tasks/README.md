@@ -22,13 +22,14 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 
 ## Tổng quan
 
-**18/11 — EXP-03 & EXP-04 Done (ThanhTris, v2 Clean/Reference-Exact):** Hoàn tất `EXP-03` (`HDBSCAN_ADAPTIVE` + global cross-shard entity resolution trên official `REPRODUCTION` với sibling `MLI-03` layout & Java reader validation trên clean commit `4a324b8`: `194` windows, `131` success / `63` `EXP_MAINSHOCK_CLASSIFIED_AS_NOISE`, `98.795` raw $\rightarrow$ `88.222` resolved unique POST aftershocks, `10.573` deduplicated, `0` ambiguous, `23` nested mainshocks; [EXP-03 Official](../../evidence/EXP-03_OFFICIAL_REPRODUCTION.md)) và `EXP-04` (`exp-04-official-v2`, sửa exact MST tie-breaking DBCV `0.0912` / `0.3195` / `0.3056`, loại bỏ hoàn toàn Silhouette fallback, siết fail-closed physical bundle + primary membership SHA cross-verify với `EXP-02` & `EXP-03`, phát hành `frozen_extension_rule` `exp04-frozen-reproduction-rule-v2` cho `EXP-05`; [EXP-04 Official](../../evidence/EXP-04_OFFICIAL_REPRODUCTION.md)). Cả hai giữ `scientific_approval=false`, `reviewer: unassigned` và chờ chạy extension 2018–2023 tại [EXP-05](./EXP-05.md).
 **16/11 — DEMO-01 In Progress (ThanhTris):** Chuẩn bị manifest ghim bằng chứng đại diện, kịch bản demo 15–20 phút, 4 fallback và preflight checker offline ([gói demo](../../runbooks/DEMO-01_DEMO_PACKAGE.md)); chờ `MLI-04` và `MLQ-01` để chốt official pins.
 **17/11 — DAT-03 Done:** đã đối chiếu catalog288tháng, Gold Published/rerun,
 hai official collections EXPORTED và receipt thật cùng kitv4 trên ba máy.
 [Đối chiếu acceptance](../../evidence/DAT-03_FINAL_ACCEPTANCE_20261116.md).
-Hiện 71/81 Done, 2 Needs Update, 7 Backlog, 1 In Progress sau EXP-02/EXP-03/EXP-04, QA-05 và phần chuẩn bị DEMO-01. Các mốc bên dưới giữ
-lịch sử, không thay scientific approval hoặc trạng thái SEC-01/EXP.
+Hiện 69/81 Done, 2 Needs Update, 7 Backlog, 3 In Progress sau nghiệm thu EXP-02
+official REPRODUCTION v2 ([evidence](../../evidence/EXP-02_OFFICIAL_REPRODUCTION.md)).
+Full-split dành cho đánh giá; MLI-03 dùng từng whole-window shard. Các mốc bên
+dưới giữ lịch sử, không thay scientific approval hoặc trạng thái SEC-01/EXP-03/04.
 
 **17/11 — OPS-01 Done (HoaiTam):** backup13bảng/77objects/14artifacts và
 restore prefix/namespace/DB mới; Trino signatures/rerun/ML joins, Airflow
@@ -186,7 +187,7 @@ full catalog/export/receipts ba máy.
 
 - Tổng số task: **81**.
 - Foundation: **9 task `Done`**, FND-01 đã nghiệm thu runtime của lifecycle mới ngày 2026-10-15.
-- Task còn ở trạng thái `Needs Update`: **5** — EXP-02/03/04, MLI-04, SEC-01; DAT-03 tiếp tục In Progress12/11; EXP-01 cloud harness tuần7 đã Done, không thay security/session audit.
+- Tại mốc lập kế hoạch 12/11, **5** task `Needs Update`: EXP-02/03/04, MLI-04, SEC-01; DAT-03 khi đó còn In Progress. EXP-01 cloud harness tuần7 đã Done, không thay security/session audit.
 - Core: **73 task**.
 - Stretch: **8 task**.
 - Tổng effort task: **416 giờ**; baseline 364h + ORC-06/07 16h + DAT-02 6h + DAT-03 16h + COL-01..04 14h.
@@ -398,8 +399,8 @@ và portable integration/full catalog/official export đã qua actual acceptance
 |---|---:|---|---|---|---:|---|
 | [EXP-01](./EXP-01.md) - Tạo Jupyter harness và chuẩn bị chuyển sang Colab | 5 | Jupyter-first harness | Core | P0 | 5h | Done |
 | [EXP-02](./EXP-02.md) - Chạy Window, DBSCAN và HDBSCAN global | 5 | Baseline algorithms | Core | P0 | 7h | Done |
-| [EXP-03](./EXP-03.md) - Xây HDBSCAN adaptive và giải quyết multi-sequence | 5 | Adaptive HDBSCAN | Core | P0 | 6h | Done |
-| [EXP-04](./EXP-04.md) - Đánh giá quality, physical consistency và stability | 7 | Scientific evaluation | Core | P0 | 7h | Done |
+| [EXP-03](./EXP-03.md) - Xây HDBSCAN adaptive và giải quyết multi-sequence | 5 | Adaptive HDBSCAN | Core | P0 | 6h | In Progress |
+| [EXP-04](./EXP-04.md) - Đánh giá quality, physical consistency và stability | 7 | Scientific evaluation | Core | P0 | 7h | In Progress |
 | [EXP-05](./EXP-05.md) - Chạy out-of-period extension 2018-2023 | 7 | Out-of-period evaluation | Core | P0 | 5h | Backlog |
 | [COL-01](./COL-01.md) - Khảo sát và giải thích pilot trên Colab | 7 | Colab pilot data inspection | Core | P1 | 3h | Done |
 | [COL-02](./COL-02.md) - Sweep tham số baseline giới hạn trên pilot | 7 | Bounded baseline parameter sweep | Core | P1 | 4h | Done |

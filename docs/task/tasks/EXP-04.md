@@ -1,6 +1,6 @@
 ---
 task_id: "EXP-04"
-status: "Done"
+status: "In Progress"
 week: 7
 block: "H - Experiment"
 workstream: "Scientific evaluation"
@@ -16,7 +16,7 @@ dependencies: ["EXP-02", "EXP-03"]
 
 ## Giao việc hiện hành — 11/11/2026
 
-- **Owner:** ThanhTris; **status:** Needs Update.
+- **Owner:** ThanhTris; **status:** In Progress.
 - **Làm phần gì / dùng để làm gì:** Đánh giá khoa học.
 - **Bắt đầu độc lập:** Tái dùng evaluation harness/pilot #121 và COL-03 #117; chuẩn bị evaluator/config.
 - **Đầu ra và điều kiện Done:** Sau EXP-02/03 official: DBCV/noise/Omori/stability với sample/failure/N/A reasons; freeze rule trước EXP-05, không kết luận từ pilot.
@@ -93,7 +93,7 @@ gốc. Dependencies và tiêu chí gốc phía trên giữ nguyên.
 
 ## Theo dõi
 
-- **Trạng thái:** Done
+- **Trạng thái:** In Progress
 - **Assignee:** ThanhTris
 - **Reviewer:** unassigned
 - **Evidence / PR:**

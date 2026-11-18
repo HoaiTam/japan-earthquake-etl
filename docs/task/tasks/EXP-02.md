@@ -16,7 +16,7 @@ dependencies: ["EXP-01", "DAT-02", "DAT-03", "MLD-05"]
 
 ## Giao việc hiện hành — 11/11/2026
 
-- **Owner:** rosy179; **status:** Needs Update.
+- **Owner:** rosy179; **status:** Done.
 - **Làm phần gì / dùng để làm gì:** Baseline official.
 - **Bắt đầu độc lập:** Tái dùng code/local–Colab parity đã merge #114; khóa runner/config theo release.
 - **Đầu ra và điều kiện Done:** WINDOW/DBSCAN/HDBSCAN global per-mainshock trên REPRODUCTION EXPORTED; artifact/pins/counts/environment thật, giữ failures.
@@ -124,7 +124,8 @@ release thật EXPORTED. Colab pilot đạt chưa chuyển toàn EXP-02 Done.
 ## Checklist bàn giao
 
 - [x] Deliverable và test/evidence tồn tại trong repository.
-- [x] Acceptance criteria đã được kiểm tra (local development, Colab parity và official REPRODUCTION v2 trên clean commit `4a324b8` — 194 mainshocks / 156.710 rows, non-nested sibling `MLI-03` layout, physical shard union verification & Java `MlResultBundleReader`/`ResultBundleContract` `RESULT_READY`, `scientific_approval=false`; đồng bộ kết quả PR #139 `df10230`).
+- [x] Acceptance criteria đã được kiểm tra (local development, Colab parity và official REPRODUCTION v2 trên clean commit `df10230` — 194 mainshocks / 156.710 rows, physical shard union verification, `scientific_approval=false`).
+- [x] Handoff phân biệt full-split đánh giá với `WHOLE_WINDOW_SHARD`; regression offline kiểm resolver, reader và contract bằng registry fixture độc lập. Import Iceberg/Trino trên các run thật không thuộc nghiệm thu EXP-02; xem [MLI-03](./MLI-03.md) và đối soát báo cáo [MLI-04](./MLI-04.md).
 - [x] Contract/docs đã cập nhật và không chứa secret/data dump.
 - [ ] Reviewer độc lập được khuyến nghị cho P0.
 

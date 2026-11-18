@@ -1026,7 +1026,7 @@ def generate_official_adaptive_report(
         "full_split_reader_verified": True,
         "full_split_trusted_resolver_importable": False,
         "full_split_block_reason": (
-            "IMP_COLLECTION_SCOPE_REQUIRED" if bool(shard_verifications) else "EVALUATION_ONLY"
+            "IMP_REQUEST_FIELD_REQUIRED" if bool(shard_verifications) else "EVALUATION_ONLY"
         ),
         "shard_layout": "NON_NESTED_SIBLING_READBACK_VERIFIED" if bool(shard_verifications) else "SINGLE_SPLIT",
         "shard_readback_verified": bool(shard_verifications),
