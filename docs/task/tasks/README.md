@@ -26,10 +26,12 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 **17/11 — DAT-03 Done:** đã đối chiếu catalog288tháng, Gold Published/rerun,
 hai official collections EXPORTED và receipt thật cùng kitv4 trên ba máy.
 [Đối chiếu acceptance](../../evidence/DAT-03_FINAL_ACCEPTANCE_20261116.md).
-Hiện 69/81 Done, 2 Needs Update, 7 Backlog, 3 In Progress sau nghiệm thu EXP-02
-official REPRODUCTION v2 ([evidence](../../evidence/EXP-02_OFFICIAL_REPRODUCTION.md)).
-Full-split dành cho đánh giá; MLI-03 dùng từng whole-window shard. Các mốc bên
-dưới giữ lịch sử, không thay scientific approval hoặc trạng thái SEC-01/EXP-03/04.
+Hiện 71/81 Done, 2 Needs Update, 7 Backlog, 1 In Progress sau nghiệm thu
+[EXP-02](../../evidence/EXP-02_OFFICIAL_REPRODUCTION.md),
+[EXP-03](../../evidence/EXP-03_OFFICIAL_REPRODUCTION.md) và
+[EXP-04](../../evidence/EXP-04_OFFICIAL_REPRODUCTION.md). EXP-04 phát hành rule
+v2 sau khi đối soát cả hai upstream; EXP-03 adaptive shard chỉ đạt readback.
+Các mốc bên dưới giữ lịch sử, không thay scientific approval hoặc trạng thái SEC-01.
 
 **17/11 — OPS-01 Done (HoaiTam):** backup13bảng/77objects/14artifacts và
 restore prefix/namespace/DB mới; Trino signatures/rerun/ML joins, Airflow
@@ -399,8 +401,8 @@ và portable integration/full catalog/official export đã qua actual acceptance
 |---|---:|---|---|---|---:|---|
 | [EXP-01](./EXP-01.md) - Tạo Jupyter harness và chuẩn bị chuyển sang Colab | 5 | Jupyter-first harness | Core | P0 | 5h | Done |
 | [EXP-02](./EXP-02.md) - Chạy Window, DBSCAN và HDBSCAN global | 5 | Baseline algorithms | Core | P0 | 7h | Done |
-| [EXP-03](./EXP-03.md) - Xây HDBSCAN adaptive và giải quyết multi-sequence | 5 | Adaptive HDBSCAN | Core | P0 | 6h | In Progress |
-| [EXP-04](./EXP-04.md) - Đánh giá quality, physical consistency và stability | 7 | Scientific evaluation | Core | P0 | 7h | In Progress |
+| [EXP-03](./EXP-03.md) - Xây HDBSCAN adaptive và giải quyết multi-sequence | 5 | Adaptive HDBSCAN | Core | P0 | 6h | Done |
+| [EXP-04](./EXP-04.md) - Đánh giá quality, physical consistency và stability | 7 | Scientific evaluation | Core | P0 | 7h | Done |
 | [EXP-05](./EXP-05.md) - Chạy out-of-period extension 2018-2023 | 7 | Out-of-period evaluation | Core | P0 | 5h | Backlog |
 | [COL-01](./COL-01.md) - Khảo sát và giải thích pilot trên Colab | 7 | Colab pilot data inspection | Core | P1 | 3h | Done |
 | [COL-02](./COL-02.md) - Sweep tham số baseline giới hạn trên pilot | 7 | Bounded baseline parameter sweep | Core | P1 | 4h | Done |

@@ -16,6 +16,7 @@ Verifies:
 """
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 import shutil
@@ -1281,6 +1282,48 @@ class TestScientificEvaluation(unittest.TestCase):
         self.assertFalse(both_diag["frozen_rule_published"])
         self.assertIsNone(both_diag["frozen_extension_rule"])
         self.assertIn("DIAGNOSTIC_ONLY_MODE_NO_RULE_PUBLICATION", both_diag["frozen_rule_block_reasons"])
+
+
+class TestCommittedOfficialEvidence(unittest.TestCase):
+    def test_published_rule_binds_both_current_physical_replay_reports(self):
+        evidence = ROOT / "docs/evidence"
+        merged_baseline = json.loads((evidence / "EXP-02_OFFICIAL_REPRODUCTION.json").read_bytes())
+        report = json.loads((evidence / "EXP-04_OFFICIAL_REPRODUCTION.json").read_bytes())
+        self.assertEqual(report["status"], "PASSED")
+        self.assertTrue(report["frozen_rule_published"])
+        self.assertFalse(report["scientific_approval"])
+
+        upstreams = {
+            "exp02": "EXP-02_REPRODUCTION_REPLAY_FOR_EXP04.json",
+            "exp03": "EXP-03_OFFICIAL_REPRODUCTION.json",
+        }
+        reports = {}
+        for tag, filename in upstreams.items():
+            # The recorded upstream SHA is of the LF runner output; a Windows
+            # checkout may use CRLF for the same tracked report.
+            raw = (evidence / filename).read_bytes().replace(b"\r\n", b"\n")
+            reports[tag] = json.loads(raw)
+            receipt = report[f"{tag}_cross_verification"]
+            self.assertEqual(receipt["report_sha256"], hashlib.sha256(raw).hexdigest())
+            for flag in ("all_checks_passed", "dataset_and_pins_verified", "config_pins_verified",
+                         "physical_bundles_verified", "physical_shards_verified", "primary_membership_parity_verified"):
+                self.assertIs(receipt[flag], True)
+
+        replay = reports["exp02"]
+        self.assertEqual(replay["dataset"], merged_baseline["dataset"])
+        self.assertEqual(replay["case_results"], merged_baseline["case_results"])
+        for algo, values in replay["reconciliation"].items():
+            with self.subTest(algorithm=algo):
+                original = merged_baseline["reconciliation"][algo]
+                for field in ("total_windows", "successful_windows", "failed_windows", "total_candidates",
+                              "total_aftershocks", "total_noise_candidates", "total_sequence_members"):
+                    self.assertEqual(values[field], original[field])
+                self.assertEqual(replay["model_config_pins"][algo]["canonical_config_sha256"],
+                                 merged_baseline["model_config_pins"][algo]["canonical_config_sha256"])
+                self.assertEqual(report["exp02_cross_verification"]["algorithms"][algo]["run_id"],
+                                 replay["artifacts_verified"][algo]["run_id"])
+        self.assertEqual(report["exp03_cross_verification"]["run_id"],
+                         reports["exp03"]["artifact_verified"]["run_id"])
 
 
 if __name__ == "__main__":

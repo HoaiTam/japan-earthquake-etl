@@ -1,6 +1,6 @@
 ---
 task_id: "EXP-03"
-status: "In Progress"
+status: "Done"
 week: 5
 block: "H - Experiment"
 workstream: "Adaptive HDBSCAN"
@@ -16,7 +16,7 @@ dependencies: ["EXP-02"]
 
 ## Giao việc hiện hành — 11/11/2026
 
-- **Owner:** ThanhTris; **status:** In Progress.
+- **Owner:** ThanhTris; **status:** Done.
 - **Làm phần gì / dùng để làm gì:** Adaptive và multi-sequence.
 - **Bắt đầu độc lập:** Tái dùng #113/#116; bổ sung actual Colab notebook/output/session cho SEC-01 sau local gate.
 - **Đầu ra và điều kiện Done:** Sau EXP-02 official: adaptive REPRODUCTION bundle, raw/resolved membership, ambiguous/nested counts; khóa config trước extension.
@@ -86,7 +86,7 @@ evidence cũ thành nghiệm thu của người mới. Giữ In Progress và har
 
 ## Theo dõi
 
-- **Trạng thái:** In Progress
+- **Trạng thái:** Done
 - **Assignee:** ThanhTris
 - **Reviewer:** unassigned
 - **02/11/2026 — local smoke gate update & real pilot identity verification:** Hoàn thiện theo review của @HoaiTam (PR #113):
@@ -101,7 +101,7 @@ evidence cũ thành nghiệm thu của người mới. Giữ In Progress và har
   3. Bổ sung thêm 8 regression tests nâng tổng số lên **40 tests PASS** với fresh Jupyter kernel (đạt 21/21 CI checks).
   4. Xuất evidence mới tại [EXP-03-local-smoke.json](../../evidence/EXP-03-local-smoke.json) với status `REPORT_ONLY_VERIFIED`. Giữ task `In Progress` chờ PR #114 merge và nghiệm thu Colab cloud.
 - **17/11/2026 — Colab portability, host parity & SEC-01 Drive artifacts (`ThanhTris`):** Hoàn tất local `exp01-colab.py local-pack` (`001e33b`, `25.6583s`), local adaptive fresh-kernel inspection trên real pilot (`5.2503s`, `pilot_run_1a7b6edb9bb94ccf9caaac99e124f2b5`), chạy thực tế [exp_01_colab_bootstrap.ipynb](../../../notebooks/exp_01_colab_bootstrap.ipynb) trên Google Colab (`Python 3.13.18` Linux CPU, `COLAB_HARNESS_PASSED`, parity `WINDOW`/`DBSCAN`/`HDBSCAN_GLOBAL` `PASSED` với `279` rows / `2` mainshocks), recheck parity trên host và upload `4` artifact sạch vào Drive (`type=user` ONLY, `anyone=0`, `domain=0`) cho [SEC-01](./SEC-01.md) (PR #119). Ghi nhận tại [THANHTRIS_COLAB_PORTABILITY_20261117.md](../../evidence/THANHTRIS_COLAB_PORTABILITY_20261117.md) và [JSON](../../evidence/THANHTRIS_COLAB_PORTABILITY_20261117.json); giữ `Needs Update` (`scientific_approval=false`) vì vẫn chờ [EXP-02](./EXP-02.md) official và official adaptive run trên `DAT-03`.
-- **18/11/2026 — Official REPRODUCTION v2 run & sibling MLI-03 boundary (`ThanhTris`):** Mở rộng `notebooks/adaptive_hdbscan.py` (`shard_output_dir` đồng cấp + `mli03_import_boundary`), `scripts/run-exp03-official.py` (clean provenance + fail-closed handoff verification + cảnh báo boundary import) và `ResultBundleContractTest.java`; chạy **REPRODUCTION v2 (`exp-03-official-v2`)** trên clean commit `451a615` (`194` mainshocks, `156.710` rows, `2` shards): thực thi `resolve_multi_sequence_and_nested_mainshocks` toàn cục xuyên shard rồi ghi full-split bundle (`exp_run_b851f45893dc1d640f5c5940e1c08bdd`, JSON SHA `9333d8c921c4d964aca4c86619796e29c1da0d811de6516dafd790b2f711f9b1`) và sibling shards `hdbscan_adaptive_shards/<shard_id>/` (`exp_run_ad99c797cc01023db409ea9242310878` / `exp_run_62508538ed0ff9b15ddde6cf4a072fd6`; `131` thành công / `63` `EXP_MAINSHOCK_CLASSIFIED_AS_NOISE`, `98.795` raw $\rightarrow$ `88.222` resolved unique POST aftershocks, `10.573` deduplicated, `0` ambiguous, `23` nested mainshocks). Full-split dùng để đánh giá khoa học (`EXP-04`, không đi qua `TrustedDatasetResolver` vì thiếu `collection_shard_id`), còn 2 sibling shards **mới đạt readback (`MlResultBundleReader.read`) và đối soát Parquet toàn cục, chưa được nghiệm thu import qua `MLI-03`** (`shard_00000` giữ `5.218` và `shard_00001` giữ `4.387` singleton có nhãn toàn cục `MULTIPLE`/`AMBIGUOUS`, nên `ResultBundleContract` chặn `IMP_SCHEMA_MISMATCH` khi kiểm đơn lẻ từng bundle — chứng minh qua Java test `crossShardAdaptiveOverlapPassesReaderWhileContractAndResolverBoundariesHold`, follow-up import thuộc [MLI-03](./MLI-03.md)). Giữ run v1 `exp_run_70637f429d590e2ba8258f56b618ba85` làm historical reference. Xem [EXP-03_OFFICIAL_REPRODUCTION.md](../../evidence/EXP-03_OFFICIAL_REPRODUCTION.md) và [JSON](../../evidence/EXP-03_OFFICIAL_REPRODUCTION.json). Chuyển `EXP-03` sang `Done` (`scientific_approval=false`; reviewer giữ `unassigned`).
+- **18/11/2026 — Official REPRODUCTION sau khi tích hợp #139:** Run sạch `c746dc6` từ DAT-03 v4 giữ 194 cửa sổ / 156.710 raw rows / 2 shard. Kết quả thực đo: 130 thành công, 64 mainshock noise, 99.067 raw POST → 88.078 unique POST, 0 ambiguous và 21 nested mainshocks. [Evidence](../../evidence/EXP-03.md#6-nghiệm-thu-official-reproduction-sau-khi-tích-hợp-exp-02) ghi rõ khác biệt với lần chạy Windows trước. Full-split dành cho đánh giá; hai shard chỉ nghiệm thu readback. Import adaptive overlap xuyên shard thuộc [MLI-03](./MLI-03.md); không thay rank hoặc tuyên bố scientific approval.
 - **Evidence / PR:** [EXP-03 evidence](../../evidence/EXP-03.md), [EXP-03 Official Reproduction](../../evidence/EXP-03_OFFICIAL_REPRODUCTION.md), [THANHTRIS Colab portability](../../evidence/THANHTRIS_COLAB_PORTABILITY_20261117.md), [PR #86](https://github.com/HoaiTam/japan-earthquake-etl/pull/86) đã merge implementation, [PR #113](https://github.com/HoaiTam/japan-earthquake-etl/pull/113) local smoke gate review round 2. Hard gate EXP-02 đã được liên kết với PR #114 và PR #139; follow-up import shard adaptive xuyên shard thuộc [MLI-03](./MLI-03.md).
 - **Kỹ năng phù hợp:** HDBSCAN, parameter policies, entity resolution
 

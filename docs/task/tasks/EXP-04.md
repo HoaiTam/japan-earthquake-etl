@@ -1,6 +1,6 @@
 ---
 task_id: "EXP-04"
-status: "In Progress"
+status: "Done"
 week: 7
 block: "H - Experiment"
 workstream: "Scientific evaluation"
@@ -16,7 +16,7 @@ dependencies: ["EXP-02", "EXP-03"]
 
 ## Giao việc hiện hành — 11/11/2026
 
-- **Owner:** ThanhTris; **status:** In Progress.
+- **Owner:** ThanhTris; **status:** Done.
 - **Làm phần gì / dùng để làm gì:** Đánh giá khoa học.
 - **Bắt đầu độc lập:** Tái dùng evaluation harness/pilot #121 và COL-03 #117; chuẩn bị evaluator/config.
 - **Đầu ra và điều kiện Done:** Sau EXP-02/03 official: DBCV/noise/Omori/stability với sample/failure/N/A reasons; freeze rule trước EXP-05, không kết luận từ pilot.
@@ -93,18 +93,26 @@ gốc. Dependencies và tiêu chí gốc phía trên giữ nguyên.
 
 ## Theo dõi
 
-- **Trạng thái:** In Progress
+- **Trạng thái:** Done
 - **Assignee:** ThanhTris
 - **Reviewer:** unassigned
 - **Evidence / PR:**
   - Pilot baseline harness & stability report: [EXP-04_PILOT_EVALUATION.json](../../evidence/EXP-04_PILOT_EVALUATION.json) và [EXP-04_PILOT_EVALUATION.md](../../evidence/EXP-04_PILOT_EVALUATION.md).
-  - **18/11/2026 — Official REPRODUCTION Evaluation v2 & Exact DBCV / Fail-Closed Cross-Verify (`ThanhTris`):** Khắc phục toàn bộ P1 review tại PR #141 trên clean commit **`4a324b886a543347bbaafa6fdf5a07505de1c529`** (`is_clean_code=true`, `scientific_approval=false`, `reviewer: unassigned`): (1) sửa `_compute_dbcv_memory_safe` matching `hdbscan.validity.validity_index` cả tie-breaking MST nội bộ trên cụm $>2000$ điểm lẫn windows $>50$ cụm; (2) bỏ hoàn toàn Silhouette fallback để lỗi DBCV luôn trả `(None, [METRIC_FIT_FAILED])`; (3) siết fail-closed `_cross_verify_exp02_exp03` kiểm tra `status=PASSED`, trusted report SHA-256, đầy đủ pins & đối soát physical bundle checksum + `primary_membership_sha256`. Kết quả **REPRODUCTION v2 (`exp-04-official-v2`, `194` windows, `156.710` rows, `repeats=5`, $\sigma=0.01$, `seed=42`)**:
-    - `WINDOW`: `194/194` success (`fail=0`, `0.0%`), `135.853` POST aftershocks, noise `0.0%`, DBCV `N/A` (`METRIC_NOT_APPLICABLE: 194`), Omori `p=0.5475` / $R^2=0.9565$ (`155/194`), Jaccard `1.0000` / ARI `1.0000` (`194/194`), runtime `22.51s`.
-    - `DBSCAN`: `128/194` success (`fail=66`, `34.0%`, `EXP_MAINSHOCK_CLASSIFIED_AS_NOISE: 66`), `118.487` aftershocks, noise `20.6%`, DBCV `0.0912` (`98/194`; v1 lịch sử trước khi sửa tie-breaking MST là `0.1195`), Omori `p=0.7013` / $R^2=0.9744$ (`106/194`), Jaccard `0.9743` / ARI `0.9456` (`194/194`), runtime `181.77s`.
-    - `HDBSCAN_GLOBAL`: `142/194` success (`fail=52`, `26.8%`, `EXP_MAINSHOCK_CLASSIFIED_AS_NOISE: 52`), `15.118` aftershocks, noise `16.0%`, DBCV `0.3195` (`101/194`; v1 lịch sử là `0.3244`), Omori `p=0.8220` / $R^2=0.9540$ (`99/194`), Jaccard `0.8718` / ARI `0.8164` (`194/194`), runtime `407.32s`.
-    - `HDBSCAN_ADAPTIVE`: `131/194` success (`fail=63`, `32.5%`, `EXP_MAINSHOCK_CLASSIFIED_AS_NOISE: 63`), `98.795` raw per-window POST aftershocks (cross-shard resolved `88.222` ở EXP-03), noise `31.9%`, DBCV `0.3056` (`32/194`; v1 lịch sử là `0.3178`), Omori `p=0.7114` / $R^2=0.9542$ (`124/194`), Jaccard `0.9342` / ARI `0.8727` (`194/194`), runtime `436.42s`.
-    - Đối soát fail-closed & đọc lại physical bundles khớp 100% với [EXP-02 Official](../../evidence/EXP-02_OFFICIAL_REPRODUCTION.json) (SHA `a1472cb417b038262df8fcb8cbe0246b1356aa22a4645289aee1b90319bdefb9`) và [EXP-03 Official](../../evidence/EXP-03_OFFICIAL_REPRODUCTION.json) (SHA `e0e1bfeb5cacea1399d3a3ebd0cec167b6f8a69a6bc0f1bbc1706fe47df49697`), phát hành `frozen_extension_rule` **`exp04-frozen-reproduction-rule-v2`** (thay thế bản lịch sử `v1`) cho [EXP-05](./EXP-05.md). Xem [EXP-04_OFFICIAL_REPRODUCTION.md](../../evidence/EXP-04_OFFICIAL_REPRODUCTION.md) và [JSON](../../evidence/EXP-04_OFFICIAL_REPRODUCTION.json). Giữ `Done` (`scientific_approval=false`; reviewer giữ `unassigned`).
-  - **Cập nhật Fail-Closed Gate Upstream (`scripts/evaluate-models.py`):** Cấm phát hành `status=PASSED`, `evaluation_scope=OFFICIAL_RESEARCH` và `frozen_extension_rule` khi thiếu một hoặc cả hai báo cáo cross-check `EXP-02`/`EXP-03`; chế độ `--diagnostic-only` trả về `status=DIAGNOSTIC_ONLY`, `evaluation_scope=DIAGNOSTIC_UNVERIFIED`, `frozen_rule_published=false`, `frozen_extension_rule=None` (đã phủ regression bỏ `EXP-02`, bỏ `EXP-03`, bỏ cả hai). Lưu ý: sau khi PR #139 ([EXP-02](./EXP-02.md)) merge vào `main`, cần đồng bộ PR #141 theo `main`, bỏ diff `EXP-02` lặp và chạy lại `EXP-04` đối soát trực tiếp với output `EXP-02` từ PR #139 cùng bản `EXP-03` mới (`451a615`, SHA `9333d8c921c4d964aca4c86619796e29c1da0d811de6516dafd790b2f711f9b1`).
+  - **Phiên Windows trước khi tích hợp EXP-02:** [report lịch sử](https://github.com/HoaiTam/japan-earthquake-etl/blob/c2d00ff9d28f8acc69d551fec5f51ad55e8f9a39/docs/evidence/EXP-04_OFFICIAL_REPRODUCTION.json)
+    giữ số liệu DBCV/Omori/stability và provenance gốc. Report đó ghim hai run
+    upstream khác nên không bàn giao cho EXP-05 sau khi cập nhật #141.
+  - **Cổng phát hành:** Runner chỉ ghi official `PASSED` và `frozen_extension_rule`
+    trên REPRODUCTION khi cả EXP-02 và EXP-03 đối soát đạt, kể cả bytes từng shard
+    và primary membership/summary. Thiếu một hoặc cả hai bị từ chối, trừ chạy
+    `--diagnostic-only` (không phát hành rule, mặc định ghi riêng trong staging).
+  - **18/11/2026 — Nghiệm thu REPRODUCTION sau khi #139 merge:** 194 cửa sổ,
+    156.710 feature rows / 2 shards trên commit sạch `c746dc6`. Kiểm bytes
+    và primary membership/summary cả bốn thuật toán, khớp với
+    [EXP-02 replay](../../evidence/EXP-02_REPRODUCTION_REPLAY_FOR_EXP04.json)
+    và [EXP-03 official](../../evidence/EXP-03_OFFICIAL_REPRODUCTION.json).
+    [Report mới](../../evidence/EXP-04_OFFICIAL_REPRODUCTION.md) / [JSON](../../evidence/EXP-04_OFFICIAL_REPRODUCTION.json)
+    phát hành `exp04-frozen-reproduction-rule-v2`, `scientific_approval=false`.
+    [EXP-05](./EXP-05.md) phải ghim SHA của báo cáo mới; không dùng report lịch sử.
 - **Kỹ năng phù hợp:** Clustering evaluation, seismology statistics, experiment design
 
 ## Checklist bàn giao
