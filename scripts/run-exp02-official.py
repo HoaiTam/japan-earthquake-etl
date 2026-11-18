@@ -37,6 +37,15 @@ BASELINE_CONFIG_PATHS = {
     "DBSCAN": "config/ml/models/dbscan_global_dev_v1.json",
     "HDBSCAN_GLOBAL": "config/ml/models/hdbscan_global_dev_v1.json",
 }
+CRITICAL_PROVENANCE_FILES = [
+    "notebooks/experiment_harness.py",
+    "notebooks/research_collection.py",
+    "notebooks/baseline_models.py",
+    "scripts/run-exp02-official.py",
+    "config/ml/models/window_baseline_v1.json",
+    "config/ml/models/dbscan_global_dev_v1.json",
+    "config/ml/models/hdbscan_global_dev_v1.json",
+]
 
 
 def resolve_git_commit(root: Path) -> str:
@@ -55,6 +64,107 @@ def resolve_git_commit(root: Path) -> str:
     except Exception:
         pass
     return "dev-local"
+
+
+def get_code_provenance(root: Path) -> Dict[str, Any]:
+    """Capture strict git commit, blob hashes, LF-normalized hashes, and clean status for critical EXP-02 files."""
+    commit = resolve_git_commit(root)
+    working_hashes: Dict[str, Optional[str]] = {}
+    normalized_lf_hashes: Dict[str, Optional[str]] = {}
+    git_blob_hashes: Dict[str, Optional[str]] = {}
+    head_blob_hashes: Dict[str, Optional[str]] = {}
+    line_endings: Dict[str, str] = {}
+    missing_files: List[str] = []
+    blob_mismatches: List[str] = []
+
+    for rel in CRITICAL_PROVENANCE_FILES:
+        fpath = root / rel
+        if not fpath.is_file():
+            missing_files.append(rel)
+            working_hashes[rel] = None
+            normalized_lf_hashes[rel] = None
+            git_blob_hashes[rel] = None
+            head_blob_hashes[rel] = None
+            line_endings[rel] = "missing"
+            continue
+
+        raw = fpath.read_bytes()
+        working_hashes[rel] = hashlib.sha256(raw).hexdigest()
+        has_crlf = b"\r\n" in raw
+        has_lf = b"\n" in raw.replace(b"\r\n", b"")
+        line_endings[rel] = "mixed" if (has_crlf and has_lf) else ("crlf" if has_crlf else ("lf" if has_lf else "none"))
+        normalized_lf_hashes[rel] = hashlib.sha256(raw.replace(b"\r\n", b"\n")).hexdigest()
+
+        work_blob: Optional[str] = None
+        try:
+            b_res = subprocess.run(
+                ["git", "-C", str(root), "hash-object", rel],
+                capture_output=True,
+                text=True,
+                check=True,
+                timeout=10,
+            )
+            work_blob = b_res.stdout.strip()
+        except Exception:
+            work_blob = None
+        git_blob_hashes[rel] = work_blob
+
+        head_blob: Optional[str] = None
+        if commit != "dev-local":
+            try:
+                h_res = subprocess.run(
+                    ["git", "-C", str(root), "rev-parse", f"HEAD:{rel}"],
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                    timeout=10,
+                )
+                head_blob = h_res.stdout.strip()
+            except Exception:
+                head_blob = None
+        head_blob_hashes[rel] = head_blob
+        if work_blob is None or head_blob is None or work_blob != head_blob:
+            blob_mismatches.append(rel)
+
+    dirty_files: List[str] = []
+    git_clean = False
+    if commit != "dev-local":
+        try:
+            st = subprocess.run(
+                ["git", "-C", str(root), "status", "--porcelain", "-uall", "--", *CRITICAL_PROVENANCE_FILES],
+                capture_output=True,
+                text=True,
+                check=True,
+                timeout=15,
+            )
+            dirty_files = [line.strip() for line in st.stdout.splitlines() if line.strip()]
+            git_clean = len(dirty_files) == 0
+        except Exception:
+            git_clean = False
+
+    is_clean = bool(
+        commit != "dev-local"
+        and git_clean
+        and not missing_files
+        and not blob_mismatches
+    )
+    return {
+        "git_commit": commit,
+        "is_clean_code": is_clean,
+        "clean_verification_status": "CLEAN_VERIFIED" if is_clean else "DIRTY_OR_UNVERIFIED",
+        "dirty_files": dirty_files,
+        "missing_files": missing_files,
+        "blob_mismatches": blob_mismatches,
+        "working_tree_code_hashes": working_hashes,
+        "normalized_lf_code_hashes": normalized_lf_hashes,
+        "git_blob_hashes": git_blob_hashes,
+        "head_blob_hashes": head_blob_hashes,
+        "detected_line_endings": line_endings,
+        "cross_platform_verification_note": (
+            "Verify reproducible code identity via git_blob_hashes (`git hash-object <file>`) "
+            "or normalized_lf_code_hashes (`sha256sum` after LF normalization)."
+        ),
+    }
 
 
 def load_baseline_configs(root: Path) -> tuple[Dict[str, Dict[str, Any]], Dict[str, Dict[str, Any]]]:
@@ -80,13 +190,14 @@ def load_baseline_configs(root: Path) -> tuple[Dict[str, Dict[str, Any]], Dict[s
 def render_official_markdown(report: Dict[str, Any]) -> str:
     """Render reproducible Markdown evidence report for EXP-02 official REPRODUCTION run."""
     ds = report["dataset"]
+    prov = report.get("code_provenance") or {}
     lines: List[str] = [
         "# EXP-02 — Kết quả Official Baselines trên REPRODUCTION Collection",
         "",
         "- **Task:** [EXP-02](../task/tasks/EXP-02.md) (Khối H - Experiment, P0 Core)",
-        f"- **Trạng thái:** `{report['status']}` (`{report['evaluation_scope']}`)",
+        f"- **Report Version / Trạng thái:** `{report.get('report_version')}` / `{report['status']}` (`{report['evaluation_scope']}`)",
         f"- **Thời điểm tạo (UTC):** `{report['created_at_utc']}`",
-        f"- **Git Commit Pin:** `{report['code_version']}`",
+        f"- **Git Commit Pin / Code Status:** `{report['code_version']}` (`{prov.get('clean_verification_status', 'UNSPECIFIED')}`)",
         f"- **Python / HDBSCAN Runtime:** Python `{report['python_version']}`, `scikit-learn=={report['package_versions'].get('scikit-learn')}`, `hdbscan=={report['package_versions'].get('hdbscan')}`, `pyarrow=={report['package_versions'].get('pyarrow')}`",
         f"- **Random Seed:** `{report['random_seed']}`",
         f"- **Scientific Approval:** `{str(report['scientific_approval']).lower()}`",
@@ -107,11 +218,16 @@ def render_official_markdown(report: Dict[str, Any]) -> str:
     if ds.get("handoff_sha256"):
         lines.append(f"- **Team Handoff SHA-256:** `{ds['handoff_sha256']}`")
 
-    lines.extend(["", "## 2. Cấu hình Thuật toán đã Khóa (Config Pins)", ""])
+    lines.extend(["", "## 2. Cấu hình Thuật toán & Code Provenance đã Khóa", ""])
     for algo, pin in report.get("model_config_pins", {}).items():
         lines.append(
-            f"- **{algo}:** `{pin['config_path']}` (`{pin['model_config_version']}`, File SHA: `{pin['file_bytes_sha256'][:16]}...`)"
+            f"- **{algo}:** `{pin['config_path']}` (`{pin['model_config_version']}`, File SHA: `{pin['file_bytes_sha256']}`)"
         )
+    if prov:
+        lines.append(f"- **Clean Verification:** `is_clean_code={prov.get('is_clean_code')}` (`git_commit={prov.get('git_commit')}`)")
+        for rel, bsha in (prov.get("git_blob_hashes") or {}).items():
+            lf_sha = (prov.get("normalized_lf_code_hashes") or {}).get(rel)
+            lines.append(f"  - `{rel}`: git_blob=`{bsha}`, lf_sha256=`{lf_sha}`")
 
     lines.extend([
         "",
@@ -132,15 +248,17 @@ def render_official_markdown(report: Dict[str, Any]) -> str:
 
     lines.extend([
         "",
-        "## 4. Per-Shard Official Bundles (`WHOLE_WINDOW_SHARD` — Hợp đồng MLI-01/MLI-03)",
+        "## 4. Per-Shard Official Bundles (`WHOLE_WINDOW_SHARD` — Sibling Layout Hợp đồng MLI-01/MLI-03)",
         "",
-        "| Thuật toán | Shard | Run ID | Rows | Mainshocks | `_SUCCESS.json` SHA-256 (prefix) |",
-        "|---|---|---|---:|---:|---|",
+        "- Cả full-split bundle (`<algo>/`) và từng shard bundle (`<algo>_shards/<shard_id>/`) đều tách thành sibling directories không lồng nhau, tương thích trực tiếp `MlResultBundleReader` (`MLI-03`).",
+        "",
+        "| Thuật toán | Shard | Relative Dir | Run ID | Rows | Mainshocks | `_SUCCESS.json` SHA-256 (prefix) |",
+        "|---|---|---|---|---:|---:|---|",
     ])
     for algo in ["WINDOW", "DBSCAN", "HDBSCAN_GLOBAL"]:
         for shard_id, s_info in sorted(report.get("shard_verifications", {}).get(algo, {}).items()):
             lines.append(
-                f"| `{algo}` | `{shard_id}` | `{s_info['experiment_run_id']}` | {s_info['membership_row_count']} | {s_info['summary_row_count']} | `{s_info['success_marker_sha256'][:16]}...` |"
+                f"| `{algo}` | `{shard_id}` | `{s_info['relative_dir']}` | `{s_info['experiment_run_id']}` | {s_info['membership_row_count']} | {s_info['summary_row_count']} | `{s_info['success_marker_sha256'][:16]}...` |"
             )
 
     lines.extend([
@@ -184,19 +302,22 @@ def execute_official_baselines(
             f"EXP02_REQUIRES_REPRODUCTION_SPLIT: got {bundle.get('dataset_split')}")
 
     configs, config_pins = load_baseline_configs(root)
-    code_ver = resolve_git_commit(root)
+    code_prov = get_code_provenance(root)
+    code_ver = code_prov["git_commit"]
     output_dir.mkdir(parents=True, exist_ok=True)
 
     results: Dict[str, Dict[str, Any]] = {}
     for algo in ["WINDOW", "DBSCAN", "HDBSCAN_GLOBAL"]:
         cfg = configs[algo]
         algo_out = output_dir / algo.lower()
+        shard_out = output_dir / f"{algo.lower()}_shards"
         results[algo] = run_baseline_experiment(
             bundle=bundle,
             algorithm_name=algo,
             config=cfg,
             model_config_version=cfg["model_config_version"],
             output_dir=algo_out,
+            shard_output_dir=shard_out,
             mode=MODE_OFFICIAL,
             code_version=code_ver,
             random_seed=seed,
@@ -207,8 +328,16 @@ def execute_official_baselines(
 
     actual_handoff_sha: Optional[str] = None
     resolved_handoff = handoff_path or (bundle_dir.resolve().parent.parent / "handoff.json")
-    if resolved_handoff.is_file():
-        actual_handoff_sha = sha256_bytes(resolved_handoff.read_bytes())
+    if (
+        expected_handoff_sha256
+        and isinstance(expected_handoff_sha256, str)
+        and re.fullmatch(r"[a-f0-9]{64}", expected_handoff_sha256.strip())
+        and resolved_handoff.is_file()
+        and not resolved_handoff.is_symlink()
+    ):
+        cand_sha = sha256_bytes(resolved_handoff.read_bytes())
+        if cand_sha == expected_handoff_sha256.strip():
+            actual_handoff_sha = cand_sha
 
     report = generate_official_baseline_report(
         bundle=bundle,
@@ -216,7 +345,9 @@ def execute_official_baselines(
         output_path=output_json,
         code_version=code_ver,
         random_seed=seed,
+        model_configs=configs,
         model_config_pins=config_pins,
+        code_provenance=code_prov,
         handoff_sha256=actual_handoff_sha,
     )
     validate_safe_metadata(report)
@@ -236,14 +367,14 @@ def main() -> int:
     parser.add_argument(
         "--expected-handoff-sha256",
         default=DEFAULT_HANDOFF_SHA256,
-        help="Expected SHA-256 of handoff.json (pass empty string to skip when testing synthetic fixtures)",
+        help="Trusted SHA-256 of handoff.json (required when resolving pins from handoff.json)",
     )
     parser.add_argument("--manifest-sha256", default=None, help="Optional explicit dataset_manifest.json SHA-256")
     parser.add_argument("--checksums-sha256", default=None, help="Optional explicit checksums.sha256 SHA-256")
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=PROJECT_ROOT / "staging/ml-experiments/exp02-official-reproduction",
+        default=PROJECT_ROOT / "staging/ml-experiments/exp02-official-reproduction-v2",
         help="Destination directory for official result bundles",
     )
     parser.add_argument(

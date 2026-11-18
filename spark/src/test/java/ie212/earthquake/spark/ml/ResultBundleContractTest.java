@@ -354,4 +354,181 @@ class ResultBundleContractTest {
         assertTrue(procConflict.waitFor(30, java.util.concurrent.TimeUnit.SECONDS));
         assertNotEquals(0, procConflict.exitValue());
     }
+
+    @Test void siblingFullAndShardLayoutPassesReaderWhileNestedShardsRejected() throws Exception {
+        Path root = Files.createTempDirectory("mli03-sibling-layout-");
+        Path fullDir = root.resolve("window");
+        Path shard0Dir = root.resolve("window_shards").resolve("shard_00000");
+        Path shard1Dir = root.resolve("window_shards").resolve("shard_00001");
+        Files.createDirectories(fullDir);
+        Files.createDirectories(shard0Dir);
+        Files.createDirectories(shard1Dir);
+
+        String dsId = "ds_fixture";
+        String collectionId = "col_" + "a".repeat(64);
+        var fullCandidates = List.of(
+            new ResultBundleValidator.Candidate("main-0", "main-0", "MAINSHOCK"),
+            new ResultBundleValidator.Candidate("main-0", "post-0", "POST"),
+            new ResultBundleValidator.Candidate("main-1", "main-1", "MAINSHOCK"),
+            new ResultBundleValidator.Candidate("main-1", "post-1", "POST")
+        );
+
+        java.util.function.BiConsumer<Path, List<String>> writeCleanBundle = (dir, midsAndScope) -> {
+            try {
+                boolean isShard = midsAndScope.size() == 2 && midsAndScope.get(1).startsWith("shard_");
+                List<String> mids = isShard ? List.of(midsAndScope.get(0)) : midsAndScope;
+                String shardId = isShard ? midsAndScope.get(1) : null;
+                String runId = isShard ? "exp_fixture_" + shardId : "exp_fixture_full";
+
+                List<JsonNode> members = new ArrayList<>();
+                List<JsonNode> summaries = new ArrayList<>();
+                for (String mid : mids) {
+                    String pid = mid.equals("main-0") ? "post-0" : "post-1";
+                    ObjectNode m = base("memberships.parquet");
+                    m.put("dataset_id", dsId).put("experiment_run_id", runId).put("mainshock_event_id", mid)
+                        .put("candidate_event_id", mid).put("event_role_candidate", "MAINSHOCK")
+                        .put("is_sequence_member", true).put("multi_sequence_status", "UNIQUE").put("resolution_rank", 1);
+                    ObjectNode p = m.deepCopy();
+                    p.put("candidate_event_id", pid).put("event_role_candidate", "POST");
+                    members.add(m);
+                    members.add(p);
+
+                    ObjectNode s = base("sequence_summary.parquet");
+                    s.put("dataset_id", dsId).put("experiment_run_id", runId).put("mainshock_event_id", mid)
+                        .put("window_result_status", "SUCCESS").put("productive_sequence_detected", true)
+                        .put("candidate_count", 2L).put("sequence_member_count", 2L)
+                        .put("aftershock_count", 1L).put("foreshock_candidate_count", 0L);
+                    s.putArray("metric_reason_codes").add("METRIC_NOT_APPLICABLE");
+                    summaries.add(s);
+                }
+
+                writeParquet(dir.resolve("memberships.parquet"), "memberships.parquet", members);
+                writeParquet(dir.resolve("sequence_summary.parquet"), "sequence_summary.parquet", summaries);
+                ObjectNode cfg = JSON.createObjectNode().put("dataset_id", dsId).put("experiment_run_id", runId)
+                    .put("algorithm_name", "WINDOW").put("model_config_version", "1")
+                    .put("algorithm_version", "1.0.0").put("package_version", "1.0.0").put("code_version", "v1");
+                if (isShard) {
+                    cfg.set("collection_scope", new ResultBundleValidator.CollectionScope(
+                        ResearchCollectionExportBundle.VERSION, collectionId, shardId).toJson());
+                }
+                Files.writeString(dir.resolve("experiment_config.json"), fixtureJson(cfg));
+                Files.writeString(dir.resolve("experiment_metrics.json"), fixtureJson(
+                    JSON.createObjectNode().put("dataset_id", dsId).put("experiment_run_id", runId)
+                        .put("algorithm_name", "WINDOW").put("model_config_version", "1")
+                        .put("membership_row_count", (long) members.size()).put("summary_row_count", (long) summaries.size())));
+                Files.writeString(dir.resolve("requirements-lock.txt"), "# verified sibling bundle\n");
+                ObjectNode succ = JSON.createObjectNode().put("schema_version", "1.0")
+                    .put("dataset_id", dsId).put("experiment_run_id", runId)
+                    .put("algorithm_name", "WINDOW").put("model_config_version", "1")
+                    .put("algorithm_version", "1.0.0").put("package_version", "1.0.0").put("code_version", "v1")
+                    .put("membership_row_count", (long) members.size()).put("summary_row_count", (long) summaries.size())
+                    .put("status", "COMPLETED").put("completed_at_utc", "2024-01-01T00:00:00Z")
+                    .put("artifact_uri", "s3://fixture/results/" + runId + "/");
+                ObjectNode chks = succ.putObject("checksums");
+                for (JsonNode file : ResultBundleContract.contract().get("required_artifacts")) {
+                    chks.put(file.asText(), ResultBundleContract.sha256(Files.readAllBytes(dir.resolve(file.asText()))));
+                }
+                Files.writeString(dir.resolve("_SUCCESS.json"), fixtureJson(succ));
+            } catch (Exception ex) {
+                throw new RuntimeException(ex);
+            }
+        };
+
+        writeCleanBundle.accept(fullDir, List.of("main-0", "main-1"));
+        writeCleanBundle.accept(shard0Dir, List.of("main-0", "shard_00000"));
+        writeCleanBundle.accept(shard1Dir, List.of("main-1", "shard_00001"));
+
+        var fullDecoded = MlResultBundleReader.read(fullDir);
+        assertEquals("RESULT_READY", VALIDATOR.validate(fullDecoded, new ResultBundleValidator.Context(
+            dsId, "EXPORTED", "exp_fixture_full", "WINDOW", "1", fullCandidates, null)).nextStatus());
+
+        var s0Decoded = MlResultBundleReader.read(shard0Dir);
+        assertEquals("RESULT_READY", VALIDATOR.validate(s0Decoded, new ResultBundleValidator.Context(
+            dsId, "EXPORTED", "exp_fixture_shard_00000", "WINDOW", "1",
+            fullCandidates.subList(0, 2), null, null, null,
+            new ResultBundleValidator.CollectionScope(ResearchCollectionExportBundle.VERSION, collectionId, "shard_00000"))).nextStatus());
+
+        var s1Decoded = MlResultBundleReader.read(shard1Dir);
+        assertEquals("RESULT_READY", VALIDATOR.validate(s1Decoded, new ResultBundleValidator.Context(
+            dsId, "EXPORTED", "exp_fixture_shard_00001", "WINDOW", "1",
+            fullCandidates.subList(2, 4), null, null, null,
+            new ResultBundleValidator.CollectionScope(ResearchCollectionExportBundle.VERSION, collectionId, "shard_00001"))).nextStatus());
+
+        // Legacy nested full/shards/ layout must be rejected by MlResultBundleReader
+        Files.createDirectories(fullDir.resolve("shards/shard_00000"));
+        Files.writeString(fullDir.resolve("shards/shard_00000/_SUCCESS.json"), "{}\n");
+        assertEquals("IMP_UNSAFE_ARTIFACT_METADATA",
+            assertThrows(IllegalArgumentException.class, () -> MlResultBundleReader.read(fullDir)).getMessage());
+    }
+
+    @Test void officialMultishardPythonBaselineFullAndShardBundlesPassMlResultBundleReader() throws Exception {
+        Path root = Files.exists(Path.of("notebooks")) ? Path.of(".") : Path.of("..");
+        Assumptions.assumeTrue(Files.exists(root.resolve("notebooks/baseline_models.py")), "baseline_models.py must exist");
+
+        String pythonExe = null;
+        for (String cmd : List.of("python", "python3", "py")) {
+            try {
+                var p = new ProcessBuilder(cmd, "-c", "import pyarrow, sklearn, notebooks.baseline_models, tests.test_research_collection_loader")
+                    .directory(root.toFile()).start();
+                if (p.waitFor() == 0) {
+                    pythonExe = cmd;
+                    break;
+                }
+            } catch (Exception ignored) {}
+        }
+        Assumptions.assumeTrue(pythonExe != null, "Python with pyarrow, sklearn, and baseline_models required");
+
+        Path workDir = Files.createTempDirectory("mli03-exp02-multishard-");
+        String pyCode = "import importlib.util, json, sys\n"
+            + "from pathlib import Path\n"
+            + "work = Path(sys.argv[1])\n"
+            + "spec_c = importlib.util.spec_from_file_location('col_fx', 'tests/test_research_collection_loader.py')\n"
+            + "col_mod = importlib.util.module_from_spec(spec_c); spec_c.loader.exec_module(col_mod)\n"
+            + "spec_r = importlib.util.spec_from_file_location('exp02_r', 'scripts/run-exp02-official.py')\n"
+            + "runner = importlib.util.module_from_spec(spec_r); spec_r.loader.exec_module(runner)\n"
+            + "repro = work / 'repro'; pilot = work / 'pilot'; out = work / 'out'\n"
+            + "repro.mkdir(); pilot.mkdir()\n"
+            + "pins = col_mod.fixture(repro, pilot)\n"
+            + "rep = runner.execute_official_baselines(bundle_dir=repro, output_dir=out, output_json=work / 'rep.json', manifest_sha256=pins['manifest_sha256'], checksums_sha256=pins['checksums_sha256'], expected_handoff_sha256=None)\n"
+            + "print(json.dumps({'dataset_id': rep['dataset']['dataset_id'], 'collection_id': rep['dataset']['collection_id'], 'window_run': rep['artifacts_verified']['WINDOW']['run_id'], 's0_run': rep['shard_verifications']['WINDOW']['shard_00000']['experiment_run_id'], 's1_run': rep['shard_verifications']['WINDOW']['shard_00001']['experiment_run_id'], 'win_ver': rep['model_config_pins']['WINDOW']['model_config_version']}))\n";
+
+        var proc = new ProcessBuilder(pythonExe, "-c", pyCode, workDir.toAbsolutePath().toString())
+            .directory(root.toFile()).start();
+        String stdout = new String(proc.getInputStream().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8).trim();
+        assertTrue(proc.waitFor(60, java.util.concurrent.TimeUnit.SECONDS));
+        assertEquals(0, proc.exitValue());
+        JsonNode meta = JSON.readTree(stdout);
+        String dsId = meta.path("dataset_id").asText();
+        String colId = meta.path("collection_id").asText();
+        String modelVer = meta.path("win_ver").asText();
+
+        Path outRoot = workDir.resolve("out");
+        var fullDecoded = MlResultBundleReader.read(outRoot.resolve("window"));
+        assertEquals(4, fullDecoded.memberships().size());
+        assertEquals(2, fullDecoded.summaries().size());
+        List<ResultBundleValidator.Candidate> fullCands = new ArrayList<>();
+        for (JsonNode r : fullDecoded.memberships()) {
+            fullCands.add(new ResultBundleValidator.Candidate(
+                r.path("mainshock_event_id").asText(),
+                r.path("candidate_event_id").asText(),
+                r.path("event_role_candidate").asText()));
+        }
+        assertEquals("RESULT_READY", VALIDATOR.validate(fullDecoded, new ResultBundleValidator.Context(
+            dsId, "EXPORTED", meta.path("window_run").asText(), "WINDOW", modelVer, fullCands, null)).nextStatus());
+
+        for (String sid : List.of("shard_00000", "shard_00001")) {
+            var sd = MlResultBundleReader.read(outRoot.resolve("window_shards").resolve(sid));
+            List<ResultBundleValidator.Candidate> sc = new ArrayList<>();
+            for (JsonNode r : sd.memberships()) {
+                sc.add(new ResultBundleValidator.Candidate(
+                    r.path("mainshock_event_id").asText(),
+                    r.path("candidate_event_id").asText(),
+                    r.path("event_role_candidate").asText()));
+            }
+            String sRun = meta.path(sid.equals("shard_00000") ? "s0_run" : "s1_run").asText();
+            assertEquals("RESULT_READY", VALIDATOR.validate(sd, new ResultBundleValidator.Context(
+                dsId, "EXPORTED", sRun, "WINDOW", modelVer, sc, null, null, null,
+                new ResultBundleValidator.CollectionScope(ResearchCollectionExportBundle.VERSION, colId, sid))).nextStatus());
+        }
+    }
 }

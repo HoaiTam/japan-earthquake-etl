@@ -224,11 +224,13 @@ def _resolve_collection_pins(
     handoff_path: Optional[Union[str, Path]] = None,
     expected_handoff_sha256: Optional[str] = None,
 ) -> Tuple[str, str]:
-    """Resolve external SHA-256 pins for a DAT-03 collection from args, env, or verified handoff.json."""
+    """Resolve external SHA-256 pins for a DAT-03 collection from args/env or a SHA-verified handoff.json."""
     m_sha = manifest_sha256 or os.environ.get("MLD05_MANIFEST_SHA256", "").strip() or None
     c_sha = checksums_sha256 or os.environ.get("MLD05_CHECKSUMS_SHA256", "").strip() or None
     if m_sha and c_sha:
-        return m_sha, c_sha
+        require(re.fullmatch(r"[a-f0-9]{64}", str(m_sha)) is not None, "COLLECTION_INVALID_MANIFEST_SHA256")
+        require(re.fullmatch(r"[a-f0-9]{64}", str(c_sha)) is not None, "COLLECTION_INVALID_CHECKSUMS_SHA256")
+        return str(m_sha), str(c_sha)
 
     candidate_handoff: Optional[Path] = None
     if handoff_path is not None:
@@ -241,9 +243,17 @@ def _resolve_collection_pins(
 
     if candidate_handoff is not None:
         handoff_bytes = candidate_handoff.read_bytes()
-        exp_h_sha = expected_handoff_sha256 or os.environ.get("DAT03_HANDOFF_SHA256", "").strip() or None
-        if exp_h_sha is not None:
-            require(sha256_bytes(handoff_bytes) == exp_h_sha, "COLLECTION_HANDOFF_SHA_MISMATCH")
+        exp_h_sha = (
+            expected_handoff_sha256.strip()
+            if isinstance(expected_handoff_sha256, str) and expected_handoff_sha256.strip()
+            else os.environ.get("DAT03_HANDOFF_SHA256", "").strip() or None
+        )
+        # Fail closed: never extract collection pins from an unverified handoff file next to the bundle.
+        require(
+            exp_h_sha is not None and re.fullmatch(r"[a-f0-9]{64}", exp_h_sha) is not None,
+            "COLLECTION_HANDOFF_TRUSTED_SHA_REQUIRED",
+        )
+        require(sha256_bytes(handoff_bytes) == exp_h_sha, "COLLECTION_HANDOFF_SHA_MISMATCH")
         handoff = read_json_safe(handoff_bytes)
         split = root.name
         col_entry = handoff.get("collections", {}).get(split, {})
