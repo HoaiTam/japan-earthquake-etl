@@ -11,9 +11,11 @@ Covers:
 from datetime import datetime, timedelta, timezone
 import importlib.util
 import json
+import os
 from pathlib import Path
 import tempfile
 import unittest
+from unittest import mock
 
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -1669,6 +1671,78 @@ class ExperimentHarnessTest(unittest.TestCase):
         self.assertEqual(loaded["mainshocks_table"].num_rows, 2)
         self.assertEqual(sorted(loaded["shards"].keys()), ["shard_00000", "shard_00001"])
         self.assertEqual(loaded["shards"]["shard_00000"]["collection_scope"]["scope"], "WHOLE_WINDOW_SHARD")
+
+    def test_official_collection_loader_requires_trusted_handoff_sha(self):
+        spec_col = importlib.util.spec_from_file_location("col_loader_pin_test", ROOT / "tests/test_research_collection_loader.py")
+        col_mod = importlib.util.module_from_spec(spec_col)
+        spec_col.loader.exec_module(col_mod)
+
+        kit_dir = self.out_dir / "untrusted_handoff_kit"
+        repro_dir = kit_dir / "bundles" / "REPRODUCTION"
+        pilot_tmp = self.out_dir / "pilot_tmp_pin"
+        repro_dir.mkdir(parents=True)
+        pilot_tmp.mkdir()
+        pins = col_mod.fixture(repro_dir, pilot_tmp)
+
+        handoff_payload = {
+            "collections": {"REPRODUCTION": pins},
+            "files": {
+                "bundles/REPRODUCTION/dataset_manifest.json": {"sha256": pins["manifest_sha256"]},
+                "bundles/REPRODUCTION/checksums.sha256": {"sha256": pins["checksums_sha256"]},
+            },
+        }
+        handoff_file = kit_dir / "handoff.json"
+        handoff_file.write_text(harness.canonical(handoff_payload) + "\n", encoding="utf-8")
+        trusted_handoff_sha = harness.sha256_bytes(handoff_file.read_bytes())
+
+        # 1. Default handoff.json present next to bundles/ without expected_handoff_sha256 must fail closed
+        with mock.patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("DAT03_HANDOFF_SHA256", None)
+            os.environ.pop("MLD05_MANIFEST_SHA256", None)
+            os.environ.pop("MLD05_CHECKSUMS_SHA256", None)
+            with self.assertRaisesRegex(ValueError, "COLLECTION_HANDOFF_TRUSTED_SHA_REQUIRED"):
+                harness.load_feature_bundle(repro_dir, mode=harness.MODE_OFFICIAL)
+            with self.assertRaisesRegex(ValueError, "COLLECTION_HANDOFF_TRUSTED_SHA_REQUIRED"):
+                harness.load_feature_bundle(repro_dir, mode=harness.MODE_OFFICIAL, handoff_path=handoff_file, expected_handoff_sha256="")
+
+        # 2. Wrong expected SHA or tampered handoff must be rejected
+        with self.assertRaisesRegex(ValueError, "COLLECTION_HANDOFF_SHA_MISMATCH"):
+            harness.load_feature_bundle(
+                repro_dir,
+                mode=harness.MODE_OFFICIAL,
+                handoff_path=handoff_file,
+                expected_handoff_sha256="f" * 64,
+            )
+
+        tampered = json.loads(handoff_file.read_text(encoding="utf-8"))
+        tampered["tampered"] = True
+        handoff_file.write_text(harness.canonical(tampered) + "\n", encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "COLLECTION_HANDOFF_SHA_MISMATCH"):
+            harness.load_feature_bundle(
+                repro_dir,
+                mode=harness.MODE_OFFICIAL,
+                expected_handoff_sha256=trusted_handoff_sha,
+            )
+
+        # 3. Independent explicit (manifest_sha256, checksums_sha256) succeeds without relying on handoff.json
+        loaded_direct = harness.load_feature_bundle(
+            repro_dir,
+            mode=harness.MODE_OFFICIAL,
+            manifest_sha256=pins["manifest_sha256"],
+            checksums_sha256=pins["checksums_sha256"],
+        )
+        self.assertTrue(loaded_direct["is_official"])
+        self.assertEqual(loaded_direct["features_table"].num_rows, 4)
+
+        # 4. Verified handoff.json with matching trusted SHA succeeds
+        handoff_file.write_text(harness.canonical(handoff_payload) + "\n", encoding="utf-8")
+        loaded_verified = harness.load_feature_bundle(
+            repro_dir,
+            mode=harness.MODE_OFFICIAL,
+            expected_handoff_sha256=trusted_handoff_sha,
+        )
+        self.assertTrue(loaded_verified["is_official"])
+        self.assertEqual(loaded_verified["manifest_sha256"], pins["manifest_sha256"])
 
 
 if __name__ == "__main__":

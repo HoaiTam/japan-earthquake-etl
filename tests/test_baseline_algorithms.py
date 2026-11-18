@@ -14,6 +14,7 @@ import importlib.util
 import json
 from pathlib import Path
 import tempfile
+from typing import Any, Dict, Tuple
 import unittest
 
 import pyarrow as pa
@@ -992,24 +993,193 @@ class BaselineModelsTest(unittest.TestCase):
             seed=42,
         )
 
+        self.assertEqual(report["report_version"], "exp-02-official-v2")
         self.assertEqual(report["status"], "PASSED")
         self.assertEqual(report["dataset"]["dataset_split"], "REPRODUCTION")
         self.assertEqual(report["dataset"]["feature_row_count"], 4)
         self.assertEqual(report["dataset"]["mainshock_count"], 2)
         self.assertEqual(report["dataset"]["shard_count"], 2)
+        self.assertIn("code_provenance", report)
+        self.assertIn("git_blob_hashes", report["code_provenance"])
         self.assertTrue(out_md.is_file())
 
+        allowed_official_files = {
+            "_SUCCESS.json",
+            "memberships.parquet",
+            "sequence_summary.parquet",
+            "experiment_metrics.json",
+            "experiment_config.json",
+            "requirements-lock.txt",
+        }
         for algo in ["WINDOW", "DBSCAN", "HDBSCAN_GLOBAL"]:
             algo_dir = out_dir / algo.lower()
             self.assertTrue((algo_dir / "_SUCCESS.json").is_file())
+            self.assertFalse((algo_dir / "shards").exists())
+            self.assertEqual({p.name for p in algo_dir.iterdir()}, allowed_official_files)
             self.assertEqual(pq.read_table(algo_dir / "memberships.parquet").num_rows, 4)
             self.assertEqual(pq.read_table(algo_dir / "sequence_summary.parquet").num_rows, 2)
             for shard_id in ["shard_00000", "shard_00001"]:
-                shard_dir = algo_dir / "shards" / shard_id
+                shard_dir = out_dir / f"{algo.lower()}_shards" / shard_id
                 self.assertTrue((shard_dir / "_SUCCESS.json").is_file())
+                self.assertEqual({p.name for p in shard_dir.iterdir()}, allowed_official_files)
                 cfg = json.loads((shard_dir / "experiment_config.json").read_text(encoding="utf-8"))
                 self.assertEqual(cfg["collection_scope"]["shard_id"], shard_id)
                 self.assertEqual(cfg["collection_scope"]["scope"], "WHOLE_WINDOW_SHARD")
+
+    def test_official_shard_verifier_rejects_corrupt_missing_swapped_partial_and_nested(self):
+        import shutil
+        spec_col = importlib.util.spec_from_file_location("col_loader_neg", ROOT / "tests/test_research_collection_loader.py")
+        col_mod = importlib.util.module_from_spec(spec_col)
+        spec_col.loader.exec_module(col_mod)
+
+        repro_dir = self.out_dir / "neg_repro"
+        pilot_tmp = self.out_dir / "neg_pilot"
+        repro_dir.mkdir()
+        pilot_tmp.mkdir()
+        pins = col_mod.fixture(repro_dir, pilot_tmp)
+        bundle = harness.load_feature_bundle(
+            repro_dir,
+            mode=harness.MODE_OFFICIAL,
+            manifest_sha256=pins["manifest_sha256"],
+            checksums_sha256=pins["checksums_sha256"],
+        )
+
+        spec_runner = importlib.util.spec_from_file_location("run_exp02_neg", ROOT / "scripts/run-exp02-official.py")
+        runner = importlib.util.module_from_spec(spec_runner)
+        spec_runner.loader.exec_module(runner)
+        configs, config_pins = runner.load_baseline_configs(ROOT)
+
+        base_out = self.out_dir / "base_official"
+        base_out.mkdir()
+        for algo in ["WINDOW", "DBSCAN", "HDBSCAN_GLOBAL"]:
+            models.run_baseline_experiment(
+                bundle=bundle,
+                algorithm_name=algo,
+                config=configs[algo],
+                model_config_version=configs[algo]["model_config_version"],
+                output_dir=base_out / algo.lower(),
+                mode=harness.MODE_OFFICIAL,
+                code_version="test-commit",
+                random_seed=42,
+            )
+
+        def _fresh_copy(tag: str) -> Tuple[Path, Dict[str, Any]]:
+            copy_out = self.out_dir / f"case_{tag}"
+            shutil.copytree(base_out, copy_out)
+            loaded_res = {}
+            for algo in ["WINDOW", "DBSCAN", "HDBSCAN_GLOBAL"]:
+                mems_tbl = pq.read_table(copy_out / algo.lower() / "memberships.parquet")
+                sums_tbl = pq.read_table(copy_out / algo.lower() / "sequence_summary.parquet")
+                success_doc = json.loads((copy_out / algo.lower() / "_SUCCESS.json").read_text(encoding="utf-8"))
+                metrics_doc = json.loads((copy_out / algo.lower() / "experiment_metrics.json").read_text(encoding="utf-8"))
+                shard_runs = {}
+                for sid in ["shard_00000", "shard_00001"]:
+                    sdir = copy_out / f"{algo.lower()}_shards" / sid
+                    s_succ = json.loads((sdir / "_SUCCESS.json").read_text(encoding="utf-8")) if (sdir / "_SUCCESS.json").is_file() else {}
+                    s_met = json.loads((sdir / "experiment_metrics.json").read_text(encoding="utf-8")) if (sdir / "experiment_metrics.json").is_file() else {}
+                    s_cfg = json.loads((sdir / "experiment_config.json").read_text(encoding="utf-8")) if (sdir / "experiment_config.json").is_file() else {}
+                    shard_runs[sid] = {
+                        "shard_id": sid,
+                        "relative_dir": f"{algo.lower()}_shards/{sid}",
+                        "run_id": s_succ.get("experiment_run_id"),
+                        "collection_scope": s_cfg.get("collection_scope"),
+                        "membership_row_count": s_succ.get("membership_row_count"),
+                        "summary_row_count": s_succ.get("summary_row_count"),
+                        "checksums": s_succ.get("checksums", {}),
+                        "metrics": s_met.get("metrics", {}),
+                    }
+                loaded_res[algo] = {
+                    "algorithm_name": algo,
+                    "run_id": success_doc["experiment_run_id"],
+                    "metrics": metrics_doc["metrics"],
+                    "write_result": {
+                        "mode": harness.MODE_OFFICIAL,
+                        "run_id": success_doc["experiment_run_id"],
+                        "success_marker_path": copy_out / algo.lower() / "_SUCCESS.json",
+                        "has_success_marker": True,
+                        "checksums": success_doc["checksums"],
+                    },
+                    "summaries": sums_tbl.to_pylist(),
+                    "memberships": mems_tbl.to_pylist(),
+                    "shard_runs": shard_runs,
+                }
+            return copy_out, loaded_res
+
+        def _recompute_success_checksums(bundle_dir: Path) -> None:
+            s_path = bundle_dir / "_SUCCESS.json"
+            s_doc = json.loads(s_path.read_text(encoding="utf-8"))
+            for fname in list(s_doc["checksums"].keys()):
+                s_doc["checksums"][fname] = harness.sha256_bytes((bundle_dir / fname).read_bytes())
+            s_path.write_text(harness.canonical(s_doc) + "\n", encoding="utf-8")
+
+        # 1. Corrupt shard Parquet bytes while keeping _SUCCESS.json untouched -> must fail checksum
+        c1_dir, c1_res = _fresh_copy("corrupt_parquet_stale_marker")
+        (c1_dir / "window_shards/shard_00000/memberships.parquet").write_bytes(b"corrupt-parquet")
+        with self.assertRaisesRegex(ValueError, "CHECKSUM_MISMATCH:WINDOW:shard_00000:memberships.parquet"):
+            models.generate_official_baseline_report(bundle, c1_res, self.out_dir / "r1.json")
+
+        # 2. Corrupt shard Parquet bytes AND update _SUCCESS.json checksum -> must fail Parquet parse
+        c2_dir, c2_res = _fresh_copy("corrupt_parquet_rehashed")
+        (c2_dir / "window_shards/shard_00000/memberships.parquet").write_bytes(b"corrupt-parquet")
+        _recompute_success_checksums(c2_dir / "window_shards/shard_00000")
+        with self.assertRaisesRegex(ValueError, "CORRUPT_PHYSICAL_MEMBERSHIPS_PARQUET:WINDOW:shard_00000"):
+            models.generate_official_baseline_report(bundle, c2_res, self.out_dir / "r2.json")
+
+        # 3. Delete required shard Parquet file
+        c3_dir, c3_res = _fresh_copy("deleted_shard_parquet")
+        (c3_dir / "window_shards/shard_00000/sequence_summary.parquet").unlink()
+        with self.assertRaisesRegex(ValueError, "MISSING_REQUIRED_ARTIFACT:WINDOW:shard_00000:sequence_summary.parquet"):
+            models.generate_official_baseline_report(bundle, c3_res, self.out_dir / "r3.json")
+
+        # 4. Unknown candidate in shard memberships even with valid checksum & row count
+        c4_dir, c4_res = _fresh_copy("unknown_candidate")
+        s_mems_p = c4_dir / "window_shards/shard_00000/memberships.parquet"
+        tbl4 = pq.read_table(s_mems_p)
+        rows4 = tbl4.to_pylist()
+        rows4[1]["candidate_event_id"] = "evt_unknown_forged"
+        pq.write_table(pa.Table.from_pylist(rows4, schema=harness.MEMBERSHIP_SCHEMA), s_mems_p)
+        _recompute_success_checksums(c4_dir / "window_shards/shard_00000")
+        with self.assertRaisesRegex(ValueError, "MEMBERSHIP_GRAIN_MISMATCH:WINDOW"):
+            models.generate_official_baseline_report(bundle, c4_res, self.out_dir / "r4.json")
+
+        # 5. Swapped shards (shard_00000 <-> shard_00001 directories)
+        c5_dir, c5_res = _fresh_copy("swapped_shards")
+        s0 = c5_dir / "window_shards/shard_00000"
+        s1 = c5_dir / "window_shards/shard_00001"
+        s_tmp = c5_dir / "window_shards/tmp_swap"
+        s0.rename(s_tmp)
+        s1.rename(s0)
+        s_tmp.rename(s1)
+        with self.assertRaisesRegex(ValueError, "(MANIFEST_RUN_ID_MISMATCH|SHARD_COLLECTION_SCOPE_MISMATCH)"):
+            models.generate_official_baseline_report(bundle, c5_res, self.out_dir / "r5.json")
+
+        # 6. Partial-shard output (missing shard_00001) & extra unverified shard directory
+        c6_dir, c6_res = _fresh_copy("partial_shard")
+        del c6_res["WINDOW"]["shard_runs"]["shard_00001"]
+        with self.assertRaisesRegex(ValueError, "MISSING_SHARD_RUNS:WINDOW"):
+            models.generate_official_baseline_report(bundle, c6_res, self.out_dir / "r6.json")
+
+        c6b_dir, c6b_res = _fresh_copy("extra_shard_dir")
+        (c6b_dir / "window_shards/shard_00002").mkdir()
+        with self.assertRaisesRegex(ValueError, "UNEXPECTED_SHARD_DIRECTORIES:WINDOW"):
+            models.generate_official_baseline_report(bundle, c6b_res, self.out_dir / "r6b.json")
+
+        # 7. Nested shards/ inside full-split dir violates MlResultBundleReader layout
+        c7_dir, c7_res = _fresh_copy("nested_shards")
+        (c7_dir / "window/shards/shard_00000").mkdir(parents=True)
+        (c7_dir / "window/shards/shard_00000/_SUCCESS.json").write_text("{}", encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "ILLEGAL_DIRECTORY_IN_OFFICIAL_BUNDLE:WINDOW"):
+            models.generate_official_baseline_report(bundle, c7_res, self.out_dir / "r7.json")
+
+        # 8. Same total counts but mutated clustering outcome inside shard vs full-split
+        c8_dir, c8_res = _fresh_copy("union_vs_full_mismatch")
+        m8_p = c8_dir / "window_shards/shard_00000/memberships.parquet"
+        rows8 = pq.read_table(m8_p).to_pylist()
+        rows8[1]["normalized_distance"] = 9.999
+        pq.write_table(pa.Table.from_pylist(rows8, schema=harness.MEMBERSHIP_SCHEMA), m8_p)
+        _recompute_success_checksums(c8_dir / "window_shards/shard_00000")
+        with self.assertRaisesRegex(ValueError, "SHARD_FULL_MEMBERSHIP_PARITY_MISMATCH:WINDOW"):
+            models.generate_official_baseline_report(bundle, c8_res, self.out_dir / "r8.json")
 
 
 if __name__ == "__main__":
