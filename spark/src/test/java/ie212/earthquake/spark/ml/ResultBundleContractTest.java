@@ -16,6 +16,7 @@ import org.apache.parquet.hadoop.example.ExampleParquetWriter;
 import org.apache.parquet.io.*;
 import org.apache.parquet.schema.*;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.io.TempDir;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ResultBundleContractTest {
@@ -727,8 +728,11 @@ class ResultBundleContractTest {
         ObjectNode fullReq = JSON.createObjectNode().put("dataset_id", dsId).put("dataset_manifest_ref", dsId + ".json")
             .put("dataset_manifest_sha256", regManifestSha).put("experiment_run_id", "exp_adapt_full")
             .put("algorithm_name", "HDBSCAN_ADAPTIVE").put("model_config_version", modelVer).put("collection_id", colId);
-        assertEquals("IMP_COLLECTION_SCOPE_REQUIRED", assertThrows(IllegalArgumentException.class,
+        assertEquals("IMP_REQUEST_FIELD_REQUIRED", assertThrows(IllegalArgumentException.class,
             () -> TrustedDatasetResolver.resolve(fullReq, registryRoot, null)).getMessage());
+        assertEquals("IMP_COLLECTION_SCOPE_REQUIRED", assertThrows(IllegalArgumentException.class,
+            () -> TrustedDatasetResolver.resolve(
+                fullReq.deepCopy().put("collection_shard_id", "full"), registryRoot, null)).getMessage());
 
         // Passing shard-resolved context alongside full-split bundle fails IMP_COLLECTION_SCOPE_MISMATCH.
         ObjectNode shard0Req = fullReq.deepCopy().put("experiment_run_id", "exp_adapt_shard_00000").put("collection_shard_id", "shard_00000");
