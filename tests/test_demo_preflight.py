@@ -391,5 +391,75 @@ class DemoPreflightTests(unittest.TestCase):
             )
 
 
+class DemoOfficialEvidenceTests(unittest.TestCase):
+    def test_v2_uses_official_research_and_keeps_two_runtime_gates(self):
+        report = preflight.run_preflight(preflight.CURRENT_MANIFEST)
+        self.assertEqual(["MLI-04", "MLQ-01"], [g["task_id"] for g in report["pending_official_gates"]])
+        self.assertEqual(14, report["verified_evidence_count"])
+        self.assertFalse(report["official_release_ready"])
+
+    def test_v2_rejects_tampered_hash_false_ready_and_missing_source(self):
+        base = json.loads(preflight.CURRENT_MANIFEST.read_bytes())
+        for change, error in [
+            (lambda m: m["official_evidence"]["EXP-04"].update(sha256_lf="0" * 64), "SHA_MISMATCH"),
+            (lambda m: m.update(official_release_ready=True, pending_official_gates=[],
+                                package_status="PASS_OFFICIAL_READY"), "READINESS_MISMATCH"),
+            (lambda m: m["official_evidence"]["EXP-03"].update(path="docs/evidence/EXP-03-local-smoke.json"),
+             "SOURCE_MISMATCH"),
+        ]:
+            m = copy.deepcopy(base)
+            change(m)
+            with tempfile.TemporaryDirectory() as folder:
+                path = Path(folder) / "manifest.json"
+                path.write_text(json.dumps(m), encoding="utf-8")
+                with self.assertRaisesRegex(ValueError, error):
+                    preflight.run_preflight(path)
+
+
+
+    def test_v2_ready_only_when_both_evidence_documents_bind_same_snapshots(self):
+        from unittest.mock import patch
+        manifest = json.loads(preflight.CURRENT_MANIFEST.read_bytes())
+        refs = manifest["official_evidence"]
+        docs = {task: preflight._pinned_official_json(ROOT, pin) for task, pin in refs.items()}
+        sql_rows = []
+        for task in ("EXP-02", "EXP-03"):
+            shards = docs[task]["shard_verifications"]
+            if task == "EXP-03":
+                shards = {"HDBSCAN_ADAPTIVE": shards}
+            for algo, items in shards.items():
+                for shard, pin in items.items():
+                    rid = pin["experiment_run_id"]
+                    counts = {"membership_rows": pin["membership_row_count"], "summary_rows": pin["summary_row_count"]}
+                    sql_rows.append({"experiment_run_id": rid, "algorithm_name": algo, "shard_id": shard,
+                                     "experiment_status": "CANDIDATE", "success_marker_sha256": pin["success_marker_sha256"],
+                                     "expected_counts": counts, "actual_counts": counts, "query_ids": ["q1", "q2", "q3", "q4"],
+                                     "snapshots": {"experiment_snapshot_id": 41, "membership_snapshot_id": 42,
+                                                   "summary_snapshot_id": 43}})
+        dataset = docs["EXP-04"]["dataset"]
+        refs["MLI-04"] = {"path": "mli04-evidence.json", "sha256_lf": "a" * 64}
+        refs["MLQ-01"] = {"path": "mlq01-evidence.json", "sha256_lf": "b" * 64}
+        docs["MLI-04"] = {"schema_version": "mli04-readback-v1", "task_id": "MLI-04",
+                          "status": "VERIFIED", "missing_run_ids": [], "scientific_approval": False,
+                          "dataset_id": dataset["dataset_id"], "collection_id": dataset["collection_id"],
+                          "exp04_sha256_lf": refs["EXP-04"]["sha256_lf"], "runs": sql_rows}
+        docs["MLQ-01"] = {"task_id": "MLQ-01", "status": "PASSED", "scientific_approval": False,
+                          "mli04_sha256_lf": refs["MLI-04"]["sha256_lf"], "dataset_id": dataset["dataset_id"],
+                          "gold_snapshot_id": dataset["gold_snapshot_id"],
+                          "checks": dict.fromkeys(("gold_to_report_lineage", "count_parity", "reject_without_candidate",
+                                                   "rerun_no_duplicate", "extension_rule_preserved"), True),
+                          "runs": {sql_rows[0]["experiment_run_id"]: dict(sql_rows[0]["snapshots"])}}
+        manifest.update(package_status="PASS_OFFICIAL_READY", official_release_ready=True, pending_official_gates=[])
+        by_path = {pin["path"]: docs[task] for task, pin in refs.items()}
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "manifest.json"
+            path.write_text(json.dumps(manifest), encoding="utf-8")
+            with patch.object(preflight, "_pinned_official_json", side_effect=lambda root, pin: by_path[pin["path"]]):
+                self.assertEqual("PASS_OFFICIAL_READY", preflight.run_preflight(path)["overall_status"])
+                docs["MLQ-01"]["runs"][sql_rows[0]["experiment_run_id"]]["membership_snapshot_id"] = 44
+                with self.assertRaisesRegex(ValueError, "DEMO_MLQ01_RUN_MISMATCH"):
+                    preflight.run_preflight(path)
+
+
 if __name__ == "__main__":
     unittest.main()
