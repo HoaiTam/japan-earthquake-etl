@@ -61,7 +61,7 @@ trước khi Colab sinh output thật.
 - Không đặt Drive/MinIO credential trong bundle hoặc log.
 - Không xóa warehouse/bucket để recovery.
 
-### Follow-up — import adaptive overlap xuyên shard (EXP-03 / PR #141)
+### Follow-up — import adaptive overlap xuyên shard (EXP-03 và EXP-05)
 
 Contract v1 đã nghiệm thu cho đường import hiện có; **chưa nghiệm thu** các shard
 `HDBSCAN_ADAPTIVE` giữ `MULTIPLE`/`AMBIGUOUS` toàn cục trong từng lát cắt.
@@ -70,6 +70,10 @@ Trước khi đưa adaptive overlap vào Iceberg, cần contract scope có versi
 đối soát membership trên đúng collection và integration test qua trusted
 resolver → reader → validator → Iceberg/Trino. Không đổi rank khoa học chỉ
 để pass validator v1. Xem [evidence EXP-03](../../evidence/EXP-03_OFFICIAL_REPRODUCTION.md).
+Với EXTENSION của EXP-05, 12 shard baseline đạt `RESULT_READY` khi kiểm tra
+contract offline và 4 shard adaptive đạt Parquet reader readback. Nghiệm thu
+import Iceberg của các shard EXTENSION cần receipt runtime riêng.
+Xem [evidence EXP-05](../../evidence/EXP-05_EXTENSION_EVALUATION.md).
 
 ## Phân công tuần 5
 
