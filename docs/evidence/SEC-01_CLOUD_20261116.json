@@ -1,0 +1,390 @@
+{
+  "version": "sec01-fresh-cloud-acceptance-v1",
+  "task_id": "SEC-01",
+  "status": "In Progress",
+  "assignee": "HoaiTam",
+  "reviewer": "unassigned",
+  "cloud_observed_at_utc": "2026-11-16T16:26:16.254071+00:00",
+  "pr": 119,
+  "pr_base_head": "ae664b97be2dab203d39a421803b128fd1aef2ae",
+  "merged_main_locally_not_committed": "26f049bb448537dd53b7cc97f1bd5d7568df1e9d",
+  "objects": [
+    {
+      "label": "group-root",
+      "drive_id": "17Wntw5LIRvFdzaU0RpnBRL60gzsRdFTB",
+      "roles": {
+        "writer": 3,
+        "owner": 1
+      },
+      "findings": [],
+      "pending": [
+        "private_roster_mapping_not_confirmed"
+      ]
+    },
+    {
+      "label": "pilot-folder",
+      "drive_id": "1b7m-DE6f3OcM4Qm8wQf46U0T8O2whLQb",
+      "roles": {
+        "writer": 4,
+        "owner": 1
+      },
+      "findings": [],
+      "pending": [
+        "private_roster_mapping_not_confirmed"
+      ]
+    },
+    {
+      "label": "official-folder",
+      "drive_id": "1LJJBpc7FjNQga_Ur-Kx3Z8AOPmJg-Req",
+      "roles": {
+        "writer": 4,
+        "owner": 1
+      },
+      "findings": [],
+      "pending": [
+        "private_roster_mapping_not_confirmed"
+      ]
+    },
+    {
+      "label": "official-zip",
+      "drive_id": "1lSzNuYXt-mcTdci9nHNyoo3jdDVvRogj",
+      "roles": {
+        "writer": 4,
+        "owner": 1
+      },
+      "findings": [],
+      "pending": [
+        "private_roster_mapping_not_confirmed"
+      ]
+    },
+    {
+      "label": "ThanhTris-receipt",
+      "drive_id": "1R14b-naac-whWzyolKjSnEwi5Yd2Q_uH",
+      "roles": {
+        "owner": 1,
+        "writer": 4
+      },
+      "findings": [],
+      "pending": [
+        "private_roster_mapping_not_confirmed"
+      ],
+      "bytes": 2836,
+      "sha256": "73e1b66a2be094e0fcea0d8d5893ffa1d579b7519e7a29dba7a038151736a676",
+      "trusted_pin_matches": true,
+      "scan": {
+        "passed": true,
+        "findings": [],
+        "pending": []
+      }
+    },
+    {
+      "label": "rosy179-receipt",
+      "drive_id": "179iR5legh-4gdZAt6eXNjBb8c3nfKH4-",
+      "roles": {
+        "writer": 4,
+        "owner": 1
+      },
+      "findings": [],
+      "pending": [
+        "private_roster_mapping_not_confirmed"
+      ],
+      "bytes": 2833,
+      "sha256": "0b7ee0cb7b885580800e8261f16b7ddb3e8be11de416c8b62368f434468c7433",
+      "trusted_pin_matches": true,
+      "scan": {
+        "passed": true,
+        "findings": [],
+        "pending": []
+      }
+    },
+    {
+      "label": "rosy179-notebook",
+      "drive_id": "1uIXjbwNQHZ-K1km-HU3ckKXyKCzYSsSq",
+      "roles": {
+        "writer": 1,
+        "owner": 1
+      },
+      "findings": [
+        "non_user_sharing_requires_owner_review"
+      ],
+      "pending": [
+        "principal_identity_unavailable",
+        "private_roster_mapping_not_confirmed"
+      ],
+      "bytes": 67285,
+      "sha256": "188b299d735fe63c6d5d587cee1651ebb8ed48ead4272fd86d16e94b4c6f08eb",
+      "trusted_pin_matches": true,
+      "source_cells_match_current_repo": true,
+      "executed_cells": 4,
+      "error_outputs": 0,
+      "scan": {
+        "passed": true,
+        "findings": [],
+        "pending": []
+      }
+    },
+    {
+      "label": "rosy179-input",
+      "drive_id": "1taAG1gUWhzoYhQKSU7clsI3uK2s1c3vE",
+      "roles": {
+        "writer": 4,
+        "owner": 1
+      },
+      "findings": [],
+      "pending": [
+        "private_roster_mapping_not_confirmed"
+      ],
+      "bytes": 171993,
+      "sha256": "d6be707111be8d2b1a2ba64434d6c0cacaa67b73c5aae3235f9772403c544333",
+      "trusted_pin_matches": true,
+      "scan": {
+        "passed": true,
+        "findings": [],
+        "pending": []
+      }
+    },
+    {
+      "label": "rosy179-output",
+      "drive_id": "1YV-A0FeNtcdv2t_zCR507PIpQsW05bog",
+      "roles": {
+        "writer": 4,
+        "owner": 1
+      },
+      "findings": [],
+      "pending": [
+        "private_roster_mapping_not_confirmed"
+      ],
+      "bytes": 70896,
+      "sha256": "df5dae61e79cb707e8136af2b46037b27b5818f0abc89bedb59dab218d4b8665",
+      "trusted_pin_matches": true,
+      "scan": {
+        "passed": true,
+        "findings": [],
+        "pending": []
+      }
+    },
+    {
+      "label": "HoaiTam-exp01",
+      "drive_id": "1R-E8DVh0c79KXK2CLLvLyvmmjPO-2QGn",
+      "roles": {
+        "owner": 1
+      },
+      "findings": [],
+      "pending": [
+        "private_roster_mapping_not_confirmed"
+      ],
+      "bytes": 67262,
+      "sha256": "7447ba1368306b0e4a058ce83d8a91d84eb4eadb5394557e6eee2ea32ba1f609",
+      "trusted_pin_matches": null,
+      "source_cells_match_current_repo": true,
+      "executed_cells": 4,
+      "error_outputs": 0,
+      "scan": {
+        "passed": true,
+        "findings": [],
+        "pending": []
+      }
+    },
+    {
+      "label": "HoaiTam-col01",
+      "drive_id": "10FAialkfontu8mJZQ6igLvPHzgC_vuA9",
+      "roles": {
+        "owner": 1
+      },
+      "findings": [],
+      "pending": [
+        "private_roster_mapping_not_confirmed"
+      ],
+      "bytes": 55908,
+      "sha256": "c26a1d7f13edf1c61dca8756b2a1372358aa6ef6f0ab121bfbb085cd68ce9cc3",
+      "trusted_pin_matches": null,
+      "source_cells_match_current_repo": true,
+      "executed_cells": 4,
+      "error_outputs": 0,
+      "scan": {
+        "passed": true,
+        "findings": [],
+        "pending": []
+      }
+    },
+    {
+      "label": "HoaiTam-col02",
+      "drive_id": "1lHHWYcElyIIFzt8jhWY8YaxK1mEGWiKb",
+      "roles": {
+        "owner": 1
+      },
+      "findings": [],
+      "pending": [
+        "private_roster_mapping_not_confirmed"
+      ],
+      "bytes": 325627,
+      "sha256": "2e93aff7473ee87f622ecb52d023fabb1acc6b00c27b15ca04235d9e65a7f889",
+      "trusted_pin_matches": null,
+      "source_cells_match_current_repo": false,
+      "executed_cells": 1,
+      "error_outputs": 0,
+      "scan": {
+        "passed": true,
+        "findings": [],
+        "pending": []
+      }
+    }
+  ],
+  "local_owner_artifacts": [
+    {
+      "label": "exp01-handoff",
+      "sha256": "27a56e4e00796c994c65fd07f7b31aa0b1c0c16c6ec724e566bcabd1e7bc497b",
+      "passed": true,
+      "scanned_items": 52,
+      "findings": [],
+      "pending": []
+    },
+    {
+      "label": "col01-handoff",
+      "sha256": "e0a8c6f922c3a94abcd9bf7fa5816b929fced3055b3ff5b5e8b56d482f194425",
+      "passed": true,
+      "scanned_items": 11,
+      "findings": [],
+      "pending": []
+    },
+    {
+      "label": "col02-output",
+      "sha256": "c86e8c1bd51a7a5a641752000d6a88036b405cece9e1ddd5a3026236281d89c9",
+      "passed": true,
+      "scanned_items": 76,
+      "findings": [],
+      "pending": []
+    },
+    {
+      "label": "col02-handoff",
+      "sha256": "e8b83ee15ec9d6322fa7ad933dd8c1493d5460a1b0e163e0631afb53254c5d49",
+      "passed": true,
+      "scanned_items": 116,
+      "findings": [],
+      "pending": []
+    },
+    {
+      "label": "exp01-output",
+      "sha256": "2ea2edc425d2871e2c03b60de124c9de11a074dfe55b92bffe12b5c415b684f6",
+      "passed": true,
+      "scanned_items": 26,
+      "findings": [],
+      "pending": []
+    },
+    {
+      "label": "col01-output",
+      "sha256": "8da3256ffcb39a13ec800f29199614c6c0dea99659c64b1059359e85b45c6142",
+      "passed": true,
+      "scanned_items": 5,
+      "findings": [],
+      "pending": []
+    }
+  ],
+  "findings": [
+    {
+      "label": "rosy179-notebook",
+      "category": "non_user_sharing_requires_owner_review"
+    }
+  ],
+  "pending": [
+    {
+      "label": "group-root",
+      "reason": "private_roster_mapping_not_confirmed"
+    },
+    {
+      "label": "pilot-folder",
+      "reason": "private_roster_mapping_not_confirmed"
+    },
+    {
+      "label": "official-folder",
+      "reason": "private_roster_mapping_not_confirmed"
+    },
+    {
+      "label": "official-zip",
+      "reason": "private_roster_mapping_not_confirmed"
+    },
+    {
+      "label": "ThanhTris-receipt",
+      "reason": "private_roster_mapping_not_confirmed"
+    },
+    {
+      "label": "rosy179-receipt",
+      "reason": "private_roster_mapping_not_confirmed"
+    },
+    {
+      "label": "rosy179-notebook",
+      "reason": "principal_identity_unavailable"
+    },
+    {
+      "label": "rosy179-notebook",
+      "reason": "private_roster_mapping_not_confirmed"
+    },
+    {
+      "label": "rosy179-input",
+      "reason": "private_roster_mapping_not_confirmed"
+    },
+    {
+      "label": "rosy179-output",
+      "reason": "private_roster_mapping_not_confirmed"
+    },
+    {
+      "label": "HoaiTam-exp01",
+      "reason": "private_roster_mapping_not_confirmed"
+    },
+    {
+      "label": "HoaiTam-col01",
+      "reason": "private_roster_mapping_not_confirmed"
+    },
+    {
+      "label": "HoaiTam-col02",
+      "reason": "private_roster_mapping_not_confirmed"
+    },
+    {
+      "label": "ThanhTris",
+      "reason": "actual_colab_notebook_output_session_not_found_in_repo_or_group_drive_search"
+    }
+  ],
+  "findings_count": 1,
+  "pending_cloud_items": 14,
+  "can_mark_done": false,
+  "source_history_audit": {
+    "worktree_files": 1162,
+    "reachable_git_blobs": 3328,
+    "local_log_files": 22,
+    "untriaged_findings": 0,
+    "reviewed_fixture_content_pins_added": 3,
+    "current_runtime_audit": false,
+    "deferred_coverage": [
+      {
+        "scope": "config",
+        "reason": "run_check_config_require_local_for_strength_and_role_checks"
+      },
+      {
+        "scope": "runtime",
+        "reason": "live_runtime_audit_not_requested"
+      },
+      {
+        "scope": "ml_handoff",
+        "reason": "actual_notebook_export_import_acceptance_not_verified"
+      }
+    ]
+  },
+  "retained_local_acceptance": "SEC-01_LOCAL_ACCEPTANCE_20261023.md",
+  "security_tests": {
+    "run": 66,
+    "passed": 66,
+    "skipped": 0
+  },
+  "private_report_sha256": {
+    "fresh-cloud-report.private.json": "676c289d391573816f320ec60e602d05003396476ed0f1c85fdb693be8095f4c",
+    "owner-artifacts.private.json": "56f836ad7ca9e2162a5fc3f266e4a5418990aec65e5665e464c492097dcab2d5",
+    "owner-downloads.private.json": "ca2e3e7b1fc0792655d230124b227eef3917dbde143acd921f49958a1f896565",
+    "static-triaged.private.json": "754943f8968a53060db3281db3274e50ce1cc5756f4a67978679eb6d3aacd21d"
+  },
+  "acl_changed": false,
+  "docker_operations": false,
+  "permission_probes": false,
+  "scientific_approval": false,
+  "private_roster_committed": false,
+  "action_comment": "https://github.com/HoaiTam/japan-earthquake-etl/pull/119#issuecomment-6922467511"
+}
