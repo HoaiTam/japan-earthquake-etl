@@ -22,6 +22,8 @@ RUN_SUMMARY_RUN_ID ?=
 SECURITY_REPORT ?= staging/sec-01-report.json
 SECURITY_DEPLOYMENT_ROOT ?=
 SECURITY_HANDOFF_MANIFEST ?=
+SECURITY_CLOUD_MANIFEST ?=
+SECURITY_CLOUD_ONLINE ?= 0
 SECURITY_AUDIT_FLAGS = $(if $(SECURITY_DEPLOYMENT_ROOT),--deployment-root "$(SECURITY_DEPLOYMENT_ROOT)") $(if $(SECURITY_HANDOFF_MANIFEST),--handoff-manifest "$(SECURITY_HANDOFF_MANIFEST)")
 QA_03_MATRIX ?= airflow/dags/fixtures/qa_03_jma_historical_matrix.json
 QA_03_JSON ?= staging/qa-03/qa-03.json
@@ -508,8 +510,12 @@ test-pilot: ## Pilot/model regression; cần pyarrow/model deps và loopback Jup
 	@$(PILOT_PYTHON) -m unittest discover -s tests -p 'test_mli04_views_and_report.py'
 
 .PHONY: test-dat03-lineage test-dat03-payload-inventory test-dat03-portable
+.PHONY: test-dat03-rosy179-followup
 test-dat03-lineage: ## DAT-03 bounded offline metadata frontier audit regression; không Docker/network
 	@python3 -B -m unittest discover -s tests -p 'test_dat03_lineage.py'
+
+test-dat03-rosy179-followup: ## DAT-03 rosy179 ZIP regression with offline synthetic fixtures
+	@python3 -B -m unittest -v tests.test_pack_dat03_rosy179_followup
 
 test-dat03-payload-inventory: ## DAT-03 byte inventory regression; không giải nén hoặc ghi S3
 	@python3 -B -m unittest tests.test_dat03_payload_inventory
@@ -762,6 +768,7 @@ ci-docs-base: ## Always-on CI guards; pilot tests được chọn riêng theo im
 	@$(MAKE) test-qa-05
 	@$(MAKE) test-ops-backup
 	@$(MAKE) test-dat03-lineage
+	@$(MAKE) test-dat03-rosy179-followup
 	@$(MAKE) test-dat03-payload-inventory
 	@python3 -B -m unittest tests.test_dat03_followup_verifier tests.test_dat03_portable_plan tests.test_dat03_readback_batches tests.test_dat03_bronze_relocation tests.test_dat03_portable_capacity tests.test_dat03_portable_import tests.test_dat03_portable_gold tests.test_dat03_prepared_ml tests.test_dat03_prepared_ml_capture
 	@$(MAKE) test-dat03-team-setup
@@ -812,6 +819,11 @@ test-ci-workflow: ## YAML duplicate-key/safety/trigger/job regression; cần tes
 
 test-security-audit: ## SEC-01 offline redaction/role/port/permission/stdin regression tests
 	@python3 -m unittest discover -s tests -p 'test_security*.py'
+
+.PHONY: audit-security-cloud
+audit-security-cloud: ## SEC-01 explicit pinned cloud bytes/GET ACL; exit 2 = pending, không Docker/ACL writes
+	@test -n "$(SECURITY_CLOUD_MANIFEST)" || { echo 'Set SECURITY_CLOUD_MANIFEST to an explicit private scope JSON'; exit 2; }
+	@$(PILOT_PYTHON) -B scripts/audit-security-cloud.py --manifest "$(SECURITY_CLOUD_MANIFEST)" --output "$(SECURITY_REPORT)" $(if $(filter 1,$(SECURITY_CLOUD_ONLINE)),--drive) $(if $(SECURITY_DEPLOYMENT_ROOT),--deployment-root "$(SECURITY_DEPLOYMENT_ROOT)")
 
 audit-security: ## SEC-01 source/history/config scan; exit 2 = còn coverage, không có nghĩa Done
 	@python3 scripts/audit-security.py --output "$(SECURITY_REPORT)" $(SECURITY_AUDIT_FLAGS)

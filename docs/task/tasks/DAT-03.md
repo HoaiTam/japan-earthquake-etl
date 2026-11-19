@@ -28,6 +28,14 @@ evidence gốc không sửa bytes/SHA. Nghiệm thu16/11 là continuation của 
 sau khi PR đó merge, bản chốt docs được push riêng17/11 theo yêu cầu owner.
 Không thực hiện ETL/runtime/ACL writes để đóng task.
 
+**18/11 — hoàn thiện helper bàn giao rosy179 ([PR #134](https://github.com/HoaiTam/japan-earthquake-etl/pull/134)):**
+Kiểm exact set/manifest/size/SHA, không overwrite mặc định, từ chối symlink và
+chặn S3 fallback hoặc credential thiếu. 33 fixture tests offline đạt (không
+skip), nối vào `ci-docs-base`. Bản ZIP bàn giao cũ đọc được với SHA không đổi;
+24 object có pin và 23 publication đạt kiểm tra trong phạm vi helper. Xác minh
+publication ở helper không thay nghiệm thu coordinator. Giữ DAT-03 `Done`,
+không chạy ETL hoặc upload lại; xem [evidence follow-up](../../evidence/DAT-03_LINEAGE_rosy179_FOLLOWUP_20261114.md).
+
 ### Lịch sử triển khai (không phải blocker hiện hành)
 
 **16/11 — sửa portability Windows theo comment ThanhTris trên PR #131:**
