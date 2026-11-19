@@ -1,0 +1,52 @@
+{
+  "version": "sec01-cloud-recheck-v1",
+  "observed_at_utc": "2026-11-19T06:24:40.822080+00:00",
+  "task_status": "Done",
+  "main_revision": "12e9d2438fc9089ff16101ec3a5ef2dd27205f4e",
+  "drive": {
+    "requested_objects": 17,
+    "complete_permission_lists": 17,
+    "user_only_objects": 16,
+    "findings": [
+      {"object": "rosy179-exp02-notebook", "previous_role": "anyone/writer", "current_role": "anyone/reader"}
+    ],
+    "cloud_mutations": false
+  },
+  "decoded_artifacts": {
+    "scanned": 12,
+    "trusted_sha_matches": 9,
+    "observed_bytes_only": 3,
+    "content_findings": 0,
+    "notebooks_scanned": 5,
+    "saved_error_outputs": 0
+  },
+  "data_handoff": {
+    "accepted_machine_receipts": 3,
+    "member_receipts_pinned_readback": 2,
+    "official_zip_drive_metadata_sha_matches": true,
+    "official_zip_redownloaded_in_this_recheck": false
+  },
+  "thanhtris_colab": {
+    "source_evidence_pr": 138,
+    "artifact_sha_matches": 4,
+    "colab_harness_passed": true,
+    "executed_code_cells": 4,
+    "saved_error_outputs": 0,
+    "embedded_report_and_checksum_index_match": true,
+    "development_only": true,
+    "scientific_approval": false
+  },
+  "roster_review": "OUT_OF_SCOPE_BY_OWNER",
+  "google_account_identity_verified": false,
+  "historical_local_acceptance_rerun": false,
+  "owner_acceptance": {
+    "owner": "HoaiTam",
+    "date": "2026-11-19",
+    "scope": "COURSE_PROJECT_SNAPSHOT_ONLY",
+    "status": "ACCEPTED_WITH_EXCEPTION",
+    "accepted_finding": "ROSY179_NOTEBOOK_PUBLIC_READ",
+    "acl_changed": false,
+    "restricted_sharing_attested": false
+  },
+  "can_mark_done": false
+}
