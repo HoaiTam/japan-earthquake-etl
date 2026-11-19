@@ -90,6 +90,16 @@ class CloudTest(unittest.TestCase):
             self.assertTrue(result["findings"])
             self.assertFalse(result["passed"])
 
+    def test_anyone_writer_downgrade_to_reader_still_blocks_internal_sharing(self):
+        owner = {"type": "user", "role": "owner", "emailAddress": "synthetic@example.invalid"}
+        for role in ("writer", "reader"):
+            with self.subTest(role=role):
+                result = c.permission_summary({"id": "synthetic_object", "mimeType": "notebook"},
+                                              [owner, {"type": "anyone", "role": role}])
+                self.assertEqual(["non_user_sharing_requires_owner_review"], result["findings"])
+                self.assertFalse(result["restricted_to_users"])
+                self.assertFalse(result["passed"])
+
     def test_permissions_pagination_and_repeated_token_fail_closed(self):
         calls = []
         def pages(endpoint, params):

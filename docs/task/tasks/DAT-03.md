@@ -1,6 +1,6 @@
 ---
 task_id: "DAT-03"
-status: "In Progress"
+status: "Done"
 week: 6
 block: "A - Hợp đồng dữ liệu"
 workstream: "Verified research data and team handoff"
@@ -15,6 +15,28 @@ dependencies: ["ORC-07", "MLD-05", "MLI-02", "EXP-01"]
 # DAT-03 - Chuẩn bị catalog nghiên cứu thật và bàn giao dataset dùng chung
 
 ## Giao việc hiện hành — 11/11/2026
+
+**16/11 — nghiệm thu cuối: Done.** Đã đối chiếu toàn bộ checklist với
+[báo cáo cuối](../../evidence/DAT-03_FINAL_ACCEPTANCE_20261116.md) và
+[pins/receipts](../../evidence/DAT-03_FINAL_ACCEPTANCE_20261116.json):
+288 tháng, global/boundary/reconciliation, six-table Published/rerun, hai
+collection EXPORTED và cùng kitv4 trên ba máy HoaiTam/ThanhTris/rosy179 đều đạt.
+PR #131 head `922e8d2` có23checks SUCCESS. Reviewer giữ unassigned, không tự
+điền approval. Không cấp scientific approval hoặc đóng SEC-01/EXP-02/EXP-03.
+Các ghi chú In Progress/blocker bên dưới là **lịch sử tại thời điểm chạy**;
+evidence gốc không sửa bytes/SHA. Nghiệm thu16/11 là continuation của PR #131;
+sau khi PR đó merge, bản chốt docs được push riêng17/11 theo yêu cầu owner.
+Không thực hiện ETL/runtime/ACL writes để đóng task.
+
+**18/11 — hoàn thiện helper bàn giao rosy179 ([PR #134](https://github.com/HoaiTam/japan-earthquake-etl/pull/134)):**
+Kiểm exact set/manifest/size/SHA, không overwrite mặc định, từ chối symlink và
+chặn S3 fallback hoặc credential thiếu. 33 fixture tests offline đạt (không
+skip), nối vào `ci-docs-base`. Bản ZIP bàn giao cũ đọc được với SHA không đổi;
+24 object có pin và 23 publication đạt kiểm tra trong phạm vi helper. Xác minh
+publication ở helper không thay nghiệm thu coordinator. Giữ DAT-03 `Done`,
+không chạy ETL hoặc upload lại; xem [evidence follow-up](../../evidence/DAT-03_LINEAGE_rosy179_FOLLOWUP_20261114.md).
+
+### Lịch sử triển khai (không phải blocker hiện hành)
 
 **16/11 — sửa portability Windows theo comment ThanhTris trên PR #131:**
 ZIPv2 đúng SHA nhưng verifier chưa chạy được trên Windows native: directory
@@ -165,7 +187,7 @@ linkage tới 108 snapshots Iceberg và kiểm kê 119 payload 522.659.149 bytes
 [Evidence ThanhTris](../../evidence/DAT-03_LINEAGE_ThanhTris_METADATA_20261112.md).
 DAT-03 vẫn giữ In Progress.
 
-- **Owner:** HoaiTam; **status:** In Progress.
+- **Owner:** HoaiTam; **status:** Done (nghiệm thu16/11; lịch sử ở trên).
 - **Làm phần gì / dùng để làm gì:** Lineage → catalog tích hợp → official export.
 - **Bắt đầu độc lập:** Đối chiếu bytes/SHA tầng tiếp theo của Trí/Trang; không chạy lại ETL đã accepted.
 - **Đầu ra và điều kiện Done:** Catalog thống nhất có boundary/reconciliation, Gold/Trino pins; REPRODUCTION/EXTENSION EXPORTED, loader/rerun và receipts ba máy.
@@ -286,7 +308,10 @@ portable ETL import/merge hoặc official ML export. Không sửa flag setup đ�
   Attempt đầu publish2016 rồi OOM khi verify2023; owner duyệt memory fix và
   recreate riêng Trino sau lưu log. Checkpoint verify/publish2023/rerun đạt,
   six pins không đổi, Trino restart0/oom_kill0, own lease release và idle đạt.
-- [ ] Đo capacity/ETA thực của Spark/joins/lake/export và duyệt rollout full kỳ;
+- [x] Đo capacity/ETA thực của Spark/joins/lake/export và duyệt rollout full kỳ;
+  đã đóng bằng capacity/provenance, actual import288tháng, Gold publication và
+  official export90k15/11; xem [đối chiếu cuối](../../evidence/DAT-03_FINAL_ACCEPTANCE_20261116.md).
+  Các probe âm tính25/10 sau đây giữ nguyên lịch sử, không là blocker còn mở:
   chưa suy 51 giây parser scan hoặc ~9,8 GiB disk trống thành budget full ETL.
   [Chuẩn bị rollout25/10](../../evidence/DAT-03_ROLLOUT_CAPACITY.md) có25 JMA
   fresh pins/288-month plan và12 USGS capture/Java check; không BronzeReady/
@@ -322,11 +347,12 @@ portable ETL import/merge hoặc official ML export. Không sửa flag setup đ�
   UTC/JST và source-link halo, không nhận boolean tự khai.
 - [x] Gold publication/Trino/reconciliation đạt; audit/Mc/exclusion reasons có proof.
 - [x] MLI-02 build/export thật, counts/pins/checksum/loader và rerun đạt.
-- [ ] HoaiTam, ThanhTris, rosy179 verify cùng release trên máy riêng; receipt có
+- [x] HoaiTam, ThanhTris, rosy179 verify cùng release trên máy riêng; receipt có
   người nhận, dataset/pilot ID, SHA và loader result. Không giả receipt của hai
   người khác bằng ba lần chạy trên máy owner.
-- [ ] Runbook, giới hạn và metadata task/index đồng bộ, không còn blocker chưa xử lý.
-  Docs đã đồng bộ15/11; terminal acceptance vẫn chờ hai receipts thật ở trên.
+- [x] Runbook, giới hạn và metadata task/index đồng bộ, không còn blocker DAT-03.
+  Đã đọc receipt thật của Trí/Trang từ Drive, kiểm hash/schema/IDs/Gold pins/
+  counts và ba fingerprint khác nhau; cùng handoff v4. Không giả receipt.
 
 ## Hard dependency / làm song song
 
@@ -360,6 +386,10 @@ release đủ gate. Không tạo dependency ngược từ DAT-03 sang EXP-02.
   MLI-04/MLQ-01 sở hữu report/ML E2E.
 
 ## Theo dõi
+
+- **16/11 — Done:** [nghiệm thu cuối](../../evidence/DAT-03_FINAL_ACCEPTANCE_20261116.md),
+  receipt3/3máy đã đối chiếu; reviewer unassigned. Không commit/push/merge trong
+  phiên chốt docs này. Các mốc còn chờ receipt bên dưới là lịch sử đã được đóng.
 
 - **16/11 — Windows verifier patch:** 36 loader/kit tests và43CI policy tests
   đạt local; all6shards/390.374rows xác minh với timezone lookup bị cấm.
@@ -479,7 +509,7 @@ release đủ gate. Không tạo dependency ngược từ DAT-03 sang EXP-02.
   [Evidence](../../evidence/DAT-03_DRIVE_RANGES_20261028.md). Giữ In Progress;
   các mốc101/113 bên dưới là lịch sử, chưa officialMLexport/receipts ba máy.
 
-- **Trạng thái:** In Progress
+- **Trạng thái:** Done
 - **Assignee:** HoaiTam
 - **Reviewer:** unassigned
 - **Cập nhật tối27/10:** đã hủy automation, mở lại Docker và benchmark chỉ đọc

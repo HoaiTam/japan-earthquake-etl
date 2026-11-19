@@ -1,6 +1,6 @@
 ---
 task_id: "SEC-01"
-status: "In Progress"
+status: "Done"
 week: 4
 block: "K - QA & Release"
 workstream: "Security"
@@ -16,16 +16,23 @@ dependencies: ["ORC-05"]
 
 ## Giao việc hiện hành — 11/11/2026
 
-- **Owner:** HoaiTam; **status:** In Progress.
+- **Owner:** HoaiTam; **status:** Done (phạm vi đồ án, có ngoại lệ được ghi trong evidence).
 - **Làm phần gì / dùng để làm gì:** Bảo mật Drive/Colab.
-- **Bắt đầu độc lập:** Tiếp tục PR #119; scan exact notebooks/output đã có, kiểm ACL và xác nhận roster riêng.
-- **Đầu ra và điều kiện Done:** Hết finding/pending trong scope; actual session/recipient evidence ba người, không suy quyền nhận từ CI hoặc tên file.
+- **Bắt đầu độc lập:** Tiếp tục PR #119; scan notebooks/output và kiểm ACL của đúng các artifact chia sẻ.
+- **Đầu ra và điều kiện Done:** Actual session/recipient evidence ba người và xử lý hoặc ghi quyết định owner cho từng finding trong phạm vi đồ án.
 - **Lịch:** chuẩn bị 11–15/11, nghiệm thu tuần9 16–22/11; xem
   [kế hoạch và setup](../WEEK_9_REPLAN_20261111.md). Giữ hard dependencies,
   scope/effort lịch sử; các mục tuần cũ dưới đây là lịch sử.
 
-PR [#119](https://github.com/HoaiTam/japan-earthquake-etl/pull/119) còn Draft;
-không coi audit cloud đã merge hoặc audit local23/10 là cloud PASS.
+Thay đổi cloud ghi trong [PR #119](https://github.com/HoaiTam/japan-earthquake-etl/pull/119).
+Audit local 23/10 không thay audit cloud.
+
+**19/11 — [đối soát hiện hành](../../evidence/SEC-01_CLOUD_20261119.md):**
+17 đối tượng kiểm quyền, 12 artifact quét nội dung, không finding nội dung.
+Actual Colab của Trí đã đối chiếu 4 artifact từ #138; DAT-03 giữ ba receipt.
+Owner chấp nhận ngoại lệ `anyone/reader` của đúng notebook EXP-02 của Trang
+cho mốc đồ án này và miễn đối chiếu roster/alias chi tiết. Không ghi ACL đã
+Restricted hoặc authenticated identity PASS.
 
 **16/11 — tiếp tục nghiệm thu:** [fresh evidence](../../evidence/SEC-01_CLOUD_20261116.md)
 và [report redacted](../../evidence/SEC-01_CLOUD_20261116.json). Xử lý conflict
@@ -59,14 +66,15 @@ và không biến pilot/synthetic result thành research-ready.
 ### Tuần 7 — HoaiTam: nghiệm thu actual Drive/Colab
 
 Đọc [kế hoạch tuần7](../WEEK_7_COLAB_PLAN.md) và
-[setup](../../runbooks/WEEK_7_COLAB_SETUP.md). Giữ chưa Done đến khi:
+[setup](../../runbooks/WEEK_7_COLAB_SETUP.md). Đối chiếu nghiệm thu:
 
-- [ ] Đúng recipient của cả ba người mở/tải đúng release được, có receipt thật;
+- [x] Cả ba thành viên có receipt máy thật cho đúng release DAT-03;
       phân biệt máy local với Colab VM, không tạo hộ hoặc suy identity từ tên file.
-- [ ] Audit actual bootstrap/model notebooks, session metadata và outputs;
+- [x] Audit actual notebook, session metadata và outputs trong scope đã pin;
       không credential/OAuth JSON/private logs/local account path ngoài contract.
-- [ ] Kiểm exact release/output sharing theo quyền hiện có; không anyone/domain
-      hoặc public link ngoài scope đã duyệt; map identity với roster ở kênh riêng.
+- [x] Kiểm exact release/output sharing theo quyền hiện có. Finding public read
+      của notebook Trang được owner chấp nhận riêng, không coi là ACL PASS;
+      không chứng nhận mapping roster/alias.
 - [x] Mô tả Drive mount cấp quyền rộng, notebook được chia sẻ có thể chứa
       outputs; không coi mount là folder-scoped readonly security boundary.
 - [x] Findings/pending có triage và evidence; chưa đủ actual cloud session hoặc
@@ -176,13 +184,17 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Theo dõi
 
+- **19/11 — Done theo phạm vi đồ án:** [evidence và ngoại lệ](../../evidence/SEC-01_CLOUD_20261119.md).
+  Owner chấp nhận quyền đọc theo link của đúng notebook Trang; không đổi ACL.
+  Không dùng ngoại lệ này cho artifact mới hoặc để xóa finding khỏi báo cáo.
+
 - **16/11 — In Progress:** fresh cloud audit có1ACL finding/14pending items;
   source/history sau exact-fixture triage0untriaged findings.66security tests
   PASS/0skip; không runtime/probes/commit/push/merge, reviewer unassigned.
   [Evidence](../../evidence/SEC-01_CLOUD_20261116.md),
   [yêu cầu Trang](https://github.com/HoaiTam/japan-earthquake-etl/pull/119#issuecomment-6922467511).
 
-- **Trạng thái:** In Progress
+- **Trạng thái:** Done
 - **Assignee:** HoaiTam
 - **Reviewer:** unassigned — chưa có approval độc lập
 - **Cloud02/11:** [Evidence và pending](../../evidence/SEC-01_CLOUD_20261102.md),
@@ -204,13 +216,13 @@ còn recipient/identity gates phía trên. Không tự commit/push/merge hoặc 
 - [x] Acceptance criteria trong phạm vi local được owner duyệt đã được kiểm tra.
 - [x] Test tự động đạt hoặc có evidence thủ công có thể lặp lại.
 - [x] Tài liệu/contract đã cập nhật nếu schema, flow, cấu hình hoặc hành vi thay đổi.
-- [x] Không có finding chưa triage trong phạm vi scan, report chỉ lưu hash/count/category, không raw log/credential/build artifacts.
+- [x] Không có finding secret chưa triage trong phạm vi scan. Finding ACL còn ghi rõ là ngoại lệ được chấp nhận; report không lưu raw log, credential hoặc build artifacts.
 - [ ] P0/P1 có reviewer khác assignee xác nhận.
 
 Reviewer độc lập được khuyến nghị, không phải blocker Done theo AGENTS.md.
-Acceptance local runtime/permissions đã đạt; Colab/Drive ngoài mốc local được
-owner duyệt, không chứng nhận remote account. Mở lại task trước cloud migration.
-Không ghi approval giả.
+Acceptance local runtime/permissions đã đạt ở mốc 23/10; cloud chỉ được chốt
+cho scope và thời điểm 19/11. Không chứng nhận remote account hoặc tài nguyên
+ngoài phạm vi. Khi thay đổi scope chia sẻ, đánh giá lại trước khi áp dụng.
 
 ## Tài liệu liên quan
 

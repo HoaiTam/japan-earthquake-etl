@@ -1,7 +1,13 @@
 # Kế hoạch task 8 tuần
 
-> **Hiện hành12/11/2026:** [phân công tuần9 — 16–22/11](./WEEK_9_REPLAN_20261111.md).
-> 63 Done / 5 Needs Update / 12 Backlog / 1 In Progress (DAT-03);18task,6task/người.
+> **Cập nhật17/11/2026:** [DAT-03 nghiệm thu Done](../evidence/DAT-03_FINAL_ACCEPTANCE_20261116.md),
+> đã merge [PR #136](https://github.com/HoaiTam/japan-earthquake-etl/pull/136).
+> [OPS-01 smoke backup/restore Done](../evidence/OPS-01_BACKUP_RESTORE_20261117.md);
+> [runbook và Make commands](../runbooks/OPS-01_BACKUP_RESTORE.md), không full disaster recovery.
+> [QA-05 profile Done](../evidence/QA-05_RESOURCE_PROFILE_20261117.md) local17/11, chưa push;
+> 68 Done / 5 Needs Update / 7 Backlog / 1 In Progress trong81task (DEMO-01 còn In Progress).
+> [Phân công tuần9 — 16–22/11](./WEEK_9_REPLAN_20261111.md) là kế hoạch18task,6task/người;
+> trạng thái thực tế xem từng task/index, không suy từ roster lịch sử.
 > Roster/effort tuần cũ bên dưới là lịch sử. [Đối soát](../evidence/TASK_STATUS_AUDIT_20261111.md).
 
 Backlog được lưu hoàn toàn bằng Markdown. Mỗi task có một file độc lập trong

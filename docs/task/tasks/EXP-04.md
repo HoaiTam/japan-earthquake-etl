@@ -1,6 +1,6 @@
 ---
 task_id: "EXP-04"
-status: "Needs Update"
+status: "Done"
 week: 7
 block: "H - Experiment"
 workstream: "Scientific evaluation"
@@ -16,7 +16,7 @@ dependencies: ["EXP-02", "EXP-03"]
 
 ## Giao việc hiện hành — 11/11/2026
 
-- **Owner:** ThanhTris; **status:** Needs Update.
+- **Owner:** ThanhTris; **status:** Done.
 - **Làm phần gì / dùng để làm gì:** Đánh giá khoa học.
 - **Bắt đầu độc lập:** Tái dùng evaluation harness/pilot #121 và COL-03 #117; chuẩn bị evaluator/config.
 - **Đầu ra và điều kiện Done:** Sau EXP-02/03 official: DBCV/noise/Omori/stability với sample/failure/N/A reasons; freeze rule trước EXP-05, không kết luận từ pilot.
@@ -48,11 +48,11 @@ thay vì dùng accuracy/F1 hoặc chọn theo một metric duy nhất.
 
 ## Tiêu chí hoàn thành
 
-- [ ] Không dùng accuracy/F1 như ground-truth metric.
-- [ ] DBCV/noise, ít nhất một Omori metric và Jaccard stability được tính từ output thật.
-- [ ] Metric null/failure có reason code; không bỏ window fail khỏi mẫu số im lặng.
-- [ ] Báo cáo giữ metric thành phần, runtime và sample size.
-- [ ] Không chọn model chỉ theo một metric hoặc số liệu minh họa.
+- [x] Không dùng accuracy/F1 như ground-truth metric.
+- [x] DBCV/noise, ít nhất một Omori metric và Jaccard stability được tính từ output thật.
+- [x] Metric null/failure có reason code; không bỏ window fail khỏi mẫu số im lặng.
+- [x] Báo cáo giữ metric thành phần, runtime và sample size.
+- [x] Không chọn model chỉ theo một metric hoặc số liệu minh họa.
 
 ## Hard dependency
 
@@ -93,18 +93,34 @@ gốc. Dependencies và tiêu chí gốc phía trên giữ nguyên.
 
 ## Theo dõi
 
-- **Trạng thái:** Needs Update
+- **Trạng thái:** Done
 - **Assignee:** ThanhTris
-- **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Bắt đầu triển khai evaluation harness, unit tests và pilot comparison report trên branch `feat/exp-04-scientific-evaluation`. Bằng chứng pilot tại [EXP-04_PILOT_EVALUATION.json](../../evidence/EXP-04_PILOT_EVALUATION.json) và [EXP-04_PILOT_EVALUATION.md](../../evidence/EXP-04_PILOT_EVALUATION.md). Giữ `In Progress` cho official research evaluation.
+- **Reviewer:** unassigned
+- **Evidence / PR:**
+  - Pilot baseline harness & stability report: [EXP-04_PILOT_EVALUATION.json](../../evidence/EXP-04_PILOT_EVALUATION.json) và [EXP-04_PILOT_EVALUATION.md](../../evidence/EXP-04_PILOT_EVALUATION.md).
+  - **Phiên Windows trước khi tích hợp EXP-02:** [report lịch sử](https://github.com/HoaiTam/japan-earthquake-etl/blob/c2d00ff9d28f8acc69d551fec5f51ad55e8f9a39/docs/evidence/EXP-04_OFFICIAL_REPRODUCTION.json)
+    giữ số liệu DBCV/Omori/stability và provenance gốc. Report đó ghim hai run
+    upstream khác nên không bàn giao cho EXP-05 sau khi cập nhật #141.
+  - **Cổng phát hành:** Runner chỉ ghi official `PASSED` và `frozen_extension_rule`
+    trên REPRODUCTION khi cả EXP-02 và EXP-03 đối soát đạt, kể cả bytes từng shard
+    và primary membership/summary. Thiếu một hoặc cả hai bị từ chối, trừ chạy
+    `--diagnostic-only` (không phát hành rule, mặc định ghi riêng trong staging).
+  - **18/11/2026 — Nghiệm thu REPRODUCTION sau khi #139 merge:** 194 cửa sổ,
+    156.710 feature rows / 2 shards trên commit sạch `c746dc6`. Kiểm bytes
+    và primary membership/summary cả bốn thuật toán, khớp với
+    [EXP-02 replay](../../evidence/EXP-02_REPRODUCTION_REPLAY_FOR_EXP04.json)
+    và [EXP-03 official](../../evidence/EXP-03_OFFICIAL_REPRODUCTION.json).
+    [Report mới](../../evidence/EXP-04_OFFICIAL_REPRODUCTION.md) / [JSON](../../evidence/EXP-04_OFFICIAL_REPRODUCTION.json)
+    phát hành `exp04-frozen-reproduction-rule-v2`, `scientific_approval=false`.
+    [EXP-05](./EXP-05.md) phải ghim SHA của báo cáo mới; không dùng report lịch sử.
 - **Kỹ năng phù hợp:** Clustering evaluation, seismology statistics, experiment design
 
 ## Checklist bàn giao
 
-- [ ] Deliverable và test/evidence tồn tại trong repository.
-- [ ] Acceptance criteria đã được kiểm tra.
-- [ ] Contract/docs đã cập nhật và không chứa secret/data dump.
-- [ ] Reviewer độc lập được khuyến nghị cho P0.
+- [x] Deliverable và test/evidence tồn tại trong repository.
+- [x] Acceptance criteria đã được kiểm tra.
+- [x] Contract/docs đã cập nhật và không chứa secret/data dump.
+- [ ] Reviewer độc lập được khuyến nghị cho P0; reviewer giữ `unassigned`, chưa có approval.
 
 ## Tài liệu liên quan
 

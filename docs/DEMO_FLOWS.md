@@ -2,6 +2,7 @@
 
 DOC-01 đồng bộ **19/10/2026**: đây là hướng dẫn chọn evidence, không phải nghiệm
 thu [DEMO-01](./task/tasks/DEMO-01.md)/[DEMO-02](./task/tasks/DEMO-02.md).
+Để dùng gói dữ liệu, kịch bản trình bày chi tiết và preflight checker tự động cho `DEMO-01`, xem [gói demo và preflight checklist](./runbooks/DEMO-01_DEMO_PACKAGE.md) và `scripts/demo-preflight.py`.
 Core là ETL + ML hồi cứu + Trino/static report; Power BI chỉ Stretch.
 [Known issues](./KNOWN_ISSUES.md) nêu phần hiện chưa đủ để tuyên bố full MVP.
 

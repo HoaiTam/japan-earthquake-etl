@@ -1,14 +1,15 @@
 # SEC-01 — Review secret và bề mặt truy cập
 
-Owner hiện tại: **HoaiTam**. Status: **In Progress — fresh cloud audit16/11**.
+Owner hiện tại: **HoaiTam**. Status: **Done trong phạm vi đồ án — 19/11**.
 Local acceptance23/10 giữ nguyên. Reviewer: **unassigned**.
 
-[Fresh audit16/11](../evidence/SEC-01_CLOUD_20261116.md): notebook rosy179 có
-anyone/writer; chưa Done trước khi sửa/recheck ACL, xác nhận private aliases
-và nhận actual session/output ThanhTris.66tests PASS/0skip. Các mốc bên dưới
-là lịch sử; không bật Docker hoặc ghi S3 probes chỉ để đóng scope cloud.
+[Đối soát 19/11](../evidence/SEC-01_CLOUD_20261119.md): xác minh phiên Colab
+ThanhTris và ba receipt DAT-03. Notebook rosy179 còn anyone/reader: owner chấp
+nhận riêng cho mốc đồ án, không ghi ACL PASS hay đổi quyền.
+Roster/alias chi tiết ngoài phạm vi theo owner, không chứng nhận account mapping.
+Không bật Docker hoặc ghi S3 probes chỉ để đóng scope cloud.
 
-Đang nghiệm thu cloud theo [runbook mới](./SEC-01-CLOUD-AUDIT.md) và
+Mốc lịch sử 02/11 theo [runbook](./SEC-01-CLOUD-AUDIT.md) và
 [evidence02/11](../evidence/SEC-01_CLOUD_20261102.md): tám pinned artifacts và
 hai actual notebooks chưa thấy finding; ACL user-only nhưng root4/pilot5
 principals cần owner xác nhận. Trang có embedded receipt trong PR #114; Trí

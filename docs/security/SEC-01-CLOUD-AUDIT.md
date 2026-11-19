@@ -1,10 +1,10 @@
 # SEC-01 — audit Drive/Colab pilot chỉ đọc
 
-**Hiện hành16/11:** [fresh audit](../evidence/SEC-01_CLOUD_20261116.md) có1finding
-anyone/writer ở notebook rosy179; còn private roster và session ThanhTris.
-PR #119 giữ Draft/In Progress. Ba research receipts đã nhận, không phải blocker
-thiếu DAT-03 receipt nữa nhưng không thay cloud identity. Nội dung02/11 bên
-dưới là quy trình và snapshot lịch sử; không đổi ACL hoặc tăng budget để pass.
+**Hiện hành 19/11:** [đối soát](../evidence/SEC-01_CLOUD_20261119.md) xác minh
+actual session ThanhTris và ba receipt DAT-03. Notebook rosy179 giảm từ
+anyone/writer xuống anyone/reader. Không đạt sharing nội bộ; owner chấp nhận
+ngoại lệ cho đúng notebook ở mốc đồ án và chốt SEC-01. Roster/alias chi tiết
+ngoài phạm vi, không chứng nhận authenticated identity. Các snapshot cũ giữ lịch sử.
 
 Phần này bổ sung cloud acceptance của [SEC-01](../task/tasks/SEC-01.md), không
 thay [nghiệm thu local 23/10](../evidence/SEC-01_LOCAL_ACCEPTANCE_20261023.md).
@@ -95,13 +95,15 @@ upload/download, không mount Drive; không suy ra cách dùng của thành viê
 - CLI luôn giữ `can_mark_done=false`: nó không thay người review quyền nhận và
   actual sessions ba người. Sau khi đủ human evidence, owner ghi quyết định
   nghiệm thu riêng; không sửa scanner flag/report cũ để pass.
-- Xác nhận riêng roster và các tài khoản phụ được duyệt trên từng object.
-  User-only ACL vẫn có thể chia sẻ nhầm người. Giữ nguyên ACL khi cần xác nhận.
+- Với audit cần xác minh identity, đối chiếu roster và tài khoản phụ qua kênh
+  riêng. Lượt 19/11 miễn bước chi tiết này theo phạm vi owner duyệt, không
+  tương đương identity PASS. Quyền anyone/domain vẫn là finding; chỉ chấp nhận
+  ngoại lệ được owner ghi rõ cho đúng tài nguyên và phạm vi, không đổi kết quả scanner.
 - Thu actual notebook/output ZIP cùng trusted SHA từ Trang/Trí; đối chiếu bytes,
   decoded scan và provenance session. Evidence JSON trên PR là nguồn tham khảo,
   không thay việc tải artifact. Không tạo receipt hộ hoặc suy identity từ tên.
-- [DAT-03](../task/tasks/DAT-03.md) còn gate nhận dataset trên ba máy; receipt
-  Colab không thay receipt máy riêng. [EXP-02](../task/tasks/EXP-02.md) và
-  [EXP-03](../task/tasks/EXP-03.md) vẫn có experiment/official gates riêng.
+- [DAT-03](../task/tasks/DAT-03.md) đã có ba machine receipts; receipt Colab
+  không thay receipt máy riêng. Nghiệm thu bảo mật không phải nghiệm thu model.
 
-Kết quả hiện tại và phần còn thiếu: [evidence 02/11](../evidence/SEC-01_CLOUD_20261102.md).
+Kết quả hiện tại: [evidence 19/11](../evidence/SEC-01_CLOUD_20261119.md);
+[evidence 02/11](../evidence/SEC-01_CLOUD_20261102.md) là lịch sử.

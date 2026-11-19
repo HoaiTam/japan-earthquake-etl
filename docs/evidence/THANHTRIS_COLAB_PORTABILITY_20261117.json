@@ -1,0 +1,215 @@
+{
+  "version": "thanhtris-colab-portability-v1",
+  "task_id": "EXP-03",
+  "related_tasks": [
+    "EXP-01",
+    "EXP-02",
+    "SEC-01"
+  ],
+  "status": "COLAB_PORTABILITY_AND_PILOT_PARITY_VERIFIED",
+  "task_status": "Needs Update",
+  "recipient": "ThanhTris",
+  "recipient_self_reported": true,
+  "reviewer": "unassigned",
+  "allowed_usage": "DEVELOPMENT_ONLY",
+  "research_ready": false,
+  "official_reproduction_ready": false,
+  "scientific_approval": false,
+  "git_base_commit": "001e33b83c8277848c4debc9f6b8c07c29fc68b5",
+  "source_identity_is_content_hash": true,
+  "source_sha256": "18afd8d6c53ffed894f7a1cc336ae242220bf41f33f6206f562d741c5a427981",
+  "pilot": {
+    "pilot_id": "pilot_196b6d4081d347e1c289e331022658fbbe572dd33181ad987900895c1f1b189c",
+    "zip_sha256": "f58291b72873e1b26791fef97818fdcf5e2b028a5dfa528885a666d8cdc1b870",
+    "handoff_sha256": "9121d6839f9ef8e5646a06cd0bf870fcde50b65da00c03e7b268760237cddc9a",
+    "feature_sha256": "3baddf613f237d2117248ad9095230ec17e428ea47f73d499623035d3097d2e6",
+    "index_sha256": "310b5f232ae34ca4f0a197b0181bff81efe6bee38897b6e151e9b58e8d5a6502",
+    "candidate_rows": 279,
+    "mainshocks": 2,
+    "local_pilot_receipt_sha256": "9218c414955d4e30200a343779f2893b7f7e2240726237d50f82bb699c669dea",
+    "colab_pilot_receipt_sha256": "2cd0ef71b23b53b90aee52eef13549adb46961a342f1d82731faf7dda25814e5"
+  },
+  "local_exp01_gate": {
+    "status": "LOCAL_GATE_AND_HANDOFF_VERIFIED",
+    "python_version": "3.12.10",
+    "runner_mode": "nbclient",
+    "fresh_kernel_acceptance": true,
+    "executed_code_cells": 2,
+    "runtime_seconds": 25.6583,
+    "pip_check": "PASSED",
+    "notebook_sha256": "633055be1b7ac9307fedbd809deb7e08854c5a8779200379eac1c940faed3ce0",
+    "local_smoke_sha256": "8d67054bec43071d3d3d4cd54d44ca98752acfc64818da6148078de9d0b7f9ae",
+    "handoff_zip_sha256": "a35ec15fb6d5e7bcae68f669aa41c12659aecc8d15378886fc7308fa58304c78",
+    "handoff_zip_bytes": 172179,
+    "handoff_receipt_sha256": "eb80f6942aefb223092365f132a07f3da4f97b69f33b9fa52c7bc70248a6484a",
+    "reconciliation": {
+      "DBSCAN": {
+        "algorithm_name": "DBSCAN",
+        "failed_windows": 1,
+        "model_config_version": "dbscan-global-dev-v1",
+        "runtime_seconds": 0.1161,
+        "skipped_windows": 0,
+        "successful_windows": 1,
+        "total_aftershocks": 240,
+        "total_candidates": 279,
+        "total_noise": 9,
+        "total_noise_candidates": 9,
+        "total_sequence_members": 251,
+        "total_windows": 2,
+        "windows_processed": 2
+      },
+      "HDBSCAN_GLOBAL": {
+        "algorithm_name": "HDBSCAN_GLOBAL",
+        "failed_windows": 2,
+        "model_config_version": "hdbscan-global-dev-v1",
+        "runtime_seconds": 0.0017,
+        "skipped_windows": 0,
+        "successful_windows": 0,
+        "total_aftershocks": 0,
+        "total_candidates": 279,
+        "total_noise": 108,
+        "total_noise_candidates": 108,
+        "total_sequence_members": 0,
+        "total_windows": 2,
+        "windows_processed": 2
+      },
+      "WINDOW": {
+        "algorithm_name": "WINDOW",
+        "failed_windows": 0,
+        "model_config_version": "window-baseline-v1",
+        "runtime_seconds": 0.0,
+        "skipped_windows": 0,
+        "successful_windows": 2,
+        "total_aftershocks": 255,
+        "total_candidates": 279,
+        "total_noise": 0,
+        "total_noise_candidates": 0,
+        "total_sequence_members": 257,
+        "total_windows": 2,
+        "windows_processed": 2
+      }
+    }
+  },
+  "local_exp03_adaptive_inspection": {
+    "notebook_status": "RESTART_RUN_ALL_PASSED",
+    "local_smoke_status": "PASSED",
+    "colab_migration_allowed": true,
+    "fresh_kernel_acceptance": true,
+    "executed_code_cells": 5,
+    "runtime_seconds": 5.2503,
+    "python_version": "3.12.10",
+    "runner_mode": "nbclient",
+    "notebook_sha256": "607fa092987af81d627adb3fb619b5385a4dca1f4baf8b51abc82085550e99ab",
+    "experiment_run_id": "pilot_run_1a7b6edb9bb94ccf9caaac99e124f2b5",
+    "resolved_unique_aftershocks": 0,
+    "ambiguous_candidates_count": 0,
+    "nested_mainshocks_count": 0,
+    "inspection_report_sha256": "e18ba904739f27698b74231a48d97f65232db26e1a5620e08559f67ff56a2643"
+  },
+  "cloud_colab_session": {
+    "status": "COLAB_HARNESS_PASSED",
+    "runtime_kind": "GOOGLE_COLAB",
+    "runtime_type": "CPU",
+    "host_system": "Linux",
+    "host_runtime_probe_module": "/usr/local/lib/python3.13/dist-packages/google/colab/__init__.py",
+    "python_version": "3.13.18",
+    "created_at_utc": "2026-11-17T02:27:41.532375+00:00",
+    "isolated": true,
+    "pip_check": "PASSED",
+    "installed_package_count": 108,
+    "direct_packages": {
+      "hdbscan": "0.8.40",
+      "ipykernel": "6.30.1",
+      "jupyterlab": "4.4.7",
+      "matplotlib": "3.10.0",
+      "nbclient": "0.10.2",
+      "nbformat": "5.10.4",
+      "numpy": "2.2.2",
+      "pandas": "2.2.3",
+      "pip": "25.3",
+      "pyarrow": "21.0.0",
+      "scikit-learn": "1.6.1",
+      "scipy": "1.15.1"
+    },
+    "notebook_executed": "notebooks/exp_01_colab_bootstrap.ipynb",
+    "notebook_source_sha256": "5fba9b14481173aecad624042b3a3a3d51b24b2b2d16298e6f1b2808dfd189f1",
+    "executed_notebook_bytes": 67307,
+    "executed_notebook_sha256": "e28fb1d77a97a9f39a5e87b8504bd2729ff8e0f76a06ba3a8c7476bd251b9ae0",
+    "executed_code_cells": 4,
+    "error_outputs": 0,
+    "output_zip_bytes": 70913,
+    "output_zip_sha256": "85c2b8769781edb89d4147d4c3def61e38b4864793b706d3a8154c98f0c8077b",
+    "output_zip_entries": 25,
+    "colab_report_sha256": "d64d1ba58940f08bb5a5d4d98b59f06d58754efba29c57a07448b720ae42a27c",
+    "output_checksums_sha256": "9d9faf9c1170ef2cce4788dbf4fe65dfd097e242f7fde589595363a116fa8746",
+    "parity": {
+      "DBSCAN": {
+        "atol": 1e-08,
+        "mainshocks": 2,
+        "memberships": 279,
+        "rtol": 1e-06,
+        "status": "PASSED"
+      },
+      "HDBSCAN_GLOBAL": {
+        "atol": 1e-08,
+        "mainshocks": 2,
+        "memberships": 279,
+        "rtol": 1e-06,
+        "status": "PASSED"
+      },
+      "WINDOW": {
+        "atol": 1e-08,
+        "mainshocks": 2,
+        "memberships": 279,
+        "rtol": 1e-06,
+        "status": "PASSED"
+      }
+    },
+    "independent_host_parity_recheck_passed": true
+  },
+  "drive_handoff": {
+    "folder_id": "1jjyh_FfpIlcPb6y5n58Ssi7q0X0Ns6zb",
+    "acl_audit": {
+      "objects_audited": 5,
+      "permission_types": [
+        "user"
+      ],
+      "anyone_count": 0,
+      "domain_count": 0,
+      "sensitive_env_or_keys_uploaded": false,
+      "personal_emails_redacted": true
+    },
+    "artifacts": {
+      "ThanhTris_exp_01_colab_bootstrap.ipynb": {
+        "drive_id": "1Jb9uZufANHdsnn5ZxpayWyIwLIvQoeaF",
+        "sha256": "e28fb1d77a97a9f39a5e87b8504bd2729ff8e0f76a06ba3a8c7476bd251b9ae0",
+        "bytes": 67307,
+        "url": "https://colab.research.google.com/drive/1Jb9uZufANHdsnn5ZxpayWyIwLIvQoeaF"
+      },
+      "exp01-colab-handoff.zip": {
+        "drive_id": "1v-x9FrvDWtQctlmz8JugB1HGwjz1w8BV",
+        "sha256": "a35ec15fb6d5e7bcae68f669aa41c12659aecc8d15378886fc7308fa58304c78",
+        "bytes": 172179,
+        "url": "https://drive.google.com/file/d/1v-x9FrvDWtQctlmz8JugB1HGwjz1w8BV/view?usp=drivesdk"
+      },
+      "exp01-colab-output.zip": {
+        "drive_id": "1sD_UJOeBztHTZNDcrg2zuNua1UxuRLau",
+        "sha256": "85c2b8769781edb89d4147d4c3def61e38b4864793b706d3a8154c98f0c8077b",
+        "bytes": 70913,
+        "url": "https://drive.google.com/file/d/1sD_UJOeBztHTZNDcrg2zuNua1UxuRLau/view?usp=drivesdk"
+      },
+      "handoff-receipt.json": {
+        "drive_id": "1bv5UKh7NSh86YfBpMV-U8jGJxUt8aVAW",
+        "sha256": "eb80f6942aefb223092365f132a07f3da4f97b69f33b9fa52c7bc70248a6484a",
+        "bytes": 1366,
+        "url": "https://drive.google.com/file/d/1bv5UKh7NSh86YfBpMV-U8jGJxUt8aVAW/view?usp=drivesdk"
+      }
+    },
+    "folder_url": "https://drive.google.com/drive/folders/1jjyh_FfpIlcPb6y5n58Ssi7q0X0Ns6zb"
+  },
+  "remaining_gates": {
+    "exp02_official_reproduction": "Pending official baseline reproduction run on exported DAT-03 collection",
+    "exp03_official_adaptive": "Pending official adaptive reproduction bundle and Colab session after EXP-02 official",
+    "sec01_acl_and_roster": "ACL cleanup (anyone/writer removal on shared parent paths if any) and final security audit remain under PR #119"
+  }
+}
