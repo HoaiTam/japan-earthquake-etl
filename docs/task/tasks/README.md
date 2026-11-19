@@ -26,12 +26,13 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 **17/11 — DAT-03 Done:** đã đối chiếu catalog288tháng, Gold Published/rerun,
 hai official collections EXPORTED và receipt thật cùng kitv4 trên ba máy.
 [Đối chiếu acceptance](../../evidence/DAT-03_FINAL_ACCEPTANCE_20261116.md).
-Hiện 72/81 Done, 2 Needs Update, 6 Backlog, 1 In Progress sau nghiệm thu
+Hiện 73/81 Done, 1 Needs Update, 6 Backlog, 1 In Progress sau nghiệm thu
 [EXP-02](../../evidence/EXP-02_OFFICIAL_REPRODUCTION.md),
 [EXP-03](../../evidence/EXP-03_OFFICIAL_REPRODUCTION.md) và
 [EXP-04](../../evidence/EXP-04_OFFICIAL_REPRODUCTION.md). EXP-04 phát hành rule
 v2 sau khi đối soát cả hai upstream; EXP-03 adaptive shard chỉ đạt readback.
-Các mốc bên dưới giữ lịch sử, không thay scientific approval hoặc trạng thái SEC-01.
+SEC-01 Done trong phạm vi đồ án: [đối soát và ngoại lệ ACL 19/11](../../evidence/SEC-01_CLOUD_20261119.md).
+Các mốc bên dưới giữ lịch sử, không thay scientific approval.
 
 **17/11 — OPS-01 Done (HoaiTam):** backup13bảng/77objects/14artifacts và
 restore prefix/namespace/DB mới; Trino signatures/rerun/ML joins, Airflow
@@ -442,4 +443,4 @@ và portable integration/full catalog/official export đã qua actual acceptance
 | [QA-03](./QA-03.md) - Kiểm thử JMA historical backfill | 5 | Historical backfill | Core | P0 | 5h | Done |
 | [QA-04](./QA-04.md) - Test failure và recovery theo tầng | 5 | Failure recovery | Core | P0 | 4h | Done |
 | [QA-05](./QA-05.md) - Profile dữ liệu lịch sử và tài nguyên local | 8 | Performance | Stretch | P2 | 4h | Done |
-| [SEC-01](./SEC-01.md) - Review secret và bề mặt truy cập | 4 | Security | Core | P1 | 4h | Needs Update |
+| [SEC-01](./SEC-01.md) - Review secret và bề mặt truy cập | 4 | Security | Core | P1 | 4h | Done |
