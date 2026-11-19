@@ -1,0 +1,46 @@
+DEFINE
+    MEASURE 'FactEarthquakeEvents'[Total Earthquakes] =
+        COALESCE ( DISTINCTCOUNT ( 'FactEarthquakeEvents'[canonical_event_id] ), 0 )
+    MEASURE 'FactEarthquakeEvents'[Average Magnitude] =
+        AVERAGE ( 'FactEarthquakeEvents'[magnitude] )
+    MEASURE 'FactEarthquakeEvents'[Maximum Magnitude] =
+        MAX ( 'FactEarthquakeEvents'[magnitude] )
+    MEASURE 'FactEarthquakeEvents'[Average Depth (km)] =
+        AVERAGE ( 'FactEarthquakeEvents'[depth_km] )
+    MEASURE 'FactEarthquakeEvents'[Strong Earthquakes] =
+        CALCULATE ( [Total Earthquakes], KEEPFILTERS ( 'FactEarthquakeEvents'[magnitude] >= 5 ) )
+    MEASURE 'FactEarthquakeEvents'[Tsunami Flagged] =
+        CALCULATE ( [Total Earthquakes], KEEPFILTERS ( 'FactEarthquakeEvents'[tsunami_flag] == TRUE () ) )
+    MEASURE 'FactEarthquakeEvents'[Intensity Reported] =
+        CALCULATE (
+            [Total Earthquakes],
+            KEEPFILTERS (
+                FILTER (
+                    VALUES ( 'FactEarthquakeEvents'[max_intensity_code] ),
+                    VAR Code = LOWER ( TRIM ( 'FactEarthquakeEvents'[max_intensity_code] ) )
+                    RETURN LEN ( Code ) > 0 && Code <> "none"
+                )
+            )
+        )
+    MEASURE 'FactEarthquakeEvents'[USGS Only] =
+        CALCULATE ( [Total Earthquakes], KEEPFILTERS ( 'FactEarthquakeEvents'[source_coverage_code] = "USGS_ONLY" ) )
+    MEASURE 'FactEarthquakeEvents'[JMA Only] =
+        CALCULATE ( [Total Earthquakes], KEEPFILTERS ( 'FactEarthquakeEvents'[source_coverage_code] = "JMA_ONLY" ) )
+    MEASURE 'FactEarthquakeEvents'[USGS and JMA] =
+        CALCULATE ( [Total Earthquakes], KEEPFILTERS ( 'FactEarthquakeEvents'[source_coverage_code] = "USGS_JMA" ) )
+    MEASURE 'MetadataFreshness'[Gold Publication] =
+        SELECTEDVALUE ( 'MetadataFreshness'[publication_id] )
+    MEASURE 'MetadataFreshness'[Data Freshness (UTC)] =
+        MAX ( 'MetadataFreshness'[data_freshness_max_event_utc] )
+    MEASURE 'MetadataFreshness'[Report Refreshed (UTC)] =
+        MAX ( 'MetadataFreshness'[report_refreshed_at_utc] )
+EVALUATE
+    ROW (
+        "total", [Total Earthquakes], "avg_magnitude", [Average Magnitude],
+        "max_magnitude", [Maximum Magnitude], "avg_depth_km", [Average Depth (km)],
+        "strong", [Strong Earthquakes], "tsunami", [Tsunami Flagged],
+        "intensity_reported", [Intensity Reported], "usgs_only", [USGS Only],
+        "jma_only", [JMA Only], "both", [USGS and JMA],
+        "publication_id", [Gold Publication], "freshness_utc", [Data Freshness (UTC)],
+        "report_refreshed_at_utc", [Report Refreshed (UTC)]
+    )
