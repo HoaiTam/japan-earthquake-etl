@@ -2,8 +2,8 @@
 
 Kết quả pilot giữ nhãn DEVELOPMENT_ONLY. Luồng official ghim EXP-04 trên main,
 hai cross-check và đúng sáu shard baseline replay cùng hai shard adaptive.
-SQL readback hiện PENDING. Chưa thấy bundle đúng pin trong staging được kiểm
-tra, chưa có receipt import cho cohort này và Trino local chưa chạy.
+SQL readback official còn PENDING. Chưa có đủ tám bundle và receipt import
+đúng pin để chạy đối soát trên Trino.
 
 1. Nhận bundle đúng run ID và SHA từ owner. Xác minh layout theo shard. Dùng
    receipt CANDIDATE đã có hoặc import tuần tự với cấu hình và namespace QA
@@ -29,4 +29,4 @@ trên các snapshot. Chỉ đủ tám shard mới ghi VERIFIED toàn cohort. Met
 khoa học riêng giữ nguồn EXP-04 đã pin.
 
 Kiểm hồi quy offline bằng make test-mli04. Nghiệm thu runtime cần evidence
-thật và vẫn chờ phần adaptive overlap của [MLI-03](../task/tasks/MLI-03.md#follow-up--import-adaptive-overlap-xuyên-shard-exp-03--pr-141).
+thật và vẫn chờ phần adaptive overlap của [MLI-03](../task/tasks/MLI-03.md).

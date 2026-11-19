@@ -90,7 +90,7 @@ Task cũ chưa làm giữ Backlog; không đổi hard dependencies để pilot �
 - **Trạng thái:** In Progress
 - **Assignee:** ThanhTris
 - **Reviewer:** unassigned
-- **Đối soát official:** [Runbook đọc lại snapshot](../../runbooks/MLI-04_OFFICIAL_READBACK.md). Đã ghim cohort REPRODUCTION theo EXP-04. Runtime còn PENDING vì thiếu bundle/receipt đúng pin và Trino chưa sẵn sàng. Adaptive overlap xuyên shard tiếp tục thuộc MLI-03.
+- **Đối soát official:** [Runbook đọc lại snapshot](../../runbooks/MLI-04_OFFICIAL_READBACK.md). Đã ghim cohort REPRODUCTION theo EXP-04. Runtime còn PENDING vì thiếu tám bundle và receipt đúng pin, gồm sáu shard baseline và hai shard adaptive. Adaptive overlap xuyên shard tiếp tục thuộc [MLI-03](./MLI-03.md). [Review #144](https://github.com/HoaiTam/japan-earthquake-etl/pull/144#issuecomment-7003763560).
 - **Evidence / PR:** Triển khai Trino ML views (`sql/ml/`), verification queries (`sql/ml/ml_verification_queries.sql`), static report generator (`scripts/generate-experiment-report.py`), data dictionary (`docs/specs/ML_REPORT_DATA_DICTIONARY.md`), báo cáo tĩnh mẫu (`docs/evidence/MLI-04_STATIC_REPORT.md`), và regression test suite (`tests/test_mli04_views_and_report.py`) trên branch `feat/mli-04-trino-views-static-report` ([PR #124](https://github.com/HoaiTam/japan-earthquake-etl/pull/124)). Giữ `In Progress` chờ nghiệm thu SQL readback và count parity chính thức trên exact snapshot khi hoàn tất export official.
 - **Kỹ năng phù hợp:** Trino SQL, reproducible reporting, data validation
 
