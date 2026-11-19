@@ -41,5 +41,6 @@ EVALUATE
         "strong", [Strong Earthquakes], "tsunami", [Tsunami Flagged],
         "intensity_reported", [Intensity Reported], "usgs_only", [USGS Only],
         "jma_only", [JMA Only], "both", [USGS and JMA],
-        "publication_id", [Gold Publication], "freshness_utc", [Data Freshness (UTC)]
+        "publication_id", [Gold Publication], "freshness_utc", [Data Freshness (UTC)],
+        "report_refreshed_at_utc", [Report Refreshed (UTC)]
     )

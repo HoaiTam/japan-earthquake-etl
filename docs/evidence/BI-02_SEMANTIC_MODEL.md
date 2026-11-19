@@ -23,9 +23,14 @@ trả BLANK. Chấn độ bỏ mã null, rỗng và `none`.
    measures đã lưu trong model, chạy riêng phần từ `EVALUATE` đến cuối file.
    Với kịch bản có lọc, bọc biểu thức `ROW(...)` sau `EVALUATE` bằng
    `CALCULATETABLE` và thêm điều kiện trên các cột bên dưới.
-3. Resolve cùng publication trong Trino, dùng đúng serving view và điền cùng
-   giá trị vào CTE `filters` của file SQL. So count chính xác và các giá trị
-   số thực tới 6 chữ số thập phân. SQL NULL phải tương ứng DAX BLANK.
+3. Trong SQL, đặt đúng publication ID và serving view đã resolve từ
+   `ActiveBundle`, rồi điền cùng bộ lọc vào CTE `filters`. Trino chỉ trả KPI
+   khi tìm thấy publication `PASSED` cho đúng view. Nếu SQL trả 0 dòng, kiểm
+   lại pin và trạng thái publication trước khi đối soát. So count chính xác,
+   KPI số thực tới 6 chữ số thập phân và SQL NULL với DAX BLANK.
+4. So publication ID và timestamp sự kiện mới nhất theo UTC. Cho phép lệch
+   tối đa một bước Date/Time của
+   Power BI, khoảng 3,33 ms. Ghi riêng `Report Refreshed (UTC)` của bản import.
 
 ## Kết quả QA
 
@@ -45,6 +50,23 @@ Kịch bản lọc dùng `DimDate[date_key]`, `DimRegion[region_key]`,
 khớp cả ba kịch bản. Publication QA live chỉ chứa USGS; regression SQL
 dùng thêm fixture SQLite có 9 canonical events gồm 2 USGS_ONLY, 1 JMA_ONLY,
 6 USGS_JMA. Tổng ba nhóm là 9 và lọc USGS_JMA cho count 6.
+
+### Publication và freshness
+
+Ngày 19/11/2026, chạy SQL trên Trino 483 và DAX trên các measures đã lưu
+trong model Power BI Desktop đang mở. Cả ba ca khớp publication và KPI.
+
+| Filter context | Publication SQL / DAX | Trino `max_event_time_utc` | Power BI `Data Freshness (UTC)` |
+|---|---|---|---|
+| Toàn publication | `pub-202302-001` / `pub-202302-001` | `2023-01-03T09:51:59.188000Z` | `2023-01-03T09:51:59.186667Z` |
+| Tháng 01/2023, UNKNOWN, M4_TO_LT5, SHALLOW, USGS_ONLY | `pub-202302-001` / `pub-202302-001` | `2023-01-03T09:51:59.188000Z` | `2023-01-03T09:51:59.186667Z` |
+| Tháng JST 02/2023, 0 sự kiện | `pub-202302-001` / `pub-202302-001` | `2023-01-03T09:51:59.188000Z` | `2023-01-03T09:51:59.186667Z` |
+
+Sai lệch 1,333 ms ở cả ba ca nằm trong độ phân giải Date/Time của Power BI.
+[Kiểu dữ liệu Date/Time của Power BI](https://learn.microsoft.com/en-us/power-bi/transform-model/desktop-data-types#datetime-types)
+
+`Report Refreshed (UTC)` đọc riêng từ lần import đã lưu trong model
+là `2026-11-15T17:25:51.480Z` ở cả ba ca.
 
 Các bước kiểm tra refresh bị từ chối và đối soát báo cáo hoàn chỉnh thuộc
 [BI-05 — Thiết lập refresh và đối soát BI](../task/tasks/BI-05.md).

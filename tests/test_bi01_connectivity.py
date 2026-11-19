@@ -108,16 +108,20 @@ class TestPowerBiConnectivity(unittest.TestCase):
 
     def test_bi02_reconciliation_preserves_source_grain_and_missing_values(self) -> None:
         sql = (POWERBI_DIR / "kpi_reconciliation.sql").read_text(encoding="utf-8")
-        sql = sql.replace("iceberg.gold.", "")
+        sql = sql.replace("FROM iceberg.gold.", "FROM ")
         row = self.conn.execute(sql).fetchone()
+        expected_metadata = ("pub-202302-001", "2023-02-05T22:15:00Z")
         self.assertEqual(row["total"], 9)
+        self.assertEqual((row["publication_id"], row["max_event_time_utc"]), expected_metadata)
         self.assertEqual((row["usgs_only"], row["jma_only"], row["both"]), (2, 1, 6))
 
         both = sql.replace(
             "CAST(NULL AS VARCHAR) AS source_coverage_code",
             "CAST('USGS_JMA' AS VARCHAR) AS source_coverage_code",
         )
-        self.assertEqual(self.conn.execute(both).fetchone()["total"], 6)
+        row = self.conn.execute(both).fetchone()
+        self.assertEqual(row["total"], 6)
+        self.assertEqual((row["publication_id"], row["max_event_time_utc"]), expected_metadata)
 
         empty = sql.replace(
             "CAST(NULL AS INTEGER) AS start_date_key_jst",
@@ -125,9 +129,24 @@ class TestPowerBiConnectivity(unittest.TestCase):
         )
         row = self.conn.execute(empty).fetchone()
         self.assertEqual(row["total"], 0)
+        self.assertEqual((row["publication_id"], row["max_event_time_utc"]), expected_metadata)
         self.assertIsNone(row["avg_magnitude"])
         self.assertIsNone(row["max_magnitude"])
         self.assertIsNone(row["avg_depth_km"])
+
+    def test_bi02_reconciliation_rejects_unverified_or_mismatched_publication(self) -> None:
+        sql = (POWERBI_DIR / "kpi_reconciliation.sql").read_text(encoding="utf-8")
+        sql = sql.replace("FROM iceberg.gold.", "FROM ")
+
+        self.assertIsNone(self.conn.execute(sql.replace("pub-202302-001", "missing")).fetchone())
+        self.conn.execute("UPDATE publication_status SET serving_view = 'different_bundle'")
+        self.assertIsNone(self.conn.execute(sql).fetchone())
+
+        self.conn.execute(
+            "UPDATE publication_status SET serving_view = ?, verify_status = 'FAILED'",
+            ("iceberg.gold.v_bndl20230201sha256test01_earthquake_event_current",),
+        )
+        self.assertIsNone(self.conn.execute(sql).fetchone())
 
     def test_power_query_files_security_and_no_direct_parquet(self) -> None:
         """Verifies that all M scripts exist, use ODBC, and contain no credentials or parquet paths."""
