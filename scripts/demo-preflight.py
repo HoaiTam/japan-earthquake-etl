@@ -27,6 +27,7 @@ VALID_ROSTER = ("HoaiTam", "ThanhTris", "rosy179")
 REQUIRED_DAT03_SPLITS = ("REPRODUCTION", "EXTENSION")
 REQUIRED_ML_ALGORITHMS = frozenset(("WINDOW", "DBSCAN", "HDBSCAN_GLOBAL", "HDBSCAN_ADAPTIVE"))
 ML_SNAPSHOT_FIELDS = ("experiment_snapshot_id", "membership_snapshot_id", "summary_snapshot_id")
+ML_BUNDLE_CONTRACT = "spark/src/main/resources/ml/result-bundle-v1.json"
 REQUIRED_QA01_TABLES = (
     "event_current",
     "event_source_bridge",
@@ -570,6 +571,39 @@ def _pinned_official_json(root, pin):
     return result
 
 
+def _extension_bundle_fingerprint(root, case, pin, model_config_version):
+    marker_path = case.get("success_marker_path")
+    if not isinstance(marker_path, str) or Path(marker_path).name != "_SUCCESS.json":
+        raise ValueError("DEMO_MLQ01_EXTENSION_MARKER")
+    # EXP-05 pins the original artifact bytes, including the line endings.
+    raw = _resolve_repo_path(root, marker_path).read_bytes()
+    if hashlib.sha256(raw).hexdigest() != pin["success_marker_sha256"]:
+        raise ValueError("DEMO_MLQ01_EXTENSION_MARKER_SHA")
+    marker = json.loads(raw)
+    contract = _load_json_strict(_resolve_repo_path(root, ML_BUNDLE_CONTRACT))
+    identity = ("dataset_id", "experiment_run_id", "algorithm_name")
+    if (not isinstance(marker, dict) or marker.get("status") != "COMPLETED"
+            or marker.get("schema_version") != contract["schema_version"]
+            or any(marker.get(field) != case[field] for field in identity)
+            or not isinstance(model_config_version, str) or not model_config_version.strip()
+            or marker.get("model_config_version") != model_config_version):
+        raise ValueError("DEMO_MLQ01_EXTENSION_MARKER")
+    checksums = marker.get("checksums")
+    required = set(contract["required_artifacts"])
+    if (not isinstance(checksums, dict) or not required.issubset(checksums)
+            or any(name not in required
+                   and not re.fullmatch(r"optional-model-artifacts/[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)?", name)
+                   for name in checksums)
+            or any(not isinstance(digest, str) or not re.fullmatch(r"[a-f0-9]{64}", digest)
+                   for digest in checksums.values())):
+        raise ValueError("DEMO_MLQ01_EXTENSION_MARKER_CHECKSUMS")
+
+    # ResultBundleContract uses Java TreeMap.toString() for the checksums.
+    checksums_input = "{" + ", ".join(f"{name}={checksums[name]}" for name in sorted(checksums)) + "}"
+    fields = [marker[field] for field in identity]
+    return hashlib.sha256("\n".join([*fields, model_config_version, checksums_input]).encode("utf-8")).hexdigest()
+
+
 def _validate_mlq_extension(root, case, report, exp05_sha):
     if not isinstance(case, dict) or case.get("exp05_sha256_lf") != exp05_sha:
         raise ValueError("DEMO_MLQ01_EXTENSION_PIN")
@@ -588,7 +622,11 @@ def _validate_mlq_extension(root, case, report, exp05_sha):
     if (not isinstance(import_pin, dict) or not isinstance(import_pin.get("path"), str)
             or not isinstance(import_pin.get("sha256_lf"), str)):
         raise ValueError("DEMO_MLQ01_EXTENSION_IMPORT")
+    model_version = report["algorithm_config_pins"][algo]["model_config_version"]
+    fingerprint = _extension_bundle_fingerprint(root, case, pin, model_version)
     receipt = _pinned_official_json(root, import_pin)
+    if receipt.get("result_bundle_sha256") != fingerprint:
+        raise ValueError("DEMO_MLQ01_EXTENSION_BUNDLE_FINGERPRINT")
     scope = receipt.get("collection_scope")
     counts = receipt.get("readback")
     namespace = receipt.get("namespace")
@@ -598,6 +636,7 @@ def _validate_mlq_extension(root, case, report, exp05_sha):
             or not isinstance(scope, dict) or scope.get("scope") != "WHOLE_WINDOW_SHARD"
             or scope.get("collection_id") != dataset["collection_id"] or scope.get("shard_id") != shard
             or not isinstance(counts, dict)
+            or type(counts.get("experiment_run")) is not int or counts["experiment_run"] != 1
             or type(counts.get("sequence_membership")) is not int
             or counts["sequence_membership"] != pin["membership_row_count"]
             or type(counts.get("sequence_summary")) is not int
@@ -607,6 +646,7 @@ def _validate_mlq_extension(root, case, report, exp05_sha):
             "collection_id": case["collection_id"], "gold_snapshot_id": str(dataset["gold_snapshot_id"]),
             "algorithm_name": algo, "shard_id": shard, "namespace": namespace,
             "success_marker_sha256": pin["success_marker_sha256"], "import_receipt_sha256_lf": import_pin["sha256_lf"],
+            "result_bundle_sha256": fingerprint,
             "snapshots": {field: _normalize_int64_snapshot(receipt.get(field), field) for field in ML_SNAPSHOT_FIELDS}}
 
 

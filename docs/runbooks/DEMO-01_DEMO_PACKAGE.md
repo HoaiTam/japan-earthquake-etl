@@ -92,11 +92,17 @@ và HDBSCAN_ADAPTIVE. Có thể dùng bốn run trong tám run đã đối soát
 
 Trường `extension` ghi `exp05_sha256_lf`, `dataset_id`, `collection_id`,
 `gold_snapshot_id`, `algorithm_name`, `shard_id`, `experiment_run_id`,
-`success_marker_sha256` và `import_receipt` (object có `path` và `sha256_lf`).
-Chọn một shard đại diện từ [EXP-05](../evidence/EXP-05_EXTENSION_EVALUATION.json).
-Receipt MLI-03 của shard phải là CANDIDATE, khớp identity, có count đọc lại
-và ba snapshot IDs. Preflight kiểm các pin offline. Walkthrough dùng dữ liệu
-và truy vấn đã nghiệm thu ở MLQ-01.
+`success_marker_sha256`, `success_marker_path` và `import_receipt` (object
+có `path` và `sha256_lf`). Chọn một shard đại diện từ
+[EXP-05](../evidence/EXP-05_EXTENSION_EVALUATION.json). Đặt bản sao nguyên bytes
+của `_SUCCESS.json` trong staging dưới thư mục repo và dùng đường dẫn tương đối,
+để SHA-256 khớp đúng pin của EXP-05 trên cả Windows và Linux.
+
+Receipt MLI-03 của shard phải là CANDIDATE, khớp identity và ba snapshot IDs.
+Preflight tính `result_bundle_sha256` từ marker theo ResultBundleContract,
+đối chiếu count membership/summary với EXP-05 và yêu cầu
+`readback.experiment_run = 1`. Walkthrough dùng dữ liệu và truy vấn đã
+nghiệm thu ở MLQ-01.
 
 Trường `checks` xác nhận `gold_to_report_lineage`, `count_parity`,
 `reject_without_candidate`, `rerun_no_duplicate` và `extension_rule_preserved`.

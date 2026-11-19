@@ -464,8 +464,33 @@ class DemoOfficialEvidenceTests(unittest.TestCase):
         algo, shard = "WINDOW", "shard_00000"
         extension_data = docs["EXP-05"]["dataset"]
         pin = docs["EXP-05"]["algorithm_comparisons"][algo]["bundle_verification"]["shard_verifications"][shard]
+        model_version = docs["EXP-05"]["algorithm_config_pins"][algo]["model_config_version"]
+        # Synthetic marker and pin. Keep insertion order different from Java TreeMap order.
+        checksums = {
+            "sequence_summary.parquet": "5" * 64,
+            "requirements-lock.txt": "4" * 64,
+            "optional-model-artifacts/weights.json": "6" * 64,
+            "memberships.parquet": "3" * 64,
+            "experiment_metrics.json": "2" * 64,
+            "experiment_config.json": "1" * 64,
+        }
+        marker = {
+            "schema_version": "1.0", "status": "COMPLETED",
+            "dataset_id": extension_data["dataset_id"], "experiment_run_id": pin["experiment_run_id"],
+            "algorithm_name": algo, "model_config_version": model_version, "checksums": checksums,
+        }
+        marker_bytes = (json.dumps(marker) + "\n").encode("utf-8")
+        pin["success_marker_sha256"] = hashlib.sha256(marker_bytes).hexdigest()
+        canonical_checksums = (
+            "{experiment_config.json=" + "1" * 64 + ", experiment_metrics.json=" + "2" * 64
+            + ", memberships.parquet=" + "3" * 64 + ", optional-model-artifacts/weights.json=" + "6" * 64
+            + ", requirements-lock.txt=" + "4" * 64 + ", sequence_summary.parquet=" + "5" * 64 + "}"
+        )
+        fingerprint = hashlib.sha256("\n".join((
+            marker["dataset_id"], marker["experiment_run_id"], algo, model_version, canonical_checksums,
+        )).encode("utf-8")).hexdigest()
         extension = {key: extension_data[key] for key in ("dataset_id", "collection_id", "gold_snapshot_id")}
-        extension.update(algorithm_name=algo, shard_id=shard,
+        extension.update(algorithm_name=algo, shard_id=shard, success_marker_path="extension/_SUCCESS.json",
                          experiment_run_id=pin["experiment_run_id"], success_marker_sha256=pin["success_marker_sha256"],
                          exp05_sha256_lf=refs["EXP-05"]["sha256_lf"],
                          import_receipt={"path": "extension-import.json", "sha256_lf": "c" * 64})
@@ -476,27 +501,42 @@ class DemoOfficialEvidenceTests(unittest.TestCase):
                                                    "rerun_no_duplicate", "extension_rule_preserved"), True),
                           "runs": rep_runs, "extension": extension}
         manifest.update(package_status="PASS_OFFICIAL_READY", official_release_ready=True, pending_official_gates=[])
-        by_path = {pin["path"]: docs[task] for task, pin in refs.items()}
+        by_path = {value["path"]: docs[task] for task, value in refs.items()}
+        by_path["extension/_SUCCESS.json"] = marker_bytes
         by_path["extension-import.json"] = {
             "experiment_run_id": extension["experiment_run_id"],
             "dataset_id": extension["dataset_id"],
             "algorithm_name": algo,
             "namespace": "iceberg.mlq_qa",
             "experiment_status": "CANDIDATE",
+            "result_bundle_sha256": fingerprint,
             "collection_scope": {
                 "scope": "WHOLE_WINDOW_SHARD", "collection_id": extension["collection_id"], "shard_id": shard,
             },
             "experiment_snapshot_id": 51, "membership_snapshot_id": 52, "summary_snapshot_id": 53,
-            "readback": {"sequence_membership": pin["membership_row_count"], "sequence_summary": pin["summary_row_count"]},
+            "readback": {"sequence_membership": pin["membership_row_count"],
+                         "sequence_summary": pin["summary_row_count"], "experiment_run": 1},
         }
         return manifest, by_path
 
     def _run_ready_fixture(self, manifest, by_path):
         from unittest.mock import patch
+        resolve_repo_path = preflight._resolve_repo_path
         with tempfile.TemporaryDirectory() as folder:
-            path = Path(folder) / "manifest.json"
+            temp_root = Path(folder)
+            path = temp_root / "manifest.json"
             path.write_text(json.dumps(manifest), encoding="utf-8")
-            with patch.object(preflight, "_pinned_official_json", side_effect=lambda root, pin: by_path[pin["path"]]):
+            relative_marker = "extension/_SUCCESS.json"
+            if relative_marker in by_path:
+                marker = temp_root / relative_marker
+                marker.parent.mkdir()
+                marker.write_bytes(by_path[relative_marker])
+
+            def resolve(root, relative):
+                return resolve_repo_path(temp_root if relative == relative_marker else root, relative)
+
+            with (patch.object(preflight, "_pinned_official_json", side_effect=lambda root, pin: by_path[pin["path"]]),
+                  patch.object(preflight, "_resolve_repo_path", side_effect=resolve)):
                 return preflight.run_preflight(path)
 
     def test_v2_accepts_four_representative_runs_and_pinned_extension(self):
@@ -507,6 +547,40 @@ class DemoOfficialEvidenceTests(unittest.TestCase):
         self.assertEqual(4, len(mlq["run_ids"]))
         self.assertEqual({"WINDOW", "DBSCAN", "HDBSCAN_GLOBAL", "HDBSCAN_ADAPTIVE"}, set(mlq["algorithms"]))
         self.assertEqual("52", mlq["extension"]["snapshots"]["membership_snapshot_id"])
+        self.assertEqual(
+            documents["extension-import.json"]["result_bundle_sha256"], mlq["extension"]["result_bundle_sha256"],
+        )
+
+    def test_v2_rejects_missing_or_wrong_import_fingerprint(self):
+        for value in (None, "not-a-bundle-sha", "0" * 64):
+            with self.subTest(value=value):
+                manifest, documents = self._ready_fixture()
+                receipt = documents["extension-import.json"]
+                if value is None:
+                    del receipt["result_bundle_sha256"]
+                else:
+                    receipt["result_bundle_sha256"] = value
+                with self.assertRaisesRegex(ValueError, "DEMO_MLQ01_EXTENSION_BUNDLE_FINGERPRINT"):
+                    self._run_ready_fixture(manifest, documents)
+
+    def test_v2_requires_exactly_one_registry_readback_row(self):
+        for count in (None, 0, 2, True):
+            with self.subTest(count=count):
+                manifest, documents = self._ready_fixture()
+                readback = documents["extension-import.json"]["readback"]
+                if count is None:
+                    del readback["experiment_run"]
+                else:
+                    readback["experiment_run"] = count
+                with self.assertRaisesRegex(ValueError, "DEMO_MLQ01_EXTENSION_IMPORT"):
+                    self._run_ready_fixture(manifest, documents)
+
+    def test_v2_rejects_mutating_even_the_success_marker_line_endings(self):
+        manifest, documents = self._ready_fixture()
+        key = "extension/_SUCCESS.json"
+        documents[key] = documents[key].replace(b"\n", b"\r\n")
+        with self.assertRaisesRegex(ValueError, "DEMO_MLQ01_EXTENSION_MARKER_SHA"):
+            self._run_ready_fixture(manifest, documents)
 
     def test_v2_rejects_one_algorithm_and_missing_adaptive(self):
         for retained in (1, 3):
