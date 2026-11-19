@@ -85,10 +85,22 @@ python -B scripts/demo-preflight.py --local-receipt <DAT03_RECEIPT_DIR>\ThanhTri
 
 Khi chốt, thêm refs MLI-04 và MLQ-01 vào official_evidence với path tương đối
 và sha256_lf. MLI-04 dùng report mli04-readback-v1 VERIFIED đủ tám shard.
-Receipt MLQ-01 PASSED phải ghim SHA LF của MLI-04, dataset và Gold snapshot.
-Trường runs là map run ID → ba snapshot IDs của các run đại diện. Trường checks
-phải xác nhận gold_to_report_lineage, count_parity, reject_without_candidate,
-rerun_no_duplicate và extension_rule_preserved. Giữ scientific_approval=false.
+Receipt MLQ-01 PASSED ghim SHA LF của MLI-04, dataset REPRODUCTION và Gold
+snapshot. Trường `runs` ánh xạ run ID sang ba snapshot IDs khớp report MLI-04.
+Chọn ít nhất một run đại diện cho từng thuật toán WINDOW, DBSCAN, HDBSCAN_GLOBAL
+và HDBSCAN_ADAPTIVE. Có thể dùng bốn run trong tám run đã đối soát.
+
+Trường `extension` ghi `exp05_sha256_lf`, `dataset_id`, `collection_id`,
+`gold_snapshot_id`, `algorithm_name`, `shard_id`, `experiment_run_id`,
+`success_marker_sha256` và `import_receipt` (object có `path` và `sha256_lf`).
+Chọn một shard đại diện từ [EXP-05](../evidence/EXP-05_EXTENSION_EVALUATION.json).
+Receipt MLI-03 của shard phải là CANDIDATE, khớp identity, có count đọc lại
+và ba snapshot IDs. Preflight kiểm các pin offline. Walkthrough dùng dữ liệu
+và truy vấn đã nghiệm thu ở MLQ-01.
+
+Trường `checks` xác nhận `gold_to_report_lineage`, `count_parity`,
+`reject_without_candidate`, `rerun_no_duplicate` và `extension_rule_preserved`.
+Giữ `scientific_approval=false`.
 
 ### B. Checklist vận hành nhanh
 

@@ -395,8 +395,23 @@ class DemoOfficialEvidenceTests(unittest.TestCase):
     def test_v2_uses_official_research_and_keeps_two_runtime_gates(self):
         report = preflight.run_preflight(preflight.CURRENT_MANIFEST)
         self.assertEqual(["MLI-04", "MLQ-01"], [g["task_id"] for g in report["pending_official_gates"]])
-        self.assertEqual(14, report["verified_evidence_count"])
+        self.assertEqual(15, report["verified_evidence_count"])
         self.assertFalse(report["official_release_ready"])
+
+    def test_v2_keeps_old_manifests_pending_without_extension_pin(self):
+        manifest = json.loads(preflight.CURRENT_MANIFEST.read_bytes())
+        del manifest["official_evidence"]["EXP-05"]
+        result = self._run_ready_fixture(
+            manifest, {pin["path"]: preflight._pinned_official_json(ROOT, pin)
+                       for pin in manifest["official_evidence"].values()},
+        )
+        self.assertEqual("PREPARED_PENDING_OFFICIAL_GATES", result["overall_status"])
+        self.assertFalse(result["official_release_ready"])
+
+        manifest, documents = self._ready_fixture()
+        del manifest["official_evidence"]["EXP-05"]
+        with self.assertRaisesRegex(ValueError, "DEMO_MLQ01_EXTENSION_PIN"):
+            self._run_ready_fixture(manifest, documents)
 
     def test_v2_rejects_tampered_hash_false_ready_and_missing_source(self):
         base = json.loads(preflight.CURRENT_MANIFEST.read_bytes())
@@ -417,8 +432,7 @@ class DemoOfficialEvidenceTests(unittest.TestCase):
 
 
 
-    def test_v2_ready_only_when_both_evidence_documents_bind_same_snapshots(self):
-        from unittest.mock import patch
+    def _ready_fixture(self):
         manifest = json.loads(preflight.CURRENT_MANIFEST.read_bytes())
         refs = manifest["official_evidence"]
         docs = {task: preflight._pinned_official_json(ROOT, pin) for task, pin in refs.items()}
@@ -443,22 +457,86 @@ class DemoOfficialEvidenceTests(unittest.TestCase):
                           "status": "VERIFIED", "missing_run_ids": [], "scientific_approval": False,
                           "dataset_id": dataset["dataset_id"], "collection_id": dataset["collection_id"],
                           "exp04_sha256_lf": refs["EXP-04"]["sha256_lf"], "runs": sql_rows}
+        representative = {}
+        for row in sql_rows:
+            representative.setdefault(row["algorithm_name"], row)
+        rep_runs = {row["experiment_run_id"]: dict(row["snapshots"]) for row in representative.values()}
+        algo, shard = "WINDOW", "shard_00000"
+        extension_data = docs["EXP-05"]["dataset"]
+        pin = docs["EXP-05"]["algorithm_comparisons"][algo]["bundle_verification"]["shard_verifications"][shard]
+        extension = {key: extension_data[key] for key in ("dataset_id", "collection_id", "gold_snapshot_id")}
+        extension.update(algorithm_name=algo, shard_id=shard,
+                         experiment_run_id=pin["experiment_run_id"], success_marker_sha256=pin["success_marker_sha256"],
+                         exp05_sha256_lf=refs["EXP-05"]["sha256_lf"],
+                         import_receipt={"path": "extension-import.json", "sha256_lf": "c" * 64})
         docs["MLQ-01"] = {"task_id": "MLQ-01", "status": "PASSED", "scientific_approval": False,
                           "mli04_sha256_lf": refs["MLI-04"]["sha256_lf"], "dataset_id": dataset["dataset_id"],
                           "gold_snapshot_id": dataset["gold_snapshot_id"],
                           "checks": dict.fromkeys(("gold_to_report_lineage", "count_parity", "reject_without_candidate",
                                                    "rerun_no_duplicate", "extension_rule_preserved"), True),
-                          "runs": {sql_rows[0]["experiment_run_id"]: dict(sql_rows[0]["snapshots"])}}
+                          "runs": rep_runs, "extension": extension}
         manifest.update(package_status="PASS_OFFICIAL_READY", official_release_ready=True, pending_official_gates=[])
         by_path = {pin["path"]: docs[task] for task, pin in refs.items()}
+        by_path["extension-import.json"] = {
+            "experiment_run_id": extension["experiment_run_id"],
+            "dataset_id": extension["dataset_id"],
+            "algorithm_name": algo,
+            "namespace": "iceberg.mlq_qa",
+            "experiment_status": "CANDIDATE",
+            "collection_scope": {
+                "scope": "WHOLE_WINDOW_SHARD", "collection_id": extension["collection_id"], "shard_id": shard,
+            },
+            "experiment_snapshot_id": 51, "membership_snapshot_id": 52, "summary_snapshot_id": 53,
+            "readback": {"sequence_membership": pin["membership_row_count"], "sequence_summary": pin["summary_row_count"]},
+        }
+        return manifest, by_path
+
+    def _run_ready_fixture(self, manifest, by_path):
+        from unittest.mock import patch
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / "manifest.json"
             path.write_text(json.dumps(manifest), encoding="utf-8")
             with patch.object(preflight, "_pinned_official_json", side_effect=lambda root, pin: by_path[pin["path"]]):
-                self.assertEqual("PASS_OFFICIAL_READY", preflight.run_preflight(path)["overall_status"])
-                docs["MLQ-01"]["runs"][sql_rows[0]["experiment_run_id"]]["membership_snapshot_id"] = 44
-                with self.assertRaisesRegex(ValueError, "DEMO_MLQ01_RUN_MISMATCH"):
-                    preflight.run_preflight(path)
+                return preflight.run_preflight(path)
+
+    def test_v2_accepts_four_representative_runs_and_pinned_extension(self):
+        manifest, documents = self._ready_fixture()
+        result = self._run_ready_fixture(manifest, documents)
+        self.assertEqual("PASS_OFFICIAL_READY", result["overall_status"])
+        mlq = next(row for row in result["verified_runs"] if row["task_id"] == "MLQ-01")
+        self.assertEqual(4, len(mlq["run_ids"]))
+        self.assertEqual({"WINDOW", "DBSCAN", "HDBSCAN_GLOBAL", "HDBSCAN_ADAPTIVE"}, set(mlq["algorithms"]))
+        self.assertEqual("52", mlq["extension"]["snapshots"]["membership_snapshot_id"])
+
+    def test_v2_rejects_one_algorithm_and_missing_adaptive(self):
+        for retained in (1, 3):
+            with self.subTest(retained=retained):
+                manifest, documents = self._ready_fixture()
+                mlq = documents["mlq01-evidence.json"]
+                valid_runs = {row["experiment_run_id"]: row["algorithm_name"] for row in documents["mli04-evidence.json"]["runs"]}
+                baseline = [(rid, pins) for rid, pins in mlq["runs"].items() if valid_runs[rid] != "HDBSCAN_ADAPTIVE"]
+                mlq["runs"] = dict(baseline[:retained])
+                with self.assertRaisesRegex(ValueError, "DEMO_MLQ01_ALGORITHM_COVERAGE"):
+                    self._run_ready_fixture(manifest, documents)
+
+    def test_v2_rejects_snapshot_drift_and_wrong_extension_lineage(self):
+        for target, field, value, error in (
+            ("run", "membership_snapshot_id", 44, "DEMO_MLQ01_RUN_MISMATCH"),
+            ("extension", "gold_snapshot_id", "44", "DEMO_MLQ01_EXTENSION_PIN"),
+            ("extension", "exp05_sha256_lf", "0" * 64, "DEMO_MLQ01_EXTENSION_PIN"),
+            ("extension", "experiment_run_id", "wrong-run", "DEMO_MLQ01_EXTENSION_PIN"),
+            ("extension", "success_marker_sha256", "0" * 64, "DEMO_MLQ01_EXTENSION_PIN"),
+            ("receipt", "experiment_status", "IMPORT_VALIDATING", "DEMO_MLQ01_EXTENSION_IMPORT"),
+            ("receipt", "membership_snapshot_id", 0, "DEMO_PIN_INVALID_INT64_SNAPSHOT"),
+        ):
+            with self.subTest(target=target, field=field):
+                manifest, documents = self._ready_fixture()
+                mlq = documents["mlq01-evidence.json"]
+                fields = {"run": next(iter(mlq["runs"].values())),
+                          "extension": mlq["extension"], "receipt": documents["extension-import.json"]}
+                fields[target][field] = value
+                with self.assertRaisesRegex(ValueError, error):
+                    self._run_ready_fixture(manifest, documents)
 
 
 if __name__ == "__main__":

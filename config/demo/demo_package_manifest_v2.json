@@ -219,6 +219,10 @@
     "EXP-04": {
       "path": "docs/evidence/EXP-04_OFFICIAL_REPRODUCTION.json",
       "sha256_lf": "0946298b33aa871273071ea2b64e9490a4a63bd639f515a6d0fdf9d9a7fb12b6"
+    },
+    "EXP-05": {
+      "path": "docs/evidence/EXP-05_EXTENSION_EVALUATION.json",
+      "sha256_lf": "7f67e32b8bf4ae4eaa2e1078b501952a5bb88df4cc8e5b467da6570ce23a3f0d"
     }
   }
 }
