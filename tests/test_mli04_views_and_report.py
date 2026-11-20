@@ -1602,6 +1602,17 @@ class PinnedReadbackTests(unittest.TestCase):
         self.assertEqual(64, len(digest))
         self.assertEqual(Counter(dict.fromkeys(READBACK["ALGORITHMS"], 2)), Counter(v[0] for v in pins.values()))
 
+    def test_adaptive_rollup_must_match_pinned_exp03(self):
+        dataset, _, _ = READBACK["official_sources"]()
+        expected = dataset["adaptive_resolution"]
+        self.assertEqual({"raw_post": 99067, "resolved_unique": 88078, "deduplicated_post": 10989}, expected)
+        gate = READBACK["check_adaptive_resolution"]
+        self.assertEqual(expected, gate({"raw_post": 99067, "resolved_unique": 88078}, expected))
+        for counts in ({"raw_post": 99066, "resolved_unique": 88078},
+                       {"raw_post": 99067, "resolved_unique": 88079}):
+            with self.assertRaisesRegex(ValueError, "MLI04_ADAPTIVE_RECONCILIATION"):
+                gate(counts, expected)
+
     def test_shard_queries_pin_each_table_and_reject_wrong_metrics(self):
         rid = "exp_run_example"
         fingerprint = "a" * 64

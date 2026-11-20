@@ -68,14 +68,21 @@ def official_sources(root=ROOT):
             require(source["dataset"][key] == dataset[key], "MLI04_UPSTREAM_DATASET_MISMATCH")
         shards = source["shard_verifications"]
         if task == "exp03":
+            resolution = source["multi_sequence_reconciliation"]
+            dataset["adaptive_resolution"] = {
+                "raw_post": resolution["raw_aftershocks"],
+                "resolved_unique": resolution["resolved_unique_aftershocks"],
+                "deduplicated_post": resolution["aftershocks_deduplicated_count"],
+            }
             shards = {"HDBSCAN_ADAPTIVE": shards}
         for algo, by_shard in shards.items():
             for shard, pin in by_shard.items():
                 rid = pin["experiment_run_id"]
                 require(rid not in expected, "MLI04_DUPLICATE_RUN")
                 expected[rid] = (algo, shard, source["code_version"], pin)
-    require(Counter(v[0] for v in expected.values()) ==
-            {a: dataset["shard_count"] for a in ALGORITHMS}, "MLI04_INCOMPLETE_COHORT")
+    require(dataset["shard_count"] == 2 and Counter((v[0], v[1]) for v in expected.values()) ==
+            {(algo, shard): 1 for algo in ALGORITHMS for shard in ("shard_00000", "shard_00001")},
+            "MLI04_INCOMPLETE_COHORT")
     return dataset, report_sha, expected
 
 
@@ -262,6 +269,14 @@ def rollups(verified, resolved, expected, ns, dataset_id, query):
     return result
 
 
+def check_adaptive_resolution(counts, expected):
+    raw = counts["raw_post"]
+    unique = counts["resolved_unique"]
+    observed = {"raw_post": raw, "resolved_unique": unique, "deduplicated_post": raw - unique}
+    require(observed == expected, "MLI04_ADAPTIVE_RECONCILIATION")
+    return observed
+
+
 def collect(request, query, root=ROOT):
     dataset, sha04, expected = official_sources(root)
     require(request.get("schema_version") == "mli04-request-v1", "MLI04_REQUEST_VERSION")
@@ -279,11 +294,15 @@ def collect(request, query, root=ROOT):
                                          Path(entry["artifact_root"]), receipt)
         verified.append(dict(row, receipt_sha256=digest))
     complete = set(ids) == expected.keys()
+    aggregates = rollups(verified, resolved, expected, ns, dataset["dataset_id"], query)
+    if "HDBSCAN_ADAPTIVE" in aggregates:
+        adaptive = aggregates["HDBSCAN_ADAPTIVE"]
+        adaptive["exp03_resolution"] = check_adaptive_resolution(adaptive["counts"], dataset["adaptive_resolution"])
     return {"schema_version": VERSION, "task_id": "MLI-04", "status": "VERIFIED" if complete else "PENDING",
             "dataset_id": dataset["dataset_id"], "collection_id": dataset["collection_id"], "namespace": ns,
             "registry_lineage": dataset["registry_lineage"],
             "exp04_sha256_lf": sha04, "scientific_approval": False, "runs": verified,
-            "algorithm_rollups": rollups(verified, resolved, expected, ns, dataset["dataset_id"], query),
+            "algorithm_rollups": aggregates,
             "missing_run_ids": sorted(expected.keys() - set(ids))}
 
 

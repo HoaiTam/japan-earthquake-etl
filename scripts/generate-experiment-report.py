@@ -98,9 +98,14 @@ def render_official_readback(evidence):
         for algo, aggregate in sorted(rollups.items()):
             require(set(aggregate["run_ids"]) == {rid for rid, item in expected.items() if item[0] == algo}
                     and aggregate["query_id"], "MLI04_EVIDENCE_ROLLUP")
+            if algo == "HDBSCAN_ADAPTIVE":
+                resolution = verifier.check_adaptive_resolution(aggregate["counts"], dataset["adaptive_resolution"])
+                require(aggregate.get("exp03_resolution") == resolution, "MLI04_ADAPTIVE_RECONCILIATION")
             lines.extend([f"- **{algo}** · Query {aggregate['query_id']}",
                           f"  - Counts: {json.dumps(aggregate['counts'], sort_keys=True)}",
                           f"  - SQL metrics: {json.dumps(aggregate['sql_metrics'], sort_keys=True)}"])
+            if algo == "HDBSCAN_ADAPTIVE":
+                lines.append(f"  - EXP-03 deduplicated aftershock assignments: {resolution['deduplicated_post']}")
         lines.append("")
     lines.extend(["## Scientific evaluation", "",
                   "DBCV, Omori and stability from the scientific evaluator are reported separately in "

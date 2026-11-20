@@ -2,8 +2,31 @@
 
 Kết quả pilot giữ nhãn DEVELOPMENT_ONLY. Luồng official ghim EXP-04 trên main,
 hai cross-check và đúng sáu shard baseline replay cùng hai shard adaptive.
-SQL readback official còn PENDING. Chưa có đủ tám bundle và receipt import
-đúng pin để chạy đối soát trên Trino.
+SQL readback official còn PENDING. Chạy trên máy giữ Iceberg catalog DAT-03,
+registry staging/ml-artifacts với snapshot registry/candidate/mainshock,
+và đúng tám bundle cùng receipt import được ghim theo EXP-02/EXP-03.
+Research kit chỉ đọc có thể kiểm file và lineage, không cung cấp Iceberg
+snapshot hoặc receipt CANDIDATE.
+
+## Cohort được ghim
+
+| Thuật toán | Shard | Experiment run ID |
+|---|---|---|
+| WINDOW | shard_00000 | exp_run_2e8155cfc8609ec0371529e5ec23aeaa |
+| WINDOW | shard_00001 | exp_run_7a6591045568ec8b2460a7360c3f62d9 |
+| DBSCAN | shard_00000 | exp_run_0d55ad02cb2d5a86eee4feb6305113fa |
+| DBSCAN | shard_00001 | exp_run_8bb89b552fbec0aa303f2ac9fa2d5458 |
+| HDBSCAN_GLOBAL | shard_00000 | exp_run_6dcc5de182692e8e07a1f0b92d46201c |
+| HDBSCAN_GLOBAL | shard_00001 | exp_run_5a669d4f40a13d3d8f253ccf00904751 |
+| HDBSCAN_ADAPTIVE | shard_00000 | exp_run_37d6d2121034d1e2f2585dd17261828c |
+| HDBSCAN_ADAPTIVE | shard_00001 | exp_run_3082725c2877a2b8a6fb08d9dd4e30ed |
+
+Verifier đối soát cohort adaptive với EXP-03 sau khi đủ hai shard:
+99.067 lượt gán aftershock, 88.078 aftershock duy nhất, loại trùng 10.989 lượt.
+Số duy nhất dùng COUNT(DISTINCT candidate_event_id) trên các snapshot
+membership đã ghim ở từng receipt.
+
+## Chạy trên máy giữ catalog DAT-03
 
 1. Nhận bundle đúng run ID và SHA từ owner. Xác minh layout theo shard. Dùng
    receipt CANDIDATE đã có hoặc import tuần tự với cấu hình và namespace QA
