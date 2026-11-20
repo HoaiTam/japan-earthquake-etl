@@ -1,6 +1,6 @@
 ---
 task_id: "MLI-03"
-status: "Done"
+status: "In Progress"
 week: 5
 block: "I - ML Integration"
 workstream: "Result import and Iceberg publish"
@@ -66,10 +66,16 @@ trước khi Colab sinh output thật.
 Contract v1 đã nghiệm thu cho đường import hiện có; **chưa nghiệm thu** các shard
 `HDBSCAN_ADAPTIVE` giữ `MULTIPLE`/`AMBIGUOUS` toàn cục trong từng lát cắt.
 Full-split là đầu vào đánh giá EXP-04, không phải work unit cho resolver.
-Trước khi đưa adaptive overlap vào Iceberg, cần contract scope có version,
-đối soát membership trên đúng collection và integration test qua trusted
-resolver → reader → validator → Iceberg/Trino. Không đổi rank khoa học chỉ
-để pass validator v1. Xem [evidence EXP-03](../../evidence/EXP-03_OFFICIAL_REPRODUCTION.md).
+Bản follow-up trên nhánh fix/mli-03-cross-shard-overlap xác minh lineage
+của các shard trong cùng collection qua manifest và SHA-256 đã ghim.
+Chỉ HDBSCAN_ADAPTIVE dùng tập candidate giao shard do resolver tính để
+giữ rank và trạng thái MULTIPLE hoặc AMBIGUOUS toàn collection. Scope
+WHOLE_WINDOW_SHARD vẫn giữ version và fingerprint của artifact gốc.
+Test Java dùng Parquet fixture xác minh rank 1/2 ở hai shard, nhánh rank
+không bắt đầu bằng 1, thiếu lineage sibling và sibling bị sửa bytes.
+26 test của ResultBundleContractTest, TrustedDatasetResolverTest và
+MlResultImportJobTest đạt. Import hai shard EXP-03 trên Iceberg/Trino
+và receipt thật vẫn còn chờ. Xem [evidence EXP-03](../../evidence/EXP-03_OFFICIAL_REPRODUCTION.md).
 Với EXTENSION của EXP-05, 12 shard baseline đạt `RESULT_READY` khi kiểm tra
 contract offline và 4 shard adaptive đạt Parquet reader readback. Nghiệm thu
 import Iceberg của các shard EXTENSION cần receipt runtime riêng.
@@ -92,7 +98,7 @@ Thêm acceptance case reject DAT-02 DEVELOPMENT_PILOT/pilot_result_manifest và 
 
 ## Theo dõi
 
-- **Trạng thái:** Done
+- **Trạng thái:** In Progress
 - **Assignee:** ThanhTris
 - **Reviewer:** unassigned — chưa ghi nhận independent approval
 - **Evidence / PR:** [Runtime acceptance 19/10/2026](../../evidence/MLI-03_RUNTIME_ACCEPTANCE.md), [exact receipts](../../evidence/MLI-03-runtime.json); [offline evidence lịch sử](../../evidence/MLI-03-offline.md). PR #79 đã merge; phần hoàn thiện runtime ở branch `feat/mli-03-runtime-acceptance`, chưa mở PR mới.

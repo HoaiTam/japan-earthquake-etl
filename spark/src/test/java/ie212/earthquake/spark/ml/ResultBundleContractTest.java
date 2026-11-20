@@ -708,9 +708,7 @@ class ResultBundleContractTest {
         assertEquals("IMP_COLLECTION_SCOPE_MISMATCH", assertThrows(IllegalArgumentException.class,
             () -> VALIDATOR.validate(fullDecoded, shard0Ctx)).getMessage());
 
-        // 2. Each per-shard bundle passes TrustedDatasetResolver & MlResultBundleReader readback,
-        //    while preserving global MULTIPLE/rank=1,2 causes per-bundle ResultBundleContract validation
-        //    to reject with IMP_SCHEMA_MISMATCH (proving shards are readback-only until MLI-03 follow-up).
+        // Each shard retains its collection-wide rank, including rank 2 when rank 1 is in its sibling.
         for (String sid : List.of("shard_00000", "shard_00001")) {
             Path shardDir = outRoot.resolve("hdbscan_adaptive_shards").resolve(sid);
             ObjectNode req = fullReq.deepCopy().put("experiment_run_id", "exp_adapt_" + sid).put("collection_shard_id", sid);
@@ -719,8 +717,37 @@ class ResultBundleContractTest {
             assertEquals(2, shardDecoded.memberships().size());
             assertEquals("MULTIPLE", shardDecoded.memberships().get(1).path("multi_sequence_status").asText());
             assertEquals(sid.equals("shard_00000") ? 1 : 2, shardDecoded.memberships().get(1).path("resolution_rank").asInt());
+            assertEquals(Set.of("shared_aft"), resolvedCtx.collectionScope().crossShardCandidateIds());
+            assertEquals("RESULT_READY", VALIDATOR.validate(shardDecoded, resolvedCtx).nextStatus());
+
+            var localOnly = new ResultBundleValidator.Context(dsId, resolvedCtx.datasetStatus(),
+                resolvedCtx.runId(), resolvedCtx.algorithm(), modelVer, resolvedCtx.candidates(), null,
+                resolvedCtx.datasetPins(), null, new ResultBundleValidator.CollectionScope(
+                    ResearchCollectionExportBundle.VERSION, colId, sid));
             assertEquals("IMP_SCHEMA_MISMATCH", assertThrows(IllegalArgumentException.class,
-                () -> VALIDATOR.validate(shardDecoded, resolvedCtx)).getMessage());
+                () -> VALIDATOR.validate(shardDecoded, localOnly)).getMessage());
         }
+        Path sibling = registryRoot.resolve("exports").resolve(dsId).resolve("shard_00001.json");
+        Files.writeString(sibling, "changed bytes");
+        var adaptiveRequest = fullReq.deepCopy().put("experiment_run_id", "exp_adapt_shard_00000")
+            .put("collection_shard_id", "shard_00000");
+        assertEquals("IMP_CHECKSUM_MISMATCH", assertThrows(IllegalArgumentException.class,
+            () -> TrustedDatasetResolver.resolve(adaptiveRequest, registryRoot, null)).getMessage());
+        Files.delete(sibling);
+        assertEquals("IMP_DATASET_REFERENCE_INVALID", assertThrows(IllegalArgumentException.class,
+            () -> TrustedDatasetResolver.resolve(adaptiveRequest, registryRoot, null)).getMessage());
+    }
+
+    @Test void crossShardResolutionAllowsGlobalRanksButRejectsInvalidLocalGrain() {
+        var rankTwo = JSON.createObjectNode().put("multi_sequence_status", "MULTIPLE").put("resolution_rank", 2);
+        var rankThree = rankTwo.deepCopy().put("resolution_rank", 3);
+        var ambiguous = JSON.createObjectNode().put("multi_sequence_status", "AMBIGUOUS").putNull("resolution_rank");
+        ResultBundleContract.validateResolution(List.of(rankTwo, rankThree), true);
+        ResultBundleContract.validateResolution(List.of(ambiguous), true);
+        assertThrows(IllegalArgumentException.class, () -> ResultBundleContract.validateResolution(List.of(rankTwo, rankThree), false));
+        assertThrows(IllegalArgumentException.class, () -> ResultBundleContract.validateResolution(List.of(ambiguous), false));
+        assertThrows(IllegalArgumentException.class, () -> ResultBundleContract.validateResolution(List.of(rankTwo, rankTwo), true));
+        assertThrows(IllegalArgumentException.class, () -> ResultBundleContract.validateResolution(List.of(rankTwo, ambiguous), true));
+
     }
 }
