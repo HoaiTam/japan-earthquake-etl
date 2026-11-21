@@ -23,6 +23,13 @@ powerbi/
 └── README.md                  # Hướng dẫn tổng quan
 ```
 
+## Semantic model và KPI (BI-02)
+
+Các KPI đi cùng mô hình `japan_earthquake_model.pbix`. Dùng
+[`kpi_measures.dax`](./kpi_measures.dax) và [`kpi_reconciliation.sql`](./kpi_reconciliation.sql)
+để kiểm lại cùng publication và bộ lọc. Kịch bản và kết quả QA nằm trong
+[evidence BI-02](../docs/evidence/BI-02_SEMANTIC_MODEL.md).
+
 ## Cách sử dụng trong Power BI Desktop
 
 1. Cài đặt **Starburst / Trino ODBC Driver** (64-bit).
