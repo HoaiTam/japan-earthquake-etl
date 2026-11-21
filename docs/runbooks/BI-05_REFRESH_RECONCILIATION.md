@@ -1,6 +1,6 @@
 # BI-05 — Refresh và đối soát Power BI
 
-Checklist dùng [kết nối BI-01](../specs/POWER_BI_CONNECTIVITY.md), model [BI-02](../evidence/BI-02_SEMANTIC_MODEL.md) và [kpi_reconciliation.sql](../../powerbi/kpi_reconciliation.sql). [BI-03](../task/tasks/BI-03.md) đã vào `main` tại `fd5f9dd`. Chạy nghiệm thu Desktop trên báo cáo đầy đủ sau khi [BI-04](../task/tasks/BI-04.md) được tích hợp.
+Checklist dùng [kết nối BI-01](../specs/POWER_BI_CONNECTIVITY.md), model [BI-02](../evidence/BI-02_SEMANTIC_MODEL.md) và [kpi_reconciliation.sql](../../powerbi/kpi_reconciliation.sql). Dùng [bản báo cáo Power BI](../../powerbi/japan_earthquake_model.pbix) từ `main` tại `5d61efd` có cả các trang [BI-03](../task/tasks/BI-03.md) và [BI-04](../task/tasks/BI-04.md) để chạy nghiệm thu Desktop.
 
 ## Refresh
 
@@ -33,4 +33,4 @@ Chạy hai tệp SQL trên Trino local ở chế độ chỉ đọc. Publication
 | Kết hợp | 9 | 4.355556 | 4.5 | 35.034778 | 9 / 0 / 0 |
 | Kỳ rỗng tháng 02/2023 JST | 0 | NULL | NULL | NULL | 0 / 0 / 0 |
 
-Cả ba truy vấn trả về cùng publication và freshness. Kết quả này là mốc SQL cho lần nghiệm thu Desktop, gồm từ chối các pin lỗi và refresh lại với pin hợp lệ sau khi tích hợp BI-04.
+Cả ba truy vấn trả về cùng publication và freshness. Kết quả này là mốc SQL cho lần nghiệm thu Desktop gồm từ chối các pin lỗi và refresh lại với pin hợp lệ trên báo cáo đã tích hợp BI-04.
