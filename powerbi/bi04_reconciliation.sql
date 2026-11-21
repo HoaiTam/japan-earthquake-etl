@@ -39,6 +39,29 @@ FROM iceberg.gold.v_bndl20230201sha256test01_earthquake_event_current
 ORDER BY canonical_event_id
 FETCH FIRST 1 ROW ONLY;
 
+-- Compare record counts with distinct coordinate pairs, independently of map zoom.
+WITH events AS (
+    SELECT latitude, longitude, depth_band_code
+    FROM iceberg.gold.v_bndl20230201sha256test01_earthquake_event_current
+), map_scope AS (
+    SELECT 'baseline' AS case_name, latitude, longitude FROM events
+    UNION ALL
+    SELECT 'shallow', latitude, longitude FROM events WHERE depth_band_code = 'SHALLOW'
+), coordinate_groups AS (
+    SELECT case_name, latitude, longitude, count(*) AS events
+    FROM map_scope
+    GROUP BY case_name, latitude, longitude
+)
+SELECT case_name,
+       sum(events) AS canonical_events,
+       sum(CASE WHEN latitude IS NOT NULL AND longitude IS NOT NULL THEN events ELSE 0 END) AS geocoded_events,
+       count_if(latitude IS NOT NULL AND longitude IS NOT NULL) AS distinct_coordinate_pairs,
+       coalesce(max(CASE WHEN latitude IS NOT NULL AND longitude IS NOT NULL THEN events END), 0)
+           AS max_events_per_coordinate
+FROM coordinate_groups
+GROUP BY case_name
+ORDER BY case_name;
+
 -- Simulate one missing coordinate in a projection, without mutating the QA catalog.
 WITH ranked AS (
     SELECT canonical_event_id, latitude, longitude,
