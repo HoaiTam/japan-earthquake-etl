@@ -1,0 +1,35 @@
+// Run in DAX Query View after restoring pub-202302-001 on the BI-05 QA copy.
+// Freshness delta uses the independent Trino value 2023-01-03T09:51:59.188Z.
+EVALUATE
+UNION (
+    ROW ("Case", "All", "Total", [Total Earthquakes], "Avg M", IF (ISBLANK ([Average Magnitude]), "BLANK", FORMAT ([Average Magnitude], "0.0000000", "en-US")),
+         "Max M", IF (ISBLANK ([Maximum Magnitude]), "BLANK", FORMAT ([Maximum Magnitude], "0.0000000", "en-US")), "Avg km", IF (ISBLANK ([Average Depth (km)]), "BLANK", FORMAT ([Average Depth (km)], "0.0000000", "en-US")),
+         "Strong", [Strong Earthquakes], "USGS", [USGS Only], "JMA", [JMA Only],
+         "Both", [USGS and JMA], "Pin", [Gold Publication],
+         "Freshness UTC", FORMAT ([Data Freshness (UTC)], "yyyy-MM-dd HH:mm:ss")
+             & " / delta " & FORMAT (([Data Freshness (UTC)] - dt"2023-01-03T09:51:59") * 86400000 - 188, "0.000", "en-US") & " ms",
+         "Refreshed UTC", FORMAT ([Report Refreshed (UTC)], "yyyy-MM-dd HH:mm:ss")),
+    CALCULATETABLE (
+        ROW ("Case", "Combined", "Total", [Total Earthquakes], "Avg M", IF (ISBLANK ([Average Magnitude]), "BLANK", FORMAT ([Average Magnitude], "0.0000000", "en-US")),
+             "Max M", IF (ISBLANK ([Maximum Magnitude]), "BLANK", FORMAT ([Maximum Magnitude], "0.0000000", "en-US")), "Avg km", IF (ISBLANK ([Average Depth (km)]), "BLANK", FORMAT ([Average Depth (km)], "0.0000000", "en-US")),
+             "Strong", [Strong Earthquakes], "USGS", [USGS Only], "JMA", [JMA Only],
+             "Both", [USGS and JMA], "Pin", [Gold Publication],
+             "Freshness UTC", FORMAT ([Data Freshness (UTC)], "yyyy-MM-dd HH:mm:ss")
+             & " / delta " & FORMAT (([Data Freshness (UTC)] - dt"2023-01-03T09:51:59") * 86400000 - 188, "0.000", "en-US") & " ms",
+             "Refreshed UTC", FORMAT ([Report Refreshed (UTC)], "yyyy-MM-dd HH:mm:ss")),
+        'DimDate'[date_key] >= 20230101 && 'DimDate'[date_key] < 20230201,
+        'DimRegion'[region_key] = "UNKNOWN",
+        'FactEarthquakeEvents'[source_coverage_code] = "USGS_ONLY",
+        'DimMagnitudeBand'[band_code] = "M4_TO_LT5", 'DimDepthBand'[band_code] = "SHALLOW"
+    ),
+    CALCULATETABLE (
+        ROW ("Case", "Empty JST Feb", "Total", [Total Earthquakes], "Avg M", IF (ISBLANK ([Average Magnitude]), "BLANK", FORMAT ([Average Magnitude], "0.0000000", "en-US")),
+             "Max M", IF (ISBLANK ([Maximum Magnitude]), "BLANK", FORMAT ([Maximum Magnitude], "0.0000000", "en-US")), "Avg km", IF (ISBLANK ([Average Depth (km)]), "BLANK", FORMAT ([Average Depth (km)], "0.0000000", "en-US")),
+             "Strong", [Strong Earthquakes], "USGS", [USGS Only], "JMA", [JMA Only],
+             "Both", [USGS and JMA], "Pin", [Gold Publication],
+             "Freshness UTC", FORMAT ([Data Freshness (UTC)], "yyyy-MM-dd HH:mm:ss")
+             & " / delta " & FORMAT (([Data Freshness (UTC)] - dt"2023-01-03T09:51:59") * 86400000 - 188, "0.000", "en-US") & " ms",
+             "Refreshed UTC", FORMAT ([Report Refreshed (UTC)], "yyyy-MM-dd HH:mm:ss")),
+        'DimDate'[date_key] >= 20230201 && 'DimDate'[date_key] < 20230301
+    )
+)

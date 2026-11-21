@@ -4,7 +4,7 @@ Checklist dùng [kết nối BI-01](../specs/POWER_BI_CONNECTIVITY.md), model [B
 
 ## Refresh
 
-1. Xác nhận Trino và ODBC sẵn sàng. Dùng Power BI Desktop với DSN `TrinoJapanEarthquake`.
+1. Xác nhận Trino và ODBC sẵn sàng. Dùng Power BI Desktop với DSN `TrinoJapanEarthquake`. Với Starburst ODBC và Trino mã nguồn mở, làm theo [hướng dẫn proxy](../specs/POWER_BI_CONNECTIVITY.md#bước-3-cầu-nối-tương-thích-starburst-odbc-proxy-tùy-chọn-cho-local-dev). Môi trường nghiệm thu có DSN ở `8081` và Trino ở `8083`, dùng `python scripts/trino_proxy.py --listen-host 127.0.0.1 --listen-port 8081 --upstream http://127.0.0.1:8083`.
 2. Chạy [SQL kiểm publication](../../sql/gold/bi05_publication_preflight.sql) bằng Trino. Tiếp tục khi `published_qa` có `matching_publication_rows = 1`, `eligible_publications = 1` và `absent_control_id` có cả hai count bằng `0`. Nếu có `existing_non_passed_control`, ghi lại `pinned_id` để thử trên bản sao Desktop. Ca này cần có ít nhất một dòng khớp ID và không có dòng đủ điều kiện.
 3. Ghim `Parameters[PinnedPublicationId]` theo publication đã xác minh. Ghi publication ID, checksum bundle, serving view, thời điểm publish và event count.
 4. Refresh bản QA. So sánh `Gold Publication` và `Data Freshness (UTC)` (`max_event_time_utc`) trong Power BI với SQL; ghi tách riêng `Report Refreshed (UTC)`. Chạy [kpi_reconciliation.sql](../../powerbi/kpi_reconciliation.sql) của BI-02 với cùng serving view và giá trị slicer. Lưu kết quả SQL và giá trị hiển thị.
@@ -23,6 +23,8 @@ Checklist dùng [kết nối BI-01](../specs/POWER_BI_CONNECTIVITY.md), model [B
 
 Báo cáo kết quả ghi từng bộ lọc, hai giá trị đối chiếu và nguyên nhân nếu lệch. Nếu pin hoặc schema thay đổi, resolve lại publication và chạy lại cả hai phía trước khi đánh dấu đạt.
 
+Hai regression SQL của BI-05 chạy offline trong `make ci-docs-base` của job `docs-contracts`. Để chạy riêng, dùng `python3 -B -m unittest tests.test_bi05_preflight`.
+
 ## Preflight Trino ngày 21/11/2026
 
 Chạy hai tệp SQL trên Trino local ở chế độ chỉ đọc. Publication `pub-202302-001` khớp một dòng `PASSED`, có 16 sự kiện và freshness `2023-01-03T09:51:59.188Z`. ID `qa-bi05-absent-control` khớp 0 dòng và có 0 dòng đủ điều kiện. Catalog QA có 0 bản ghi chưa `PASSED`.
@@ -33,4 +35,4 @@ Chạy hai tệp SQL trên Trino local ở chế độ chỉ đọc. Publication
 | Kết hợp | 9 | 4.355556 | 4.5 | 35.034778 | 9 / 0 / 0 |
 | Kỳ rỗng tháng 02/2023 JST | 0 | NULL | NULL | NULL | 0 / 0 / 0 |
 
-Cả ba truy vấn trả về cùng publication và freshness. Kết quả này là mốc SQL cho lần nghiệm thu Desktop gồm từ chối các pin lỗi và refresh lại với pin hợp lệ trên báo cáo đã tích hợp BI-04.
+Cả ba truy vấn trả về cùng publication và freshness. Sau khi khôi phục pin hợp lệ, chạy [bi05_reconciliation.dax](../../powerbi/bi05_reconciliation.dax) trong DAX Query View để đọc các measures của model với cùng phạm vi. Xem [kết quả nghiệm thu Desktop và SQL](../evidence/BI-05_REFRESH_RECONCILIATION.md).
