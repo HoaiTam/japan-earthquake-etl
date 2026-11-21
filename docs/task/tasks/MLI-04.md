@@ -1,6 +1,6 @@
 ---
 task_id: "MLI-04"
-status: "Needs Update"
+status: "In Progress"
 week: 8
 block: "I - ML Integration"
 workstream: "ML serving and report"
@@ -16,7 +16,7 @@ dependencies: ["MLI-03", "EXP-04"]
 
 ## Giao việc hiện hành — 11/11/2026
 
-- **Owner:** ThanhTris; **status:** Needs Update.
+- **Owner:** ThanhTris; **status:** In Progress.
 - **Làm phần gì / dùng để làm gì:** Trino/static report official.
 - **Bắt đầu độc lập:** Tái dùng views/report/tests đã merge #124, không viết lại template.
 - **Đầu ra và điều kiện Done:** Sau EXP-04 và actual import: đọc đúng dataset/run/snapshot, đối soát SQL với report; chưa đủ evidence phải PENDING.
@@ -87,9 +87,10 @@ Task cũ chưa làm giữ Backlog; không đổi hard dependencies để pilot �
 
 ## Theo dõi
 
-- **Trạng thái:** Needs Update
+- **Trạng thái:** In Progress
 - **Assignee:** ThanhTris
-- **Reviewer:** Chưa ghi lại
+- **Reviewer:** unassigned
+- **Đối soát official:** [Runbook đọc lại snapshot](../../runbooks/MLI-04_OFFICIAL_READBACK.md). Đã ghim cohort REPRODUCTION theo EXP-04. Runtime còn PENDING. Runbook liệt kê tám run IDs đã ghim và yêu cầu Iceberg DAT-03 cùng registry staging/ml-artifacts và receipt import đúng snapshot. Verifier/report kiểm thêm đối soát adaptive với EXP-03 (88.078 duy nhất, loại trùng 10.989). Adaptive overlap xuyên shard tiếp tục thuộc [MLI-03](./MLI-03.md). [Review #144](https://github.com/HoaiTam/japan-earthquake-etl/pull/144#issuecomment-7003763560).
 - **Evidence / PR:** Triển khai Trino ML views (`sql/ml/`), verification queries (`sql/ml/ml_verification_queries.sql`), static report generator (`scripts/generate-experiment-report.py`), data dictionary (`docs/specs/ML_REPORT_DATA_DICTIONARY.md`), báo cáo tĩnh mẫu (`docs/evidence/MLI-04_STATIC_REPORT.md`), và regression test suite (`tests/test_mli04_views_and_report.py`) trên branch `feat/mli-04-trino-views-static-report` ([PR #124](https://github.com/HoaiTam/japan-earthquake-etl/pull/124)). Giữ `In Progress` chờ nghiệm thu SQL readback và count parity chính thức trên exact snapshot khi hoàn tất export official.
 - **Kỹ năng phù hợp:** Trino SQL, reproducible reporting, data validation
 
