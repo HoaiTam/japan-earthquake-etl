@@ -3,11 +3,13 @@ package ie212.earthquake.spark.ml;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.time.Instant;
 import java.util.*;
 
-/** Pure contract checks. No registry mutation, lifecycle persistence, Parquet I/O or lake writes. */
+/** Contract and pinned collection checks before reservation or lake writes. */
 public final class ResultBundleContract implements ResultBundleValidator {
     private static final ObjectMapper JSON = new ObjectMapper();
     private static final JsonNode CONTRACT;
@@ -84,6 +86,63 @@ public final class ResultBundleContract implements ResultBundleValidator {
     }
 
     @Override public Receipt validate(DecodedBundle bundle, Context context) {
+        require(!requiresCollectionResults(context), "IMP_COLLECTION_RESULTS_REQUIRED");
+        Map<String, List<Resolution>> memberships = new HashMap<>();
+        Receipt receipt = validateContents(bundle, context, memberships);
+        memberships.values().forEach(ResultBundleContract::validateResolution);
+        return receipt;
+    }
+
+    static boolean requiresCollectionResults(Context context) {
+        return "HDBSCAN_ADAPTIVE".equals(context.algorithm()) && context.collectionScope() != null
+            && !context.collectionScope().siblingCandidates().isEmpty();
+    }
+
+    record ValidatedBundle(DecodedBundle bundle, Receipt receipt) {}
+
+    ValidatedBundle readAdaptiveCollection(Path artifactRoot, Context context, JsonNode markerPins) throws Exception {
+        require(requiresCollectionResults(context), "IMP_COLLECTION_SCOPE_MISMATCH");
+        var scope = context.collectionScope();
+        Set<String> shards = new TreeSet<>(scope.siblingCandidates().keySet());
+        shards.add(scope.shardId());
+        require(markerPins != null && markerPins.isObject() && markerPins.size() == shards.size(),
+            "IMP_COLLECTION_RESULTS_REQUIRED");
+        Path requested = artifactRoot.toAbsolutePath().normalize();
+        Path collectionRoot = requested.getParent();
+        require(collectionRoot != null && requested.getFileName().toString().equals(scope.shardId()),
+            "IMP_COLLECTION_SCOPE_MISMATCH");
+        for (Path path = collectionRoot; path != null; path = path.getParent())
+            require(!Files.isSymbolicLink(path), "IMP_ARTIFACT_ROOT_INVALID");
+        for (String shard : shards) {
+            require(shard.matches("shard_[0-9]{5}") && markerPins.path(shard).isTextual()
+                && markerPins.path(shard).asText().matches("[0-9a-f]{64}"), "IMP_COLLECTION_RESULTS_REQUIRED");
+            Path dir = collectionRoot.resolve(shard);
+            require(!Files.isSymbolicLink(dir), "IMP_ARTIFACT_ROOT_INVALID");
+            require(Files.isRegularFile(dir.resolve("_SUCCESS.json")), "IMP_COLLECTION_RESULTS_MISSING");
+        }
+
+        Map<String, List<Resolution>> memberships = new HashMap<>();
+        DecodedBundle local = MlResultBundleReader.read(requested, markerPins.path(scope.shardId()).asText());
+        Receipt receipt = validateContents(local, context, memberships);
+        Set<String> runIds = new HashSet<>(Set.of(context.runId()));
+        for (String shard : shards) {
+            if (shard.equals(scope.shardId())) continue;
+            DecodedBundle other = MlResultBundleReader.read(collectionRoot.resolve(shard), markerPins.path(shard).asText());
+            String runId = str(other.success(), "experiment_run_id");
+            require(runId.matches("[A-Za-z0-9_-]{1,256}") && runIds.add(runId), "IMP_COLLECTION_SCOPE_MISMATCH");
+            for (String field : List.of("algorithm_version", "package_version", "code_version"))
+                require(str(local.success(), field).equals(str(other.success(), field)), "IMP_COLLECTION_SCOPE_MISMATCH");
+            var siblingContext = new Context(context.datasetId(), context.datasetStatus(), runId, context.algorithm(),
+                context.modelVersion(), scope.siblingCandidates().get(shard), null, context.datasetPins(), null,
+                new CollectionScope(scope.version(), scope.collectionId(), shard));
+            validateContents(other, siblingContext, memberships);
+        }
+        memberships.values().forEach(ResultBundleContract::validateResolution);
+        return new ValidatedBundle(local, receipt);
+    }
+
+    private Receipt validateContents(DecodedBundle bundle, Context context,
+                                     Map<String, List<Resolution>> eventMemberships) {
         require("EXPORTED".equals(context.datasetStatus()), "IMP_UNKNOWN_DATASET");
         if (context.datasetPins() != null) require(!context.datasetPins().manifestSha256().isBlank(), "IMP_DATASET_PINS_REQUIRED");
         require(enumValue("algorithms",JSON.getNodeFactory().textNode(context.algorithm())), "IMP_SCHEMA_MISMATCH");
@@ -211,28 +270,30 @@ public final class ResultBundleContract implements ResultBundleValidator {
                 || !missing(row,"dbcv_score") && !missing(row,"omori_p") && !missing(row,"peak_memory_mb"),"IMP_SCHEMA_MISMATCH");
         }
         require(summaries.equals(windows.keySet()),"IMP_SUMMARY_COUNT_MISMATCH");
-        Map<String,List<JsonNode>> eventMemberships=new HashMap<>();
-        bundle.memberships().stream().filter(row->row.get("is_sequence_member").asBoolean()).forEach(row->eventMemberships.computeIfAbsent(str(row,"candidate_event_id"),ignored->new ArrayList<>()).add(row));
-        Set<String> crossShardIds = "HDBSCAN_ADAPTIVE".equals(context.algorithm()) && context.collectionScope() != null
-            ? context.collectionScope().crossShardCandidateIds() : Set.of();
-        eventMemberships.forEach((id, rows) -> validateResolution(rows, crossShardIds.contains(id)));
+        for (JsonNode row : bundle.memberships()) {
+            if (row.get("is_sequence_member").asBoolean()) {
+                Integer rank = missing(row, "resolution_rank") ? null : row.get("resolution_rank").asInt();
+                eventMemberships.computeIfAbsent(str(row, "candidate_event_id"), ignored -> new ArrayList<>())
+                    .add(new Resolution(str(row, "multi_sequence_status"), rank));
+            }
+        }
         return new Receipt(fingerprint,"RESULT_READY");
     }
 
-    static void validateResolution(List<JsonNode> rows, boolean crossShard) {
-        if (rows.size() == 1 && str(rows.get(0), "multi_sequence_status").equals("UNIQUE")) {
-            require(rows.get(0).path("resolution_rank").asInt() == 1, "IMP_SCHEMA_MISMATCH");
+    private record Resolution(String status, Integer rank) {}
+
+    private static void validateResolution(List<Resolution> rows) {
+        if (rows.size() == 1 && rows.get(0).status().equals("UNIQUE")) {
+            require(Integer.valueOf(1).equals(rows.get(0).rank()), "IMP_SCHEMA_MISMATCH");
             return;
         }
-        require(rows.size() > 1 || crossShard, "IMP_SCHEMA_MISMATCH");
-        if (rows.stream().allMatch(row -> str(row, "multi_sequence_status").equals("AMBIGUOUS"))) return;
-        require(rows.stream().allMatch(row -> str(row, "multi_sequence_status").equals("MULTIPLE")),
-                "IMP_SCHEMA_MISMATCH");
+        require(rows.size() > 1, "IMP_SCHEMA_MISMATCH");
+        if (rows.stream().allMatch(row -> row.status().equals("AMBIGUOUS"))) return;
+        require(rows.stream().allMatch(row -> row.status().equals("MULTIPLE")), "IMP_SCHEMA_MISMATCH");
         Set<Integer> ranks = new HashSet<>();
-        for (JsonNode row : rows)
-            require(!missing(row, "resolution_rank") && ranks.add(row.get("resolution_rank").asInt()),
-                    "IMP_DUPLICATE_GRAIN");
-        require(crossShard || ranks.contains(1), "IMP_SCHEMA_MISMATCH");
+        for (Resolution row : rows)
+            require(row.rank() != null && ranks.add(row.rank()), "IMP_DUPLICATE_GRAIN");
+        require(ranks.contains(1), "IMP_SCHEMA_MISMATCH");
     }
 
     public static void assertTransition(String from, String to, boolean scientificReview,

@@ -48,7 +48,8 @@ public final class MlResultImportJob {
                 new TrinoMlVerifier(sql, request.path("ml_namespace").asText(), assertLease).verify(commit, value, fingerprint);
             String operation = request.path("import_run_id").asText(request.path("run_id").asText());
             if (operation.isBlank()) throw new IllegalArgumentException("IMP_IMPORT_RUN_ID_REQUIRED");
-            ObjectNode result = importBundle(bundle, journal, context, writer, verifier, request.path("ml_namespace").asText(), operation);
+            ObjectNode result = importBundle(bundle, journal, context, writer, verifier,
+                request.path("ml_namespace").asText(), operation, request.get("collection_result_markers"));
             Files.writeString(journal.resolve("import-report.json"), JSON.writerWithDefaultPrettyPrinter().writeValueAsString(result) + "\n",
                 StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
             System.out.println(JSON.writeValueAsString(result));
@@ -69,20 +70,34 @@ public final class MlResultImportJob {
     public static ObjectNode importBundle(Path bundleRoot, Path journalRoot, ResultBundleValidator.Context originalContext,
                                           MlIcebergWriter writer, IndependentVerifier verifier, String namespace,
                                           String importRunId) throws Exception {
+        return importBundle(bundleRoot, journalRoot, originalContext, writer, verifier, namespace, importRunId, null);
+    }
+
+    static ObjectNode importBundle(Path bundleRoot, Path journalRoot, ResultBundleValidator.Context originalContext,
+                                   MlIcebergWriter writer, IndependentVerifier verifier, String namespace,
+                                   String importRunId, JsonNode collectionResultMarkers) throws Exception {
         Files.createDirectories(journalRoot);
         Path registry = journalRoot.resolve("experiment-run-" + originalContext.runId() + ".json");
         ResultBundleValidator.DecodedBundle bundle;
-        try { bundle = MlResultBundleReader.read(bundleRoot); }
-        catch (RuntimeException | IOException error) { writeRejected(journalRoot, originalContext, reason(error), true); throw error; }
         ResultBundleValidator.Context context;
         ResultBundleValidator.Receipt receipt;
         try {
             // Validate the complete marker and checked bytes before deriving
             // metadata; otherwise missing metadata can mask the contract reason.
-            receipt = new ResultBundleContract().validate(bundle, originalContext);
+            ResultBundleContract contract = new ResultBundleContract();
+            if (ResultBundleContract.requiresCollectionResults(originalContext)) {
+                var cohort = contract.readAdaptiveCollection(bundleRoot, originalContext, collectionResultMarkers);
+                bundle = cohort.bundle();
+                receipt = cohort.receipt();
+            } else {
+                bundle = MlResultBundleReader.read(bundleRoot);
+                receipt = contract.validate(bundle, originalContext);
+            }
             context = enrichMetadata(bundle, originalContext, importRunId);
-        } catch (RuntimeException error) {
-            writeRejected(journalRoot, originalContext, reason(error), true); throw error;
+        } catch (Exception error) {
+            String reason = reason(error);
+            writeRejected(journalRoot, originalContext, reason, !reason.startsWith("IMP_COLLECTION_RESULTS_"));
+            throw error;
         }
         JsonNode existing = null;
         if (Files.exists(registry)) {

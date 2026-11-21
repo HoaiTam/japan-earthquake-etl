@@ -66,16 +66,14 @@ trước khi Colab sinh output thật.
 Contract v1 đã nghiệm thu cho đường import hiện có; **chưa nghiệm thu** các shard
 `HDBSCAN_ADAPTIVE` giữ `MULTIPLE`/`AMBIGUOUS` toàn cục trong từng lát cắt.
 Full-split là đầu vào đánh giá EXP-04, không phải work unit cho resolver.
-Bản follow-up trên nhánh fix/mli-03-cross-shard-overlap xác minh lineage
-của các shard trong cùng collection qua manifest và SHA-256 đã ghim.
-Chỉ HDBSCAN_ADAPTIVE dùng tập candidate giao shard do resolver tính để
-giữ rank và trạng thái MULTIPLE hoặc AMBIGUOUS toàn collection. Scope
-WHOLE_WINDOW_SHARD vẫn giữ version và fingerprint của artifact gốc.
-Test Java dùng Parquet fixture xác minh rank 1/2 ở hai shard, nhánh rank
-không bắt đầu bằng 1, thiếu lineage sibling và sibling bị sửa bytes.
-26 test của ResultBundleContractTest, TrustedDatasetResolverTest và
-MlResultImportJobTest đạt. Import hai shard EXP-03 trên Iceberg/Trino
-và receipt thật vẫn còn chờ. Xem [evidence EXP-03](../../evidence/EXP-03_OFFICIAL_REPRODUCTION.md).
+Bản [follow-up #149](https://github.com/HoaiTam/japan-earthquake-etl/pull/149#issuecomment-7066429031)
+kiểm marker và artifact của toàn bộ cohort adaptive theo SHA-256 đã ghim,
+đối chiếu từng shard với lineage từ registry EXPORTED rồi kiểm rank trên
+membership thật trước khi reserve run. Scope WHOLE_WINDOW_SHARD giữ version và
+fingerprint của artifact gốc. Regression dùng Parquet fixture cho rank 1/2
+hợp lệ, sibling chỉ có candidate, hai shard trùng rank 1 và pin/lineage
+thiếu hoặc sai. Import hai shard EXP-03 trên Iceberg/Trino và receipt thật
+vẫn còn chờ. Xem [evidence EXP-03](../../evidence/EXP-03_OFFICIAL_REPRODUCTION.md).
 Với EXTENSION của EXP-05, 12 shard baseline đạt `RESULT_READY` khi kiểm tra
 contract offline và 4 shard adaptive đạt Parquet reader readback. Nghiệm thu
 import Iceberg của các shard EXTENSION cần receipt runtime riêng.

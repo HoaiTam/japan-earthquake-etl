@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
@@ -29,7 +30,15 @@ public final class MlResultBundleReader {
     private MlResultBundleReader() { }
 
     public static ResultBundleValidator.DecodedBundle read(Path source) throws Exception {
+        return read(source, null);
+    }
+
+    static ResultBundleValidator.DecodedBundle read(Path source, String expectedMarkerSha) throws Exception {
         Path root = exactDirectory(source);
+        byte[] marker = readSafe(root, "_SUCCESS.json");
+        if (expectedMarkerSha != null && !ResultBundleContract.sha256(marker).equals(expectedMarkerSha))
+            throw new IllegalArgumentException("IMP_CHECKSUM_MISMATCH");
+        JsonNode success = JSON.readTree(marker);
         Map<String, byte[]> artifacts = new TreeMap<>();
         for (JsonNode item : ResultBundleContract.contract().path("required_artifacts")) {
             String name = item.asText();
@@ -46,9 +55,14 @@ public final class MlResultBundleReader {
             });
         }
         if (artifacts.size() > MAX_FILES) throw new IllegalArgumentException("IMP_ARTIFACT_LIMIT");
-        JsonNode success = readJson(root, "_SUCCESS.json");
-        List<JsonNode> memberships = readParquet(root, "memberships.parquet");
-        List<JsonNode> summaries = readParquet(root, "sequence_summary.parquet");
+        if (expectedMarkerSha != null) {
+            for (String name : List.of("memberships.parquet", "sequence_summary.parquet")) {
+                if (!ResultBundleContract.sha256(artifacts.get(name)).equals(success.path("checksums").path(name).asText()))
+                    throw new IllegalArgumentException("IMP_CHECKSUM_MISMATCH");
+            }
+        }
+        List<JsonNode> memberships = readParquet(artifacts.get("memberships.parquet"), "memberships.parquet");
+        List<JsonNode> summaries = readParquet(artifacts.get("sequence_summary.parquet"), "sequence_summary.parquet");
         return new ResultBundleValidator.DecodedBundle(success, artifacts, memberships, summaries, true);
     }
 
@@ -64,18 +78,17 @@ public final class MlResultBundleReader {
             throw new IllegalArgumentException("IMP_ARTIFACT_PATH_INVALID");
         long size = Files.size(path);
         if (size > MAX_FILE_BYTES) throw new IllegalArgumentException("IMP_ARTIFACT_LIMIT");
-        return Files.readAllBytes(path);
+        try (var stream = Files.newInputStream(path)) {
+            byte[] bytes = stream.readNBytes((int) MAX_FILE_BYTES + 1);
+            if (bytes.length > MAX_FILE_BYTES) throw new IllegalArgumentException("IMP_ARTIFACT_LIMIT");
+            return bytes;
+        }
     }
 
-    private static JsonNode readJson(Path root, String name) throws IOException {
-        return JSON.readTree(readSafe(root, name));
-    }
-
-    private static List<JsonNode> readParquet(Path root, String artifact) throws Exception {
-        Path path = root.resolve(artifact);
+    private static List<JsonNode> readParquet(byte[] bytes, String artifact) throws Exception {
         MessageType expected = schema(artifact);
         List<JsonNode> rows = new ArrayList<>();
-        try (ParquetFileReader reader = ParquetFileReader.open(input(path))) {
+        try (ParquetFileReader reader = ParquetFileReader.open(input(bytes))) {
             MessageType actual = reader.getFooter().getFileMetaData().getSchema();
             if (!actual.equals(expected) && !actual.getFields().equals(expected.getFields()))
                 throw new IllegalArgumentException("IMP_SCHEMA_MISMATCH");
@@ -89,18 +102,20 @@ public final class MlResultBundleReader {
         return List.copyOf(rows);
     }
 
-    private static InputFile input(Path path) {
+    private static InputFile input(byte[] bytes) {
         return new InputFile() {
-            public long getLength() throws IOException { return Files.size(path); }
-            public SeekableInputStream newStream() throws IOException {
-                var file = new java.io.RandomAccessFile(path.toFile(), "r");
-                return new DelegatingSeekableInputStream(new java.io.InputStream() {
-                    public int read() throws IOException { return file.read(); }
-                    public int read(byte[] bytes, int offset, int length) throws IOException { return file.read(bytes, offset, length); }
-                    public void close() throws IOException { file.close(); }
-                }) {
-                    public long getPos() throws IOException { return file.getFilePointer(); }
-                    public void seek(long position) throws IOException { file.seek(position); }
+            public long getLength() { return bytes.length; }
+            public SeekableInputStream newStream() {
+                var stream = new ByteArrayInputStream(bytes) {
+                    long position() { return pos; }
+                    void seekTo(long offset) throws IOException {
+                        if (offset < 0 || offset > count) throw new IOException("IMP_ARTIFACT_READ_FAILED");
+                        pos = (int) offset;
+                    }
+                };
+                return new DelegatingSeekableInputStream(stream) {
+                    public long getPos() { return stream.position(); }
+                    public void seek(long position) throws IOException { stream.seekTo(position); }
                 };
             }
         };

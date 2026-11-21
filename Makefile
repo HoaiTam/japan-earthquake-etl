@@ -775,6 +775,7 @@ ci-docs-base: ## Always-on CI guards; pilot tests được chọn riêng theo im
 	@$(MAKE) test-dat03-range-worker
 	@$(MAKE) test-dat03-provenance
 	@$(MAKE) test-demo-preflight
+	@python3 -B -m unittest tests.test_bi05_preflight
 	@$(MAKE) check-docs test-docs test-jma-source-handoff
 	@$(MAKE) test-contracts
 	@python3 -m unittest discover -s tests -p 'test_real_etl_cli.py'

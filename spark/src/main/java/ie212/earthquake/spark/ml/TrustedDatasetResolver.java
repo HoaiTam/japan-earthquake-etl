@@ -71,18 +71,14 @@ public final class TrustedDatasetResolver {
                 throw new IllegalArgumentException("IMP_COLLECTION_SCOPE_REQUIRED");
             candidates = shardCandidates(root, datasetId, collection, shard, entries.path(shard), plannedShards.get(shard));
             if ("HDBSCAN_ADAPTIVE".equals(algorithm) && plannedShards.size() > 1) {
-                Set<String> localIds = new HashSet<>();
-                for (var candidate : candidates) localIds.add(candidate.eventId());
-                Set<String> overlap = new HashSet<>();
+                Map<String, List<ResultBundleValidator.Candidate>> siblings = new HashMap<>();
                 for (var planned : plannedShards.entrySet()) {
                     String sibling = planned.getKey();
                     if (sibling.equals(shard)) continue;
-                    for (var candidate : shardCandidates(root, datasetId, collection, sibling,
-                            entries.path(sibling), planned.getValue())) {
-                        if (localIds.contains(candidate.eventId())) overlap.add(candidate.eventId());
-                    }
+                    siblings.put(sibling, shardCandidates(root, datasetId, collection, sibling,
+                        entries.path(sibling), planned.getValue()));
                 }
-                scope = new ResultBundleValidator.CollectionScope(scope.version(), collection, shard, overlap);
+                scope = new ResultBundleValidator.CollectionScope(scope.version(), collection, shard, siblings);
             }
         } else {
             if (request.has("collection_shard_id") || request.has("collection_id"))

@@ -66,6 +66,17 @@ Full-split `<algo>/` dành cho đánh giá/đối soát, không import qua luồ
 collection này; thêm shard ID vào full-split không làm nó hợp lệ. `RESULT_READY`
 là kết quả kiểm cấu trúc và lineage, chưa phải receipt `CANDIDATE` của Iceberg.
 
+Với `HDBSCAN_ADAPTIVE` trên collection nhiều shard, stage toàn bộ thư mục
+`<algo>_shards/<shard_id>/` cùng cấp. Trong mỗi request, đặt
+`collection_result_markers` là object ánh xạ **mọi** shard ID trong collection
+sang SHA-256 đầy đủ của `_SUCCESS.json` lấy từ evidence EXP-03/EXP-05 đã ghim.
+Dùng cùng bộ pin cho mọi request của cohort. Java kiểm từng marker, checksum
+artifact, scope và lineage từng shard rồi đối chiếu rank trên các dòng
+`is_sequence_member=true` của toàn cohort trước khi reserve run. Nếu thiếu
+pin hoặc marker, bổ sung đúng artifact rồi thử lại. Rank trùng, thiếu rank 1
+hoặc trộn `MULTIPLE` với `AMBIGUOUS` làm validation thất bại. Mỗi request
+chỉ ghi dữ liệu của shard được chỉ định trong `artifact_root`.
+
 `MLI_IMPORT_RUNNER_COMMAND` chỉ lấy từ môi trường vận hành và được chạy
 không qua shell. Image Airflow đóng gói `/opt/pipeline/bin/mli-import-runner`
 và Spark/Iceberg runtime; runner phải nhận request path cuối cùng, tạo
