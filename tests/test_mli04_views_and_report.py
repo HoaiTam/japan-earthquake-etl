@@ -1605,13 +1605,16 @@ class PinnedReadbackTests(unittest.TestCase):
     def test_adaptive_rollup_must_match_pinned_exp03(self):
         dataset, _, _ = READBACK["official_sources"]()
         expected = dataset["adaptive_resolution"]
-        self.assertEqual({"raw_post": 99067, "resolved_unique": 88078, "deduplicated_post": 10989}, expected)
+        self.assertEqual({"raw_post": 99067, "resolved_unique": 88078, "rank_one_post": 88078,
+                          "ambiguous_post": 0, "deduplicated_post": 10989}, expected)
         gate = READBACK["check_adaptive_resolution"]
-        self.assertEqual(expected, gate({"raw_post": 99067, "resolved_unique": 88078}, expected))
-        for counts in ({"raw_post": 99066, "resolved_unique": 88078},
-                       {"raw_post": 99067, "resolved_unique": 88079}):
+        counts = dict(expected)
+        self.assertEqual(expected, gate(counts, expected))
+        for changed in (dict(counts, raw_post=99066), dict(counts, ambiguous_post=1)):
             with self.assertRaisesRegex(ValueError, "MLI04_ADAPTIVE_RECONCILIATION"):
-                gate(counts, expected)
+                gate(changed, expected)
+        with self.assertRaisesRegex(ValueError, "MLI04_ADAPTIVE_DUPLICATE_RANK_ONE"):
+            gate(dict(counts, rank_one_post=88079), expected)
 
     def test_shard_queries_pin_each_table_and_reject_wrong_metrics(self):
         rid = "exp_run_example"
@@ -1622,15 +1625,15 @@ class PinnedReadbackTests(unittest.TestCase):
                    "namespace": "iceberg.ml_qa_fixture", "collection_scope": scope, "candidate_at_utc": "2026-11-18T00:00:00Z",
                    "experiment_snapshot_id": 13, "summary_snapshot_id": 12, "membership_snapshot_id": 11,
                    "readback": {"sequence_membership": 4, "sequence_summary": 2, "experiment_run": 1}}
-        counts = [4, 2, 4, 1, 1, 0, 2, 1]
+        counts = [4, 2, 4, 1, 1, 0, 2, 1, 1, 0]
         metrics = dict.fromkeys(READBACK["METRICS"], {"count": 0, "mean": None})
         metrics["noise_ratio"] = {"count": 1, "mean": 0.0}
 
-        def verify(noise=0.0, status="CANDIDATE"):
+        def verify(noise=0.0, status="CANDIDATE", rank_one=1, ambiguous=0):
             calls = []
             responses = [
                 [["ds_fixture", "WINDOW", "v1", "code", status, fingerprint, 11, 12, 4, 2, "c"*64, "101", "102", "103"]],
-                [[4, 2, 1]],
+                [[4, 2, 1, rank_one, ambiguous]],
                 [[2, 4, 1, 1, 0, 1, noise, 0, None, 0, None, 0, None]],
                 [["FAILED", "NOISE", 1]],
             ]
@@ -1653,6 +1656,9 @@ class PinnedReadbackTests(unittest.TestCase):
             verify(noise=None)
         with self.assertRaisesRegex(ValueError, "REGISTRY_MISMATCH"):
             verify(status="REJECTED")
+        for change in ({"rank_one": 2}, {"ambiguous": 1}):
+            with self.assertRaisesRegex(ValueError, "COUNT_PARITY"):
+                verify(**change)
 
     def test_full_algorithm_rollup_deduplicates_and_weights(self):
         def row(rid, snap, n, value):
@@ -1664,11 +1670,30 @@ class PinnedReadbackTests(unittest.TestCase):
         def query(sql):
             self.assertIn("FOR VERSION AS OF 11", sql)
             self.assertIn("FOR VERSION AS OF 31", sql)
-            return "query-distinct", [[3]]
+            return "query-distinct", [[3, 4, 4]]
         result = READBACK["rollups"](snapshots, {"r0": {"a", "b"}, "r1": {"b", "c"}}, expected,
                                       "iceberg.ml", "ds_fixture", query)["WINDOW"]
         self.assertEqual(3, result["counts"]["resolved_unique"])
         self.assertEqual(0.75, result["sql_metrics"]["noise_ratio"]["mean"])
+
+    def test_adaptive_rollup_rejects_duplicate_rank_one_across_shards(self):
+        algo = "HDBSCAN_ADAPTIVE"
+        runs = [{"algorithm_name": algo, "experiment_run_id": rid,
+                 "snapshots": {"membership_snapshot_id": snap},
+                 "actual_counts": dict.fromkeys(READBACK["COUNTS"], 0) |
+                                  {"raw_post": 1, "rank_one_post": 1, "resolved_unique": 1}}
+                for rid, snap in (("r0", 11), ("r1", 31))]
+
+        def query(sql):
+            self.assertIn("count_if(resolution_rank = 1)", sql)
+            self.assertIn("count_if(multi_sequence_status = 'AMBIGUOUS')", sql)
+            self.assertIn("FOR VERSION AS OF 11", sql)
+            self.assertIn("FOR VERSION AS OF 31", sql)
+            return "query-two-winners", [[1, 2, 0]]
+
+        with self.assertRaisesRegex(ValueError, "MLI04_ADAPTIVE_DUPLICATE_RANK_ONE"):
+            READBACK["rollups"](runs, {"r0": {"shared"}, "r1": {"shared"}},
+                                {"r0": (algo,), "r1": (algo,)}, "iceberg.ml", "ds_fixture", query)
 
 
 if __name__ == "__main__":

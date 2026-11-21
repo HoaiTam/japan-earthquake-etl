@@ -72,6 +72,8 @@ def official_sources(root=ROOT):
             dataset["adaptive_resolution"] = {
                 "raw_post": resolution["raw_aftershocks"],
                 "resolved_unique": resolution["resolved_unique_aftershocks"],
+                "rank_one_post": resolution["resolved_unique_aftershocks"],
+                "ambiguous_post": resolution["ambiguous_aftershocks_count"],
                 "deduplicated_post": resolution["aftershocks_deduplicated_count"],
             }
             shards = {"HDBSCAN_ADAPTIVE": shards}
@@ -115,7 +117,8 @@ def bundle_expectations(root, pins, dataset, rid, algo, shard, code):
             and cfg["collection_scope"]["shard_id"] == shard
             and cfg["collection_scope"]["collection_id"] == dataset["collection_id"], "MLI04_BUNDLE_IDENTITY")
     member = pq.read_table(root / "memberships.parquet",
-                           columns=["candidate_event_id", "is_sequence_member", "event_role_candidate", "resolution_rank"])
+                           columns=["candidate_event_id", "is_sequence_member", "event_role_candidate",
+                                    "resolution_rank", "multi_sequence_status"])
     summary = pq.read_table(root / "sequence_summary.parquet").to_pylist()
     post = [r for r in member.to_pylist() if r["is_sequence_member"] and r["event_role_candidate"] == "POST"]
     statuses = Counter(r["window_result_status"] for r in summary)
@@ -129,7 +132,8 @@ def bundle_expectations(root, pins, dataset, rid, algo, shard, code):
     resolved = {r["candidate_event_id"] for r in post if r["resolution_rank"] == 1}
     values = [len(member), len(summary), sum(r["candidate_count"] for r in summary),
               statuses["SUCCESS"], statuses["FAILED"], statuses["SKIPPED"],
-              len(post), len(resolved)]
+              len(post), len(resolved), sum(r["resolution_rank"] == 1 for r in post),
+              sum(r["multi_sequence_status"] == "AMBIGUOUS" for r in post)]
     require(values[:2] == [pins["membership_row_count"], pins["summary_row_count"]]
             and values[3] + values[4] + values[5] == len(summary), "MLI04_BUNDLE_COUNTS")
     # Java ResultBundleContract hashes the sorted map in its TreeMap representation.
@@ -140,7 +144,7 @@ def bundle_expectations(root, pins, dataset, rid, algo, shard, code):
 
 METRICS = ("noise_ratio", "dbcv_score", "omori_p", "omori_fit_metric")
 COUNTS = ("membership_rows", "summary_rows", "candidate_rows", "success_windows",
-          "failure_windows", "skipped_windows", "raw_post", "resolved_unique")
+          "failure_windows", "skipped_windows", "raw_post", "resolved_unique", "rank_one_post", "ambiguous_post")
 
 
 class NoRedirect(HTTPRedirectHandler):
@@ -211,7 +215,10 @@ def verify_shard(query, ns, dataset, rid, algo, shard, code, pin, artifact, rece
     q_members, memberships = query(f"""SELECT count(*),
         count_if(is_sequence_member AND event_role_candidate = 'POST'),
         count(DISTINCT CASE WHEN is_sequence_member AND event_role_candidate = 'POST'
-            AND resolution_rank = 1 THEN candidate_event_id END) FROM {mem} WHERE {filt}""")
+            AND resolution_rank = 1 THEN candidate_event_id END),
+        count_if(is_sequence_member AND event_role_candidate = 'POST' AND resolution_rank = 1),
+        count_if(is_sequence_member AND event_role_candidate = 'POST' AND multi_sequence_status = 'AMBIGUOUS')
+        FROM {mem} WHERE {filt}""")
     aggregates = ", ".join(f"count({key}), avg({key})" for key in METRICS)
     q_summary, summaries = query(f"""SELECT count(*), sum(candidate_count),
         count_if(window_result_status = 'SUCCESS'), count_if(window_result_status = 'FAILED'),
@@ -247,17 +254,20 @@ def rollups(verified, resolved, expected, ns, dataset_id, query):
             continue
         ids = [r["experiment_run_id"] for r in runs]
         selects = [
-            f"SELECT candidate_event_id FROM {ns}.sequence_membership "
+            f"SELECT candidate_event_id, resolution_rank, multi_sequence_status FROM {ns}.sequence_membership "
             f"FOR VERSION AS OF {r['snapshots']['membership_snapshot_id']} "
             f"WHERE dataset_id = '{dataset_id}' AND experiment_run_id = '{rid}' "
-            "AND is_sequence_member AND event_role_candidate = 'POST' AND resolution_rank = 1"
+            "AND is_sequence_member AND event_role_candidate = 'POST'"
             for rid, r in zip(ids, runs)
         ]
-        query_id, rows = query("SELECT count(DISTINCT candidate_event_id) FROM (" +
+        query_id, rows = query("SELECT count(DISTINCT CASE WHEN resolution_rank = 1 THEN candidate_event_id END), "
+                               "count_if(resolution_rank = 1), count_if(multi_sequence_status = 'AMBIGUOUS') FROM (" +
                                " UNION ALL ".join(selects) + ") AS scoped_members")
         unique = len(set().union(*(resolved[rid] for rid in ids)))
-        require(rows == [[unique]], "MLI04_CROSS_SHARD_PARITY")
         counts = {key: sum(r["actual_counts"][key] for r in runs) for key in COUNTS}
+        require(rows == [[unique, counts["rank_one_post"], counts["ambiguous_post"]]], "MLI04_CROSS_SHARD_PARITY")
+        if algo == "HDBSCAN_ADAPTIVE":
+            require(counts["rank_one_post"] == unique, "MLI04_ADAPTIVE_DUPLICATE_RANK_ONE")
         counts["resolved_unique"] = unique
         metrics = {}
         for key in METRICS:
@@ -272,7 +282,10 @@ def rollups(verified, resolved, expected, ns, dataset_id, query):
 def check_adaptive_resolution(counts, expected):
     raw = counts["raw_post"]
     unique = counts["resolved_unique"]
-    observed = {"raw_post": raw, "resolved_unique": unique, "deduplicated_post": raw - unique}
+    rank_one, ambiguous = counts["rank_one_post"], counts["ambiguous_post"]
+    require(rank_one == unique, "MLI04_ADAPTIVE_DUPLICATE_RANK_ONE")
+    observed = {"raw_post": raw, "resolved_unique": unique, "rank_one_post": rank_one,
+                "ambiguous_post": ambiguous, "deduplicated_post": raw - unique - ambiguous}
     require(observed == expected, "MLI04_ADAPTIVE_RECONCILIATION")
     return observed
 

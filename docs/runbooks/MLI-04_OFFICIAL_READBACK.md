@@ -23,8 +23,11 @@ snapshot hoặc receipt CANDIDATE.
 
 Verifier đối soát cohort adaptive với EXP-03 sau khi đủ hai shard:
 99.067 lượt gán aftershock, 88.078 aftershock duy nhất, loại trùng 10.989 lượt.
-Số duy nhất dùng COUNT(DISTINCT candidate_event_id) trên các snapshot
-membership đã ghim ở từng receipt.
+Trên đúng snapshot membership ghim trong các receipt, đối chiếu với Parquet
+đã kiểm SHA cả số dòng POST rank 1, số event POST rank 1 phân biệt và số dòng
+POST `AMBIGUOUS`. EXP-03 ghim 88.078 dòng rank 1, 88.078 event duy nhất và
+0 dòng POST `AMBIGUOUS`. Hai rank 1 cho cùng event bị từ chối dù distinct
+count vẫn bằng kỳ vọng.
 
 ## Chạy trên máy giữ catalog DAT-03
 
@@ -47,7 +50,7 @@ python3 scripts/generate-experiment-report.py --mode official --input-json "$EVI
 
 Verifier chỉ gửi SELECT với ba snapshot của từng run. Đối chiếu receipt,
 registry, bytes Parquet, counts, failure reasons và số mẫu của metric. Rollup
-cho thuật toán đủ shard dùng trung bình theo số mẫu và một query distinct
+cho thuật toán đủ shard dùng trung bình theo số mẫu và một query đếm membership
 trên các snapshot. Chỉ đủ tám shard mới ghi VERIFIED toàn cohort. Metric
 khoa học riêng giữ nguồn EXP-04 đã pin.
 
