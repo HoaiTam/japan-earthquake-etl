@@ -1,0 +1,228 @@
+{
+  "schema_version": "demo-package-v2",
+  "task_id": "DEMO-01",
+  "package_status": "PREPARED_PENDING_OFFICIAL_GATES",
+  "official_release_ready": false,
+  "depends_on_power_bi": false,
+  "stage_40_year_rerun_required": false,
+  "scientific_boundary": {
+    "retrospective_candidate_only": true,
+    "no_earthquake_prediction": true,
+    "no_physical_causality_claim": true,
+    "forbidden_metrics": [
+      "accuracy",
+      "f1"
+    ],
+    "denominator_integrity_required": true,
+    "statement": "Output chi la sequence/aftershock candidate hoi cuu; khong du doan dong dat hay suy dien quan he nhan qua vat ly."
+  },
+  "representative_evidence": {
+    "daily_operational_v2": {
+      "task_id": "QA-01",
+      "evidence_file": "docs/evidence/QA-01_CURRENT_MONTH_20261023.json",
+      "run_id": "scheduled__2026-10-23T00:15:00+00:00",
+      "operation_id": "cm1-847b2845f3e2f5ded8e815776e69d9756a65fcfa",
+      "publication_id": "pub_744bb52905e31c0a7d59250333c50178048156fc3992ab87a47865e9cdab132f",
+      "status": "PASSED",
+      "coverage_mode": "OBSERVED_AS_OF",
+      "natural_roi_event_count": 58,
+      "research_ready": false,
+      "ml_upstream_eligible": false,
+      "snapshot_ids": {
+        "event_current": "1543775439517699343",
+        "event_source_bridge": "6717303813908221083",
+        "dim_date": "8242784952305021235",
+        "dim_region": "4948724480068210812",
+        "dim_magnitude_band": "3514905636761141744",
+        "dim_depth_band": "9052112578348555548"
+      }
+    },
+    "bounded_real_etl": {
+      "task_id": "ORC-07",
+      "evidence_file": "docs/evidence/ORC-07.md",
+      "run_id": "manual__2026-10-16T02:26:22.739029+00:00",
+      "operation_id": "orc07-c6395ae7d795ac7f00b18041a07f807233cc43f3",
+      "publication_id": "pub_c76a33780d848e918a910f025cefc93c0e179cf67c8a230ab4522c339a95ac8f",
+      "namespace": "iceberg.gold_qa_75b2a4a0d4ad4a49817ac8cde6b1f868",
+      "canonical_events": 22390
+    },
+    "idempotency_rerun_qa": {
+      "task_id": "QA-02",
+      "evidence_file": "docs/evidence/QA-02-runtime.json",
+      "run_id": "qa02-runtime-1868715b4bb34f5a84b568c3cf64c1b6",
+      "status": "PASS",
+      "case_count": 8,
+      "passed": 8
+    },
+    "historical_backfill_qa": {
+      "task_id": "QA-03",
+      "evidence_file": "docs/evidence/QA-03-runtime.json",
+      "run_id": "qa03-runtime-2bf249ede8a84947afb22c48beb77e07",
+      "status": "PASS",
+      "case_count": 6,
+      "passed": 6
+    },
+    "failure_recovery_qa": {
+      "task_id": "QA-04",
+      "evidence_file": "docs/evidence/QA-04-runtime.json",
+      "run_id": "qa04-runtime-9504f2f71b884df0abb78ce50d4e7490",
+      "status": "PASS",
+      "case_count": 10,
+      "passed": 10
+    },
+    "official_paired_release_v4": {
+      "task_id": "DAT-03",
+      "evidence_file": "docs/evidence/DAT-03_WINDOWS_HANDOFF_20261116.json",
+      "final_acceptance_file": "docs/evidence/DAT-03_FINAL_ACCEPTANCE_20261116.json",
+      "zip_name": "jma-research-team-20261115-v4.zip",
+      "zip_sha256": "687170587e9db1d5d767722bf2fd4e1e2eecc1c3141ebfcdb10269a8b83b4c21",
+      "handoff_sha256": "6cf0af7c2a3d8e8ec4c993f84ed6d86cdc417324102133dd3068eb2ebc40d297",
+      "receipt_version": "dat03-team-research-v1",
+      "scientific_approval": false,
+      "gold_pin": {
+        "gold_publication_id": "pub_832ce36ac875f546528718c3545442a77a0097f7573379f30ed92f2a43c481f4",
+        "gold_snapshot_id": "7580315846938041321",
+        "physical_gold_table_name": "iceberg.dat03_unified_20261114.event_current",
+        "publication_bundle_sha256": "832ce36ac875f546528718c3545442a77a0097f7573379f30ed92f2a43c481f4"
+      },
+      "collections": {
+        "REPRODUCTION": {
+          "dataset_id": "ds_907fe748fafdfc0f072ce4db4e1cf0aa619ed18877129e17c8440b43062c3d87",
+          "collection_id": "col_bd10c69365da841b2cf6a62172e2350a797001eac04ce4bc6f2277a4d150ad98",
+          "manifest_sha256": "d3ee1334bfc50005a527f7b32a8988fcb1bdd7659a7dd4e84de326a7735139ae",
+          "checksums_sha256": "4768e500754c569bc951f23e2ac14fa9b9703ae69fbd5f78de06eacbb72f7ae9",
+          "shard_count": 2,
+          "feature_row_count": 156710,
+          "mainshock_count": 194,
+          "timestamp_reader_profile": "prepared-spark-utc-int96-v1"
+        },
+        "EXTENSION": {
+          "dataset_id": "ds_5259d2fe13e027245559e1ec4a1e696b5d94d0b67f44d5ec80738c9e984978be",
+          "collection_id": "col_0dc6dc2fd0a60c2890f68863b8561813ecd1d5e1941a8995be1d58e192fe0906",
+          "manifest_sha256": "fd1908f77ffcc70e77250ef834883d0ab8bbaf38e40962958a5c296f90d4aad1",
+          "checksums_sha256": "753506e4039130e12f88746c5f95122a66a3bac36342634d082f89acf5ad89d8",
+          "shard_count": 4,
+          "feature_row_count": 233664,
+          "mainshock_count": 45,
+          "timestamp_reader_profile": "prepared-spark-utc-int96-v1"
+        }
+      },
+      "team_receipt_note": "3/3 receipts (HoaiTam, ThanhTris, rosy179) da duoc doi chieu tren PR #131 va DAT-03 da Done tren main qua PR #136 (DAT-03_FINAL_ACCEPTANCE_20261116.json); OPS-01 cung da Done qua PR #137."
+    },
+    "pilot_dataset": {
+      "task_id": "DAT-02",
+      "evidence_file": "docs/evidence/DAT-03_TEAM_RELEASE.json",
+      "pilot_id": "pilot_196b6d4081d347e1c289e331022658fbbe572dd33181ad987900895c1f1b189c",
+      "archive_name": "jma-development-pilot-team.zip",
+      "archive_sha256": "f58291b72873e1b26791fef97818fdcf5e2b028a5dfa528885a666d8cdc1b870",
+      "feature_count": 279,
+      "mainshock_count": 2,
+      "allowed_usage": "DEVELOPMENT_ONLY",
+      "research_ready": false,
+      "scientific_approval": false
+    },
+    "pilot_baseline_parity": {
+      "task_id": "EXP-02",
+      "evidence_file": "docs/evidence/EXP-02_COLAB_PARITY_20261102.json",
+      "status": "COLAB_PILOT_PARITY_VERIFIED",
+      "pilot_id": "pilot_196b6d4081d347e1c289e331022658fbbe572dd33181ad987900895c1f1b189c",
+      "research_ready": false,
+      "scientific_approval": false
+    },
+    "pilot_adaptive_smoke": {
+      "task_id": "EXP-03",
+      "evidence_file": "docs/evidence/EXP-03-local-smoke.json",
+      "experiment_run_id": "pilot_run_cfe24f4de7704819ac1c6116360e1aae",
+      "notebook_status": "RESTART_RUN_ALL_PASSED",
+      "local_smoke_status": "PASSED",
+      "runner_mode": "nbclient",
+      "fresh_kernel_acceptance": true
+    },
+    "pilot_scientific_evaluation": {
+      "task_id": "EXP-04",
+      "evidence_file": "docs/evidence/EXP-04_PILOT_EVALUATION.json",
+      "evaluation_scope": "PILOT_DEVELOPMENT",
+      "pilot_id": "pilot_196b6d4081d347e1c289e331022658fbbe572dd33181ad987900895c1f1b189c",
+      "candidate_rows": 279,
+      "mainshock_count": 2
+    },
+    "static_report_and_ml_sql": {
+      "task_id": "MLI-04",
+      "report_file": "docs/evidence/MLI-04_STATIC_REPORT.md",
+      "sql_verification_file": "sql/ml/ml_verification_queries.sql",
+      "sql_views": [
+        "sql/ml/v_experiment_runs.sql",
+        "sql/ml/v_algorithm_comparison.sql",
+        "sql/ml/v_failure_windows.sql",
+        "sql/ml/v_sequence_memberships_resolved.sql"
+      ],
+      "official_sql_parity_verified": false
+    }
+  },
+  "required_repo_files": [
+    "docs/DEMO_FLOWS.md",
+    "docs/KNOWN_ISSUES.md",
+    "docs/runbooks/DEMO-01_DEMO_PACKAGE.md",
+    "docs/runbooks/DAT-03_OFFICIAL_RESEARCH_HANDOFF.md",
+    "docs/evidence/DAT-03_OFFICIAL_COLLECTIONS_20261115.md",
+    "docs/evidence/DAT-03_WINDOWS_HANDOFF_20261116.json",
+    "docs/evidence/DAT-03_FINAL_ACCEPTANCE_20261116.json",
+    "docs/evidence/DAT-03_FINAL_ACCEPTANCE_20261116.md",
+    "docs/evidence/GLD-04-verification.sql",
+    "docs/evidence/MLI-04_STATIC_REPORT.md",
+    "docs/evidence/MLD-05_RUNTIME_ACCEPTANCE.md",
+    "docs/evidence/MLI-02_RUNTIME_ACCEPTANCE.md",
+    "docs/evidence/MLI-03_RUNTIME_ACCEPTANCE.md",
+    "sql/gold/gold_aggregate_verification_queries.sql",
+    "sql/ml/ml_verification_queries.sql",
+    "notebooks/exp_02_baseline_algorithms.ipynb",
+    "notebooks/exp_03_adaptive_hdbscan.ipynb",
+    "scripts/generate-experiment-report.py"
+  ],
+  "fallback_modes": {
+    "network_or_source_api_outage": {
+      "strategy": "Replay pinned Bronze/capture fixtures from QA-01/QA-03 evidence without hitting live USGS/JMA APIs.",
+      "label_required": "PINNED_REPLAY_EVIDENCE"
+    },
+    "drive_or_colab_unavailable": {
+      "strategy": "Present fresh-kernel local gate evidence (EXP-02/EXP-03/EXP-04) and verified local v4 kit receipt outside repo without running live Colab.",
+      "label_required": "LOCAL_VERIFIED_FALLBACK"
+    },
+    "docker_or_memory_constrained": {
+      "strategy": "Present pre-verified Trino verification SQL, JSON summaries, and static Markdown report without triggering Docker builds or 40-year ETL.",
+      "label_required": "STATIC_EVIDENCE_NO_STAGE_ETL"
+    },
+    "power_bi_unavailable": {
+      "strategy": "Use Core outputs only: Trino ML/Gold SQL views and MLI-04 static Markdown report; Power BI (BI-01..BI-05) is Stretch.",
+      "label_required": "CORE_ONLY_NO_POWER_BI_DEPENDENCY"
+    }
+  },
+  "pending_official_gates": [
+    {
+      "task_id": "MLI-04",
+      "reason": "Chua co official SQL parity tren exact snapshots"
+    },
+    {
+      "task_id": "MLQ-01",
+      "reason": "Chua co receipt nghiem thu ML E2E"
+    }
+  ],
+  "official_evidence": {
+    "EXP-02": {
+      "path": "docs/evidence/EXP-02_REPRODUCTION_REPLAY_FOR_EXP04.json",
+      "sha256_lf": "014541a0ba58594a8254420d2fbd9e72e4abaca4ada8581bec375ccba33d2142"
+    },
+    "EXP-03": {
+      "path": "docs/evidence/EXP-03_OFFICIAL_REPRODUCTION.json",
+      "sha256_lf": "2d2509d02114b375bfe437f049f2456bbad6dbb154731fe5eda8ecbfbbb51b45"
+    },
+    "EXP-04": {
+      "path": "docs/evidence/EXP-04_OFFICIAL_REPRODUCTION.json",
+      "sha256_lf": "0946298b33aa871273071ea2b64e9490a4a63bd639f515a6d0fdf9d9a7fb12b6"
+    },
+    "EXP-05": {
+      "path": "docs/evidence/EXP-05_EXTENSION_EVALUATION.json",
+      "sha256_lf": "7f67e32b8bf4ae4eaa2e1078b501952a5bb88df4cc8e5b467da6570ce23a3f0d"
+    }
+  }
+}

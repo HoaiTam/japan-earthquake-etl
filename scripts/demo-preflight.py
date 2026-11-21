@@ -5,9 +5,8 @@ Validates that every representative run, snapshot pin, SQL file, static report,
 fallback plan, and scientific disclaimer referenced by the demo package exists
 and agrees with repository evidence without executing ETL or needing Docker/network.
 
-Within DEMO-01 preparation scope (before MLQ-01 and MLI-04 official acceptance),
-preflight NEVER emits PASS_OFFICIAL_READY and fails closed if any upstream pending
-gate is stripped or official_release_ready is flagged true.
+V1 retains its preparation-only behavior. V2 derives readiness from pinned
+research, SQL parity and end-to-end acceptance evidence.
 """
 from __future__ import annotations
 
@@ -21,10 +20,14 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_MANIFEST = ROOT / "config" / "demo" / "demo_package_manifest_v1.json"
+CURRENT_MANIFEST = ROOT / "config" / "demo" / "demo_package_manifest_v2.json"
 PREPARED_PENDING_STATUS = "PREPARED_PENDING_OFFICIAL_GATES"
 REQUIRED_PENDING_GATES = ("EXP-02", "EXP-03", "EXP-04", "MLI-04", "MLQ-01")
 VALID_ROSTER = ("HoaiTam", "ThanhTris", "rosy179")
 REQUIRED_DAT03_SPLITS = ("REPRODUCTION", "EXTENSION")
+REQUIRED_ML_ALGORITHMS = frozenset(("WINDOW", "DBSCAN", "HDBSCAN_GLOBAL", "HDBSCAN_ADAPTIVE"))
+ML_SNAPSHOT_FIELDS = ("experiment_snapshot_id", "membership_snapshot_id", "summary_snapshot_id")
+ML_BUNDLE_CONTRACT = "spark/src/main/resources/ml/result-bundle-v1.json"
 REQUIRED_QA01_TABLES = (
     "event_current",
     "event_source_bridge",
@@ -96,13 +99,16 @@ def _check_secret_hygiene(text: str, label: str) -> None:
 
 
 def _validate_boundary_and_policy(manifest: dict[str, Any]) -> None:
-    if manifest.get("schema_version") != "demo-package-v1":
+    version = manifest.get("schema_version")
+    if version not in {"demo-package-v1", "demo-package-v2"}:
         raise ValueError("DEMO_INVALID_SCHEMA_VERSION")
     if manifest.get("task_id") != "DEMO-01":
         raise ValueError("DEMO_INVALID_TASK_ID")
-    if manifest.get("package_status") != PREPARED_PENDING_STATUS:
+    if manifest.get("package_status") not in (
+        {PREPARED_PENDING_STATUS} if version == "demo-package-v1" else {PREPARED_PENDING_STATUS, "PASS_OFFICIAL_READY"}
+    ):
         raise ValueError("DEMO_INVALID_PACKAGE_STATUS")
-    if manifest.get("official_release_ready") is not False:
+    if version == "demo-package-v1" and manifest.get("official_release_ready") is not False:
         raise ValueError("DEMO_OFFICIAL_RELEASE_NOT_ALLOWED_BEFORE_GATES")
     if manifest.get("depends_on_power_bi") is not False:
         raise ValueError("DEMO_POWER_BI_MUST_BE_OPTIONAL")
@@ -124,6 +130,8 @@ def _validate_boundary_and_policy(manifest: dict[str, Any]) -> None:
     if "candidate" not in statement or ("khong du doan" not in statement and "không dự đoán" not in statement):
         raise ValueError("DEMO_BOUNDARY_STATEMENT_INCOMPLETE")
 
+    if version == "demo-package-v2":
+        return
     pending = manifest.get("pending_official_gates")
     if not isinstance(pending, list) or not pending:
         raise ValueError("DEMO_MISSING_REQUIRED_PENDING_GATES:EMPTY")
@@ -552,6 +560,228 @@ def _verify_local_receipt(
     }
 
 
+def _pinned_official_json(root, pin):
+    path = _resolve_repo_path(root, pin["path"])
+    raw = path.read_bytes().replace(b"\r\n", b"\n")
+    if hashlib.sha256(raw).hexdigest() != pin["sha256_lf"]:
+        raise ValueError("DEMO_OFFICIAL_SHA_MISMATCH")
+    result = json.loads(raw)
+    if not isinstance(result, dict):
+        raise ValueError("DEMO_OFFICIAL_EVIDENCE_INVALID")
+    return result
+
+
+def _extension_bundle_fingerprint(root, case, pin, model_config_version):
+    marker_path = case.get("success_marker_path")
+    if not isinstance(marker_path, str) or Path(marker_path).name != "_SUCCESS.json":
+        raise ValueError("DEMO_MLQ01_EXTENSION_MARKER")
+    # EXP-05 pins the original artifact bytes, including the line endings.
+    raw = _resolve_repo_path(root, marker_path).read_bytes()
+    if hashlib.sha256(raw).hexdigest() != pin["success_marker_sha256"]:
+        raise ValueError("DEMO_MLQ01_EXTENSION_MARKER_SHA")
+    marker = json.loads(raw)
+    contract = _load_json_strict(_resolve_repo_path(root, ML_BUNDLE_CONTRACT))
+    identity = ("dataset_id", "experiment_run_id", "algorithm_name")
+    if (not isinstance(marker, dict) or marker.get("status") != "COMPLETED"
+            or marker.get("schema_version") != contract["schema_version"]
+            or any(marker.get(field) != case[field] for field in identity)
+            or not isinstance(model_config_version, str) or not model_config_version.strip()
+            or marker.get("model_config_version") != model_config_version):
+        raise ValueError("DEMO_MLQ01_EXTENSION_MARKER")
+    checksums = marker.get("checksums")
+    required = set(contract["required_artifacts"])
+    if (not isinstance(checksums, dict) or not required.issubset(checksums)
+            or any(name not in required
+                   and not re.fullmatch(r"optional-model-artifacts/[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)?", name)
+                   for name in checksums)
+            or any(not isinstance(digest, str) or not re.fullmatch(r"[a-f0-9]{64}", digest)
+                   for digest in checksums.values())):
+        raise ValueError("DEMO_MLQ01_EXTENSION_MARKER_CHECKSUMS")
+
+    # ResultBundleContract uses Java TreeMap.toString() for the checksums.
+    checksums_input = "{" + ", ".join(f"{name}={checksums[name]}" for name in sorted(checksums)) + "}"
+    fields = [marker[field] for field in identity]
+    return hashlib.sha256("\n".join([*fields, model_config_version, checksums_input]).encode("utf-8")).hexdigest()
+
+
+def _validate_mlq_extension(root, case, report, exp05_sha):
+    if not isinstance(case, dict) or case.get("exp05_sha256_lf") != exp05_sha:
+        raise ValueError("DEMO_MLQ01_EXTENSION_PIN")
+    algo, shard = case.get("algorithm_name"), case.get("shard_id")
+    if not isinstance(algo, str) or algo not in REQUIRED_ML_ALGORITHMS or not isinstance(shard, str):
+        raise ValueError("DEMO_MLQ01_EXTENSION_PIN")
+    bundle = report["algorithm_comparisons"][algo]["bundle_verification"]
+    pin = bundle["shard_verifications"].get(shard)
+    dataset = report["dataset"]
+    if (pin is None or bundle.get("physical_shards_verified") is not True
+            or any(case.get(field) != pin[field] for field in ("experiment_run_id", "success_marker_sha256"))
+            or any(case.get(field) != dataset[field] for field in ("dataset_id", "collection_id"))
+            or str(case.get("gold_snapshot_id")) != str(dataset["gold_snapshot_id"])):
+        raise ValueError("DEMO_MLQ01_EXTENSION_PIN")
+    import_pin = case.get("import_receipt")
+    if (not isinstance(import_pin, dict) or not isinstance(import_pin.get("path"), str)
+            or not isinstance(import_pin.get("sha256_lf"), str)):
+        raise ValueError("DEMO_MLQ01_EXTENSION_IMPORT")
+    model_version = report["algorithm_config_pins"][algo]["model_config_version"]
+    fingerprint = _extension_bundle_fingerprint(root, case, pin, model_version)
+    receipt = _pinned_official_json(root, import_pin)
+    if receipt.get("result_bundle_sha256") != fingerprint:
+        raise ValueError("DEMO_MLQ01_EXTENSION_BUNDLE_FINGERPRINT")
+    scope = receipt.get("collection_scope")
+    counts = receipt.get("readback")
+    namespace = receipt.get("namespace")
+    if (not isinstance(namespace, str) or not re.fullmatch(r"[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*", namespace)
+            or receipt.get("experiment_status") != "CANDIDATE"
+            or any(receipt.get(field) != case[field] for field in ("experiment_run_id", "dataset_id", "algorithm_name"))
+            or not isinstance(scope, dict) or scope.get("scope") != "WHOLE_WINDOW_SHARD"
+            or scope.get("collection_id") != dataset["collection_id"] or scope.get("shard_id") != shard
+            or not isinstance(counts, dict)
+            or type(counts.get("experiment_run")) is not int or counts["experiment_run"] != 1
+            or type(counts.get("sequence_membership")) is not int
+            or counts["sequence_membership"] != pin["membership_row_count"]
+            or type(counts.get("sequence_summary")) is not int
+            or counts["sequence_summary"] != pin["summary_row_count"]):
+        raise ValueError("DEMO_MLQ01_EXTENSION_IMPORT")
+    return {"experiment_run_id": case["experiment_run_id"], "dataset_id": case["dataset_id"],
+            "collection_id": case["collection_id"], "gold_snapshot_id": str(dataset["gold_snapshot_id"]),
+            "algorithm_name": algo, "shard_id": shard, "namespace": namespace,
+            "success_marker_sha256": pin["success_marker_sha256"], "import_receipt_sha256_lf": import_pin["sha256_lf"],
+            "result_bundle_sha256": fingerprint,
+            "snapshots": {field: _normalize_int64_snapshot(receipt.get(field), field) for field in ML_SNAPSHOT_FIELDS}}
+
+
+def _validate_official_evidence(root, manifest, release):
+    refs = manifest["official_evidence"]
+    cohort = release["collections"]["REPRODUCTION"]
+    gold = release["gold_pin"]["gold_snapshot_id"]
+    required = {
+        "EXP-02": "EXP-02_REPRODUCTION_REPLAY_FOR_EXP04",
+        "EXP-03": "EXP-03_OFFICIAL_REPRODUCTION",
+        "EXP-04": "EXP-04_OFFICIAL_REPRODUCTION",
+    }
+    if set(refs) - (required.keys() | {"EXP-05", "MLI-04", "MLQ-01"}):
+        raise ValueError("DEMO_OFFICIAL_UNEXPECTED_TASK")
+    evidence, verified, expected = {}, [], {}
+    for task, name in required.items():
+        ref = refs[task]
+        if ref["path"] != f"docs/evidence/{name}.json":
+            raise ValueError("DEMO_OFFICIAL_SOURCE_MISMATCH")
+        report = _pinned_official_json(root, ref)
+        identity = report["dataset"]
+        if (report["task_id"] != task or report["status"] != "PASSED" or
+                report["evaluation_scope"] != "OFFICIAL_RESEARCH" or report["scientific_approval"] is not False
+                or identity["dataset_split"] != "REPRODUCTION" or identity["dataset_status"] != "EXPORTED"
+                or any(identity[k] != cohort[k] for k in REQUIRED_DAT03_COLLECTION_FIELDS)
+                or str(identity["gold_snapshot_id"]) != gold):
+            raise ValueError("DEMO_OFFICIAL_RESEARCH_IDENTITY")
+        evidence[task] = report
+        verified.append({"task_id": task, "status": "VERIFIED_OFFICIAL_RESEARCH",
+                         "dataset_id": cohort["dataset_id"], "sha256_lf": ref["sha256_lf"]})
+    exp04 = evidence["EXP-04"]
+    if exp04.get("frozen_rule_published") is not True:
+        raise ValueError("DEMO_OFFICIAL_FREEZE_NOT_PUBLISHED")
+    for task in ("EXP-02", "EXP-03"):
+        cross = exp04[task.lower().replace("-", "") + "_cross_verification"]
+        if cross.get("all_checks_passed") is not True or cross["report_sha256"] != refs[task]["sha256_lf"]:
+            raise ValueError("DEMO_OFFICIAL_CROSS_VERIFY_MISMATCH")
+        shards = evidence[task]["shard_verifications"]
+        if task == "EXP-03":
+            shards = {"HDBSCAN_ADAPTIVE": shards}
+        for algo, entries in shards.items():
+            if len(entries) != cohort["shard_count"]:
+                raise ValueError("DEMO_OFFICIAL_SHARD_COVERAGE")
+            for shard, entry in entries.items():
+                rid = entry["experiment_run_id"]
+                if rid in expected:
+                    raise ValueError("DEMO_OFFICIAL_DUPLICATE_RUN")
+                expected[rid] = (algo, shard, entry)
+    if {info[0] for info in expected.values()} != REQUIRED_ML_ALGORITHMS:
+        raise ValueError("DEMO_OFFICIAL_ALGORITHM_COVERAGE")
+
+    exp05 = None
+    if "EXP-05" in refs:
+        # EXP-05 is a research artifact. MLQ-01 still needs its own pinned import receipt.
+        exp05_pin = refs["EXP-05"]
+        if exp05_pin["path"] != "docs/evidence/EXP-05_EXTENSION_EVALUATION.json":
+            raise ValueError("DEMO_OFFICIAL_SOURCE_MISMATCH")
+        exp05 = _pinned_official_json(root, exp05_pin)
+        extension = exp05["dataset"]
+        release_extension = release["collections"]["EXTENSION"]
+        freeze = exp05["frozen_rule_verification"]
+        if (exp05["task_id"] != "EXP-05" or exp05["status"] != "PASSED"
+                or exp05["evaluation_scope"] != "OFFICIAL_EXTENSION_OUT_OF_PERIOD"
+                or exp05["scientific_approval"] is not False
+                or extension["dataset_split"] != "EXTENSION" or extension["dataset_status"] != "EXPORTED"
+                or any(extension[k] != release_extension[k] for k in REQUIRED_DAT03_COLLECTION_FIELDS)
+                or str(extension["gold_snapshot_id"]) != gold
+                or extension["gold_publication_id"] != release["gold_pin"]["gold_publication_id"]
+                or freeze.get("gate_status") != "PASSED"
+                or freeze.get("exp04_report_normalized_lf_sha256") != refs["EXP-04"]["sha256_lf"]
+                or freeze.get("parameter_tuning_applied_on_extension") is not False):
+            raise ValueError("DEMO_OFFICIAL_EXTENSION_IDENTITY")
+        verified.append({"task_id": "EXP-05", "status": "VERIFIED_OFFICIAL_RESEARCH",
+                         "dataset_id": extension["dataset_id"], "sha256_lf": exp05_pin["sha256_lf"]})
+
+    pending = []
+    sql_runs = {}
+    if "MLI-04" not in refs:
+        pending.append({"task_id": "MLI-04", "reason": "Chua co official SQL parity tren exact snapshots"})
+    else:
+        report = _pinned_official_json(root, refs["MLI-04"])
+        if (report.get("schema_version") != "mli04-readback-v1" or report.get("task_id") != "MLI-04"
+                or report.get("status") != "VERIFIED" or report.get("missing_run_ids") != []
+                or report.get("scientific_approval") is not False
+                or report.get("dataset_id") != cohort["dataset_id"] or report.get("collection_id") != cohort["collection_id"]
+                or report.get("exp04_sha256_lf") != refs["EXP-04"]["sha256_lf"]):
+            raise ValueError("DEMO_MLI04_NOT_VERIFIED")
+        for row in report["runs"]:
+            rid = row["experiment_run_id"]
+            if rid in sql_runs or rid not in expected:
+                raise ValueError("DEMO_MLI04_RUN_MISMATCH")
+            algo, shard, pin = expected[rid]
+            counts = row["actual_counts"]
+            if ((row["algorithm_name"], row["shard_id"], row["success_marker_sha256"]) !=
+                    (algo, shard, pin["success_marker_sha256"])
+                    or row["experiment_status"] not in {"CANDIDATE", "APPROVED"}
+                    or counts != row["expected_counts"] or counts["membership_rows"] != pin["membership_row_count"]
+                    or counts["summary_rows"] != pin["summary_row_count"]
+                    or len(set(row["query_ids"])) != 4 or not all(row["query_ids"])):
+                raise ValueError("DEMO_MLI04_RUN_MISMATCH")
+            sql_runs[rid] = {k: _normalize_int64_snapshot(row["snapshots"][k], k) for k in ML_SNAPSHOT_FIELDS}
+        if sql_runs.keys() != expected.keys():
+            raise ValueError("DEMO_MLI04_RUN_COVERAGE")
+        verified.append({"task_id": "MLI-04", "status": "VERIFIED", "run_ids": sorted(sql_runs)})
+
+    if "MLQ-01" not in refs:
+        pending.append({"task_id": "MLQ-01", "reason": "Chua co receipt nghiem thu ML E2E"})
+    else:
+        report = _pinned_official_json(root, refs["MLQ-01"])
+        if (not sql_runs or report.get("task_id") != "MLQ-01" or report.get("status") != "PASSED"
+                or report.get("scientific_approval") is not False
+                or report.get("mli04_sha256_lf") != refs["MLI-04"]["sha256_lf"]
+                or report.get("dataset_id") != cohort["dataset_id"] or str(report.get("gold_snapshot_id")) != gold
+                or any(report.get("checks", {}).get(key) is not True for key in (
+                    "gold_to_report_lineage", "count_parity", "reject_without_candidate",
+                    "rerun_no_duplicate", "extension_rule_preserved"))):
+            raise ValueError("DEMO_MLQ01_NOT_VERIFIED")
+        runs = report["runs"]
+        if not isinstance(runs, dict) or not runs or any(
+            rid not in sql_runs or not isinstance(snapshots, dict)
+            or {k: _normalize_int64_snapshot(snapshots[k], k) for k in sql_runs[rid]} != sql_runs[rid]
+            for rid, snapshots in runs.items()
+        ):
+            raise ValueError("DEMO_MLQ01_RUN_MISMATCH")
+        algorithms = {expected[rid][0] for rid in runs}
+        if algorithms != REQUIRED_ML_ALGORITHMS:
+            raise ValueError("DEMO_MLQ01_ALGORITHM_COVERAGE")
+        if exp05 is None:
+            raise ValueError("DEMO_MLQ01_EXTENSION_PIN")
+        extension_lineage = _validate_mlq_extension(root, report.get("extension"), exp05, exp05_pin["sha256_lf"])
+        verified.append({"task_id": "MLQ-01", "status": "VERIFIED", "run_ids": sorted(runs),
+                         "algorithms": sorted(algorithms), "extension": extension_lineage})
+    return verified, pending
+
+
 def run_preflight(
     manifest_path: Path = DEFAULT_MANIFEST,
     root: Path = ROOT,
@@ -581,17 +811,26 @@ def run_preflight(
     fallback_modes = _check_fallback_modes(manifest)
 
     pending_gates = manifest["pending_official_gates"]
+    ready = False
+    if manifest["schema_version"] == "demo-package-v2":
+        official, pending_gates = _validate_official_evidence(root, manifest, validated_release_pin)
+        verified_runs.extend(official)
+        ready = not pending_gates
+        if (manifest["pending_official_gates"] != pending_gates
+                or manifest["official_release_ready"] is not ready
+                or manifest["package_status"] != ("PASS_OFFICIAL_READY" if ready else PREPARED_PENDING_STATUS)):
+            raise ValueError("DEMO_OFFICIAL_READINESS_MISMATCH")
     receipt_info = _verify_local_receipt(
         local_receipt_path=local_receipt_path,
         release_pin=validated_release_pin,
         expected_receipt_sha256=expected_receipt_sha256,
     )
     report = {
-        "schema_version": "demo-preflight-report-v1",
+        "schema_version": manifest["schema_version"].replace("demo-package-", "demo-preflight-report-"),
         "task_id": "DEMO-01",
-        "overall_status": PREPARED_PENDING_STATUS,
+        "overall_status": "PASS_OFFICIAL_READY" if ready else PREPARED_PENDING_STATUS,
         "demo_package_prepared": True,
-        "official_release_ready": False,
+        "official_release_ready": ready,
         "depends_on_power_bi": False,
         "stage_40_year_rerun_required": False,
         "verified_evidence_count": len(verified_runs),
@@ -606,7 +845,7 @@ def run_preflight(
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST, help="Path to demo package manifest JSON.")
+    parser.add_argument("--manifest", type=Path, default=CURRENT_MANIFEST, help="Path to demo package manifest JSON.")
     parser.add_argument("--local-receipt", type=Path, default=None, help="Optional path to external DAT-03 v4 team receipt JSON.")
     parser.add_argument("--expected-receipt-sha256", default=None, help="Optional trusted SHA-256 hex digest for --local-receipt.")
     parser.add_argument("--output-report", type=Path, default=None, help="Optional path to write preflight JSON summary.")
