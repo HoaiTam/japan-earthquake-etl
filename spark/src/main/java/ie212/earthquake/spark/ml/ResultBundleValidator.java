@@ -3,15 +3,20 @@ package ie212.earthquake.spark.ml;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /** Reader/import implementations must supply verified Parquet types and candidate snapshot lineage. */
 public interface ResultBundleValidator {
     record Candidate(String mainshockId, String eventId, String role) {}
     /** A bounded execution of whole windows within one EXPORTED collection, not full-collection results. */
-    record CollectionScope(String version,String collectionId,String shardId) {
+    record CollectionScope(String version, String collectionId, String shardId, Set<String> crossShardCandidateIds) {
+        public CollectionScope(String version, String collectionId, String shardId) {
+            this(version, collectionId, shardId, Set.of());
+        }
         public CollectionScope {
             if(!"dat03-collection-export-v1".equals(version) || collectionId==null || !collectionId.matches("col_[a-f0-9]{64}")
                     || shardId==null || !shardId.matches("shard_[0-9]{5}")) throw new IllegalArgumentException("IMP_COLLECTION_SCOPE_REQUIRED");
+            crossShardCandidateIds = Set.copyOf(crossShardCandidateIds);
         }
         public JsonNode toJson() {
             return new com.fasterxml.jackson.databind.ObjectMapper().createObjectNode().put("version",version)

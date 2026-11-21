@@ -213,20 +213,26 @@ public final class ResultBundleContract implements ResultBundleValidator {
         require(summaries.equals(windows.keySet()),"IMP_SUMMARY_COUNT_MISMATCH");
         Map<String,List<JsonNode>> eventMemberships=new HashMap<>();
         bundle.memberships().stream().filter(row->row.get("is_sequence_member").asBoolean()).forEach(row->eventMemberships.computeIfAbsent(str(row,"candidate_event_id"),ignored->new ArrayList<>()).add(row));
-        for (List<JsonNode> rows:eventMemberships.values()) {
-            if (rows.size()==1) require(str(rows.get(0),"multi_sequence_status").equals("UNIQUE")
-                && rows.get(0).path("resolution_rank").asInt()==1,"IMP_SCHEMA_MISMATCH");
-            else {
-                boolean ambiguous=rows.stream().allMatch(row->str(row,"multi_sequence_status").equals("AMBIGUOUS"));
-                require(ambiguous || rows.stream().allMatch(row->str(row,"multi_sequence_status").equals("MULTIPLE")),"IMP_SCHEMA_MISMATCH");
-                if (!ambiguous) {
-                    Set<Integer> ranks=new HashSet<>();
-                    for(JsonNode row:rows) require(!missing(row,"resolution_rank") && ranks.add(row.get("resolution_rank").asInt()),"IMP_DUPLICATE_GRAIN");
-                    require(ranks.contains(1),"IMP_SCHEMA_MISMATCH");
-                }
-            }
-        }
+        Set<String> crossShardIds = "HDBSCAN_ADAPTIVE".equals(context.algorithm()) && context.collectionScope() != null
+            ? context.collectionScope().crossShardCandidateIds() : Set.of();
+        eventMemberships.forEach((id, rows) -> validateResolution(rows, crossShardIds.contains(id)));
         return new Receipt(fingerprint,"RESULT_READY");
+    }
+
+    static void validateResolution(List<JsonNode> rows, boolean crossShard) {
+        if (rows.size() == 1 && str(rows.get(0), "multi_sequence_status").equals("UNIQUE")) {
+            require(rows.get(0).path("resolution_rank").asInt() == 1, "IMP_SCHEMA_MISMATCH");
+            return;
+        }
+        require(rows.size() > 1 || crossShard, "IMP_SCHEMA_MISMATCH");
+        if (rows.stream().allMatch(row -> str(row, "multi_sequence_status").equals("AMBIGUOUS"))) return;
+        require(rows.stream().allMatch(row -> str(row, "multi_sequence_status").equals("MULTIPLE")),
+                "IMP_SCHEMA_MISMATCH");
+        Set<Integer> ranks = new HashSet<>();
+        for (JsonNode row : rows)
+            require(!missing(row, "resolution_rank") && ranks.add(row.get("resolution_rank").asInt()),
+                    "IMP_DUPLICATE_GRAIN");
+        require(crossShard || ranks.contains(1), "IMP_SCHEMA_MISMATCH");
     }
 
     public static void assertTransition(String from, String to, boolean scientificReview,
