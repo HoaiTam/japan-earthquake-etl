@@ -27,7 +27,10 @@ Trên đúng snapshot membership ghim trong các receipt, đối chiếu với P
 đã kiểm SHA cả số dòng POST rank 1, số event POST rank 1 phân biệt và số dòng
 POST `AMBIGUOUS`. EXP-03 ghim 88.078 dòng rank 1, 88.078 event duy nhất và
 0 dòng POST `AMBIGUOUS`. Hai rank 1 cho cùng event bị từ chối dù distinct
-count vẫn bằng kỳ vọng.
+count vẫn bằng kỳ vọng. Hai receipt adaptive phải mang cùng digest
+`adaptive_cohort.sha256` và đúng danh sách shard/run/SHA marker EXP-03. Verifier
+tính lại digest từ evidence đã ghim. Receipt adaptive đời cũ thiếu digest
+hoặc receipt lấy từ lần chạy khác sẽ không qua bước đối soát.
 
 ## Chạy trên máy giữ catalog DAT-03
 

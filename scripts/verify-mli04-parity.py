@@ -68,6 +68,7 @@ def official_sources(root=ROOT):
             require(source["dataset"][key] == dataset[key], "MLI04_UPSTREAM_DATASET_MISMATCH")
         shards = source["shard_verifications"]
         if task == "exp03":
+            dataset["adaptive_model_config_version"] = source["model_config_pin"]["model_config_version"]
             resolution = source["multi_sequence_reconciliation"]
             dataset["adaptive_resolution"] = {
                 "raw_post": resolution["raw_aftershocks"],
@@ -85,7 +86,22 @@ def official_sources(root=ROOT):
     require(dataset["shard_count"] == 2 and Counter((v[0], v[1]) for v in expected.values()) ==
             {(algo, shard): 1 for algo in ALGORITHMS for shard in ("shard_00000", "shard_00001")},
             "MLI04_INCOMPLETE_COHORT")
+    dataset["adaptive_cohort"] = adaptive_cohort(dataset, expected)
     return dataset, report_sha, expected
+
+
+def adaptive_cohort(dataset, expected):
+    algo = "HDBSCAN_ADAPTIVE"
+    pins = sorted((shard, run, pin["success_marker_sha256"], pin["collection_scope"]["version"])
+                  for run, (algorithm, shard, _, pin) in expected.items() if algorithm == algo)
+    versions = {v for _, _, _, v in pins}
+    require(len(versions) == 1 and all(PIN.fullmatch(digest) for _, _, digest, _ in pins),
+            "MLI04_ADAPTIVE_COHORT_PINS")
+    identity = ["mli03-adaptive-cohort-v1", dataset["dataset_id"], versions.pop(), dataset["collection_id"],
+                algo, dataset["adaptive_model_config_version"], [[s, r, h] for s, r, h, _ in pins]]
+    digest = sha(json.dumps(identity, ensure_ascii=False, separators=(",", ":")).encode("utf-8"))
+    return {"sha256": digest, "shards": [{"shard_id": s, "experiment_run_id": r, "success_marker_sha256": h}
+                                         for s, r, h, _ in pins]}
 
 
 def snapshot(value):
@@ -190,6 +206,8 @@ def verify_shard(query, ns, dataset, rid, algo, shard, code, pin, artifact, rece
     version, fingerprint, counts, failures, metrics, resolved = bundle_expectations(
         artifact, pin, dataset, rid, algo, shard, code)
     ds = dataset["dataset_id"]
+    if algo == "HDBSCAN_ADAPTIVE":
+        require(version == dataset["adaptive_model_config_version"], "MLI04_ADAPTIVE_MODEL_VERSION")
     status = receipt.get("experiment_status")
     require(status in {"CANDIDATE", "APPROVED"} and receipt["namespace"] == ns
             and receipt["experiment_run_id"] == rid and receipt["dataset_id"] == ds
@@ -303,8 +321,12 @@ def collect(request, query, root=ROOT):
         rid = entry["experiment_run_id"]
         receipt, digest = doc(Path(entry["receipt"]), entry["receipt_sha256"])
         algo, shard, code, pin = expected[rid]
+        if algo == "HDBSCAN_ADAPTIVE":
+            require(receipt.get("adaptive_cohort") == dataset["adaptive_cohort"], "MLI04_ADAPTIVE_COHORT_MISMATCH")
         row, resolved[rid] = verify_shard(query, ns, dataset, rid, algo, shard, code, pin,
                                          Path(entry["artifact_root"]), receipt)
+        if algo == "HDBSCAN_ADAPTIVE":
+            row["adaptive_cohort_sha256"] = dataset["adaptive_cohort"]["sha256"]
         verified.append(dict(row, receipt_sha256=digest))
     complete = set(ids) == expected.keys()
     aggregates = rollups(verified, resolved, expected, ns, dataset["dataset_id"], query)

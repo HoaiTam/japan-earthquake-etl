@@ -1602,6 +1602,40 @@ class PinnedReadbackTests(unittest.TestCase):
         self.assertEqual(64, len(digest))
         self.assertEqual(Counter(dict.fromkeys(READBACK["ALGORITHMS"], 2)), Counter(v[0] for v in pins.values()))
 
+    def test_adaptive_receipt_set_rejects_mixed_cohorts(self):
+        dataset, _, expected = READBACK["official_sources"]()
+        pins = dataset["adaptive_cohort"]
+        runs = [entry["experiment_run_id"] for entry in pins["shards"]]
+        second = runs[1]
+        other_sources = dict(expected)
+        algo, shard, code, marker = other_sources[second]
+        other_sources[second] = (algo, shard, code, dict(marker, success_marker_sha256="f" * 64))
+        other = READBACK["adaptive_cohort"](dataset, other_sources)
+        self.assertNotEqual(pins["sha256"], other["sha256"])
+        self.assertEqual(pins, READBACK["adaptive_cohort"](dataset, dict(reversed(list(expected.items())))))
+
+        def collect_with(second_receipt):
+            receipts = {"first": {"adaptive_cohort": pins}, "second": second_receipt}
+            entries = [{"experiment_run_id": rid, "receipt": label, "receipt_sha256": "0" * 64,
+                        "artifact_root": "."} for rid, label in zip(runs, receipts)]
+            collect = READBACK["collect"]
+            with patch.dict(collect.__globals__, {
+                "official_sources": lambda *args: (dataset, "0" * 64, expected),
+                "doc": lambda path, digest: (receipts[path.name], digest),
+                "verify_shard": lambda *args: ({"experiment_run_id": args[3]}, set()),
+                "rollups": lambda *args: {},
+            }):
+                return collect({"schema_version": "mli04-request-v1", "namespace": "iceberg.ml",
+                                "runs": entries}, None)
+
+        report = collect_with({"adaptive_cohort": pins})
+        self.assertEqual([pins["sha256"]] * 2, [r["adaptive_cohort_sha256"] for r in report["runs"]])
+        wrong_shard = dict(pins, shards=[pins["shards"][0],
+                                        dict(pins["shards"][1], experiment_run_id=runs[0])])
+        for bad_receipt in ({}, {"adaptive_cohort": other}, {"adaptive_cohort": wrong_shard}):
+            with self.subTest(receipt=bad_receipt), self.assertRaisesRegex(ValueError, "MLI04_ADAPTIVE_COHORT_MISMATCH"):
+                collect_with(bad_receipt)
+
     def test_adaptive_rollup_must_match_pinned_exp03(self):
         dataset, _, _ = READBACK["official_sources"]()
         expected = dataset["adaptive_resolution"]
