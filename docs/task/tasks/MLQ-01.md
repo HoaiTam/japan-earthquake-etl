@@ -1,6 +1,6 @@
 ---
 task_id: "MLQ-01"
-status: "Backlog"
+status: "In Progress"
 week: 8
 block: "I - ML Integration"
 workstream: "ML end-to-end QA"
@@ -16,7 +16,7 @@ dependencies: ["QA-01", "MLI-02", "MLI-04", "EXP-05"]
 
 ## Giao việc hiện hành — 11/11/2026
 
-- **Owner:** HoaiTam; **status:** Backlog.
+- **Owner:** HoaiTam; **status:** In Progress.
 - **Làm phần gì / dùng để làm gì:** Nghiệm thu ML E2E.
 - **Bắt đầu độc lập:** Viết test plan, negative fixtures và reconciliation queries ngay.
 - **Đầu ra và điều kiện Done:** Sau hard dependencies: truy vết Gold → dataset → experiment → import/report; reject bundle lỗi và rerun không duplicate.
@@ -70,10 +70,11 @@ trạng thái `Done` mới buộc output thật của mọi hard dependency.
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
+- **Trạng thái:** In Progress
 - **Assignee:** HoaiTam
-- **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Reviewer:** unassigned
+- **Evidence / PR:** [Test plan và truy vấn đối soát](../../runbooks/MLQ-01_E2E_RECONCILIATION.md), [fixture SQL](../../../tests/test_mlq01_reconciliation.py). Chuẩn bị trên nhánh `test/mlq-01-prepare-e2e-reconciliation`. Runtime chờ [MLI-04 — Tạo Trino views và static report cho experiment](./MLI-04.md) cung cấp receipt và evidence exact snapshot.
+- **Kiểm tra chuẩn bị:** 3 test SQL fixture đạt, Trino local trả `lineage_check=PASS` với window tổng hợp; 32 Java/Spark/Iceberg và 41 Airflow tests nhóm import đạt. Receipt E2E official vẫn chờ.
 - **Kỹ năng phù hợp:** Integration testing, reconciliation, ML reproducibility
 
 ## Checklist bàn giao
