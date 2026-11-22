@@ -66,14 +66,17 @@ trước khi Colab sinh output thật.
 Contract v1 đã nghiệm thu cho đường import hiện có; **chưa nghiệm thu** các shard
 `HDBSCAN_ADAPTIVE` giữ `MULTIPLE`/`AMBIGUOUS` toàn cục trong từng lát cắt.
 Full-split là đầu vào đánh giá EXP-04, không phải work unit cho resolver.
-Bản [follow-up #149](https://github.com/HoaiTam/japan-earthquake-etl/pull/149#issuecomment-7066429031)
+Bản [follow-up #149](https://github.com/HoaiTam/japan-earthquake-etl/pull/149#issuecomment-7073431664)
 kiểm marker và artifact của toàn bộ cohort adaptive theo SHA-256 đã ghim,
 đối chiếu từng shard với lineage từ registry EXPORTED rồi kiểm rank trên
 membership thật trước khi reserve run. Scope WHOLE_WINDOW_SHARD giữ version và
 fingerprint của artifact gốc. Regression dùng Parquet fixture cho rank 1/2
 hợp lệ, sibling chỉ có candidate, hai shard trùng rank 1 và pin/lineage
-thiếu hoặc sai. Import hai shard EXP-03 trên Iceberg/Trino và receipt thật
-vẫn còn chờ. Xem [evidence EXP-03](../../evidence/EXP-03_OFFICIAL_REPRODUCTION.md).
+thiếu hoặc sai. Reservation trong Iceberg và digest trong journal/receipt
+ràng buộc các request theo cùng bộ shard/run/marker; regression local kiểm
+hai cohort hợp lệ riêng bị chặn khi ghép, và retry dùng journal cũ hoặc mới
+bị chặn nếu chỉ đổi marker sibling. Import hai shard EXP-03 trên Iceberg/Trino
+và receipt thật vẫn còn chờ. Xem [evidence EXP-03](../../evidence/EXP-03_OFFICIAL_REPRODUCTION.md).
 Với EXTENSION của EXP-05, 12 shard baseline đạt `RESULT_READY` khi kiểm tra
 contract offline và 4 shard adaptive đạt Parquet reader readback. Nghiệm thu
 import Iceberg của các shard EXTENSION cần receipt runtime riêng.

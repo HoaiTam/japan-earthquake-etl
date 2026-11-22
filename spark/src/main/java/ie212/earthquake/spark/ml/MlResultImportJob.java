@@ -89,6 +89,7 @@ public final class MlResultImportJob {
                 var cohort = contract.readAdaptiveCollection(bundleRoot, originalContext, collectionResultMarkers);
                 bundle = cohort.bundle();
                 receipt = cohort.receipt();
+                originalContext = originalContext.withAdaptiveCohort(cohort.cohort());
             } else {
                 bundle = MlResultBundleReader.read(bundleRoot);
                 receipt = contract.validate(bundle, originalContext);
@@ -114,6 +115,10 @@ public final class MlResultImportJob {
                 writeRejected(journalRoot, context, "IMP_REJECTED_RUN_TERMINAL", true);
                 throw new IllegalStateException("IMP_REJECTED_RUN_TERMINAL");
             }
+            if (!AdaptiveResultCohort.matches(existing, context)) {
+                writeRejected(journalRoot, context, "IMP_ADAPTIVE_COHORT_MISMATCH", false);
+                throw new IllegalStateException("IMP_ADAPTIVE_COHORT_MISMATCH");
+            }
             String localStatus = existing.path("experiment_status").asText();
             if (!"IMPORT_VALIDATING".equals(localStatus) && !"CANDIDATE".equals(localStatus)) {
                 writeRejected(journalRoot, context, "IMP_INVALID_IMPORT_STATE", false);
@@ -124,6 +129,7 @@ public final class MlResultImportJob {
             .put("experiment_status", "IMPORT_VALIDATING").put("result_bundle_sha256", receipt.bundleSha256())
             .put("created_at_utc", context.experimentMetadata().createdAtUtc());
         if (namespace != null) validating.put("namespace", namespace);
+        AdaptiveResultCohort.write(validating, context);
         try {
             MlIcebergWriter.Reservation reservation = writer.reserveExperiment(bundle, context, receipt.bundleSha256());
             if ("CANDIDATE".equals(reservation.status())) {
@@ -186,6 +192,7 @@ public final class MlResultImportJob {
             .put("summary_snapshot_id", summary).put("experiment_snapshot_id", experiment);
         if (namespace != null) candidate.put("namespace", namespace);
         if(context.collectionScope()!=null) candidate.set("collection_scope",context.collectionScope().toJson());
+        AdaptiveResultCohort.write(candidate, context);
         ObjectNode counts = candidate.putObject("readback"); readback.forEach(counts::put);
         return candidate;
     }
@@ -275,11 +282,13 @@ public final class MlResultImportJob {
         if (!Files.exists(registry)) return;
         JsonNode current = JSON.readTree(Files.readAllBytes(registry));
         if (!"IMPORT_VALIDATING".equals(current.path("experiment_status").asText())
-                || !fingerprint.equals(current.path("result_bundle_sha256").asText())) return;
+                || !fingerprint.equals(current.path("result_bundle_sha256").asText())
+                || !AdaptiveResultCohort.matches(current, context)) return;
         ObjectNode rejected = JSON.createObjectNode().put("experiment_run_id", context.runId())
             .put("dataset_id", context.datasetId()).put("experiment_status", "REJECTED")
             .put("result_bundle_sha256", fingerprint).put("status_reason_code", reason);
         if (namespace != null) rejected.put("namespace", namespace);
+        AdaptiveResultCohort.write(rejected, context);
         atomicWrite(registry, rejected);
     }
 

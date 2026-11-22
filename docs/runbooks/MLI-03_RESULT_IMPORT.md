@@ -77,6 +77,20 @@ pin hoặc marker, bổ sung đúng artifact rồi thử lại. Rank trùng, thi
 hoặc trộn `MULTIPLE` với `AMBIGUOUS` làm validation thất bại. Mỗi request
 chỉ ghi dữ liệu của shard được chỉ định trong `artifact_root`.
 
+Importer tạo digest cohort từ JSON UTF-8 gọn gồm mảng
+`["mli03-adaptive-cohort-v1", dataset_id, collection_version, collection_id, algorithm_name, model_config_version, [[shard_id, experiment_run_id, marker_sha256], ...]]`.
+Các shard được sắp theo ID. Dưới shared import lease, digest đầu tiên được giữ
+trong Iceberg table property của `experiment_run`, theo namespace và identity
+dataset/collection/algorithm/model, trước khi ghi bất kỳ dòng kết quả nào.
+Digest đã reserve cũng xuất hiện cùng các pin shard/run/marker trong
+`adaptive_cohort` của journal và receipt. Fingerprint `result_bundle_sha256`
+vẫn là fingerprint của từng bundle. Retry với marker của sibling khác hoặc
+import shard từ cohort khác bị từ chối với `IMP_ADAPTIVE_COHORT_MISMATCH`,
+kể cả khi bắt đầu từ journal mới. Namespace đã có adaptive run cho identity
+này nhưng thiếu pin trả `IMP_ADAPTIVE_COHORT_PIN_MISSING`; đối soát dữ liệu với
+owner, giữ nguyên registry và dùng namespace QA sạch đã được duyệt để thử lại.
+Nghiệm thu dùng đủ receipt của các shard, cùng digest và đúng các pin cần nghiệm thu.
+
 `MLI_IMPORT_RUNNER_COMMAND` chỉ lấy từ môi trường vận hành và được chạy
 không qua shell. Image Airflow đóng gói `/opt/pipeline/bin/mli-import-runner`
 và Spark/Iceberg runtime; runner phải nhận request path cuối cùng, tạo

@@ -98,7 +98,7 @@ public final class ResultBundleContract implements ResultBundleValidator {
             && !context.collectionScope().siblingCandidates().isEmpty();
     }
 
-    record ValidatedBundle(DecodedBundle bundle, Receipt receipt) {}
+    record ValidatedBundle(DecodedBundle bundle, Receipt receipt, AdaptiveResultCohort cohort) {}
 
     ValidatedBundle readAdaptiveCollection(Path artifactRoot, Context context, JsonNode markerPins) throws Exception {
         require(requiresCollectionResults(context), "IMP_COLLECTION_SCOPE_MISMATCH");
@@ -124,9 +124,14 @@ public final class ResultBundleContract implements ResultBundleValidator {
         Map<String, List<Resolution>> memberships = new HashMap<>();
         DecodedBundle local = MlResultBundleReader.read(requested, markerPins.path(scope.shardId()).asText());
         Receipt receipt = validateContents(local, context, memberships);
+        require(context.runId().matches("[A-Za-z0-9_-]{1,256}"), "IMP_COLLECTION_SCOPE_MISMATCH");
         Set<String> runIds = new HashSet<>(Set.of(context.runId()));
+        List<AdaptiveResultCohort.Shard> pins = new ArrayList<>();
         for (String shard : shards) {
-            if (shard.equals(scope.shardId())) continue;
+            if (shard.equals(scope.shardId())) {
+                pins.add(new AdaptiveResultCohort.Shard(shard, context.runId(), markerPins.path(shard).asText()));
+                continue;
+            }
             DecodedBundle other = MlResultBundleReader.read(collectionRoot.resolve(shard), markerPins.path(shard).asText());
             String runId = str(other.success(), "experiment_run_id");
             require(runId.matches("[A-Za-z0-9_-]{1,256}") && runIds.add(runId), "IMP_COLLECTION_SCOPE_MISMATCH");
@@ -136,9 +141,10 @@ public final class ResultBundleContract implements ResultBundleValidator {
                 context.modelVersion(), scope.siblingCandidates().get(shard), null, context.datasetPins(), null,
                 new CollectionScope(scope.version(), scope.collectionId(), shard));
             validateContents(other, siblingContext, memberships);
+            pins.add(new AdaptiveResultCohort.Shard(shard, runId, markerPins.path(shard).asText()));
         }
         memberships.values().forEach(ResultBundleContract::validateResolution);
-        return new ValidatedBundle(local, receipt);
+        return new ValidatedBundle(local, receipt, AdaptiveResultCohort.from(context, pins));
     }
 
     private Receipt validateContents(DecodedBundle bundle, Context context,

@@ -50,8 +50,15 @@ public interface ResultBundleValidator {
     }
     record Context(String datasetId, String datasetStatus, String runId, String algorithm,
                    String modelVersion, List<Candidate> candidates, String previousBundleSha256,
-                   DatasetPins datasetPins, ExperimentMetadata experimentMetadata,CollectionScope collectionScope) {
+                   DatasetPins datasetPins, ExperimentMetadata experimentMetadata, CollectionScope collectionScope,
+                   AdaptiveResultCohort adaptiveCohort) {
         public Context { candidates = List.copyOf(candidates); }
+        public Context(String datasetId, String datasetStatus, String runId, String algorithm, String modelVersion,
+                       List<Candidate> candidates, String previousBundleSha256, DatasetPins datasetPins,
+                       ExperimentMetadata experimentMetadata, CollectionScope collectionScope) {
+            this(datasetId, datasetStatus, runId, algorithm, modelVersion, candidates,
+                previousBundleSha256, datasetPins, experimentMetadata, collectionScope, null);
+        }
         public Context(String datasetId,String datasetStatus,String runId,String algorithm,String modelVersion,List<Candidate> candidates,
                 String previousBundleSha256,DatasetPins datasetPins,ExperimentMetadata experimentMetadata) {
             this(datasetId,datasetStatus,runId,algorithm,modelVersion,candidates,previousBundleSha256,datasetPins,experimentMetadata,null);
@@ -63,7 +70,11 @@ public interface ResultBundleValidator {
         }
         public Context withMetadata(ExperimentMetadata value) {
             return new Context(datasetId, datasetStatus, runId, algorithm, modelVersion, candidates,
-                previousBundleSha256, datasetPins, value,collectionScope);
+                previousBundleSha256, datasetPins, value, collectionScope, adaptiveCohort);
+        }
+        Context withAdaptiveCohort(AdaptiveResultCohort value) {
+            return new Context(datasetId, datasetStatus, runId, algorithm, modelVersion, candidates,
+                previousBundleSha256, datasetPins, experimentMetadata, collectionScope, value);
         }
     }
     record DecodedBundle(JsonNode success, Map<String, byte[]> artifacts,
