@@ -74,7 +74,7 @@ trạng thái `Done` mới buộc output thật của mọi hard dependency.
 - **Assignee:** HoaiTam
 - **Reviewer:** unassigned
 - **Evidence / PR:** [Test plan và truy vấn đối soát](../../runbooks/MLQ-01_E2E_RECONCILIATION.md), [fixture SQL](../../../tests/test_mlq01_reconciliation.py). Chuẩn bị trên nhánh `test/mlq-01-prepare-e2e-reconciliation`. Runtime chờ [MLI-04 — Tạo Trino views và static report cho experiment](./MLI-04.md) cung cấp receipt và evidence exact snapshot.
-- **Kiểm tra chuẩn bị:** 6 test SQL fixture đạt, gồm tự tham chiếu MAINSHOCK và từng pin publication/lineage. Fixture chạy trong CI `docs-contracts`. Trino local trả `lineage_check=PASS` với window tổng hợp; 32 Java/Spark/Iceberg và 41 Airflow tests nhóm import đạt. Receipt E2E official vẫn chờ. [Review #150](https://github.com/HoaiTam/japan-earthquake-etl/pull/150#issuecomment-7076203450).
+- **Kiểm tra chuẩn bị:** 7 test SQL fixture đạt, gồm tự tham chiếu MAINSHOCK duy nhất trong toàn window (chặn thêm event MAINSHOCK thứ hai) và từng pin publication/lineage. Fixture chạy trong CI `docs-contracts`. Trino local trả `lineage_check=PASS` với window tổng hợp; 32 Java/Spark/Iceberg và 41 Airflow tests nhóm import đạt. Receipt E2E official vẫn chờ. [Review #150](https://github.com/HoaiTam/japan-earthquake-etl/pull/150#issuecomment-7102539216).
 - **Kỹ năng phù hợp:** Integration testing, reconciliation, ML reproducibility
 
 ## Checklist bàn giao

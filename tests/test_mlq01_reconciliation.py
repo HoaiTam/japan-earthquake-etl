@@ -112,6 +112,30 @@ class Mlq01ReconciliationTest(unittest.TestCase):
         self.assertEqual((1, 0), (row["candidate_mainshock_rows"], row["membership_mainshock_rows"]))
         self.assertEqual("FAIL", row["lineage_check"])
 
+    def test_rejects_extra_mainshock_row_in_window(self):
+        row = self.reconcile(
+            "INSERT INTO candidate_source VALUES ('dataset', 'main', 'extra', 'MAINSHOCK');"
+            "INSERT INTO membership_source VALUES ('dataset', 'run', 'main', 'extra', 'MAINSHOCK', TRUE, 1);"
+            "UPDATE summary_source SET candidate_count = 3;"
+        )
+        self.assertEqual(3, row["role_matched_rows"])
+        self.assertEqual((1, 2, 1, 2), tuple(row[k] for k in (
+            "candidate_mainshock_rows", "candidate_total_mainshock_rows",
+            "membership_mainshock_rows", "membership_total_mainshock_rows")))
+        self.assertEqual("FAIL", row["lineage_check"])
+
+        for extra_membership in (
+            "INSERT INTO membership_source VALUES ('dataset', 'run', 'main', 'extra', 'MAINSHOCK', FALSE, 2);",
+            "INSERT INTO membership_source VALUES ('dataset', 'run', 'main', 'extra', 'PRE', TRUE, 2);",
+        ):
+            with self.subTest(extra_membership=extra_membership):
+                bad = self.reconcile(
+                    "INSERT INTO candidate_source VALUES ('dataset', 'main', 'extra', 'MAINSHOCK');"
+                    + extra_membership
+                    + "UPDATE summary_source SET candidate_count = 3;"
+                )
+                self.assertEqual("FAIL", bad["lineage_check"])
+
     def test_rejects_an_equal_count_with_wrong_candidate_or_result(self):
         for change in (
             "UPDATE membership_source SET candidate_event_id = 'extra' WHERE experiment_run_id = 'run' AND candidate_event_id = 'main'",

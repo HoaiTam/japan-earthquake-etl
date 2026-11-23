@@ -43,8 +43,9 @@ Chọn một canonical event vai trò POST có rank 1 trong window thành công 
   trước khi đưa truy vấn SELECT vào Trino.
 
 Query phải trả một dòng `lineage_check=PASS`. Window `SUCCESS` phải có đúng
-một dòng tự tham chiếu `MAINSHOCK` trong candidate và đúng một dòng tương ứng
-là sequence member trong membership. Event được truy vết vẫn phải là POST
+một dòng mang vai trò `MAINSHOCK` trong toàn window ở cả candidate lẫn membership,
+và dòng đó phải là tự tham chiếu của mainshock (ở membership phải là sequence member).
+Event được truy vết vẫn phải là POST
 rank 1. Lưu kết quả kể cả khi FAIL. So
 counts và role theo đúng grain một window, rồi đối chiếu số liệu tổng hợp toàn
 run và snapshot IDs với evidence MLI-04. Dùng query ID và dòng kết quả để truy
@@ -78,7 +79,8 @@ make test-mli-import
 
 CI `docs-contracts` chạy fixture SQL qua `make ci-docs-base`. Fixture gồm
 một trace thành công và các ca mất Gold event, lệch từng pin publication hoặc
-lineage, run REJECTED và counts đúng nhưng hai lớp cùng ghi sai MAINSHOCK.
+lineage, run REJECTED, counts đúng nhưng hai lớp cùng ghi sai MAINSHOCK và
+thêm một event khác mang role MAINSHOCK trong cùng window.
 Fixture và local writer tests chỉ dùng làm evidence thành phần. Đóng
 MLQ-01 sau E2E official, có các query/readback và static report thật. Diễn giải
 kết quả là aftershock candidate hồi cứu.
