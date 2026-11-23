@@ -64,15 +64,8 @@ pipeline trong suốt buổi trình bày.
 | Walkthrough | [DEMO-01](../task/tasks/DEMO-01.md) hoàn tất các gate official. Ba người hoàn thành walkthrough 15–20 phút, kiểm fallback và chốt không còn blocker Core. |
 | Phát hành | HoaiTam xác nhận release candidate và tag đề xuất sau review. |
 
-Ghi các mục sau vào biên bản sau buổi tập:
-
-- Thời gian, commit của checkout, config version, manifest và SHA-256.
-- Người thực hiện từng vai, thời lượng thực tế, phần trình bày đạt hoặc cần tập lại.
-- Gold publication và snapshot IDs, dataset IDs, experiment run IDs, receipt
-  checksum, Trino query IDs và SHA của static report.
-- Phương án dự phòng đã thử, lỗi quan sát được, người xử lý và kết quả kiểm lại.
-- Blocker Core, phần Stretch để sau, người xác nhận và tag đề xuất.
-
-Ghi `NOT_RUN` cho mục chưa thực hiện. Hiện lần kiểm offline chỉ xác nhận preflight,
-tệp dự phòng và report pilot. Kết quả team rehearsal, quyết định phát hành và
-tag được ghi sau khi các cổng trên đạt.
+Sao chép [mẫu biên bản](./DEMO-02_REHEARSAL_RECORD.md) vào staging trước buổi tập.
+Sau walkthrough, cập nhật thời lượng thực tế, người trình bày, checksum và
+evidence tương ứng. Tiếp tục ghi `NOT_RUN` ở các cổng chưa thực hiện.
+Preflight, tệp dự phòng và report pilot dùng để chuẩn bị máy demo. Ghi quyết
+định phát hành và tag khi đủ bằng chứng chính thức và HoaiTam xác nhận.
