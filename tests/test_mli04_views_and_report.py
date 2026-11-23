@@ -1636,6 +1636,60 @@ class PinnedReadbackTests(unittest.TestCase):
             with self.subTest(receipt=bad_receipt), self.assertRaisesRegex(ValueError, "MLI04_ADAPTIVE_COHORT_MISMATCH"):
                 collect_with(bad_receipt)
 
+    def test_renderer_requires_exact_adaptive_digest_for_verified_report(self):
+        dataset, exp04_sha, expected = READBACK["official_sources"]()
+        digest = dataset["adaptive_cohort"]["sha256"]
+        metrics = {name: {"count": 0, "mean": None} for name in READBACK["METRICS"]}
+        runs, rollups = [], {}
+        for run_id, (algo, shard, code, pin) in expected.items():
+            counts = dict.fromkeys(READBACK["COUNTS"], 0)
+            counts.update(membership_rows=pin["membership_row_count"], summary_rows=pin["summary_row_count"])
+            row = {
+                "experiment_run_id": run_id, "algorithm_name": algo, "shard_id": shard, "code_version": code,
+                "model_config_version": "v1", "success_marker_sha256": pin["success_marker_sha256"],
+                "experiment_status": "CANDIDATE", "candidate_at_utc": "2026-11-18T00:00:00Z",
+                "query_ids": ["registry", "members", "summary", "failures"],
+                "expected_counts": counts, "actual_counts": counts,
+                "expected_metrics": metrics, "actual_metrics": metrics, "failure_reasons": [],
+                "snapshots": {"experiment_snapshot_id": 1, "membership_snapshot_id": 2, "summary_snapshot_id": 3},
+            }
+            if algo == "HDBSCAN_ADAPTIVE":
+                row["adaptive_cohort_sha256"] = digest
+            runs.append(row)
+            rollups.setdefault(algo, {"run_ids": [], "query_id": "rollup", "counts": {}, "sql_metrics": {}})
+            rollups[algo]["run_ids"].append(run_id)
+        rollups["HDBSCAN_ADAPTIVE"].update(counts=dataset["adaptive_resolution"],
+                                           exp03_resolution=dataset["adaptive_resolution"])
+        evidence = {
+            "task_id": "MLI-04", "status": "VERIFIED", "scientific_approval": False,
+            "exp04_sha256_lf": exp04_sha, "missing_run_ids": [], "runs": runs, "algorithm_rollups": rollups,
+            "dataset_id": dataset["dataset_id"], "collection_id": dataset["collection_id"],
+            "registry_lineage": dataset["registry_lineage"],
+        }
+        self.assertIn("SQL parity: **VERIFIED** (8/8 shards)", report_gen.render_official_readback(evidence))
+        adaptive_ids = [r["experiment_run_id"] for r in runs if r["algorithm_name"] == "HDBSCAN_ADAPTIVE"]
+        wrong = "f" * 64
+        self.assertNotEqual(digest, wrong)
+        for first, second in ((None, None), (wrong, wrong), (digest, wrong), (wrong, digest), (None, digest)):
+            with self.subTest(first=first, second=second):
+                altered = [dict(r) for r in runs]
+                overrides = dict(zip(adaptive_ids, (first, second)))
+                for row in altered:
+                    if row["experiment_run_id"] in overrides:
+                        value = overrides[row["experiment_run_id"]]
+                        if value is None:
+                            row.pop("adaptive_cohort_sha256")
+                        else:
+                            row["adaptive_cohort_sha256"] = value
+                with self.assertRaisesRegex(ValueError, "MLI04_EVIDENCE_ADAPTIVE_COHORT_MISMATCH"):
+                    report_gen.render_official_readback(dict(evidence, runs=altered))
+
+        baseline_runs = [r for r in runs if r["algorithm_name"] != "HDBSCAN_ADAPTIVE"]
+        baseline_rollups = {algo: row for algo, row in rollups.items() if algo != "HDBSCAN_ADAPTIVE"}
+        pending = dict(evidence, status="PENDING", runs=baseline_runs, missing_run_ids=sorted(adaptive_ids),
+                       algorithm_rollups=baseline_rollups)
+        self.assertIn("SQL parity: **PENDING** (6/8 shards)", report_gen.render_official_readback(pending))
+
     def test_adaptive_rollup_must_match_pinned_exp03(self):
         dataset, _, _ = READBACK["official_sources"]()
         expected = dataset["adaptive_resolution"]

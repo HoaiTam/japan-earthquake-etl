@@ -71,6 +71,9 @@ def render_official_readback(evidence):
                 and row["actual_counts"]["summary_rows"] == pins["summary_row_count"]
                 and set(row["expected_metrics"]) == set(row["actual_metrics"]) == set(verifier.METRICS),
                 "MLI04_EVIDENCE_ROW")
+        if algo == "HDBSCAN_ADAPTIVE":
+            require(row.get("adaptive_cohort_sha256") == dataset["adaptive_cohort"]["sha256"],
+                    "MLI04_EVIDENCE_ADAPTIVE_COHORT_MISMATCH")
         for key in ("experiment_snapshot_id", "membership_snapshot_id", "summary_snapshot_id"):
             verifier.snapshot(row["snapshots"][key])
         for metric, observed in row["actual_metrics"].items():

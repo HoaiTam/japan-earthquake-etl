@@ -54,7 +54,10 @@ python3 scripts/generate-experiment-report.py --mode official --input-json "$EVI
 Verifier chỉ gửi SELECT với ba snapshot của từng run. Đối chiếu receipt,
 registry, bytes Parquet, counts, failure reasons và số mẫu của metric. Rollup
 cho thuật toán đủ shard dùng trung bình theo số mẫu và một query đếm membership
-trên các snapshot. Chỉ đủ tám shard mới ghi VERIFIED toàn cohort. Metric
+trên các snapshot. Chỉ đủ tám shard mới ghi VERIFIED toàn cohort. Khi render,
+trình tạo báo cáo cũng đối chiếu `adaptive_cohort_sha256` của từng dòng adaptive
+với digest tính từ EXP-03. Evidence cũ thiếu digest cần được tạo lại qua
+verifier trước khi render. Metric
 khoa học riêng giữ nguồn EXP-04 đã pin.
 
 Kiểm hồi quy offline bằng make test-mli04. Nghiệm thu runtime cần evidence
