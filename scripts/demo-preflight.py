@@ -608,7 +608,8 @@ def _validate_mlq_extension(root, case, report, exp05_sha):
     if not isinstance(case, dict) or case.get("exp05_sha256_lf") != exp05_sha:
         raise ValueError("DEMO_MLQ01_EXTENSION_PIN")
     algo, shard = case.get("algorithm_name"), case.get("shard_id")
-    if not isinstance(algo, str) or algo not in REQUIRED_ML_ALGORITHMS or not isinstance(shard, str):
+    # Limit the single-shard EXTENSION demo gate to WINDOW; multi-shard adaptive requires full cohort checks.
+    if algo != "WINDOW" or not isinstance(shard, str):
         raise ValueError("DEMO_MLQ01_EXTENSION_PIN")
     bundle = report["algorithm_comparisons"][algo]["bundle_verification"]
     pin = bundle["shard_verifications"].get(shard)

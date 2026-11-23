@@ -435,7 +435,7 @@ class DemoOfficialEvidenceTests(unittest.TestCase):
 
 
 
-    def _ready_fixture(self):
+    def _ready_fixture(self, extension_algo="WINDOW", extension_shard="shard_00000"):
         manifest = json.loads(preflight.CURRENT_MANIFEST.read_bytes())
         refs = manifest["official_evidence"]
         docs = {task: preflight._pinned_official_json(ROOT, pin) for task, pin in refs.items()}
@@ -466,7 +466,7 @@ class DemoOfficialEvidenceTests(unittest.TestCase):
         for row in sql_rows:
             representative.setdefault(row["algorithm_name"], row)
         rep_runs = {row["experiment_run_id"]: dict(row["snapshots"]) for row in representative.values()}
-        algo, shard = "WINDOW", "shard_00000"
+        algo, shard = extension_algo, extension_shard
         extension_data = docs["EXP-05"]["dataset"]
         pin = docs["EXP-05"]["algorithm_comparisons"][algo]["bundle_verification"]["shard_verifications"][shard]
         model_version = docs["EXP-05"]["algorithm_config_pins"][algo]["model_config_version"]
@@ -615,6 +615,13 @@ class DemoOfficialEvidenceTests(unittest.TestCase):
                 baseline = [(rid, pins) for rid, pins in mlq["runs"].items() if valid_runs[rid] != "HDBSCAN_ADAPTIVE"]
                 mlq["runs"] = dict(baseline[:retained])
                 with self.assertRaisesRegex(ValueError, "DEMO_MLQ01_ALGORITHM_COVERAGE"):
+                    self._run_ready_fixture(manifest, documents)
+
+    def test_v2_rejects_adaptive_or_other_non_window_extension_algorithms(self):
+        for algo in ("HDBSCAN_ADAPTIVE", "DBSCAN", "HDBSCAN_GLOBAL"):
+            with self.subTest(algo=algo):
+                manifest, documents = self._ready_fixture(extension_algo=algo)
+                with self.assertRaisesRegex(ValueError, "DEMO_MLQ01_EXTENSION_PIN"):
                     self._run_ready_fixture(manifest, documents)
 
     def test_v2_rejects_snapshot_drift_and_wrong_extension_lineage(self):

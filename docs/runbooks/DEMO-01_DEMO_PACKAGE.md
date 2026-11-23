@@ -96,8 +96,10 @@ và HDBSCAN_ADAPTIVE. Có thể dùng bốn run trong tám run đã đối soát
 Trường `extension` ghi `exp05_sha256_lf`, `dataset_id`, `collection_id`,
 `gold_snapshot_id`, `algorithm_name`, `shard_id`, `experiment_run_id`,
 `success_marker_sha256`, `success_marker_path` và `import_receipt` (object
-có `path` và `sha256_lf`). Chọn một shard đại diện từ
-[EXP-05](../evidence/EXP-05_EXTENSION_EVALUATION.json). Đặt bản sao nguyên bytes
+có `path` và `sha256_lf`). Giới hạn ca `EXTENSION` đại diện này ở thuật toán
+`WINDOW` (chọn một shard từ [EXP-05](../evidence/EXP-05_EXTENSION_EVALUATION.json);
+từ chối chọn đơn lẻ `HDBSCAN_ADAPTIVE` hoặc thuật toán khác vì kiểm chứng một shard
+không đối chiếu toàn bộ cohort EXTENSION). Đặt bản sao nguyên bytes
 của `_SUCCESS.json` trong staging dưới thư mục repo và dùng đường dẫn tương đối,
 để SHA-256 khớp đúng pin của EXP-05 trên cả Windows và Linux.
 
