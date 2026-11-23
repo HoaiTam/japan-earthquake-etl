@@ -85,6 +85,9 @@ python -B scripts/demo-preflight.py --local-receipt <DAT03_RECEIPT_DIR>\ThanhTri
 
 Khi chốt, thêm refs MLI-04 và MLQ-01 vào official_evidence với path tương đối
 và sha256_lf. MLI-04 dùng report mli04-readback-v1 VERIFIED đủ tám shard.
+Hai dòng adaptive phải chứa `adaptive_cohort_sha256` khớp digest preflight tính
+từ dataset, model version và các shard/run/marker đã ghim của EXP-03. Tạo lại
+evidence cũ qua verifier MLI-04 nếu thiếu digest.
 Receipt MLQ-01 PASSED ghim SHA LF của MLI-04, dataset REPRODUCTION và Gold
 snapshot. Trường `runs` ánh xạ run ID sang ba snapshot IDs khớp report MLI-04.
 Chọn ít nhất một run đại diện cho từng thuật toán WINDOW, DBSCAN, HDBSCAN_GLOBAL

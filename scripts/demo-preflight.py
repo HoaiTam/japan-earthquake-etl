@@ -650,6 +650,20 @@ def _validate_mlq_extension(root, case, report, exp05_sha):
             "snapshots": {field: _normalize_int64_snapshot(receipt.get(field), field) for field in ML_SNAPSHOT_FIELDS}}
 
 
+def _adaptive_cohort_sha256(exp03):
+    dataset = exp03["dataset"]
+    entries = sorted(exp03["shard_verifications"].items())
+    versions = {pin["collection_scope"]["version"] for _, pin in entries}
+    pins = [[shard, pin["experiment_run_id"], pin["success_marker_sha256"]] for shard, pin in entries]
+    if len(versions) != 1 or any(not re.fullmatch(r"[0-9a-f]{64}", pin[2]) for pin in pins):
+        raise ValueError("DEMO_EXP03_ADAPTIVE_COHORT_PINS")
+    # Use the same compact JSON identity as MLI-03 and the MLI-04 collector.
+    identity = ["mli03-adaptive-cohort-v1", dataset["dataset_id"], next(iter(versions)),
+                dataset["collection_id"], "HDBSCAN_ADAPTIVE",
+                exp03["model_config_pin"]["model_config_version"], pins]
+    return hashlib.sha256(json.dumps(identity, ensure_ascii=False, separators=(",", ":")).encode("utf-8")).hexdigest()
+
+
 def _validate_official_evidence(root, manifest, release):
     refs = manifest["official_evidence"]
     cohort = release["collections"]["REPRODUCTION"]
@@ -734,6 +748,7 @@ def _validate_official_evidence(root, manifest, release):
                 or report.get("dataset_id") != cohort["dataset_id"] or report.get("collection_id") != cohort["collection_id"]
                 or report.get("exp04_sha256_lf") != refs["EXP-04"]["sha256_lf"]):
             raise ValueError("DEMO_MLI04_NOT_VERIFIED")
+        adaptive_digest = _adaptive_cohort_sha256(evidence["EXP-03"])
         for row in report["runs"]:
             rid = row["experiment_run_id"]
             if rid in sql_runs or rid not in expected:
@@ -747,10 +762,13 @@ def _validate_official_evidence(root, manifest, release):
                     or counts["summary_rows"] != pin["summary_row_count"]
                     or len(set(row["query_ids"])) != 4 or not all(row["query_ids"])):
                 raise ValueError("DEMO_MLI04_RUN_MISMATCH")
+            if algo == "HDBSCAN_ADAPTIVE" and row.get("adaptive_cohort_sha256") != adaptive_digest:
+                raise ValueError("DEMO_MLI04_ADAPTIVE_COHORT_MISMATCH")
             sql_runs[rid] = {k: _normalize_int64_snapshot(row["snapshots"][k], k) for k in ML_SNAPSHOT_FIELDS}
         if sql_runs.keys() != expected.keys():
             raise ValueError("DEMO_MLI04_RUN_COVERAGE")
-        verified.append({"task_id": "MLI-04", "status": "VERIFIED", "run_ids": sorted(sql_runs)})
+        verified.append({"task_id": "MLI-04", "status": "VERIFIED", "run_ids": sorted(sql_runs),
+                         "adaptive_cohort_sha256": adaptive_digest})
 
     if "MLQ-01" not in refs:
         pending.append({"task_id": "MLQ-01", "reason": "Chua co receipt nghiem thu ML E2E"})

@@ -392,6 +392,9 @@ class DemoPreflightTests(unittest.TestCase):
 
 
 class DemoOfficialEvidenceTests(unittest.TestCase):
+    # Known digest for the EXP-03 cohort pinned by the MLI-04 collector.
+    ADAPTIVE_COHORT_SHA256 = "22e84855e4409ae0b0e1696c6ed508af3b7b667952a4f80b7fd50221f88868b0"
+
     def test_v2_uses_official_research_and_keeps_two_runtime_gates(self):
         report = preflight.run_preflight(preflight.CURRENT_MANIFEST)
         self.assertEqual(["MLI-04", "MLQ-01"], [g["task_id"] for g in report["pending_official_gates"]])
@@ -450,6 +453,8 @@ class DemoOfficialEvidenceTests(unittest.TestCase):
                                      "expected_counts": counts, "actual_counts": counts, "query_ids": ["q1", "q2", "q3", "q4"],
                                      "snapshots": {"experiment_snapshot_id": 41, "membership_snapshot_id": 42,
                                                    "summary_snapshot_id": 43}})
+                    if algo == "HDBSCAN_ADAPTIVE":
+                        sql_rows[-1]["adaptive_cohort_sha256"] = self.ADAPTIVE_COHORT_SHA256
         dataset = docs["EXP-04"]["dataset"]
         refs["MLI-04"] = {"path": "mli04-evidence.json", "sha256_lf": "a" * 64}
         refs["MLQ-01"] = {"path": "mlq01-evidence.json", "sha256_lf": "b" * 64}
@@ -543,6 +548,9 @@ class DemoOfficialEvidenceTests(unittest.TestCase):
         manifest, documents = self._ready_fixture()
         result = self._run_ready_fixture(manifest, documents)
         self.assertEqual("PASS_OFFICIAL_READY", result["overall_status"])
+        mli04 = next(row for row in result["verified_runs"]
+                     if row["task_id"] == "MLI-04" and row["status"] == "VERIFIED")
+        self.assertEqual(self.ADAPTIVE_COHORT_SHA256, mli04["adaptive_cohort_sha256"])
         mlq = next(row for row in result["verified_runs"] if row["task_id"] == "MLQ-01")
         self.assertEqual(4, len(mlq["run_ids"]))
         self.assertEqual({"WINDOW", "DBSCAN", "HDBSCAN_GLOBAL", "HDBSCAN_ADAPTIVE"}, set(mlq["algorithms"]))
@@ -550,6 +558,22 @@ class DemoOfficialEvidenceTests(unittest.TestCase):
         self.assertEqual(
             documents["extension-import.json"]["result_bundle_sha256"], mlq["extension"]["result_bundle_sha256"],
         )
+
+    def test_v2_rejects_unverified_adaptive_cohorts_in_official_readback(self):
+        expected, wrong = self.ADAPTIVE_COHORT_SHA256, "0" * 64
+        for digests in [(None, None), (wrong, wrong), (expected, wrong), (wrong, expected), (None, expected)]:
+            with self.subTest(digests=digests):
+                manifest, documents = self._ready_fixture()
+                adaptive = [row for row in documents["mli04-evidence.json"]["runs"]
+                            if row["algorithm_name"] == "HDBSCAN_ADAPTIVE"]
+                self.assertEqual(2, len(adaptive))
+                for row, digest in zip(adaptive, digests):
+                    if digest is None:
+                        del row["adaptive_cohort_sha256"]
+                    else:
+                        row["adaptive_cohort_sha256"] = digest
+                with self.assertRaisesRegex(ValueError, "DEMO_MLI04_ADAPTIVE_COHORT_MISMATCH"):
+                    self._run_ready_fixture(manifest, documents)
 
     def test_v2_rejects_missing_or_wrong_import_fingerprint(self):
         for value in (None, "not-a-bundle-sha", "0" * 64):
