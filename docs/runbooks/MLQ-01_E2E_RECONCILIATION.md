@@ -30,13 +30,22 @@ Chọn một canonical event vai trò POST có rank 1 trong window thành công 
 - Thay mỗi `__*_SNAPSHOT__` bằng ID Iceberg xác thực, số nguyên dương signed
   64-bit. `__DATASET_SNAPSHOT__` là registry snapshot của dataset, còn
   `__RUN_SNAPSHOT__` lấy từ `experiment_snapshot_id` của receipt.
+- `__MAINSHOCK_SNAPSHOT__` lấy từ trusted dataset manifest đã xác minh. SQL
+  so nó dưới kiểu BIGINT ở dataset registry và chuỗi decimal ở experiment registry.
+  `__GOLD_PUBLICATION_ID__` lấy từ evidence Gold Published.
+  `__DATASET_MANIFEST_SHA256__` lấy SHA-256 của trusted registry manifest từ
+  export receipt. Tên bảng dùng trong `__GOLD_TABLE__` cũng phải khớp
+  `physical_gold_table_name` của dataset.
 - Dùng chính xác các ID đã ghim cho `__DATASET_ID__`, `__RUN_ID__`,
   `__MAINSHOCK_ID__`, `__EVENT_ID__` và fingerprint 64 ký tự hex cho
   `__BUNDLE_SHA256__`. Chỉ nhận tên bảng catalog.schema.table an toàn. Thoát
   dấu nháy đơn trong giá trị SQL bằng hai dấu nháy đơn. Kiểm hết placeholder
   trước khi đưa truy vấn SELECT vào Trino.
 
-Query phải trả một dòng `lineage_check=PASS`. Lưu kết quả kể cả khi FAIL. So
+Query phải trả một dòng `lineage_check=PASS`. Window `SUCCESS` phải có đúng
+một dòng tự tham chiếu `MAINSHOCK` trong candidate và đúng một dòng tương ứng
+là sequence member trong membership. Event được truy vết vẫn phải là POST
+rank 1. Lưu kết quả kể cả khi FAIL. So
 counts và role theo đúng grain một window, rồi đối chiếu số liệu tổng hợp toàn
 run và snapshot IDs với evidence MLI-04. Dùng query ID và dòng kết quả để truy
 ngược số liệu trên static report. Event có thể xuất hiện trong nhiều window,
@@ -67,8 +76,9 @@ python -m unittest tests.test_mlq01_reconciliation
 make test-mli-import
 ~~~
 
-Fixture SQL gồm một trace thành công và các ca mất Gold event, sai
-snapshot/checksum, run REJECTED, hoặc counts đúng nhưng candidate/grain/role
-sai. Fixture và local writer tests chỉ dùng làm evidence thành phần. Đóng
+CI `docs-contracts` chạy fixture SQL qua `make ci-docs-base`. Fixture gồm
+một trace thành công và các ca mất Gold event, lệch từng pin publication hoặc
+lineage, run REJECTED và counts đúng nhưng hai lớp cùng ghi sai MAINSHOCK.
+Fixture và local writer tests chỉ dùng làm evidence thành phần. Đóng
 MLQ-01 sau E2E official, có các query/readback và static report thật. Diễn giải
 kết quả là aftershock candidate hồi cứu.

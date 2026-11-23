@@ -3,7 +3,10 @@
 WITH pins AS (
     SELECT '__DATASET_ID__' AS dataset_id, '__RUN_ID__' AS run_id,
            '__MAINSHOCK_ID__' AS mainshock_id, '__EVENT_ID__' AS event_id,
-           '__BUNDLE_SHA256__' AS bundle_sha256
+           '__BUNDLE_SHA256__' AS bundle_sha256,
+           '__GOLD_PUBLICATION_ID__' AS gold_publication_id,
+           '__GOLD_TABLE__' AS physical_gold_table_name,
+           '__DATASET_MANIFEST_SHA256__' AS dataset_manifest_sha256
 ),
 gold_matches AS (
     SELECT count(*) AS gold_rows
@@ -14,7 +17,10 @@ gold_matches AS (
 dataset_matches AS (
     SELECT count(*) AS dataset_rows,
            count(CASE WHEN d.dataset_status = 'EXPORTED' AND d.gold_snapshot_id = __GOLD_SNAPSHOT__
-                        AND d.candidate_snapshot_id = __CANDIDATE_SNAPSHOT__ THEN 1 END) AS exported_rows
+                        AND d.gold_publication_id = p.gold_publication_id
+                        AND d.physical_gold_table_name = p.physical_gold_table_name
+                        AND d.candidate_snapshot_id = __CANDIDATE_SNAPSHOT__
+                        AND d.mainshock_snapshot_id = __MAINSHOCK_SNAPSHOT__ THEN 1 END) AS exported_rows
     FROM __DATASET_TABLE__ FOR VERSION AS OF __DATASET_SNAPSHOT__ d
     CROSS JOIN pins p
     WHERE d.dataset_id = p.dataset_id
@@ -26,6 +32,8 @@ registry_matches AS (
                        AND e.result_bundle_sha256 = p.bundle_sha256
                        AND e.dataset_registry_snapshot_id = CAST(__DATASET_SNAPSHOT__ AS varchar)
                        AND e.candidate_source_snapshot_id = CAST(__CANDIDATE_SNAPSHOT__ AS varchar)
+                       AND e.mainshock_source_snapshot_id = CAST(__MAINSHOCK_SNAPSHOT__ AS varchar)
+                       AND e.dataset_manifest_sha256 = p.dataset_manifest_sha256
                        AND e.membership_snapshot_id = __MEMBERSHIP_SNAPSHOT__
                        AND e.summary_snapshot_id = __SUMMARY_SNAPSHOT__ THEN 1 END) AS serving_rows
     FROM __RUN_TABLE__ FOR VERSION AS OF __RUN_SNAPSHOT__ e
@@ -47,11 +55,15 @@ memberships AS (
 ),
 candidate_counts AS (
     SELECT count(*) AS candidate_rows, count(DISTINCT c.candidate_event_id) AS candidate_keys,
+           count(CASE WHEN c.candidate_event_id = p.mainshock_id
+                       AND c.relative_time_role = 'MAINSHOCK' THEN 1 END) AS candidate_mainshock_rows,
            count(CASE WHEN c.candidate_event_id = p.event_id AND c.relative_time_role = 'POST' THEN 1 END) AS target_candidates
     FROM candidates c CROSS JOIN pins p
 ),
 membership_counts AS (
     SELECT count(*) AS membership_rows, count(DISTINCT m.candidate_event_id) AS membership_keys,
+           count(CASE WHEN m.candidate_event_id = p.mainshock_id AND m.event_role_candidate = 'MAINSHOCK'
+                       AND m.is_sequence_member THEN 1 END) AS membership_mainshock_rows,
            count(CASE WHEN m.is_sequence_member AND m.event_role_candidate = 'POST' THEN 1 END) AS post_members,
            count(CASE WHEN m.candidate_event_id = p.event_id AND m.is_sequence_member
                        AND m.event_role_candidate = 'POST' AND m.resolution_rank = 1 THEN 1 END) AS target_resolved
@@ -73,12 +85,13 @@ summary_counts AS (
 )
 SELECT p.dataset_id, p.run_id, p.mainshock_id, p.event_id,
        g.gold_rows, d.dataset_rows, d.exported_rows, r.registry_rows, r.serving_rows,
-       c.candidate_rows, c.candidate_keys, c.target_candidates,
-       m.membership_rows, m.membership_keys, m.post_members, m.target_resolved,
+       c.candidate_rows, c.candidate_keys, c.candidate_mainshock_rows, c.target_candidates,
+       m.membership_rows, m.membership_keys, m.membership_mainshock_rows, m.post_members, m.target_resolved,
        a.role_matched_rows, s.summary_rows, s.success_rows, s.summary_candidates, s.summary_post_members,
        CASE WHEN g.gold_rows = 1 AND d.dataset_rows = 1 AND d.exported_rows = 1
                AND r.registry_rows = 1 AND r.serving_rows = 1
                AND c.target_candidates = 1 AND m.target_resolved = 1
+               AND c.candidate_mainshock_rows = 1 AND m.membership_mainshock_rows = 1
                AND c.candidate_rows = c.candidate_keys AND m.membership_rows = m.membership_keys
                AND c.candidate_rows = m.membership_rows AND a.role_matched_rows = c.candidate_rows
                AND s.summary_rows = 1 AND s.success_rows = 1
