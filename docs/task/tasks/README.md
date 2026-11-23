@@ -22,6 +22,10 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 
 ## Tổng quan
 
+**24/11 — MLI-04:** [Official REPRODUCTION](../../evidence/MLI-04_OFFICIAL_READBACK_20261124.md)
+đã `VERIFIED` với 8/8 shard và 36/36 truy vấn snapshot. Giữ `In Progress` cho
+đến khi chốt phần adaptive overlap của [MLI-03](./MLI-03.md) trong PR #149.
+
 **16/11 — DEMO-01 In Progress (ThanhTris):** Chuẩn bị manifest ghim bằng chứng đại diện, kịch bản demo 15–20 phút, 4 fallback và preflight checker offline ([gói demo](../../runbooks/DEMO-01_DEMO_PACKAGE.md)); chờ `MLI-04` và `MLQ-01` để chốt official pins.
 **17/11 — DAT-03 Done:** đã đối chiếu catalog288tháng, Gold Published/rerun,
 hai official collections EXPORTED và receipt thật cùng kitv4 trên ba máy.
@@ -119,7 +123,7 @@ giữ In Progress, chưa nghiệm thu catalog hợp nhất hoặc official expor
 [DAT-03 actual metadata audit](../../evidence/DAT-03_LINEAGE_FRONTIER_20261112.md): first-hop và Trí next-hop matched; [ThanhTris frontier metadata](../../evidence/DAT-03_LINEAGE_ThanhTris_METADATA_20261112.md) đã bàn giao; chưa official integration/export.
 [Kế hoạch tuần9,6task/người](../WEEK_9_REPLAN_20261111.md),
 [đối soát PR/acceptance](../../evidence/TASK_STATUS_AUDIT_20261111.md).
-COL-03 Done sau #117; #124 merge implementation, MLI-04 còn official parity.
+Tại mốc này, COL-03 Done sau #117; #124 merge implementation, MLI-04 còn official parity.
 Các mốc bên dưới là lịch sử. Năm task dở chuyển Needs Update theo yêu cầu
 owner11/11, không sửa lịch sử thành từng Done; khi thực sự tiếp tục đổi In Progress.
 

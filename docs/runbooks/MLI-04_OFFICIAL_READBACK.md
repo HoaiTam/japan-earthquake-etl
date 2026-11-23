@@ -2,11 +2,28 @@
 
 Kết quả pilot giữ nhãn DEVELOPMENT_ONLY. Luồng official ghim EXP-04 trên main,
 hai cross-check và đúng sáu shard baseline replay cùng hai shard adaptive.
-SQL readback official còn PENDING. Chạy trên máy giữ Iceberg catalog DAT-03,
+Chạy trên máy giữ Iceberg catalog DAT-03,
 registry staging/ml-artifacts với snapshot registry/candidate/mainshock,
 và đúng tám bundle cùng receipt import được ghim theo EXP-02/EXP-03.
 Research kit chỉ đọc có thể kiểm file và lineage, không cung cấp Iceberg
 snapshot hoặc receipt CANDIDATE.
+
+## Kết quả nghiệm thu 24/11/2026
+
+Readback **VERIFIED**: tám receipt `CANDIDATE`, 24 snapshot pins kết quả
+(ba pin mỗi run) và **36/36 truy vấn Trino** (32 theo run, 4 gộp theo thuật toán).
+[Báo cáo tĩnh](../evidence/MLI-04_OFFICIAL_READBACK_20261124.md) được render từ
+[evidence JSON](../evidence/MLI-04_OFFICIAL_READBACK_20261124.json), SHA-256
+`d2d1ed3082cbcdc2b1c835a7ad315ca7d85f608d0fc32dab0aaee97efe6ef175`.
+
+Import các bundle chính thức vào **namespace QA riêng** qua control plane
+MLI-03 và Spark local, không phải scheduled DagRun. Tất cả phiên import thành
+công trả đúng lease; registry, dataset và Gold gốc không bị ghi đè. Runner
+được build từ [PR #149](https://github.com/HoaiTam/japan-earthquake-etl/pull/149),
+commit `a377a736022c9d4760e8f3afcaad6df734e8e986`, JAR SHA-256
+`1796be2e193e4a96de3b97eaa270bbce0d0d892800c2b7005331ffa05b50e2da`.
+Evidence chỉ chứng nhận snapshot đã đọc trong phiên QA; không chứng nhận
+scientific approval hoặc publication trên namespace production.
 
 ## Cohort được ghim
 
@@ -38,6 +55,11 @@ hoặc receipt lấy từ lần chạy khác sẽ không qua bước đối soá
    receipt CANDIDATE đã có hoặc import tuần tự với cấu hình và namespace QA
    đã duyệt theo [MLI-03](MLI-03_RESULT_IMPORT.md), bắt đầu WINDOW shard_00000.
    Không dùng full-split làm đầu vào import và không đổi adaptive ranks.
+   Khi chuyển từ macOS vào Docker, chỉ chép `_SUCCESS.json` và đúng các tệp
+   trong `checksums` của marker; không đưa AppleDouble (`._*`) vào bundle.
+   Kiểm lại danh sách tệp, SHA marker và SHA từng artifact tại đích trước khi
+   acquire lease. Nếu import từ chối metadata, giữ journal lần lỗi; không xóa
+   artifact hay ghi đè trạng thái `REJECTED` để chạy lại.
 2. Lưu request JSON ngoài Git với **schema_version** mli04-request-v1.
    Trường **namespace** là namespace ghi trong
    receipt MLI-03. **runs** là danh sách object có **experiment_run_id**,
@@ -60,5 +82,7 @@ với digest tính từ EXP-03. Evidence cũ thiếu digest cần được tạo
 verifier trước khi render. Metric
 khoa học riêng giữ nguồn EXP-04 đã pin.
 
-Kiểm hồi quy offline bằng make test-mli04. Nghiệm thu runtime cần evidence
-thật và vẫn chờ phần adaptive overlap của [MLI-03](../task/tasks/MLI-03.md).
+Kiểm hồi quy offline bằng `make test-mli04`. Trước khi merge MLI-04, chốt
+[MLI-03 — Validate/import kết quả và commit bảng ML Iceberg](../task/tasks/MLI-03.md)
+phần adaptive overlap của PR #149. Nếu runner merge thay đổi hành vi import hoặc
+contract cohort so với pin trên, chạy lại acceptance trên phiên bản mới.
