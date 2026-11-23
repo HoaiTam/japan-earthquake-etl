@@ -1,6 +1,6 @@
 ---
 task_id: "DEMO-02"
-status: "Backlog"
+status: "In Progress"
 week: 8
 block: "K - QA & Release"
 workstream: "Release"
@@ -16,7 +16,7 @@ dependencies: ["QA-01", "QA-02", "QA-04", "MLQ-01", "SEC-01", "DOC-01", "DEMO-01
 
 ## Giao việc hiện hành — 11/11/2026
 
-- **Owner:** HoaiTam; **status:** Backlog.
+- **Owner:** HoaiTam; **status:** In Progress.
 - **Làm phần gì / dùng để làm gì:** Rehearsal/release candidate.
 - **Bắt đầu độc lập:** Chuẩn bị checklist, phân vai và phương án demo offline.
 - **Đầu ra và điều kiện Done:** Sau hard dependencies: ba người rehearsal 15–20 phút, chốt blocker/known limits; tag/publish cần quyền riêng.
@@ -77,10 +77,10 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
+- **Trạng thái:** In Progress
 - **Assignee:** HoaiTam
-- **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Reviewer:** unassigned
+- **Evidence / PR:** [Runbook rehearsal và checklist release](../../runbooks/DEMO-02_REHEARSAL.md). Kiểm offline trên head #143 `a379493` xác minh 15 mục, bốn phương án dự phòng và receipt DAT-03 của ThanhTris; đã dựng report pilot `DEVELOPMENT_ONLY`. Chưa diễn tập ba người. Nghiệm thu còn chờ [MLQ-01 — Chạy E2E Gold snapshot đến ML report](./MLQ-01.md) và [DEMO-01 — Chuẩn bị dữ liệu và kịch bản demo](./DEMO-01.md).
 - **Kỹ năng phù hợp:** Release management, presentation
 
 ## Checklist bàn giao
