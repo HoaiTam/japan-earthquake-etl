@@ -26,7 +26,7 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 **17/11 — DAT-03 Done:** đã đối chiếu catalog288tháng, Gold Published/rerun,
 hai official collections EXPORTED và receipt thật cùng kitv4 trên ba máy.
 [Đối chiếu acceptance](../../evidence/DAT-03_FINAL_ACCEPTANCE_20261116.md).
-Hiện 74/81 Done, 1 Needs Update, 5 Backlog, 1 In Progress sau nghiệm thu
+Hiện 77/81 Done, 1 Needs Update, 2 Backlog, 1 In Progress sau nghiệm thu
 [EXP-02](../../evidence/EXP-02_OFFICIAL_REPRODUCTION.md),
 [EXP-03](../../evidence/EXP-03_OFFICIAL_REPRODUCTION.md) và
 [EXP-04](../../evidence/EXP-04_OFFICIAL_REPRODUCTION.md) và
@@ -427,9 +427,9 @@ và portable integration/full catalog/official export đã qua actual acceptance
 |---|---:|---|---|---|---:|---|
 | [BI-01](./BI-01.md) - Tạo kết nối Trino và Power Query | 7 | Connectivity | Stretch | P2 | 4h | Done |
 | [BI-02](./BI-02.md) - Tạo semantic model và KPI measures | 8 | Semantic model | Stretch | P2 | 5h | Done |
-| [BI-03](./BI-03.md) - Xây trang Tổng quan | 8 | Overview dashboard | Stretch | P2 | 5h | Backlog |
-| [BI-04](./BI-04.md) - Xây trang Không gian và Độ sâu - Độ lớn | 8 | Detail dashboards | Stretch | P2 | 5h | Backlog |
-| [BI-05](./BI-05.md) - Thiết lập refresh và đối soát BI | 8 | Refresh and reconciliation | Stretch | P2 | 5h | Backlog |
+| [BI-03](./BI-03.md) - Xây trang Tổng quan | 8 | Overview dashboard | Stretch | P2 | 5h | Done |
+| [BI-04](./BI-04.md) - Xây trang Không gian và Độ sâu - Độ lớn | 8 | Detail dashboards | Stretch | P2 | 5h | Done |
+| [BI-05](./BI-05.md) - Thiết lập refresh và đối soát BI | 8 | Refresh and reconciliation | Stretch | P2 | 5h | Done |
 
 ## K - QA & Release
 
