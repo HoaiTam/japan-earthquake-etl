@@ -91,6 +91,22 @@ này nhưng thiếu pin trả `IMP_ADAPTIVE_COHORT_PIN_MISSING`; đối soát d�
 owner, giữ nguyên registry và dùng namespace QA sạch đã được duyệt để thử lại.
 Nghiệm thu dùng đủ receipt của các shard, cùng digest và đúng các pin cần nghiệm thu.
 
+### Nghiệm thu adaptive REPRODUCTION — 24/11/2026
+
+[Evidence import/rerun](../evidence/MLI-03_ADAPTIVE_REPRODUCTION_20261124.json), SHA-256
+`e063fe7c7cd5de18621c14a2b78a090c717c81bf6ac89e56fb3472a69c84c57a`, lưu hai receipt
+đã lọc cùng full marker/fingerprint/cohort pins và query IDs Trino trước/sau.
+Runner build từ commit `a377a736022c9d4760e8f3afcaad6df734e8e986`
+được gọi qua control plane MLI-03 standalone, không phải scheduled DagRun.
+Rerun giữ cùng dataset `EXPORTED`, hai bundle gốc, namespace QA và cả ba
+snapshot IDs trong từng receipt; 16/8/8 snapshot của ba bảng (registry,
+membership, summary) giữ nguyên cả danh sách ID/parent, counts theo run không đổi.
+Hai lần rerun trả đúng lease; sau phiên không còn owner. Không ghi vào Gold,
+không đổi trạng thái `CANDIDATE` thành `APPROVED`.
+
+Phạm vi này không nghiệm thu EXTENSION hoặc toàn luồng Gold → ML report;
+đó là phần còn lại của [MLQ-01 — Chạy E2E Gold snapshot đến ML report](../task/tasks/MLQ-01.md).
+
 `MLI_IMPORT_RUNNER_COMMAND` chỉ lấy từ môi trường vận hành và được chạy
 không qua shell. Image Airflow đóng gói `/opt/pipeline/bin/mli-import-runner`
 và Spark/Iceberg runtime; runner phải nhận request path cuối cùng, tạo

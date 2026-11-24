@@ -26,7 +26,7 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 **17/11 — DAT-03 Done:** đã đối chiếu catalog288tháng, Gold Published/rerun,
 hai official collections EXPORTED và receipt thật cùng kitv4 trên ba máy.
 [Đối chiếu acceptance](../../evidence/DAT-03_FINAL_ACCEPTANCE_20261116.md).
-Hiện 76/81 Done, 1 Needs Update, 2 Backlog, 2 In Progress sau nghiệm thu
+Hiện 77/81 Done, 1 Needs Update, 2 Backlog, 1 In Progress sau nghiệm thu
 [EXP-02](../../evidence/EXP-02_OFFICIAL_REPRODUCTION.md),
 [EXP-03](../../evidence/EXP-03_OFFICIAL_REPRODUCTION.md) và
 [EXP-04](../../evidence/EXP-04_OFFICIAL_REPRODUCTION.md) và
@@ -34,6 +34,10 @@ Hiện 76/81 Done, 1 Needs Update, 2 Backlog, 2 In Progress sau nghiệm thu
 v2 sau khi đối soát cả hai upstream; EXP-03 adaptive shard chỉ đạt readback.
 SEC-01 Done trong phạm vi đồ án: [đối soát và ngoại lệ ACL 19/11](../../evidence/SEC-01_CLOUD_20261119.md).
 Các mốc bên dưới giữ lịch sử, không thay scientific approval.
+
+**24/11 — MLI-03 Done:** [Import và rerun Adaptive REPRODUCTION](../../evidence/MLI-03_ADAPTIVE_REPRODUCTION_20261124.json)
+giữ nguyên 2/2 receipt `CANDIDATE`, 6 snapshot pins và counts. Nghiệm thu ở
+namespace QA riêng; không thay acceptance EXTENSION của [MLQ-01](./MLQ-01.md).
 
 **17/11 — OPS-01 Done (HoaiTam):** backup13bảng/77objects/14artifacts và
 restore prefix/namespace/DB mới; Trino signatures/rerun/ML joins, Airflow
@@ -417,7 +421,7 @@ và portable integration/full catalog/official export đã qua actual acceptance
 |---|---:|---|---|---|---:|---|
 | [MLI-01](./MLI-01.md) - Khóa result bundle và experiment lifecycle | 4 | Result bundle contract | Core | P0 | 5h | Done |
 | [MLI-02](./MLI-02.md) - Tạo Airflow DAG build ML dataset | 5 | Dataset build orchestration | Core | P0 | 5h | Done |
-| [MLI-03](./MLI-03.md) - Validate/import kết quả và commit bảng ML Iceberg | 5 | Result import and Iceberg publish | Core | P0 | 7h | In Progress |
+| [MLI-03](./MLI-03.md) - Validate/import kết quả và commit bảng ML Iceberg | 5 | Result import and Iceberg publish | Core | P0 | 7h | Done |
 | [MLI-04](./MLI-04.md) - Tạo Trino views và static report cho experiment | 8 | ML serving and report | Core | P0 | 4h | Needs Update |
 | [MLQ-01](./MLQ-01.md) - Chạy E2E Gold snapshot đến ML report | 8 | ML end-to-end QA | Core | P0 | 6h | Backlog |
 

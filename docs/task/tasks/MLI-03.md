@@ -1,6 +1,6 @@
 ---
 task_id: "MLI-03"
-status: "In Progress"
+status: "Done"
 week: 5
 block: "I - ML Integration"
 workstream: "Result import and Iceberg publish"
@@ -63,7 +63,7 @@ trước khi Colab sinh output thật.
 
 ### Follow-up — import adaptive overlap xuyên shard (EXP-03 và EXP-05)
 
-Contract v1 đã nghiệm thu cho đường import hiện có; **chưa nghiệm thu** các shard
+Contract v1 đã nghiệm thu cho đường import hiện có. Follow-up này xử lý các shard
 `HDBSCAN_ADAPTIVE` giữ `MULTIPLE`/`AMBIGUOUS` toàn cục trong từng lát cắt.
 Full-split là đầu vào đánh giá EXP-04, không phải work unit cho resolver.
 Bản [follow-up #149](https://github.com/HoaiTam/japan-earthquake-etl/pull/149#issuecomment-7073431664)
@@ -75,8 +75,11 @@ hợp lệ, sibling chỉ có candidate, hai shard trùng rank 1 và pin/lineage
 thiếu hoặc sai. Reservation trong Iceberg và digest trong journal/receipt
 ràng buộc các request theo cùng bộ shard/run/marker; regression local kiểm
 hai cohort hợp lệ riêng bị chặn khi ghép, và retry dùng journal cũ hoặc mới
-bị chặn nếu chỉ đổi marker sibling. Import hai shard EXP-03 trên Iceberg/Trino
-và receipt thật vẫn còn chờ. Xem [evidence EXP-03](../../evidence/EXP-03_OFFICIAL_REPRODUCTION.md).
+bị chặn nếu chỉ đổi marker sibling. Hai shard EXP-03 đã import và rerun thành công
+trên Iceberg/Trino trong namespace QA riêng. Hai receipt `CANDIDATE` giữ nguyên
+cohort digest, fingerprint, ba snapshot ID và counts; 12 truy vấn Trino trước/sau
+xác nhận không append snapshot hoặc dòng. Xem [evidence](../../evidence/MLI-03_ADAPTIVE_REPRODUCTION_20261124.json)
+và [evidence EXP-03](../../evidence/EXP-03_OFFICIAL_REPRODUCTION.md).
 Với EXTENSION của EXP-05, 12 shard baseline đạt `RESULT_READY` khi kiểm tra
 contract offline và 4 shard adaptive đạt Parquet reader readback. Nghiệm thu
 import Iceberg của các shard EXTENSION cần receipt runtime riêng.
@@ -99,10 +102,10 @@ Thêm acceptance case reject DAT-02 DEVELOPMENT_PILOT/pilot_result_manifest và 
 
 ## Theo dõi
 
-- **Trạng thái:** In Progress
+- **Trạng thái:** Done
 - **Assignee:** ThanhTris
 - **Reviewer:** unassigned — chưa ghi nhận independent approval
-- **Evidence / PR:** [Runtime acceptance 19/10/2026](../../evidence/MLI-03_RUNTIME_ACCEPTANCE.md), [exact receipts](../../evidence/MLI-03-runtime.json); [offline evidence lịch sử](../../evidence/MLI-03-offline.md). PR #79 đã merge; phần hoàn thiện runtime ở branch `feat/mli-03-runtime-acceptance`, chưa mở PR mới.
+- **Evidence / PR:** [Runtime acceptance 19/10/2026](../../evidence/MLI-03_RUNTIME_ACCEPTANCE.md), [exact receipts](../../evidence/MLI-03-runtime.json) và [offline evidence lịch sử](../../evidence/MLI-03-offline.md). [PR #149](https://github.com/HoaiTam/japan-earthquake-etl/pull/149) ghi [nghiệm thu Adaptive REPRODUCTION 24/11](../../evidence/MLI-03_ADAPTIVE_REPRODUCTION_20261124.json).
 - **Kỹ năng phù hợp:** Airflow, Spark validation, Iceberg transactions
 
 ## Checklist bàn giao
