@@ -6,12 +6,16 @@ giao Core theo [MVP Definition of Done](../specs/MVP_SCOPE_KPI_AND_DOD.md).
 
 ## Chạy trước trên máy trình bày
 
-1. Checkout đúng commit được chọn để demo và ghi `git rev-parse HEAD` vào
-   biên bản. Với buổi tập offline hiện tại, dùng branch của
-   [PR #143](https://github.com/HoaiTam/japan-earthquake-etl/pull/143), nơi đã
-   có manifest v2.
-2. Chạy các lệnh dưới đây từ root của checkout. Lưu preflight JSON và report
-   vào `staging/demo-02/` thuộc Git ignore.
+Tách rõ hai chế độ chuẩn bị theo kết quả `overall_status` của preflight; **không**
+trộn report pilot `DEVELOPMENT_ONLY` với buổi diễn tập official.
+
+### 1. Tập offline (`PREPARED_PENDING_OFFICIAL_GATES` — dùng pilot)
+
+1. Checkout đúng commit chuẩn bị (hiện là nhánh
+   [PR #143](https://github.com/HoaiTam/japan-earthquake-etl/pull/143) có manifest v2)
+   và ghi `git rev-parse HEAD` vào biên bản.
+2. Chạy preflight, unit tests và dựng report pilot gắn nhãn `DEVELOPMENT_ONLY`
+   trong `staging/demo-02/` (thuộc Git ignore):
 
 ~~~bash
 mkdir -p staging/demo-02
@@ -21,13 +25,36 @@ python -B scripts/generate-experiment-report.py --mode development --input-json 
 ~~~
 
 3. Nếu dùng receipt DAT-03 cá nhân, chạy lại preflight với `--local-receipt`
-   và `--expected-receipt-sha256` theo runbook DEMO-01. Preflight đối chiếu
-   receipt và pin đã ghi. Để kiểm lại bytes của kit trên đĩa, chạy verifier
-   theo [hướng dẫn DAT-03](./DAT-03_OFFICIAL_RESEARCH_HANDOFF.md).
-4. Đọc `overall_status`, `official_release_ready` và `pending_official_gates`
-   trong preflight. `PREPARED_PENDING_OFFICIAL_GATES` cho phép tập offline.
-   Chỉ dùng chế độ official sau `PASS_OFFICIAL_READY` và khi có đúng evidence
-   MLI-04/MLQ-01 trên máy trình bày.
+   và `--expected-receipt-sha256` theo runbook DEMO-01. Để kiểm lại bytes của
+   kit trên đĩa, chạy verifier theo [hướng dẫn DAT-03](./DAT-03_OFFICIAL_RESEARCH_HANDOFF.md).
+
+### 2. Diễn tập official (`PASS_OFFICIAL_READY` — sau khi chốt `#150` và `#143`)
+
+1. Checkout đúng commit đã chốt đủ `#150` (`MLQ-01`) và `#143` (`DEMO-01`), ghi
+   `git rev-parse HEAD` vào biên bản và xác nhận `demo-preflight.py --json` trả
+   `overall_status=PASS_OFFICIAL_READY`, `official_release_ready=true`,
+   `pending_official_gates=[]`.
+2. Mở trực tiếp [báo cáo official MLI-04 đã ghim trên main](../evidence/MLI-04_OFFICIAL_READBACK_20261124.md)
+   cùng receipt E2E `MLQ-01` đúng pin trong `demo_package_manifest_v2.json`. Nếu
+   cần render lại bản kiểm chứng vào `staging/demo-02/` theo đúng SHA-256 LF của
+   [evidence JSON MLI-04](../evidence/MLI-04_OFFICIAL_READBACK_20261124.json)
+   (quy trình trong [runbook MLI-04](./MLI-04_OFFICIAL_READBACK.md)):
+
+~~~bash
+mkdir -p staging/demo-02
+python -B scripts/demo-preflight.py --json > staging/demo-02/preflight.json
+python -B scripts/generate-experiment-report.py --mode official --input-json docs/evidence/MLI-04_OFFICIAL_READBACK_20261124.json --evidence-sha256 d2d1ed3082cbcdc2b1c835a7ad315ca7d85f608d0fc32dab0aaee97efe6ef175 --output-md staging/demo-02/MLI-04_OFFICIAL_READBACK.md
+~~~
+
+*(Lưu ý trên Windows với `core.autocrlf=true`: `generate-experiment-report.py`
+hash raw file bytes, nên nếu file checkout có CRLF, chuẩn hóa bản sao LF vào
+`staging/demo-02/MLI-04_OFFICIAL_READBACK_20261124.json` bằng Python binary
+`write_bytes(...replace(b"\r\n", b"\n"))` — không dùng `>` của PowerShell để
+tránh lệch UTF-16LE — rồi truyền bản sao LF đó vào `--input-json`.)*
+
+3. Khi đã có kết quả diễn tập ba người sau `#150`/`#143`, ghi commit, checksum,
+   thời lượng, người trình bày và kết quả chuyển fallback vào biên bản thật;
+   giữ nguyên `NOT_RUN` cho tới khi thực sự thực hiện.
 
 ## Trình tự đề xuất cho ba vai
 
@@ -35,7 +62,7 @@ python -B scripts/generate-experiment-report.py --mode development --input-json 
 |---|---|---|
 | 00:00–05:00 | Điều phối ETL | Nêu phạm vi rồi mở bản ghi QA-01. Chỉ run ID, publication ID và các snapshot Gold. Chuyển bằng tên dataset và Gold snapshot. |
 | 05:00–11:00 | Dữ liệu và thí nghiệm | Mở evidence DAT-03 với nhãn EXPORTED. Trình bày dataset pin và kết quả EXP-04 theo đúng phạm vi. Ghi rõ `DEVELOPMENT_ONLY` khi dùng pilot. Bàn giao dataset ID và run ID cho phần đọc lại. |
-| 11:00–16:00 | Kiểm chứng và báo cáo | Chỉ cách nối receipt, snapshot, Trino query và static report. Khi tập offline, dùng report pilot và nêu các gate còn chờ. Diễn giải kết quả là aftershock candidate hồi cứu. |
+| 11:00–16:00 | Kiểm chứng và báo cáo | Chỉ cách nối receipt, snapshot, Trino query và static report. Khi tập offline, dùng report pilot `DEVELOPMENT_ONLY` và nêu các gate còn chờ; khi diễn tập official (`PASS_OFFICIAL_READY`), mở [report official MLI-04](../evidence/MLI-04_OFFICIAL_READBACK_20261124.md) và receipt E2E `MLQ-01` đúng pin. Diễn giải kết quả là aftershock candidate hồi cứu. |
 | 16:00–18:00 | Cả nhóm | Thử chuyển qua một phương án dự phòng, ghi thời lượng, lỗi, người xử lý và kết quả kiểm lại. Điều phối viên chốt blocker. |
 
 Điều phối viên xác nhận người đứng từng vai trước buổi tập. Ba thành viên tự
