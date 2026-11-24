@@ -465,7 +465,22 @@ class DemoOfficialEvidenceTests(unittest.TestCase):
         representative = {}
         for row in sql_rows:
             representative.setdefault(row["algorithm_name"], row)
-        rep_runs = {row["experiment_run_id"]: dict(row["snapshots"]) for row in representative.values()}
+        rep_runs = {}
+        for row in representative.values():
+            idx = len(rep_runs) + 1
+            rep_runs[row["experiment_run_id"]] = {
+                **row["snapshots"],
+                "trace": {
+                    "query_id": f"20261124_120000_0000{idx}_v3i3r",
+                    "dataset_id": dataset["dataset_id"],
+                    "experiment_run_id": row["experiment_run_id"],
+                    "gold_snapshot_id": dataset["gold_snapshot_id"],
+                    **row["snapshots"],
+                    "mainshock_event_id": f"main_{idx}",
+                    "candidate_event_id": f"post_{idx}",
+                    "lineage_check": "PASS",
+                },
+            }
         algo, shard = extension_algo, extension_shard
         extension_data = docs["EXP-05"]["dataset"]
         pin = docs["EXP-05"]["algorithm_comparisons"][algo]["bundle_verification"]["shard_verifications"][shard]
@@ -498,13 +513,88 @@ class DemoOfficialEvidenceTests(unittest.TestCase):
         extension.update(algorithm_name=algo, shard_id=shard, success_marker_path="extension/_SUCCESS.json",
                          experiment_run_id=pin["experiment_run_id"], success_marker_sha256=pin["success_marker_sha256"],
                          exp05_sha256_lf=refs["EXP-05"]["sha256_lf"],
-                         import_receipt={"path": "extension-import.json", "sha256_lf": "c" * 64})
+                         import_receipt={"path": "extension-import.json", "sha256_lf": "c" * 64},
+                         trace={
+                             "query_id": "20261124_120000_00009_v3i3r",
+                             "dataset_id": extension_data["dataset_id"],
+                             "experiment_run_id": pin["experiment_run_id"],
+                             "gold_snapshot_id": extension_data["gold_snapshot_id"],
+                             "experiment_snapshot_id": 51,
+                             "membership_snapshot_id": 52,
+                             "summary_snapshot_id": 53,
+                             "mainshock_event_id": "ext_main_1",
+                             "candidate_event_id": "ext_post_1",
+                             "lineage_check": "PASS",
+                         })
+        adaptive_row = representative["HDBSCAN_ADAPTIVE"]
+        adaptive_rid = adaptive_row["experiment_run_id"]
+        adaptive_pin = docs["EXP-03"]["shard_verifications"][adaptive_row["shard_id"]]
+        rerun_verification = {
+            "dataset_id": dataset["dataset_id"],
+            "before_rerun": {
+                "experiment_run": {
+                    "snapshot_query_id": "20261124_120100_00010_v3i3r",
+                    "count_query_id": "20261124_120100_00011_v3i3r",
+                    "snapshots": [[41, None]],
+                    "run_row_counts": {adaptive_rid: 1},
+                },
+                "sequence_membership": {
+                    "snapshot_query_id": "20261124_120100_00012_v3i3r",
+                    "count_query_id": "20261124_120100_00013_v3i3r",
+                    "snapshots": [[42, None]],
+                    "run_row_counts": {adaptive_rid: adaptive_pin["membership_row_count"]},
+                },
+                "sequence_summary": {
+                    "snapshot_query_id": "20261124_120100_00014_v3i3r",
+                    "count_query_id": "20261124_120100_00015_v3i3r",
+                    "snapshots": [[43, None]],
+                    "run_row_counts": {adaptive_rid: adaptive_pin["summary_row_count"]},
+                },
+            },
+            "after_rerun": {
+                "experiment_run": {
+                    "snapshot_query_id": "20261124_120200_00020_v3i3r",
+                    "count_query_id": "20261124_120200_00021_v3i3r",
+                    "snapshots": [[41, None]],
+                    "run_row_counts": {adaptive_rid: 1},
+                },
+                "sequence_membership": {
+                    "snapshot_query_id": "20261124_120200_00022_v3i3r",
+                    "count_query_id": "20261124_120200_00023_v3i3r",
+                    "snapshots": [[42, None]],
+                    "run_row_counts": {adaptive_rid: adaptive_pin["membership_row_count"]},
+                },
+                "sequence_summary": {
+                    "snapshot_query_id": "20261124_120200_00024_v3i3r",
+                    "count_query_id": "20261124_120200_00025_v3i3r",
+                    "snapshots": [[43, None]],
+                    "run_row_counts": {adaptive_rid: adaptive_pin["summary_row_count"]},
+                },
+            },
+        }
+        reject_verification = {
+            "namespace": "iceberg.mlq_qa",
+            "cases": [
+                {
+                    "case_name": "checksum",
+                    "experiment_run_id": "exp_qa_reject_checksum",
+                    "expected_reason_code": "IMP_CHECKSUM_MISMATCH",
+                    "actual_reason_code": "IMP_CHECKSUM_MISMATCH",
+                    "experiment_status": "REJECTED",
+                    "candidate_created": False,
+                    "candidate_row_count": 0,
+                    "query_id": "20261124_120300_00030_v3i3r",
+                }
+            ],
+        }
         docs["MLQ-01"] = {"task_id": "MLQ-01", "status": "PASSED", "scientific_approval": False,
                           "mli04_sha256_lf": refs["MLI-04"]["sha256_lf"], "dataset_id": dataset["dataset_id"],
                           "gold_snapshot_id": dataset["gold_snapshot_id"],
                           "checks": dict.fromkeys(("gold_to_report_lineage", "count_parity", "reject_without_candidate",
                                                    "rerun_no_duplicate", "extension_rule_preserved"), True),
-                          "runs": rep_runs, "extension": extension}
+                          "runs": rep_runs, "extension": extension,
+                          "reject_verification": reject_verification,
+                          "rerun_verification": rerun_verification}
         manifest.update(package_status="PASS_OFFICIAL_READY", official_release_ready=True, pending_official_gates=[])
         by_path = {value["path"]: docs[task] for task, value in refs.items()}
         by_path["extension/_SUCCESS.json"] = marker_bytes
@@ -642,6 +732,112 @@ class DemoOfficialEvidenceTests(unittest.TestCase):
                 fields[target][field] = value
                 with self.assertRaisesRegex(ValueError, error):
                     self._run_ready_fixture(manifest, documents)
+
+    def test_v2_rejects_mlq01_missing_or_tampered_trace_proof(self):
+        for mutate, error in (
+            (lambda mlq: next(iter(mlq["runs"].values())).pop("trace"), "DEMO_MLQ01_TRACE_INVALID"),
+            (lambda mlq: mlq["extension"].pop("trace"), "DEMO_MLQ01_TRACE_INVALID"),
+            (lambda mlq: next(iter(mlq["runs"].values()))["trace"].__setitem__("lineage_check", "FAIL"),
+             "DEMO_MLQ01_TRACE_INVALID"),
+            (lambda mlq: next(iter(mlq["runs"].values()))["trace"].__setitem__("query_id", " "),
+             "DEMO_MLQ01_TRACE_INVALID"),
+            (lambda mlq: mlq["extension"]["trace"].__setitem__(
+                "query_id", next(iter(mlq["runs"].values()))["trace"]["query_id"]),
+             "DEMO_MLQ01_TRACE_DUPLICATE_QUERY_ID"),
+            (lambda mlq: mlq["extension"]["trace"].__setitem__(
+                "candidate_event_id", mlq["extension"]["trace"]["mainshock_event_id"]),
+             "DEMO_MLQ01_TRACE_INVALID"),
+            (lambda mlq: mlq["extension"]["trace"].__setitem__("gold_snapshot_id", "44"),
+             "DEMO_MLQ01_TRACE_INVALID"),
+            (lambda mlq: next(iter(mlq["runs"].values()))["trace"].__setitem__("membership_snapshot_id", 99),
+             "DEMO_MLQ01_TRACE_INVALID"),
+        ):
+            with self.subTest(error=error):
+                manifest, documents = self._ready_fixture()
+                mutate(documents["mlq01-evidence.json"])
+                with self.assertRaisesRegex(ValueError, error):
+                    self._run_ready_fixture(manifest, documents)
+
+    def test_v2_rejects_mlq01_missing_or_invalid_reject_verification(self):
+        for mutate in (
+            lambda mlq: mlq.pop("reject_verification"),
+            lambda mlq: mlq["reject_verification"].__setitem__("cases", []),
+            lambda mlq: mlq["reject_verification"].__setitem__("namespace", "iceberg.gold_prod"),
+            lambda mlq: mlq["reject_verification"]["cases"][0].__setitem__("candidate_created", True),
+            lambda mlq: mlq["reject_verification"]["cases"][0].__setitem__("experiment_status", "CANDIDATE"),
+            lambda mlq: mlq["reject_verification"]["cases"][0].__setitem__("candidate_row_count", 1),
+            lambda mlq: mlq["reject_verification"]["cases"][0].__setitem__("query_id", ""),
+            lambda mlq: mlq["reject_verification"]["cases"][0].__setitem__("actual_reason_code", "OTHER"),
+            lambda mlq: mlq["reject_verification"]["cases"][0].__setitem__(
+                "experiment_run_id", next(iter(mlq["runs"].keys()))),
+        ):
+            with self.subTest():
+                manifest, documents = self._ready_fixture()
+                mutate(documents["mlq01-evidence.json"])
+                with self.assertRaisesRegex(ValueError, "DEMO_MLQ01_REJECT_EVIDENCE_INVALID"):
+                    self._run_ready_fixture(manifest, documents)
+
+    def test_v2_rejects_mlq01_missing_or_drifted_rerun_verification(self):
+        def get_rid(mlq):
+            return next(iter(mlq["rerun_verification"]["before_rerun"]["experiment_run"]["run_row_counts"]))
+
+        for mutate in (
+            lambda mlq: mlq.pop("rerun_verification"),
+            lambda mlq: mlq["rerun_verification"]["after_rerun"]["experiment_run"]["snapshots"].append([99, 41]),
+            lambda mlq: mlq["rerun_verification"]["after_rerun"]["sequence_membership"]["run_row_counts"].__setitem__(
+                get_rid(mlq), 99999),
+            lambda mlq: (
+                mlq["rerun_verification"]["before_rerun"]["experiment_run"]["run_row_counts"].__setitem__(
+                    get_rid(mlq), 2),
+                mlq["rerun_verification"]["after_rerun"]["experiment_run"]["run_row_counts"].__setitem__(
+                    get_rid(mlq), 2),
+            ),
+            lambda mlq: mlq["rerun_verification"]["after_rerun"]["experiment_run"].__setitem__(
+                "snapshot_query_id",
+                mlq["rerun_verification"]["before_rerun"]["experiment_run"]["snapshot_query_id"]),
+            lambda mlq: mlq["rerun_verification"]["after_rerun"]["sequence_summary"].__setitem__(
+                "count_query_id",
+                mlq["rerun_verification"]["before_rerun"]["sequence_summary"]["count_query_id"]),
+            lambda mlq: (
+                mlq["rerun_verification"]["before_rerun"]["sequence_membership"].__setitem__("snapshots", [[99, None]]),
+                mlq["rerun_verification"]["after_rerun"]["sequence_membership"].__setitem__("snapshots", [[99, None]]),
+            ),
+        ):
+            with self.subTest():
+                manifest, documents = self._ready_fixture()
+                mutate(documents["mlq01-evidence.json"])
+                with self.assertRaisesRegex(ValueError, "DEMO_MLQ01_RERUN_EVIDENCE_INVALID"):
+                    self._run_ready_fixture(manifest, documents)
+
+    def test_v2_accepts_pinned_external_mlq01_evidence_and_blocks_sha_drift(self):
+        manifest, documents = self._ready_fixture()
+        mlq = documents["mlq01-evidence.json"]
+        ext_trace = mlq["extension"].pop("trace")
+        reject_doc = mlq.pop("reject_verification")
+        rerun_doc = mlq.pop("rerun_verification")
+        documents["ext-trace.json"] = ext_trace
+        documents["mlq-reject.json"] = reject_doc
+        documents["mlq-rerun.json"] = rerun_doc
+        mlq["extension"]["trace"] = {"path": "ext-trace.json", "sha256_lf": "d" * 64}
+        mlq["reject_verification"] = {"path": "mlq-reject.json", "sha256_lf": "e" * 64}
+        mlq["rerun_verification"] = {"path": "mlq-rerun.json", "sha256_lf": "f" * 64}
+        result = self._run_ready_fixture(manifest, documents)
+        self.assertEqual("PASS_OFFICIAL_READY", result["overall_status"])
+
+        with tempfile.TemporaryDirectory() as folder:
+            temp_root = Path(folder)
+            pinned = temp_root / "mlq-rerun.json"
+            payload = (json.dumps(rerun_doc) + "\n").encode("utf-8")
+            pinned.write_bytes(payload)
+            digest = hashlib.sha256(payload).hexdigest()
+            loaded = preflight._resolve_receipt_section(
+                temp_root, {"path": "mlq-rerun.json", "sha256_lf": digest}, "DEMO_MLQ01_RERUN_EVIDENCE_INVALID"
+            )
+            self.assertEqual(rerun_doc["dataset_id"], loaded["dataset_id"])
+            with self.assertRaisesRegex(ValueError, "DEMO_OFFICIAL_SHA_MISMATCH"):
+                preflight._resolve_receipt_section(
+                    temp_root, {"path": "mlq-rerun.json", "sha256_lf": "0" * 64}, "DEMO_MLQ01_RERUN_EVIDENCE_INVALID"
+                )
 
 
 if __name__ == "__main__":

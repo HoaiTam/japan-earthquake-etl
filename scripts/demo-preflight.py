@@ -27,6 +27,12 @@ VALID_ROSTER = ("HoaiTam", "ThanhTris", "rosy179")
 REQUIRED_DAT03_SPLITS = ("REPRODUCTION", "EXTENSION")
 REQUIRED_ML_ALGORITHMS = frozenset(("WINDOW", "DBSCAN", "HDBSCAN_GLOBAL", "HDBSCAN_ADAPTIVE"))
 ML_SNAPSHOT_FIELDS = ("experiment_snapshot_id", "membership_snapshot_id", "summary_snapshot_id")
+ML_TABLES = ("experiment_run", "sequence_membership", "sequence_summary")
+ML_TABLE_SNAPSHOT_FIELD = {
+    "experiment_run": "experiment_snapshot_id",
+    "sequence_membership": "membership_snapshot_id",
+    "sequence_summary": "summary_snapshot_id",
+}
 ML_BUNDLE_CONTRACT = "spark/src/main/resources/ml/result-bundle-v1.json"
 REQUIRED_QA01_TABLES = (
     "event_current",
@@ -648,6 +654,8 @@ def _validate_mlq_extension(root, case, report, exp05_sha):
             "algorithm_name": algo, "shard_id": shard, "namespace": namespace,
             "success_marker_sha256": pin["success_marker_sha256"], "import_receipt_sha256_lf": import_pin["sha256_lf"],
             "result_bundle_sha256": fingerprint,
+            "readback": {"sequence_membership": pin["membership_row_count"],
+                         "sequence_summary": pin["summary_row_count"]},
             "snapshots": {field: _normalize_int64_snapshot(receipt.get(field), field) for field in ML_SNAPSHOT_FIELDS}}
 
 
@@ -663,6 +671,166 @@ def _adaptive_cohort_sha256(exp03):
                 dataset["collection_id"], "HDBSCAN_ADAPTIVE",
                 exp03["model_config_pin"]["model_config_version"], pins]
     return hashlib.sha256(json.dumps(identity, ensure_ascii=False, separators=(",", ":")).encode("utf-8")).hexdigest()
+
+
+def _require_nonempty_str(value: Any, error_code: str) -> str:
+    """Require a non-empty string with no leading or trailing whitespace."""
+    if not isinstance(value, str) or not value or value != value.strip():
+        raise ValueError(error_code)
+    return value
+
+
+def _resolve_receipt_section(root: Path, value: Any, error_code: str) -> dict[str, Any]:
+    """Resolve an inline receipt dict or a SHA-256 LF-pinned JSON reference."""
+    if not isinstance(value, dict):
+        raise ValueError(error_code)
+    if "path" in value or "sha256_lf" in value:
+        if set(value.keys()) != {"path", "sha256_lf"}:
+            raise ValueError(error_code)
+        _require_nonempty_str(value.get("path"), error_code)
+        sha = _require_nonempty_str(value.get("sha256_lf"), error_code)
+        if not re.fullmatch(r"[0-9a-f]{64}", sha):
+            raise ValueError("DEMO_OFFICIAL_SHA_MISMATCH")
+        resolved = _pinned_official_json(root, value)
+        _check_secret_hygiene(json.dumps(resolved, ensure_ascii=False), value["path"])
+        return resolved
+    return value
+
+
+def _validate_mlq_trace(
+    root: Path,
+    trace_value: Any,
+    *,
+    expected_dataset_id: str,
+    expected_run_id: str,
+    expected_gold_snapshot: str,
+    expected_snapshots: dict[str, str],
+) -> str:
+    """Verify an E2E SQL lineage trace query ID and pinned identities."""
+    trace = _resolve_receipt_section(root, trace_value, "DEMO_MLQ01_TRACE_INVALID")
+    query_id = _require_nonempty_str(trace.get("query_id"), "DEMO_MLQ01_TRACE_INVALID")
+    mainshock_id = _require_nonempty_str(trace.get("mainshock_event_id"), "DEMO_MLQ01_TRACE_INVALID")
+    event_id = _require_nonempty_str(trace.get("candidate_event_id"), "DEMO_MLQ01_TRACE_INVALID")
+    if (mainshock_id == event_id
+            or trace.get("lineage_check") != "PASS"
+            or trace.get("dataset_id") != expected_dataset_id
+            or trace.get("experiment_run_id") != expected_run_id
+            or _normalize_int64_snapshot(trace.get("gold_snapshot_id"), "MLQ-01.trace.gold_snapshot_id")
+            != expected_gold_snapshot):
+        raise ValueError("DEMO_MLQ01_TRACE_INVALID")
+    for field, expected_snap in expected_snapshots.items():
+        if _normalize_int64_snapshot(trace.get(field), f"MLQ-01.trace.{field}") != expected_snap:
+            raise ValueError("DEMO_MLQ01_TRACE_INVALID")
+    return query_id
+
+
+def _validate_mlq_reject_verification(root: Path, value: Any, candidate_run_ids: set[str]) -> list[str]:
+    """Verify fault/invalid bundle negative evidence proves no CANDIDATE run was created."""
+    doc = _resolve_receipt_section(root, value, "DEMO_MLQ01_REJECT_EVIDENCE_INVALID")
+    namespace = _require_nonempty_str(doc.get("namespace"), "DEMO_MLQ01_REJECT_EVIDENCE_INVALID")
+    if not re.fullmatch(r"[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*", namespace) or namespace.startswith("iceberg.gold"):
+        raise ValueError("DEMO_MLQ01_REJECT_EVIDENCE_INVALID")
+    cases = doc.get("cases")
+    if not isinstance(cases, list) or not cases:
+        raise ValueError("DEMO_MLQ01_REJECT_EVIDENCE_INVALID")
+    verified_cases: list[str] = []
+    for case in cases:
+        if not isinstance(case, dict):
+            raise ValueError("DEMO_MLQ01_REJECT_EVIDENCE_INVALID")
+        case_name = _require_nonempty_str(case.get("case_name"), "DEMO_MLQ01_REJECT_EVIDENCE_INVALID")
+        run_id = _require_nonempty_str(case.get("experiment_run_id"), "DEMO_MLQ01_REJECT_EVIDENCE_INVALID")
+        expected_reason = _require_nonempty_str(case.get("expected_reason_code"), "DEMO_MLQ01_REJECT_EVIDENCE_INVALID")
+        actual_reason = _require_nonempty_str(case.get("actual_reason_code"), "DEMO_MLQ01_REJECT_EVIDENCE_INVALID")
+        _require_nonempty_str(case.get("query_id"), "DEMO_MLQ01_REJECT_EVIDENCE_INVALID")
+        if (run_id in candidate_run_ids
+                or not re.fullmatch(r"(?:IMP|EXP)_[A-Z0-9_]+", expected_reason)
+                or actual_reason != expected_reason
+                or case.get("experiment_status") not in {"REJECTED", "NOT_CREATED"}
+                or case.get("candidate_created") is not False
+                or type(case.get("candidate_row_count")) is not int
+                or case["candidate_row_count"] != 0):
+            raise ValueError("DEMO_MLQ01_REJECT_EVIDENCE_INVALID")
+        verified_cases.append(case_name)
+    return verified_cases
+
+
+def _normalize_rerun_table(
+    table_data: Any, table_name: str, expected_runs: dict[str, dict[str, Any]]
+) -> dict[str, Any]:
+    """Normalize and validate one ML table snapshot/count readback block for rerun checks."""
+    if not isinstance(table_data, dict):
+        raise ValueError("DEMO_MLQ01_RERUN_EVIDENCE_INVALID")
+    snap_qid = _require_nonempty_str(table_data.get("snapshot_query_id"), "DEMO_MLQ01_RERUN_EVIDENCE_INVALID")
+    count_qid = _require_nonempty_str(table_data.get("count_query_id"), "DEMO_MLQ01_RERUN_EVIDENCE_INVALID")
+    raw_snaps = table_data.get("snapshots")
+    raw_counts = table_data.get("run_row_counts")
+    if not isinstance(raw_snaps, list) or not raw_snaps or not isinstance(raw_counts, dict) or not raw_counts:
+        raise ValueError("DEMO_MLQ01_RERUN_EVIDENCE_INVALID")
+    normalized_snaps: list[tuple[str, str | None]] = []
+    for item in raw_snaps:
+        if not isinstance(item, list) or len(item) != 2:
+            raise ValueError("DEMO_MLQ01_RERUN_EVIDENCE_INVALID")
+        snap = _normalize_int64_snapshot(item[0], f"MLQ-01.rerun.{table_name}.snapshot")
+        parent = None if item[1] is None else _normalize_int64_snapshot(item[1], f"MLQ-01.rerun.{table_name}.parent")
+        normalized_snaps.append((snap, parent))
+    snap_ids = {snap for snap, _ in normalized_snaps}
+    normalized_counts: dict[str, int] = {}
+    snap_field = ML_TABLE_SNAPSHOT_FIELD[table_name]
+    for rid, count in raw_counts.items():
+        if rid not in expected_runs or type(count) is not int or count <= 0:
+            raise ValueError("DEMO_MLQ01_RERUN_EVIDENCE_INVALID")
+        expected_count = 1 if table_name == "experiment_run" else expected_runs[rid]["counts"][table_name]
+        if count != expected_count or expected_runs[rid]["snapshots"][snap_field] not in snap_ids:
+            raise ValueError("DEMO_MLQ01_RERUN_EVIDENCE_INVALID")
+        normalized_counts[rid] = count
+    return {
+        "snapshot_query_id": snap_qid,
+        "count_query_id": count_qid,
+        "snapshots": normalized_snaps,
+        "run_row_counts": normalized_counts,
+    }
+
+
+def _validate_mlq_rerun_verification(
+    root: Path,
+    value: Any,
+    expected_by_dataset: dict[str, dict[str, dict[str, Any]]],
+    covered_runs: set[str],
+) -> list[str]:
+    """Verify pre/post rerun Trino queries prove identical Iceberg snapshots and row counts."""
+    doc = _resolve_receipt_section(root, value, "DEMO_MLQ01_RERUN_EVIDENCE_INVALID")
+    dataset_id = _require_nonempty_str(doc.get("dataset_id"), "DEMO_MLQ01_RERUN_EVIDENCE_INVALID")
+    if dataset_id not in expected_by_dataset:
+        raise ValueError("DEMO_MLQ01_RERUN_EVIDENCE_INVALID")
+    expected_runs = expected_by_dataset[dataset_id]
+    before_raw = doc.get("before_rerun")
+    after_raw = doc.get("after_rerun")
+    if not isinstance(before_raw, dict) or not isinstance(after_raw, dict):
+        raise ValueError("DEMO_MLQ01_RERUN_EVIDENCE_INVALID")
+    checked_key_sets: list[set[str]] = []
+    for table_name in ML_TABLES:
+        before = _normalize_rerun_table(before_raw.get(table_name), table_name, expected_runs)
+        after = _normalize_rerun_table(after_raw.get(table_name), table_name, expected_runs)
+        if (before["snapshot_query_id"] == after["snapshot_query_id"]
+                or before["count_query_id"] == after["count_query_id"]
+                or before["snapshots"] != after["snapshots"]
+                or before["run_row_counts"] != after["run_row_counts"]):
+            raise ValueError("DEMO_MLQ01_RERUN_EVIDENCE_INVALID")
+        checked_key_sets.append(set(before["run_row_counts"].keys()))
+    if checked_key_sets[0] != checked_key_sets[1] or checked_key_sets[0] != checked_key_sets[2]:
+        raise ValueError("DEMO_MLQ01_RERUN_EVIDENCE_INVALID")
+    if not (checked_key_sets[0] & covered_runs):
+        raise ValueError("DEMO_MLQ01_RERUN_EVIDENCE_INVALID")
+    if "runs" in doc:
+        rerun_runs = doc.get("runs")
+        if not isinstance(rerun_runs, list) or not rerun_runs:
+            raise ValueError("DEMO_MLQ01_RERUN_EVIDENCE_INVALID")
+        for item in rerun_runs:
+            if (not isinstance(item, dict)
+                    or not re.fullmatch(r"[0-9a-f]{64}", str(item.get("first_receipt_sha256") or ""))
+                    or item.get("rerun_receipt_sha256") != item.get("first_receipt_sha256")):
+                raise ValueError("DEMO_MLQ01_RERUN_EVIDENCE_INVALID")
+    return sorted(checked_key_sets[0])
 
 
 def _validate_official_evidence(root, manifest, release):
@@ -739,6 +907,7 @@ def _validate_official_evidence(root, manifest, release):
 
     pending = []
     sql_runs = {}
+    mli04_counts = {}
     if "MLI-04" not in refs:
         pending.append({"task_id": "MLI-04", "reason": "Chua co official SQL parity tren exact snapshots"})
     else:
@@ -766,6 +935,10 @@ def _validate_official_evidence(root, manifest, release):
             if algo == "HDBSCAN_ADAPTIVE" and row.get("adaptive_cohort_sha256") != adaptive_digest:
                 raise ValueError("DEMO_MLI04_ADAPTIVE_COHORT_MISMATCH")
             sql_runs[rid] = {k: _normalize_int64_snapshot(row["snapshots"][k], k) for k in ML_SNAPSHOT_FIELDS}
+            mli04_counts[rid] = {
+                "sequence_membership": int(counts["membership_rows"]),
+                "sequence_summary": int(counts["summary_rows"]),
+            }
         if sql_runs.keys() != expected.keys():
             raise ValueError("DEMO_MLI04_RUN_COVERAGE")
         verified.append({"task_id": "MLI-04", "status": "VERIFIED", "run_ids": sorted(sql_runs),
@@ -786,6 +959,7 @@ def _validate_official_evidence(root, manifest, release):
         runs = report["runs"]
         if not isinstance(runs, dict) or not runs or any(
             rid not in sql_runs or not isinstance(snapshots, dict)
+            or any(k not in snapshots for k in sql_runs[rid])
             or {k: _normalize_int64_snapshot(snapshots[k], k) for k in sql_runs[rid]} != sql_runs[rid]
             for rid, snapshots in runs.items()
         ):
@@ -795,9 +969,54 @@ def _validate_official_evidence(root, manifest, release):
             raise ValueError("DEMO_MLQ01_ALGORITHM_COVERAGE")
         if exp05 is None:
             raise ValueError("DEMO_MLQ01_EXTENSION_PIN")
+        trace_queries = [
+            _validate_mlq_trace(
+                root, entry.get("trace"),
+                expected_dataset_id=cohort["dataset_id"],
+                expected_run_id=rid,
+                expected_gold_snapshot=gold,
+                expected_snapshots=sql_runs[rid],
+            )
+            for rid, entry in sorted(runs.items())
+        ]
         extension_lineage = _validate_mlq_extension(root, report.get("extension"), exp05, exp05_pin["sha256_lf"])
-        verified.append({"task_id": "MLQ-01", "status": "VERIFIED", "run_ids": sorted(runs),
-                         "algorithms": sorted(algorithms), "extension": extension_lineage})
+        trace_queries.append(_validate_mlq_trace(
+            root, (report.get("extension") or {}).get("trace"),
+            expected_dataset_id=extension_lineage["dataset_id"],
+            expected_run_id=extension_lineage["experiment_run_id"],
+            expected_gold_snapshot=extension_lineage["gold_snapshot_id"],
+            expected_snapshots=extension_lineage["snapshots"],
+        ))
+        if len(set(trace_queries)) != len(trace_queries):
+            raise ValueError("DEMO_MLQ01_TRACE_DUPLICATE_QUERY_ID")
+        candidate_runs = set(sql_runs) | {extension_lineage["experiment_run_id"]}
+        reject_cases = _validate_mlq_reject_verification(root, report.get("reject_verification"), candidate_runs)
+        expected_by_dataset = {
+            cohort["dataset_id"]: {
+                rid: {"snapshots": sql_runs[rid], "counts": mli04_counts[rid]}
+                for rid in sql_runs
+            },
+            extension_lineage["dataset_id"]: {
+                extension_lineage["experiment_run_id"]: {
+                    "snapshots": extension_lineage["snapshots"],
+                    "counts": extension_lineage["readback"],
+                }
+            },
+        }
+        rerun_runs = _validate_mlq_rerun_verification(
+            root, report.get("rerun_verification"), expected_by_dataset,
+            set(runs) | {extension_lineage["experiment_run_id"]},
+        )
+        verified.append({
+            "task_id": "MLQ-01",
+            "status": "VERIFIED",
+            "run_ids": sorted(runs),
+            "algorithms": sorted(algorithms),
+            "trace_query_ids": trace_queries,
+            "reject_cases": reject_cases,
+            "rerun_runs": rerun_runs,
+            "extension": extension_lineage,
+        })
     return verified, pending
 
 
