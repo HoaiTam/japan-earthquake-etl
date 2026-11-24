@@ -21,19 +21,22 @@ class MlResultPublicationIcebergTest {
     private static SparkSession spark;
     @TempDir static Path root;
 
-    @BeforeAll static void start() {
-        spark = SparkSession.builder().master("local[1]").appName("mli-03-publication-gate")
+    @BeforeAll static void start() { spark = localIceberg(root.resolve("warehouse")); }
+
+    static SparkSession localIceberg(Path warehouse) {
+        SparkSession session = SparkSession.builder().master("local[1]").appName("mli-03-publication-gate")
             .config("spark.ui.enabled", "false").config("spark.driver.host", "127.0.0.1")
             .config("spark.driver.bindAddress", "127.0.0.1").config("spark.sql.session.timeZone", "UTC")
             .config("spark.sql.shuffle.partitions", "1").config("spark.sql.adaptive.enabled", "false")
             .config("spark.sql.codegen.wholeStage", "false").config("spark.sql.catalog.lake", "org.apache.iceberg.spark.SparkCatalog")
-            .config("spark.sql.catalog.lake.type", "hadoop").config("spark.sql.catalog.lake.warehouse", root.resolve("warehouse").toUri().toString())
+            .config("spark.sql.catalog.lake.type", "hadoop").config("spark.sql.catalog.lake.warehouse", warehouse.toUri().toString())
             .getOrCreate();
         if (System.getProperty("os.name").startsWith("Windows")) {
-            spark.sparkContext().hadoopConfiguration().set("fs.file.impl", NioTestFileSystem.class.getName());
-            spark.sparkContext().hadoopConfiguration().setBoolean("fs.file.impl.disable.cache", true);
+            session.sparkContext().hadoopConfiguration().set("fs.file.impl", NioTestFileSystem.class.getName());
+            session.sparkContext().hadoopConfiguration().setBoolean("fs.file.impl.disable.cache", true);
         }
-        spark.sparkContext().setLogLevel("ERROR");
+        session.sparkContext().setLogLevel("ERROR");
+        return session;
     }
 
     @AfterAll static void stop() { if (spark != null) spark.stop(); }
@@ -132,6 +135,10 @@ class MlResultPublicationIcebergTest {
     }
 
     private static Map<String, TableState> tableStates(String namespace) {
+        return tableStates(spark, namespace);
+    }
+
+    static Map<String, TableState> tableStates(SparkSession spark, String namespace) {
         Map<String, TableState> result = new java.util.LinkedHashMap<>();
         for (String name : List.of("sequence_membership", "sequence_summary", "experiment_run")) {
             String table = namespace + "." + name;

@@ -39,6 +39,10 @@ v2 sau khi đối soát cả hai upstream; EXP-03 adaptive shard chỉ đạt re
 SEC-01 Done trong phạm vi đồ án: [đối soát và ngoại lệ ACL 19/11](../../evidence/SEC-01_CLOUD_20261119.md).
 Các mốc bên dưới giữ lịch sử, không thay scientific approval.
 
+**24/11 — MLI-03 Done:** [Import và rerun Adaptive REPRODUCTION](../../evidence/MLI-03_ADAPTIVE_REPRODUCTION_20261124.json)
+giữ nguyên 2/2 receipt `CANDIDATE`, 6 snapshot pins và counts. Nghiệm thu ở
+namespace QA riêng; không thay acceptance EXTENSION của [MLQ-01](./MLQ-01.md).
+
 **17/11 — OPS-01 Done (HoaiTam):** backup13bảng/77objects/14artifacts và
 restore prefix/namespace/DB mới; Trino signatures/rerun/ML joins, Airflow
 schema và secret scan đạt. [Evidence](../../evidence/OPS-01_BACKUP_RESTORE_20261117.md),

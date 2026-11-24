@@ -1,0 +1,441 @@
+{
+  "schema_version": "mli03-adaptive-runtime-v1",
+  "task_id": "MLI-03",
+  "status": "PASSED",
+  "scope": "OFFICIAL_REPRODUCTION_ISOLATED_QA",
+  "namespace": "iceberg.ml_qa_53cf813a988340fa9ebd45a3dfebbe7b",
+  "dataset_id": "ds_907fe748fafdfc0f072ce4db4e1cf0aa619ed18877129e17c8440b43062c3d87",
+  "collection_id": "col_bd10c69365da841b2cf6a62172e2350a797001eac04ce4bc6f2277a4d150ad98",
+  "scientific_approval": false,
+  "runner_source_commit": "a377a736022c9d4760e8f3afcaad6df734e8e986",
+  "runner_jar_sha256": "1796be2e193e4a96de3b97eaa270bbce0d0d892800c2b7005331ffa05b50e2da",
+  "mli04_readback_commit": "c7855ae05b6792921e6cc5714a9e235f91585cae",
+  "mli04_readback_sha256": "d2d1ed3082cbcdc2b1c835a7ad315ca7d85f608d0fc32dab0aaee97efe6ef175",
+  "registry_lineage": {
+    "manifest_sha256": "c2e12bb20f61d606c68870f1d88ff4dcf265e0fc31f6e8c1521eab854f58f34d",
+    "registry_snapshot_id": "6559207279413044585",
+    "candidate_snapshot_id": "8630956593891133958",
+    "mainshock_snapshot_id": "1957783528751700572"
+  },
+  "invocation": "MLI-03 standalone control-plane wrapper, Spark/Iceberg and Trino",
+  "before_rerun": {
+    "experiment_run": {
+      "snapshot_query_id": "20261118_051320_00112_v3i3r",
+      "count_query_id": "20261118_051321_00113_v3i3r",
+      "snapshots": [
+        [
+          882037111467960884,
+          3515751900453226493
+        ],
+        [
+          1378548752448103521,
+          5764799399263431987
+        ],
+        [
+          1568738866704822586,
+          3994907215121136351
+        ],
+        [
+          1774552306020177685,
+          882037111467960884
+        ],
+        [
+          3272562691492924057,
+          8601303551576257765
+        ],
+        [
+          3515751900453226493,
+          3272562691492924057
+        ],
+        [
+          3684499760537082888,
+          null
+        ],
+        [
+          3994907215121136351,
+          1378548752448103521
+        ],
+        [
+          4419274765171891155,
+          8112652400028762934
+        ],
+        [
+          5764799399263431987,
+          8933264610420984317
+        ],
+        [
+          7764117898858788810,
+          8603006048126995050
+        ],
+        [
+          8112652400028762934,
+          7764117898858788810
+        ],
+        [
+          8601303551576257765,
+          1568738866704822586
+        ],
+        [
+          8603006048126995050,
+          8711590798002857163
+        ],
+        [
+          8711590798002857163,
+          3684499760537082888
+        ],
+        [
+          8933264610420984317,
+          4419274765171891155
+        ]
+      ],
+      "run_row_counts": {
+        "exp_run_3082725c2877a2b8a6fb08d9dd4e30ed": 1,
+        "exp_run_37d6d2121034d1e2f2585dd17261828c": 1
+      }
+    },
+    "sequence_membership": {
+      "snapshot_query_id": "20261118_051321_00114_v3i3r",
+      "count_query_id": "20261118_051322_00115_v3i3r",
+      "snapshots": [
+        [
+          1269808824289107226,
+          8687383638161468453
+        ],
+        [
+          1470889297533565647,
+          1589872702319916199
+        ],
+        [
+          1565781986528835522,
+          1269808824289107226
+        ],
+        [
+          1589872702319916199,
+          null
+        ],
+        [
+          4749416527188404194,
+          1565781986528835522
+        ],
+        [
+          6377617683236073483,
+          1470889297533565647
+        ],
+        [
+          8687383638161468453,
+          8936318433001920133
+        ],
+        [
+          8936318433001920133,
+          6377617683236073483
+        ]
+      ],
+      "run_row_counts": {
+        "exp_run_3082725c2877a2b8a6fb08d9dd4e30ed": 70738,
+        "exp_run_37d6d2121034d1e2f2585dd17261828c": 85972
+      }
+    },
+    "sequence_summary": {
+      "snapshot_query_id": "20261118_051322_00116_v3i3r",
+      "count_query_id": "20261118_051322_00117_v3i3r",
+      "snapshots": [
+        [
+          120858620898474578,
+          3504974519972302319
+        ],
+        [
+          483818915357212368,
+          7572536492473112337
+        ],
+        [
+          670123567204101459,
+          2287588604720905262
+        ],
+        [
+          2287588604720905262,
+          120858620898474578
+        ],
+        [
+          3504974519972302319,
+          null
+        ],
+        [
+          7572536492473112337,
+          7938350238626489626
+        ],
+        [
+          7938350238626489626,
+          8575971062893547241
+        ],
+        [
+          8575971062893547241,
+          670123567204101459
+        ]
+      ],
+      "run_row_counts": {
+        "exp_run_3082725c2877a2b8a6fb08d9dd4e30ed": 107,
+        "exp_run_37d6d2121034d1e2f2585dd17261828c": 87
+      }
+    }
+  },
+  "after_rerun": {
+    "experiment_run": {
+      "snapshot_query_id": "20261118_051516_00132_v3i3r",
+      "count_query_id": "20261118_051517_00133_v3i3r",
+      "snapshots": [
+        [
+          882037111467960884,
+          3515751900453226493
+        ],
+        [
+          1378548752448103521,
+          5764799399263431987
+        ],
+        [
+          1568738866704822586,
+          3994907215121136351
+        ],
+        [
+          1774552306020177685,
+          882037111467960884
+        ],
+        [
+          3272562691492924057,
+          8601303551576257765
+        ],
+        [
+          3515751900453226493,
+          3272562691492924057
+        ],
+        [
+          3684499760537082888,
+          null
+        ],
+        [
+          3994907215121136351,
+          1378548752448103521
+        ],
+        [
+          4419274765171891155,
+          8112652400028762934
+        ],
+        [
+          5764799399263431987,
+          8933264610420984317
+        ],
+        [
+          7764117898858788810,
+          8603006048126995050
+        ],
+        [
+          8112652400028762934,
+          7764117898858788810
+        ],
+        [
+          8601303551576257765,
+          1568738866704822586
+        ],
+        [
+          8603006048126995050,
+          8711590798002857163
+        ],
+        [
+          8711590798002857163,
+          3684499760537082888
+        ],
+        [
+          8933264610420984317,
+          4419274765171891155
+        ]
+      ],
+      "run_row_counts": {
+        "exp_run_3082725c2877a2b8a6fb08d9dd4e30ed": 1,
+        "exp_run_37d6d2121034d1e2f2585dd17261828c": 1
+      }
+    },
+    "sequence_membership": {
+      "snapshot_query_id": "20261118_051517_00134_v3i3r",
+      "count_query_id": "20261118_051517_00135_v3i3r",
+      "snapshots": [
+        [
+          1269808824289107226,
+          8687383638161468453
+        ],
+        [
+          1470889297533565647,
+          1589872702319916199
+        ],
+        [
+          1565781986528835522,
+          1269808824289107226
+        ],
+        [
+          1589872702319916199,
+          null
+        ],
+        [
+          4749416527188404194,
+          1565781986528835522
+        ],
+        [
+          6377617683236073483,
+          1470889297533565647
+        ],
+        [
+          8687383638161468453,
+          8936318433001920133
+        ],
+        [
+          8936318433001920133,
+          6377617683236073483
+        ]
+      ],
+      "run_row_counts": {
+        "exp_run_3082725c2877a2b8a6fb08d9dd4e30ed": 70738,
+        "exp_run_37d6d2121034d1e2f2585dd17261828c": 85972
+      }
+    },
+    "sequence_summary": {
+      "snapshot_query_id": "20261118_051517_00136_v3i3r",
+      "count_query_id": "20261118_051517_00137_v3i3r",
+      "snapshots": [
+        [
+          120858620898474578,
+          3504974519972302319
+        ],
+        [
+          483818915357212368,
+          7572536492473112337
+        ],
+        [
+          670123567204101459,
+          2287588604720905262
+        ],
+        [
+          2287588604720905262,
+          120858620898474578
+        ],
+        [
+          3504974519972302319,
+          null
+        ],
+        [
+          7572536492473112337,
+          7938350238626489626
+        ],
+        [
+          7938350238626489626,
+          8575971062893547241
+        ],
+        [
+          8575971062893547241,
+          670123567204101459
+        ]
+      ],
+      "run_row_counts": {
+        "exp_run_3082725c2877a2b8a6fb08d9dd4e30ed": 107,
+        "exp_run_37d6d2121034d1e2f2585dd17261828c": 87
+      }
+    }
+  },
+  "runs": [
+    {
+      "shard_id": "shard_00000",
+      "first_receipt_sha256": "2cc8c89b36063e39ec23d123a7d70716c66ecb6aea863b9504e12f4ee285edeb",
+      "rerun_receipt_sha256": "2cc8c89b36063e39ec23d123a7d70716c66ecb6aea863b9504e12f4ee285edeb",
+      "receipt": {
+        "experiment_run_id": "exp_run_37d6d2121034d1e2f2585dd17261828c",
+        "dataset_id": "ds_907fe748fafdfc0f072ce4db4e1cf0aa619ed18877129e17c8440b43062c3d87",
+        "algorithm_name": "HDBSCAN_ADAPTIVE",
+        "experiment_status": "CANDIDATE",
+        "result_bundle_sha256": "5f712bb31373e653b8df85a96f55b0bca98e8d6f7866ec6f38f61d505d97c3bc",
+        "candidate_at_utc": "2026-11-23T17:38:15.287509138Z",
+        "membership_snapshot_id": 1565781986528835522,
+        "summary_snapshot_id": 7572536492473112337,
+        "experiment_snapshot_id": 3515751900453226493,
+        "namespace": "iceberg.ml_qa_53cf813a988340fa9ebd45a3dfebbe7b",
+        "collection_scope": {
+          "version": "dat03-collection-export-v1",
+          "collection_id": "col_bd10c69365da841b2cf6a62172e2350a797001eac04ce4bc6f2277a4d150ad98",
+          "shard_id": "shard_00000",
+          "scope": "WHOLE_WINDOW_SHARD"
+        },
+        "adaptive_cohort": {
+          "sha256": "22e84855e4409ae0b0e1696c6ed508af3b7b667952a4f80b7fd50221f88868b0",
+          "shards": [
+            {
+              "shard_id": "shard_00000",
+              "experiment_run_id": "exp_run_37d6d2121034d1e2f2585dd17261828c",
+              "success_marker_sha256": "799d9d1e37f7b0d139643b092f3c5e2fa16848992ab72730f148e7e785539f98"
+            },
+            {
+              "shard_id": "shard_00001",
+              "experiment_run_id": "exp_run_3082725c2877a2b8a6fb08d9dd4e30ed",
+              "success_marker_sha256": "857d0089f65b286f805c3a1f1b8d30a712de8e05ea920f02311d86990c2716b3"
+            }
+          ]
+        },
+        "readback": {
+          "sequence_membership": 85972,
+          "sequence_summary": 87,
+          "experiment_run": 1
+        }
+      },
+      "first_trino_query_ids": [
+        "20261118_005031_00083_v3i3r",
+        "20261118_005031_00084_v3i3r",
+        "20261118_005032_00085_v3i3r",
+        "20261118_005032_00086_v3i3r"
+      ]
+    },
+    {
+      "shard_id": "shard_00001",
+      "first_receipt_sha256": "29c1410cdd00635bfbf458016c1ac29277e544d65985f81117c21c78a99cd08f",
+      "rerun_receipt_sha256": "29c1410cdd00635bfbf458016c1ac29277e544d65985f81117c21c78a99cd08f",
+      "receipt": {
+        "experiment_run_id": "exp_run_3082725c2877a2b8a6fb08d9dd4e30ed",
+        "dataset_id": "ds_907fe748fafdfc0f072ce4db4e1cf0aa619ed18877129e17c8440b43062c3d87",
+        "algorithm_name": "HDBSCAN_ADAPTIVE",
+        "experiment_status": "CANDIDATE",
+        "result_bundle_sha256": "eceed34b374cde46489d012b9465def6a357fe161303171cecaf72fe724a49f0",
+        "candidate_at_utc": "2026-11-23T17:39:12.886141762Z",
+        "membership_snapshot_id": 4749416527188404194,
+        "summary_snapshot_id": 483818915357212368,
+        "experiment_snapshot_id": 1774552306020177685,
+        "namespace": "iceberg.ml_qa_53cf813a988340fa9ebd45a3dfebbe7b",
+        "collection_scope": {
+          "version": "dat03-collection-export-v1",
+          "collection_id": "col_bd10c69365da841b2cf6a62172e2350a797001eac04ce4bc6f2277a4d150ad98",
+          "shard_id": "shard_00001",
+          "scope": "WHOLE_WINDOW_SHARD"
+        },
+        "adaptive_cohort": {
+          "sha256": "22e84855e4409ae0b0e1696c6ed508af3b7b667952a4f80b7fd50221f88868b0",
+          "shards": [
+            {
+              "shard_id": "shard_00000",
+              "experiment_run_id": "exp_run_37d6d2121034d1e2f2585dd17261828c",
+              "success_marker_sha256": "799d9d1e37f7b0d139643b092f3c5e2fa16848992ab72730f148e7e785539f98"
+            },
+            {
+              "shard_id": "shard_00001",
+              "experiment_run_id": "exp_run_3082725c2877a2b8a6fb08d9dd4e30ed",
+              "success_marker_sha256": "857d0089f65b286f805c3a1f1b8d30a712de8e05ea920f02311d86990c2716b3"
+            }
+          ]
+        },
+        "readback": {
+          "sequence_membership": 70738,
+          "sequence_summary": 107,
+          "experiment_run": 1
+        }
+      },
+      "first_trino_query_ids": [
+        "20261118_005032_00087_v3i3r",
+        "20261118_005032_00088_v3i3r",
+        "20261118_005032_00089_v3i3r",
+        "20261118_005032_00090_v3i3r"
+      ]
+    }
+  ]
+}
