@@ -640,16 +640,30 @@ class ResultBundleContractTest {
 
         java.util.function.BiConsumer<Path, String> writeAdaptiveBundle = (dir, modeTag) -> {
             try {
-                boolean isShard = modeTag.startsWith("shard_");
-                String runId = isShard ? "exp_adapt_" + modeTag : "exp_adapt_full";
+                String shard = modeTag.split("-", 2)[0];
+                boolean isShard = shard.startsWith("shard_");
+                String runId = isShard ? "exp_adapt_" + shard : "exp_adapt_full";
                 List<JsonNode> members = new ArrayList<>();
                 List<JsonNode> summaries = new ArrayList<>();
-                List<String> mids = isShard ? List.of(modeTag.equals("shard_00000") ? "main-0" : "main-1") : List.of("main-0", "main-1");
+                List<String> mids = isShard ? List.of(shard.equals("shard_00000") ? "main-0" : "main-1") : List.of("main-0", "main-1");
                 for (String mid : mids) {
                     JsonNode[] rows = buildWindowRows.apply(mid);
                     ((ObjectNode) rows[0]).put("experiment_run_id", runId);
                     ((ObjectNode) rows[1]).put("experiment_run_id", runId);
                     ((ObjectNode) rows[2]).put("experiment_run_id", runId);
+                    if (modeTag.endsWith("-no-member")) {
+                        ((ObjectNode) rows[1]).put("is_sequence_member", false)
+                            .put("multi_sequence_status", "NOT_MEMBER").putNull("resolution_rank");
+                        ((ObjectNode) rows[2]).put("productive_sequence_detected", false)
+                            .put("sequence_member_count", 1L).put("aftershock_count", 0L)
+                            .put("mean_membership_probability", 1.0);
+                    }
+                    if (modeTag.endsWith("-swapped"))
+                        ((ObjectNode) rows[1]).put("resolution_rank", mid.equals("main-0") ? 2 : 1);
+                    if (modeTag.endsWith("-duplicate")) ((ObjectNode) rows[1]).put("resolution_rank", 1);
+                    if (modeTag.endsWith("-ambiguous")) {
+                        ((ObjectNode) rows[1]).put("multi_sequence_status", "AMBIGUOUS").putNull("resolution_rank");
+                    }
                     members.add(rows[0]);
                     members.add(rows[1]);
                     summaries.add(rows[2]);
@@ -659,9 +673,10 @@ class ResultBundleContractTest {
                 ObjectNode cfg = JSON.createObjectNode().put("dataset_id", dsId).put("experiment_run_id", runId)
                     .put("algorithm_name", "HDBSCAN_ADAPTIVE").put("model_config_version", modelVer)
                     .put("algorithm_version", "1.0.0").put("package_version", "1.0.0").put("code_version", "v2");
+                cfg.put("runtime_environment_json", "{}");
                 if (isShard) {
                     cfg.set("collection_scope", new ResultBundleValidator.CollectionScope(
-                        ResearchCollectionExportBundle.VERSION, colId, modeTag).toJson());
+                        ResearchCollectionExportBundle.VERSION, colId, shard).toJson());
                 }
                 Files.writeString(dir.resolve("experiment_config.json"), fixtureJson(cfg));
                 Files.writeString(dir.resolve("experiment_metrics.json"), fixtureJson(
@@ -705,12 +720,14 @@ class ResultBundleContractTest {
 
         var mislabeledFull = fullReq.deepCopy().put("collection_shard_id", "shard_00000");
         var shard0Ctx = TrustedDatasetResolver.resolve(mislabeledFull, registryRoot, null);
+        ObjectNode markers = JSON.createObjectNode()
+            .put("shard_00000", ResultBundleContract.sha256(Files.readAllBytes(shard0Dir.resolve("_SUCCESS.json"))))
+            .put("shard_00001", ResultBundleContract.sha256(Files.readAllBytes(shard1Dir.resolve("_SUCCESS.json"))));
+        var contract = new ResultBundleContract();
         assertEquals("IMP_COLLECTION_SCOPE_MISMATCH", assertThrows(IllegalArgumentException.class,
-            () -> VALIDATOR.validate(fullDecoded, shard0Ctx)).getMessage());
+            () -> contract.readAdaptiveCollection(fullDir, shard0Ctx, markers)).getMessage());
 
-        // 2. Each per-shard bundle passes TrustedDatasetResolver & MlResultBundleReader readback,
-        //    while preserving global MULTIPLE/rank=1,2 causes per-bundle ResultBundleContract validation
-        //    to reject with IMP_SCHEMA_MISMATCH (proving shards are readback-only until MLI-03 follow-up).
+        // Each shard retains its collection-wide rank, including rank 2 when rank 1 is in its sibling.
         for (String sid : List.of("shard_00000", "shard_00001")) {
             Path shardDir = outRoot.resolve("hdbscan_adaptive_shards").resolve(sid);
             ObjectNode req = fullReq.deepCopy().put("experiment_run_id", "exp_adapt_" + sid).put("collection_shard_id", sid);
@@ -719,8 +736,136 @@ class ResultBundleContractTest {
             assertEquals(2, shardDecoded.memberships().size());
             assertEquals("MULTIPLE", shardDecoded.memberships().get(1).path("multi_sequence_status").asText());
             assertEquals(sid.equals("shard_00000") ? 1 : 2, shardDecoded.memberships().get(1).path("resolution_rank").asInt());
-            assertEquals("IMP_SCHEMA_MISMATCH", assertThrows(IllegalArgumentException.class,
+            assertEquals("RESULT_READY", contract.readAdaptiveCollection(shardDir, resolvedCtx, markers).receipt().nextStatus());
+            assertEquals("IMP_COLLECTION_RESULTS_REQUIRED", assertThrows(IllegalArgumentException.class,
                 () -> VALIDATOR.validate(shardDecoded, resolvedCtx)).getMessage());
+
+            var localOnly = new ResultBundleValidator.Context(dsId, resolvedCtx.datasetStatus(),
+                resolvedCtx.runId(), resolvedCtx.algorithm(), modelVer, resolvedCtx.candidates(), null,
+                resolvedCtx.datasetPins(), null, new ResultBundleValidator.CollectionScope(
+                    ResearchCollectionExportBundle.VERSION, colId, sid));
+            assertEquals("IMP_SCHEMA_MISMATCH", assertThrows(IllegalArgumentException.class,
+                () -> VALIDATOR.validate(shardDecoded, localOnly)).getMessage());
+        }
+        var secondRequest = fullReq.deepCopy().put("experiment_run_id", "exp_adapt_shard_00001")
+            .put("collection_shard_id", "shard_00001");
+        var secondContext = TrustedDatasetResolver.resolve(secondRequest, registryRoot, null);
+        var firstContext = TrustedDatasetResolver.resolve(fullReq.deepCopy()
+            .put("experiment_run_id", "exp_adapt_shard_00000").put("collection_shard_id", "shard_00000"),
+            registryRoot, null);
+        verifyDurableAdaptiveCohort(root, shard0Dir, shard1Dir, firstContext, secondContext, markers,
+            writeAdaptiveBundle);
+
+        var incompletePins = markers.deepCopy();
+        incompletePins.remove("shard_00000");
+        assertEquals("IMP_COLLECTION_RESULTS_REQUIRED", assertThrows(IllegalArgumentException.class,
+            () -> contract.readAdaptiveCollection(shard1Dir, secondContext, incompletePins)).getMessage());
+        Path retryableJournal = root.resolve("missing-cohort-journal");
+        assertEquals("IMP_COLLECTION_RESULTS_REQUIRED", assertThrows(IllegalArgumentException.class,
+            () -> MlResultImportJob.importBundle(shard1Dir, retryableJournal, secondContext, null, null, null,
+                null, incompletePins)).getMessage());
+        assertFalse(Files.exists(retryableJournal.resolve("experiment-run-" + secondContext.runId() + ".json")));
+
+        writeAdaptiveBundle.accept(shard0Dir, "shard_00000-no-member");
+        assertEquals("IMP_CHECKSUM_MISMATCH", assertThrows(IllegalArgumentException.class,
+            () -> contract.readAdaptiveCollection(shard1Dir, secondContext, markers)).getMessage());
+        ObjectNode noWinner = markers.deepCopy().put("shard_00000",
+            ResultBundleContract.sha256(Files.readAllBytes(shard0Dir.resolve("_SUCCESS.json"))));
+        assertEquals("IMP_SCHEMA_MISMATCH", assertThrows(IllegalArgumentException.class,
+            () -> MlResultImportJob.importBundle(shard1Dir, root.resolve("no-winner-journal"), secondContext,
+                null, null, null, null, noWinner)).getMessage());
+
+        writeAdaptiveBundle.accept(shard0Dir, "shard_00000");
+        writeAdaptiveBundle.accept(shard1Dir, "shard_00001-duplicate");
+        ObjectNode twoWinners = markers.deepCopy().put("shard_00001",
+            ResultBundleContract.sha256(Files.readAllBytes(shard1Dir.resolve("_SUCCESS.json"))));
+        assertEquals("IMP_DUPLICATE_GRAIN", assertThrows(IllegalArgumentException.class,
+            () -> MlResultImportJob.importBundle(shard1Dir, root.resolve("two-winners-journal"), secondContext,
+                null, null, null, null, twoWinners)).getMessage());
+
+        writeAdaptiveBundle.accept(shard0Dir, "shard_00000-ambiguous");
+        twoWinners.put("shard_00000", ResultBundleContract.sha256(Files.readAllBytes(shard0Dir.resolve("_SUCCESS.json"))));
+        assertEquals("IMP_SCHEMA_MISMATCH", assertThrows(IllegalArgumentException.class,
+            () -> contract.readAdaptiveCollection(shard1Dir, secondContext, twoWinners)).getMessage());
+        writeAdaptiveBundle.accept(shard1Dir, "shard_00001-ambiguous");
+        twoWinners.put("shard_00001", ResultBundleContract.sha256(Files.readAllBytes(shard1Dir.resolve("_SUCCESS.json"))));
+        assertEquals("RESULT_READY", contract.readAdaptiveCollection(shard1Dir, secondContext, twoWinners).receipt().nextStatus());
+
+        Files.delete(shard0Dir.resolve("_SUCCESS.json"));
+        assertEquals("IMP_COLLECTION_RESULTS_MISSING", assertThrows(IllegalArgumentException.class,
+            () -> contract.readAdaptiveCollection(shard1Dir, secondContext, twoWinners)).getMessage());
+
+        Path sibling = registryRoot.resolve("exports").resolve(dsId).resolve("shard_00001.json");
+        Files.writeString(sibling, "changed bytes");
+        var adaptiveRequest = fullReq.deepCopy().put("experiment_run_id", "exp_adapt_shard_00000")
+            .put("collection_shard_id", "shard_00000");
+        assertEquals("IMP_CHECKSUM_MISMATCH", assertThrows(IllegalArgumentException.class,
+            () -> TrustedDatasetResolver.resolve(adaptiveRequest, registryRoot, null)).getMessage());
+        Files.delete(sibling);
+        assertEquals("IMP_DATASET_REFERENCE_INVALID", assertThrows(IllegalArgumentException.class,
+            () -> TrustedDatasetResolver.resolve(adaptiveRequest, registryRoot, null)).getMessage());
+    }
+
+    private static void verifyDurableAdaptiveCohort(Path root, Path firstShard, Path secondShard,
+            ResultBundleValidator.Context firstContext, ResultBundleValidator.Context secondContext,
+            ObjectNode originalPins, java.util.function.BiConsumer<Path, String> writeBundle) throws Exception {
+        Path originalJournal = root.resolve("original-journal");
+        String namespace = "lake.ml_qa_cohort";
+        var contract = new ResultBundleContract();
+        Path firstMarker = firstShard.resolve("_SUCCESS.json");
+        Path secondMarker = secondShard.resolve("_SUCCESS.json");
+        byte[] originalMarker = Files.readAllBytes(secondMarker);
+        try (var spark = MlResultPublicationIcebergTest.localIceberg(root.resolve("cohort-warehouse"))) {
+            MlResultImportJob.IndependentVerifier verifier =
+                (commit, context, hash) -> Map.of("sequence_membership", 2L, "sequence_summary", 1L);
+            var originalWriter = new SparkMlIcebergWriter(spark, namespace, () -> {}, originalJournal);
+            var accepted = MlResultImportJob.importBundle(firstShard, originalJournal, firstContext, originalWriter,
+                verifier, namespace, null, originalPins);
+            assertEquals("CANDIDATE", accepted.path("experiment_status").asText());
+            assertEquals(contract.readAdaptiveCollection(secondShard, secondContext, originalPins).cohort().toJson(),
+                accepted.path("adaptive_cohort"));
+            var tableJournal = JSON.readTree(originalJournal.resolve("tables")
+                .resolve("experiment-run-" + firstContext.runId() + ".json").toFile());
+            assertEquals(accepted.path("adaptive_cohort"), tableJournal.path("adaptive_cohort"));
+            var before = MlResultPublicationIcebergTest.tableStates(spark, namespace);
+
+            ObjectNode changedMarker = (ObjectNode) JSON.readTree(originalMarker);
+            changedMarker.put("completed_at_utc", "2024-01-02T00:00:00Z");
+            Files.writeString(secondMarker, fixtureJson(changedMarker));
+            ObjectNode changedSibling = originalPins.deepCopy().put("shard_00001",
+                ResultBundleContract.sha256(Files.readAllBytes(secondMarker)));
+            var validRetry = contract.readAdaptiveCollection(firstShard, firstContext, changedSibling);
+            assertEquals(accepted.path("result_bundle_sha256").asText(), validRetry.receipt().bundleSha256());
+            assertNotEquals(accepted.path("adaptive_cohort").path("sha256").asText(), validRetry.cohort().sha256());
+            assertEquals("IMP_ADAPTIVE_COHORT_MISMATCH", assertThrows(IllegalStateException.class,
+                () -> MlResultImportJob.importBundle(firstShard, originalJournal, firstContext, originalWriter, verifier,
+                    namespace, null, changedSibling)).getMessage());
+
+            Path freshJournal = root.resolve("fresh-journal");
+            var freshWriter = new SparkMlIcebergWriter(spark, namespace, () -> {}, freshJournal);
+            assertEquals("IMP_ADAPTIVE_COHORT_MISMATCH", assertThrows(IllegalStateException.class,
+                () -> MlResultImportJob.importBundle(firstShard, freshJournal, firstContext, freshWriter, verifier,
+                    namespace, null, changedSibling)).getMessage());
+
+            writeBundle.accept(firstShard, "shard_00000-swapped");
+            writeBundle.accept(secondShard, "shard_00001-swapped");
+            var swappedPins = JSON.createObjectNode()
+                .put("shard_00000", ResultBundleContract.sha256(Files.readAllBytes(firstMarker)))
+                .put("shard_00001", ResultBundleContract.sha256(Files.readAllBytes(secondMarker)));
+            assertEquals("RESULT_READY", contract.readAdaptiveCollection(secondShard, secondContext, swappedPins)
+                .receipt().nextStatus());
+            assertEquals("IMP_ADAPTIVE_COHORT_MISMATCH", assertThrows(IllegalStateException.class,
+                () -> MlResultImportJob.importBundle(secondShard, freshJournal, secondContext, freshWriter, verifier,
+                    namespace, null, swappedPins)).getMessage());
+            assertEquals(before, MlResultPublicationIcebergTest.tableStates(spark, namespace));
+            writeBundle.accept(firstShard, "shard_00000");
+            writeBundle.accept(secondShard, "shard_00001");
+
+            var acceptedSibling = MlResultImportJob.importBundle(secondShard, freshJournal, secondContext, freshWriter,
+                verifier, namespace, null, originalPins);
+            assertEquals(accepted.path("adaptive_cohort"), acceptedSibling.path("adaptive_cohort"));
+            assertNotEquals(accepted.path("result_bundle_sha256"), acceptedSibling.path("result_bundle_sha256"));
         }
     }
+
 }

@@ -88,7 +88,7 @@
 1. **Trạng thái Đối soát Trino Views (SQL Parity):**
    - **Trạng thái: CHƯA NGHIỆM THU (PENDING OFFICIAL IMPORT).**
    - Báo cáo này được kết xuất trong môi trường thử nghiệm (development pilot) trên local/Colab và chưa được đối soát trực tiếp với bảng Iceberg `ml.*` qua Trino.
-   - Việc kiểm chứng count parity và SQL readback chính thức chỉ được chứng nhận khi dataset chính thức và kết quả thực nghiệm được import vào Iceberg thông qua [MLQ-01](../task/tasks/MLQ-01.md).
+   - Nghiệm thu official cần receipt import của [MLI-03](../task/tasks/MLI-03.md) và [đối soát snapshot MLI-04](../runbooks/MLI-04_OFFICIAL_READBACK.md). MLQ-01 dùng kết quả này để nghiệm thu E2E.
 2. **Phân giải Đa chuỗi (Multi-Sequence Resolution):**
    - Báo cáo phân biệt rõ giữa **Raw Aftershock Memberships** (tổng số lần gán nhãn POST độc lập theo từng cửa sổ) và **Unique Resolved Aftershocks** (`resolution_rank = 1` gán cho một mainshock duy nhất).
    - Các trường hợp không thể phân giải dứt khoát (`multi_sequence_status = 'AMBIGUOUS'`) có `resolution_rank = NULL` và tuyệt đối không được tính vào số dư chấn duy nhất đã phân giải.

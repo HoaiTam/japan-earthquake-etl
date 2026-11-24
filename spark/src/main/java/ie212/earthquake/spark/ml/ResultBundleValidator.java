@@ -3,15 +3,22 @@ package ie212.earthquake.spark.ml;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /** Reader/import implementations must supply verified Parquet types and candidate snapshot lineage. */
 public interface ResultBundleValidator {
     record Candidate(String mainshockId, String eventId, String role) {}
     /** A bounded execution of whole windows within one EXPORTED collection, not full-collection results. */
-    record CollectionScope(String version,String collectionId,String shardId) {
+    record CollectionScope(String version, String collectionId, String shardId,
+                           Map<String, List<Candidate>> siblingCandidates) {
+        public CollectionScope(String version, String collectionId, String shardId) {
+            this(version, collectionId, shardId, Map.of());
+        }
         public CollectionScope {
             if(!"dat03-collection-export-v1".equals(version) || collectionId==null || !collectionId.matches("col_[a-f0-9]{64}")
                     || shardId==null || !shardId.matches("shard_[0-9]{5}")) throw new IllegalArgumentException("IMP_COLLECTION_SCOPE_REQUIRED");
+            siblingCandidates = siblingCandidates.entrySet().stream().collect(
+                Collectors.toUnmodifiableMap(Map.Entry::getKey, entry -> List.copyOf(entry.getValue())));
         }
         public JsonNode toJson() {
             return new com.fasterxml.jackson.databind.ObjectMapper().createObjectNode().put("version",version)
@@ -43,8 +50,15 @@ public interface ResultBundleValidator {
     }
     record Context(String datasetId, String datasetStatus, String runId, String algorithm,
                    String modelVersion, List<Candidate> candidates, String previousBundleSha256,
-                   DatasetPins datasetPins, ExperimentMetadata experimentMetadata,CollectionScope collectionScope) {
+                   DatasetPins datasetPins, ExperimentMetadata experimentMetadata, CollectionScope collectionScope,
+                   AdaptiveResultCohort adaptiveCohort) {
         public Context { candidates = List.copyOf(candidates); }
+        public Context(String datasetId, String datasetStatus, String runId, String algorithm, String modelVersion,
+                       List<Candidate> candidates, String previousBundleSha256, DatasetPins datasetPins,
+                       ExperimentMetadata experimentMetadata, CollectionScope collectionScope) {
+            this(datasetId, datasetStatus, runId, algorithm, modelVersion, candidates,
+                previousBundleSha256, datasetPins, experimentMetadata, collectionScope, null);
+        }
         public Context(String datasetId,String datasetStatus,String runId,String algorithm,String modelVersion,List<Candidate> candidates,
                 String previousBundleSha256,DatasetPins datasetPins,ExperimentMetadata experimentMetadata) {
             this(datasetId,datasetStatus,runId,algorithm,modelVersion,candidates,previousBundleSha256,datasetPins,experimentMetadata,null);
@@ -56,7 +70,11 @@ public interface ResultBundleValidator {
         }
         public Context withMetadata(ExperimentMetadata value) {
             return new Context(datasetId, datasetStatus, runId, algorithm, modelVersion, candidates,
-                previousBundleSha256, datasetPins, value,collectionScope);
+                previousBundleSha256, datasetPins, value, collectionScope, adaptiveCohort);
+        }
+        Context withAdaptiveCohort(AdaptiveResultCohort value) {
+            return new Context(datasetId, datasetStatus, runId, algorithm, modelVersion, candidates,
+                previousBundleSha256, datasetPins, experimentMetadata, collectionScope, value);
         }
     }
     record DecodedBundle(JsonNode success, Map<String, byte[]> artifacts,

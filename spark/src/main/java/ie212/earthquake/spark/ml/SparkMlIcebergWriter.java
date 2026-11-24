@@ -88,6 +88,8 @@ public final class SparkMlIcebergWriter implements MlIcebergWriter {
                                                    ResultBundleValidator.Context context,
                                                    String resultBundleSha256) throws Exception {
         assertLease.run();
+        if (ResultBundleContract.requiresCollectionResults(context) && context.adaptiveCohort() == null)
+            throw new IllegalArgumentException("IMP_COLLECTION_RESULTS_REQUIRED");
         Journal journal = loadJournal(context, resultBundleSha256);
         String table = namespace + ".experiment_run";
         ensureExperimentTable(bundle, context, resultBundleSha256);
@@ -100,6 +102,7 @@ public final class SparkMlIcebergWriter implements MlIcebergWriter {
                 throw new IllegalArgumentException("IMP_EXPERIMENT_RUN_REUSED");
             String status = row.getAs("experiment_status");
             if ("REJECTED".equals(status)) throw new IllegalStateException("IMP_REJECTED_RUN_TERMINAL");
+            reserveAdaptiveCohort(table, context);
             if ("CANDIDATE".equals(status)) {
                 long membership = nullableSnapshot(row, "membership_snapshot_id");
                 long summary = nullableSnapshot(row, "summary_snapshot_id");
@@ -113,6 +116,7 @@ public final class SparkMlIcebergWriter implements MlIcebergWriter {
                 nullableSnapshot(row, "summary_snapshot_id"), 0L);
         }
 
+        reserveAdaptiveCohort(table, context);
         Dataset<Row> reservation = experimentFrame(bundle.success(), context, resultBundleSha256, 0L, 0L, true);
         reservation.writeTo(table).option("snapshot-property.ml.operation_id", context.runId())
             .option("snapshot-property.ml.result_bundle_sha256", resultBundleSha256)
@@ -120,6 +124,31 @@ public final class SparkMlIcebergWriter implements MlIcebergWriter {
         long snapshot = currentSnapshotWithIdentity(table, context.runId(), resultBundleSha256);
         persistJournal(context, journal.withExperiment(snapshot));
         return new Reservation("IMPORT_VALIDATING", 0L, 0L, snapshot);
+    }
+
+    private void reserveAdaptiveCohort(String table, ResultBundleValidator.Context context) throws Exception {
+        AdaptiveResultCohort cohort = context.adaptiveCohort();
+        if (cohort == null) return;
+        // The namespace-wide import lease serializes the first pin and all shard writes.
+        // Store it in permanent table metadata so even a fresh journal can enforce it.
+        assertLease.run();
+        Table registry = Spark3Util.loadIcebergTable(spark, table);
+        registry.refresh();
+        String property = "ml.adaptive-cohort." + cohort.reservationKey();
+        String committed = registry.properties().get(property);
+        if (committed != null) {
+            if (!cohort.sha256().equals(committed)) throw new IllegalStateException("IMP_ADAPTIVE_COHORT_MISMATCH");
+            return;
+        }
+        if (!spark.table(table).filter(col("dataset_id").equalTo(context.datasetId())
+                .and(col("algorithm_name").equalTo(context.algorithm()))
+                .and(col("model_config_version").equalTo(context.modelVersion()))).limit(1).isEmpty())
+            throw new IllegalStateException("IMP_ADAPTIVE_COHORT_PIN_MISSING");
+        assertLease.run();
+        registry.updateProperties().set(property, cohort.sha256()).commit();
+        registry.refresh();
+        if (!cohort.sha256().equals(registry.properties().get(property)))
+            throw new IllegalStateException("IMP_ADAPTIVE_COHORT_PIN_MISSING");
     }
 
     /** Persist a quality rejection in the namespace registry; infrastructure failures stay resumable. */
@@ -375,7 +404,8 @@ public final class SparkMlIcebergWriter implements MlIcebergWriter {
         if (!Files.exists(path)) return new Journal(namespace, context.runId(), fingerprint, 0, 0, 0);
         JsonNode node = JSON.readTree(Files.readAllBytes(path));
         if (!namespace.equals(node.path("namespace").asText()) || !context.runId().equals(node.path("run_id").asText())
-                || !fingerprint.equals(node.path("fingerprint").asText())) throw new IllegalStateException("IMP_JOURNAL_IDENTITY_DRIFT");
+                || !fingerprint.equals(node.path("fingerprint").asText())
+                || !AdaptiveResultCohort.matches(node, context)) throw new IllegalStateException("IMP_JOURNAL_IDENTITY_DRIFT");
         return new Journal(namespace, context.runId(), fingerprint, node.path("membership_snapshot_id").asLong(),
             node.path("summary_snapshot_id").asLong(), node.path("experiment_snapshot_id").asLong());
     }
@@ -387,6 +417,7 @@ public final class SparkMlIcebergWriter implements MlIcebergWriter {
             .put("run_id", journal.runId()).put("fingerprint", journal.fingerprint())
             .put("membership_snapshot_id", journal.membershipSnapshot()).put("summary_snapshot_id", journal.summarySnapshot())
             .put("experiment_snapshot_id", journal.experimentSnapshot());
+        AdaptiveResultCohort.write(node, context);
         Path tmp = Files.createTempFile(path.getParent(), ".mli03-journal-", ".tmp");
         try { Files.writeString(tmp, JSON.writeValueAsString(node) + "\n", StandardOpenOption.TRUNCATE_EXISTING);
             Files.move(tmp, path, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING); }

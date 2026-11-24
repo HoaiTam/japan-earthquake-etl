@@ -80,7 +80,7 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 - **Trạng thái:** In Progress
 - **Assignee:** HoaiTam
 - **Reviewer:** unassigned
-- **Evidence / PR:** [Runbook rehearsal và checklist release](../../runbooks/DEMO-02_REHEARSAL.md), [mẫu biên bản](../../runbooks/DEMO-02_REHEARSAL_RECORD.md). Kiểm offline trên head #143 `a379493` xác minh 15 mục, bốn phương án dự phòng và receipt DAT-03 của ThanhTris; đã dựng report pilot `DEVELOPMENT_ONLY`. Chưa diễn tập ba người. Nghiệm thu còn chờ [MLQ-01 — Chạy E2E Gold snapshot đến ML report](./MLQ-01.md) và [DEMO-01 — Chuẩn bị dữ liệu và kịch bản demo](./DEMO-01.md).
+- **Evidence / PR:** [Runbook rehearsal và checklist release](../../runbooks/DEMO-02_REHEARSAL.md), [mẫu biên bản](../../runbooks/DEMO-02_REHEARSAL_RECORD.md). Đã đồng bộ `main` (`abd134d`, gồm [MLI-03](./MLI-03.md) `#149` và [MLI-04](./MLI-04.md) `#144` `Done`); kiểm offline trên nhánh #143 xác minh 15 mục, bốn phương án dự phòng và receipt DAT-03 của ThanhTris; đã dựng report pilot `DEVELOPMENT_ONLY`. Chưa diễn tập ba người. Nghiệm thu còn chờ [MLQ-01 — Chạy E2E Gold snapshot đến ML report](./MLQ-01.md) (`#150`) và [DEMO-01 — Chuẩn bị dữ liệu và kịch bản demo](./DEMO-01.md) (`#143`).
 - **Kỹ năng phù hợp:** Release management, presentation
 
 ## Checklist bàn giao

@@ -1587,5 +1587,202 @@ class TestMli04ViewsAndReport(unittest.TestCase):
             self.assertIn(c, content, f"Data dictionary must document reason code {c}")
 
 
+import runpy
+from collections import Counter
+from pathlib import Path
+from unittest.mock import patch
+
+READBACK = runpy.run_path(str(Path(__file__).resolve().parents[1] / "scripts/verify-mli04-parity.py"))
+
+
+class PinnedReadbackTests(unittest.TestCase):
+    def test_official_cohort_is_bound_to_the_replay(self):
+        dataset, digest, pins = READBACK["official_sources"]()
+        self.assertEqual("REPRODUCTION", dataset["dataset_split"])
+        self.assertEqual(64, len(digest))
+        self.assertEqual(Counter(dict.fromkeys(READBACK["ALGORITHMS"], 2)), Counter(v[0] for v in pins.values()))
+
+    def test_adaptive_receipt_set_rejects_mixed_cohorts(self):
+        dataset, _, expected = READBACK["official_sources"]()
+        pins = dataset["adaptive_cohort"]
+        runs = [entry["experiment_run_id"] for entry in pins["shards"]]
+        second = runs[1]
+        other_sources = dict(expected)
+        algo, shard, code, marker = other_sources[second]
+        other_sources[second] = (algo, shard, code, dict(marker, success_marker_sha256="f" * 64))
+        other = READBACK["adaptive_cohort"](dataset, other_sources)
+        self.assertNotEqual(pins["sha256"], other["sha256"])
+        self.assertEqual(pins, READBACK["adaptive_cohort"](dataset, dict(reversed(list(expected.items())))))
+
+        def collect_with(second_receipt):
+            receipts = {"first": {"adaptive_cohort": pins}, "second": second_receipt}
+            entries = [{"experiment_run_id": rid, "receipt": label, "receipt_sha256": "0" * 64,
+                        "artifact_root": "."} for rid, label in zip(runs, receipts)]
+            collect = READBACK["collect"]
+            with patch.dict(collect.__globals__, {
+                "official_sources": lambda *args: (dataset, "0" * 64, expected),
+                "doc": lambda path, digest: (receipts[path.name], digest),
+                "verify_shard": lambda *args: ({"experiment_run_id": args[3]}, set()),
+                "rollups": lambda *args: {},
+            }):
+                return collect({"schema_version": "mli04-request-v1", "namespace": "iceberg.ml",
+                                "runs": entries}, None)
+
+        report = collect_with({"adaptive_cohort": pins})
+        self.assertEqual([pins["sha256"]] * 2, [r["adaptive_cohort_sha256"] for r in report["runs"]])
+        wrong_shard = dict(pins, shards=[pins["shards"][0],
+                                        dict(pins["shards"][1], experiment_run_id=runs[0])])
+        for bad_receipt in ({}, {"adaptive_cohort": other}, {"adaptive_cohort": wrong_shard}):
+            with self.subTest(receipt=bad_receipt), self.assertRaisesRegex(ValueError, "MLI04_ADAPTIVE_COHORT_MISMATCH"):
+                collect_with(bad_receipt)
+
+    def test_renderer_requires_exact_adaptive_digest_for_verified_report(self):
+        dataset, exp04_sha, expected = READBACK["official_sources"]()
+        digest = dataset["adaptive_cohort"]["sha256"]
+        metrics = {name: {"count": 0, "mean": None} for name in READBACK["METRICS"]}
+        runs, rollups = [], {}
+        for run_id, (algo, shard, code, pin) in expected.items():
+            counts = dict.fromkeys(READBACK["COUNTS"], 0)
+            counts.update(membership_rows=pin["membership_row_count"], summary_rows=pin["summary_row_count"])
+            row = {
+                "experiment_run_id": run_id, "algorithm_name": algo, "shard_id": shard, "code_version": code,
+                "model_config_version": "v1", "success_marker_sha256": pin["success_marker_sha256"],
+                "experiment_status": "CANDIDATE", "candidate_at_utc": "2026-11-18T00:00:00Z",
+                "query_ids": ["registry", "members", "summary", "failures"],
+                "expected_counts": counts, "actual_counts": counts,
+                "expected_metrics": metrics, "actual_metrics": metrics, "failure_reasons": [],
+                "snapshots": {"experiment_snapshot_id": 1, "membership_snapshot_id": 2, "summary_snapshot_id": 3},
+            }
+            if algo == "HDBSCAN_ADAPTIVE":
+                row["adaptive_cohort_sha256"] = digest
+            runs.append(row)
+            rollups.setdefault(algo, {"run_ids": [], "query_id": "rollup", "counts": {}, "sql_metrics": {}})
+            rollups[algo]["run_ids"].append(run_id)
+        rollups["HDBSCAN_ADAPTIVE"].update(counts=dataset["adaptive_resolution"],
+                                           exp03_resolution=dataset["adaptive_resolution"])
+        evidence = {
+            "task_id": "MLI-04", "status": "VERIFIED", "scientific_approval": False,
+            "exp04_sha256_lf": exp04_sha, "missing_run_ids": [], "runs": runs, "algorithm_rollups": rollups,
+            "dataset_id": dataset["dataset_id"], "collection_id": dataset["collection_id"],
+            "registry_lineage": dataset["registry_lineage"],
+        }
+        self.assertIn("SQL parity: **VERIFIED** (8/8 shards)", report_gen.render_official_readback(evidence))
+        adaptive_ids = [r["experiment_run_id"] for r in runs if r["algorithm_name"] == "HDBSCAN_ADAPTIVE"]
+        wrong = "f" * 64
+        self.assertNotEqual(digest, wrong)
+        for first, second in ((None, None), (wrong, wrong), (digest, wrong), (wrong, digest), (None, digest)):
+            with self.subTest(first=first, second=second):
+                altered = [dict(r) for r in runs]
+                overrides = dict(zip(adaptive_ids, (first, second)))
+                for row in altered:
+                    if row["experiment_run_id"] in overrides:
+                        value = overrides[row["experiment_run_id"]]
+                        if value is None:
+                            row.pop("adaptive_cohort_sha256")
+                        else:
+                            row["adaptive_cohort_sha256"] = value
+                with self.assertRaisesRegex(ValueError, "MLI04_EVIDENCE_ADAPTIVE_COHORT_MISMATCH"):
+                    report_gen.render_official_readback(dict(evidence, runs=altered))
+
+        baseline_runs = [r for r in runs if r["algorithm_name"] != "HDBSCAN_ADAPTIVE"]
+        baseline_rollups = {algo: row for algo, row in rollups.items() if algo != "HDBSCAN_ADAPTIVE"}
+        pending = dict(evidence, status="PENDING", runs=baseline_runs, missing_run_ids=sorted(adaptive_ids),
+                       algorithm_rollups=baseline_rollups)
+        self.assertIn("SQL parity: **PENDING** (6/8 shards)", report_gen.render_official_readback(pending))
+
+    def test_adaptive_rollup_must_match_pinned_exp03(self):
+        dataset, _, _ = READBACK["official_sources"]()
+        expected = dataset["adaptive_resolution"]
+        self.assertEqual({"raw_post": 99067, "resolved_unique": 88078, "rank_one_post": 88078,
+                          "ambiguous_post": 0, "deduplicated_post": 10989}, expected)
+        gate = READBACK["check_adaptive_resolution"]
+        counts = dict(expected)
+        self.assertEqual(expected, gate(counts, expected))
+        for changed in (dict(counts, raw_post=99066), dict(counts, ambiguous_post=1)):
+            with self.assertRaisesRegex(ValueError, "MLI04_ADAPTIVE_RECONCILIATION"):
+                gate(changed, expected)
+        with self.assertRaisesRegex(ValueError, "MLI04_ADAPTIVE_DUPLICATE_RANK_ONE"):
+            gate(dict(counts, rank_one_post=88079), expected)
+
+    def test_shard_queries_pin_each_table_and_reject_wrong_metrics(self):
+        rid = "exp_run_example"
+        fingerprint = "a" * 64
+        scope = {"shard_id": "shard_00000"}
+        receipt = {"experiment_run_id": rid, "dataset_id": "ds_fixture", "algorithm_name": "WINDOW",
+                   "experiment_status": "CANDIDATE", "result_bundle_sha256": fingerprint,
+                   "namespace": "iceberg.ml_qa_fixture", "collection_scope": scope, "candidate_at_utc": "2026-11-18T00:00:00Z",
+                   "experiment_snapshot_id": 13, "summary_snapshot_id": 12, "membership_snapshot_id": 11,
+                   "readback": {"sequence_membership": 4, "sequence_summary": 2, "experiment_run": 1}}
+        counts = [4, 2, 4, 1, 1, 0, 2, 1, 1, 0]
+        metrics = dict.fromkeys(READBACK["METRICS"], {"count": 0, "mean": None})
+        metrics["noise_ratio"] = {"count": 1, "mean": 0.0}
+
+        def verify(noise=0.0, status="CANDIDATE", rank_one=1, ambiguous=0):
+            calls = []
+            responses = [
+                [["ds_fixture", "WINDOW", "v1", "code", status, fingerprint, 11, 12, 4, 2, "c"*64, "101", "102", "103"]],
+                [[4, 2, 1, rank_one, ambiguous]],
+                [[2, 4, 1, 1, 0, 1, noise, 0, None, 0, None, 0, None]],
+                [["FAILED", "NOISE", 1]],
+            ]
+            def query(sql):
+                calls.append(sql)
+                return "trino-" + str(len(calls)), responses[len(calls)-1]
+            args = ("v1", fingerprint, counts, Counter({("FAILED", "NOISE"): 1}), metrics, {"e1"})
+            fn = READBACK["verify_shard"]
+            with patch.dict(fn.__globals__, {"bundle_expectations": lambda *a: args}):
+                row, _ = fn(query, "iceberg.ml_qa_fixture",
+                            {"dataset_id": "ds_fixture", "registry_lineage": ["c"*64, "101", "102", "103"]}, rid,
+                            "WINDOW", "shard_00000", "code", {"collection_scope": scope, "success_marker_sha256": "b"*64},
+                            None, receipt)
+            return calls, row
+        calls, row = verify()
+        for index, snapshot in enumerate((13, 11, 12, 12)):
+            self.assertIn(f"FOR VERSION AS OF {snapshot}", calls[index])
+        self.assertEqual(0.0, row["actual_metrics"]["noise_ratio"]["mean"])
+        with self.assertRaisesRegex(ValueError, "METRIC_PARITY"):
+            verify(noise=None)
+        with self.assertRaisesRegex(ValueError, "REGISTRY_MISMATCH"):
+            verify(status="REJECTED")
+        for change in ({"rank_one": 2}, {"ambiguous": 1}):
+            with self.assertRaisesRegex(ValueError, "COUNT_PARITY"):
+                verify(**change)
+
+    def test_full_algorithm_rollup_deduplicates_and_weights(self):
+        def row(rid, snap, n, value):
+            return {"algorithm_name": "WINDOW", "experiment_run_id": rid, "snapshots": {"membership_snapshot_id": snap},
+                    "actual_counts": dict.fromkeys(READBACK["COUNTS"], 2),
+                    "actual_metrics": dict.fromkeys(READBACK["METRICS"], {"count": n, "mean": value})}
+        snapshots = [row("r0", 11, 1, 0.0), row("r1", 31, 3, 1.0)]
+        expected = {"r0": ("WINDOW",), "r1": ("WINDOW",)}
+        def query(sql):
+            self.assertIn("FOR VERSION AS OF 11", sql)
+            self.assertIn("FOR VERSION AS OF 31", sql)
+            return "query-distinct", [[3, 4, 4]]
+        result = READBACK["rollups"](snapshots, {"r0": {"a", "b"}, "r1": {"b", "c"}}, expected,
+                                      "iceberg.ml", "ds_fixture", query)["WINDOW"]
+        self.assertEqual(3, result["counts"]["resolved_unique"])
+        self.assertEqual(0.75, result["sql_metrics"]["noise_ratio"]["mean"])
+
+    def test_adaptive_rollup_rejects_duplicate_rank_one_across_shards(self):
+        algo = "HDBSCAN_ADAPTIVE"
+        runs = [{"algorithm_name": algo, "experiment_run_id": rid,
+                 "snapshots": {"membership_snapshot_id": snap},
+                 "actual_counts": dict.fromkeys(READBACK["COUNTS"], 0) |
+                                  {"raw_post": 1, "rank_one_post": 1, "resolved_unique": 1}}
+                for rid, snap in (("r0", 11), ("r1", 31))]
+
+        def query(sql):
+            self.assertIn("count_if(resolution_rank = 1)", sql)
+            self.assertIn("count_if(multi_sequence_status = 'AMBIGUOUS')", sql)
+            self.assertIn("FOR VERSION AS OF 11", sql)
+            self.assertIn("FOR VERSION AS OF 31", sql)
+            return "query-two-winners", [[1, 2, 0]]
+
+        with self.assertRaisesRegex(ValueError, "MLI04_ADAPTIVE_DUPLICATE_RANK_ONE"):
+            READBACK["rollups"](runs, {"r0": {"shared"}, "r1": {"shared"}},
+                                {"r0": (algo,), "r1": (algo,)}, "iceberg.ml", "ds_fixture", query)
+
+
 if __name__ == "__main__":
     unittest.main()

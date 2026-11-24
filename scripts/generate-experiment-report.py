@@ -24,6 +24,7 @@ from __future__ import annotations
 import argparse
 from datetime import datetime, timezone
 import hashlib
+import importlib.util
 import json
 import math
 from pathlib import Path
@@ -31,6 +32,89 @@ import sys
 from typing import Any, Dict, List, Optional
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+
+def render_official_readback(evidence):
+    """Render only checked shard rows, keeping scientific-only metrics distinct."""
+    spec = importlib.util.spec_from_file_location("mli04_readback", Path(__file__).with_name("verify-mli04-parity.py"))
+    verifier = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(verifier)
+    dataset, report_sha, expected = verifier.official_sources()
+    runs = evidence["runs"]
+    ids = {row["experiment_run_id"] for row in runs}
+    require = verifier.require
+    require(evidence["task_id"] == "MLI-04" and evidence["exp04_sha256_lf"] == report_sha
+            and evidence["dataset_id"] == dataset["dataset_id"]
+            and evidence["collection_id"] == dataset["collection_id"]
+            and evidence["registry_lineage"] == dataset["registry_lineage"]
+            and evidence["scientific_approval"] is False
+            and ids and len(ids) == len(runs) and ids <= expected.keys(), "MLI04_EVIDENCE_IDENTITY")
+    missing = sorted(expected.keys() - ids)
+    state = "PENDING" if missing else "VERIFIED"
+    require(evidence["status"] == state and evidence["missing_run_ids"] == missing, "MLI04_EVIDENCE_COVERAGE")
+    lines = ["# MLI-04 — REPRODUCTION snapshot readback", "",
+             f"- SQL parity: **{state}** ({len(ids)}/{len(expected)} shards)",
+             f"- Dataset: {dataset['dataset_id']}", f"- Collection: {dataset['collection_id']}",
+             f"- EXP-04 LF SHA-256: {report_sha}", f"- Gold snapshot: {dataset['gold_snapshot_id']}",
+             "- Scientific approval: false. Candidate sequences are retrospective; no prediction or causal claim.", ""]
+    for row in runs:
+        rid = row["experiment_run_id"]
+        algo, shard, code, pins = expected[rid]
+        query_ids = row["query_ids"]
+        require((row["algorithm_name"], row["shard_id"], row["code_version"]) == (algo, shard, code)
+                and row["success_marker_sha256"] == pins["success_marker_sha256"]
+                and row["experiment_status"] in {"CANDIDATE", "APPROVED"}
+                and len(query_ids) == 4 and len(set(query_ids)) == 4 and all(query_ids)
+                and row["expected_counts"] == row["actual_counts"]
+                and set(row["actual_counts"]) == set(verifier.COUNTS)
+                and row["actual_counts"]["membership_rows"] == pins["membership_row_count"]
+                and row["actual_counts"]["summary_rows"] == pins["summary_row_count"]
+                and set(row["expected_metrics"]) == set(row["actual_metrics"]) == set(verifier.METRICS),
+                "MLI04_EVIDENCE_ROW")
+        if algo == "HDBSCAN_ADAPTIVE":
+            require(row.get("adaptive_cohort_sha256") == dataset["adaptive_cohort"]["sha256"],
+                    "MLI04_EVIDENCE_ADAPTIVE_COHORT_MISMATCH")
+        for key in ("experiment_snapshot_id", "membership_snapshot_id", "summary_snapshot_id"):
+            verifier.snapshot(row["snapshots"][key])
+        for metric, observed in row["actual_metrics"].items():
+            want = row["expected_metrics"][metric]
+            a, b = observed["mean"], want["mean"]
+            require(observed["count"] == want["count"] and
+                    (a is b if a is None or b is None else math.isclose(a, b, rel_tol=1e-9, abs_tol=1e-9)),
+                    "MLI04_EVIDENCE_METRIC")
+        lines.extend([f"## {algo} / {shard}", "", f"- Run: {rid} ({row['experiment_status']})",
+                      f"- Config / code: {row['model_config_version']} / {code}",
+                      f"- Publication time: {row['candidate_at_utc']}",
+                      f"- Snapshots: {json.dumps(row['snapshots'], sort_keys=True)}",
+                      f"- Query IDs: {', '.join(query_ids)}",
+                      f"- Counts: {json.dumps(row['actual_counts'], sort_keys=True)}",
+                      f"- SQL means and contributing windows: {json.dumps(row['actual_metrics'], sort_keys=True)}",
+                      f"- Failure reasons: {json.dumps(row['failure_reasons'])}", ""])
+    if missing:
+        lines.extend(["## Pending shards", "", *[f"- {rid}" for rid in missing], ""])
+    rollups = evidence["algorithm_rollups"]
+    covered = {algo for algo in verifier.ALGORITHMS
+               if {rid for rid, item in expected.items() if item[0] == algo} <= ids}
+    require(set(rollups) == covered, "MLI04_EVIDENCE_ROLLUP_COVERAGE")
+    if rollups:
+        lines.extend(["## Full algorithm coverage", ""])
+        for algo, aggregate in sorted(rollups.items()):
+            require(set(aggregate["run_ids"]) == {rid for rid, item in expected.items() if item[0] == algo}
+                    and aggregate["query_id"], "MLI04_EVIDENCE_ROLLUP")
+            if algo == "HDBSCAN_ADAPTIVE":
+                resolution = verifier.check_adaptive_resolution(aggregate["counts"], dataset["adaptive_resolution"])
+                require(aggregate.get("exp03_resolution") == resolution, "MLI04_ADAPTIVE_RECONCILIATION")
+            lines.extend([f"- **{algo}** · Query {aggregate['query_id']}",
+                          f"  - Counts: {json.dumps(aggregate['counts'], sort_keys=True)}",
+                          f"  - SQL metrics: {json.dumps(aggregate['sql_metrics'], sort_keys=True)}"])
+            if algo == "HDBSCAN_ADAPTIVE":
+                lines.append(f"  - EXP-03 deduplicated aftershock assignments: {resolution['deduplicated_post']}")
+        lines.append("")
+    lines.extend(["## Scientific evaluation", "",
+                  "DBCV, Omori and stability from the scientific evaluator are reported separately in "
+                  "[EXP-04](./EXP-04_OFFICIAL_REPRODUCTION.md). SQL values above come from persisted shard summaries. "
+                  "Per-shard resolved counts are shown separately; distinct counts cannot be summed across shards.", ""])
+    return "\n".join(lines)
 
 
 def get_git_commit(root: Optional[Path] = None) -> str:
@@ -764,6 +848,7 @@ def main() -> int:
         default=None,
         help="Custom title for the static report.",
     )
+    parser.add_argument("--evidence-sha256", help="Trusted byte SHA-256 for an mli04-readback-v1 input")
 
     args = parser.parse_args()
 
@@ -772,16 +857,26 @@ def main() -> int:
         return 1
 
     try:
-        with open(args.input_json, "r", encoding="utf-8") as f:
-            eval_data = json.load(f)
+        raw = args.input_json.read_bytes()
+        eval_data = json.loads(raw)
     except Exception as e:
         print(f"ERROR: Failed to read input JSON: {e}", file=sys.stderr)
         return 1
 
     # Render report (which enforces fail-closed publication gate)
     try:
-        md_content = build_markdown_report(eval_data, mode=args.mode, report_title=args.title)
-    except ValueError as err:
+        readback = eval_data.get("schema_version") == "mli04-readback-v1"
+        if readback:
+            if hashlib.sha256(raw).hexdigest() != args.evidence_sha256 or args.mode == "development":
+                raise ValueError("MLI04_EVIDENCE_SHA_REQUIRED")
+            md_content = render_official_readback(eval_data)
+        else:
+            # Historical payloads can still produce a preview. Only pinned
+            # readback evidence can attest to live SQL parity through this CLI.
+            preview = {k: value for k, value in eval_data.items()
+                       if k not in {"verification_evidence", "trino_verification"}}
+            md_content = build_markdown_report(preview, mode=args.mode, report_title=args.title)
+    except (ValueError, KeyError, TypeError) as err:
         print(f"ERROR: {err}", file=sys.stderr)
         return 2
 
@@ -792,7 +887,10 @@ def main() -> int:
 
     print(f"SUCCESS: Generated static report at {args.output_md}")
 
-    if args.output_json:
+    if args.output_json and readback:
+        args.output_json.parent.mkdir(parents=True, exist_ok=True)
+        args.output_json.write_bytes(raw)
+    elif args.output_json:
         normalized = extract_normalized_payload(eval_data)
         summary_payload = {
             "metadata": normalized.get("metadata", {}),

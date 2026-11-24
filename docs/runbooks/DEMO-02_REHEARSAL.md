@@ -59,7 +59,7 @@ pipeline trong suốt buổi trình bày.
 | Cổng | Kiểm trước khi chốt |
 |---|---|
 | ETL và recovery | [QA-01](../evidence/QA-01_CURRENT_MONTH_ACCEPTANCE.md), [QA-02](../evidence/QA-02_RUNTIME_ACCEPTANCE.md) và [QA-04](../evidence/QA-04_RUNTIME_ACCEPTANCE.md) truy được về đúng scope, run hoặc publication và kết quả kiểm tra. |
-| Import và báo cáo ML | [MLI-03](../task/tasks/MLI-03.md) có receipt chính thức cần dùng. [MLI-04](../task/tasks/MLI-04.md) có đối soát Trino trên exact snapshots. [MLQ-01](../task/tasks/MLQ-01.md) có receipt Gold đến static report. |
+| Import và báo cáo ML | [MLI-03](../task/tasks/MLI-03.md) (`#149`, [rerun adaptive](../evidence/MLI-03_ADAPTIVE_REPRODUCTION_20261124.json)) và [MLI-04](../task/tasks/MLI-04.md) (`#144`, [readback 8/8 shard](../evidence/MLI-04_OFFICIAL_READBACK_20261124.md)) đã `Done` trên `main`. [MLQ-01](../task/tasks/MLQ-01.md) (`#150`) còn cần receipt E2E Gold đến static report (`EXTENSION WINDOW`, reject bundle và rerun). |
 | Security và runbook | [SEC-01](../evidence/SEC-01_CLOUD_20261119.md) và [DOC-01](../evidence/DOC-01.md) còn phù hợp với phạm vi demo; asset mở trên màn hình đã được kiểm. |
 | Walkthrough | [DEMO-01](../task/tasks/DEMO-01.md) hoàn tất các gate official. Ba người hoàn thành walkthrough 15–20 phút, kiểm fallback và chốt không còn blocker Core. |
 | Phát hành | HoaiTam xác nhận release candidate và tag đề xuất sau review. |
