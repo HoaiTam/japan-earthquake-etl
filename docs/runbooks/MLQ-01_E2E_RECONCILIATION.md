@@ -40,7 +40,8 @@ Chọn một canonical event vai trò POST có rank 1 trong window thành công 
   `__MAINSHOCK_ID__`, `__EVENT_ID__` và fingerprint 64 ký tự hex cho
   `__BUNDLE_SHA256__`. Chỉ nhận tên bảng catalog.schema.table an toàn. Thoát
   dấu nháy đơn trong giá trị SQL bằng hai dấu nháy đơn. Kiểm hết placeholder
-  trước khi đưa truy vấn SELECT vào Trino.
+  trước khi đưa truy vấn SELECT vào Trino. File SQL bỏ dấu `;` cuối câu để
+  gửi trực tiếp tới Trino HTTP API (`/v1/statement`) mà không lỗi cú pháp.
 
 Query phải trả một dòng `lineage_check=PASS`. Window `SUCCESS` phải có đúng
 một dòng mang vai trò `MAINSHOCK` trong toàn window ở cả candidate lẫn membership,
@@ -77,10 +78,11 @@ python -m unittest tests.test_mlq01_reconciliation
 make test-mli-import
 ~~~
 
-CI `docs-contracts` chạy fixture SQL qua `make ci-docs-base`. Fixture gồm
-một trace thành công và các ca mất Gold event, lệch từng pin publication hoặc
-lineage, run REJECTED, counts đúng nhưng hai lớp cùng ghi sai MAINSHOCK và
-thêm một event khác mang role MAINSHOCK trong cùng window.
+CI `docs-contracts` chạy fixture SQL qua `make ci-docs-base`. Fixture gồm 8 ca:
+một trace thành công, không chứa dấu chấm phẩy `;` (tương thích Trino HTTP API
+`/v1/statement`), các ca mất Gold event, lệch từng pin publication hoặc lineage,
+run REJECTED, counts đúng nhưng hai lớp cùng ghi sai MAINSHOCK và thêm một
+event khác mang role MAINSHOCK trong cùng window.
 Fixture và local writer tests chỉ dùng làm evidence thành phần. Đóng
 MLQ-01 sau E2E official, có các query/readback và static report thật. Diễn giải
 kết quả là aftershock candidate hồi cứu.

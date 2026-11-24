@@ -64,6 +64,10 @@ class Mlq01ReconciliationTest(unittest.TestCase):
             connection.executescript(change)
         return dict(connection.execute(fixture_query()).fetchone())
 
+    def test_query_has_no_semicolon_for_trino_http_api(self):
+        self.assertNotIn(";", QUERY.read_text(encoding="utf-8"))
+        self.assertNotIn(";", fixture_query())
+
     def test_one_event_traces_through_all_boundaries(self):
         row = self.reconcile()
         self.assertEqual("PASS", row["lineage_check"])

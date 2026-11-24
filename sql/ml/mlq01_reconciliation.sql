@@ -104,4 +104,4 @@ SELECT p.dataset_id, p.run_id, p.mainshock_id, p.event_id,
             THEN 'PASS' ELSE 'FAIL' END AS lineage_check
 FROM pins p CROSS JOIN gold_matches g CROSS JOIN dataset_matches d CROSS JOIN registry_matches r
 CROSS JOIN candidate_counts c CROSS JOIN membership_counts m CROSS JOIN matched_grain a
-CROSS JOIN summary_counts s;
+CROSS JOIN summary_counts s
