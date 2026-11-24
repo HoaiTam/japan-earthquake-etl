@@ -98,12 +98,18 @@ receipt chính thức của `MLQ-01` (`task_id="MLQ-01"`, `status="PASSED"`,
    `iceberg.ml_qa_53cf813a988340fa9ebd45a3dfebbe7b`) hoặc `extension.import_receipt`
    (nếu kiểm `EXTENSION`), cùng `before_rerun` và `after_rerun` cho ba bảng
    `experiment_run`, `sequence_membership`, `sequence_summary` (tương thích trực
-   tiếp [evidence rerun MLI-03](../evidence/MLI-03_ADAPTIVE_REPRODUCTION_20261124.json)),
-   có `snapshot_query_id`/`count_query_id` riêng giữa trước và sau, danh sách
-   `snapshots` (chứa snapshot đã ghim) và `run_row_counts` (`experiment_run=1`)
-   không đổi.
+   tiếp [evidence rerun MLI-03](../evidence/MLI-03_ADAPTIVE_REPRODUCTION_20261124.json)
+   của `#149` — có thể tái dùng trực tiếp bằng đúng đường dẫn và SHA-256 LF),
+   có đủ **12 `query_id` Trino phân biệt** (3 bảng × 2 loại
+   `snapshot_query_id`/`count_query_id` × 2 giai đoạn `before_rerun`/`after_rerun`),
+   danh sách `snapshots` (chứa snapshot đã ghim) và `run_row_counts`
+   (`experiment_run=1`) không đổi.
 
-### Ví dụ JSON tối thiểu cho receipt `MLQ-01`
+### Ví dụ JSON tối thiểu cho receipt `MLQ-01` (chỉ minh họa cấu trúc)
+
+Ví dụ sau chỉ mô tả cấu trúc schema (không phải receipt official); mọi trường
+`<...>` phải thay bằng `query_id`, event ID, SHA-256 và đường dẫn thật của đúng
+run đã đối chiếu.
 
 ~~~json
 {
@@ -126,7 +132,7 @@ receipt chính thức của `MLQ-01` (`task_id="MLQ-01"`, `status="PASSED"`,
       "membership_snapshot_id": 1589872702319916199,
       "summary_snapshot_id": 3504974519972302319,
       "trace": {
-        "query_id": "20261118_022319_00104_v3i3r",
+        "query_id": "<trino_query_id_trace_window_shard_00000>",
         "dataset_id": "ds_907fe748fafdfc0f072ce4db4e1cf0aa619ed18877129e17c8440b43062c3d87",
         "experiment_run_id": "exp_run_2e8155cfc8609ec0371529e5ec23aeaa",
         "gold_snapshot_id": "7580315846938041321",
@@ -157,13 +163,13 @@ receipt chính thức của `MLQ-01` (`task_id="MLQ-01"`, `status="PASSED"`,
     "cases": [
       {
         "case_name": "checksum",
-        "experiment_run_id": "exp_qa_reject_checksum",
+        "experiment_run_id": "<exp_qa_reject_run_id>",
         "expected_reason_code": "IMP_CHECKSUM_MISMATCH",
         "actual_reason_code": "IMP_CHECKSUM_MISMATCH",
         "experiment_status": "REJECTED",
         "candidate_created": false,
         "candidate_row_count": 0,
-        "query_id": "20261124_000001_00001_v3i3r"
+        "query_id": "<trino_query_id_reject_checksum>"
       }
     ]
   },
@@ -174,7 +180,7 @@ receipt chính thức của `MLQ-01` (`task_id="MLQ-01"`, `status="PASSED"`,
 }
 ~~~
 
-Ghi chú mẫu trên chỉ minh họa một phần tử trong `runs`; receipt thật phải chứa đủ 4 thuật toán đại diện (`WINDOW`, `DBSCAN`, `HDBSCAN_GLOBAL`, `HDBSCAN_ADAPTIVE`) dưới `runs` với `query_id` không trùng giữa 5 lần `trace`. Có thể nhúng trực tiếp hoặc dùng cặp `{"path","sha256_lf"}` cho từng `trace`, `reject_verification` và `rerun_verification`.
+Ghi chú: mẫu trên chỉ mô tả cấu trúc schema (chưa phải receipt official) và chỉ minh họa một phần tử trong `runs`; receipt thật phải chứa đủ 4 thuật toán đại diện (`WINDOW`, `DBSCAN`, `HDBSCAN_GLOBAL`, `HDBSCAN_ADAPTIVE`) dưới `runs` với `query_id` thật của từng run không trùng giữa 5 lần `trace`. Có thể nhúng trực tiếp hoặc dùng cặp `{"path","sha256_lf"}` cho từng `trace`, `reject_verification` và `rerun_verification`.
 
 ## Test matrix
 
