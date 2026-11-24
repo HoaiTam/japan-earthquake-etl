@@ -54,6 +54,35 @@ ngược số liệu trên static report. Event có thể xuất hiện trong nh
 vì vậy trace kèm mainshock ID thay vì đếm mọi membership của event thành một
 window.
 
+## Cấu trúc receipt MLQ-01 đồng bộ với DEMO-01
+
+Để [DEMO-01](../task/tasks/DEMO-01.md) chuyển trạng thái `PASS_OFFICIAL_READY`,
+receipt chính thức của `MLQ-01` (`task_id="MLQ-01"`, `status="PASSED"`,
+`scientific_approval=false`) phải ghim `mli04_sha256_lf`, `dataset_id`,
+`gold_snapshot_id`, năm cờ `checks=true` và kèm đầy đủ bằng chứng cho từng cổng
+(nhúng trực tiếp hoặc qua object `{"path","sha256_lf"}`):
+
+1. **Trace E2E (`runs.<experiment_run_id>.trace` và `extension.trace`):**
+   Có mặt cho đủ 4 thuật toán đại diện `REPRODUCTION` (`WINDOW`, `DBSCAN`,
+   `HDBSCAN_GLOBAL`, `HDBSCAN_ADAPTIVE`) và 1 shard `EXTENSION` `WINDOW`. Mỗi
+   object gồm `query_id` Trino riêng biệt, `dataset_id`, `experiment_run_id`,
+   `gold_snapshot_id`, ba snapshot IDs (`experiment_snapshot_id`,
+   `membership_snapshot_id`, `summary_snapshot_id`), `mainshock_event_id` !=
+   `candidate_event_id` (ánh xạ từ các cột `run_id`, `mainshock_id`, `event_id`
+   của `sql/ml/mlq01_reconciliation.sql`) và `lineage_check="PASS"`.
+2. **Reject bundle lỗi (`reject_verification`):** Ghi `namespace` QA (khác
+   Gold) và danh sách `cases` hợp lệ với `case_name`, `experiment_run_id` (khác
+   các run `CANDIDATE`), `expected_reason_code` == `actual_reason_code`
+   (`IMP_*`/`EXP_*`), `experiment_status` thuộc `{"REJECTED", "NOT_CREATED"}`,
+   `candidate_created=false`, `candidate_row_count=0` và `query_id`.
+3. **Rerun không trùng (`rerun_verification`):** Ghi `dataset_id`, `before_rerun`
+   và `after_rerun` cho ba bảng `experiment_run`, `sequence_membership`,
+   `sequence_summary` (tương thích cấu trúc evidence rerun
+   `docs/evidence/MLI-03_ADAPTIVE_REPRODUCTION_20261124.json` của
+   [MLI-03](../task/tasks/MLI-03.md)), có `snapshot_query_id`/`count_query_id`
+   riêng giữa trước và sau, danh sách `snapshots` (chứa snapshot đã ghim) và
+   `run_row_counts` (`experiment_run=1`) không đổi.
+
 ## Test matrix
 
 Tái dùng [result bundle fixtures](../../spark/src/test/resources/ml/results)
@@ -78,11 +107,12 @@ python -m unittest tests.test_mlq01_reconciliation
 make test-mli-import
 ~~~
 
-CI `docs-contracts` chạy fixture SQL qua `make ci-docs-base`. Fixture gồm 8 ca:
+CI `docs-contracts` chạy fixture SQL qua `make ci-docs-base`. Fixture gồm 9 ca:
 một trace thành công, không chứa dấu chấm phẩy `;` (tương thích Trino HTTP API
-`/v1/statement`), các ca mất Gold event, lệch từng pin publication hoặc lineage,
-run REJECTED, counts đúng nhưng hai lớp cùng ghi sai MAINSHOCK và thêm một
-event khác mang role MAINSHOCK trong cùng window.
+`/v1/statement`), kiểm khớp trường ánh xạ `trace` cho receipt `DEMO-01`, các ca
+mất Gold event, lệch từng pin publication hoặc lineage, run REJECTED, counts đúng
+nhưng hai lớp cùng ghi sai MAINSHOCK và thêm một event khác mang role MAINSHOCK
+trong cùng window.
 Fixture và local writer tests chỉ dùng làm evidence thành phần. Đóng
 MLQ-01 sau E2E official, có các query/readback và static report thật. Diễn giải
 kết quả là aftershock candidate hồi cứu.

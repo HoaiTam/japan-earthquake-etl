@@ -150,3 +150,23 @@ class Mlq01ReconciliationTest(unittest.TestCase):
         ):
             with self.subTest(change=change):
                 self.assertEqual("FAIL", self.reconcile(change)["lineage_check"])
+
+    def test_reconcile_row_supplies_trace_receipt_evidence_fields(self):
+        row = self.reconcile()
+        trace = {
+            "query_id": "20261124_120000_00001_v3i3r",
+            "dataset_id": row["dataset_id"],
+            "experiment_run_id": row["run_id"],
+            "gold_snapshot_id": "11",
+            "experiment_snapshot_id": 14,
+            "membership_snapshot_id": 15,
+            "summary_snapshot_id": 16,
+            "mainshock_event_id": row["mainshock_id"],
+            "candidate_event_id": row["event_id"],
+            "lineage_check": row["lineage_check"],
+        }
+        self.assertEqual("PASS", trace["lineage_check"])
+        self.assertNotEqual(trace["mainshock_event_id"], trace["candidate_event_id"])
+        self.assertEqual((1, 1, 1, 1), (
+            row["gold_rows"], row["exported_rows"], row["serving_rows"], row["target_resolved"]
+        ))
