@@ -22,20 +22,20 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 
 ## Tổng quan
 
-**24/11 — MLI-04:** [Official REPRODUCTION](../../evidence/MLI-04_OFFICIAL_READBACK_20261124.md)
-đã `VERIFIED` với 8/8 shard và 36/36 truy vấn snapshot. Giữ `In Progress` cho
-đến khi chốt phần adaptive overlap của [MLI-03](./MLI-03.md) trong PR #149.
+**24/11 — MLI-04 Done:** [Official REPRODUCTION](../../evidence/MLI-04_OFFICIAL_READBACK_20261124.md)
+đã `VERIFIED` với 8/8 shard và 36/36 truy vấn snapshot. Hai receipt Adaptive giữ
+nguyên sau [rerun MLI-03](../../evidence/MLI-03_ADAPTIVE_REPRODUCTION_20261124.json).
 
-**16/11 — DEMO-01 In Progress (ThanhTris):** Chuẩn bị manifest ghim bằng chứng đại diện, kịch bản demo 15–20 phút, 4 fallback và preflight checker offline ([gói demo](../../runbooks/DEMO-01_DEMO_PACKAGE.md)); chờ `MLI-04` và `MLQ-01` để chốt official pins.
+**16/11 — DEMO-01 In Progress (ThanhTris):** Chuẩn bị manifest ghim bằng chứng đại diện, kịch bản demo 15–20 phút, 4 fallback và preflight checker offline ([gói demo](../../runbooks/DEMO-01_DEMO_PACKAGE.md)); lúc đó chờ `MLI-04` và `MLQ-01` để chốt official pins.
 **17/11 — DAT-03 Done:** đã đối chiếu catalog288tháng, Gold Published/rerun,
 hai official collections EXPORTED và receipt thật cùng kitv4 trên ba máy.
 [Đối chiếu acceptance](../../evidence/DAT-03_FINAL_ACCEPTANCE_20261116.md).
-Hiện 77/81 Done, 0 Needs Update, 2 Backlog, 2 In Progress sau nghiệm thu
+Hiện 78/81 Done, 0 Needs Update, 2 Backlog, 1 In Progress sau nghiệm thu
 [EXP-02](../../evidence/EXP-02_OFFICIAL_REPRODUCTION.md),
 [EXP-03](../../evidence/EXP-03_OFFICIAL_REPRODUCTION.md) và
 [EXP-04](../../evidence/EXP-04_OFFICIAL_REPRODUCTION.md) và
 [EXP-05](../../evidence/EXP-05_EXTENSION_EVALUATION.md). EXP-04 phát hành rule
-v2 sau khi đối soát cả hai upstream; EXP-03 adaptive shard chỉ đạt readback.
+v2 sau khi đối soát cả hai upstream; import và rerun EXP-03 Adaptive đã chốt qua #149.
 SEC-01 Done trong phạm vi đồ án: [đối soát và ngoại lệ ACL 19/11](../../evidence/SEC-01_CLOUD_20261119.md).
 Các mốc bên dưới giữ lịch sử, không thay scientific approval.
 
@@ -426,7 +426,7 @@ và portable integration/full catalog/official export đã qua actual acceptance
 | [MLI-01](./MLI-01.md) - Khóa result bundle và experiment lifecycle | 4 | Result bundle contract | Core | P0 | 5h | Done |
 | [MLI-02](./MLI-02.md) - Tạo Airflow DAG build ML dataset | 5 | Dataset build orchestration | Core | P0 | 5h | Done |
 | [MLI-03](./MLI-03.md) - Validate/import kết quả và commit bảng ML Iceberg | 5 | Result import and Iceberg publish | Core | P0 | 7h | Done |
-| [MLI-04](./MLI-04.md) - Tạo Trino views và static report cho experiment | 8 | ML serving and report | Core | P0 | 4h | In Progress |
+| [MLI-04](./MLI-04.md) - Tạo Trino views và static report cho experiment | 8 | ML serving and report | Core | P0 | 4h | Done |
 | [MLQ-01](./MLQ-01.md) - Chạy E2E Gold snapshot đến ML report | 8 | ML end-to-end QA | Core | P0 | 6h | Backlog |
 
 ## J - Power BI tùy chọn

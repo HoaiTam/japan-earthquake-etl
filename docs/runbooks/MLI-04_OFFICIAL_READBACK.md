@@ -22,6 +22,12 @@ công trả đúng lease; registry, dataset và Gold gốc không bị ghi đè.
 được build từ [PR #149](https://github.com/HoaiTam/japan-earthquake-etl/pull/149),
 commit `a377a736022c9d4760e8f3afcaad6df734e8e986`, JAR SHA-256
 `1796be2e193e4a96de3b97eaa270bbce0d0d892800c2b7005331ffa05b50e2da`.
+Source runner của commit đã nghiệm thu khớp source trên `main` sau #149
+(`633ac5a`). [Evidence MLI-03](../evidence/MLI-03_ADAPTIVE_REPRODUCTION_20261124.json)
+xác nhận rerun cả hai shard Adaptive giữ nguyên SHA-256 receipt, số dòng và
+snapshot; các pin trong báo cáo MLI-04 vẫn hợp lệ.
+Sau khi đồng bộ `main`, verifier chạy lại 36 truy vấn chỉ đọc trên cùng tám
+receipt và xác nhận `VERIFIED`, không import lại và không thay evidence đã ghim.
 Evidence chỉ chứng nhận snapshot đã đọc trong phiên QA; không chứng nhận
 scientific approval hoặc publication trên namespace production.
 
@@ -82,7 +88,8 @@ với digest tính từ EXP-03. Evidence cũ thiếu digest cần được tạo
 verifier trước khi render. Metric
 khoa học riêng giữ nguồn EXP-04 đã pin.
 
-Kiểm hồi quy offline bằng `make test-mli04`. Trước khi merge MLI-04, chốt
-[MLI-03 — Validate/import kết quả và commit bảng ML Iceberg](../task/tasks/MLI-03.md)
-phần adaptive overlap của PR #149. Nếu runner merge thay đổi hành vi import hoặc
-contract cohort so với pin trên, chạy lại acceptance trên phiên bản mới.
+Kiểm hồi quy offline bằng `make test-mli04`. Nếu runner đổi hành vi import
+hoặc contract cohort so với pin trên, chạy lại acceptance trên phiên bản mới.
+[MLQ-01 — Chạy E2E Gold snapshot đến ML report](../task/tasks/MLQ-01.md) dùng
+báo cáo này làm evidence REPRODUCTION, nhưng cần nghiệm thu riêng EXTENSION và
+receipt E2E.
