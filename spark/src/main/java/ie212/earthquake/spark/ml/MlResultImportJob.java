@@ -48,7 +48,8 @@ public final class MlResultImportJob {
                 new TrinoMlVerifier(sql, request.path("ml_namespace").asText(), assertLease).verify(commit, value, fingerprint);
             String operation = request.path("import_run_id").asText(request.path("run_id").asText());
             if (operation.isBlank()) throw new IllegalArgumentException("IMP_IMPORT_RUN_ID_REQUIRED");
-            ObjectNode result = importBundle(bundle, journal, context, writer, verifier, request.path("ml_namespace").asText(), operation);
+            ObjectNode result = importBundle(bundle, journal, context, writer, verifier,
+                request.path("ml_namespace").asText(), operation, request.get("collection_result_markers"));
             Files.writeString(journal.resolve("import-report.json"), JSON.writerWithDefaultPrettyPrinter().writeValueAsString(result) + "\n",
                 StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
             System.out.println(JSON.writeValueAsString(result));
@@ -69,20 +70,35 @@ public final class MlResultImportJob {
     public static ObjectNode importBundle(Path bundleRoot, Path journalRoot, ResultBundleValidator.Context originalContext,
                                           MlIcebergWriter writer, IndependentVerifier verifier, String namespace,
                                           String importRunId) throws Exception {
+        return importBundle(bundleRoot, journalRoot, originalContext, writer, verifier, namespace, importRunId, null);
+    }
+
+    static ObjectNode importBundle(Path bundleRoot, Path journalRoot, ResultBundleValidator.Context originalContext,
+                                   MlIcebergWriter writer, IndependentVerifier verifier, String namespace,
+                                   String importRunId, JsonNode collectionResultMarkers) throws Exception {
         Files.createDirectories(journalRoot);
         Path registry = journalRoot.resolve("experiment-run-" + originalContext.runId() + ".json");
         ResultBundleValidator.DecodedBundle bundle;
-        try { bundle = MlResultBundleReader.read(bundleRoot); }
-        catch (RuntimeException | IOException error) { writeRejected(journalRoot, originalContext, reason(error), true); throw error; }
         ResultBundleValidator.Context context;
         ResultBundleValidator.Receipt receipt;
         try {
             // Validate the complete marker and checked bytes before deriving
             // metadata; otherwise missing metadata can mask the contract reason.
-            receipt = new ResultBundleContract().validate(bundle, originalContext);
+            ResultBundleContract contract = new ResultBundleContract();
+            if (ResultBundleContract.requiresCollectionResults(originalContext)) {
+                var cohort = contract.readAdaptiveCollection(bundleRoot, originalContext, collectionResultMarkers);
+                bundle = cohort.bundle();
+                receipt = cohort.receipt();
+                originalContext = originalContext.withAdaptiveCohort(cohort.cohort());
+            } else {
+                bundle = MlResultBundleReader.read(bundleRoot);
+                receipt = contract.validate(bundle, originalContext);
+            }
             context = enrichMetadata(bundle, originalContext, importRunId);
-        } catch (RuntimeException error) {
-            writeRejected(journalRoot, originalContext, reason(error), true); throw error;
+        } catch (Exception error) {
+            String reason = reason(error);
+            writeRejected(journalRoot, originalContext, reason, !reason.startsWith("IMP_COLLECTION_RESULTS_"));
+            throw error;
         }
         JsonNode existing = null;
         if (Files.exists(registry)) {
@@ -99,6 +115,10 @@ public final class MlResultImportJob {
                 writeRejected(journalRoot, context, "IMP_REJECTED_RUN_TERMINAL", true);
                 throw new IllegalStateException("IMP_REJECTED_RUN_TERMINAL");
             }
+            if (!AdaptiveResultCohort.matches(existing, context)) {
+                writeRejected(journalRoot, context, "IMP_ADAPTIVE_COHORT_MISMATCH", false);
+                throw new IllegalStateException("IMP_ADAPTIVE_COHORT_MISMATCH");
+            }
             String localStatus = existing.path("experiment_status").asText();
             if (!"IMPORT_VALIDATING".equals(localStatus) && !"CANDIDATE".equals(localStatus)) {
                 writeRejected(journalRoot, context, "IMP_INVALID_IMPORT_STATE", false);
@@ -109,6 +129,7 @@ public final class MlResultImportJob {
             .put("experiment_status", "IMPORT_VALIDATING").put("result_bundle_sha256", receipt.bundleSha256())
             .put("created_at_utc", context.experimentMetadata().createdAtUtc());
         if (namespace != null) validating.put("namespace", namespace);
+        AdaptiveResultCohort.write(validating, context);
         try {
             MlIcebergWriter.Reservation reservation = writer.reserveExperiment(bundle, context, receipt.bundleSha256());
             if ("CANDIDATE".equals(reservation.status())) {
@@ -171,6 +192,7 @@ public final class MlResultImportJob {
             .put("summary_snapshot_id", summary).put("experiment_snapshot_id", experiment);
         if (namespace != null) candidate.put("namespace", namespace);
         if(context.collectionScope()!=null) candidate.set("collection_scope",context.collectionScope().toJson());
+        AdaptiveResultCohort.write(candidate, context);
         ObjectNode counts = candidate.putObject("readback"); readback.forEach(counts::put);
         return candidate;
     }
@@ -260,11 +282,13 @@ public final class MlResultImportJob {
         if (!Files.exists(registry)) return;
         JsonNode current = JSON.readTree(Files.readAllBytes(registry));
         if (!"IMPORT_VALIDATING".equals(current.path("experiment_status").asText())
-                || !fingerprint.equals(current.path("result_bundle_sha256").asText())) return;
+                || !fingerprint.equals(current.path("result_bundle_sha256").asText())
+                || !AdaptiveResultCohort.matches(current, context)) return;
         ObjectNode rejected = JSON.createObjectNode().put("experiment_run_id", context.runId())
             .put("dataset_id", context.datasetId()).put("experiment_status", "REJECTED")
             .put("result_bundle_sha256", fingerprint).put("status_reason_code", reason);
         if (namespace != null) rejected.put("namespace", namespace);
+        AdaptiveResultCohort.write(rejected, context);
         atomicWrite(registry, rejected);
     }
 

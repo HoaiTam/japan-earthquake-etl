@@ -66,6 +66,47 @@ Full-split `<algo>/` dành cho đánh giá/đối soát, không import qua luồ
 collection này; thêm shard ID vào full-split không làm nó hợp lệ. `RESULT_READY`
 là kết quả kiểm cấu trúc và lineage, chưa phải receipt `CANDIDATE` của Iceberg.
 
+Với `HDBSCAN_ADAPTIVE` trên collection nhiều shard, stage toàn bộ thư mục
+`<algo>_shards/<shard_id>/` cùng cấp. Trong mỗi request, đặt
+`collection_result_markers` là object ánh xạ **mọi** shard ID trong collection
+sang SHA-256 đầy đủ của `_SUCCESS.json` lấy từ evidence EXP-03/EXP-05 đã ghim.
+Dùng cùng bộ pin cho mọi request của cohort. Java kiểm từng marker, checksum
+artifact, scope và lineage từng shard rồi đối chiếu rank trên các dòng
+`is_sequence_member=true` của toàn cohort trước khi reserve run. Nếu thiếu
+pin hoặc marker, bổ sung đúng artifact rồi thử lại. Rank trùng, thiếu rank 1
+hoặc trộn `MULTIPLE` với `AMBIGUOUS` làm validation thất bại. Mỗi request
+chỉ ghi dữ liệu của shard được chỉ định trong `artifact_root`.
+
+Importer tạo digest cohort từ JSON UTF-8 gọn gồm mảng
+`["mli03-adaptive-cohort-v1", dataset_id, collection_version, collection_id, algorithm_name, model_config_version, [[shard_id, experiment_run_id, marker_sha256], ...]]`.
+Các shard được sắp theo ID. Dưới shared import lease, digest đầu tiên được giữ
+trong Iceberg table property của `experiment_run`, theo namespace và identity
+dataset/collection/algorithm/model, trước khi ghi bất kỳ dòng kết quả nào.
+Digest đã reserve cũng xuất hiện cùng các pin shard/run/marker trong
+`adaptive_cohort` của journal và receipt. Fingerprint `result_bundle_sha256`
+vẫn là fingerprint của từng bundle. Retry với marker của sibling khác hoặc
+import shard từ cohort khác bị từ chối với `IMP_ADAPTIVE_COHORT_MISMATCH`,
+kể cả khi bắt đầu từ journal mới. Namespace đã có adaptive run cho identity
+này nhưng thiếu pin trả `IMP_ADAPTIVE_COHORT_PIN_MISSING`; đối soát dữ liệu với
+owner, giữ nguyên registry và dùng namespace QA sạch đã được duyệt để thử lại.
+Nghiệm thu dùng đủ receipt của các shard, cùng digest và đúng các pin cần nghiệm thu.
+
+### Nghiệm thu adaptive REPRODUCTION — 24/11/2026
+
+[Evidence import/rerun](../evidence/MLI-03_ADAPTIVE_REPRODUCTION_20261124.json), SHA-256
+`e063fe7c7cd5de18621c14a2b78a090c717c81bf6ac89e56fb3472a69c84c57a`, lưu hai receipt
+đã lọc cùng full marker/fingerprint/cohort pins và query IDs Trino trước/sau.
+Runner build từ commit `a377a736022c9d4760e8f3afcaad6df734e8e986`
+được gọi qua control plane MLI-03 standalone, không phải scheduled DagRun.
+Rerun giữ cùng dataset `EXPORTED`, hai bundle gốc, namespace QA và cả ba
+snapshot IDs trong từng receipt; 16/8/8 snapshot của ba bảng (registry,
+membership, summary) giữ nguyên cả danh sách ID/parent, counts theo run không đổi.
+Hai lần rerun trả đúng lease; sau phiên không còn owner. Không ghi vào Gold,
+không đổi trạng thái `CANDIDATE` thành `APPROVED`.
+
+Phạm vi này không nghiệm thu EXTENSION hoặc toàn luồng Gold → ML report;
+đó là phần còn lại của [MLQ-01 — Chạy E2E Gold snapshot đến ML report](../task/tasks/MLQ-01.md).
+
 `MLI_IMPORT_RUNNER_COMMAND` chỉ lấy từ môi trường vận hành và được chạy
 không qua shell. Image Airflow đóng gói `/opt/pipeline/bin/mli-import-runner`
 và Spark/Iceberg runtime; runner phải nhận request path cuối cùng, tạo

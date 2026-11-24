@@ -1,9 +1,12 @@
 # MLQ-01 — Chuẩn bị đối soát E2E Gold đến ML report
 
 [MLQ-01](../task/tasks/MLQ-01.md) đang chuẩn bị test plan, truy vấn và fixture.
-Nghiệm thu official chờ [MLI-04 — Tạo Trino views và static report cho
-experiment](../task/tasks/MLI-04.md) xác minh exact snapshots. Giữ nguyên
-namespace, dữ liệu, và frozen rule của EXP-04/05 khi đối soát.
+[MLI-03 — Validate/import kết quả và commit bảng ML Iceberg](../task/tasks/MLI-03.md)
+và [MLI-04 — Tạo Trino views và static report cho experiment](../task/tasks/MLI-04.md)
+đã hoàn tất trên `main` (`VERIFIED` 8/8 shard `REPRODUCTION` tại exact snapshots);
+phần nghiệm thu E2E chính thức của `MLQ-01` (`EXTENSION WINDOW`, fault bundle
+không tạo `CANDIDATE`, đối chiếu rerun và receipt tổng hợp) vẫn giữ `In Progress`.
+Giữ nguyên namespace, dữ liệu, và frozen rule của EXP-04/05 khi đối soát.
 
 ## Ghim đầu vào
 
@@ -62,26 +65,116 @@ receipt chính thức của `MLQ-01` (`task_id="MLQ-01"`, `status="PASSED"`,
 `gold_snapshot_id`, năm cờ `checks=true` và kèm đầy đủ bằng chứng cho từng cổng
 (nhúng trực tiếp hoặc qua object `{"path","sha256_lf"}`):
 
-1. **Trace E2E (`runs.<experiment_run_id>.trace` và `extension.trace`):**
-   Có mặt cho đủ 4 thuật toán đại diện `REPRODUCTION` (`WINDOW`, `DBSCAN`,
-   `HDBSCAN_GLOBAL`, `HDBSCAN_ADAPTIVE`) và 1 shard `EXTENSION` `WINDOW`. Mỗi
-   object gồm `query_id` Trino riêng biệt, `dataset_id`, `experiment_run_id`,
-   `gold_snapshot_id`, ba snapshot IDs (`experiment_snapshot_id`,
-   `membership_snapshot_id`, `summary_snapshot_id`), `mainshock_event_id` !=
-   `candidate_event_id` (ánh xạ từ các cột `run_id`, `mainshock_id`, `event_id`
-   của `sql/ml/mlq01_reconciliation.sql`) và `lineage_check="PASS"`.
-2. **Reject bundle lỗi (`reject_verification`):** Ghi `namespace` QA (khác
-   Gold) và danh sách `cases` hợp lệ với `case_name`, `experiment_run_id` (khác
-   các run `CANDIDATE`), `expected_reason_code` == `actual_reason_code`
+1. **Cấu trúc hai cấp cho `runs.<experiment_run_id>` (cho đủ 4 thuật toán đại diện
+   `REPRODUCTION`: `WINDOW`, `DBSCAN`, `HDBSCAN_GLOBAL`, `HDBSCAN_ADAPTIVE`):**
+   - **Cấp `runs.<experiment_run_id>` (bắt buộc để khớp gate MLI-04):** Bắt buộc
+     chứa trực tiếp ba snapshot IDs (`experiment_snapshot_id`,
+     `membership_snapshot_id`, `summary_snapshot_id`) khớp báo cáo
+     [MLI-04](../evidence/MLI-04_OFFICIAL_READBACK_20261124.json) **cùng**
+     trường `trace`. Nếu bỏ ba snapshot IDs ở cấp run (dù có trong `trace`),
+     preflight `DEMO-01` sẽ từ chối với `DEMO_MLQ01_RUN_MISMATCH`.
+   - **Cấp `runs.<experiment_run_id>.trace` (và `extension.trace`, nhúng trực tiếp
+     hoặc `{"path","sha256_lf"}`):** Ghi `query_id` Trino riêng biệt, `dataset_id`,
+     `experiment_run_id`, `gold_snapshot_id`, lặp lại ba snapshot IDs trên,
+     `mainshock_event_id` != `candidate_event_id` (ánh xạ từ các cột `run_id`,
+     `mainshock_id`, `event_id` của `sql/ml/mlq01_reconciliation.sql`) và
+     `lineage_check="PASS"`.
+2. **Ca `extension` (`EXTENSION` `WINDOW`):** Ghi `exp05_sha256_lf`, `dataset_id`,
+   `collection_id`, `gold_snapshot_id`, `algorithm_name="WINDOW"`, `shard_id`,
+   `experiment_run_id`, `success_marker_sha256`, `success_marker_path`,
+   `import_receipt` (`{"path","sha256_lf"}`, trạng thái `CANDIDATE` với
+   `namespace` là `iceberg.ml` hoặc `<catalog>.ml_qa_<8..64 hex>`) và `trace`
+   (theo cùng schema mục 1).
+3. **Reject bundle lỗi (`reject_verification`):** Ghi `namespace` bắt buộc theo
+   ranh giới QA cô lập của [MLI-03](./MLI-03_RESULT_IMPORT.md)
+   (`<catalog>.ml_qa_<8..64 hex>`, tuyệt đối không dùng `iceberg.gold*`,
+   `iceberg.dat03_unified_20261114` hay `iceberg.ml` production) và danh sách
+   `cases` hợp lệ với `case_name`, `experiment_run_id` (khác các run
+   `CANDIDATE`), `expected_reason_code` == `actual_reason_code`
    (`IMP_*`/`EXP_*`), `experiment_status` thuộc `{"REJECTED", "NOT_CREATED"}`,
    `candidate_created=false`, `candidate_row_count=0` và `query_id`.
-3. **Rerun không trùng (`rerun_verification`):** Ghi `dataset_id`, `before_rerun`
-   và `after_rerun` cho ba bảng `experiment_run`, `sequence_membership`,
-   `sequence_summary` (tương thích cấu trúc evidence rerun
-   `docs/evidence/MLI-03_ADAPTIVE_REPRODUCTION_20261124.json` của
-   [MLI-03](../task/tasks/MLI-03.md)), có `snapshot_query_id`/`count_query_id`
-   riêng giữa trước và sau, danh sách `snapshots` (chứa snapshot đã ghim) và
-   `run_row_counts` (`experiment_run=1`) không đổi.
+4. **Rerun không trùng (`rerun_verification`):** Ghi `dataset_id` và `namespace`
+   khớp đúng `namespace` trong báo cáo `MLI-04` (nếu kiểm `REPRODUCTION`, ví dụ
+   `iceberg.ml_qa_53cf813a988340fa9ebd45a3dfebbe7b`) hoặc `extension.import_receipt`
+   (nếu kiểm `EXTENSION`), cùng `before_rerun` và `after_rerun` cho ba bảng
+   `experiment_run`, `sequence_membership`, `sequence_summary` (tương thích trực
+   tiếp [evidence rerun MLI-03](../evidence/MLI-03_ADAPTIVE_REPRODUCTION_20261124.json)),
+   có `snapshot_query_id`/`count_query_id` riêng giữa trước và sau, danh sách
+   `snapshots` (chứa snapshot đã ghim) và `run_row_counts` (`experiment_run=1`)
+   không đổi.
+
+### Ví dụ JSON tối thiểu cho receipt `MLQ-01`
+
+~~~json
+{
+  "task_id": "MLQ-01",
+  "status": "PASSED",
+  "scientific_approval": false,
+  "mli04_sha256_lf": "<64-hex sha256 LF của MLI-04_OFFICIAL_READBACK_20261124.json>",
+  "dataset_id": "ds_907fe748fafdfc0f072ce4db4e1cf0aa619ed18877129e17c8440b43062c3d87",
+  "gold_snapshot_id": "7580315846938041321",
+  "checks": {
+    "gold_to_report_lineage": true,
+    "count_parity": true,
+    "reject_without_candidate": true,
+    "rerun_no_duplicate": true,
+    "extension_rule_preserved": true
+  },
+  "runs": {
+    "exp_run_2e8155cfc8609ec0371529e5ec23aeaa": {
+      "experiment_snapshot_id": 8711590798002857163,
+      "membership_snapshot_id": 1589872702319916199,
+      "summary_snapshot_id": 3504974519972302319,
+      "trace": {
+        "query_id": "20261118_022319_00104_v3i3r",
+        "dataset_id": "ds_907fe748fafdfc0f072ce4db4e1cf0aa619ed18877129e17c8440b43062c3d87",
+        "experiment_run_id": "exp_run_2e8155cfc8609ec0371529e5ec23aeaa",
+        "gold_snapshot_id": "7580315846938041321",
+        "experiment_snapshot_id": 8711590798002857163,
+        "membership_snapshot_id": 1589872702319916199,
+        "summary_snapshot_id": 3504974519972302319,
+        "mainshock_event_id": "<mainshock_event_id>",
+        "candidate_event_id": "<post_rank_1_event_id>",
+        "lineage_check": "PASS"
+      }
+    }
+  },
+  "extension": {
+    "exp05_sha256_lf": "<64-hex sha256 LF của EXP-05_EXTENSION_EVALUATION.json>",
+    "dataset_id": "ds_5259d2fe13e027245559e1ec4a1e696b5d94d0b67f44d5ec80738c9e984978be",
+    "collection_id": "col_0dc6dc2fd0a60c2890f68863b8561813ecd1d5e1941a8995be1d58e192fe0906",
+    "gold_snapshot_id": "7580315846938041321",
+    "algorithm_name": "WINDOW",
+    "shard_id": "shard_00000",
+    "experiment_run_id": "<exp_run_id_extension_window_shard_00000>",
+    "success_marker_sha256": "<64-hex sha256 bytes của _SUCCESS.json>",
+    "success_marker_path": "docs/evidence/<staging>/_SUCCESS.json",
+    "import_receipt": { "path": "docs/evidence/<ext_import_receipt>.json", "sha256_lf": "<64-hex>" },
+    "trace": { "path": "docs/evidence/<ext_trace>.json", "sha256_lf": "<64-hex>" }
+  },
+  "reject_verification": {
+    "namespace": "iceberg.ml_qa_53cf813a988340fa9ebd45a3dfebbe7b",
+    "cases": [
+      {
+        "case_name": "checksum",
+        "experiment_run_id": "exp_qa_reject_checksum",
+        "expected_reason_code": "IMP_CHECKSUM_MISMATCH",
+        "actual_reason_code": "IMP_CHECKSUM_MISMATCH",
+        "experiment_status": "REJECTED",
+        "candidate_created": false,
+        "candidate_row_count": 0,
+        "query_id": "20261124_000001_00001_v3i3r"
+      }
+    ]
+  },
+  "rerun_verification": {
+    "path": "docs/evidence/MLI-03_ADAPTIVE_REPRODUCTION_20261124.json",
+    "sha256_lf": "<64-hex sha256 LF của file rerun>"
+  }
+}
+~~~
+
+Ghi chú mẫu trên chỉ minh họa một phần tử trong `runs`; receipt thật phải chứa đủ 4 thuật toán đại diện (`WINDOW`, `DBSCAN`, `HDBSCAN_GLOBAL`, `HDBSCAN_ADAPTIVE`) dưới `runs` với `query_id` không trùng giữa 5 lần `trace`. Có thể nhúng trực tiếp hoặc dùng cặp `{"path","sha256_lf"}` cho từng `trace`, `reject_verification` và `rerun_verification`.
 
 ## Test matrix
 
