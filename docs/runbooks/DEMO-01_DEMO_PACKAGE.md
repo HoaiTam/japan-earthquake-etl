@@ -125,10 +125,11 @@ bắt buộc kèm hai bằng chứng kiểm chứng (trực tiếp hoặc `{"pat
   `namespace` trong evidence `MLI-04` (cho `REPRODUCTION`) hoặc
   `extension.import_receipt` (cho `EXTENSION`), cùng `before_rerun` và
   `after_rerun` cho ba bảng ML (`experiment_run`, `sequence_membership`,
-  `sequence_summary`), có cặp `snapshot_query_id`/`count_query_id` Trino riêng
-  giữa trước/sau, giữ nguyên danh sách snapshots (chứa snapshot đã ghim) và
-  `run_row_counts` (`experiment_run=1`) khớp run đã kiểm. Walkthrough dùng dữ liệu
-  và truy vấn đã nghiệm thu ở MLQ-01.
+  `sequence_summary`), có **12 `query_id` Trino phân biệt** (3 bảng × 2 loại
+  `snapshot_query_id`/`count_query_id` × 2 giai đoạn trước/sau), giữ nguyên
+  danh sách snapshots (chứa snapshot đã ghim) và `run_row_counts`
+  (`experiment_run=1`) khớp run đã kiểm. Walkthrough dùng dữ liệu và truy vấn
+  đã nghiệm thu ở MLQ-01.
 
 Trường `checks` xác nhận `gold_to_report_lineage`, `count_parity`,
 `reject_without_candidate`, `rerun_no_duplicate` và `extension_rule_preserved`.

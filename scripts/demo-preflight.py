@@ -824,15 +824,22 @@ def _validate_mlq_rerun_verification(
     if not isinstance(before_raw, dict) or not isinstance(after_raw, dict):
         raise ValueError("DEMO_MLQ01_RERUN_EVIDENCE_INVALID")
     checked_key_sets: list[set[str]] = []
+    rerun_query_ids: list[str] = []
     for table_name in ML_TABLES:
         before = _normalize_rerun_table(before_raw.get(table_name), table_name, expected_runs)
         after = _normalize_rerun_table(after_raw.get(table_name), table_name, expected_runs)
-        if (before["snapshot_query_id"] == after["snapshot_query_id"]
-                or before["count_query_id"] == after["count_query_id"]
-                or before["snapshots"] != after["snapshots"]
+        if (before["snapshots"] != after["snapshots"]
                 or before["run_row_counts"] != after["run_row_counts"]):
             raise ValueError("DEMO_MLQ01_RERUN_EVIDENCE_INVALID")
+        rerun_query_ids.extend((
+            before["snapshot_query_id"],
+            before["count_query_id"],
+            after["snapshot_query_id"],
+            after["count_query_id"],
+        ))
         checked_key_sets.append(set(before["run_row_counts"].keys()))
+    if len(set(rerun_query_ids)) != len(ML_TABLES) * 4:
+        raise ValueError("DEMO_MLQ01_RERUN_EVIDENCE_INVALID")
     if checked_key_sets[0] != checked_key_sets[1] or checked_key_sets[0] != checked_key_sets[2]:
         raise ValueError("DEMO_MLQ01_RERUN_EVIDENCE_INVALID")
     if not (checked_key_sets[0] & covered_runs):

@@ -788,6 +788,13 @@ class DemoOfficialEvidenceTests(unittest.TestCase):
         def get_rid(mlq):
             return next(iter(mlq["rerun_verification"]["before_rerun"]["experiment_run"]["run_row_counts"]))
 
+        def swap_two_query_ids_across_all_tables(mlq):
+            for tbl in preflight.ML_TABLES:
+                mlq["rerun_verification"]["before_rerun"][tbl]["snapshot_query_id"] = "q_reused_a"
+                mlq["rerun_verification"]["before_rerun"][tbl]["count_query_id"] = "q_reused_b"
+                mlq["rerun_verification"]["after_rerun"][tbl]["snapshot_query_id"] = "q_reused_b"
+                mlq["rerun_verification"]["after_rerun"][tbl]["count_query_id"] = "q_reused_a"
+
         for mutate in (
             lambda mlq: mlq.pop("rerun_verification"),
             lambda mlq: mlq["rerun_verification"].pop("namespace"),
@@ -795,6 +802,13 @@ class DemoOfficialEvidenceTests(unittest.TestCase):
             lambda mlq: mlq["rerun_verification"].__setitem__(
                 "namespace", "iceberg.ml_qa_ffffffffffffffffffffffffffffffff"),
             lambda mlq: mlq["rerun_verification"].__setitem__("namespace", "iceberg.dat03_unified_20261114"),
+            swap_two_query_ids_across_all_tables,
+            lambda mlq: mlq["rerun_verification"]["before_rerun"]["experiment_run"].__setitem__(
+                "count_query_id",
+                mlq["rerun_verification"]["before_rerun"]["experiment_run"]["snapshot_query_id"]),
+            lambda mlq: mlq["rerun_verification"]["after_rerun"]["sequence_membership"].__setitem__(
+                "snapshot_query_id",
+                mlq["rerun_verification"]["before_rerun"]["experiment_run"]["count_query_id"]),
             lambda mlq: mlq["rerun_verification"]["after_rerun"]["experiment_run"]["snapshots"].append([99, 41]),
             lambda mlq: mlq["rerun_verification"]["after_rerun"]["sequence_membership"]["run_row_counts"].__setitem__(
                 get_rid(mlq), 99999),
