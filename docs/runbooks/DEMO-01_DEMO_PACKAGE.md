@@ -40,7 +40,7 @@ thành công, theo bảng EXP-04 chính thức. Hiển thị pilot riêng trong 
 
 ### Phần còn `PENDING` theo hard dependency (sẽ cập nhật khi hợp nhất chính thức)
 
-Gói `DAT-03` đã hoàn tất export hai collection official, đối chiếu đủ 3/3 receipts trên PR #131 và đã được đánh dấu **Done** trên `main` qua PR #136 ([DAT-03_FINAL_ACCEPTANCE_20261116.md](../evidence/DAT-03_FINAL_ACCEPTANCE_20261116.md)); task [OPS-01](../task/tasks/OPS-01.md) cũng đã hợp nhất **Done** qua PR #137. Các cổng thượng nguồn còn lại đang chờ để chốt số liệu official:
+Gói `DAT-03` đã hoàn tất export hai collection official, đối chiếu đủ 3/3 receipts trên PR #131 và đã được đánh dấu **Done** trên `main` qua PR #136 ([DAT-03_FINAL_ACCEPTANCE_20261116.md](../evidence/DAT-03_FINAL_ACCEPTANCE_20261116.md)); task [OPS-01](../task/tasks/OPS-01.md) cũng đã hợp nhất **Done** qua PR #137. Trên `main`, [MLI-03](../task/tasks/MLI-03.md) (`#149`) và [MLI-04](../task/tasks/MLI-04.md) (`#144`, `VERIFIED` 8/8 shard `REPRODUCTION`) đã hợp nhất; `manifest_v2` giữ trạng thái chờ ghim đồng thời [MLI-04](../evidence/MLI-04_OFFICIAL_READBACK_20261124.json) cùng receipt E2E thật từ [MLQ-01](../task/tasks/MLQ-01.md) trước khi chạy walkthrough cuối:
 
 | Cổng chờ (`Pending Gate`) | Lý do hiện hành | Tài liệu liên quan |
 |---|---|---|
@@ -89,9 +89,10 @@ Hai dòng adaptive phải chứa `adaptive_cohort_sha256` khớp digest prefligh
 từ dataset, model version và các shard/run/marker đã ghim của EXP-03. Tạo lại
 evidence cũ qua verifier MLI-04 nếu thiếu digest.
 Receipt MLQ-01 PASSED ghim SHA LF của MLI-04, dataset REPRODUCTION và Gold
-snapshot. Trường `runs` ánh xạ run ID sang ba snapshot IDs khớp report MLI-04
-kèm trường `trace` (trực tiếp hoặc `{"path","sha256_lf"}`) ghi `query_id`,
-`dataset_id`, `experiment_run_id`, `gold_snapshot_id`, ba snapshot IDs,
+snapshot. Cấu trúc `runs.<experiment_run_id>` giữ hai cấp: cấp run bắt buộc
+chứa trực tiếp ba snapshot IDs khớp báo cáo MLI-04, **kèm** trường `trace`
+(trực tiếp hoặc `{"path","sha256_lf"}`) ghi `query_id`, `dataset_id`,
+`experiment_run_id`, `gold_snapshot_id`, ba snapshot IDs,
 `mainshock_event_id` != `candidate_event_id` và `lineage_check=PASS`.
 Chọn ít nhất một run đại diện cho từng thuật toán WINDOW, DBSCAN, HDBSCAN_GLOBAL
 và HDBSCAN_ADAPTIVE. Có thể dùng bốn run trong tám run đã đối soát.
@@ -107,20 +108,27 @@ không đối chiếu toàn bộ cohort EXTENSION). Đặt bản sao nguyên byt
 của `_SUCCESS.json` trong staging dưới thư mục repo và dùng đường dẫn tương đối,
 để SHA-256 khớp đúng pin của EXP-05 trên cả Windows và Linux.
 
-Receipt MLI-03 của shard phải là CANDIDATE, khớp identity và ba snapshot IDs.
+Receipt MLI-03 của shard phải là CANDIDATE, khớp identity, ba snapshot IDs và
+`namespace` ML hợp lệ (`iceberg.ml` hoặc `<catalog>.ml_qa_<8..64 hex>`).
 Preflight tính `result_bundle_sha256` từ marker theo ResultBundleContract,
 đối chiếu count membership/summary với EXP-05 và yêu cầu
 `readback.experiment_run = 1`. Ngoài năm cờ `checks=true`, receipt MLQ-01 còn
 bắt buộc kèm hai bằng chứng kiểm chứng (trực tiếp hoặc `{"path","sha256_lf"}`):
-- `reject_verification`: `namespace` QA (khác Gold) và danh sách `cases` hợp lệ
-  chứng minh bundle lỗi trả đúng `IMP_*`/`EXP_*` reason code, không tạo
-  `CANDIDATE` (`experiment_status` là `REJECTED`/`NOT_CREATED`,
-  `candidate_created=false`, `candidate_row_count=0`, có `query_id`).
-- `rerun_verification`: `dataset_id` cùng `before_rerun` và `after_rerun` cho ba
-  bảng ML (`experiment_run`, `sequence_membership`, `sequence_summary`), có cặp
-  `snapshot_query_id`/`count_query_id` Trino riêng giữa trước/sau, giữ nguyên
-  danh sách snapshots (chứa snapshot đã ghim) và `run_row_counts` (`experiment_run=1`)
-  khớp run đã kiểm. Walkthrough dùng dữ liệu và truy vấn đã nghiệm thu ở MLQ-01.
+- `reject_verification`: `namespace` bắt buộc theo ranh giới QA cô lập của
+  [MLI-03](./MLI-03_RESULT_IMPORT.md) (`<catalog>.ml_qa_<8..64 hex>`, từ chối
+  mọi namespace Gold như `iceberg.gold*`, `iceberg.dat03_unified_20261114` hoặc
+  `iceberg.ml` production) và danh sách `cases` hợp lệ chứng minh bundle lỗi
+  trả đúng `IMP_*`/`EXP_*` reason code, không tạo `CANDIDATE`
+  (`experiment_status` là `REJECTED`/`NOT_CREATED`, `candidate_created=false`,
+  `candidate_row_count=0`, có `query_id`).
+- `rerun_verification`: `dataset_id` và `namespace` bắt buộc khớp đúng
+  `namespace` trong evidence `MLI-04` (cho `REPRODUCTION`) hoặc
+  `extension.import_receipt` (cho `EXTENSION`), cùng `before_rerun` và
+  `after_rerun` cho ba bảng ML (`experiment_run`, `sequence_membership`,
+  `sequence_summary`), có cặp `snapshot_query_id`/`count_query_id` Trino riêng
+  giữa trước/sau, giữ nguyên danh sách snapshots (chứa snapshot đã ghim) và
+  `run_row_counts` (`experiment_run=1`) khớp run đã kiểm. Walkthrough dùng dữ liệu
+  và truy vấn đã nghiệm thu ở MLQ-01.
 
 Trường `checks` xác nhận `gold_to_report_lineage`, `count_parity`,
 `reject_without_candidate`, `rerun_no_duplicate` và `extension_rule_preserved`.

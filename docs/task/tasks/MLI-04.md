@@ -1,6 +1,6 @@
 ---
 task_id: "MLI-04"
-status: "Needs Update"
+status: "Done"
 week: 8
 block: "I - ML Integration"
 workstream: "ML serving and report"
@@ -14,9 +14,9 @@ dependencies: ["MLI-03", "EXP-04"]
 
 # MLI-04 - Tạo Trino views và static report cho experiment
 
-## Giao việc hiện hành — 11/11/2026
+## Giao việc ban đầu — 11/11/2026
 
-- **Owner:** ThanhTris; **status:** Needs Update.
+- **Owner:** ThanhTris; **status:** In Progress.
 - **Làm phần gì / dùng để làm gì:** Trino/static report official.
 - **Bắt đầu độc lập:** Tái dùng views/report/tests đã merge #124, không viết lại template.
 - **Đầu ra và điều kiện Done:** Sau EXP-04 và actual import: đọc đúng dataset/run/snapshot, đối soát SQL với report; chưa đủ evidence phải PENDING.
@@ -49,7 +49,7 @@ MVP phụ thuộc Power BI hoặc notebook output.
 ## Tiêu chí hoàn thành
 
 - [x] Query chỉ đọc experiment `CANDIDATE`/`APPROVED` theo filter rõ.
-- [ ] Count/summary/metric trong report khớp SQL cùng dataset/run.
+- [x] Count/summary/metric trong report khớp SQL cùng dataset/run.
 - [x] Failure/noise/sample size không bị ẩn khỏi bảng so sánh.
 - [x] Report dùng từ candidate và nêu rõ không dự đoán/causal.
 
@@ -87,16 +87,18 @@ Task cũ chưa làm giữ Backlog; không đổi hard dependencies để pilot �
 
 ## Theo dõi
 
-- **Trạng thái:** Needs Update
+- **Trạng thái:** Done
 - **Assignee:** ThanhTris
-- **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Triển khai Trino ML views (`sql/ml/`), verification queries (`sql/ml/ml_verification_queries.sql`), static report generator (`scripts/generate-experiment-report.py`), data dictionary (`docs/specs/ML_REPORT_DATA_DICTIONARY.md`), báo cáo tĩnh mẫu (`docs/evidence/MLI-04_STATIC_REPORT.md`), và regression test suite (`tests/test_mli04_views_and_report.py`) trên branch `feat/mli-04-trino-views-static-report` ([PR #124](https://github.com/HoaiTam/japan-earthquake-etl/pull/124)). Giữ `In Progress` chờ nghiệm thu SQL readback và count parity chính thức trên exact snapshot khi hoàn tất export official.
+- **Reviewer:** unassigned
+- **Đối soát official 24/11/2026:** [Báo cáo](../../evidence/MLI-04_OFFICIAL_READBACK_20261124.md) / [evidence JSON](../../evidence/MLI-04_OFFICIAL_READBACK_20261124.json): `VERIFIED`, tám receipt `CANDIDATE`, 36/36 truy vấn trên snapshot đã ghim. Hai shard Adaptive có cùng cohort digest; 99.067 lượt gán POST, 88.078 aftershock candidate duy nhất, 10.989 lượt trùng và 0 dòng POST `AMBIGUOUS`. Không có scientific approval.
+- **Evidence / PR:** Views, truy vấn, report generator và regression đã merge [#124](https://github.com/HoaiTam/japan-earthquake-etl/pull/124); [#144](https://github.com/HoaiTam/japan-earthquake-etl/pull/144) bổ sung parity trên catalog QA thật. [MLI-03 — Validate/import kết quả và commit bảng ML Iceberg](./MLI-03.md) đã Done sau [#149](https://github.com/HoaiTam/japan-earthquake-etl/pull/149), với [evidence rerun](../../evidence/MLI-03_ADAPTIVE_REPRODUCTION_20261124.json) giữ nguyên hai receipt Adaptive và các snapshot. [Runbook](../../runbooks/MLI-04_OFFICIAL_READBACK.md) lưu pin runner đã nghiệm thu.
+- **Phạm vi còn lại:** [MLQ-01 — Chạy E2E Gold snapshot đến ML report](./MLQ-01.md) còn cần ca EXTENSION và receipt E2E. Readback REPRODUCTION không thay nghiệm thu đó hoặc scientific approval.
 - **Kỹ năng phù hợp:** Trino SQL, reproducible reporting, data validation
 
 ## Checklist bàn giao
 
 - [x] Deliverable và test/evidence tồn tại trong repository.
-- [ ] Acceptance criteria đã được kiểm tra.
+- [x] Acceptance criteria đã được kiểm tra.
 - [x] Contract/docs đã cập nhật và không chứa secret/data dump.
 - [x] Reviewer độc lập được khuyến nghị cho P0.
 

@@ -460,6 +460,7 @@ class DemoOfficialEvidenceTests(unittest.TestCase):
         refs["MLQ-01"] = {"path": "mlq01-evidence.json", "sha256_lf": "b" * 64}
         docs["MLI-04"] = {"schema_version": "mli04-readback-v1", "task_id": "MLI-04",
                           "status": "VERIFIED", "missing_run_ids": [], "scientific_approval": False,
+                          "namespace": "iceberg.ml_qa_53cf813a988340fa9ebd45a3dfebbe7b",
                           "dataset_id": dataset["dataset_id"], "collection_id": dataset["collection_id"],
                           "exp04_sha256_lf": refs["EXP-04"]["sha256_lf"], "runs": sql_rows}
         representative = {}
@@ -531,6 +532,7 @@ class DemoOfficialEvidenceTests(unittest.TestCase):
         adaptive_pin = docs["EXP-03"]["shard_verifications"][adaptive_row["shard_id"]]
         rerun_verification = {
             "dataset_id": dataset["dataset_id"],
+            "namespace": "iceberg.ml_qa_53cf813a988340fa9ebd45a3dfebbe7b",
             "before_rerun": {
                 "experiment_run": {
                     "snapshot_query_id": "20261124_120100_00010_v3i3r",
@@ -573,7 +575,7 @@ class DemoOfficialEvidenceTests(unittest.TestCase):
             },
         }
         reject_verification = {
-            "namespace": "iceberg.mlq_qa",
+            "namespace": "iceberg.ml_qa_53cf813a988340fa9ebd45a3dfebbe7b",
             "cases": [
                 {
                     "case_name": "checksum",
@@ -602,7 +604,7 @@ class DemoOfficialEvidenceTests(unittest.TestCase):
             "experiment_run_id": extension["experiment_run_id"],
             "dataset_id": extension["dataset_id"],
             "algorithm_name": algo,
-            "namespace": "iceberg.mlq_qa",
+            "namespace": "iceberg.ml_qa_53cf813a988340fa9ebd45a3dfebbe7b",
             "experiment_status": "CANDIDATE",
             "result_bundle_sha256": fingerprint,
             "collection_scope": {
@@ -761,8 +763,13 @@ class DemoOfficialEvidenceTests(unittest.TestCase):
     def test_v2_rejects_mlq01_missing_or_invalid_reject_verification(self):
         for mutate in (
             lambda mlq: mlq.pop("reject_verification"),
+            lambda mlq: mlq["reject_verification"].pop("namespace"),
             lambda mlq: mlq["reject_verification"].__setitem__("cases", []),
             lambda mlq: mlq["reject_verification"].__setitem__("namespace", "iceberg.gold_prod"),
+            lambda mlq: mlq["reject_verification"].__setitem__("namespace", "iceberg.dat03_unified_20261114"),
+            lambda mlq: mlq["reject_verification"].__setitem__("namespace", "iceberg.ml"),
+            lambda mlq: mlq["reject_verification"].__setitem__("namespace", "iceberg.gold_qa_12345678"),
+            lambda mlq: mlq["reject_verification"].__setitem__("namespace", "iceberg.mlq_qa"),
             lambda mlq: mlq["reject_verification"]["cases"][0].__setitem__("candidate_created", True),
             lambda mlq: mlq["reject_verification"]["cases"][0].__setitem__("experiment_status", "CANDIDATE"),
             lambda mlq: mlq["reject_verification"]["cases"][0].__setitem__("candidate_row_count", 1),
@@ -783,6 +790,11 @@ class DemoOfficialEvidenceTests(unittest.TestCase):
 
         for mutate in (
             lambda mlq: mlq.pop("rerun_verification"),
+            lambda mlq: mlq["rerun_verification"].pop("namespace"),
+            lambda mlq: mlq["rerun_verification"].__setitem__("namespace", " "),
+            lambda mlq: mlq["rerun_verification"].__setitem__(
+                "namespace", "iceberg.ml_qa_ffffffffffffffffffffffffffffffff"),
+            lambda mlq: mlq["rerun_verification"].__setitem__("namespace", "iceberg.dat03_unified_20261114"),
             lambda mlq: mlq["rerun_verification"]["after_rerun"]["experiment_run"]["snapshots"].append([99, 41]),
             lambda mlq: mlq["rerun_verification"]["after_rerun"]["sequence_membership"]["run_row_counts"].__setitem__(
                 get_rid(mlq), 99999),
@@ -808,6 +820,109 @@ class DemoOfficialEvidenceTests(unittest.TestCase):
                 mutate(documents["mlq01-evidence.json"])
                 with self.assertRaisesRegex(ValueError, "DEMO_MLQ01_RERUN_EVIDENCE_INVALID"):
                     self._run_ready_fixture(manifest, documents)
+
+    def test_v2_enforces_namespace_parity_two_level_runs_and_real_mli03_mli04_evidence(self):
+        # 1. Missing or Gold MLI-04 namespace fails closed.
+        for bad_ns in (None, "iceberg.dat03_unified_20261114", "iceberg.gold"):
+            manifest, documents = self._ready_fixture()
+            if bad_ns is None:
+                documents["mli04-evidence.json"].pop("namespace")
+            else:
+                documents["mli04-evidence.json"]["namespace"] = bad_ns
+            with self.assertRaisesRegex(ValueError, "DEMO_MLI04_NOT_VERIFIED"):
+                self._run_ready_fixture(manifest, documents)
+
+        # 2. Gold namespace in extension import receipt fails closed.
+        manifest, documents = self._ready_fixture()
+        documents["extension-import.json"]["namespace"] = "iceberg.dat03_unified_20261114"
+        with self.assertRaisesRegex(ValueError, "DEMO_MLQ01_EXTENSION_IMPORT"):
+            self._run_ready_fixture(manifest, documents)
+
+        # 3. EXTENSION rerun must match extension-import receipt namespace, not REPRODUCTION MLI-04 namespace.
+        manifest, documents = self._ready_fixture()
+        mlq = documents["mlq01-evidence.json"]
+        ext = mlq["extension"]
+        ext_rid = ext["experiment_run_id"]
+        ext_counts = documents[manifest["official_evidence"]["EXP-05"]["path"]][
+            "algorithm_comparisons"]["WINDOW"]["bundle_verification"]["shard_verifications"][ext["shard_id"]]
+        ext_ns = "iceberg.ml_qa_eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        documents["extension-import.json"]["namespace"] = ext_ns
+        mlq["rerun_verification"] = {
+            "dataset_id": ext["dataset_id"],
+            "namespace": ext_ns,
+            "before_rerun": {
+                "experiment_run": {"snapshot_query_id": "q_b1", "count_query_id": "q_b2",
+                                   "snapshots": [[51, None]], "run_row_counts": {ext_rid: 1}},
+                "sequence_membership": {"snapshot_query_id": "q_b3", "count_query_id": "q_b4",
+                                        "snapshots": [[52, None]],
+                                        "run_row_counts": {ext_rid: ext_counts["membership_row_count"]}},
+                "sequence_summary": {"snapshot_query_id": "q_b5", "count_query_id": "q_b6",
+                                     "snapshots": [[53, None]],
+                                     "run_row_counts": {ext_rid: ext_counts["summary_row_count"]}},
+            },
+            "after_rerun": {
+                "experiment_run": {"snapshot_query_id": "q_a1", "count_query_id": "q_a2",
+                                   "snapshots": [[51, None]], "run_row_counts": {ext_rid: 1}},
+                "sequence_membership": {"snapshot_query_id": "q_a3", "count_query_id": "q_a4",
+                                        "snapshots": [[52, None]],
+                                        "run_row_counts": {ext_rid: ext_counts["membership_row_count"]}},
+                "sequence_summary": {"snapshot_query_id": "q_a5", "count_query_id": "q_a6",
+                                     "snapshots": [[53, None]],
+                                     "run_row_counts": {ext_rid: ext_counts["summary_row_count"]}},
+            },
+        }
+        self.assertEqual("PASS_OFFICIAL_READY", self._run_ready_fixture(manifest, documents)["overall_status"])
+        mlq["rerun_verification"]["namespace"] = documents["mli04-evidence.json"]["namespace"]
+        with self.assertRaisesRegex(ValueError, "DEMO_MLQ01_RERUN_EVIDENCE_INVALID"):
+            self._run_ready_fixture(manifest, documents)
+
+        # 4. Deleting run-level snapshot pin while keeping trace intact triggers DEMO_MLQ01_RUN_MISMATCH.
+        manifest, documents = self._ready_fixture()
+        next(iter(documents["mlq01-evidence.json"]["runs"].values())).pop("experiment_snapshot_id")
+        with self.assertRaisesRegex(ValueError, "DEMO_MLQ01_RUN_MISMATCH"):
+            self._run_ready_fixture(manifest, documents)
+
+        # 5. Real merged MLI-04 & MLI-03 evidence files match namespace, snapshots, and rerun checks.
+        manifest, documents = self._ready_fixture()
+        real_mli04_path = "docs/evidence/MLI-04_OFFICIAL_READBACK_20261124.json"
+        real_mli03_path = "docs/evidence/MLI-03_ADAPTIVE_REPRODUCTION_20261124.json"
+        mli04_bytes = (ROOT / real_mli04_path).read_bytes().replace(b"\r\n", b"\n")
+        mli03_bytes = (ROOT / real_mli03_path).read_bytes().replace(b"\r\n", b"\n")
+        mli04_sha = hashlib.sha256(mli04_bytes).hexdigest()
+        mli03_sha = hashlib.sha256(mli03_bytes).hexdigest()
+        real_mli04 = json.loads(mli04_bytes)
+        real_mli03 = json.loads(mli03_bytes)
+        manifest["official_evidence"]["MLI-04"] = {"path": real_mli04_path, "sha256_lf": mli04_sha}
+        documents[real_mli04_path] = real_mli04
+        documents[real_mli03_path] = real_mli03
+        mlq = documents["mlq01-evidence.json"]
+        mlq["mli04_sha256_lf"] = mli04_sha
+        rep_by_algo = {}
+        for row in real_mli04["runs"]:
+            rep_by_algo.setdefault(row["algorithm_name"], row)
+        mlq["runs"] = {
+            row["experiment_run_id"]: {
+                **row["snapshots"],
+                "trace": {
+                    "query_id": f"20261124_130000_0000{idx + 1}_v3i3r",
+                    "dataset_id": real_mli04["dataset_id"],
+                    "experiment_run_id": row["experiment_run_id"],
+                    "gold_snapshot_id": mlq["gold_snapshot_id"],
+                    **row["snapshots"],
+                    "mainshock_event_id": f"main_real_{idx}",
+                    "candidate_event_id": f"post_real_{idx}",
+                    "lineage_check": "PASS",
+                },
+            }
+            for idx, row in enumerate(rep_by_algo.values())
+        }
+        mlq["rerun_verification"] = {"path": real_mli03_path, "sha256_lf": mli03_sha}
+        self.assertEqual("PASS_OFFICIAL_READY", self._run_ready_fixture(manifest, documents)["overall_status"])
+
+        documents[real_mli03_path] = copy.deepcopy(real_mli03)
+        documents[real_mli03_path]["runs"][0]["receipt"]["namespace"] = "iceberg.ml_qa_ffffffffffffffffffffffffffffffff"
+        with self.assertRaisesRegex(ValueError, "DEMO_MLQ01_RERUN_EVIDENCE_INVALID"):
+            self._run_ready_fixture(manifest, documents)
 
     def test_v2_accepts_pinned_external_mlq01_evidence_and_blocks_sha_drift(self):
         manifest, documents = self._ready_fixture()

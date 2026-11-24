@@ -34,6 +34,8 @@ ML_TABLE_SNAPSHOT_FIELD = {
     "sequence_summary": "summary_snapshot_id",
 }
 ML_BUNDLE_CONTRACT = "spark/src/main/resources/ml/result-bundle-v1.json"
+# Match MLI-03 isolated QA boundary (airflow/dags/mli_03_import_results.py) and allow prod iceberg.ml where parity reads occur.
+MLI03_QA_NAMESPACE_RE = re.compile(r"[a-z][a-z0-9_]*\.ml_qa_[0-9a-f]{8,64}")
 REQUIRED_QA01_TABLES = (
     "event_current",
     "event_source_bridge",
@@ -637,7 +639,7 @@ def _validate_mlq_extension(root, case, report, exp05_sha):
     scope = receipt.get("collection_scope")
     counts = receipt.get("readback")
     namespace = receipt.get("namespace")
-    if (not isinstance(namespace, str) or not re.fullmatch(r"[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*", namespace)
+    if (not _is_allowed_ml_table_namespace(namespace)
             or receipt.get("experiment_status") != "CANDIDATE"
             or any(receipt.get(field) != case[field] for field in ("experiment_run_id", "dataset_id", "algorithm_name"))
             or not isinstance(scope, dict) or scope.get("scope") != "WHOLE_WINDOW_SHARD"
@@ -678,6 +680,16 @@ def _require_nonempty_str(value: Any, error_code: str) -> str:
     if not isinstance(value, str) or not value or value != value.strip():
         raise ValueError(error_code)
     return value
+
+
+def _is_mli03_qa_namespace(namespace: Any) -> bool:
+    """Return True only when namespace follows the MLI-03 isolated QA boundary."""
+    return isinstance(namespace, str) and bool(MLI03_QA_NAMESPACE_RE.fullmatch(namespace))
+
+
+def _is_allowed_ml_table_namespace(namespace: Any) -> bool:
+    """Allow production iceberg.ml or isolated MLI-03 QA namespaces for ML table receipts."""
+    return namespace == "iceberg.ml" or _is_mli03_qa_namespace(namespace)
 
 
 def _resolve_receipt_section(root: Path, value: Any, error_code: str) -> dict[str, Any]:
@@ -728,7 +740,7 @@ def _validate_mlq_reject_verification(root: Path, value: Any, candidate_run_ids:
     """Verify fault/invalid bundle negative evidence proves no CANDIDATE run was created."""
     doc = _resolve_receipt_section(root, value, "DEMO_MLQ01_REJECT_EVIDENCE_INVALID")
     namespace = _require_nonempty_str(doc.get("namespace"), "DEMO_MLQ01_REJECT_EVIDENCE_INVALID")
-    if not re.fullmatch(r"[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*", namespace) or namespace.startswith("iceberg.gold"):
+    if not _is_mli03_qa_namespace(namespace):
         raise ValueError("DEMO_MLQ01_REJECT_EVIDENCE_INVALID")
     cases = doc.get("cases")
     if not isinstance(cases, list) or not cases:
@@ -794,15 +806,19 @@ def _normalize_rerun_table(
 def _validate_mlq_rerun_verification(
     root: Path,
     value: Any,
-    expected_by_dataset: dict[str, dict[str, dict[str, Any]]],
+    expected_by_dataset: dict[str, dict[str, Any]],
     covered_runs: set[str],
 ) -> list[str]:
-    """Verify pre/post rerun Trino queries prove identical Iceberg snapshots and row counts."""
+    """Verify pre/post rerun Trino queries prove identical Iceberg snapshots, namespace, and row counts."""
     doc = _resolve_receipt_section(root, value, "DEMO_MLQ01_RERUN_EVIDENCE_INVALID")
     dataset_id = _require_nonempty_str(doc.get("dataset_id"), "DEMO_MLQ01_RERUN_EVIDENCE_INVALID")
     if dataset_id not in expected_by_dataset:
         raise ValueError("DEMO_MLQ01_RERUN_EVIDENCE_INVALID")
-    expected_runs = expected_by_dataset[dataset_id]
+    expected_entry = expected_by_dataset[dataset_id]
+    namespace = _require_nonempty_str(doc.get("namespace"), "DEMO_MLQ01_RERUN_EVIDENCE_INVALID")
+    if namespace != expected_entry["namespace"]:
+        raise ValueError("DEMO_MLQ01_RERUN_EVIDENCE_INVALID")
+    expected_runs = expected_entry["runs"]
     before_raw = doc.get("before_rerun")
     after_raw = doc.get("after_rerun")
     if not isinstance(before_raw, dict) or not isinstance(after_raw, dict):
@@ -830,6 +846,12 @@ def _validate_mlq_rerun_verification(
                     or not re.fullmatch(r"[0-9a-f]{64}", str(item.get("first_receipt_sha256") or ""))
                     or item.get("rerun_receipt_sha256") != item.get("first_receipt_sha256")):
                 raise ValueError("DEMO_MLQ01_RERUN_EVIDENCE_INVALID")
+            if "receipt" in item:
+                receipt = item.get("receipt")
+                if (not isinstance(receipt, dict)
+                        or receipt.get("namespace") != namespace
+                        or receipt.get("dataset_id") != dataset_id):
+                    raise ValueError("DEMO_MLQ01_RERUN_EVIDENCE_INVALID")
     return sorted(checked_key_sets[0])
 
 
@@ -908,13 +930,16 @@ def _validate_official_evidence(root, manifest, release):
     pending = []
     sql_runs = {}
     mli04_counts = {}
+    mli04_namespace = ""
     if "MLI-04" not in refs:
         pending.append({"task_id": "MLI-04", "reason": "Chua co official SQL parity tren exact snapshots"})
     else:
         report = _pinned_official_json(root, refs["MLI-04"])
+        mli04_namespace = report.get("namespace") if isinstance(report.get("namespace"), str) else ""
         if (report.get("schema_version") != "mli04-readback-v1" or report.get("task_id") != "MLI-04"
                 or report.get("status") != "VERIFIED" or report.get("missing_run_ids") != []
                 or report.get("scientific_approval") is not False
+                or not _is_allowed_ml_table_namespace(mli04_namespace)
                 or report.get("dataset_id") != cohort["dataset_id"] or report.get("collection_id") != cohort["collection_id"]
                 or report.get("exp04_sha256_lf") != refs["EXP-04"]["sha256_lf"]):
             raise ValueError("DEMO_MLI04_NOT_VERIFIED")
@@ -993,14 +1018,20 @@ def _validate_official_evidence(root, manifest, release):
         reject_cases = _validate_mlq_reject_verification(root, report.get("reject_verification"), candidate_runs)
         expected_by_dataset = {
             cohort["dataset_id"]: {
-                rid: {"snapshots": sql_runs[rid], "counts": mli04_counts[rid]}
-                for rid in sql_runs
+                "namespace": mli04_namespace,
+                "runs": {
+                    rid: {"snapshots": sql_runs[rid], "counts": mli04_counts[rid]}
+                    for rid in sql_runs
+                },
             },
             extension_lineage["dataset_id"]: {
-                extension_lineage["experiment_run_id"]: {
-                    "snapshots": extension_lineage["snapshots"],
-                    "counts": extension_lineage["readback"],
-                }
+                "namespace": extension_lineage["namespace"],
+                "runs": {
+                    extension_lineage["experiment_run_id"]: {
+                        "snapshots": extension_lineage["snapshots"],
+                        "counts": extension_lineage["readback"],
+                    }
+                },
             },
         }
         rerun_runs = _validate_mlq_rerun_verification(
