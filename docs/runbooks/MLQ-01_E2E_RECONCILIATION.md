@@ -4,9 +4,25 @@
 [MLI-03 — Validate/import kết quả và commit bảng ML Iceberg](../task/tasks/MLI-03.md)
 và [MLI-04 — Tạo Trino views và static report cho experiment](../task/tasks/MLI-04.md)
 đã hoàn tất trên `main` (`VERIFIED` 8/8 shard `REPRODUCTION` tại exact snapshots);
-phần nghiệm thu E2E chính thức của `MLQ-01` (`EXTENSION WINDOW`, fault bundle
-không tạo `CANDIDATE`, đối chiếu rerun và receipt tổng hợp) vẫn giữ `In Progress`.
+`MLQ-01` vẫn `In Progress` chờ ca `EXTENSION WINDOW` và receipt E2E tổng hợp.
 Giữ nguyên namespace, dữ liệu, và frozen rule của EXP-04/05 khi đối soát.
+
+## Nghiệm thu một phần — 24/11/2026
+
+[Evidence QA](../evidence/MLQ-01_REPRODUCTION_PARTIAL_20261124.json) ghi bốn
+trace `PASS` trên snapshot REPRODUCTION (WINDOW, DBSCAN, HDBSCAN_GLOBAL và
+HDBSCAN_ADAPTIVE) và ca checksum lỗi bị `IMP_CHECKSUM_MISMATCH`. Ca lỗi dùng
+bản sao trong namespace QA mới; Trino không thấy bảng kết quả nào, không có
+`CANDIDATE`, lease của phiên đã được trả. [Evidence rerun MLI-03](../evidence/MLI-03_ADAPTIVE_REPRODUCTION_20261124.json)
+giữ nguyên counts và snapshot của hai shard Adaptive.
+
+Chưa phát hành receipt `PASSED`. Để đóng MLQ-01, cần bundle gốc WINDOW
+EXTENSION của [EXP-05](../evidence/EXP-05_EXTENSION_EVALUATION.json), ví dụ
+`shard_00000` / `exp_run_46158cb713554d5a3273c944263c3ed3`, SHA-256 marker
+`c799a303f5f9dd3e93664634fc8e56494f8539d29d4f38ff70d3c27ca7ddbe3b`.
+Nhận `_SUCCESS.json` cùng toàn bộ tệp trong `checksums`, giữ nguyên bytes;
+import vào namespace QA rồi truy vết trên snapshot của receipt `CANDIDATE`.
+Không dùng report EXP-05 hoặc mô hình fit lại thay bundle đã ghim.
 
 ## Ghim đầu vào
 
