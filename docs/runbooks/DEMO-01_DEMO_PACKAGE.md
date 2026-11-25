@@ -1,10 +1,10 @@
 # DEMO-01 — Gói Dữ liệu, Kịch bản Trình bày và Preflight Checklist
 
-Tài liệu triển khai cho [DEMO-01](../task/tasks/DEMO-01.md) (trạng thái hiện hành: **In Progress**, chờ hoàn tất [MLI-04](../task/tasks/MLI-04.md) và [MLQ-01](../task/tasks/MLQ-01.md) để chốt số liệu official trước khi chuyển `Done`). Kịch bản này tuân thủ [hướng dẫn chọn evidence](../DEMO_FLOWS.md) và [các giới hạn hiện hành](../KNOWN_ISSUES.md).
+Tài liệu triển khai cho [DEMO-01](../task/tasks/DEMO-01.md) (trạng thái hiện hành: **In Progress**, đã ghim đủ [MLI-04](../task/tasks/MLI-04.md) và [MLQ-01](../task/tasks/MLQ-01.md) trong manifest v2 `PASS_OFFICIAL_READY`, còn chờ chạy walkthrough 15–20 phút trước khi chuyển `Done`). Kịch bản này tuân thủ [hướng dẫn chọn evidence](../DEMO_FLOWS.md) và [các giới hạn hiện hành](../KNOWN_ISSUES.md).
 
 > [!IMPORTANT]
 > **Nguyên tắc bắt buộc khi trình bày:**
-> 1. **Không chạy lại ETL 40 năm hay build/pull container trên sân khấu.** Dùng exact `run_id`, `publication_id`, 6 `snapshot_id`, truy vấn SQL và static report đã ghim trong [demo_package_manifest_v1.json](../../config/demo/demo_package_manifest_v1.json).
+> 1. **Không chạy lại ETL 40 năm hay build/pull container trên sân khấu.** Dùng exact `run_id`, `publication_id`, 6 `snapshot_id`, truy vấn SQL và static report đã ghim trong [demo_package_manifest_v2.json](../../config/demo/demo_package_manifest_v2.json).
 > 2. **Ranh giới khoa học:** Mọi kết quả phân cụm là **sequence/aftershock candidate hồi cứu**, tuyệt đối **không tuyên bố dự đoán động đất** hay quan hệ nhân quả vật lý; không dùng `accuracy` / `f1`; giữ nguyên cửa sổ lỗi (`failed_windows`) trong mẫu số.
 > 3. **Không phụ thuộc Power BI:** Đầu ra Core là bảng Iceberg qua Trino SQL và báo cáo tĩnh (`MLI-04`); Power BI (`BI-01..BI-05`) chỉ là Stretch.
 > 4. **Phân biệt rõ nhãn phạm vi:** Không đánh đồng dữ liệu pilot (`DEVELOPMENT_ONLY`, `research_ready=false`) hay QA bounded (`PROVISIONAL`) với official `APPROVED`.
@@ -27,19 +27,27 @@ Toàn bộ con số trình bày đều gắn với `run_id` / `publication_id` /
 | ML Pilot dataset (`DAT-02`) | `DEVELOPMENT_ONLY` (`PARTIAL`, `research_ready=false`) | Pilot: `pilot_196b6d4081d347e1c289e331022658fbbe572dd33181ad987900895c1f1b189c` | **279** feature rows / **2** mainshocks; ZIP SHA `f58291b72873e1b26791fef97818fdcf5e2b028a5dfa528885a666d8cdc1b870` | [DAT-03 team pilot JSON](../evidence/DAT-03_TEAM_RELEASE.json) |
 | Baseline parity (`EXP-02`) | `DEVELOPMENT_ONLY` (Local ↔ Colab parity) | Status: `COLAB_PILOT_PARITY_VERIFIED` | `WINDOW`, `DBSCAN`, `HDBSCAN_GLOBAL` đồng bộ seed `42`, fresh `nbclient` kernel | [EXP-02 parity](../evidence/EXP-02_COLAB_PARITY_20261102.md), [EXP-02 JSON](../evidence/EXP-02_COLAB_PARITY_20261102.json) |
 | Adaptive & multi-seq (`EXP-03`) | `DEVELOPMENT_ONLY` (local smoke) | Run: `pilot_run_cfe24f4de7704819ac1c6116360e1aae` | `RESTART_RUN_ALL_PASSED` via `nbclient` (`8.41s`), order-invariant tie resolution + `AMBIGUOUS` | [EXP-03 evidence](../evidence/EXP-03.md), [EXP-03 smoke JSON](../evidence/EXP-03-local-smoke.json) |
-| Scientific eval & report (`EXP-04`, `MLI-04`) | `DEVELOPMENT_ONLY` (`PENDING OFFICIAL IMPORT`) | Script: [generate-experiment-report.py](../../scripts/generate-experiment-report.py) | Bảng 4 thuật toán (`DBCV`, noise, Modified Omori `p`, `Jaccard`/`ARI`, failure reasons) + 7 câu kiểm chứng ML SQL | [EXP-04 pilot](../evidence/EXP-04_PILOT_EVALUATION.md), [MLI-04 report](../evidence/MLI-04_STATIC_REPORT.md), [ML SQL](../../sql/ml/ml_verification_queries.sql) |
+| Scientific eval & report (`EXP-04`, `MLI-04`) | `DEVELOPMENT_ONLY` (fallback pilot, không thay số liệu official) | Script: [generate-experiment-report.py](../../scripts/generate-experiment-report.py) | Bảng 4 thuật toán (`DBCV`, noise, Modified Omori `p`, `Jaccard`/`ARI`, failure reasons) + 7 câu kiểm chứng ML SQL | [EXP-04 pilot](../evidence/EXP-04_PILOT_EVALUATION.md), [MLI-04 report](../evidence/MLI-04_STATIC_REPORT.md), [ML SQL](../../sql/ml/ml_verification_queries.sql) |
 
-### Phần còn `PENDING` theo hard dependency (sẽ cập nhật khi hợp nhất chính thức)
+### Nghiên cứu đã nghiệm thu trên main
 
-Gói `DAT-03` đã hoàn tất export hai collection official, đối chiếu đủ 3/3 receipts trên PR #131 và đã được đánh dấu **Done** trên `main` qua PR #136 ([DAT-03_FINAL_ACCEPTANCE_20261116.md](../evidence/DAT-03_FINAL_ACCEPTANCE_20261116.md)); task [OPS-01](../task/tasks/OPS-01.md) cũng đã hợp nhất **Done** qua PR #137. Các cổng thượng nguồn còn lại đang chờ để chốt số liệu official:
+Trình bày sáu shard baseline replay và hai shard adaptive của REPRODUCTION.
+Manifest v2 ghim SHA LF của [EXP-02 replay](../evidence/EXP-02_REPRODUCTION_REPLAY_FOR_EXP04.json),
+[EXP-03](../evidence/EXP-03_OFFICIAL_REPRODUCTION.md) và
+[EXP-04](../evidence/EXP-04_OFFICIAL_REPRODUCTION.md). EXP-04 đối chiếu hai
+upstream trên cùng dataset và 194 cửa sổ. Kết quả adaptive có 130/194 cửa sổ
+thành công, theo bảng EXP-04 chính thức. Hiển thị pilot riêng trong fallback.
 
-| Cổng chờ (`Pending Gate`) | Lý do hiện hành | Tài liệu liên quan |
+### Bằng chứng official đã ghim trong `demo_package_manifest_v2.json`
+
+Gói `DAT-03` đã hoàn tất export hai collection official, đối chiếu đủ 3/3 receipts trên PR #131 và đã được đánh dấu **Done** trên `main` qua PR #136 ([DAT-03_FINAL_ACCEPTANCE_20261116.md](../evidence/DAT-03_FINAL_ACCEPTANCE_20261116.md)); task [OPS-01](../task/tasks/OPS-01.md) cũng đã hợp nhất **Done** qua PR #137. Trên `main` (`f420981`), [MLI-03](../task/tasks/MLI-03.md) (`#149`), [MLI-04](../task/tasks/MLI-04.md) (`#144`, `VERIFIED` 8/8 shard `REPRODUCTION`) và [MLQ-01](../task/tasks/MLQ-01.md) (`#150`, `PASSED` 4 trace `REPRODUCTION` + 1 `EXTENSION WINDOW` `shard_00000` + negative checksum + 12 query ID rerun) đều đã **Done** và được ghim trực tiếp trong `demo_package_manifest_v2.json` (`PASS_OFFICIAL_READY`, `verified_runs=17`, `pending_gates=0`):
+
+| Cổng official đã ghim | Bằng chứng chính thức | Kết quả đã xác minh |
 |---|---|---|
-| `EXP-02` official | Chưa có official baseline reproduction run trên collection `EXPORTED` | [EXP-02](../task/tasks/EXP-02.md) |
-| `EXP-03` official + `SEC-01` Colab | Chưa có official adaptive reproduction bundle và Colab session thực cho `EXP-03` | [EXP-03](../task/tasks/EXP-03.md), [SEC-01](../task/tasks/SEC-01.md) |
-| `EXP-04` official | Chưa có đánh giá chính thức và freeze rule trước `EXP-05` | [EXP-04](../task/tasks/EXP-04.md) |
-| `MLI-04` official | Chưa đối soát count parity và SQL readback trên bảng `iceberg.ml.*` đã import thật | [MLI-04](../task/tasks/MLI-04.md) |
-| `MLQ-01` | Chưa nghiệm thu E2E từ Gold snapshot → ML export → experiment → `ml.*` → static report | [MLQ-01](../task/tasks/MLQ-01.md) |
+| `MLI-04` official | [Báo cáo readback 8/8 shard](../evidence/MLI-04_OFFICIAL_READBACK_20261124.md) ([JSON](../evidence/MLI-04_OFFICIAL_READBACK_20261124.json)) | `VERIFIED` 8/8 shard `REPRODUCTION`, 36/36 truy vấn Trino trên exact snapshots |
+| `MLQ-01` | [Báo cáo E2E Gold → ML](../evidence/MLQ-01_E2E_20261125.md) ([Receipt E2E](../evidence/MLQ-01_E2E_20261125.json)) | `PASSED` 5 trace (4 `REPRODUCTION` + 1 `EXTENSION WINDOW` `shard_00000`), negative `IMP_CHECKSUM_MISMATCH`, 12 `query_id` rerun phân biệt |
+
+Việc đóng `DEMO-01` sang `Done` còn chờ chạy thử walkthrough 15–20 phút dùng đúng report/receipt đã ghim và ít nhất một phương án dự phòng (`pilot` luôn giữ nhãn `DEVELOPMENT_ONLY`).
 
 ---
 
@@ -51,8 +59,8 @@ Gói `DAT-03` đã hoàn tất export hai collection official, đối chiếu đ
 | 2 | 3 phút | Thu thập hai nguồn (USGS + JMA) và Bronze bất biến (`manifest.json`, `SHA-256`, không sửa payload sau ghi) | [QA-01 JSON](../evidence/QA-01_CURRENT_MONTH_20261023.json), [ORC-07 evidence](../evidence/ORC-07.md) |
 | 3 | 3 phút | Silver chuẩn hóa/revision/linking (`JMA + USGS`), Gold **6 bảng Iceberg** + Trino verification trước `Published` | [GLD-04 SQL](../evidence/GLD-04-verification.sql), [gold_aggregate_verification_queries.sql](../../sql/gold/gold_aggregate_verification_queries.sql) |
 | 4 | 3 phút | Rerun, idempotency, backfill & recovery theo tầng (`QA-02/03/04`): giữ nguyên lease/journal khi fail, không `docker compose down -v` | [QA-02 runtime](../evidence/QA-02_RUNTIME_ACCEPTANCE.md), [QA-03 runtime](../evidence/QA-03_RUNTIME_ACCEPTANCE.md), [QA-04 runtime](../evidence/QA-04_RUNTIME_ACCEPTANCE.md) |
-| 5 | 4 phút | ML Pipeline: pin Gold snapshot → `mainshock_window` + 4-D feature (`MLD-05`/`MLI-02`) → `WINDOW`/`DBSCAN`/`HDBSCAN_GLOBAL`/`HDBSCAN_ADAPTIVE` + giải quyết đa chuỗi (`AMBIGUOUS`) | [MLD-05](../evidence/MLD-05_RUNTIME_ACCEPTANCE.md), [EXP-02 parity](../evidence/EXP-02_COLAB_PARITY_20261102.md), [EXP-03 smoke](../evidence/EXP-03-local-smoke.json) |
-| 6 | 3 phút | Đánh giá khoa học (`DBCV`, noise, Omori `p`, `Jaccard`/`ARI`, denominator integrity), **Static Report** và **7 ML Trino SQL checks** (không phụ thuộc Power BI) | [EXP-04 pilot](../evidence/EXP-04_PILOT_EVALUATION.md), [MLI-04 report](../evidence/MLI-04_STATIC_REPORT.md), [ml_verification_queries.sql](../../sql/ml/ml_verification_queries.sql) |
+| 5 | 4 phút | ML Pipeline: pin Gold snapshot → `mainshock_window` + 4-D feature (`MLD-05`/`MLI-02`) → `WINDOW`/`DBSCAN`/`HDBSCAN_GLOBAL`/`HDBSCAN_ADAPTIVE` + giải quyết đa chuỗi (`AMBIGUOUS`) | [MLD-05](../evidence/MLD-05_RUNTIME_ACCEPTANCE.md), [EXP-02 official](../evidence/EXP-02_OFFICIAL_REPRODUCTION.md), [EXP-03 official](../evidence/EXP-03_OFFICIAL_REPRODUCTION.md) |
+| 6 | 3 phút | Đánh giá khoa học (`DBCV`, noise, Omori `p`, `Jaccard`/`ARI`, denominator integrity), **Báo cáo tĩnh official (`MLI-04`)**, **Receipt E2E (`MLQ-01`)** và **7 ML Trino SQL checks** (không phụ thuộc Power BI) | [EXP-04 official](../evidence/EXP-04_OFFICIAL_REPRODUCTION.md), [MLI-04 official report](../evidence/MLI-04_OFFICIAL_READBACK_20261124.md), [MLQ-01 E2E receipt](../evidence/MLQ-01_E2E_20261125.json), [ml_verification_queries.sql](../../sql/ml/ml_verification_queries.sql) |
 | 7 | 2 phút | *(Nếu còn thời gian / Stretch)*: Power BI Desktop Import đọc qua Trino `publication_status` đã ghim + Hỏi đáp giới hạn | [DEMO_FLOWS.md](../DEMO_FLOWS.md), [KNOWN_ISSUES.md](../KNOWN_ISSUES.md) |
 
 ---
@@ -72,15 +80,67 @@ python -B scripts/demo-preflight.py --local-receipt <DAT03_RECEIPT_DIR>\ThanhTri
 ```
 
 Điều kiện preflight đạt:
-- Exit code `0`, `overall_status = "PREPARED_PENDING_OFFICIAL_GATES"` và `official_release_ready = false` (trong phạm vi chuẩn bị trước `MLQ-01` / `MLI-04`, preflight **không** hỗ trợ `PASS_OFFICIAL_READY` và fail-closed nếu xóa `pending_official_gates` hoặc đặt `official_release_ready = true`).
+- Manifest v2 (`demo_package_manifest_v2.json`) sau khi ghim đủ `MLI-04` và `MLQ-01` trả `PASS_OFFICIAL_READY` (`official_release_ready = true`, `verified_runs = 17`, `pending_gates = 0`). Manifest v1 (`demo_package_manifest_v1.json`) và bản sao chưa ghim tiếp tục giữ `PREPARED_PENDING_OFFICIAL_GATES`.
 - `depends_on_power_bi = false`, `stage_40_year_rerun_required = false`.
 - Nếu truyền `--local-receipt`, file receipt bắt buộc tồn tại, hợp lệ, đúng handoff SHA v4 (`6cf0af7c...`), đủ 2 collections/6 shards/Gold pins và `scientific_approval = false` (sai hoặc thiếu file sẽ exit `1`; lưu ý bản thân file JSON không thay việc chạy lại `verify_dataset.py` để chứng minh shard Parquet vẫn còn trên đĩa).
 - Không phát hiện chuỗi secret/credential hoặc tệp minh chứng bị thiếu/lệch `run_id`/`snapshot_id`.
 
+Khi chốt, thêm refs MLI-04 và MLQ-01 vào official_evidence với path tương đối
+và sha256_lf. MLI-04 dùng report mli04-readback-v1 VERIFIED đủ tám shard.
+Hai dòng adaptive phải chứa `adaptive_cohort_sha256` khớp digest preflight tính
+từ dataset, model version và các shard/run/marker đã ghim của EXP-03. Tạo lại
+evidence cũ qua verifier MLI-04 nếu thiếu digest.
+Receipt MLQ-01 PASSED ghim SHA LF của MLI-04, dataset REPRODUCTION và Gold
+snapshot. Cấu trúc `runs.<experiment_run_id>` giữ hai cấp: cấp run bắt buộc
+chứa trực tiếp ba snapshot IDs khớp báo cáo MLI-04, **kèm** trường `trace`
+(trực tiếp hoặc `{"path","sha256_lf"}`) ghi `query_id`, `dataset_id`,
+`experiment_run_id`, `gold_snapshot_id`, ba snapshot IDs,
+`mainshock_event_id` != `candidate_event_id` và `lineage_check=PASS`.
+Chọn ít nhất một run đại diện cho từng thuật toán WINDOW, DBSCAN, HDBSCAN_GLOBAL
+và HDBSCAN_ADAPTIVE. Có thể dùng bốn run trong tám run đã đối soát.
+
+Trường `extension` ghi `exp05_sha256_lf`, `dataset_id`, `collection_id`,
+`gold_snapshot_id`, `algorithm_name`, `shard_id`, `experiment_run_id`,
+`success_marker_sha256`, `success_marker_path`, `import_receipt` (object
+có `path` và `sha256_lf`) và `trace` (hoặc tệp evidence ghim SHA) cho ca
+`EXTENSION` `WINDOW`. Giới hạn ca `EXTENSION` đại diện này ở thuật toán
+`WINDOW` (chọn một shard từ [EXP-05](../evidence/EXP-05_EXTENSION_EVALUATION.json);
+từ chối chọn đơn lẻ `HDBSCAN_ADAPTIVE` hoặc thuật toán khác vì kiểm chứng một shard
+không đối chiếu toàn bộ cohort EXTENSION). Đặt bản sao nguyên bytes
+của `_SUCCESS.json` trong staging dưới thư mục repo và dùng đường dẫn tương đối,
+để SHA-256 khớp đúng pin của EXP-05 trên cả Windows và Linux.
+
+Receipt MLI-03 của shard phải là CANDIDATE, khớp identity, ba snapshot IDs và
+`namespace` ML hợp lệ (`iceberg.ml` hoặc `<catalog>.ml_qa_<8..64 hex>`).
+Preflight tính `result_bundle_sha256` từ marker theo ResultBundleContract,
+đối chiếu count membership/summary với EXP-05 và yêu cầu
+`readback.experiment_run = 1`. Ngoài năm cờ `checks=true`, receipt MLQ-01 còn
+bắt buộc kèm hai bằng chứng kiểm chứng (trực tiếp hoặc `{"path","sha256_lf"}`):
+- `reject_verification`: `namespace` bắt buộc theo ranh giới QA cô lập của
+  [MLI-03](./MLI-03_RESULT_IMPORT.md) (`<catalog>.ml_qa_<8..64 hex>`, từ chối
+  mọi namespace Gold như `iceberg.gold*`, `iceberg.dat03_unified_20261114` hoặc
+  `iceberg.ml` production) và danh sách `cases` hợp lệ chứng minh bundle lỗi
+  trả đúng `IMP_*`/`EXP_*` reason code, không tạo `CANDIDATE`
+  (`experiment_status` là `REJECTED`/`NOT_CREATED`, `candidate_created=false`,
+  `candidate_row_count=0`, có `query_id`).
+- `rerun_verification`: `dataset_id` và `namespace` bắt buộc khớp đúng
+  `namespace` trong evidence `MLI-04` (cho `REPRODUCTION`) hoặc
+  `extension.import_receipt` (cho `EXTENSION`), cùng `before_rerun` và
+  `after_rerun` cho ba bảng ML (`experiment_run`, `sequence_membership`,
+  `sequence_summary`), có **12 `query_id` Trino phân biệt** (3 bảng × 2 loại
+  `snapshot_query_id`/`count_query_id` × 2 giai đoạn trước/sau), giữ nguyên
+  danh sách snapshots (chứa snapshot đã ghim) và `run_row_counts`
+  (`experiment_run=1`) khớp run đã kiểm. Walkthrough dùng dữ liệu và truy vấn
+  đã nghiệm thu ở MLQ-01.
+
+Trường `checks` xác nhận `gold_to_report_lineage`, `count_parity`,
+`reject_without_candidate`, `rerun_no_duplicate` và `extension_rule_preserved`.
+Giữ `scientific_approval=false`.
+
 ### B. Checklist vận hành nhanh
 
 - [ ] **24 giờ trước demo:** Chạy `python -B scripts/demo-preflight.py` và `python -m unittest tests/test_demo_preflight.py -v` đạt 100%.
-- [ ] **1 giờ trước demo:** Mở sẵn các tài liệu Markdown/JSON/SQL trong repo (`docs/evidence/MLI-04_STATIC_REPORT.md`, `sql/ml/ml_verification_queries.sql`, `docs/evidence/GLD-04-verification.sql`) ở tab riêng để chuyển nhanh khi cần.
+- [ ] **1 giờ trước demo:** Mở sẵn các tài liệu official đã ghim trong repo ([EXP-04_OFFICIAL_REPRODUCTION.md](../evidence/EXP-04_OFFICIAL_REPRODUCTION.md), [MLI-04_OFFICIAL_READBACK_20261124.md](../evidence/MLI-04_OFFICIAL_READBACK_20261124.md), [MLQ-01_E2E_20261125.json](../evidence/MLQ-01_E2E_20261125.json), [ml_verification_queries.sql](../../sql/ml/ml_verification_queries.sql), [GLD-04-verification.sql](../evidence/GLD-04-verification.sql)) ở tab riêng để chuyển nhanh khi cần. Các báo cáo pilot (`EXP-04_PILOT_EVALUATION.md`, `MLI-04_STATIC_REPORT.md`, nhãn `DEVELOPMENT_ONLY`) chỉ để trong nhánh fallback/tập offline có ghi rõ nhãn, không mở thay số liệu official.
 - [ ] **5 phút trước demo:** Đảm bảo không mở file `.env`, private log chứa credential hoặc key cá nhân trên màn hình chia sẻ; không bật/trigger DAG backfill dài.
 
 ---
@@ -90,6 +150,6 @@ python -B scripts/demo-preflight.py --local-receipt <DAT03_RECEIPT_DIR>\ThanhTri
 | Tình huống sự cố | Nhãn công bố khi demo | Hành động thay thế ngay tại chỗ | Tuyệt đối KHÔNG làm |
 |---|---|---|---|
 | **Mất mạng / USGS hoặc JMA API timeout** | `PINNED_REPLAY_EVIDENCE` | Trình bày trực tiếp bộ JSON/log đã ghim từ `QA-01` (`scheduled__2026-10-23T00:15:00+00:00`) và `QA-03` (`qa03-runtime-2bf249ede8a84947afb22c48beb77e07`) + mô tả cơ chế replay từ Bronze bất biến. | Không gọi run đã lưu sẵn là live fetch đang chạy; không retry mù làm kẹt lease. |
-| **Google Drive / Colab chậm hoặc mất kết nối** | `LOCAL_VERIFIED_FALLBACK` | Mở evidence fresh-kernel local (`EXP-03-local-smoke.json` chạy bằng `nbclient`), bảng đối chiếu `EXP-02_COLAB_PARITY_20261102.md` và receipt `TEAM_RESEARCH_VERIFIED` của kit v4 nằm sẵn ngoài repo. | Không giả lập kết quả cloud mới hoặc chỉnh sửa thủ công JSON receipt. |
-| **Docker chưa bật / thiếu RAM / image stale** | `STATIC_EVIDENCE_NO_STAGE_ETL` | Dùng trực tiếp `GLD-04-verification.sql`, `ml_verification_queries.sql`, `MLI-04_STATIC_REPORT.md` và `QA-01..QA-04` JSON đã kiểm chứng sẵn. | Không chạy `make docker-build` hay `docker compose down -v` ngay giữa buổi trình bày. |
-| **Power BI Desktop / ODBC gặp trục trặc** | `CORE_ONLY_NO_POWER_BI_DEPENDENCY` | Chuyển hoàn toàn sang Trino SQL verification views (`sql/ml/v_*.sql`, `sql/gold/v_*.sql`) và [MLI-04_STATIC_REPORT.md](../evidence/MLI-04_STATIC_REPORT.md); nhắc rõ Power BI chỉ là phạm vi Stretch. | Không coi sự cố Power BI là lỗi hỏng Core pipeline. |
+| **Google Drive / Colab chậm hoặc mất kết nối** | `LOCAL_VERIFIED_FALLBACK` | Dùng bản official đã ghim ([EXP-04_OFFICIAL_REPRODUCTION.md](../evidence/EXP-04_OFFICIAL_REPRODUCTION.md)) và receipt `TEAM_RESEARCH_VERIFIED` cục bộ của kit v4 nằm sẵn ngoài repo. Chỉ mở [EXP-03-local-smoke.json](../evidence/EXP-03-local-smoke.json) và [EXP-02_COLAB_PARITY_20261102.md](../evidence/EXP-02_COLAB_PARITY_20261102.md) trong nhánh tập offline với nhãn `DEVELOPMENT_ONLY`, không thay số liệu official. | Không giả lập kết quả cloud mới hoặc chỉnh sửa thủ công JSON receipt; không dùng pilot thay cho số liệu official. |
+| **Docker chưa bật / thiếu RAM / image stale** | `STATIC_EVIDENCE_NO_STAGE_ETL` | Dùng trực tiếp [GLD-04-verification.sql](../evidence/GLD-04-verification.sql), [ml_verification_queries.sql](../../sql/ml/ml_verification_queries.sql), báo cáo official [MLI-04_OFFICIAL_READBACK_20261124.md](../evidence/MLI-04_OFFICIAL_READBACK_20261124.md), [MLQ-01_E2E_20261125.json](../evidence/MLQ-01_E2E_20261125.json) và `QA-01..QA-04` JSON đã kiểm chứng sẵn (chỉ dùng [MLI-04_STATIC_REPORT.md](../evidence/MLI-04_STATIC_REPORT.md) / [EXP-04_PILOT_EVALUATION.md](../evidence/EXP-04_PILOT_EVALUATION.md) nhãn `DEVELOPMENT_ONLY` trong nhánh tập offline). | Không chạy `make docker-build` hay `docker compose down -v` ngay giữa buổi trình bày; không lấy report pilot thay số liệu official. |
+| **Power BI Desktop / ODBC gặp trục trặc** | `CORE_ONLY_NO_POWER_BI_DEPENDENCY` | Chuyển hoàn toàn sang Trino SQL verification views (`sql/ml/v_*.sql`, `sql/gold/v_*.sql`), [MLI-04_OFFICIAL_READBACK_20261124.md](../evidence/MLI-04_OFFICIAL_READBACK_20261124.md) và [MLQ-01_E2E_20261125.json](../evidence/MLQ-01_E2E_20261125.json); nhắc rõ Power BI chỉ là phạm vi Stretch (chỉ dùng [MLI-04_STATIC_REPORT.md](../evidence/MLI-04_STATIC_REPORT.md) nhãn `DEVELOPMENT_ONLY` trong nhánh tập offline). | Không coi sự cố Power BI là lỗi hỏng Core pipeline; không chuyển sang report pilot trong demo official. |
