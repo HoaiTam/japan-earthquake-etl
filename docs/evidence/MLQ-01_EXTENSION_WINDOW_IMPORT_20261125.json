@@ -1,0 +1,23 @@
+{
+  "experiment_run_id" : "exp_run_46158cb713554d5a3273c944263c3ed3",
+  "dataset_id" : "ds_5259d2fe13e027245559e1ec4a1e696b5d94d0b67f44d5ec80738c9e984978be",
+  "algorithm_name" : "WINDOW",
+  "experiment_status" : "CANDIDATE",
+  "result_bundle_sha256" : "efc7c432d4204d05ce56fdedf4a5a45297519cc9ef6779998aec6a940abd1d49",
+  "candidate_at_utc" : "2026-11-24T17:46:54.117385554Z",
+  "membership_snapshot_id" : 8821062446453444047,
+  "summary_snapshot_id" : 4647850424962994025,
+  "experiment_snapshot_id" : 3151505242836024360,
+  "namespace" : "iceberg.ml_qa_ee3aefb2d1284bb8b8682cbdbda08cc1",
+  "collection_scope" : {
+    "version" : "dat03-collection-export-v1",
+    "collection_id" : "col_0dc6dc2fd0a60c2890f68863b8561813ecd1d5e1941a8995be1d58e192fe0906",
+    "shard_id" : "shard_00000",
+    "scope" : "WHOLE_WINDOW_SHARD"
+  },
+  "readback" : {
+    "sequence_membership" : 33413,
+    "sequence_summary" : 18,
+    "experiment_run" : 1
+  }
+}

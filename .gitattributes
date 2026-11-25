@@ -13,3 +13,5 @@ spark/src/test/resources/ml/results/**/*.parquet binary
 config/jma/hypocenter_archives_v1.csv text eol=lf
 config/jma/research_boundary_archives_v1.csv text eol=lf
 airflow/dags/fixtures/qa_03_jma_historical_matrix.json text eol=lf
+# EXP-05 pins raw marker bytes, including whatever line endings the producer used.
+docs/evidence/mlq-01-extension-window/shard_00000/_SUCCESS.json -text whitespace=cr-at-eol
