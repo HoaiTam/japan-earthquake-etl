@@ -62,7 +62,7 @@ tránh lệch UTF-16LE — rồi truyền bản sao LF đó vào `--input-json`.
 |---|---|---|
 | 00:00–05:00 | Điều phối ETL | Nêu phạm vi rồi mở bản ghi QA-01. Chỉ run ID, publication ID và các snapshot Gold. Chuyển bằng tên dataset và Gold snapshot. |
 | 05:00–11:00 | Dữ liệu và thí nghiệm | Mở evidence DAT-03 với nhãn EXPORTED. Trình bày dataset pin và kết quả EXP-04 theo đúng phạm vi. Ghi rõ `DEVELOPMENT_ONLY` khi dùng pilot. Bàn giao dataset ID và run ID cho phần đọc lại. |
-| 11:00–16:00 | Kiểm chứng và báo cáo | Chỉ cách nối receipt, snapshot, Trino query và static report. Khi tập offline, dùng report pilot `DEVELOPMENT_ONLY` và nêu các gate còn chờ; khi diễn tập official (`PASS_OFFICIAL_READY`), mở [report official MLI-04](../evidence/MLI-04_OFFICIAL_READBACK_20261124.md) và receipt E2E `MLQ-01` đúng pin. Diễn giải kết quả là aftershock candidate hồi cứu. |
+| 11:00–16:00 | Kiểm chứng và báo cáo | Chỉ cách nối receipt, snapshot, Trino query và static report. Khi tập offline, dùng report pilot `DEVELOPMENT_ONLY` và nêu các gate còn chờ; khi diễn tập official (`PASS_OFFICIAL_READY`), mở [report official MLI-04](../evidence/MLI-04_OFFICIAL_READBACK_20261124.md) và [receipt E2E MLQ-01](../evidence/MLQ-01_E2E_20261125.json) đúng pin. Diễn giải kết quả là aftershock candidate hồi cứu. |
 | 16:00–18:00 | Cả nhóm | Thử chuyển qua một phương án dự phòng, ghi thời lượng, lỗi, người xử lý và kết quả kiểm lại. Điều phối viên chốt blocker. |
 
 Điều phối viên xác nhận người đứng từng vai trước buổi tập. Ba thành viên tự
@@ -73,9 +73,9 @@ tránh lệch UTF-16LE — rồi truyền bản sao LF đó vào `--input-json`.
 | Tình huống | Mở sẵn trên máy demo | Nhãn trình bày |
 |---|---|---|
 | Mất mạng hoặc nguồn không phản hồi | [QA-01 JSON](../evidence/QA-01_CURRENT_MONTH_20261023.json) và [QA-03 JSON](../evidence/QA-03-runtime.json) | `PINNED_REPLAY_EVIDENCE` |
-| Drive hoặc Colab không mở được | [EXP-03 local smoke](../evidence/EXP-03-local-smoke.json) và receipt DAT-03 đã kiểm cục bộ | `LOCAL_VERIFIED_FALLBACK` |
-| Docker/Trino thiếu tài nguyên | [Gold verification SQL](../evidence/GLD-04-verification.sql), [ML verification SQL](../../sql/ml/ml_verification_queries.sql) và report pilot | `STATIC_EVIDENCE_NO_STAGE_ETL` |
-| Power BI/ODBC lỗi | [Báo cáo tĩnh MLI-04](../evidence/MLI-04_STATIC_REPORT.md) và ML verification SQL | `CORE_ONLY_NO_POWER_BI_DEPENDENCY` |
+| Drive hoặc Colab không mở được | Khi diễn tập official: [EXP-04 official](../evidence/EXP-04_OFFICIAL_REPRODUCTION.md) và receipt DAT-03 đã kiểm cục bộ (chỉ dùng [EXP-03 local smoke](../evidence/EXP-03-local-smoke.json) nhãn `DEVELOPMENT_ONLY` trong nhánh tập offline) | `LOCAL_VERIFIED_FALLBACK` |
+| Docker/Trino thiếu tài nguyên | [Gold verification SQL](../evidence/GLD-04-verification.sql), [ML verification SQL](../../sql/ml/ml_verification_queries.sql), cùng [báo cáo official MLI-04](../evidence/MLI-04_OFFICIAL_READBACK_20261124.md) và [receipt E2E MLQ-01](../evidence/MLQ-01_E2E_20261125.json) khi diễn tập official (chỉ dùng [report pilot](../evidence/MLI-04_STATIC_REPORT.md) nhãn `DEVELOPMENT_ONLY` trong nhánh tập offline) | `STATIC_EVIDENCE_NO_STAGE_ETL` |
+| Power BI/ODBC lỗi | Khi diễn tập official: [báo cáo official MLI-04](../evidence/MLI-04_OFFICIAL_READBACK_20261124.md), [receipt E2E MLQ-01](../evidence/MLQ-01_E2E_20261125.json) và [ML verification SQL](../../sql/ml/ml_verification_queries.sql) (chỉ dùng [report pilot MLI-04](../evidence/MLI-04_STATIC_REPORT.md) nhãn `DEVELOPMENT_ONLY` trong nhánh tập offline) | `CORE_ONLY_NO_POWER_BI_DEPENDENCY` |
 
 Khi chuyển sang evidence tĩnh, đọc nhãn và phạm vi trước con số đầu tiên.
 Giữ màn hình chia sẻ ở các file đã kiểm. Giữ nguyên dữ liệu và môi trường
@@ -94,5 +94,5 @@ pipeline trong suốt buổi trình bày.
 Sao chép [mẫu biên bản](./DEMO-02_REHEARSAL_RECORD.md) vào staging trước buổi tập.
 Sau walkthrough, cập nhật thời lượng thực tế, người trình bày, checksum và
 evidence tương ứng. Tiếp tục ghi `NOT_RUN` ở các cổng chưa thực hiện.
-Preflight, tệp dự phòng và report pilot dùng để chuẩn bị máy demo. Ghi quyết
+Preflight, tệp dự phòng, báo cáo official đã ghim (và report pilot `DEVELOPMENT_ONLY` riêng cho nhánh tập offline) dùng để chuẩn bị máy demo. Ghi quyết
 định phát hành và tag khi đủ bằng chứng chính thức và HoaiTam xác nhận.
