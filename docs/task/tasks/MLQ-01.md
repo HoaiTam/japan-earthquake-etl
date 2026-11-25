@@ -1,6 +1,6 @@
 ---
 task_id: "MLQ-01"
-status: "Backlog"
+status: "Done"
 week: 8
 block: "I - ML Integration"
 workstream: "ML end-to-end QA"
@@ -14,9 +14,9 @@ dependencies: ["QA-01", "MLI-02", "MLI-04", "EXP-05"]
 
 # MLQ-01 - Chạy E2E Gold snapshot đến ML report
 
-## Giao việc hiện hành — 11/11/2026
+## Giao việc ban đầu — 11/11/2026
 
-- **Owner:** HoaiTam; **status:** Backlog.
+- **Owner:** HoaiTam; **status:** In Progress.
 - **Làm phần gì / dùng để làm gì:** Nghiệm thu ML E2E.
 - **Bắt đầu độc lập:** Viết test plan, negative fixtures và reconciliation queries ngay.
 - **Đầu ra và điều kiện Done:** Sau hard dependencies: truy vết Gold → dataset → experiment → import/report; reject bundle lỗi và rerun không duplicate.
@@ -44,11 +44,11 @@ Gold snapshot qua candidate/feature/experiment/import đến report có lineage.
 
 ## Tiêu chí hoàn thành
 
-- [ ] Một canonical event được truy vết xuyên Gold snapshot, candidate, membership và report.
-- [ ] Counts/grain/checksum/snapshot đối soát được; chênh lệch có reason.
-- [ ] Bundle lỗi không tạo `CANDIDATE`; rerun hợp lệ không duplicate.
-- [ ] Reproduction rule được giữ nguyên khi chạy extension.
-- [ ] Báo cáo không tuyên bố prediction/causal aftershock.
+- [x] Một canonical event được truy vết xuyên Gold snapshot, candidate, membership và report.
+- [x] Counts/grain/checksum/snapshot đối soát được; chênh lệch có reason.
+- [x] Bundle lỗi không tạo `CANDIDATE`; rerun hợp lệ không duplicate.
+- [x] Reproduction rule được giữ nguyên khi chạy extension.
+- [x] Báo cáo không tuyên bố prediction/causal aftershock.
 
 ## Hard dependency
 
@@ -70,17 +70,19 @@ trạng thái `Done` mới buộc output thật của mọi hard dependency.
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
+- **Trạng thái:** Done
 - **Assignee:** HoaiTam
-- **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Reviewer:** unassigned
+- **Evidence / PR:** [Test plan và truy vấn đối soát](../../runbooks/MLQ-01_E2E_RECONCILIATION.md), [fixture SQL](../../../tests/test_mlq01_reconciliation.py). Chuẩn bị trên nhánh `test/mlq-01-prepare-e2e-reconciliation` ([PR #150](https://github.com/HoaiTam/japan-earthquake-etl/pull/150)). [MLI-03](./MLI-03.md) (`PR #149`, `633ac5a`) và [MLI-04](./MLI-04.md) (`PR #144`, `abd134d`, 8/8 shard REPRODUCTION `VERIFIED`) đã merge trên `main`; cấu trúc receipt hai cấp, ví dụ JSON tối thiểu và ràng buộc namespace QA của `MLQ-01` đã khóa khớp với [DEMO-01](./DEMO-01.md) (`PR #143`).
+- **Kiểm tra offline:** `docs-contracts` chạy 9 fixture SQL và một ca kiểm pin receipt. Fixture kiểm một self-row MAINSHOCK duy nhất, publication/lineage, cấu trúc trace và cú pháp Trino HTTP API không có dấu `;` cuối. Ví dụ runbook chỉ là schema minh họa, không phải receipt thật.
+- **Nghiệm thu chính thức 25/11/2026:** [Báo cáo](../../evidence/MLQ-01_E2E_20261125.md) và [receipt E2E](../../evidence/MLQ-01_E2E_20261125.json) `PASSED`: 4 trace REPRODUCTION + 1 trace EXTENSION WINDOW, receipt `CANDIDATE` và 33.413/18/1 dòng được đọc lại độc lập. Lỗi checksum không tạo `CANDIDATE`; [rerun MLI-03](../../evidence/MLI-03_ADAPTIVE_REPRODUCTION_20261124.json) không tạo thêm dòng hay snapshot. Nghiệm thu một shard EXTENSION đại diện và không scientific approval. [DEMO-01 — Chuẩn bị dữ liệu và kịch bản demo](./DEMO-01.md) còn ghim receipt vào manifest và chạy walkthrough.
 - **Kỹ năng phù hợp:** Integration testing, reconciliation, ML reproducibility
 
 ## Checklist bàn giao
 
-- [ ] Deliverable và test/evidence tồn tại trong repository.
-- [ ] Acceptance criteria đã được kiểm tra.
-- [ ] Contract/docs đã cập nhật và không chứa secret/data dump.
+- [x] Deliverable và test/evidence tồn tại trong repository.
+- [x] Acceptance criteria đã được kiểm tra.
+- [x] Contract/docs đã cập nhật và không chứa secret/data dump.
 - [ ] Reviewer độc lập được khuyến nghị cho P0.
 
 ## Tài liệu liên quan

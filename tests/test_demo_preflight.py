@@ -395,14 +395,60 @@ class DemoOfficialEvidenceTests(unittest.TestCase):
     # Known digest for the EXP-03 cohort pinned by the MLI-04 collector.
     ADAPTIVE_COHORT_SHA256 = "22e84855e4409ae0b0e1696c6ed508af3b7b667952a4f80b7fd50221f88868b0"
 
-    def test_v2_uses_official_research_and_keeps_two_runtime_gates(self):
+    def _pending_v2_manifest(self):
+        manifest = json.loads(preflight.CURRENT_MANIFEST.read_bytes())
+        for task in ("MLI-04", "MLQ-01"):
+            manifest["official_evidence"].pop(task, None)
+        manifest.update(
+            package_status=preflight.PREPARED_PENDING_STATUS,
+            official_release_ready=False,
+            pending_official_gates=[
+                {"task_id": "MLI-04", "reason": "Chua co official SQL parity tren exact snapshots"},
+                {"task_id": "MLQ-01", "reason": "Chua co receipt nghiem thu ML E2E"},
+            ],
+        )
+        return manifest
+
+    def test_v2_repo_manifest_passes_official_ready_without_mocks(self):
         report = preflight.run_preflight(preflight.CURRENT_MANIFEST)
-        self.assertEqual(["MLI-04", "MLQ-01"], [g["task_id"] for g in report["pending_official_gates"]])
-        self.assertEqual(15, report["verified_evidence_count"])
-        self.assertFalse(report["official_release_ready"])
+        self.assertEqual("PASS_OFFICIAL_READY", report["overall_status"])
+        self.assertTrue(report["official_release_ready"])
+        self.assertEqual([], report["pending_official_gates"])
+        self.assertEqual(17, report["verified_evidence_count"])
+        mli04 = next(row for row in report["verified_runs"]
+                     if row["task_id"] == "MLI-04" and row["status"] == "VERIFIED")
+        self.assertEqual(8, len(mli04["run_ids"]))
+        self.assertEqual(self.ADAPTIVE_COHORT_SHA256, mli04["adaptive_cohort_sha256"])
+        mlq = next(row for row in report["verified_runs"] if row["task_id"] == "MLQ-01")
+        self.assertEqual(4, len(mlq["run_ids"]))
+        self.assertEqual({"WINDOW", "DBSCAN", "HDBSCAN_GLOBAL", "HDBSCAN_ADAPTIVE"}, set(mlq["algorithms"]))
+        self.assertEqual(5, len(mlq["trace_query_ids"]))
+        self.assertEqual(5, len(set(mlq["trace_query_ids"])))
+        self.assertEqual("WINDOW", mlq["extension"]["algorithm_name"])
+        self.assertEqual("shard_00000", mlq["extension"]["shard_id"])
+        self.assertTrue(mlq["reject_cases"])
+        self.assertTrue(mlq["rerun_runs"])
+
+    def test_v2_pending_copy_keeps_two_runtime_gates_and_blocks_false_ready(self):
+        pending_manifest = self._pending_v2_manifest()
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "manifest.json"
+            path.write_text(json.dumps(pending_manifest), encoding="utf-8")
+            report = preflight.run_preflight(path)
+            self.assertEqual("PREPARED_PENDING_OFFICIAL_GATES", report["overall_status"])
+            self.assertEqual(["MLI-04", "MLQ-01"], [g["task_id"] for g in report["pending_official_gates"]])
+            self.assertEqual(15, report["verified_evidence_count"])
+            self.assertFalse(report["official_release_ready"])
+
+            false_ready = copy.deepcopy(pending_manifest)
+            false_ready.update(official_release_ready=True, pending_official_gates=[],
+                               package_status="PASS_OFFICIAL_READY")
+            path.write_text(json.dumps(false_ready), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "READINESS_MISMATCH"):
+                preflight.run_preflight(path)
 
     def test_v2_keeps_old_manifests_pending_without_extension_pin(self):
-        manifest = json.loads(preflight.CURRENT_MANIFEST.read_bytes())
+        manifest = self._pending_v2_manifest()
         del manifest["official_evidence"]["EXP-05"]
         result = self._run_ready_fixture(
             manifest, {pin["path"]: preflight._pinned_official_json(ROOT, pin)
@@ -420,8 +466,10 @@ class DemoOfficialEvidenceTests(unittest.TestCase):
         base = json.loads(preflight.CURRENT_MANIFEST.read_bytes())
         for change, error in [
             (lambda m: m["official_evidence"]["EXP-04"].update(sha256_lf="0" * 64), "SHA_MISMATCH"),
-            (lambda m: m.update(official_release_ready=True, pending_official_gates=[],
-                                package_status="PASS_OFFICIAL_READY"), "READINESS_MISMATCH"),
+            (lambda m: m["official_evidence"]["MLI-04"].update(sha256_lf="0" * 64), "SHA_MISMATCH"),
+            (lambda m: m["official_evidence"]["MLQ-01"].update(sha256_lf="0" * 64), "SHA_MISMATCH"),
+            (lambda m: m.update(official_release_ready=False,
+                                package_status=preflight.PREPARED_PENDING_STATUS), "READINESS_MISMATCH"),
             (lambda m: m["official_evidence"]["EXP-03"].update(path="docs/evidence/EXP-03-local-smoke.json"),
              "SOURCE_MISMATCH"),
         ]:
@@ -436,7 +484,7 @@ class DemoOfficialEvidenceTests(unittest.TestCase):
 
 
     def _ready_fixture(self, extension_algo="WINDOW", extension_shard="shard_00000"):
-        manifest = json.loads(preflight.CURRENT_MANIFEST.read_bytes())
+        manifest = self._pending_v2_manifest()
         refs = manifest["official_evidence"]
         docs = {task: preflight._pinned_official_json(ROOT, pin) for task, pin in refs.items()}
         sql_rows = []

@@ -1,8 +1,8 @@
 {
   "schema_version": "demo-package-v2",
   "task_id": "DEMO-01",
-  "package_status": "PREPARED_PENDING_OFFICIAL_GATES",
-  "official_release_ready": false,
+  "package_status": "PASS_OFFICIAL_READY",
+  "official_release_ready": true,
   "depends_on_power_bi": false,
   "stage_40_year_rerun_required": false,
   "scientific_boundary": {
@@ -197,16 +197,7 @@
       "label_required": "CORE_ONLY_NO_POWER_BI_DEPENDENCY"
     }
   },
-  "pending_official_gates": [
-    {
-      "task_id": "MLI-04",
-      "reason": "Chua co official SQL parity tren exact snapshots"
-    },
-    {
-      "task_id": "MLQ-01",
-      "reason": "Chua co receipt nghiem thu ML E2E"
-    }
-  ],
+  "pending_official_gates": [],
   "official_evidence": {
     "EXP-02": {
       "path": "docs/evidence/EXP-02_REPRODUCTION_REPLAY_FOR_EXP04.json",
@@ -223,6 +214,14 @@
     "EXP-05": {
       "path": "docs/evidence/EXP-05_EXTENSION_EVALUATION.json",
       "sha256_lf": "7f67e32b8bf4ae4eaa2e1078b501952a5bb88df4cc8e5b467da6570ce23a3f0d"
+    },
+    "MLI-04": {
+      "path": "docs/evidence/MLI-04_OFFICIAL_READBACK_20261124.json",
+      "sha256_lf": "d2d1ed3082cbcdc2b1c835a7ad315ca7d85f608d0fc32dab0aaee97efe6ef175"
+    },
+    "MLQ-01": {
+      "path": "docs/evidence/MLQ-01_E2E_20261125.json",
+      "sha256_lf": "4fc0ed18ebaadbed817af6cd10b149447f5d6df3309903ddb627c6854f45ec24"
     }
   }
 }

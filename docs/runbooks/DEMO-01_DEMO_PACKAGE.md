@@ -1,6 +1,6 @@
 # DEMO-01 — Gói Dữ liệu, Kịch bản Trình bày và Preflight Checklist
 
-Tài liệu triển khai cho [DEMO-01](../task/tasks/DEMO-01.md) (trạng thái hiện hành: **In Progress**, chờ hoàn tất [MLI-04](../task/tasks/MLI-04.md) và [MLQ-01](../task/tasks/MLQ-01.md) để chốt số liệu official trước khi chuyển `Done`). Kịch bản này tuân thủ [hướng dẫn chọn evidence](../DEMO_FLOWS.md) và [các giới hạn hiện hành](../KNOWN_ISSUES.md).
+Tài liệu triển khai cho [DEMO-01](../task/tasks/DEMO-01.md) (trạng thái hiện hành: **In Progress**, đã ghim đủ [MLI-04](../task/tasks/MLI-04.md) và [MLQ-01](../task/tasks/MLQ-01.md) trong manifest v2 `PASS_OFFICIAL_READY`, còn chờ chạy walkthrough 15–20 phút trước khi chuyển `Done`). Kịch bản này tuân thủ [hướng dẫn chọn evidence](../DEMO_FLOWS.md) và [các giới hạn hiện hành](../KNOWN_ISSUES.md).
 
 > [!IMPORTANT]
 > **Nguyên tắc bắt buộc khi trình bày:**
@@ -38,14 +38,16 @@ Manifest v2 ghim SHA LF của [EXP-02 replay](../evidence/EXP-02_REPRODUCTION_RE
 upstream trên cùng dataset và 194 cửa sổ. Kết quả adaptive có 130/194 cửa sổ
 thành công, theo bảng EXP-04 chính thức. Hiển thị pilot riêng trong fallback.
 
-### Phần còn `PENDING` theo hard dependency (sẽ cập nhật khi hợp nhất chính thức)
+### Bằng chứng official đã ghim trong `demo_package_manifest_v2.json`
 
-Gói `DAT-03` đã hoàn tất export hai collection official, đối chiếu đủ 3/3 receipts trên PR #131 và đã được đánh dấu **Done** trên `main` qua PR #136 ([DAT-03_FINAL_ACCEPTANCE_20261116.md](../evidence/DAT-03_FINAL_ACCEPTANCE_20261116.md)); task [OPS-01](../task/tasks/OPS-01.md) cũng đã hợp nhất **Done** qua PR #137. Trên `main`, [MLI-03](../task/tasks/MLI-03.md) (`#149`) và [MLI-04](../task/tasks/MLI-04.md) (`#144`, `VERIFIED` 8/8 shard `REPRODUCTION`) đã hợp nhất; `manifest_v2` giữ trạng thái chờ ghim đồng thời [MLI-04](../evidence/MLI-04_OFFICIAL_READBACK_20261124.json) cùng receipt E2E thật từ [MLQ-01](../task/tasks/MLQ-01.md) trước khi chạy walkthrough cuối:
+Gói `DAT-03` đã hoàn tất export hai collection official, đối chiếu đủ 3/3 receipts trên PR #131 và đã được đánh dấu **Done** trên `main` qua PR #136 ([DAT-03_FINAL_ACCEPTANCE_20261116.md](../evidence/DAT-03_FINAL_ACCEPTANCE_20261116.md)); task [OPS-01](../task/tasks/OPS-01.md) cũng đã hợp nhất **Done** qua PR #137. Trên `main` (`f420981`), [MLI-03](../task/tasks/MLI-03.md) (`#149`), [MLI-04](../task/tasks/MLI-04.md) (`#144`, `VERIFIED` 8/8 shard `REPRODUCTION`) và [MLQ-01](../task/tasks/MLQ-01.md) (`#150`, `PASSED` 4 trace `REPRODUCTION` + 1 `EXTENSION WINDOW` `shard_00000` + negative checksum + 12 query ID rerun) đều đã **Done** và được ghim trực tiếp trong `demo_package_manifest_v2.json` (`PASS_OFFICIAL_READY`, `verified_runs=17`, `pending_gates=0`):
 
-| Cổng chờ (`Pending Gate`) | Lý do hiện hành | Tài liệu liên quan |
+| Cổng official đã ghim | Bằng chứng chính thức | Kết quả đã xác minh |
 |---|---|---|
-| `MLI-04` official | Chưa đối soát count parity và SQL readback trên bảng `iceberg.ml.*` đã import thật | [MLI-04](../task/tasks/MLI-04.md) |
-| `MLQ-01` | Chưa nghiệm thu E2E từ Gold snapshot → ML export → experiment → `ml.*` → static report | [MLQ-01](../task/tasks/MLQ-01.md) |
+| `MLI-04` official | [Báo cáo readback 8/8 shard](../evidence/MLI-04_OFFICIAL_READBACK_20261124.md) ([JSON](../evidence/MLI-04_OFFICIAL_READBACK_20261124.json)) | `VERIFIED` 8/8 shard `REPRODUCTION`, 36/36 truy vấn Trino trên exact snapshots |
+| `MLQ-01` | [Báo cáo E2E Gold → ML](../evidence/MLQ-01_E2E_20261125.md) ([Receipt E2E](../evidence/MLQ-01_E2E_20261125.json)) | `PASSED` 5 trace (4 `REPRODUCTION` + 1 `EXTENSION WINDOW` `shard_00000`), negative `IMP_CHECKSUM_MISMATCH`, 12 `query_id` rerun phân biệt |
+
+Việc đóng `DEMO-01` sang `Done` còn chờ chạy thử walkthrough 15–20 phút dùng đúng report/receipt đã ghim và ít nhất một phương án dự phòng (`pilot` luôn giữ nhãn `DEVELOPMENT_ONLY`).
 
 ---
 
@@ -78,7 +80,7 @@ python -B scripts/demo-preflight.py --local-receipt <DAT03_RECEIPT_DIR>\ThanhTri
 ```
 
 Điều kiện preflight đạt:
-- Preflight v2 hiện trả PREPARED_PENDING_OFFICIAL_GATES với MLI-04 và MLQ-01. Chỉ khi evidence có SHA và identity khớp mới trả PASS_OFFICIAL_READY.
+- Manifest v2 (`demo_package_manifest_v2.json`) sau khi ghim đủ `MLI-04` và `MLQ-01` trả `PASS_OFFICIAL_READY` (`official_release_ready = true`, `verified_runs = 17`, `pending_gates = 0`). Manifest v1 (`demo_package_manifest_v1.json`) và bản sao chưa ghim tiếp tục giữ `PREPARED_PENDING_OFFICIAL_GATES`.
 - `depends_on_power_bi = false`, `stage_40_year_rerun_required = false`.
 - Nếu truyền `--local-receipt`, file receipt bắt buộc tồn tại, hợp lệ, đúng handoff SHA v4 (`6cf0af7c...`), đủ 2 collections/6 shards/Gold pins và `scientific_approval = false` (sai hoặc thiếu file sẽ exit `1`; lưu ý bản thân file JSON không thay việc chạy lại `verify_dataset.py` để chứng minh shard Parquet vẫn còn trên đĩa).
 - Không phát hiện chuỗi secret/credential hoặc tệp minh chứng bị thiếu/lệch `run_id`/`snapshot_id`.
