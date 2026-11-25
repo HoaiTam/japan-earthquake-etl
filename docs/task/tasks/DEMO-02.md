@@ -1,6 +1,6 @@
 ---
 task_id: "DEMO-02"
-status: "Backlog"
+status: "In Progress"
 week: 8
 block: "K - QA & Release"
 workstream: "Release"
@@ -16,7 +16,7 @@ dependencies: ["QA-01", "QA-02", "QA-04", "MLQ-01", "SEC-01", "DOC-01", "DEMO-01
 
 ## Giao việc hiện hành — 11/11/2026
 
-- **Owner:** HoaiTam; **status:** Backlog.
+- **Owner:** HoaiTam; **status:** In Progress.
 - **Làm phần gì / dùng để làm gì:** Rehearsal/release candidate.
 - **Bắt đầu độc lập:** Chuẩn bị checklist, phân vai và phương án demo offline.
 - **Đầu ra và điều kiện Done:** Sau hard dependencies: ba người rehearsal 15–20 phút, chốt blocker/known limits; tag/publish cần quyền riêng.
@@ -77,10 +77,10 @@ Có thể chuẩn bị interface, fixture, mock, test plan và tài liệu trư�
 
 ## Theo dõi
 
-- **Trạng thái:** Backlog
+- **Trạng thái:** In Progress
 - **Assignee:** HoaiTam
-- **Reviewer:** Chưa ghi lại
-- **Evidence / PR:** Chưa có
+- **Reviewer:** unassigned
+- **Evidence / PR:** [Runbook rehearsal và checklist release](../../runbooks/DEMO-02_REHEARSAL.md), [mẫu biên bản](../../runbooks/DEMO-02_REHEARSAL_RECORD.md), Draft [PR #151](https://github.com/HoaiTam/japan-earthquake-etl/pull/151). Đã đồng bộ `main` (`f420981`, gồm [MLI-03](./MLI-03.md) `#149`, [MLI-04](./MLI-04.md) `#144` và [MLQ-01](./MLQ-01.md) `#150` `Done`) và tách rõ hai đường tập offline (pilot `DEVELOPMENT_ONLY`) vs diễn tập official ([report MLI-04](../../evidence/MLI-04_OFFICIAL_READBACK_20261124.md) render theo SHA + [receipt MLQ-01](../../evidence/MLQ-01_E2E_20261125.json)), đồng thời trỏ các phương án fallback (Power BI/ODBC, Docker/Trino, Drive/Colab) trong diễn tập official về đúng report/receipt official đã ghim (chỉ dùng `MLI-04_STATIC_REPORT.md` nhãn `DEVELOPMENT_ONLY` khi tập offline). Kiểm offline trên nhánh #143 xác minh 15 mục, bốn phương án dự phòng và receipt DAT-03 của ThanhTris; đã kiểm lệnh dựng cả report pilot lẫn report official theo SHA. Chưa diễn tập ba người; giữ `NOT_RUN` trong biên bản đến khi có kết quả thực tế. Nghiệm thu còn chờ hoàn tất walkthrough [DEMO-01 — Chuẩn bị dữ liệu và kịch bản demo](./DEMO-01.md) (`#143`) và diễn tập ba thành viên. [Review #151 (tách offline và official)](https://github.com/HoaiTam/japan-earthquake-etl/pull/151#issuecomment-7136800321), [Review #151 (fallback Power BI)](https://github.com/HoaiTam/japan-earthquake-etl/pull/151#issuecomment-7159892830).
 - **Kỹ năng phù hợp:** Release management, presentation
 
 ## Checklist bàn giao

@@ -35,7 +35,7 @@ nguyên sau [rerun MLI-03](../../evidence/MLI-03_ADAPTIVE_REPRODUCTION_20261124.
 **17/11 — DAT-03 Done:** đã đối chiếu catalog288tháng, Gold Published/rerun,
 hai official collections EXPORTED và receipt thật cùng kitv4 trên ba máy.
 [Đối chiếu acceptance](../../evidence/DAT-03_FINAL_ACCEPTANCE_20261116.md).
-Hiện 79/81 Done, 0 Needs Update, 1 Backlog, 1 In Progress sau nghiệm thu
+Hiện 79/81 Done, 0 Needs Update, 0 Backlog, 2 In Progress sau nghiệm thu
 [EXP-02](../../evidence/EXP-02_OFFICIAL_REPRODUCTION.md),
 [EXP-03](../../evidence/EXP-03_OFFICIAL_REPRODUCTION.md) và
 [EXP-04](../../evidence/EXP-04_OFFICIAL_REPRODUCTION.md) và
@@ -450,7 +450,7 @@ và portable integration/full catalog/official export đã qua actual acceptance
 |---|---:|---|---|---|---:|---|
 | [DOC-01](./DOC-01.md) - Cập nhật tài liệu theo từng block | 5 | Documentation | Core | P0 | 4h | Done |
 | [DEMO-01](./DEMO-01.md) - Chuẩn bị dữ liệu và kịch bản demo | 8 | Demo | Core | P0 | 4h | In Progress |
-| [DEMO-02](./DEMO-02.md) - Rehearsal và tạo release candidate | 8 | Release | Core | P0 | 6h | Backlog |
+| [DEMO-02](./DEMO-02.md) - Rehearsal và tạo release candidate | 8 | Release | Core | P0 | 6h | In Progress |
 | [OPS-01](./OPS-01.md) - Smoke test backup và restore metadata | 6 | Backup and restore | Stretch | P2 | 4h | Done |
 | [QA-01](./QA-01.md) - Chạy E2E daily đa nguồn | 5 | E2E | Core | P0 | 5h | Done |
 | [QA-02](./QA-02.md) - Test rerun, duplicate và late revision | 5 | Idempotency | Core | P0 | 5h | Done |
