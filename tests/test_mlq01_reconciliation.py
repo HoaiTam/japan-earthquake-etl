@@ -1,11 +1,14 @@
-"""Offline checks for the MLQ-01 reconciliation SQL over a single synthetic window."""
+"""Offline reconciliation SQL fixtures and checked-in evidence pin checks."""
+import hashlib
+import json
 import re
 import sqlite3
 import unittest
 from pathlib import Path
 
 
-QUERY = Path(__file__).resolve().parents[1] / "sql/ml/mlq01_reconciliation.sql"
+ROOT = Path(__file__).resolve().parents[1]
+QUERY = ROOT / "sql/ml/mlq01_reconciliation.sql"
 FIXTURE = """
 CREATE TABLE gold_source (canonical_event_id TEXT);
 INSERT INTO gold_source VALUES ('main'), ('target'), ('extra');
@@ -170,3 +173,24 @@ class Mlq01ReconciliationTest(unittest.TestCase):
         self.assertEqual((1, 1, 1, 1), (
             row["gold_rows"], row["exported_rows"], row["serving_rows"], row["target_resolved"]
         ))
+
+    def test_official_receipt_keeps_evidence_pins_and_trace_coverage(self):
+        def lf_sha(path):
+            return hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
+
+        base = ROOT / "docs/evidence"
+        e2e = json.loads((base / "MLQ-01_E2E_20261125.json").read_bytes())
+        extension = e2e["extension"]
+        marker = ROOT / extension["success_marker_path"]
+        self.assertEqual("PASSED", e2e["status"])
+        self.assertIs(e2e["scientific_approval"], False)
+        self.assertEqual(extension["success_marker_sha256"], hashlib.sha256(marker.read_bytes()).hexdigest())
+        self.assertEqual(e2e["mli04_sha256_lf"], lf_sha(base / "MLI-04_OFFICIAL_READBACK_20261124.json"))
+        self.assertEqual(extension["exp05_sha256_lf"], lf_sha(base / "EXP-05_EXTENSION_EVALUATION.json"))
+        for pin in (extension["import_receipt"], e2e["rerun_verification"]):
+            self.assertEqual(pin["sha256_lf"], lf_sha(ROOT / pin["path"]))
+        self.assertEqual({r["algorithm_name"] for r in e2e["runs"].values()},
+                         {"WINDOW", "DBSCAN", "HDBSCAN_GLOBAL", "HDBSCAN_ADAPTIVE"})
+        traces = [r["trace"] for r in e2e["runs"].values()] + [extension["trace"]]
+        self.assertEqual(5, len({t["query_id"] for t in traces}))
+        self.assertTrue(all(t["lineage_check"] == "PASS" for t in traces))

@@ -22,6 +22,11 @@ và `make check` để phát hiện trạng thái bị lệch khi tích hợp c�
 
 ## Tổng quan
 
+**25/11 — MLQ-01 Done:** [Receipt E2E](../../evidence/MLQ-01_E2E_20261125.json)
+`PASSED` với 4 trace REPRODUCTION và 1 EXTENSION WINDOW; checksum lỗi không
+tạo CANDIDATE, rerun Adaptive giữ nguyên snapshot/count. [DEMO-01](./DEMO-01.md)
+có thể ghim receipt và walkthrough bằng đúng evidence.
+
 **24/11 — MLI-04 Done:** [Official REPRODUCTION](../../evidence/MLI-04_OFFICIAL_READBACK_20261124.md)
 đã `VERIFIED` với 8/8 shard và 36/36 truy vấn snapshot. Hai receipt Adaptive giữ
 nguyên sau [rerun MLI-03](../../evidence/MLI-03_ADAPTIVE_REPRODUCTION_20261124.json).
@@ -30,7 +35,7 @@ nguyên sau [rerun MLI-03](../../evidence/MLI-03_ADAPTIVE_REPRODUCTION_20261124.
 **17/11 — DAT-03 Done:** đã đối chiếu catalog288tháng, Gold Published/rerun,
 hai official collections EXPORTED và receipt thật cùng kitv4 trên ba máy.
 [Đối chiếu acceptance](../../evidence/DAT-03_FINAL_ACCEPTANCE_20261116.md).
-Hiện 78/81 Done, 0 Needs Update, 1 Backlog, 2 In Progress sau nghiệm thu
+Hiện 79/81 Done, 0 Needs Update, 1 Backlog, 1 In Progress sau nghiệm thu
 [EXP-02](../../evidence/EXP-02_OFFICIAL_REPRODUCTION.md),
 [EXP-03](../../evidence/EXP-03_OFFICIAL_REPRODUCTION.md) và
 [EXP-04](../../evidence/EXP-04_OFFICIAL_REPRODUCTION.md) và
@@ -427,7 +432,7 @@ và portable integration/full catalog/official export đã qua actual acceptance
 | [MLI-02](./MLI-02.md) - Tạo Airflow DAG build ML dataset | 5 | Dataset build orchestration | Core | P0 | 5h | Done |
 | [MLI-03](./MLI-03.md) - Validate/import kết quả và commit bảng ML Iceberg | 5 | Result import and Iceberg publish | Core | P0 | 7h | Done |
 | [MLI-04](./MLI-04.md) - Tạo Trino views và static report cho experiment | 8 | ML serving and report | Core | P0 | 4h | Done |
-| [MLQ-01](./MLQ-01.md) - Chạy E2E Gold snapshot đến ML report | 8 | ML end-to-end QA | Core | P0 | 6h | In Progress |
+| [MLQ-01](./MLQ-01.md) - Chạy E2E Gold snapshot đến ML report | 8 | ML end-to-end QA | Core | P0 | 6h | Done |
 
 ## J - Power BI tùy chọn
 

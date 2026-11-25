@@ -1,10 +1,12 @@
-# MLQ-01 — Chuẩn bị đối soát E2E Gold đến ML report
+# MLQ-01 — Đối soát E2E Gold đến ML report
 
-[MLQ-01](../task/tasks/MLQ-01.md) đang chuẩn bị test plan, truy vấn và fixture.
+[MLQ-01](../task/tasks/MLQ-01.md) đã nghiệm thu trên dữ liệu official trong QA.
 [MLI-03 — Validate/import kết quả và commit bảng ML Iceberg](../task/tasks/MLI-03.md)
 và [MLI-04 — Tạo Trino views và static report cho experiment](../task/tasks/MLI-04.md)
 đã hoàn tất trên `main` (`VERIFIED` 8/8 shard `REPRODUCTION` tại exact snapshots);
-`MLQ-01` vẫn `In Progress` chờ ca `EXTENSION WINDOW` và receipt E2E tổng hợp.
+Xem [báo cáo nghiệm thu](../evidence/MLQ-01_E2E_20261125.md) và
+[receipt `PASSED`](../evidence/MLQ-01_E2E_20261125.json) (4 REPRODUCTION +
+1 EXTENSION WINDOW, negative checksum và rerun không trùng).
 Giữ nguyên namespace, dữ liệu, và frozen rule của EXP-04/05 khi đối soát.
 
 ## Nghiệm thu một phần — 24/11/2026
@@ -16,13 +18,14 @@ bản sao trong namespace QA mới; Trino không thấy bảng kết quả nào,
 `CANDIDATE`, lease của phiên đã được trả. [Evidence rerun MLI-03](../evidence/MLI-03_ADAPTIVE_REPRODUCTION_20261124.json)
 giữ nguyên counts và snapshot của hai shard Adaptive.
 
-Chưa phát hành receipt `PASSED`. Để đóng MLQ-01, cần bundle gốc WINDOW
-EXTENSION của [EXP-05](../evidence/EXP-05_EXTENSION_EVALUATION.json), ví dụ
+Ngày 25/11 đã nhận bundle gốc WINDOW EXTENSION của
+[EXP-05](../evidence/EXP-05_EXTENSION_EVALUATION.json):
 `shard_00000` / `exp_run_46158cb713554d5a3273c944263c3ed3`, SHA-256 marker
 `c799a303f5f9dd3e93664634fc8e56494f8539d29d4f38ff70d3c27ca7ddbe3b`.
-Nhận `_SUCCESS.json` cùng toàn bộ tệp trong `checksums`, giữ nguyên bytes;
-import vào namespace QA rồi truy vết trên snapshot của receipt `CANDIDATE`.
-Không dùng report EXP-05 hoặc mô hình fit lại thay bundle đã ghim.
+Import và trace thành công trên snapshot của [receipt `CANDIDATE`](../evidence/MLQ-01_EXTENSION_WINDOW_IMPORT_20261125.json).
+Khi chạy lại trên catalog phù hợp, chỉ nhận `_SUCCESS.json` và các tệp trong
+`checksums`, giữ nguyên bytes; không dùng report EXP-05 hoặc fit lại mô hình
+thay bundle đã ghim.
 
 ## Ghim đầu vào
 
@@ -222,7 +225,8 @@ python -m unittest tests.test_mlq01_reconciliation
 make test-mli-import
 ~~~
 
-CI `docs-contracts` chạy fixture SQL qua `make ci-docs-base`. Fixture gồm 9 ca:
+CI `docs-contracts` chạy 9 ca fixture SQL và một ca kiểm SHA/pin của receipt
+official qua `make ci-docs-base`. Fixture SQL gồm:
 một trace thành công, không chứa dấu chấm phẩy `;` (tương thích Trino HTTP API
 `/v1/statement`), kiểm khớp trường ánh xạ `trace` cho receipt `DEMO-01`, các ca
 mất Gold event, lệch từng pin publication hoặc lineage, run REJECTED, counts đúng
